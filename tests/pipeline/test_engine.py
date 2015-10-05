@@ -26,7 +26,6 @@ from testfixtures import TempDirectory
 
 from zipline.pipeline.loaders.synthetic import (
     ConstantLoader,
-    MultiColumnLoader,
     NullAdjustmentReader,
     SyntheticDailyBarWriter,
 )
@@ -97,7 +96,7 @@ class ConstantInputTestCase(TestCase):
             USEquityPricing.high: 4,
         }
         self.assets = [1, 2, 3]
-        self.dates = date_range('2014-01-01', '2014-02-01', freq='D', tz='UTC')
+        self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
         self.loader = ConstantLoader(
             constants=self.constants,
             dates=self.dates,
@@ -276,6 +275,57 @@ class ConstantInputTestCase(TestCase):
             DataFrame(expected_avg, index=dates, columns=self.assets),
         )
 
+    def test_rolling_and_nonrolling(self):
+        open_ = USEquityPricing.open
+        close = USEquityPricing.close
+        volume = USEquityPricing.volume
+
+        # Test for thirty days up to the last day that we think all
+        # the assets existed.
+        dates_to_test = self.dates[-30:]
+
+        constants = {open_: 1, close: 2, volume: 3}
+        loader = ConstantLoader(
+            constants=constants,
+            dates=self.dates,
+            assets=self.assets,
+        )
+        engine = SimplePipelineEngine(lambda column: loader,
+                                      self.dates, self.asset_finder)
+
+        sumdiff = RollingSumDifference()
+
+        result = engine.run_pipeline(
+            Pipeline(
+                columns={
+                    'sumdiff': sumdiff,
+                    'open': open_.latest,
+                    'close': close.latest,
+                    'volume': volume.latest,
+                },
+            ),
+            dates_to_test[0],
+            dates_to_test[-1]
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(
+            {'sumdiff', 'open', 'close', 'volume'},
+            set(result.columns)
+        )
+
+        result_index = self.assets * len(dates_to_test)
+        result_shape = (len(result_index),)
+        check_arrays(
+            result['sumdiff'],
+            Series(index=result_index, data=full(result_shape, -3)),
+        )
+
+        for name, const in [('open', 1), ('close', 2), ('volume', 3)]:
+            check_arrays(
+                result[name],
+                Series(index=result_index, data=full(result_shape, const)),
+            )
+
 
 class FrameInputTestCase(TestCase):
 
@@ -358,10 +408,12 @@ class FrameInputTestCase(TestCase):
         high_base.iloc[:apply_idxs[2], 1] /= 5.0
 
         high_loader = DataFrameLoader(high, high_base, adjustments)
-        loader = MultiColumnLoader({low: low_loader, high: high_loader})
 
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            {low: low_loader, high: high_loader}.__getitem__,
+            self.dates,
+            self.asset_finder,
+        )
 
         for window_length in range(1, 4):
             low_mavg = SimpleMovingAverage(
@@ -558,70 +610,3 @@ class SyntheticBcolzTestCase(TestCase):
         result = results['drawdown'].unstack()
 
         assert_frame_equal(expected, result)
-
-
-class MultiColumnLoaderTestCase(TestCase):
-    def setUp(self):
-        self.assets = [1, 2, 3]
-        self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
-
-        asset_info = make_simple_asset_info(
-            self.assets,
-            start_date=self.dates[0],
-            end_date=self.dates[-1],
-        )
-        env = TradingEnvironment()
-        env.write_data(equities_df=asset_info)
-        self.asset_finder = env.asset_finder
-
-    def test_engine_with_multicolumn_loader(self):
-        open_ = USEquityPricing.open
-        close = USEquityPricing.close
-        volume = USEquityPricing.volume
-
-        # Test for thirty days up to the second to last day that we think all
-        # the assets existed.  If we test the last day of our calendar, no
-        # assets will be in our output, because their end dates are all
-        dates_to_test = self.dates[-32:-2]
-
-        constants = {open_: 1, close: 2, volume: 3}
-        loader = ConstantLoader(
-            constants=constants,
-            dates=self.dates,
-            assets=self.assets,
-        )
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
-
-        sumdiff = RollingSumDifference()
-
-        result = engine.run_pipeline(
-            Pipeline(
-                columns={
-                    'sumdiff': sumdiff,
-                    'open': open_.latest,
-                    'close': close.latest,
-                    'volume': volume.latest,
-                },
-            ),
-            dates_to_test[0],
-            dates_to_test[-1]
-        )
-        self.assertIsNotNone(result)
-        self.assertEqual(
-            {'sumdiff', 'open', 'close', 'volume'},
-            set(result.columns)
-        )
-
-        result_index = self.assets * len(dates_to_test)
-        result_shape = (len(result_index),)
-        check_arrays(
-            result['sumdiff'],
-            Series(index=result_index, data=full(result_shape, -3)),
-        )
-
-        for name, const in [('open', 1), ('close', 2), ('volume', 3)]:
-            check_arrays(
-                result[name],
-                Series(index=result_index, data=full(result_shape, const)),
-            )
