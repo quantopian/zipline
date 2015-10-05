@@ -460,7 +460,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     array of sids, an output array, and an input array for each expression
     passed as `inputs` to the CustomFactor constructor.
 
-    The specific types of the vaules passed to `compute` are as follows:
+    The specific types of the values passed to `compute` are as follows:
 
         today : np.datetime64[ns]
             Row label for the last row of all arrays passed as `inputs`.
@@ -504,7 +504,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
 
     # Doesn't require passing inputs or window_length because they're
     # pre-declared as defaults
-    ten_day_low = TenDayLow()
+    ten_day_range = TenDayRange()
 
     class MedianValue(CustomFactor):
         '''
