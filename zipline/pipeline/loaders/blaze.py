@@ -1,8 +1,12 @@
+"""Blaze integration with the pipeline API.
+"""
 from __future__ import division
 
 from abc import ABCMeta, abstractproperty
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+from itertools import count
 from operator import attrgetter
+import warnings
 from weakref import WeakKeyDictionary
 
 import blaze as bz
@@ -15,7 +19,6 @@ from datashape import (
     isscalar,
     promote,
 )
-from logbook import Logger
 from numpy.lib.stride_tricks import as_strided
 from odo import odo
 import pandas as pd
@@ -37,7 +40,24 @@ valid_deltas_node_types = (
     bz.expr.Symbol,
 )
 getname = attrgetter('__name__')
-log = Logger(__name__)
+
+
+class _ExprRepr(object):
+    """Box for repring expressions with the str of the expression.
+
+    Parameters
+    ----------
+    expr : Expr
+        The expression to box for repring.
+    """
+    __slots__ = 'expr',
+
+    def __init__(self, expr):
+        self.expr = expr
+
+    def __repr__(self):
+        return str(self.expr)
+    __str__ = __repr__
 
 
 class ExprData(namedtuple('ExprData', 'expr deltas resources')):
@@ -57,11 +77,11 @@ class ExprData(namedtuple('ExprData', 'expr deltas resources')):
 
     def __repr__(self):
         # If the expressions have _resources() then the repr will
-        # drive computation so we str them.
+        # drive computation so we box them.
         cls = type(self)
         return super(ExprData, cls).__repr__(cls(
-            str(self.expr),
-            str(self.deltas),
+            _ExprRepr(self.expr),
+            _ExprRepr(self.deltas),
             self.resources,
         ))
 
@@ -110,6 +130,9 @@ class NotPipelineCompatible(TypeError):
         return "'%s' is a non pipleine API compatible type'" % self.args
 
 
+_new_names = ('_%d' % n for n in count())
+
+
 @memoize
 def new_dataset(expr, deltas):
     """Creates or returns a dataset from a pair of blaze expressions.
@@ -134,19 +157,22 @@ def new_dataset(expr, deltas):
     for name, type_ in expr.dshape.measure.fields:
         try:
             if promote(type_, float64, promote_option=False) != float64:
-                raise NotPipelineCompatible
+                raise NotPipelineCompatible()
             if isinstance(type_, Option):
                 type_ = type_.ty
-        except TypeError:
-            col = NonNumpyField(name, type_)
         except NotPipelineCompatible:
             col = NonPipelineField(name, type_)
+        except TypeError:
+            col = NonNumpyField(name, type_)
         else:
             col = Column(type_.to_numpy_dtype().type)
 
         columns[name] = col
 
-    return type(expr._name, (DataSet,), columns)
+    name = expr._name
+    if expr._name is None:
+        name = next(_new_names)
+    return type(name, (DataSet,), columns)
 
 
 def _check_resources(name, expr, resources):
@@ -202,6 +228,25 @@ def _check_datetime_field(name, measure):
         )
 
 
+class NoDeltasWarning(UserWarning):
+    """Warning used to signal that no deltas could be found and none
+    were provided.
+
+    Parameters
+    ----------
+    expr : Expr
+        The expression that was searched.
+    """
+    def __init__(self, expr):
+        self._expr = expr
+
+    def __str__(self):
+        return 'No deltas could be infered from expr: %s' % self._expr
+
+
+_valid_no_deltas_rules = 'warn', 'raise', 'ignore'
+
+
 def _get_deltas(expr, deltas, no_deltas_rule):
     """Find the correct deltas for the expression.
 
@@ -213,7 +258,7 @@ def _get_deltas(expr, deltas, no_deltas_rule):
         The deltas argument. If this is 'auto', then the deltas table will
         be searched for by walking up the expression tree. If this can not be
         reflected, then an action will be taken based on the 'no_deltas_rule'.
-    no_deltas_rule : {'log', 'raise', 'ignore'}
+    no_deltas_rule : {'warn', 'raise', 'ignore'}
         How to handle the case where deltas='auto' but no deltas could be
         found.
 
@@ -222,34 +267,32 @@ def _get_deltas(expr, deltas, no_deltas_rule):
     deltas : Expr or None
         The deltas table to use.
     """
-    if no_deltas_rule not in _get_deltas.valid_no_deltas_rules:
+    if no_deltas_rule not in _valid_no_deltas_rules:
         raise ValueError(
             'no_deltas_rule must be one of: %s' %
-            _get_deltas.valid_no_deltas_rules
+            _valid_no_deltas_rules
         )
 
-    if deltas != 'auto':
+    if isinstance(deltas, bz.Expr) or deltas != 'auto':
         return deltas
 
     try:
-        return expr._child[expr._name + '_deltas']
-    except (AttributeError, KeyError):
+        return expr._child[(expr._name or '') + '_deltas']
+    except (ValueError, AttributeError):
         if no_deltas_rule == 'raise':
             raise ValueError(
-                "no deltas table could be reflected for '%s'" % expr
+                "no deltas table could be reflected for %s" % expr
             )
-        elif no_deltas_rule == 'log':
-            log.warn("no deltas table found for '%s'" % expr)
+        elif no_deltas_rule == 'warn':
+            warnings.warn(NoDeltasWarning(expr))
     return None
-
-_get_deltas.valid_no_deltas_rules = 'log', 'raise', 'ignore'
 
 
 def pipeline_api_from_blaze(expr,
                             deltas='auto',
                             loader=None,
                             resources=None,
-                            no_deltas_rule='log'):
+                            no_deltas_rule=_valid_no_deltas_rules[0]):
     """Create a pipeline api object from a blaze expression.
 
     Parameters
@@ -268,7 +311,7 @@ def pipeline_api_from_blaze(expr,
     resources : dict or any, optional
         The data to execute the blaze expressions against. This is used as the
         scope for ``bz.compute``.
-    no_deltas_rule : {'log', 'raise', 'ignore'}
+    no_deltas_rule : {'warn', 'raise', 'ignore'}
         What should happen if ``deltas='auto'`` but no deltas can be found.
         'log' says to log a message but continue.
         'raise' says to raise an exception if no deltas can be found.
@@ -283,19 +326,6 @@ def pipeline_api_from_blaze(expr,
         is passed, a ``BoundColumn`` on the dataset that would be constructed
         from passing the parent is returned.
     """
-    # Check if this is a single column out of a dataset.
-    single_column = None
-    if isscalar(expr.dshape.measure):
-        # This is a single column, record which column we are to return
-        # but create the entire dataset.
-        single_column = expr._name
-        col = expr
-        for expr in expr._subterms():
-            if isrecord(expr.dshape.measure):
-                break
-        else:
-            expr = bz.Data(col, name=single_column)
-
     deltas = _get_deltas(expr, deltas, no_deltas_rule)
     if deltas is not None:
         invalid_nodes = tuple(filter(
@@ -310,6 +340,19 @@ def pipeline_api_from_blaze(expr,
                     ', '.join(map(compose(getname, type), invalid_nodes)),
                 ),
             )
+
+    # Check if this is a single column out of a dataset.
+    single_column = None
+    if isscalar(expr.dshape.measure):
+        # This is a single column, record which column we are to return
+        # but create the entire dataset.
+        single_column = expr._name
+        col = expr
+        for expr in expr._subterms():
+            if isrecord(expr.dshape.measure):
+                break
+        else:
+            expr = bz.Data(col, name=single_column)
 
     measure = expr.dshape.measure
     if not isrecord(measure) or AD_FIELD_NAME not in measure.names:
@@ -333,10 +376,12 @@ def pipeline_api_from_blaze(expr,
     else:
         _check_datetime_field(TS_FIELD_NAME, measure)
 
-    if deltas is not None and deltas.dshape.measure != measure:
+    if deltas is not None and (sorted(deltas.dshape.measure.fields) !=
+                               sorted(measure.fields)):
         raise TypeError(
-            "base measure != deltas measure ('%s' != '%s')" % (
-                measure, deltas.dshape.measure,
+            'base measure != deltas measure:\n%s != %s' % (
+                measure,
+                deltas.dshape.measure,
             ),
         )
 
@@ -391,10 +436,10 @@ def inline_novel_deltas(base, deltas, dates):
     )
 
 
-def overwrite_from_dates(asof, dates, sparse_dates, asset_idx, value):
+def overwrite_from_dates(asof, dates, dense_dates, asset_idx, value):
     """Construct a `Float64Overwrite` with the correct
     start and end date based on the asof date of the delta,
-    the dense_dates, and the sparse_dates.
+    the dense_dates, and the dense_dates.
 
     Parameters
     ----------
@@ -402,7 +447,7 @@ def overwrite_from_dates(asof, dates, sparse_dates, asset_idx, value):
         The asof date of the delta.
     dates : pd.DatetimeIndex
         The dates requested by the loader.
-    sparse_dates : pd.DatetimeIndex
+    dense_dates : pd.DatetimeIndex
         The dates that appeared in the dataset.
     asset_idx : int
         The index of the asset in the block.
@@ -416,17 +461,18 @@ def overwrite_from_dates(asof, dates, sparse_dates, asset_idx, value):
     """
     return Float64Overwrite(
         dates.searchsorted(asof),
-        dates.get_loc(sparse_dates[sparse_dates.searchsorted(asof) + 1]) - 1,
+        dates.get_loc(dense_dates[dense_dates.searchsorted(asof) + 1]) - 1,
         asset_idx,
         value,
     )
 
 
-def adjustments_from_deltas(dates,
-                            sparse_dates,
-                            column_idx,
-                            assets,
-                            deltas):
+def adjustments_from_deltas_no_sids(dates,
+                                    dense_dates,
+                                    column_idx,
+                                    column_name,
+                                    assets,
+                                    deltas):
     """Collect all the adjustments that occur in a dataset that does not
     have a sid column.
 
@@ -434,10 +480,12 @@ def adjustments_from_deltas(dates,
     ----------
     dates : pd.DatetimeIndex
         The dates requested by the loader.
-    sparse_dates : pd.DatetimeIndex
-        The dates that were in the sparse data.
+    dense_dates : pd.DatetimeIndex
+        The dates that were in the dense data.
     column_idx : int
         The index of the column in the dataset.
+    column_name : str
+        The name of the column to compute deltas for.
     deltas : pd.DataFrame
         The overwrites that should be applied to the dataset.
 
@@ -451,12 +499,54 @@ def adjustments_from_deltas(dates,
             overwrite_from_dates(
                 deltas.loc[kd, AD_FIELD_NAME],
                 dates,
-                sparse_dates,
+                dense_dates,
                 n,
                 v,
             ) for n in range(len(assets))
-        ) for kd, v in deltas.icol(column_idx).iteritems()
+        ) for kd, v in deltas[column_name].iteritems()
     }
+
+
+def adjustments_from_deltas_with_sids(dates,
+                                      dense_dates,
+                                      column_idx,
+                                      column_name,
+                                      assets,
+                                      deltas):
+    """Collect all the adjustments that occur in a dataset that does not
+    have a sid column.
+
+    Parameters
+    ----------
+    dates : pd.DatetimeIndex
+        The dates requested by the loader.
+    dense_dates : pd.DatetimeIndex
+        The dates that were in the dense data.
+    column_idx : int
+        The index of the column in the dataset.
+    column_name : str
+        The name of the column to compute deltas for.
+    deltas : pd.DataFrame
+        The overwrites that should be applied to the dataset.
+
+    Returns
+    -------
+    adjustments : dict[idx -> Float64Overwrite]
+        The adjustments dictionary to feed to the adjusted array.
+    """
+    adjustments = defaultdict(list)
+    for sid_idx, (sid, per_sid) in enumerate(deltas[column_name].iteritems()):
+        for kd, v in per_sid.iteritems():
+            adjustments[dates.get_loc(kd)].append(
+                overwrite_from_dates(
+                    deltas[AD_FIELD_NAME].loc[kd, sid],
+                    dates,
+                    dense_dates,
+                    sid_idx,
+                    v,
+                ),
+            )
+    return dict(adjustments)  # no subclasses of dict
 
 
 class BlazeLoader(dict):
@@ -501,7 +591,7 @@ class BlazeLoader(dict):
             # be removed from scope too early otherwise.
             lower = odo(ts[ts <= dates[0]].max(), pd.Timestamp)
             return e[
-                e[SID_FIELD_NAME].isin(assets) &
+                (e[SID_FIELD_NAME].isin(assets) if have_sids else True) &
                 ((ts >= lower) if lower is not pd.NaT else True) &
                 (ts <= dates[-1])
             ][query_fields]
@@ -510,17 +600,16 @@ class BlazeLoader(dict):
             bz.compute(where(expr), resources),
             pd.DataFrame,
         )
+
         materialized_deltas = (
             odo(bz.compute(where(deltas), resources), pd.DataFrame)
             if deltas is not None else
             pd.DataFrame(columns=query_fields)
         )
-        # Capture the original (sparse) dates that came from the resource.
-        sparse_dates = pd.DatetimeIndex(materialized_expr[TS_FIELD_NAME])
         # Inline the deltas that changed our most recently known value.
         # Also, we reindex by the dates to create a dense representation of
         # the data.
-        dense_output = inline_novel_deltas(
+        sparse_output = inline_novel_deltas(
             materialized_expr,
             materialized_deltas,
             dates,
@@ -529,18 +618,21 @@ class BlazeLoader(dict):
         if have_sids:
             # Unstack by the sid so that we get a multi-index on the columns
             # of datacolumn, sid.
-            dense_output = dense_output.set_index(
+            sparse_output = sparse_output.set_index(
                 SID_FIELD_NAME,
                 append=True,
+            ).unstack()
+            sparse_deltas = materialized_deltas.set_index(
+                [TS_FIELD_NAME, SID_FIELD_NAME],
             ).unstack()
 
             # Allocate the whole output dataframe at once instead of
             # reindexing.
-            sparse_output = pd.DataFrame(
+            dense_output = pd.DataFrame(
                 columns=pd.MultiIndex.from_product(
-                    (dense_output.columns.levels[0], assets),
+                    (sparse_output.columns.levels[0], assets),
                     names=(
-                        dense_output.columns.levels[0].name,
+                        sparse_output.columns.levels[0].name,
                         SID_FIELD_NAME,
                     ),
                 ),
@@ -548,12 +640,14 @@ class BlazeLoader(dict):
             )
 
             # In place update the output based on the base.
-            sparse_output.update(dense_output)
-
+            dense_output.update(sparse_output)
+            adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
         else:
             # We use the column view to make an array per asset.
-            sparse_output = dense_output.reindex(dates)
+            dense_output = sparse_output.reindex(dates)
+            sparse_deltas = materialized_deltas.set_index(TS_FIELD_NAME)
+            adjustments_from_deltas = adjustments_from_deltas_no_sids
 
             def column_view(arr, _shape=(len(dates), len(assets))):
                 """Return a virtual matrix where we make a view that
@@ -578,17 +672,19 @@ class BlazeLoader(dict):
         sparse_output = sparse_output.ffill()
 
         for column_idx, column in enumerate(columns):
+            column_name = column.name
             yield adjusted_array(
                 column_view(
-                    sparse_output[column.name].values.astype(column.dtype),
+                    dense_output[column_name].values.astype(column.dtype),
                 ),
                 mask,
                 adjustments_from_deltas(
                     dates,
-                    sparse_dates,
+                    sparse_output.index,
                     column_idx,
+                    column_name,
                     assets,
-                    materialized_deltas,
+                    sparse_deltas,
                 )
             )
 
