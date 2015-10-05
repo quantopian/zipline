@@ -502,9 +502,6 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
             lowest_lows = nanmin(axis=0)
             out[:] = highest_highs - lowest_lows
 
-    # Doesn't require passing inputs or window_length because they're
-    # pre-declared as defaults
-    ten_day_range = TenDayRange()
 
     class MedianValue(CustomFactor):
         '''
@@ -520,7 +517,12 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
             out[:} = data.nanmedian(axis=0)
 
 
-    # Values for `inputs` and `window_length` must be passsed explitly.
+    # Doesn't require passing inputs or window_length because they're
+    # pre-declared as defaults for the TenDayRange class.
+    ten_day_range = TenDayRange()
+
+    # Values for `inputs` and `window_length` must be passsed explitly to
+    # MedianValue.
     median_close_10 = MedianValue([USEquityPricing.close], window_length=10)
     median_low_15 = MedianValue([USEquityPricing.low], window_length=15)
     """
