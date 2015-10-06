@@ -222,7 +222,7 @@ class BlazeToPipelineTestCase(TestCase):
 
     def test_non_pipeline_field(self):
         # NOTE: This test will fail if we ever allow string types in
-        # the pipeline api. If this happens, change the dtype of the `a` field
+        # the Pipeline API. If this happens, change the dtype of the `a` field
         # of expr to another type we don't allow.
         expr = bz.Data(
             [],
