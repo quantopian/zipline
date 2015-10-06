@@ -1,6 +1,6 @@
 """Blaze integration with the pipeline API.
 """
-from __future__ import division
+from __future__ import division, absolute_import
 
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
