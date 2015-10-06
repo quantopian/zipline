@@ -288,11 +288,11 @@ def _get_deltas(expr, deltas, no_deltas_rule):
     return None
 
 
-def pipeline_api_from_blaze(expr,
-                            deltas='auto',
-                            loader=None,
-                            resources=None,
-                            no_deltas_rule=_valid_no_deltas_rules[0]):
+def from_blaze(expr,
+               deltas='auto',
+               loader=None,
+               resources=None,
+               no_deltas_rule=_valid_no_deltas_rules[0]):
     """Create a pipeline api object from a blaze expression.
 
     Parameters

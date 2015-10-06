@@ -21,7 +21,7 @@ from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.data import DataSet, BoundColumn
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.blaze import (
-    pipeline_api_from_blaze,
+    from_blaze,
     BlazeLoader,
     NoDeltasWarning,
     NonNumpyField,
@@ -70,7 +70,7 @@ class BlazeToPipelineTestCase(TestCase):
     def test_tabular(self):
         name = 'expr'
         expr = bz.Data(self.df, name=name, dshape=self.dshape)
-        ds = pipeline_api_from_blaze(
+        ds = from_blaze(
             expr,
             loader=self.garbage_loader,
             no_deltas_rule='ignore',
@@ -89,7 +89,7 @@ class BlazeToPipelineTestCase(TestCase):
             self.assertIn("'datetime'", str(e.exception))
 
         self.assertIs(
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule='ignore',
@@ -100,7 +100,7 @@ class BlazeToPipelineTestCase(TestCase):
     def test_column(self):
         exprname = 'expr'
         expr = bz.Data(self.df, name=exprname, dshape=self.dshape)
-        value = pipeline_api_from_blaze(
+        value = from_blaze(
             expr.value,
             loader=self.garbage_loader,
             no_deltas_rule='ignore',
@@ -111,7 +111,7 @@ class BlazeToPipelineTestCase(TestCase):
 
         # test memoization
         self.assertIs(
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr.value,
                 loader=self.garbage_loader,
                 no_deltas_rule='ignore',
@@ -119,7 +119,7 @@ class BlazeToPipelineTestCase(TestCase):
             value,
         )
         self.assertIs(
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule='ignore',
@@ -129,7 +129,7 @@ class BlazeToPipelineTestCase(TestCase):
 
         # test the walk back up the tree
         self.assertIs(
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule='ignore',
@@ -151,7 +151,7 @@ class BlazeToPipelineTestCase(TestCase):
         )
 
         with self.assertRaises(TypeError) as e:
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule='ignore',
@@ -169,7 +169,7 @@ class BlazeToPipelineTestCase(TestCase):
             )),
         )
         loader = BlazeLoader()
-        ds = pipeline_api_from_blaze(expr.ds, loader=loader)
+        ds = from_blaze(expr.ds, loader=loader)
         self.assertEqual(len(loader), 1)
         exprdata = loader[ds]
         self.assertTrue(exprdata.expr.isidentical(expr.ds))
@@ -180,7 +180,7 @@ class BlazeToPipelineTestCase(TestCase):
             warnings.simplefilter('always')
             loader = BlazeLoader()
             expr = bz.Data(self.df, dshape=self.dshape)
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr,
                 loader=loader,
                 no_deltas_rule='warn',
@@ -194,7 +194,7 @@ class BlazeToPipelineTestCase(TestCase):
         loader = BlazeLoader()
         expr = bz.Data(self.df, dshape=self.dshape)
         with self.assertRaises(ValueError) as e:
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr,
                 loader=loader,
                 no_deltas_rule='raise',
@@ -211,7 +211,7 @@ class BlazeToPipelineTestCase(TestCase):
                  timestamp: datetime,
             }""",
         )
-        ds = pipeline_api_from_blaze(
+        ds = from_blaze(
             expr,
             loader=self.garbage_loader,
             no_deltas_rule='ignore',
@@ -233,7 +233,7 @@ class BlazeToPipelineTestCase(TestCase):
                  timestamp: datetime,
             }""",
         )
-        ds = pipeline_api_from_blaze(
+        ds = from_blaze(
             expr,
             loader=self.garbage_loader,
             no_deltas_rule='ignore',
@@ -251,13 +251,13 @@ class BlazeToPipelineTestCase(TestCase):
         expr_with_add = bz.transform(expr, value=expr.value + 1)
 
         # Test that we can have complex expressions with no deltas
-        pipeline_api_from_blaze(
+        from_blaze(
             expr_with_add,
             deltas=None,
             loader=self.garbage_loader,
         )
 
-        pipeline_api_from_blaze(
+        from_blaze(
             expr.value + 1,  # put an Add in the column
             deltas=None,
             loader=self.garbage_loader,
@@ -268,14 +268,14 @@ class BlazeToPipelineTestCase(TestCase):
             dshape=self.dshape,
         )
         with self.assertRaises(TypeError):
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr_with_add,
                 deltas=deltas,
                 loader=self.garbage_loader,
             )
 
         with self.assertRaises(TypeError):
-            pipeline_api_from_blaze(
+            from_blaze(
                 expr.value + 1,
                 deltas=deltas,
                 loader=self.garbage_loader,
@@ -284,7 +284,7 @@ class BlazeToPipelineTestCase(TestCase):
     def test_id(self):
         expr = bz.Data(self.df, name='expr', dshape=self.dshape)
         loader = BlazeLoader()
-        ds = pipeline_api_from_blaze(
+        ds = from_blaze(
             expr,
             loader=loader,
             no_deltas_rule='ignore',
@@ -312,7 +312,7 @@ class BlazeToPipelineTestCase(TestCase):
     def test_id_macro_dataset(self):
         expr = bz.Data(self.macro_df, name='expr', dshape=self.macro_dshape)
         loader = BlazeLoader()
-        ds = pipeline_api_from_blaze(
+        ds = from_blaze(
             expr,
             loader=loader,
             no_deltas_rule='ignore',
@@ -347,7 +347,7 @@ class BlazeToPipelineTestCase(TestCase):
             timestamp=deltas.timestamp + timedelta(days=1),
         )
         loader = BlazeLoader()
-        ds = pipeline_api_from_blaze(
+        ds = from_blaze(
             expr,
             deltas,
             loader=loader,
@@ -407,7 +407,7 @@ class BlazeToPipelineTestCase(TestCase):
             timestamp=deltas.timestamp + timedelta(days=1),
         )
         loader = BlazeLoader()
-        ds = pipeline_api_from_blaze(
+        ds = from_blaze(
             expr,
             deltas,
             loader=loader,
