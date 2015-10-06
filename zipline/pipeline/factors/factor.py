@@ -489,7 +489,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     Examples
     --------
 
-    A CustomFactor with pre-declared defaults:
+    A CustomFactor with pre-declared defaults::
 
         class TenDayRange(CustomFactor):
             """
