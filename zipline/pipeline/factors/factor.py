@@ -489,7 +489,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     Examples
     --------
 
-    A CustomFactor with pre-declared defaults::
+    A CustomFactor with pre-declared defaults:
 
         class TenDayRange(CustomFactor):
             """
@@ -530,7 +530,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
                 from numpy import nanmedian
                 out[:] = data.nanmedian(axis=0)
 
-        # Values for `inputs` and `window_length` must be passsed explitly to
+        # Values for `inputs` and `window_length` must be passed explicitly to
         # MedianValue.
         median_close10 = MedianValue([USEquityPricing.close], window_length=10)
         median_low15 = MedianValue([USEquityPricing.low], window_length=15)
