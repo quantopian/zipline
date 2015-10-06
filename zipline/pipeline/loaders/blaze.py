@@ -39,6 +39,7 @@ valid_deltas_node_types = (
     bz.expr.ReLabel,
     bz.expr.Symbol,
 )
+is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
 getname = attrgetter('__name__')
 
 
@@ -328,10 +329,7 @@ def from_blaze(expr,
     """
     deltas = _get_deltas(expr, deltas, no_deltas_rule)
     if deltas is not None:
-        invalid_nodes = tuple(filter(
-            complement(flip(isinstance, valid_deltas_node_types)),
-            expr._subterms(),
-        ))
+        invalid_nodes = tuple(filter(is_invalid_deltas_node, expr._subterms()))
         if invalid_nodes:
             raise TypeError(
                 'expression with deltas may only contain (%s) nodes,'
