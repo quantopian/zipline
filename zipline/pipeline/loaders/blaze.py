@@ -1,4 +1,4 @@
-"""Blaze integration with the pipeline API.
+"""Blaze integration with the Pipeline API.
 """
 from __future__ import division, absolute_import
 
@@ -65,7 +65,7 @@ class ExprData(namedtuple('ExprData', 'expr deltas resources')):
 
     Parameters
     ----------
-    epxr : Expr
+    expr : Expr
         The first known values.
     deltas : Expr, optional
         The deltas for the data.
@@ -117,17 +117,17 @@ class NonNumpyField(InvalidField):
 
 class NonPipelineField(InvalidField):
     error_format = (
-        "field '{field}' was a non pipeline API compatible type:"
+        "field '{field}' was a non Pipeline API compatible type:"
         " '{type_.__name__}'"
     )
 
 
 class NotPipelineCompatible(TypeError):
-    """Exception used to indicate that a dshape is not pipeline api
+    """Exception used to indicate that a dshape is not Pipeline API
     compatible.
     """
     def __str__(self):
-        return "'%s' is a non pipleine API compatible type'" % self.args
+        return "'%s' is a non Pipleine API compatible type'" % self.args
 
 
 _new_names = ('_%d' % n for n in count())
@@ -293,7 +293,7 @@ def from_blaze(expr,
                loader=None,
                resources=None,
                no_deltas_rule=_valid_no_deltas_rules[0]):
-    """Create a pipeline api object from a blaze expression.
+    """Create a Pipeline API object from a blaze expression.
 
     Parameters
     ----------
@@ -389,7 +389,7 @@ def from_blaze(expr,
     _check_resources('expr', expr, resources)
     _check_resources('deltas', deltas, resources)
 
-    # Create or retrieve the pipeline api dataset.
+    # Create or retrieve the Pipeline API dataset.
     ds = new_dataset(expr, deltas)
     # Register our new dataset with the loader.
     (loader if loader is not None else global_loader)[ds] = ExprData(
