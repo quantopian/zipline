@@ -445,7 +445,7 @@ class TradingAlgorithm(object):
         self.perf_tracker = None
 
         # create zipline
-        self.gen = self._create_generator(self.sim_params)
+        self.gen = self.get_generator()
 
         # loop through simulated_trading, each iteration returns a
         # perf dictionary

@@ -90,7 +90,7 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 
-from .utils.test_utils import (
+from zipline.utils.test_utils import (
     create_data_portal,
     create_data_portal_from_trade_history
 )

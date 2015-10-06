@@ -50,12 +50,8 @@ from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
 import zipline.protocol as zp
-from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.sources.data_frame_source import DataPanelSource
-from .utils.test_utils import (
-    create_data_portal,
-    create_data_portal_from_trade_history
-)
+from zipline.protocol import Event
+from zipline.utils.test_utils import create_data_portal_from_trade_history
 
 logger = logging.getLogger('Test Perf Tracking')
 

@@ -11,8 +11,7 @@ from zipline.utils.test_utils import (
 from zipline.utils import factory
 from zipline.utils.security_list import (
     SecurityListSet, load_from_directory)
-
-from .utils.test_utils import create_data_portal
+from zipline.utils.test_utils import create_data_portal
 
 LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 

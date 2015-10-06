@@ -4,8 +4,11 @@ from itertools import (
 )
 from logbook import FileHandler
 from mock import patch
+import numpy as np
 from numpy.testing import assert_array_equal
 import operator
+from zipline.data.data_portal import DataPortal
+from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
 from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
 from six import (
@@ -17,6 +20,19 @@ import os
 import pandas as pd
 import shutil
 import tempfile
+
+from numpy import (
+    float64,
+    uint32
+)
+from bcolz import ctable
+
+from zipline.data.ffc.loaders.us_equity_pricing import (
+    BcolzDailyBarWriter,
+    OHLC,
+    UINT32_MAX
+)
+
 
 EPOCH = pd.Timestamp(0, tz='UTC')
 
@@ -66,6 +82,30 @@ def drain_zipline(test, zipline):
                 len(update['daily_perf']['transactions'])
 
     return output, transaction_count
+
+
+def check_algo_results(test,
+                      results,
+                      expected_transactions_count=None,
+                      expected_order_count=None,
+                      expected_positions_count=None,
+                      sid=None):
+
+    if expected_transactions_count is not None:
+        txns = flatten_list(results["transactions"])
+        test.assertEqual(expected_transactions_count, len(txns))
+
+    if expected_positions_count is not None:
+        import pdb; pdb.set_trace()
+        pass
+
+    if expected_order_count is not None:
+        orders = flatten_list(results["orders"])
+        test.assertEqual(expected_order_count, len(orders))
+
+
+def flatten_list(list):
+    return [item for sublist in list for item in sublist]
 
 
 def assert_single_position(test, zipline):
@@ -337,3 +377,139 @@ class ExplodingObject(object):
     """
     def __getattribute__(self, name):
         raise UnexpectedAttributeAccess(name)
+
+
+class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
+    _csv_dtypes = {
+        'open': float64,
+        'high': float64,
+        'low': float64,
+        'close': float64,
+        'volume': float64,
+    }
+
+    def __init__(self, asset_map):
+        self._asset_map = asset_map
+
+    def gen_tables(self, assets):
+        for asset in assets:
+            yield asset, ctable.fromdataframe(assets[asset])
+
+    def to_uint32(self, array, colname):
+        arrmax = array.max()
+        if colname in OHLC:
+            self.check_uint_safe(arrmax * 1000, colname)
+            return (array * 1000).astype(uint32)
+        elif colname == 'volume':
+            self.check_uint_safe(arrmax, colname)
+            return array.astype(uint32)
+        elif colname == 'day':
+            nanos_per_second = (1000 * 1000 * 1000)
+            self.check_uint_safe(arrmax.view(int) / nanos_per_second, colname)
+            return (array.view(int) / nanos_per_second).astype(uint32)
+
+    @staticmethod
+    def check_uint_safe(value, colname):
+        if value >= UINT32_MAX:
+            raise ValueError(
+                "Value %s from column '%s' is too large" % (value, colname)
+            )
+
+
+def create_data_portal(env, tempdir, sim_params, sids):
+    if sim_params.data_frequency == "daily":
+        path = os.path.join(tempdir.path, "testdaily.bcolz")
+        assets = {}
+        length = sim_params.days_in_period
+        for sid_idx, sid in enumerate(sids):
+            assets[sid] = pd.DataFrame({
+                "open": (np.array(range(10, 10 + length)) + sid_idx),
+                "high": (np.array(range(15, 15 + length)) + sid_idx),
+                "low": (np.array(range(8, 8 + length)) + sid_idx),
+                "close": (np.array(range(10, 10 + length)) + sid_idx),
+                "volume": np.array(range(100, 100 + length)) + sid_idx,
+                "day": [day.value for day in sim_params.trading_days]
+            }, index=sim_params.trading_days)
+
+        DailyBarWriterFromDataFrames(assets).write(
+            path,
+            sim_params.trading_days,
+            assets
+        )
+
+        return DataPortal(
+            env,
+            daily_equities_path=path,
+            sim_params=sim_params,
+            asset_finder=env.asset_finder
+        )
+    else:
+        assets = {}
+
+        minutes = env.minutes_for_days_in_range(
+            sim_params.first_open,
+            sim_params.last_close
+        )
+
+        length = len(minutes)
+
+        for sid_idx, sid in enumerate(sids):
+            assets[sid] = pd.DataFrame({
+                "open": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
+                "high": (np.array(range(15, 15 + length)) + sid_idx) * 1000,
+                "low": (np.array(range(8, 8 + length)) + sid_idx) * 1000,
+                "close": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
+                "volume": np.array(range(100, 100 + length)) + sid_idx,
+                "minute": minutes
+            }, index=minutes)
+
+        MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+
+        return DataPortal(
+            env,
+            minutes_equities_path=tempdir.path,
+            sim_params=sim_params,
+            asset_finder=env.asset_finder
+        )
+
+
+def create_data_portal_from_trade_history(env, tempdir, sim_params,
+                                          trades_by_sid):
+    if sim_params.data_frequency == "daily":
+        path = os.path.join(tempdir.path, "testdaily.bcolz")
+        assets = {}
+        for sidint, trades in trades_by_sid.iteritems():
+            opens = []
+            highs = []
+            lows = []
+            closes = []
+            volumes = []
+            for trade in trades:
+                opens.append(trade.open_price)
+                highs.append(trade.high)
+                lows.append(trade.low)
+                closes.append(trade.close_price)
+                volumes.append(trade.volume)
+            assets[sidint] = pd.DataFrame({
+                "open": np.array(opens),
+                "high": np.array(highs),
+                "low": np.array(lows),
+                "close": np.array(closes),
+                "volume": np.array(volumes),
+                "day": [day.value for day in sim_params.trading_days]
+            }, index=sim_params.trading_days)
+
+        DailyBarWriterFromDataFrames(assets).write(
+            path,
+            sim_params.trading_days,
+            assets
+        )
+
+        return DataPortal(
+            env,
+            daily_equities_path=path,
+            sim_params=sim_params,
+            asset_finder=env.asset_finder
+        )
+    else:
+        raise "Not implemented"
