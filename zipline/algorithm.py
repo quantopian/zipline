@@ -515,7 +515,7 @@ class TradingAlgorithm(object):
             url,
             pre_func,
             post_func,
-            self.asset_finder,
+            self.trading_environment,
             self.sim_params.period_start,
             self.sim_params.period_end,
             date_column,

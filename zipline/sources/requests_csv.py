@@ -2,6 +2,7 @@ from StringIO import StringIO
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import hashlib
+from textwrap import dedent
 import pandas as pd
 from pandas import read_csv
 import numpy
@@ -24,11 +25,11 @@ from zipline.assets import Equity
 logger = Logger('Requests Source Logger')
 
 
-def roll_dts_to_midnight(dts):
+def roll_dts_to_midnight(dts, env):
     return pd.DatetimeIndex(
         (dts.tz_convert('US/Eastern') - pd.Timedelta(hours=16)).date,
         tz='UTC',
-    ) + TradingEnvironment.instance().trading_day
+    ) + env.trading_day
 
 
 class FetcherEvent(Event):
@@ -36,8 +37,19 @@ class FetcherEvent(Event):
 
 
 class FetcherCSVRedirectError(ZiplineError):
-    pass
+    msg = dedent(
+        """\
+        Attempt to fetch_csv from a redirected url. {url}
+        must be changed to {new_url}
+        """
+    )
 
+    def __init__(self, *args, **kwargs):
+        self.url = kwargs["url"]
+        self.new_url = kwargs["new_url"]
+        self.extra = kwargs["extra"]
+
+        super(FetcherCSVRedirectError, self).__init__(*args, **kwargs)
 
 # The following optional arguments are supported for
 # requests backed data sources.
@@ -130,7 +142,7 @@ class PandasCSV(object):
     def __init__(self,
                  pre_func,
                  post_func,
-                 asset_finder,
+                 env,
                  start_date,
                  end_date,
                  date_column,
@@ -161,7 +173,9 @@ class PandasCSV(object):
 
         self.symbol = symbol
 
-        self.finder = asset_finder
+        self.env = env
+        self.finder = env.asset_finder
+
         self.pre_func = pre_func
         self.post_func = post_func
 
@@ -177,7 +191,8 @@ class PandasCSV(object):
         return
 
     @staticmethod
-    def parse_date_str_series(format_str, tz, date_str_series, data_frequency):
+    def parse_date_str_series(format_str, tz, date_str_series, data_frequency,
+                              env):
         """
         Efficient parsing for a 1d Pandas/numpy object containing string
         representations of dates.
@@ -216,7 +231,7 @@ class PandasCSV(object):
             ).tz_localize(tz_str).tz_convert('UTC')
 
         if data_frequency == 'daily':
-            parsed = roll_dts_to_midnight(parsed)
+            parsed = roll_dts_to_midnight(parsed, env)
         return parsed
 
     def mask_pandas_args(self, kwargs):
@@ -252,7 +267,7 @@ class PandasCSV(object):
             return numpy.nan
 
         try:
-            return self.finder.lookup_symbol_resolve_multiple(uppered)
+            return self.finder.lookup_symbol(uppered, as_of_date=None)
         except MultipleSymbolsFound:
             # Fill conflicted entries with zeros to mark that they need to be
             # resolved by date.
@@ -273,6 +288,7 @@ class PandasCSV(object):
             self.timezone,
             df[self.date_column],
             self.data_frequency,
+            self.env
         ).values
 
         # ignore rows whose dates we couldn't parse
@@ -435,7 +451,7 @@ class PandasRequestsCSV(PandasCSV):
                  url,
                  pre_func,
                  post_func,
-                 asset_finder,
+                 env,
                  start_date,
                  end_date,
                  date_column,
@@ -467,7 +483,7 @@ class PandasRequestsCSV(PandasCSV):
         super(PandasRequestsCSV, self).__init__(
             pre_func,
             post_func,
-            asset_finder,
+            env,
             start_date,
             end_date,
             date_column,
