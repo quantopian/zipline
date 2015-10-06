@@ -26,17 +26,6 @@ class Pipeline(object):
         Initial columns.
     screen : zipline.pipeline.term.Filter, optional
         Initial screen.
-
-    Methods
-    -------
-    add
-    remove
-    set_screen
-
-    Attributes
-    ----------
-    columns
-    screen
     """
     __slots__ = ('_columns', '_screen', '__weakref__')
 
@@ -54,7 +43,7 @@ class Pipeline(object):
     @property
     def columns(self):
         """
-        The columns currently applied to this pipeline.
+        The columns registered with this pipeline.
         """
         return self._columns
 
