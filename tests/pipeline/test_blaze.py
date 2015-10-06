@@ -257,11 +257,12 @@ class BlazeToPipelineTestCase(TestCase):
             loader=self.garbage_loader,
         )
 
-        from_blaze(
-            expr.value + 1,  # put an Add in the column
-            deltas=None,
-            loader=self.garbage_loader,
-        )
+        with self.assertRaises(TypeError):
+            from_blaze(
+                expr.value + 1,  # put an Add in the column
+                deltas=None,
+                loader=self.garbage_loader,
+            )
 
         deltas = bz.Data(
             pd.DataFrame(columns=self.df.columns),
