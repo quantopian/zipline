@@ -528,7 +528,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
 
             def compute(self, today, assets, out, data):
                 from numpy import nanmedian
-                out[:} = data.nanmedian(axis=0)
+                out[:] = data.nanmedian(axis=0)
 
         # Values for `inputs` and `window_length` must be passsed explitly to
         # MedianValue.
