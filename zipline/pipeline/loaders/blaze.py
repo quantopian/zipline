@@ -160,6 +160,10 @@ valid_deltas_node_types = (
     bz.expr.ReLabel,
     bz.expr.Symbol,
 )
+traversable_nodes = (
+    bz.expr.Field,
+    bz.expr.Label,
+)
 is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
 getname = attrgetter('__name__')
 
@@ -462,16 +466,30 @@ def from_blaze(expr,
 
     # Check if this is a single column out of a dataset.
     single_column = None
+    if bz.ndim(expr) != 1:
+        raise TypeError(
+            'expression was not tabular or array-like,'
+            ' too many dimensions: %d' % bz.ndim(expr)
+        )
     if isscalar(expr.dshape.measure):
         # This is a single column. Record which column we are to return
         # but create the entire dataset.
-        single_column = expr._name
-        col = expr
-        for expr in expr._subterms():
-            if isrecord(expr.dshape.measure):
-                break
-        else:
-            expr = bz.Data(col, name=single_column)
+        single_column = rename = expr._name
+        field_hit = False
+        if not isinstance(expr, traversable_nodes):
+            raise TypeError(
+                "expression '%s' was array-like but not a simple field of"
+                " some larger table" % str(expr),
+            )
+        while isinstance(expr, traversable_nodes):
+            if isinstance(expr, bz.expr.Field):
+                if not field_hit:
+                    field_hit = True
+                else:
+                    break
+            rename = expr._name
+            expr = expr._child
+        expr = expr.relabel({rename: single_column})
 
     measure = expr.dshape.measure
     if not isrecord(measure) or AD_FIELD_NAME not in measure.names:
@@ -549,7 +567,7 @@ def inline_novel_deltas(base, deltas, dates):
         (base,
          deltas.loc[
              (get_indexes(deltas[TS_FIELD_NAME].values, 'right') -
-              get_indexes(deltas[AD_FIELD_NAME].values, 'letf')) <= 1
+              get_indexes(deltas[AD_FIELD_NAME].values, 'left')) <= 1
          ].drop(AD_FIELD_NAME, 1)),
         ignore_index=True,
     )
@@ -613,10 +631,11 @@ def adjustments_from_deltas_no_sids(dates,
     adjustments : dict[idx -> Float64Overwrite]
         The adjustments dictionary to feed to the adjusted array.
     """
+    ad_series = deltas.loc[:, AD_FIELD_NAME]
     return {
         dates.get_loc(kd): tuple(
             overwrite_from_dates(
-                deltas.loc[kd, AD_FIELD_NAME],
+                ad_series.loc[kd],
                 dates,
                 dense_dates,
                 n,
@@ -653,12 +672,13 @@ def adjustments_from_deltas_with_sids(dates,
     adjustments : dict[idx -> Float64Overwrite]
         The adjustments dictionary to feed to the adjusted array.
     """
+    ad_series = deltas[AD_FIELD_NAME]
     adjustments = defaultdict(list)
     for sid_idx, (sid, per_sid) in enumerate(deltas[column_name].iteritems()):
         for kd, v in per_sid.iteritems():
             adjustments[dates.get_loc(kd)].append(
                 overwrite_from_dates(
-                    deltas[AD_FIELD_NAME].loc[kd, sid],
+                    ad_series.loc[kd, sid],
                     dates,
                     dense_dates,
                     sid_idx,
