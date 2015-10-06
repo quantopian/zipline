@@ -134,10 +134,12 @@ def install_requires():
 def extras_requires():
     dev_reqs = read_requirements('etc/requirements_dev.txt')
     talib_reqs = ['TA-Lib==0.4.9']
+    blaze_reqs = read_requirements('etc/requirements_blaze.txt')
     return {
         'dev': dev_reqs,
         'talib': talib_reqs,
-        'all': dev_reqs + talib_reqs,
+        'blaze': blaze_reqs,
+        'all': sum((dev_reqs, talib_reqs, blaze_reqs), []),
     }
 
 
