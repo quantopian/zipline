@@ -22,14 +22,12 @@ import numpy as np
 from datetime import datetime
 
 from itertools import groupby, chain
-from six.moves import filter
 from six import (
     exec_,
     iteritems,
     itervalues,
     string_types,
 )
-from operator import attrgetter
 
 
 from zipline.errors import (
@@ -70,7 +68,6 @@ from zipline.finance.slippage import (
 )
 from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
-from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline.engine import (
     NoOpPipelineEngine,
@@ -94,7 +91,7 @@ from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import tolerant_equals, round_if_near_integer
 
 import zipline.protocol
-from zipline.protocol import Event
+from zipline.sources.requests_csv import PandasRequestsCSV
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -192,6 +189,7 @@ class TradingAlgorithm(object):
         if self.trading_environment is None:
             self.trading_environment = TradingEnvironment()
 
+
         # Update the TradingEnvironment with the provided asset metadata
         self.trading_environment.write_data(
             equities_data=kwargs.pop('equities_metadata', {}),
@@ -215,6 +213,11 @@ class TradingAlgorithm(object):
         self.perf_tracker = None
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
+
+        self.fetcher_symbols = set()
+        self.fetcher_sources = {
+            'fetch_csv': []
+        }
 
         # Initialize Pipeline API data.
         self.init_engine(kwargs.pop('pipeline_loader', None))
@@ -494,6 +497,46 @@ class TradingAlgorithm(object):
             return env
         else:
             return env[field]
+
+    @api_method
+    def fetch_csv(self, url,
+                  pre_func=None,
+                  post_func=None,
+                  date_column='date',
+                  date_format=None,
+                  timezone=pytz.utc.zone,
+                  symbol=None,
+                  mask=True,
+                  symbol_column=None,
+                  **kwargs):
+
+        # Show all the logs every time fetcher is used.
+        csv_data_source = PandasRequestsCSV(
+            url,
+            pre_func,
+            post_func,
+            self.asset_finder,
+            self.sim_params.period_start,
+            self.sim_params.period_end,
+            date_column,
+            date_format,
+            timezone,
+            symbol,
+            mask,
+            symbol_column,
+            data_frequency=self.data_frequency,
+            **kwargs
+        )
+        if symbol is not None:
+            self.fetcher_symbols.add(symbol)
+
+        elif not mask:
+            df = csv_data_source.df
+            self.fetcher_symbols |= set(df.sid.unique())
+
+        self.fetcher_sources['fetch_csv'].append(csv_data_source)
+
+        return csv_data_source
 
     def add_event(self, rule=None, callback=None):
         """
