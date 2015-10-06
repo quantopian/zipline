@@ -289,7 +289,7 @@ class BlazeToPipelineTestCase(TestCase):
             loader=loader,
             no_deltas_rule='ignore',
         )
-        p = Pipeline('p')
+        p = Pipeline()
         p.add(ds.value.latest, 'value')
         dates = self.dates
 
@@ -317,7 +317,7 @@ class BlazeToPipelineTestCase(TestCase):
             loader=loader,
             no_deltas_rule='ignore',
         )
-        p = Pipeline('p')
+        p = Pipeline()
         p.add(ds.value.latest, 'value')
         dates = self.dates
 
@@ -353,7 +353,7 @@ class BlazeToPipelineTestCase(TestCase):
             loader=loader,
             no_deltas_rule='raise',
         )
-        p = Pipeline('p')
+        p = Pipeline()
 
         expected_views = keymap(pd.Timestamp, {
             '2014-01-02': np.array([[10.0, 11.0, 12.0],
@@ -413,7 +413,7 @@ class BlazeToPipelineTestCase(TestCase):
             loader=loader,
             no_deltas_rule='raise',
         )
-        p = Pipeline('p')
+        p = Pipeline()
 
         expected_views = keymap(pd.Timestamp, {
             '2014-01-02': np.array([[10.0, 10.0, 10.0],
