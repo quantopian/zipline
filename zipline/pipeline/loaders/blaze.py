@@ -190,7 +190,7 @@ def _check_resources(name, expr, resources):
     Raises
     ------
     ValueError
-        if the resources to not match for an expression
+        If the resources to not match for an expression.
     """
     if expr is None:
         return
@@ -216,7 +216,7 @@ def _check_datetime_field(name, measure):
     Raises
     ------
     TypeError
-        if the field is not a datetime inside ``measure``
+        If the field is not a datetime inside ``measure``.
     """
     if not isinstance(measure[name], (Date, DateTime)):
         raise TypeError(
@@ -306,7 +306,7 @@ def from_blaze(expr,
         with the name of ``expr`` + '_deltas'. If None is passed, no deltas
         will be used.
     loader : BlazeLoader, optional
-        The blaze loader to attach this pipeline dataset to. If none is passed,
+        The blaze loader to attach this pipeline dataset to. If None is passed,
         the global blaze loader is used.
     resources : dict or any, optional
         The data to execute the blaze expressions against. This is used as the
@@ -321,7 +321,7 @@ def from_blaze(expr,
     -------
     pipeline_api_obj : DataSet or BoundColumn
         Either a new dataset or bound column based on the shape of the expr
-        passed in. If a tabular shaped expression is passed, this will return
+        passed in. If a table shaped expression is passed, this will return
         a ``DataSet`` that represents the whole table. If an array-like shape
         is passed, a ``BoundColumn`` on the dataset that would be constructed
         from passing the parent is returned.
@@ -344,7 +344,7 @@ def from_blaze(expr,
     # Check if this is a single column out of a dataset.
     single_column = None
     if isscalar(expr.dshape.measure):
-        # This is a single column, record which column we are to return
+        # This is a single column. Record which column we are to return
         # but create the entire dataset.
         single_column = expr._name
         col = expr
@@ -359,7 +359,7 @@ def from_blaze(expr,
         raise TypeError(
             "expr must be a collection of records with at least an '{ad}'"
             " field. Fields provided: '{fields}'\nhint: maybe you need to use "
-            ' `relabel` to change your field names'.format(
+            " `relabel` to change your field names".format(
                 ad=AD_FIELD_NAME,
                 fields=measure,
             ),
