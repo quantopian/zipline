@@ -1,4 +1,125 @@
 """Blaze integration with the Pipeline API.
+
+For an overview of the blaze project, see blaze.pydata.org
+
+The blaze loader for the Pipeline API is designed to allow us to load
+data from arbitrary sources as long as we can execute the needed expressions
+against the data with blaze.
+
+Data Format
+-----------
+
+The blaze Pipline API loader expects that data is formatted in a tabular way.
+The only required column in your table is ``asof_date`` where this column
+represents the date this data is referencing. For example, one might have a CSV
+like:
+
+asof_date,value
+2014-01-01,0
+2014-01-02,1
+2014-01-03,2
+
+This says that the value on 2014-01-01 was 0 and so on.
+
+Optionally, we may provide a ``timestamp`` column to be used to represent
+point in time data. This column tells us when the data was known, or became
+available to for use. Using our same CSV, we could write this with a timestamp
+like:
+
+asof_date,timestamp,value
+2014-01-01,2014-01-02,0
+2014-01-02,2014-01-03,1
+2014-01-03,2014-01-04,2
+
+This says that the value was 0 on 2014-01-01; however, we did not learn this
+until 2014-01-02. This is useful for avoiding look-ahead bias in your pipelins.
+If this column does not exist, the ``asof_date`` column will be used instead.
+
+If your data references a particular security, you can add a ``sid`` column to
+your dataset to represent this. For example:
+
+asof_date,value,sid
+2014-01-01,0,10
+2014-01-01,1,20
+2014-01-02,1,10
+2014-01-02,2,20
+2014-01-03,2,10
+2014-01-03,3,20
+
+This says that on 2014-01-01, the asset with id 10 had a value of 0, and the
+asset with id 20 had a value of 1.
+
+
+One of the key features of the Pipeline API is the handling of adjusments and
+restatements. Often our data will be amended after the fact and we would like
+to trade on the newest information; however, we do not want to introduce this
+knowledge to our model too early. The blaze loader handles this case by
+accepting a second ``deltas`` expression that contains all of the restatements
+in the original expression.
+
+For example, let's use our table from above:
+
+asof_date,value
+2014-01-01,0
+2014-01-02,1
+2014-01-03,2
+
+Imagine that on the fourth the vendor realized that the calculation was
+incorrect and the value on the first was actually -1. Then, on the fifth, they
+realized that the value for the third was actually 3. We can construct a
+``deltas`` expression to pass to our blaze loader that has the same shape as
+our base table but only contains these new values like:
+
+asof_date,timestamp,value
+2014-01-01,2014-01-04,-1
+2014-01-03,2014-01-05,3
+
+This shows that we learned on the fourth that the value on the first was
+actually -1 and that we learned on the fifth that the value on the third was
+actually 3. By pulling our data into these two tables and not silently updating
+our original table we can run our pipelines using the information we would
+have had on that day, and we can prevent lookahead bias in the pipelines.
+
+Conversion from Blaze to the Pipeline API
+-----------------------------------------
+
+Now that our data is structured in the way that the blaze loader expects we
+are ready to convert our blaze expressions into Pipline API objects.
+
+This module (zipline.pipeline.loaders.blaze) exports a function called
+``from_blaze`` which performs this mapping.
+
+The expression that you are trying to convert must either be tabular or
+array-like. This means the ``dshape`` must be like:
+
+``Dim * {A: B}`` or ``Dim * A``.
+
+This represents an expression of dimension 1 which may be fixed or variable,
+whose measure is either some record or a scalar.
+
+The record case defines the entire table with all of the columns, this maps the
+blaze expression into a pipeline DataSet. This dataset will have a column for
+each field of the record. Some datashape types cannot be coerced into Pipeline
+API compatible types and in that case, a column cannot be constructed.
+Currently any numeric type that may be promoted to a float64 is compatible with
+the Pipeline API.
+
+The scalar case defines a single column pulled out a table. For example, let
+``expr = bz.symbol('s', 'var * {field: int32, asof_date: datetime}')``.
+When we pass ``expr.field`` to ``from_blaze``, we will walk back up the
+expression tree until we find the table that ``field`` is defined on. We will
+then proceed with the record case to construct a dataset; however, before
+returning the dataset we will pull out only the column that was passed in.
+
+For full documentation, see ``help(from_blaze)`` or ``from_blaze?`` in jupyter.
+
+Using our Pipeline DataSets and Columns
+---------------------------------------
+
+Once we have mapped our blaze expressions into Pipeline API objects, we may
+use them just like any other datasets or columns. For more information on how
+to run a pipeline or using the Pipeline API, see:
+www.quantopian.com/help#pipeline-api
 """
 from __future__ import division, absolute_import
 
