@@ -78,6 +78,8 @@ def binary_operator(op):
                 binds=(self,),
             )
         raise BadBinaryOperator(op, self, other)
+
+    binary_operator.__doc__ = "Binary Operator: '%s'" % op
     return binary_operator
 
 
