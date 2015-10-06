@@ -1,0 +1,3 @@
+git+git://github.com/quantopian/datashape.git@365ac59ff733228e05ab010686b8c76a60478fce#egg=datashape-dev
+git+git://github.com/quantopian/odo.git@528c4ca61802032c5fadf417df5c070b5be26257#egg=odo-dev
+git+git://github.com/quantopian/blaze.git@9e83642ea2ec509169e5e93e8b1079221aebfd92#egg=blaze-dev
