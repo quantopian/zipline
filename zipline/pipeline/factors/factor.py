@@ -101,6 +101,7 @@ def binary_operator(op):
             )
         raise BadBinaryOperator(op, self, other)
 
+    binary_operator.__doc__ = "Binary Operator: '%s'" % op
     return binary_operator
 
 
@@ -159,6 +160,8 @@ def unary_operator(op):
             )
         else:
             return NumExprFactor("{op}x_0".format(op=op), (self,))
+
+    unary_operator.__doc__ = "Unary Operator: '%s'" % op
     return unary_operator
 
 
@@ -183,8 +186,7 @@ def function_application(func):
 
 class Factor(Term):
     """
-    A transformation yielding a timeseries of scalar values associated with an
-    Asset.
+    Pipeline API expression producing numerically-valued outputs.
     """
     dtype = float64
 
@@ -230,9 +232,6 @@ class Factor(Term):
 
         Parameters
         ----------
-        ranks : zipline.pipeline.factor.Rank
-            A new factor that will compute the sorted indices of the data
-            produced by `self`.
         method : str, {'ordinal', 'min', 'max', 'dense', 'average'}
             The method used to assign ranks to tied elements. See
             `scipy.stats.rankdata` for a full description of the semantics for
@@ -243,7 +242,9 @@ class Factor(Term):
 
         Returns
         -------
-        ranks : zipline.pipeline.factor.Rank
+        ranks : zipline.pipeline.factors.Rank
+            A new factor that will compute the ranking of the data produced by
+            `self`.
 
         Notes
         -----
@@ -258,7 +259,7 @@ class Factor(Term):
         --------
         scipy.stats.rankdata
         zipline.lib.rank
-        zipline.pipeline.factor.Rank
+        zipline.pipeline.factors.Rank
         """
         return Rank(self if ascending else -self, method=method, mask=mask)
 
@@ -270,10 +271,12 @@ class Factor(Term):
         ----------
         N : int
             Number of assets passing the returned filter each day.
+        mask : zipline.pipeline.Filter
+            Filter to apply as a mask before computing top values.
 
         Returns
         -------
-        filter : zipline.pipeline.Filter
+        filter : zipline.pipeline.filters.Filter
         """
         return self.rank(ascending=False, mask=mask) <= N
 
@@ -285,6 +288,8 @@ class Factor(Term):
         ----------
         N : int
             Number of assets passing the returned filter each day.
+        mask : zipline.pipeline.filters.Filter
+            Filter to apply as a mask before computing bottom values.
 
         Returns
         -------
@@ -350,7 +355,7 @@ class Rank(SingleInputMixin, Factor):
 
     Parameters
     ----------
-    factor : zipline.pipeline.factor.Factor
+    factor : zipline.pipeline.factors.Factor
         The factor on which to compute ranks.
     method : str, {'average', 'min', 'max', 'dense', 'ordinal'}
         The method used to assign ranks to tied elements.  See
@@ -360,7 +365,7 @@ class Rank(SingleInputMixin, Factor):
     See Also
     --------
     scipy.stats.rankdata : Underlying ranking algorithm.
-    zipline.factor.Factor.rank : Method-style interface to same functionality.
+    zipline.factors.Factor.rank : Method-style interface to same functionality.
 
     Notes
     -----
@@ -433,7 +438,7 @@ class Rank(SingleInputMixin, Factor):
 
 
 class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
-    """
+    '''
     Base class for user-defined Factors.
 
     Parameters
@@ -451,16 +456,16 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     Notes
     -----
     Users implementing their own Factors should subclass CustomFactor and
-    implement a method named `compute` with the following signature:
+    implement a method named `compute` with the following signature::
 
         def compute(self, today, assets, out, *inputs):
            ...
 
-    On each simulation date, `compute` will be called with the current date, an
-    array of sids, an output array, and an input array for each expression
-    passed as `inputs` to the CustomFactor constructor.
+    On each simulation date, ``compute`` will be called with the current date,
+    an array of sids, an output array, and an input array for each expression
+    passed as inputs to the CustomFactor constructor.
 
-    The specific types of the values passed to `compute` are as follows:
+    The specific types of the values passed to `compute` are as follows::
 
         today : np.datetime64[ns]
             Row label for the last row of all arrays passed as `inputs`.
@@ -472,7 +477,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         *inputs : tuple of np.array
             Raw data arrays corresponding to the values of `self.inputs`.
 
-    `compute` functions should expect to be passed NaN values for dates on
+    ``compute`` functions should expect to be passed NaN values for dates on
     which no data was available for an asset.  This may include dates on which
     an asset did not yet exist.
 
@@ -484,48 +489,52 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     Examples
     --------
 
-    class TenDayRange(CustomFactor):
-        '''
-        Computes the difference between the highest high in the last 10 days
-        and the lowest low.
+    A CustomFactor with pre-declared defaults::
 
-        Pre-declares high and low as default inputs and `window_length` as 10.
-        '''
+        class TenDayRange(CustomFactor):
+            """
+            Computes the difference between the highest high in the last 10
+            days and the lowest low.
 
-        inputs = [USEquityPricing.high, USEquityPricing.low]
-        window_length = 10
+            Pre-declares high and low as default inputs and `window_length` as
+            10.
+            """
 
-        def compute(self, today, assets, out, highs, lows):
-            from numpy import nanmin, nanmax
+            inputs = [USEquityPricing.high, USEquityPricing.low]
+            window_length = 10
 
-            highest_highs = nanmax(axis=0)
-            lowest_lows = nanmin(axis=0)
-            out[:] = highest_highs - lowest_lows
+            def compute(self, today, assets, out, highs, lows):
+                from numpy import nanmin, nanmax
 
-
-    class MedianValue(CustomFactor):
-        '''
-        Computes the median value of an arbitrary single input over an
-        arbitrary window..
-
-        Does not declare any defaults, so values for `window_length` and
-        `inputs` must be passed explicitly on every construction.
-        '''
-
-        def compute(self, today, assets, out, data):
-            from numpy import nanmedian
-            out[:} = data.nanmedian(axis=0)
+                highest_highs = nanmax(axis=0)
+                lowest_lows = nanmin(axis=0)
+                out[:] = highest_highs - lowest_lows
 
 
-    # Doesn't require passing inputs or window_length because they're
-    # pre-declared as defaults for the TenDayRange class.
-    ten_day_range = TenDayRange()
+        # Doesn't require passing inputs or window_length because they're
+        # pre-declared as defaults for the TenDayRange class.
+        ten_day_range = TenDayRange()
 
-    # Values for `inputs` and `window_length` must be passsed explitly to
-    # MedianValue.
-    median_close_10 = MedianValue([USEquityPricing.close], window_length=10)
-    median_low_15 = MedianValue([USEquityPricing.low], window_length=15)
-    """
+    A CustomFactor without defaults::
+
+        class MedianValue(CustomFactor):
+            """
+            Computes the median value of an arbitrary single input over an
+            arbitrary window..
+
+            Does not declare any defaults, so values for `window_length` and
+            `inputs` must be passed explicitly on every construction.
+            """
+
+            def compute(self, today, assets, out, data):
+                from numpy import nanmedian
+                out[:} = data.nanmedian(axis=0)
+
+        # Values for `inputs` and `window_length` must be passsed explitly to
+        # MedianValue.
+        median_close10 = MedianValue([USEquityPricing.close], window_length=10)
+        median_low15 = MedianValue([USEquityPricing.low], window_length=15)
+    '''
     ctx = nullctx()
 
     def _validate(self):

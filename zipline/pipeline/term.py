@@ -273,6 +273,12 @@ class CustomTermMixin(object):
             window_length=window_length,
         )
 
+    def __init__(self, inputs=NotSpecified, window_length=NotSpecified):
+        return super(CustomTermMixin, self).__init__(
+            inputs=inputs,
+            window_length=window_length,
+        )
+
     def compute(self, today, assets, out, *arrays):
         """
         Override this method with a function that writes a value into `out`.
