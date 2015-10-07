@@ -16,6 +16,8 @@ INDEX_OF_FIRST_TRADING_DAY = 3028
 
 log = Logger('DataPortal')
 
+HISTORY_FREQUENCIES = ["1d", "1m"]
+
 
 class DataPortal(object):
     def __init__(self,
