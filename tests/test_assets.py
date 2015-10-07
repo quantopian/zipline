@@ -626,12 +626,13 @@ class AssetFinderTestCase(TestCase):
 
     def test_lookup_future_chain(self):
         metadata = {
-            # Notice day is today, so not valid
+            # Notice day is today, so should be valid.
             2: {
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-06-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
@@ -639,6 +640,7 @@ class AssetFinderTestCase(TestCase):
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-08-14', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             # Starts trading today, so should be valid.
@@ -647,6 +649,7 @@ class AssetFinderTestCase(TestCase):
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-05-14', tz='UTC')
             },
             # Starts trading in August, so not valid.
@@ -655,6 +658,16 @@ class AssetFinderTestCase(TestCase):
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
+                'start_date': pd.Timestamp('2015-08-01', tz='UTC')
+            },
+            # Notice date comes after expiration
+            4: {
+                'symbol': 'ADZ16',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'notice_date': pd.Timestamp('2015-11-25', tz='UTC'),
+                'expiration_date': pd.Timestamp('2016-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
             },
         }
@@ -663,17 +676,18 @@ class AssetFinderTestCase(TestCase):
         dt = pd.Timestamp('2015-05-14', tz='UTC')
         last_year = pd.Timestamp('2014-01-01', tz='UTC')
         first_day = pd.Timestamp('2015-01-01', tz='UTC')
+        dt_2 = pd.Timestamp('2016-11-17', tz='UTC')
 
         # Check that we get the expected number of contracts, in the
         # right order
         ad_contracts = finder.lookup_future_chain('AD', dt, dt)
-        self.assertEqual(len(ad_contracts), 2)
-        self.assertEqual(ad_contracts[0].sid, 1)
-        self.assertEqual(ad_contracts[1].sid, 0)
+        self.assertEqual(len(ad_contracts), 3)
+        self.assertEqual(ad_contracts[0].sid, 2)
+        self.assertEqual(ad_contracts[1].sid, 1)
 
         # Check that pd.NaT for knowledge_date uses the value of as_of_date
         ad_contracts = finder.lookup_future_chain('AD', dt, pd.NaT)
-        self.assertEqual(len(ad_contracts), 2)
+        self.assertEqual(len(ad_contracts), 3)
 
         # Check that we get nothing if our knowledge date is last year
         ad_contracts = finder.lookup_future_chain('AD', dt, last_year)
@@ -681,11 +695,16 @@ class AssetFinderTestCase(TestCase):
 
         # Check that we get things that start on the knowledge date
         ad_contracts = finder.lookup_future_chain('AD', dt, first_day)
-        self.assertEqual(len(ad_contracts), 1)
+        self.assertEqual(len(ad_contracts), 2)
 
         # Check that pd.NaT for as_of_date gives the whole chain
         ad_contracts = finder.lookup_future_chain('AD', pd.NaT, first_day)
-        self.assertEqual(len(ad_contracts), 4)
+        self.assertEqual(len(ad_contracts), 5)
+
+        # Check that when the expiration_date has past but the
+        # notice_date hasn't, contract is still considered invalid.
+        ad_contracts = finder.lookup_future_chain('AD', dt_2, dt_2)
+        self.assertEqual(len(ad_contracts), 0)
 
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
@@ -834,12 +853,12 @@ class TestFutureChain(TestCase):
         cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
         self.assertEqual(len(cl), 3)
 
-        # Sid 0 is still valid the day before its notice date.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-19', 'CL')
+        # Sid 0 is still valid its notice date.
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
         self.assertEqual(len(cl), 3)
 
         # Sid 0 is now invalid, leaving only Sids 1 & 2 valid.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
         self.assertEqual(len(cl), 2)
 
         # Sid 3 has started, so 1, 2, & 3 are now valid.
@@ -847,7 +866,7 @@ class TestFutureChain(TestCase):
         self.assertEqual(len(cl), 3)
 
         # All contracts are no longer valid.
-        cl = FutureChain(self.asset_finder, lambda: '2006-09-20', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2006-09-21', 'CL')
         self.assertEqual(len(cl), 0)
 
     def test_getitem(self):
@@ -860,10 +879,10 @@ class TestFutureChain(TestCase):
         with self.assertRaises(IndexError):
             cl[3]
 
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-19', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
         self.assertEqual(cl[0], 0)
 
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
         self.assertEqual(cl[0], 1)
 
         cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')

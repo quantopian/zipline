@@ -352,11 +352,12 @@ class AssetFinder(object):
         root_symbol : str
             Root symbol of the desired future.
         as_of_date : pd.Timestamp or pd.NaT
+
             Date at which the chain determination is rooted. I.e. the
-            existing contract whose notice date is first after this
-            date is the primary contract, etc. If NaT is given, the
-            chain is unbounded, and all contracts for this root symbol
-            are returned.
+            existing contract whose notice date/expiration date is first
+            after this date is the primary contract, etc. If NaT is
+            given, the chain is unbounded, and all contracts for this
+            root symbol are returned.
         knowledge_date : pd.Timestamp or pd.NaT
             Date for determining which contracts exist for inclusion in
             this chain. Contracts exist only if they have a start_date
@@ -396,14 +397,48 @@ class AssetFinder(object):
                 knowledge_date = as_of_date
             else:
                 knowledge_date = knowledge_date.value
+
             sids = list(map(
                 itemgetter('sid'),
                 sa.select((fc_cols.sid,)).where(
                     (fc_cols.root_symbol == root_symbol) &
-                    (fc_cols.notice_date > as_of_date) &
-                    (fc_cols.start_date <= knowledge_date),
+                    (fc_cols.start_date <= knowledge_date) &
+
+                    # Filter to contracts that are still valid. If both
+                    # exist, use the one that comes first in time (i.e.
+                    # the lower value). If either notice_date or
+                    # expiration_date is NaT, use the other. If both are
+                    # NaT, the contract cannot be included in any chain.
+                    sa.case(
+                        [
+                            (
+                                fc_cols.notice_date == pd.NaT.value,
+                                fc_cols.expiration_date >= as_of_date
+                            ),
+                            (
+                                fc_cols.expiration_date == pd.NaT.value,
+                                fc_cols.notice_date >= as_of_date
+                            )
+                        ],
+                        else_=(
+                            sa.func.min(
+                                fc_cols.notice_date,
+                                fc_cols.expiration_date
+                            ) >= as_of_date
+                        )
+                    )
                 ).order_by(
-                    fc_cols.notice_date.asc(),
+                    # Sort using expiration_date if valid. If it's NaT,
+                    # use notice_date instead.
+                    sa.case(
+                        [
+                            (
+                                fc_cols.expiration_date == pd.NaT.value,
+                                fc_cols.notice_date
+                            )
+                        ],
+                        else_=fc_cols.expiration_date
+                    ).asc()
                 ).execute().fetchall()
             ))
 
