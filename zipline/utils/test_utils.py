@@ -512,4 +512,45 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
             asset_finder=env.asset_finder
         )
     else:
-        raise "Not implemented"
+        minutes = env.minutes_for_days_in_range(
+            sim_params.first_open,
+            sim_params.last_close
+        )
+
+        length = len(minutes)
+        assets = {}
+
+        for sidint, trades in trades_by_sid.iteritems():
+            opens = np.zeros(length)
+            highs = np.zeros(length)
+            lows = np.zeros(length)
+            closes = np.zeros(length)
+            volumes = np.zeros(length)
+
+            for trade in trades:
+                # put them in the right place
+                idx = minutes.searchsorted(trade.dt)
+
+                opens[idx] = trade.open_price * 1000
+                highs[idx] = trade.high * 1000
+                lows[idx] = trade.low * 1000
+                closes[idx] = trade.close_price * 1000
+                volumes[idx] = trade.volume
+
+            assets[sidint] = pd.DataFrame({
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "volume": volumes,
+                "minute": minutes
+            }, index=minutes)
+
+        MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+
+        return DataPortal(
+            env,
+            minutes_equities_path=tempdir.path,
+            sim_params=sim_params,
+            asset_finder=env.asset_finder
+        )
