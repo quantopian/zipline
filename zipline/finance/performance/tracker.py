@@ -259,7 +259,7 @@ class PerformanceTracker(object):
             pos_stats, period_stats)
         return self._account
 
-    def to_dict(self):
+    def to_dict(self, emission_type=None):
         """
         Wrapper for serialization compatibility.
         """
@@ -272,7 +272,7 @@ class PerformanceTracker(object):
         return self._to_dict(pos_stats,
                              cumulative_stats,
                              todays_stats,
-                             self.emission_rate)
+                             emission_type)
 
     def _to_dict(self, pos_stats, cumulative_stats, todays_stats,
                  emission_type=None):
@@ -280,9 +280,8 @@ class PerformanceTracker(object):
         Creates a dictionary representing the state of this tracker.
         Returns a dict object of the form described in header comments.
 
-        Use this method internally, when stats are availble.
+        Use this method internally, when stats are available.
         """
-
         # Default to the emission rate of this tracker if no type is provided
         if emission_type is None:
             emission_type = self.emission_rate
