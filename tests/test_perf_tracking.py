@@ -36,7 +36,6 @@ from six.moves import range, zip
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-from zipline.finance.performance import position_tracker
 from zipline.finance.transaction import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
 

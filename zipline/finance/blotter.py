@@ -18,14 +18,10 @@ from logbook import Logger
 from collections import defaultdict
 
 import pandas as pd
-from six.moves import filter
 
-import zipline.errors
-import zipline.protocol as zp
 from zipline.finance.order import Order
 
 from zipline.finance.slippage import VolumeShareSlippage
-from zipline.finance.transaction import transact_partial
 from zipline.finance.commission import PerShare
 
 from zipline.utils.serialization_utils import (
