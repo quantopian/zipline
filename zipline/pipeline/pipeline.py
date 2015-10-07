@@ -103,7 +103,7 @@ class Pipeline(object):
         """
         return self.columns.pop(name)
 
-    @expect_types(screen=Filter)
+    @expect_types(screen=Filter, overwrite=(bool, int))
     def set_screen(self, screen, overwrite=False):
         """
         Set a screen on this Pipeline.

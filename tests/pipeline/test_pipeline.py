@@ -119,3 +119,12 @@ class PipelineTestCase(TestCase):
 
         p.set_screen(g, overwrite=True)
         self.assertEqual(p.screen, g)
+
+        with self.assertRaises(TypeError) as e:
+            p.set_screen(f, g)
+
+        message = e.exception.args[0]
+        self.assertIn(
+            "expected a value of type bool or int for argument 'overwrite'",
+            message,
+        )
