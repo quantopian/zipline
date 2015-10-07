@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from pandas.lib import checknull
 from collections import namedtuple
+from zipline.finance.performance.position import Position
+
 try:
     # optional cython based OrderedDict
     from cyordereddict import OrderedDict
@@ -299,7 +301,13 @@ class PositionTracker(object):
         # Update Position
         # ----------------
         sid = txn.sid
-        position = self.positions[sid]
+
+        if sid not in self.positions:
+            position = Position(sid)
+            self.positions[sid] = position
+        else:
+            position = self.positions[sid]
+
         position.update(txn)
         self._update_asset(sid)
 

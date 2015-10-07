@@ -226,8 +226,5 @@ last_sale_price: {last_sale_price}"
 
 
 class positiondict(dict):
-
     def __missing__(self, key):
-        pos = Position(key)
-        self[key] = pos
-        return pos
+        return None
