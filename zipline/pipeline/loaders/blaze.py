@@ -144,7 +144,7 @@ from numpy.lib.stride_tricks import as_strided
 from odo import odo
 import pandas as pd
 from toolz import flip, memoize, compose, complement, identity
-from six import with_metaclass
+from six import with_metaclass, PY2
 
 
 from ..data.dataset import DataSet, Column
@@ -298,6 +298,12 @@ def new_dataset(expr, deltas):
     name = expr._name
     if expr._name is None:
         name = next(_new_names)
+
+    # unicode is a name error in py3 but the branch is only hit
+    # when we are in python 2.
+    if PY2 and isinstance(name, unicode):  # noqa
+        name = name.encode('utf-8')
+
     return type(name, (DataSet,), columns)
 
 
