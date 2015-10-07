@@ -2,6 +2,7 @@
 Tests for SimplePipelineEngine
 """
 from __future__ import division
+from collections import OrderedDict
 from unittest import TestCase
 from itertools import product
 
@@ -11,6 +12,8 @@ from numpy import (
     nan,
     tile,
     zeros,
+    float32,
+    concatenate,
 )
 from pandas import (
     DataFrame,
@@ -21,7 +24,9 @@ from pandas import (
     Series,
     Timestamp,
 )
+from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
+from six import iteritems, itervalues
 from testfixtures import TempDirectory
 
 from zipline.pipeline.loaders.synthetic import (
@@ -32,7 +37,7 @@ from zipline.pipeline.loaders.synthetic import (
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline import Pipeline
-from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data import USEquityPricing, DataSet, Column
 from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
@@ -82,6 +87,49 @@ def assert_multi_index_is_product(testcase, index, *levels):
         index, MultiIndex, "%s is not a MultiIndex" % index
     )
     testcase.assertEqual(set(index), set(product(*levels)))
+
+
+class ColumnArgs(tuple):
+    """A tuple of Columns that defines equivalence based on the order of the
+    columns' DataSets, instead of the columns themselves. This is used when
+    comparing the columns passed to a loader's load_adjusted_array method,
+    since we want to assert that they are ordered by DataSet.
+    """
+    def __new__(cls, *cols):
+        return super(ColumnArgs, cls).__new__(cls, cols)
+
+    @classmethod
+    def sorted_by_ds(cls, *cols):
+        return cls(*sorted(cols, key=lambda col: col.dataset))
+
+    def by_ds(self):
+        return tuple(col.dataset for col in self)
+
+    def __eq__(self, other):
+        return set(self) == set(other) and self.by_ds() == other.by_ds()
+
+    def __hash__(self):
+        return hash(frozenset(self))
+
+
+class RecordingConstantLoader(ConstantLoader):
+    def __init__(self, *args, **kwargs):
+        super(RecordingConstantLoader, self).__init__(*args, **kwargs)
+
+        self.load_calls = []
+
+    def load_adjusted_array(self, columns, dates, assets, mask):
+        self.load_calls.append(ColumnArgs(*columns))
+
+        return super(RecordingConstantLoader, self).load_adjusted_array(
+            columns, dates, assets, mask,
+        )
+
+
+class RollingSumSum(CustomFactor):
+    def compute(self, today, assets, out, *inputs):
+        assert len(self.inputs) == len(inputs)
+        out[:] = sum(inputs).sum(axis=0)
 
 
 class ConstantInputTestCase(TestCase):
@@ -325,6 +373,94 @@ class ConstantInputTestCase(TestCase):
                 result[name],
                 Series(index=result_index, data=full(result_shape, const)),
             )
+
+    def test_loader_given_multiple_columns(self):
+
+        class Loader1DataSet1(DataSet):
+            col1 = Column(float32)
+            col2 = Column(float32)
+
+        class Loader1DataSet2(DataSet):
+            col1 = Column(float32)
+            col2 = Column(float32)
+
+        class Loader2DataSet(DataSet):
+            col1 = Column(float32)
+            col2 = Column(float32)
+
+        constants1 = {Loader1DataSet1.col1: 1,
+                      Loader1DataSet1.col2: 2,
+                      Loader1DataSet2.col1: 3,
+                      Loader1DataSet2.col2: 4}
+        loader1 = RecordingConstantLoader(constants=constants1,
+                                          dates=self.dates,
+                                          assets=self.assets)
+        constants2 = {Loader2DataSet.col1: 5,
+                      Loader2DataSet.col2: 6}
+        loader2 = RecordingConstantLoader(constants=constants2,
+                                          dates=self.dates,
+                                          assets=self.assets)
+
+        engine = SimplePipelineEngine(lambda column: loader2
+                                      if column.dataset == Loader2DataSet
+                                      else loader1,
+                                      self.dates, self.asset_finder)
+
+        pipe_col1 = RollingSumSum(inputs=[Loader1DataSet1.col1,
+                                          Loader1DataSet2.col1,
+                                          Loader2DataSet.col1],
+                                  window_length=2)
+
+        pipe_col2 = RollingSumSum(inputs=[Loader1DataSet1.col2,
+                                          Loader1DataSet2.col2,
+                                          Loader2DataSet.col2],
+                                  window_length=3)
+
+        pipe_col3 = RollingSumSum(inputs=[Loader2DataSet.col1],
+                                  window_length=3)
+
+        columns = OrderedDict([
+            ('pipe_col1', pipe_col1),
+            ('pipe_col2', pipe_col2),
+            ('pipe_col3', pipe_col3),
+        ])
+        result = engine.run_pipeline(
+            Pipeline(columns=columns),
+            self.dates[2],  # index is >= the largest window length - 1
+            self.dates[-1]
+        )
+        min_window = min(pip_col.window_length
+                         for pip_col in itervalues(columns))
+        col_to_val = ChainMap(constants1, constants2)
+        vals = {name: (sum(col_to_val[col] for col in pipe_col.inputs)
+                       * pipe_col.window_length)
+                for name, pipe_col in iteritems(columns)}
+
+        index = MultiIndex.from_product([self.dates[2:], self.assets])
+        expected = DataFrame(
+            data={col:
+                  concatenate((
+                      full((columns[col].window_length - min_window)
+                           * index.levshape[1],
+                           nan),
+                      full((index.levshape[0]
+                            - (columns[col].window_length - min_window))
+                           * index.levshape[1],
+                           val)))
+                  for col, val in iteritems(vals)},
+            index=index,
+            columns=columns)
+
+        assert_frame_equal(result, expected)
+
+        self.assertEqual(set(loader1.load_calls),
+                         {ColumnArgs.sorted_by_ds(Loader1DataSet1.col1,
+                                                  Loader1DataSet2.col1),
+                          ColumnArgs.sorted_by_ds(Loader1DataSet1.col2,
+                                                  Loader1DataSet2.col2)})
+        self.assertEqual(set(loader2.load_calls),
+                         {ColumnArgs.sorted_by_ds(Loader2DataSet.col1,
+                                                  Loader2DataSet.col2)})
 
 
 class FrameInputTestCase(TestCase):
