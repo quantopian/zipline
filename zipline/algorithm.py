@@ -508,6 +508,7 @@ class TradingAlgorithm(object):
                   symbol=None,
                   mask=True,
                   symbol_column=None,
+                  special_params_checker=None,
                   **kwargs):
 
         # Show all the logs every time fetcher is used.
