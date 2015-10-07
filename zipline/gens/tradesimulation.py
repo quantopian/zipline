@@ -126,6 +126,10 @@ class AlgorithmSimulator(object):
             for transaction in new_transactions:
                 perf_process_txn(transaction)
 
+                # since this order was modified, record it
+                order = blotter.orders[transaction.order_id]
+                perf_process_order(order)
+
             # update the portfolio, so that if the user does
             # context.portfolio.positions, it's accurate
             perf_tracker.get_portfolio(dt_to_use)
