@@ -888,6 +888,18 @@ class TestFutureChain(TestCase):
         cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
         self.assertEqual(cl[-1], 3)
 
+    def test_iter(self):
+        """ Test the __iter__ method of FutureChain.
+        """
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        for i, contract in enumerate(cl):
+            self.assertEqual(contract, i)
+
+        # First contract is now invalid, so sids will be offset by one
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
+        for i, contract in enumerate(cl):
+            self.assertEqual(contract, i + 1)
+
     def test_root_symbols(self):
         """ Test that different variations on root symbols are handled
         as expected.
