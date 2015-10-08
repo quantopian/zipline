@@ -47,6 +47,8 @@ class Blotter(object):
         self.slippage_func = slippage_func or VolumeShareSlippage()
         self.commission = commission or PerShare()
 
+        self.data_portal = None
+
     def __repr__(self):
         return """
 {class_name}(
@@ -216,7 +218,14 @@ class Blotter(object):
         transactions = []
 
         for asset, asset_orders in self.open_orders.iteritems():
-            for order, txn in self.slippage_func(asset_orders, current_dt):
+            price = self.data_portal.get_spot_price(
+                asset, 'close', current_dt)
+
+            volume = self.data_portal.get_spot_price(
+                asset, 'volume', current_dt)
+
+            for order, txn in self.slippage_func(asset_orders, current_dt,
+                                                 price, volume):
                 direction = math.copysign(1, txn.amount)
                 per_share, total_commission = self.commission.calculate(txn)
                 txn.price += per_share * direction

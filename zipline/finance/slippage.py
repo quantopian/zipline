@@ -30,7 +30,6 @@ class LiquidityExceeded(Exception):
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
     def __init__(self):
-        self.data_portal = None
         self._volume_for_bar = 0
 
     @property
@@ -38,24 +37,22 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         return self._volume_for_bar
 
     @abc.abstractproperty
-    def process_order(self, order, dt):
+    def process_order(self, price, volume, order, dt):
         pass
 
-    def simulate(self, current_orders, dt):
+    def simulate(self, current_orders, dt, price, volume):
         self._volume_for_bar = 0
 
         for order in current_orders:
             if order.open_amount == 0:
                 continue
 
-            price = self.data_portal.get_spot_price(
-                order.sid, 'close', dt)
             order.check_triggers(price, dt)
             if not order.triggered:
                 continue
 
             try:
-                txn = self.process_order(order, dt)
+                txn = self.process_order(order, price, volume, dt)
             except LiquidityExceeded:
                 break
 
@@ -63,8 +60,8 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
 
-    def __call__(self, current_orders, dt, **kwargs):
-        return self.simulate(current_orders, dt, **kwargs)
+    def __call__(self, current_orders, dt, price, volume, **kwargs):
+        return self.simulate(current_orders, dt, price, volume, **kwargs)
 
 
 class VolumeShareSlippage(SlippageModel):
@@ -82,11 +79,7 @@ class VolumeShareSlippage(SlippageModel):
                    volume_limit=self.volume_limit,
                    price_impact=self.price_impact)
 
-    def process_order(self, order, dt):
-        volume = self.data_portal.get_spot_price(
-            order.sid, 'volume', dt)
-        price = self.data_portal.get_spot_price(
-            order.sid, 'close', dt)
+    def process_order(self, order, price, volume, dt):
         max_volume = self.volume_limit * volume
 
         # price impact accounts for the total volume of transactions
@@ -166,9 +159,7 @@ class FixedSlippage(SlippageModel):
         """
         self.spread = spread
 
-    def process_order(self, order, dt):
-        price = self.data_portal.get_spot_price(order.sid, "close")
-
+    def process_order(self, order, price, volume, dt):
         return create_transaction(
             order.sid,
             dt,

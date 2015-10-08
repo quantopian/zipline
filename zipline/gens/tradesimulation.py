@@ -104,7 +104,7 @@ class AlgorithmSimulator(object):
         day_engine = DayEngine(market_opens, market_closes)
 
         blotter = self.algo.blotter
-        blotter.slippage_func.data_portal = data_portal
+        blotter.data_portal = data_portal
 
         perf_process_order = self.algo.perf_tracker.process_order
         perf_process_txn = self.algo.perf_tracker.process_transaction
