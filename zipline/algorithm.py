@@ -526,6 +526,7 @@ class TradingAlgorithm(object):
             mask,
             symbol_column,
             data_frequency=self.data_frequency,
+            special_params_checker=special_params_checker,
             **kwargs
         )
         if symbol is not None:
