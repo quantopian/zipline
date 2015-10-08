@@ -180,17 +180,6 @@ Order for {amount} shares of {asset} at {datetime} violates trading constraint
 """.strip()
 
 
-class IncompatibleHistoryFrequency(ZiplineError):
-    """
-    Raised when a frequency is given to history which is not supported.
-    At least, not yet.
-    """
-    msg = """
-Requested history at frequency '{frequency}' cannot be created with data
-at frequency '{data_frequency}'.
-""".strip()
-
-
 class MultipleSymbolsFound(ZiplineError):
     """
     Raised when a symbol() call contains a symbol that changed over
