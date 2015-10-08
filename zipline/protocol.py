@@ -279,63 +279,11 @@ class BarData(object):
     """
 
     def __init__(self, data=None, data_portal=None):
-        self._data = data or {}
-        self._contains_override = None
-
         self.data_portal = data_portal or {}
-
-    def __contains__(self, name):
-        return self.data_portal.is_currently_alive(name)
-
-    def has_key(self, name):
-        """
-        DEPRECATED: __contains__ is preferred, but this method is for
-        compatibility with existing algorithms.
-        """
-        return name in self
-
-    def __setitem__(self, name, value):
-        # No longer supported.
-        pass
 
     def __getitem__(self, name):
         return self.data_portal.get_equity_price_view(name)
 
-    def __delitem__(self, name):
-        # No longer supported.
-        pass
-
     def __iter__(self):
-        for sid, data in iteritems(self._data):
-            # Allow contains override to filter out sids.
-            if sid in self:
-                if len(data):
-                    yield sid
-
-    def iterkeys(self):
-        # Allow contains override to filter out sids.
-        return (sid for sid in iterkeys(self._data) if sid in self)
-
-    def keys(self):
-        # Allow contains override to filter out sids.
-        return list(self.iterkeys())
-
-    def itervalues(self):
-        return (value for _sid, value in self.iteritems())
-
-    def values(self):
-        return list(self.itervalues())
-
-    def iteritems(self):
-        return ((sid, value) for sid, value
-                in iteritems(self._data)
-                if sid in self)
-
-    def items(self):
-        return list(self.iteritems())
-
-    def __len__(self):
-        return len(self.keys())
-
-    def __repr__(self):
-        return '{0}({1})'.format(self.__class__.__name__, self._data)
+        raise TypeError('%r object is not iterable'
+                        % self.__class__.__name__)
