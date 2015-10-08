@@ -27,7 +27,7 @@ from numpy import (
 )
 from bcolz import ctable
 
-from zipline.data.ffc.loaders.us_equity_pricing import (
+from zipline.pipeline.loaders.equity_pricing_loader import (
     BcolzDailyBarWriter,
     OHLC,
     UINT32_MAX
@@ -485,11 +485,12 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
             closes = []
             volumes = []
             for trade in trades:
-                opens.append(trade.open_price)
-                highs.append(trade.high)
-                lows.append(trade.low)
-                closes.append(trade.close_price)
-                volumes.append(trade.volume)
+                opens.append(trade["open_price"])
+                highs.append(trade["high"])
+                lows.append(trade["low"])
+                closes.append(trade["close_price"])
+                volumes.append(trade["volume"])
+
             assets[sidint] = pd.DataFrame({
                 "open": np.array(opens),
                 "high": np.array(highs),
