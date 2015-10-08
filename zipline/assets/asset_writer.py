@@ -346,6 +346,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                 'root_symbol',
                 sa.Text,
                 sa.ForeignKey(self.futures_root_symbols.c.root_symbol),
+                index=True
             ),
             sa.Column('asset_name', sa.Text),
             sa.Column('start_date', sa.Integer, default=0, nullable=False),
