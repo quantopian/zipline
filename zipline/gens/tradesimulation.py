@@ -130,10 +130,6 @@ class AlgorithmSimulator(object):
                 order = blotter.orders[transaction.order_id]
                 perf_process_order(order)
 
-            # update the portfolio, so that if the user does
-            # context.portfolio.positions, it's accurate
-            perf_tracker.get_portfolio(dt_to_use)
-
             handle_data(algo, current_data, dt_to_use)
 
             # grab any new orders from the blotter, then clear the list.
@@ -178,10 +174,6 @@ class AlgorithmSimulator(object):
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
                     yield self.get_message(trading_day)
-
-                    algo.portfolio_needs_update = True
-                    algo.account_needs_update = True
-                    algo.performance_needs_update = True
             else:
                 for day_idx, trading_day in enumerate(trading_days):
                     once_a_day(trading_day)
@@ -197,10 +189,6 @@ class AlgorithmSimulator(object):
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[trading_day] = 0.001
                     yield self.get_message(minute)
-
-                    algo.portfolio_needs_update = True
-                    algo.account_needs_update = True
-                    algo.performance_needs_update = True
 
         risk_message = self.algo.perf_tracker.handle_simulation_end()
         yield risk_message

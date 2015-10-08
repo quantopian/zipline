@@ -237,9 +237,6 @@ class TradingAlgorithm(object):
         # symbols to sids, and can be set using set_symbol_lookup_date()
         self._symbol_lookup_date = None
 
-        self.portfolio_needs_update = True
-        self.account_needs_update = True
-        self.performance_needs_update = True
         self._portfolio = None
         self._account = None
 
@@ -407,10 +404,6 @@ class TradingAlgorithm(object):
         if not self.initialized:
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
-
-        self.portfolio_needs_update = True
-        self.account_needs_update = True
-        self.performance_needs_update = True
 
         self.trading_client = AlgorithmSimulator(self, sim_params,
                                                  self.data_portal)
@@ -803,8 +796,6 @@ class TradingAlgorithm(object):
         if self._portfolio is None:
             self._portfolio = \
                 self.perf_tracker.get_portfolio(self.datetime)
-            self.portfolio_needs_update = False
-            self.performance_needs_update = False
         return self._portfolio
 
     @property
@@ -888,10 +879,6 @@ class TradingAlgorithm(object):
         except ValueError:
             raise UnsupportedDatetimeFormat(input=dt,
                                             method='set_symbol_lookup_date')
-
-    def set_sources(self, sources):
-        assert isinstance(sources, list)
-        self.sources = sources
 
     # Remain backwards compatibility
     @property
