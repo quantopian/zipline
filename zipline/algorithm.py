@@ -295,8 +295,6 @@ class TradingAlgorithm(object):
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
 
-        self._most_recent_data = None
-
         # Prepare the algo for initialization
         self.initialized = False
         self.initialize_args = args
@@ -332,7 +330,6 @@ class TradingAlgorithm(object):
         self._before_trading_start(self, data)
 
     def handle_data(self, data):
-        self._most_recent_data = data
         self._handle_data(self, data)
 
         # Unlike trading controls which remain constant unless placing an
