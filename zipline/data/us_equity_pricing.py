@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import bcolz
+from bcolz import ctable
 import pandas as pd
+
+from sid import string_types
 
 
 class NoDataOnDate(Exception):
@@ -24,9 +26,18 @@ class NoDataOnDate(Exception):
 
 
 class BcolzDailyBarSpotReader(object):
+    """
+    Reads inividual price moments from the daily bcolz file format shared
+    with pipeline.loaders.equity_pricing_loader.BcolzOHLCVReader
 
-    def __init__(self, daily_bars_path):
-        self.daily_bar_table = bcolz.ctable(rootdir=daily_bars_path, mode='r')
+    This is distinct from the BcolzOHLCVReader since the queries are on moments
+    instead of windows.
+    """
+
+    def __init__(self, table):
+        if isinstance(table, string_types):
+            table = ctable(rootdir=table, mode='r')
+        self.daily_bar_table = table
         calendar = self.daily_bar_table.attrs['calendar']
         self.trading_days = pd.DatetimeIndex(calendar, tz='UTC')
 
