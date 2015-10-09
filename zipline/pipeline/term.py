@@ -321,7 +321,7 @@ class CompositeTerm(Term):
 
         if self.window_length:
             for child in self.inputs:
-                if not child.atomic:
+                for _ in child.inputs:
                     raise InputTermNotAtomic(parent=self, child=child)
 
         return super(CompositeTerm, self)._validate()
