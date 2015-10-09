@@ -712,6 +712,14 @@ class BlazeLoader(dict):
     def global_instance(cls):
         return cls()
 
+    def __hash__(self):
+        return id(self)
+
+    def __call__(self, column):
+        if column.dataset in self:
+            return self
+        raise KeyError(column)
+
     def load_adjusted_array(self, columns, dates, assets, mask):
         return map(
             op.getitem(
