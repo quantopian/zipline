@@ -17,7 +17,7 @@ from sqlite3 import connect as sqlite3_connect
 
 from .base import PipelineLoader
 from .frame import DataFrameLoader
-from .equity_pricing_loader import (
+from zipline.data.us_equity_pricing import (
     BcolzDailyBarWriter,
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,

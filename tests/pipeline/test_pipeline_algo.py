@@ -40,16 +40,18 @@ from zipline.errors import (
     PipelineOutputDuringInitialize,
     NoSuchPipeline,
 )
+from zipline.data.us_equity_pricing import (
+    BcolzDailyBarReader,
+    DailyBarWriterFromCSVs,
+    SQLiteAdjustmentWriter,
+    SQLiteAdjustmentReader,
+)
 from zipline.finance import trading
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
 from zipline.pipeline.loaders.equity_pricing_loader import (
-    BcolzDailyBarReader,
-    DailyBarWriterFromCSVs,
-    SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
     USEquityPricingLoader,
 )
 from zipline.utils.test_utils import (
