@@ -143,7 +143,14 @@ from datashape import (
 from numpy.lib.stride_tricks import as_strided
 from odo import odo
 import pandas as pd
-from toolz import flip, memoize, compose, complement, identity
+from toolz import (
+    complement,
+    compose,
+    concat,
+    flip,
+    identity,
+    memoize,
+)
 from six import with_metaclass, PY2
 
 
@@ -579,7 +586,7 @@ def inline_novel_deltas(base, deltas, dates):
     )
 
 
-def overwrite_from_dates(asof, dates, dense_dates, asset_idx, value):
+def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
     """Construct a `Float64Overwrite` with the correct
     start and end date based on the asof date of the delta,
     the dense_dates, and the dense_dates.
@@ -588,9 +595,9 @@ def overwrite_from_dates(asof, dates, dense_dates, asset_idx, value):
     ----------
     asof : datetime
         The asof date of the delta.
-    dates : pd.DatetimeIndex
-        The dates requested by the loader.
     dense_dates : pd.DatetimeIndex
+        The dates requested by the loader.
+    sparse_dates : pd.DatetimeIndex
         The dates that appeared in the dataset.
     asset_idx : int
         The index of the asset in the block.
@@ -602,12 +609,13 @@ def overwrite_from_dates(asof, dates, dense_dates, asset_idx, value):
     overwrite : Float64Overwrite
         The overwrite that will apply the new value to the data.
     """
-    return Float64Overwrite(
-        dates.searchsorted(asof),
-        dates.get_loc(dense_dates[dense_dates.searchsorted(asof) + 1]) - 1,
-        asset_idx,
-        value,
-    )
+    first_row = dense_dates.searchsorted(asof)
+    last_row = dense_dates.get_loc(
+        sparse_dates[sparse_dates.searchsorted(asof) + 1],
+    ) - 1
+    if first_row > last_row:
+        return
+    yield Float64Overwrite(first_row, last_row, asset_idx, value)
 
 
 def adjustments_from_deltas_no_sids(dates,
@@ -639,14 +647,14 @@ def adjustments_from_deltas_no_sids(dates,
     """
     ad_series = deltas.loc[:, AD_FIELD_NAME]
     return {
-        dates.get_loc(kd): tuple(
+        dates.get_loc(kd): concat(tuple(
             overwrite_from_dates(
                 ad_series.loc[kd],
                 dates,
                 dense_dates,
                 n,
                 v,
-            ) for n in range(len(assets))
+            ) for n in range(len(assets)))
         ) for kd, v in deltas[column_name].iteritems()
     }
 
@@ -682,7 +690,7 @@ def adjustments_from_deltas_with_sids(dates,
     adjustments = defaultdict(list)
     for sid_idx, (sid, per_sid) in enumerate(deltas[column_name].iteritems()):
         for kd, v in per_sid.iteritems():
-            adjustments[dates.get_loc(kd)].append(
+            adjustments[dates.get_loc(kd)].extend(
                 overwrite_from_dates(
                     ad_series.loc[kd, sid],
                     dates,
@@ -735,22 +743,22 @@ class BlazeLoader(dict):
             # This must be strictly executed because the data for `ts` will
             # be removed from scope too early otherwise.
             lower = odo(ts[ts <= dates[0]].max(), pd.Timestamp)
-            return e[
-                (e[SID_FIELD_NAME].isin(assets) if have_sids else True) &
-                ((ts >= lower) if lower is not pd.NaT else True) &
-                (ts <= dates[-1])
-            ][query_fields]
+            selection = ts <= dates[-1]
+            if have_sids:
+                selection &= e[SID_FIELD_NAME].isin(assets)
+            if lower is not pd.NaT:
+                selection &= ts >= lower
 
-        materialized_expr = odo(
-            bz.compute(where(expr), resources),
-            pd.DataFrame,
-        )
+            return e[selection][query_fields]
 
+        extra_kwargs = {'d': resources} if resources else {}
+        materialized_expr = odo(where(expr), pd.DataFrame, **extra_kwargs)
         materialized_deltas = (
-            odo(bz.compute(where(deltas), resources), pd.DataFrame)
+            odo(where(deltas), pd.DataFrame, **extra_kwargs)
             if deltas is not None else
             pd.DataFrame(columns=query_fields)
         )
+
         # Inline the deltas that changed our most recently known value.
         # Also, we reindex by the dates to create a dense representation of
         # the data.
