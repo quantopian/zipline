@@ -338,7 +338,7 @@ class SimplePipelineEngine(object):
                 term, workspace, graph, dates
             )
 
-            if term.atomic:
+            if not term.inputs:
                 to_load = sorted(
                     atomic_groups[atomic_group_key(term)],
                     key=lambda t: t.dataset

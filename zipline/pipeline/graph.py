@@ -164,7 +164,7 @@ class TermGraph(DiGraph):
 
     @lazyval
     def atomic_terms(self):
-        return tuple(term for term in self if term.atomic)
+        return tuple(term for term in self if not term.inputs)
 
     def _add_to_graph(self, term, parents, extra_rows):
         """
