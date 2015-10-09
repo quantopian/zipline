@@ -86,10 +86,8 @@ class DependencyResolutionTestCase(TestCase):
         seen = set()
 
         for term in ordered_terms:
-            if not term.atomic:
-                for input_ in term.inputs:
-                    self.assertIn(input_, seen)
-                self.assertIn(term.mask, seen)
+            for dep in term.dependencies:
+                self.assertIn(dep, seen)
 
             seen.add(term)
 

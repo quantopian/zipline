@@ -236,7 +236,7 @@ class SimplePipelineEngine(object):
         """
         Load mask and mask row labels for term.
         """
-        mask = term.mask if not term.atomic else self._root_mask_term
+        mask = term.mask
         offset = graph.extra_rows[mask] - graph.extra_rows[term]
         return workspace[mask][offset:], dates[offset:]
 
