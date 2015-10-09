@@ -15,7 +15,6 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
-from contextlib import contextmanager
 from errno import ENOENT
 from os import remove
 from os.path import exists
