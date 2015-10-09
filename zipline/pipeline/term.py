@@ -1,9 +1,12 @@
 """
 Base class for Filters, Factors and Classifiers
 """
+from abc import ABCMeta, abstractproperty
+from itertools import chain
 from weakref import WeakValueDictionary
 
 from numpy import bool_, full, nan
+from six import with_metaclass
 
 from zipline.errors import (
     DTypeNotSpecified,
@@ -38,7 +41,7 @@ class NotSpecified(object):
         return self
 
 
-class Term(object):
+class Term(with_metaclass(ABCMeta, object)):
     """
     Base class for terms in a Pipeline API compute graph.
     """
@@ -135,14 +138,47 @@ class Term(object):
         if self.dtype is NotSpecified:
             raise DTypeNotSpecified(termname=type(self).__name__)
 
-    @property
-    def atomic(self):
-        """
-        Whether or not this term has dependencies.
-
-        If term.atomic is truthy, it should have dataset and dtype attributes.
-        """
+    @abstractproperty
+    def inputs(self):
         raise NotImplementedError()
+
+    @abstractproperty
+    def mask(self):
+        raise NotImplementedError
+
+    @lazyval
+    def dependencies(self):
+        return tuple(chain(self.inputs, (self.mask,)))
+
+    @lazyval
+    def atomic(self):
+        return not any(dep for dep in self.dependencies
+                       if dep is not AssetExists())
+
+
+class AssetExists(Term):
+    """
+    Pseudo-filter describing whether or not an asset existed on a given day.
+    This is the default mask for all terms that haven't been passed a mask
+    explicitly.
+
+    This is morally a Filter, in the sense that it produces a boolean value for
+    every asset on every date.  We don't subclass Filter, however, because
+    `AssetExists` is computed directly by the PipelineEngine.
+
+    See Also
+    --------
+    zipline.assets.AssetFinder.lifetimes
+    """
+    dtype = bool_
+    dataset = None
+    extra_input_rows = 0
+    inputs = ()
+    dependencies = ()
+    mask = None
+
+    def __repr__(self):
+        return "AssetExists()"
 
 
 # TODO: Move mixins to a separate file?
@@ -220,17 +256,6 @@ class CustomTermMixin(object):
         return out
 
 
-class AtomicTerm(Term):
-
-    @property
-    def atomic(self):
-        return True
-
-    @property
-    def dataset(self):
-        raise NotImplementedError()
-
-
 class CompositeTerm(Term):
     inputs = NotSpecified
     window_length = NotSpecified
@@ -290,14 +315,10 @@ class CompositeTerm(Term):
 
         if self.window_length:
             for child in self.inputs:
-                if not child.atomic:
+                for _ in child.inputs:
                     raise InputTermNotAtomic(parent=self, child=child)
 
         return super(CompositeTerm, self)._validate()
-
-    @property
-    def atomic(self):
-        return False
 
     def _compute(self, inputs, dates, assets, mask):
         """
@@ -339,31 +360,3 @@ class CompositeTerm(Term):
             inputs=self.inputs,
             window_length=self.window_length,
         )
-
-
-class AssetExists(AtomicTerm):
-    """
-    Pseudo-filter describing whether or not an asset existed on a given day.
-    This is the default mask for all terms that haven't been passed a mask
-    explicitly.
-
-    This is morally a Filter, in the sense that it produces a boolean value for
-    every asset on every date.  We don't subclass Filter, however, because
-    `AssetExists` is computed directly by the PipelineEngine.
-
-    See Also
-    --------
-    zipline.assets.AssetFinder.lifetimes
-    """
-    dtype = bool_
-    dataset = None
-
-    def _compute(self, *args, **kwargs):
-        # TODO: Consider moving the bulk of the logic from
-        # SimplePipelineEngine._compute_root_mask here.
-        raise NotImplementedError(
-            "Direct computation of AssetExists is not supported!"
-        )
-
-    def __repr__(self):
-        return "AssetExists()"

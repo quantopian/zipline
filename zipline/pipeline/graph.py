@@ -102,16 +102,9 @@ class TermGraph(DiGraph):
         zipline.pipeline.engine.SimplePipelineEngine._inputs_for_term
         zipline.pipeline.engine.SimplePipelineEngine._mask_and_dates_for_term
         """
-        out = {}
-        for term in self:
-            if not term.atomic:
-                extra_input_rows = term.extra_input_rows
-                for input_ in term.inputs:
-                    out[term, input_] = (self.extra_rows[input_]
-                                         - extra_input_rows)
-                mask = term.mask
-                out[term, mask] = self.extra_rows[mask] - extra_input_rows
-        return out
+        return {(term, dep): self.extra_rows[dep] - term.extra_input_rows
+                for term in self
+                for dep in term.dependencies}
 
     @lazyval
     def extra_rows(self):
@@ -192,25 +185,17 @@ class TermGraph(DiGraph):
         # Make sure we're going to compute at least `extra_rows` of `term`.
         self._ensure_extra_rows(term, extra_rows)
 
-        if not term.atomic:
-            # Number of extra rows we need to compute for this term's
-            # dependencies.
-            dependency_extra_rows = extra_rows + term.extra_input_rows
+        # Number of extra rows we need to compute for this term's dependencies.
+        dependency_extra_rows = extra_rows + term.extra_input_rows
 
-            # Recursively add dependencies.
-            for dependency in term.inputs:
-                self._add_to_graph(
-                    dependency,
-                    parents,
-                    extra_rows=dependency_extra_rows,
-                )
-                self.add_edge(dependency, term)
-
-            # Add term's mask, which is really just a specially-enumerated
-            # input.
-            mask = term.mask
-            self._add_to_graph(mask, parents, extra_rows=dependency_extra_rows)
-            self.add_edge(mask, term)
+        # Recursively add dependencies.
+        for dependency in term.dependencies:
+            self._add_to_graph(
+                dependency,
+                parents,
+                extra_rows=dependency_extra_rows,
+            )
+            self.add_edge(dependency, term)
 
         parents.remove(term)
 
