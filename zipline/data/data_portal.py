@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 
 from zipline.utils import tradingcalendar
+from zipline.errors import (
+    NoTradeDataAvailableTooEarly,
+    NoTradeDataAvailableTooLate
+)
 
 # FIXME anything to do with 2002-01-02 probably belongs in qexec, right/
 FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
@@ -193,6 +197,8 @@ class DataPortal(object):
         asset_int = int(asset)
         column_to_use = self.column_lookup[column]
 
+        self._check_is_currently_alive(asset_int, dt)
+
         if self.data_frequency == "daily":
             return self._get_daily_data(asset_int, column_to_use, day_to_use)
         else:
@@ -256,17 +262,6 @@ class DataPortal(object):
             pd.Timestamp(
                 calendar[daily_attrs['calendar_offset'][str(asset_int)]],
                 tz='UTC')
-
-        if dt < asset_data_start_date:
-            raise ValueError(
-                "Cannot fetch daily data for {0} for {1} "
-                "because it only started trading on {2}!".
-                format(
-                    str(asset),
-                    str(dt),
-                    str(asset_data_start_date)
-                )
-            )
 
         trading_days = tradingcalendar.trading_days
 
@@ -846,17 +841,31 @@ class DataPortal(object):
 
         return view
 
-    def is_currently_alive(self, name):
+    def _check_is_currently_alive(self, name, dt):
+        if dt is None:
+            dt = self.current_day
+
         if name not in self.sources_map:
             name = int(name)
 
         if name not in self.asset_start_dates:
-            asset = self.asset_finder.retrieve_asset(name)
-            self.asset_start_dates[name] = asset.start_date
-            self.asset_end_dates[name] = asset.end_date
+            self._get_asset_start_date(name)
 
-        return (self.current_day >= self.asset_start_dates[name] and
-                self.current_day <= self.asset_end_dates[name])
+        start_date = self.asset_start_dates[name]
+        if self.asset_start_dates[name] > dt:
+            raise NoTradeDataAvailableTooEarly(
+                sid=name,
+                dt=dt,
+                start_dt=start_date
+            )
+
+        end_date = self.asset_end_dates[name]
+        if self.asset_end_dates[name] < dt:
+            raise NoTradeDataAvailableTooLate(
+                sid=name,
+                dt=dt,
+                end_dt=end_date
+            )
 
     def _get_asset_start_date(self, sid):
         if sid not in self.asset_start_dates:

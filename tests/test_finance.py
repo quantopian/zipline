@@ -232,13 +232,6 @@ class FinanceTestCase(TestCase):
 
                 days = sim_params.trading_days
 
-                env.write_data(equities_data={
-                    sid: {
-                        "start_date": days[0],
-                        "end_date": days[-1]
-                    }
-                })
-
                 assets = {
                     1: pd.DataFrame({
                         "open": [10.1] * len(days),
@@ -261,7 +254,14 @@ class FinanceTestCase(TestCase):
                     asset_finder=env.asset_finder
                 )
 
-            blotter.slippage_func.data_portal = data_portal
+            env.write_data(equities_data={
+                sid: {
+                    "start_date": sim_params.trading_days[0],
+                    "end_date": sim_params.trading_days[-1]
+                }
+            })
+
+            blotter.data_portal = data_portal
             start_date = sim_params.first_open
 
             if alternate:

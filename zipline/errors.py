@@ -30,6 +30,18 @@ class ZiplineError(Exception):
     __repr__ = __str__
 
 
+class NoTradeDataAvailable(ZiplineError):
+    pass
+
+
+class NoTradeDataAvailableTooEarly(NoTradeDataAvailable):
+    msg = "{sid} does not exist on {dt}. It started trading on {start_dt}."
+
+
+class NoTradeDataAvailableTooLate(NoTradeDataAvailable):
+    msg = "{sid} does not exist on {dt}. It stopped trading on {end_dt}."
+
+
 class WrongDataForTransform(ZiplineError):
     """
     Raised whenever a rolling transform is called on an event that

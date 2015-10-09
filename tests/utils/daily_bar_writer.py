@@ -4,7 +4,7 @@ from numpy import (
 )
 from bcolz import ctable
 
-from zipline.data.ffc.loaders.us_equity_pricing import (
+from zipline.pipeline.loaders.equity_pricing_loader import (
     BcolzDailyBarWriter,
     OHLC,
     UINT32_MAX

@@ -682,7 +682,7 @@ class TestTransformAlgorithm(TestCase):
             for sid in [0, 1]:
                 equities_metadata[sid] = {
                     'start_date': sim_params.period_start,
-                    'end_date': sim_params.period_end
+                    'end_date': sim_params.period_end + timedelta(days=1)
                 }
 
             env.write_data(equities_data=equities_metadata)
@@ -1320,7 +1320,7 @@ class TestTradingControls(TestCase):
             env.write_data(equities_data={
                 1: {
                     'start_date': sim_params.period_start,
-                    'end_date': sim_params.period_end
+                    'end_date': sim_params.period_end + timedelta(days=1)
                 }
             })
 
@@ -1525,7 +1525,7 @@ class TestAccountControls(TestCase):
         cls.env.write_data(equities_data={
             133: {
                 'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end
+                'end_date': cls.sim_params.period_end + timedelta(days=1)
             }
         })
 
