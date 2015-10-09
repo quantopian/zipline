@@ -53,7 +53,6 @@ OHLC = frozenset(['open', 'high', 'low', 'close'])
 US_EQUITY_PRICING_BCOLZ_COLUMNS = [
     'open', 'high', 'low', 'close', 'volume', 'day', 'id'
 ]
-DAILY_US_EQUITY_PRICING_DEFAULT_FILENAME = 'daily_us_equity_pricing.bcolz'
 SQLITE_ADJUSTMENT_COLUMNS = frozenset(['effective_date', 'ratio', 'sid'])
 SQLITE_ADJUSTMENT_COLUMN_DTYPES = {
     'effective_date': integer,
