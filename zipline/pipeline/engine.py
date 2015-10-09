@@ -232,7 +232,10 @@ class SimplePipelineEngine(object):
         # Filter out columns that didn't exist between the requested start and
         # end dates.
         existed = lifetimes.iloc[extra_rows:].any()
-        return lifetimes.loc[:, existed]
+        ret = lifetimes.loc[:, existed]
+        shape = ret.shape
+        assert shape[0] * shape[1] != 0, 'root mask cannot be empty'
+        return ret
 
     def _mask_and_dates_for_term(self, term, workspace, graph, dates):
         """
