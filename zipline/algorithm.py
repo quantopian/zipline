@@ -232,7 +232,7 @@ class TradingAlgorithm(object):
         self.asset_finder = self.trading_environment.asset_finder
 
         # Initialize Pipeline API data.
-        self.init_engine(kwargs.pop('pipeline_loader_dispatch', None))
+        self.init_engine(kwargs.pop('get_pipeline_loader', None))
         self._pipelines = {}
         # Create an always-expired cache so that we compute the first time data
         # is requested.
@@ -323,15 +323,15 @@ class TradingAlgorithm(object):
         self.initialize_args = args
         self.initialize_kwargs = kwargs
 
-    def init_engine(self, loader_dispatch):
+    def init_engine(self, get_loader):
         """
         Construct and store a PipelineEngine from loader.
 
-        If loader is None, constructs a NoOpPipelineEngine.
+        If get_loader is None, constructs a NoOpPipelineEngine.
         """
-        if loader_dispatch is not None:
+        if get_loader is not None:
             self.engine = SimplePipelineEngine(
-                loader_dispatch,
+                get_loader,
                 self.trading_environment.trading_days,
                 self.asset_finder,
             )
