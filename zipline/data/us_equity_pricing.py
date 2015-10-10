@@ -33,9 +33,11 @@ from numpy import (
     iinfo,
     integer,
     issubdtype,
+    nan,
     uint32,
 )
 from pandas import (
+    DataFrame,
     DatetimeIndex,
     read_csv,
     Timestamp,
@@ -49,6 +51,9 @@ from six import (
 from ._equities import _compute_row_slices, _read_bcolz_data
 from ._adjustments import load_adjustments_from_sqlite
 
+import logbook
+logger = logbook.Logger('UsEquityPricing')
+
 OHLC = frozenset(['open', 'high', 'low', 'close'])
 US_EQUITY_PRICING_BCOLZ_COLUMNS = [
     'open', 'high', 'low', 'close', 'volume', 'day', 'id'
@@ -61,6 +66,41 @@ SQLITE_ADJUSTMENT_COLUMN_DTYPES = {
 }
 SQLITE_ADJUSTMENT_TABLENAMES = frozenset(['splits', 'dividends', 'mergers'])
 
+
+SQLITE_DIVIDEND_PAYOUT_COLUMNS = frozenset(
+    ['sid',
+     'ex_date',
+     'declared_date',
+     'pay_date',
+     'record_date',
+     'amount'])
+SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
+    'sid': integer,
+    'ex_date': integer,
+    'declared_date': integer,
+    'record_date': integer,
+    'pay_date': integer,
+    'amount': float,
+}
+
+
+SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMNS = frozenset(
+    ['sid',
+     'ex_date',
+     'declared_date',
+     'record_date',
+     'pay_date',
+     'payment_sid',
+     'ratio'])
+SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
+    'sid': integer,
+    'ex_date': integer,
+    'declared_date': integer,
+    'record_date': integer,
+    'pay_date': integer,
+    'payment_sid': integer,
+    'ratio': float,
+}
 UINT32_MAX = iinfo(uint32).max
 
 
@@ -477,7 +517,8 @@ class SQLiteAdjustmentWriter(object):
     SQLiteAdjustmentReader
     """
 
-    def __init__(self, conn_or_path, overwrite=False):
+    def __init__(self, conn_or_path, calendar, daily_bar_reader,
+                 overwrite=False):
         if isinstance(conn_or_path, sqlite3.Connection):
             self.conn = conn_or_path
         elif isinstance(conn_or_path, str):
@@ -490,6 +531,9 @@ class SQLiteAdjustmentWriter(object):
             self.conn = sqlite3.connect(conn_or_path)
         else:
             raise TypeError("Unknown connection type %s" % type(conn_or_path))
+
+        self._daily_bar_reader = daily_bar_reader
+        self._calendar = calendar
 
     def write_frame(self, tablename, frame):
         if frozenset(frame.columns) != SQLITE_ADJUSTMENT_COLUMNS:
@@ -523,7 +567,167 @@ class SQLiteAdjustmentWriter(object):
                 )
         return frame.to_sql(tablename, self.conn)
 
-    def write(self, splits, mergers, dividends):
+    def write_dividend_payouts(self, frame):
+        """
+        Write dividend payout data to SQLite table `dividend_payouts`.
+        """
+        if frozenset(frame.columns) != SQLITE_DIVIDEND_PAYOUT_COLUMNS:
+            raise ValueError(
+                "Unexpected frame columns:\n"
+                "Expected Columns: %s\n"
+                "Received Columns: %s" % (
+                    sorted(SQLITE_DIVIDEND_PAYOUT_COLUMNS),
+                    sorted(frame.columns.tolist()),
+                )
+            )
+
+        expected_dtypes = SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES
+        actual_dtypes = frame.dtypes
+        for colname, expected in iteritems(expected_dtypes):
+            actual = actual_dtypes[colname]
+            if not issubdtype(actual, expected):
+                raise TypeError(
+                    "Expected data of type {expected} for column '{colname}', "
+                    "but got {actual}.".format(
+                        expected=expected,
+                        colname=colname,
+                        actual=actual,
+                    )
+                )
+        return frame.to_sql('dividend_payouts', self.conn)
+
+    def write_stock_dividend_payouts(self, frame):
+        if frozenset(frame.columns) != SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMNS:
+            raise ValueError(
+                "Unexpected frame columns:\n"
+                "Expected Columns: %s\n"
+                "Received Columns: %s" % (
+                    sorted(SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMNS),
+                    sorted(frame.columns.tolist()),
+                )
+            )
+
+        expected_dtypes = SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES
+        actual_dtypes = frame.dtypes
+        for colname, expected in iteritems(expected_dtypes):
+            actual = actual_dtypes[colname]
+            if not issubdtype(actual, expected):
+                raise TypeError(
+                    "Expected data of type {expected} for column '{colname}', "
+                    "but got {actual}.".format(
+                        expected=expected,
+                        colname=colname,
+                        actual=actual,
+                    )
+                )
+        return frame.to_sql('stock_dividend_payouts', self.conn)
+
+    def calc_dividend_ratios(self, dividends):
+        """
+        Calculate the ratios to apply to equities when looking back at pricing
+        history so that the price is smoothed over the ex_date, when the market
+        adjusts to the change in equity value due to upcoming dividend.
+
+        Returns
+        -------
+        DataFrame
+            A frame in the same format as splits and mergers, with keys
+            - sid, the id of the equity
+            - effective_date, the date in seconds on which to apply the ratio.
+            - ratio, the ratio to apply to backwards looking pricing data.
+        """
+        ex_dates = dividends.ex_date.values
+
+        sids = dividends.sid.values
+        amounts = dividends.amount.values
+
+        ratios = full(len(amounts), nan)
+
+        daily_bar_reader = self._daily_bar_reader
+
+        calendar = self._calendar
+
+        for i, amount in enumerate(amounts):
+            sid = sids[i]
+            ex_date = ex_dates[i]
+            day_loc = calendar.get_loc(ex_date)
+            div_adj_date = calendar[day_loc - 1]
+            try:
+                prev_close = daily_bar_reader.spot_price(
+                    sid, div_adj_date, 'close')
+                ratio = 1.0 - amount / (prev_close)
+                ratios[i] = ratio
+            except NoDataOnDate:
+                logger.warn("Couldn't compute ratio for dividend %s" % {
+                    'sid': sid,
+                    'ex_date': ex_date,
+                    'amount': amount,
+                })
+                continue
+
+        effective_dates = ex_dates.astype('datetime64[s]').astype(uint32)
+
+        return DataFrame({
+            'sid': sids,
+            'effective_date': effective_dates,
+            'ratio': ratios,
+        })
+
+    def write_dividend_data(self, dividends, stock_dividends=None):
+        """
+        Write both dividend payouts and the derived price adjustment ratios.
+        """
+
+        # First write the dividend payouts.
+        dividend_payouts = dividends.copy()
+        dividend_payouts['ex_date'] = dividend_payouts['ex_date'].values.\
+            astype('datetime64[s]').astype(integer)
+        dividend_payouts['record_date'] = \
+            dividend_payouts['record_date'].values.astype('datetime64[s]').\
+            astype(integer)
+        dividend_payouts['declared_date'] = \
+            dividend_payouts['declared_date'].values.astype('datetime64[s]').\
+            astype(integer)
+        dividend_payouts['pay_date'] = \
+            dividend_payouts['pay_date'].values.astype('datetime64[s]').\
+            astype(integer)
+
+        self.write_dividend_payouts(dividend_payouts)
+
+        if stock_dividends is not None:
+            stock_dividend_payouts = stock_dividends.copy()
+            stock_dividend_payouts['ex_date'] = \
+                stock_dividend_payouts['ex_date'].values.\
+                astype('datetime64[s]').astype(integer)
+            stock_dividend_payouts['record_date'] = \
+                stock_dividend_payouts['record_date'].values.\
+                astype('datetime64[s]').astype(integer)
+            stock_dividend_payouts['declared_date'] = \
+                stock_dividend_payouts['declared_date'].\
+                values.astype('datetime64[s]').astype(integer)
+            stock_dividend_payouts['pay_date'] = \
+                stock_dividend_payouts['pay_date'].\
+                values.astype('datetime64[s]').astype(integer)
+        else:
+            stock_dividend_payouts = DataFrame({
+                'sid': array([], dtype=uint32),
+                'record_date': array([], dtype=uint32),
+                'ex_date': array([], dtype=uint32),
+                'declared_date': array([], dtype=uint32),
+                'pay_date': array([], dtype=uint32),
+                'payment_sid': array([], dtype=uint32),
+                'ratio': array([], dtype=float),
+            })
+
+        self.write_stock_dividend_payouts(stock_dividend_payouts)
+
+        # Second from the dividend payouts, calculate ratios.
+
+        dividend_ratios = self.calc_dividend_ratios(dividends)
+
+        self.write_frame('dividends', dividend_ratios)
+
+    def write(self, splits, mergers, dividends, stock_dividends=None):
         """
         Writes data to a SQLite file to be read by SQLiteAdjustmentReader.
 
@@ -538,7 +742,7 @@ class SQLiteAdjustmentWriter(object):
 
         Notes
         -----
-        DataFrame input (`splits`, `mergers`, and `dividends`) should all have
+        DataFrame input (`splits`, `mergers`) should all have
         the following columns:
 
         effective_date : int
@@ -554,8 +758,49 @@ class SQLiteAdjustmentWriter(object):
           'low', and 'close') by the ratio.
         - For **splits only**, **divide** volume by the adjustment ratio.
 
-        Dividend ratios should be calculated as
+        DataFrame input, 'dividends' should have the following columns:
+
+        sid : int
+            The asset id associated with this adjustment.
+        ex_date : datetime64
+            The date on which an equity must be held to be eligible to receive
+            payment.
+        declared_date : datetime64
+            The date on which the dividend is announced to the public.
+        pay_date : datetime64
+            The date on which the dividend is distributed.
+        record_date : datetime64
+            The date on which the stock ownership is checked to determine
+            distribution of dividends.
+        amount : float
+            The cash amount paid for each share.
+
+        Dividend ratios are calculated as
         1.0 - (dividend_value / "close on day prior to dividend ex_date").
+
+
+        DataFrame input, 'stock_dividends' should have the following columns:
+
+        sid : int
+            The asset id associated with this adjustment.
+        ex_date : datetime64
+            The date on which an equity must be held to be eligible to receive
+            payment.
+        declared_date : datetime64
+            The date on which the dividend is announced to the public.
+        pay_date : datetime64
+            The date on which the dividend is distributed.
+        record_date : datetime64
+            The date on which the stock ownership is checked to determine
+            distribution of dividends.
+        payment_sid : int
+            The asset id of the shares that should be paid instead of cash.
+        ratio: float
+            The ratio of currently held shares in the held sid that should
+            be paid with new shares of the payment_sid.
+
+        stock_dividends is optional.
+
 
         Returns
         -------
@@ -567,7 +812,7 @@ class SQLiteAdjustmentWriter(object):
         """
         self.write_frame('splits', splits)
         self.write_frame('mergers', mergers)
-        self.write_frame('dividends', dividends)
+        self.write_dividend_data(dividends, stock_dividends)
         self.conn.execute(
             "CREATE INDEX splits_sids "
             "ON splits(sid)"
@@ -591,6 +836,22 @@ class SQLiteAdjustmentWriter(object):
         self.conn.execute(
             "CREATE INDEX dividends_effective_date "
             "ON dividends(effective_date)"
+        )
+        self.conn.execute(
+            "CREATE INDEX dividend_payouts_sid "
+            "ON dividend_payouts(sid)"
+        )
+        self.conn.execute(
+            "CREATE INDEX dividends_payouts_ex_date "
+            "ON dividend_payouts(ex_date)"
+        )
+        self.conn.execute(
+            "CREATE INDEX stock_dividend_payouts_sid "
+            "ON stock_dividend_payouts(sid)"
+        )
+        self.conn.execute(
+            "CREATE INDEX stock_dividends_payouts_ex_date "
+            "ON stock_dividend_payouts(ex_date)"
         )
 
     def close(self):
