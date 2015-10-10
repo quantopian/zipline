@@ -162,8 +162,9 @@ class ConstantInputTestCase(TestCase):
 
     def test_bad_dates(self):
         loader = self.loader
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
 
         p = Pipeline()
 
@@ -177,8 +178,9 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         finder = self.asset_finder
         assets = array(self.assets)
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         num_dates = 5
         dates = self.dates[10:10 + num_dates]
 
@@ -201,8 +203,9 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         finder = self.asset_finder
         assets = self.assets
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         result_shape = (num_dates, num_assets) = (5, len(assets))
         dates = self.dates[10:10 + num_dates]
 
@@ -235,8 +238,9 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         finder = self.asset_finder
         assets = self.assets
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         shape = num_dates, num_assets = (5, len(assets))
         dates = self.dates[10:10 + num_dates]
 
@@ -279,8 +283,9 @@ class ConstantInputTestCase(TestCase):
     def test_numeric_factor(self):
         constants = self.constants
         loader = self.loader
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         num_dates = 5
         dates = self.dates[10:10 + num_dates]
         high, low = USEquityPricing.high, USEquityPricing.low
@@ -338,8 +343,9 @@ class ConstantInputTestCase(TestCase):
             dates=self.dates,
             assets=self.assets,
         )
-        engine = SimplePipelineEngine(lambda column: loader,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
 
         sumdiff = RollingSumDifference()
 
@@ -401,10 +407,11 @@ class ConstantInputTestCase(TestCase):
                                           dates=self.dates,
                                           assets=self.assets)
 
-        engine = SimplePipelineEngine(lambda column: loader2
-                                      if column.dataset == Loader2DataSet
-                                      else loader1,
-                                      self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column:
+            loader2 if column.dataset == Loader2DataSet else loader1,
+            self.dates, self.asset_finder,
+        )
 
         pipe_col1 = RollingSumSum(inputs=[Loader1DataSet1.col1,
                                           Loader1DataSet2.col1,
