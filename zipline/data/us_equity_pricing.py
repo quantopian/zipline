@@ -462,7 +462,7 @@ class BcolzDailyBarReader(object):
 
 class SQLiteAdjustmentWriter(object):
     """
-    Writer for data to be read by SQLiteAdjustmentWriter
+    Writer for data to be read by SQLiteAdjustmentReader
 
     Parameters
     ----------
