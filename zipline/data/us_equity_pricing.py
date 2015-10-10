@@ -64,6 +64,13 @@ SQLITE_ADJUSTMENT_TABLENAMES = frozenset(['splits', 'dividends', 'mergers'])
 UINT32_MAX = iinfo(uint32).max
 
 
+class NoDataOnDate(Exception):
+    """
+    Raised when a spot price can be found for the sid and date.
+    """
+    pass
+
+
 class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
     """
     Class capable of writing daily OHLCV data to disk in a format that can be
@@ -333,6 +340,11 @@ class BcolzDailyBarReader(object):
             int(id_): offset
             for id_, offset in iteritems(table.attrs['calendar_offset'])
         }
+        # Cache of fully read np.array for the carrays in the daily bar table.
+        # raw_array does not use the same cache, but it could.
+        # Need to test keeping the entire array in memory for the course of a
+        # process first.
+        self._spot_cols = {}
 
     def _compute_slices(self, start_idx, end_idx, assets):
         """
@@ -393,6 +405,59 @@ class BcolzDailyBarReader(object):
             last_rows,
             offsets,
         )
+
+    def _spot_col(self, colname):
+        """
+        Get the colname from daily_bar_table and read all of it into memory,
+        caching the result.
+
+        Parameters
+        ----------
+        colname : string
+            A name of a OHLCV carray in the daily_bar_table
+
+        Returns
+        -------
+        array (uint32)
+            Full read array of the carray in the daily_bar_table with the
+            given colname.
+        """
+        try:
+            col = self._spot_cols[colname]
+        except KeyError:
+            col = self._spot_cols[colname] = self._table[colname][:]
+        return col
+
+    def spot_price(self, sid, day, colname):
+        """
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        day : datetime64
+            Midnight of the day for which data is requested.
+        colname : string
+            The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
+
+        Returns
+        -------
+        float
+            The spot price for colname of the given sid on the given day.
+            Raises a NoDataOnDate exception if there is no data available
+            for the given day and sid.
+        """
+        day_loc = self._calendar.get_loc(day)
+        offset = day_loc - self._calendar_offsets[sid]
+        if offset < 0:
+            raise NoDataOnDate(
+                "No data on or before day={0} for sid={1}".format(
+                    day, sid))
+        ix = self._first_rows[sid] + offset
+        if ix > self._last_rows[sid]:
+            raise NoDataOnDate(
+                "No data on or after day={0} for sid={1}".format(
+                    day, sid))
+        return self._spot_col(colname)[ix] * 0.001
 
 
 class SQLiteAdjustmentWriter(object):

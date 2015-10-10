@@ -35,6 +35,7 @@ from zipline.pipeline.loaders.synthetic import (
 )
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
+    NoDataOnDate
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
@@ -266,3 +267,37 @@ class BcolzDailyBarTestCase(TestCase):
                 start_date=self.trading_days[0],
                 end_date=self.asset_end(asset),
             )
+
+    def test_unadjusted_spot_price(self):
+        table = self.writer.write(self.dest, self.trading_days, self.assets)
+        reader = BcolzDailyBarReader(table)
+        # At beginning
+        price = reader.spot_price(1, Timestamp('2015-06-01', tz='UTC'),
+                                  'close')
+        # Synthetic writes price for date.
+        self.assertEqual(135630.0, price)
+
+        # Middle
+        price = reader.spot_price(1, Timestamp('2015-06-02', tz='UTC'),
+                                  'close')
+        self.assertEqual(135631.0, price)
+        # End
+        price = reader.spot_price(1, Timestamp('2015-06-05', tz='UTC'),
+                                  'close')
+        self.assertEqual(135634.0, price)
+
+        # Another sid at beginning.
+        price = reader.spot_price(2, Timestamp('2015-06-22', tz='UTC'),
+                                  'close')
+        self.assertEqual(235651.0, price)
+
+    def test_unadjusted_spot_price_no_data(self):
+        table = self.writer.write(self.dest, self.trading_days, self.assets)
+        reader = BcolzDailyBarReader(table)
+        # before
+        with self.assertRaises(NoDataOnDate):
+            reader.spot_price(2, Timestamp('2015-06-08', tz='UTC'), 'close')
+
+        # after
+        with self.assertRaises(NoDataOnDate):
+            reader.spot_price(4, Timestamp('2015-06-16', tz='UTC'), 'close')
