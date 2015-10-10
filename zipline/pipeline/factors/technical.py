@@ -9,6 +9,7 @@ from bottleneck import (
     nansum,
 )
 from numpy import (
+    abs,
     clip,
     diff,
     fmax,
@@ -30,19 +31,19 @@ class RSI(CustomFactor, SingleInputMixin):
 
     **Default Inputs**: [USEquityPricing.close]
 
-    **Default Window Length**: 14
+    **Default Window Length**: 15
     """
-    window_length = 14
+    window_length = 15
     inputs = (USEquityPricing.close,)
 
     def compute(self, today, assets, out, closes):
-        diffs = diff(closes)
+        diffs = diff(closes, axis=0)
         ups = nanmean(clip(diffs, 0, inf), axis=0)
-        downs = nanmean(clip(diffs, -inf, 0), axis=0)
+        downs = abs(nanmean(clip(diffs, -inf, 0), axis=0))
         return evaluate(
             "100 - (100 / (1 + (ups / downs)))",
-            locals_dict={'ups': ups, 'downs': downs},
-            globals_dict={},
+            local_dict={'ups': ups, 'downs': downs},
+            global_dict={},
             out=out,
         )
 
