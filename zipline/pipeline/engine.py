@@ -13,12 +13,13 @@ from six import (
 )
 from six.moves import zip_longest
 from numpy import array
-
 from pandas import (
     DataFrame,
     date_range,
     MultiIndex,
 )
+from toolz import groupby, juxt
+from toolz.curried.operator import getitem
 
 from zipline.lib.adjusted_array import ensure_ndarray
 from zipline.errors import NoFurtherDataError
@@ -92,15 +93,15 @@ class SimplePipelineEngine(object):
         which assets are in the top-level universe at any point in time.
     """
     __slots__ = [
-        '_loader',
+        '_get_loader',
         '_calendar',
         '_finder',
         '_root_mask_term',
         '__weakref__',
     ]
 
-    def __init__(self, loader, calendar, asset_finder):
-        self._loader = loader
+    def __init__(self, get_loader, calendar, asset_finder):
+        self._get_loader = get_loader
         self._calendar = calendar
         self._finder = asset_finder
         self._root_mask_term = AssetExists()
@@ -230,7 +231,10 @@ class SimplePipelineEngine(object):
         # Filter out columns that didn't exist between the requested start and
         # end dates.
         existed = lifetimes.iloc[extra_rows:].any()
-        return lifetimes.loc[:, existed]
+        ret = lifetimes.loc[:, existed]
+        shape = ret.shape
+        assert shape[0] * shape[1] != 0, 'root mask cannot be empty'
+        return ret
 
     def _mask_and_dates_for_term(self, term, workspace, graph, dates):
         """
@@ -240,7 +244,8 @@ class SimplePipelineEngine(object):
         offset = graph.extra_rows[mask] - graph.extra_rows[term]
         return workspace[mask][offset:], dates[offset:]
 
-    def _inputs_for_term(self, term, workspace, graph):
+    @staticmethod
+    def _inputs_for_term(term, workspace, graph):
         """
         Compute inputs for the given term.
 
@@ -273,6 +278,21 @@ class SimplePipelineEngine(object):
             out.append(input_data)
         return out
 
+    def get_loader(self, term):
+        if term is AssetExists():
+            return None
+
+        return self._get_loader(term)
+
+    def loader_dispatch(self, term):
+        if term is AssetExists():
+            return None
+
+        loader = self._loader_dispatch(term)
+        if loader is None:
+            raise ValueError("Couldn't find loader for %s" % term)
+        return loader
+
     def compute_chunk(self, graph, dates, assets, initial_workspace):
         """
         Compute the Pipeline terms in the graph for the requested start and end
@@ -297,10 +317,15 @@ class SimplePipelineEngine(object):
             Dictionary mapping requested results to outputs.
         """
         self._validate_compute_chunk_params(dates, assets, initial_workspace)
-        loader = self._loader
+        get_loader = self.get_loader
 
         # Copy the supplied initial workspace so we don't mutate it in place.
         workspace = initial_workspace.copy()
+
+        # If atomic terms share the same loader and extra_rows, load them all
+        # together.
+        atomic_group_key = juxt(get_loader, getitem(graph.extra_rows))
+        atomic_groups = groupby(atomic_group_key, graph.atomic_terms)
 
         for term in graph.ordered():
             # `term` may have been supplied in `initial_workspace`, and in the
@@ -315,13 +340,16 @@ class SimplePipelineEngine(object):
             mask, mask_dates = self._mask_and_dates_for_term(
                 term, workspace, graph, dates
             )
-            if term.atomic:
-                # FUTURE OPTIMIZATION: Scan the resolution order for terms in
-                # the same dataset and load them here as well.
-                to_load = [term]
-                loaded = loader.load_adjusted_array(
-                    to_load, mask_dates, assets, mask,
+
+            if not term.inputs:
+                to_load = sorted(
+                    atomic_groups[atomic_group_key(term)],
+                    key=lambda t: t.dataset
                 )
+                loader = get_loader(term)
+                loaded = tuple(loader.load_adjusted_array(
+                    to_load, mask_dates, assets, mask,
+                ))
                 assert len(to_load) == len(loaded)
                 for loaded_term, adj_array in zip_longest(to_load, loaded):
                     workspace[loaded_term] = adj_array

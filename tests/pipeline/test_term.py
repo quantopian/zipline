@@ -82,11 +82,14 @@ def to_dict(l):
 
 class DependencyResolutionTestCase(TestCase):
 
-    def setup(self):
-        pass
+    def check_dependency_order(self, ordered_terms):
+        seen = set()
 
-    def teardown(self):
-        pass
+        for term in ordered_terms:
+            for dep in term.dependencies:
+                self.assertIn(dep, seen)
+
+            seen.add(term)
 
     def test_single_factor(self):
         """
@@ -97,12 +100,12 @@ class DependencyResolutionTestCase(TestCase):
             resolution_order = list(graph.ordered())
 
             self.assertEqual(len(resolution_order), 4)
-            self.assertIs(resolution_order[0], AssetExists())
-            self.assertEqual(
-                set([resolution_order[1], resolution_order[2]]),
-                set([SomeDataSet.foo, SomeDataSet.bar]),
-            )
-            self.assertEqual(resolution_order[-1], SomeFactor())
+            self.check_dependency_order(resolution_order)
+            self.assertIn(AssetExists(), resolution_order)
+            self.assertIn(SomeDataSet.foo, resolution_order)
+            self.assertIn(SomeDataSet.bar, resolution_order)
+            self.assertIn(SomeFactor(), resolution_order)
+
             self.assertEqual(graph.node[SomeDataSet.foo]['extra_rows'], 4)
             self.assertEqual(graph.node[SomeDataSet.bar]['extra_rows'], 4)
 
@@ -121,18 +124,14 @@ class DependencyResolutionTestCase(TestCase):
 
         # SomeFactor, its inputs, and AssetExists()
         self.assertEqual(len(resolution_order), 4)
-
-        self.assertIs(resolution_order[0], AssetExists())
+        self.check_dependency_order(resolution_order)
+        self.assertIn(AssetExists(), resolution_order)
         self.assertEqual(graph.extra_rows[AssetExists()], 4)
 
-        self.assertEqual(
-            set([resolution_order[1], resolution_order[2]]),
-            set([bar, buzz]),
-        )
-        self.assertEqual(
-            resolution_order[-1],
-            SomeFactor([bar, buzz], window_length=5),
-        )
+        self.assertIn(bar, resolution_order)
+        self.assertIn(buzz, resolution_order)
+        self.assertIn(SomeFactor([bar, buzz], window_length=5),
+                      resolution_order)
         self.assertEqual(graph.extra_rows[bar], 4)
         self.assertEqual(graph.extra_rows[buzz], 4)
 
@@ -148,20 +147,8 @@ class DependencyResolutionTestCase(TestCase):
 
         # bar should only appear once.
         self.assertEqual(len(resolution_order), 6)
-        indices = {
-            term: resolution_order.index(term)
-            for term in resolution_order
-        }
-
-        self.assertEqual(indices[AssetExists()], 0)
-
-        # Verify that f1's dependencies will be computed before f1.
-        self.assertLess(indices[SomeDataSet.foo], indices[f1])
-        self.assertLess(indices[SomeDataSet.bar], indices[f1])
-
-        # Verify that f2's dependencies will be computed before f2.
-        self.assertLess(indices[SomeDataSet.bar], indices[f2])
-        self.assertLess(indices[SomeDataSet.buzz], indices[f2])
+        self.assertEqual(len(set(resolution_order)), 6)
+        self.check_dependency_order(resolution_order)
 
     def test_disallow_recursive_lookback(self):
 
