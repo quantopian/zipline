@@ -85,11 +85,11 @@ def drain_zipline(test, zipline):
 
 
 def check_algo_results(test,
-                      results,
-                      expected_transactions_count=None,
-                      expected_order_count=None,
-                      expected_positions_count=None,
-                      sid=None):
+                       results,
+                       expected_transactions_count=None,
+                       expected_order_count=None,
+                       expected_positions_count=None,
+                       sid=None):
 
     if expected_transactions_count is not None:
         txns = flatten_list(results["transactions"])
