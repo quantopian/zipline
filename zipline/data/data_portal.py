@@ -908,6 +908,70 @@ class DataPortal(object):
 
         return splits
 
+    def get_dividends(self, sids, dt):
+        """
+        Returns any dividends for the given sids where either the ex date
+        or the pay date matches the given dt.
+
+        Parameters
+        ----------
+        sids: list
+            Sids for which we want dividends.
+
+        dt: pd.Timestamp
+            The date for which we are checking for dividends.  This date will
+            be used to match either ex date or pay date.
+
+        Returns
+        -------
+        (earnable_dividends, payable_dividends): tuple (list, list) where each
+        list consists of (sid, ratio) pairs.
+        """
+        if self.adjustments_conn is None or len(sids) == 0:
+            return [], []
+
+        # convert dt to # of seconds since epoch, because that's what we use
+        # in the adjustments db
+        seconds = int(dt.value / 1e9)
+
+        earnable_dividends = self.adjustments_conn.execute(
+            "SELECT sid, ratio, ex_date, pay_date, declared_date FROM "
+            "DIVIDENDS WHERE ex_date = ?", (seconds,)).fetchall()
+
+        payable_dividends = self.adjustments_conn.execute(
+            "SELECT sid, ratio, ex_date, pay_date, declared_date FROM "
+            "DIVIDENDS WHERE pay_date = ?", (seconds,)).fetchall()
+
+        sids_set = set(sids)
+
+        def filter_dividend(dividend):
+            ex_date = dividend[2]
+            pay_date = dividend[3]
+            declared_date = dividend[4]
+
+            if pay_date == 0:
+                return False
+
+            if ex_date > pay_date:
+                return False
+
+            if ex_date < declared_date:
+                return False
+
+            return True
+
+        relevant_earnable_dividends = \
+            [dividend for dividend in earnable_dividends
+             if (dividend[0] in sids_set) and
+                filter_dividend(dividend)]
+
+        relevant_payable_dividends = \
+            [dividend for dividend in payable_dividends
+             if (dividend[0] in sids_set) and
+                filter_dividend(dividend)]
+
+        return relevant_earnable_dividends, relevant_payable_dividends
+
 
 class DataPortalSidView(object):
 
