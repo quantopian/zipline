@@ -2192,9 +2192,9 @@ class TestPositionTracker(unittest.TestCase):
         equities_metadata = {1: {'asset_type': 'equity'},
                              2: {'asset_type': 'equity'}}
         futures_metadata = {3: {'asset_type': 'future',
-                                'contract_multiplier': 1000},
+                                'contract_size': 1000},
                             4: {'asset_type': 'future',
-                                'contract_multiplier': 1000}}
+                                'contract_size': 1000}}
         cls.env.write_data(equities_data=equities_metadata,
                            futures_data=futures_metadata)
 

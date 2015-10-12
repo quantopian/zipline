@@ -56,7 +56,7 @@ _futures_defaults = {
     'notice_date': None,
     'expiration_date': None,
     'auto_close_date': None,
-    'contract_multiplier': 1,
+    'contract_size': 1,
 }
 
 # Default values for the exchanges DataFrame
@@ -360,7 +360,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('notice_date', sa.Integer, nullable=False),
             sa.Column('expiration_date', sa.Integer, nullable=False),
             sa.Column('auto_close_date', sa.Integer, nullable=False),
-            sa.Column('contract_multiplier', sa.Float),
+            sa.Column('contract_size', sa.Float),
         )
         self.asset_router = sa.Table(
             'asset_router',

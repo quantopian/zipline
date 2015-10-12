@@ -595,7 +595,7 @@ class TestTransformAlgorithm(TestCase):
     @classmethod
     def setUpClass(cls):
         futures_metadata = {3: {'asset_type': 'future',
-                                'contract_multiplier': 10}}
+                                'contract_size': 10}}
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0, 1, 133],
                            futures_data=futures_metadata)

@@ -849,7 +849,7 @@ class TradingAlgorithm(object):
             return 0
 
         if isinstance(asset, Future):
-            value_multiplier = asset.contract_multiplier
+            value_multiplier = asset.contract_size
         else:
             value_multiplier = 1
 
