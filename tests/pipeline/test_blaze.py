@@ -5,7 +5,6 @@ from __future__ import division
 
 from collections import OrderedDict
 from datetime import timedelta
-from itertools import chain
 from unittest import TestCase
 import warnings
 
@@ -37,22 +36,16 @@ dtypeof = op.attrgetter('dtype')
 class BlazeToPipelineTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.dates = pd.date_range('2014-01-01', '2014-01-03')
-        dates = (
-            [pd.Timestamp('2014-01-01')] * 3 +
-            [pd.Timestamp('2014-01-02')] * 3 +
-            [pd.Timestamp('2014-01-03')] * 3
-        )
+        cls.dates = dates = pd.date_range('2014-01-01', '2014-01-03')
+        dates = cls.dates.repeat(3)
         cls.sids = sids = ord('A'), ord('B'), ord('C')
         cls.df = df = pd.DataFrame({
             'sid': sids * 3,
-            'value': tuple(
-                chain.from_iterable((a, a + 1, a + 2) for a in range(3)),
-            ),
+            'value': (0, 1, 2, 1, 2, 3, 2, 3, 4),
             'asof_date': dates,
             'timestamp': dates,
         })
-        cls.dshape = dshape_ = dshape("""
+        cls.dshape = dshape("""
         var * {
             sid: ?int64,
             value: ?float64,
@@ -61,7 +54,7 @@ class BlazeToPipelineTestCase(TestCase):
         }
         """)
         cls.macro_df = df[df.sid == 65].drop('sid', axis=1)
-        dshape_ = OrderedDict(dshape_.measure.fields)
+        dshape_ = OrderedDict(cls.dshape.measure.fields)
         del dshape_['sid']
         cls.macro_dshape = var * Record(dshape_)
 

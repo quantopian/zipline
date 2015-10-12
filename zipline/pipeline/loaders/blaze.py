@@ -9,15 +9,15 @@ against the data with blaze.
 Data Format
 -----------
 
-The blaze Pipline API loader expects that data is formatted in a tabular way.
+The blaze Pipeline API loader expects that data is formatted in a tabular way.
 The only required column in your table is ``asof_date`` where this column
 represents the date this data is referencing. For example, one might have a CSV
 like:
 
 asof_date,value
-2014-01-01,0
-2014-01-02,1
-2014-01-03,2
+2014-01-06,0
+2014-01-07,1
+2014-01-08,2
 
 This says that the value on 2014-01-01 was 0 and so on.
 
@@ -27,30 +27,31 @@ available to for use. Using our same CSV, we could write this with a timestamp
 like:
 
 asof_date,timestamp,value
-2014-01-01,2014-01-02,0
-2014-01-02,2014-01-03,1
-2014-01-03,2014-01-04,2
+2014-01-06,2014-01-07,0
+2014-01-07,2014-01-08,1
+2014-01-08,2014-01-09,2
 
 This says that the value was 0 on 2014-01-01; however, we did not learn this
-until 2014-01-02. This is useful for avoiding look-ahead bias in your pipelins.
-If this column does not exist, the ``asof_date`` column will be used instead.
+until 2014-01-02. This is useful for avoiding look-ahead bias in your
+pipelines. If this column does not exist, the ``asof_date`` column will be used
+instead.
 
-If your data references a particular security, you can add a ``sid`` column to
+If your data references a particular asset, you can add a ``sid`` column to
 your dataset to represent this. For example:
 
 asof_date,value,sid
-2014-01-01,0,10
-2014-01-01,1,20
-2014-01-02,1,10
-2014-01-02,2,20
-2014-01-03,2,10
-2014-01-03,3,20
+2014-01-06,0,10
+2014-01-06,1,20
+2014-01-07,1,10
+2014-01-07,2,20
+2014-01-08,2,10
+2014-01-08,3,20
 
 This says that on 2014-01-01, the asset with id 10 had a value of 0, and the
 asset with id 20 had a value of 1.
 
 
-One of the key features of the Pipeline API is the handling of adjusments and
+One of the key features of the Pipeline API is the handling of adjustments and
 restatements. Often our data will be amended after the fact and we would like
 to trade on the newest information; however, we do not want to introduce this
 knowledge to our model too early. The blaze loader handles this case by
@@ -60,19 +61,19 @@ in the original expression.
 For example, let's use our table from above:
 
 asof_date,value
-2014-01-01,0
-2014-01-02,1
-2014-01-03,2
+2014-01-06,0
+2014-01-07,1
+2014-01-08,2
 
 Imagine that on the fourth the vendor realized that the calculation was
 incorrect and the value on the first was actually -1. Then, on the fifth, they
 realized that the value for the third was actually 3. We can construct a
 ``deltas`` expression to pass to our blaze loader that has the same shape as
-our base table but only contains these new values like:
+our baseline table but only contains these new values like:
 
 asof_date,timestamp,value
-2014-01-01,2014-01-04,-1
-2014-01-03,2014-01-05,3
+2014-01-06,2014-01-09,-1
+2014-01-08,2014-01-10,3
 
 This shows that we learned on the fourth that the value on the first was
 actually -1 and that we learned on the fifth that the value on the third was
@@ -83,8 +84,8 @@ have had on that day, and we can prevent lookahead bias in the pipelines.
 Conversion from Blaze to the Pipeline API
 -----------------------------------------
 
-Now that our data is structured in the way that the blaze loader expects we
-are ready to convert our blaze expressions into Pipline API objects.
+Now that our data is structured in the way that the blaze loader expects, we
+are ready to convert our blaze expressions into Pipeline API objects.
 
 This module (zipline.pipeline.loaders.blaze) exports a function called
 ``from_blaze`` which performs this mapping.
@@ -111,7 +112,7 @@ expression tree until we find the table that ``field`` is defined on. We will
 then proceed with the record case to construct a dataset; however, before
 returning the dataset we will pull out only the column that was passed in.
 
-For full documentation, see ``help(from_blaze)`` or ``from_blaze?`` in jupyter.
+For full documentation, see ``help(from_blaze)`` or ``from_blaze?`` in IPython.
 
 Using our Pipeline DataSets and Columns
 ---------------------------------------
@@ -158,6 +159,7 @@ from six import with_metaclass, PY2, iteritems
 from ..data.dataset import DataSet, Column
 from zipline.lib.adjusted_array import adjusted_array
 from zipline.lib.adjustment import Float64Overwrite
+from zipline.utils.input_validation import expect_element
 
 
 AD_FIELD_NAME = 'asof_date'
@@ -195,12 +197,13 @@ class _ExprRepr(object):
 
 
 class ExprData(namedtuple('ExprData', 'expr deltas resources')):
-    """A pair of expressions and a data resources.
+    """A pair of expressions and data resources. The expresions will be
+    computed using the resources as the starting scope.
 
     Parameters
     ----------
     expr : Expr
-        The first known values.
+        The baseline values.
     deltas : Expr, optional
         The deltas for the data.
     resources : resource or dict of resources, optional
@@ -221,7 +224,7 @@ class ExprData(namedtuple('ExprData', 'expr deltas resources')):
 
 
 class InvalidField(with_metaclass(ABCMeta)):
-    """A field that raises an exception that indicates that the
+    """A field that raises an exception indicating that the
     field was invalid.
 
     Parameters
@@ -246,13 +249,14 @@ class InvalidField(with_metaclass(ABCMeta)):
 
 
 class NonNumpyField(InvalidField):
-    error_format = "field '{field}' was a non numpy compatible type: '{type_}'"
+    error_format = (
+        "field '{field}' was a non numpy compatible type: '{type_}'"
+    )
 
 
 class NonPipelineField(InvalidField):
     error_format = (
-        "field '{field}' was a non Pipeline API compatible type:"
-        " '{type_.__name__}'"
+        "field '{field}' was a non Pipeline API compatible type: '{type_}'"
     )
 
 
@@ -261,10 +265,10 @@ class NotPipelineCompatible(TypeError):
     compatible.
     """
     def __str__(self):
-        return "'%s' is a non Pipleine API compatible type'" % self.args
+        return "'%s' is a non Pipeline API compatible type'" % self.args
 
 
-_new_names = ('_%d' % n for n in count())
+_new_names = ('BlazeDataSet_%d' % n for n in count())
 
 
 @memoize
@@ -285,7 +289,8 @@ def new_dataset(expr, deltas):
 
     Notes
     -----
-    This function is memoized, repeated calls will return the same type.
+    This function is memoized. repeated calls with the same inputs will return
+    the same type.
     """
     columns = {}
     for name, type_ in expr.dshape.measure.fields:
@@ -304,7 +309,7 @@ def new_dataset(expr, deltas):
         columns[name] = col
 
     name = expr._name
-    if expr._name is None:
+    if name is None:
         name = next(_new_names)
 
     # unicode is a name error in py3 but the branch is only hit
@@ -316,7 +321,7 @@ def new_dataset(expr, deltas):
 
 
 def _check_resources(name, expr, resources):
-    """Validate that the exprssion and resources passed match up.
+    """Validate that the expression and resources passed match up.
 
     Parameters
     ----------
@@ -330,7 +335,7 @@ def _check_resources(name, expr, resources):
     Raises
     ------
     ValueError
-        If the resources to not match for an expression.
+        If the resources do not match for an expression.
     """
     if expr is None:
         return
@@ -381,7 +386,7 @@ class NoDeltasWarning(UserWarning):
         self._expr = expr
 
     def __str__(self):
-        return 'No deltas could be infered from expr: %s' % self._expr
+        return 'No deltas could be inferred from expr: %s' % self._expr
 
 
 _valid_no_deltas_rules = 'warn', 'raise', 'ignore'
@@ -393,11 +398,12 @@ def _get_deltas(expr, deltas, no_deltas_rule):
     Parameters
     ----------
     expr : Expr
-        The base expression.
+        The baseline expression.
     deltas : Expr, 'auto', or None
         The deltas argument. If this is 'auto', then the deltas table will
-        be searched for by walking up the expression tree. If this can not be
-        reflected, then an action will be taken based on the 'no_deltas_rule'.
+        be searched for by walking up the expression tree. If this cannot be
+        reflected, then an action will be taken based on the
+        ``no_deltas_rule``.
     no_deltas_rule : {'warn', 'raise', 'ignore'}
         How to handle the case where deltas='auto' but no deltas could be
         found.
@@ -407,12 +413,6 @@ def _get_deltas(expr, deltas, no_deltas_rule):
     deltas : Expr or None
         The deltas table to use.
     """
-    if no_deltas_rule not in _valid_no_deltas_rules:
-        raise ValueError(
-            'no_deltas_rule must be one of: %s' %
-            _valid_no_deltas_rules
-        )
-
     if isinstance(deltas, bz.Expr) or deltas != 'auto':
         return deltas
 
@@ -428,6 +428,7 @@ def _get_deltas(expr, deltas, no_deltas_rule):
     return None
 
 
+@expect_element(no_deltas_rule=_valid_no_deltas_rules)
 def from_blaze(expr,
                deltas='auto',
                loader=None,
@@ -453,7 +454,7 @@ def from_blaze(expr,
         scope for ``bz.compute``.
     no_deltas_rule : {'warn', 'raise', 'ignore'}
         What should happen if ``deltas='auto'`` but no deltas can be found.
-        'log' says to log a message but continue.
+        'warn' says to raise a warning but continue.
         'raise' says to raise an exception if no deltas can be found.
         'ignore' says take no action and proceed with no deltas.
 
@@ -474,17 +475,21 @@ def from_blaze(expr,
                 'expression with deltas may only contain (%s) nodes,'
                 " found: %s" % (
                     ', '.join(map(getname, valid_deltas_node_types)),
-                    ', '.join(map(compose(getname, type), invalid_nodes)),
+                    ', '.join(set(map(compose(getname, type), invalid_nodes))),
                 ),
             )
 
     # Check if this is a single column out of a dataset.
-    single_column = None
     if bz.ndim(expr) != 1:
         raise TypeError(
             'expression was not tabular or array-like,'
-            ' too many dimensions: %d' % bz.ndim(expr)
+            ' %s dimensions: %d' % (
+                'too many' if bz.ndim(expr) > 1 else 'not enough',
+                bz.ndim(expr),
+            ),
         )
+
+    single_column = None
     if isscalar(expr.dshape.measure):
         # This is a single column. Record which column we are to return
         # but create the entire dataset.
@@ -530,7 +535,7 @@ def from_blaze(expr,
     if deltas is not None and (sorted(deltas.dshape.measure.fields) !=
                                sorted(measure.fields)):
         raise TypeError(
-            'base measure != deltas measure:\n%s != %s' % (
+            'baseline measure != deltas measure:\n%s != %s' % (
                 measure,
                 deltas.dshape.measure,
             ),
@@ -558,27 +563,27 @@ getdataset = op.attrgetter('dataset')
 dataset_name = op.attrgetter('name')
 
 
-def inline_novel_deltas(base, deltas, dates):
-    """Inline any deltas into the base set that would have changed our most
+def inline_novel_deltas(baseline, deltas, dates):
+    """Inline any deltas into the baseline set that would have changed our most
     recently known value.
 
     Parameters
     ----------
-    base : pd.DataFrame
+    baseline : pd.DataFrame
         The first known values.
     deltas : pd.DataFrame
-        Overwrites to the base data.
+        Overwrites to the baseline data.
     dates : pd.DatetimeIndex
         The dates requested by the loader.
 
     Returns
     -------
-    new_base : pd.DataFrame
-        The new base data with novel deltas inserted.
+    new_baseline : pd.DataFrame
+        The new baseline data with novel deltas inserted.
     """
     get_indexes = dates.searchsorted
     return pd.concat(
-        (base,
+        (baseline,
          deltas.loc[
              (get_indexes(deltas[TS_FIELD_NAME].values, 'right') -
               get_indexes(deltas[AD_FIELD_NAME].values, 'left')) <= 1
@@ -751,7 +756,7 @@ class BlazeLoader(dict):
             Parameters
             ----------
             e : Expr
-                The base or deltas expression.
+                The baseline or deltas expression.
 
             Returns
             -------
@@ -812,7 +817,7 @@ class BlazeLoader(dict):
                 index=dates,
             )
 
-            # In place update the output based on the base.
+            # In place update the output based on the baseline.
             dense_output.update(sparse_output)
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
