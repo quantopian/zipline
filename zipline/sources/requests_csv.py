@@ -15,7 +15,6 @@ from zipline.errors import (
     MultipleSymbolsFound,
     SymbolNotFound,
     ZiplineError)
-from zipline.finance.trading import TradingEnvironment
 from zipline.protocol import (
     DATASOURCE_TYPE,
     Event
@@ -116,7 +115,6 @@ SHARED_REQUESTS_KWARGS = {
 def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     requests_kwargs = {key: val for (key, val) in kwargs.iteritems()
                        if key in ALLOWED_REQUESTS_KWARGS}
-
     if params_checker is not None:
         url, s_params = params_checker(url)
         if s_params:
@@ -331,18 +329,20 @@ class PandasCSV(object):
             # using both symbol and the row date.
             conflict_rows = df[df['sid'] == 0]
             for row_idx, row in conflict_rows.iterrows():
+                try:
+                    asset = self.finder.lookup_symbol(
+                        row[self.symbol_column],
+                        # Replacing tzinfo here is necessary because of the
+                        # timezone metadata bug described below.
+                        row['dt'].replace(tzinfo=pytz.utc),
 
-                asset = self.finder.lookup_symbol(
-                    row[self.symbol_column],
-                    # Replacing tzinfo here is necessary because of the
-                    # timezone metadata bug described below.
-                    row['dt'].replace(tzinfo=pytz.utc),
-
-                    # It's possible that no asset comes back here if our
-                    # lookup date is from before any asset held the
-                    # requested symbol.  Mark such cases as NaN so that they
-                    # get dropped in the next step.
-                ) or numpy.nan
+                        # It's possible that no asset comes back here if our
+                        # lookup date is from before any asset held the
+                        # requested symbol.  Mark such cases as NaN so that they
+                        # get dropped in the next step.
+                    ) or numpy.nan
+                except SymbolNotFound:
+                    asset = numpy.nan
 
                 # Assign the resolved asset to the cell
                 df.ix[row_idx, 'sid'] = asset
@@ -370,6 +370,7 @@ class PandasCSV(object):
         # We don't set 'dt' as the index until here because the Symbol parsing
         # operations above depend on having a unique index for the dataframe,
         # and the 'dt' column can contain multiple dates for the same entry.
+        df.drop_duplicates(["sid", "dt"])
         df.set_index(['dt'], inplace=True)
         df = df.tz_localize('UTC')
         df.sort_index(inplace=True)

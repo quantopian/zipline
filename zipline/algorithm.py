@@ -216,11 +216,6 @@ class TradingAlgorithm(object):
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
 
-        self.fetcher_symbols = set()
-        self.fetcher_sources = {
-            'fetch_csv': []
-        }
-
         # Initialize Pipeline API data.
         self.init_engine(kwargs.pop('pipeline_loader', None))
         self._pipelines = {}
@@ -521,14 +516,9 @@ class TradingAlgorithm(object):
             special_params_checker=special_params_checker,
             **kwargs
         )
-        if symbol is not None:
-            self.fetcher_symbols.add(symbol)
 
-        elif not mask:
-            df = csv_data_source.df
-            self.fetcher_symbols |= set(df.sid.unique())
-
-        self.fetcher_sources['fetch_csv'].append(csv_data_source)
+        # ingest this into dataportal
+        self.data_portal.handle_extra_source(csv_data_source.df)
 
         return csv_data_source
 

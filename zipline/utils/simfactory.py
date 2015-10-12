@@ -1,4 +1,5 @@
 import zipline.utils.factory as factory
+from zipline.utils.test_utils import create_data_portal_from_trade_history
 
 from zipline.test_algorithms import TestAlgorithm
 
@@ -75,8 +76,22 @@ def create_test_zipline(**config):
             test_algo.trading_environment,
             concurrent=concurrent_trades,
         )
-    if trade_source:
-        test_algo.set_sources([trade_source])
+
+    trades_by_sid = {}
+    for trade in trade_source:
+        if trade.sid not in trades_by_sid:
+            trades_by_sid[trade.sid] = []
+
+        trades_by_sid[trade.sid].append(trade)
+
+    data_portal = create_data_portal_from_trade_history(
+        config['env'],
+        config['tempdir'],
+        config['sim_params'],
+        trades_by_sid
+    )
+
+    test_algo.data_portal = data_portal
 
     # -------------------
     # Benchmark source

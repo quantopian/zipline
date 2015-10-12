@@ -416,7 +416,7 @@ class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
             )
 
 
-def create_data_portal(env, tempdir, sim_params, sids):
+def create_data_portal(env, tempdir, sim_params, sids, sid_path_func):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
         assets = {}
@@ -463,7 +463,8 @@ def create_data_portal(env, tempdir, sim_params, sids):
                 "minute": minutes
             }, index=minutes)
 
-        MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+        MinuteBarWriterFromDataFrames().write(tempdir.path, assets,
+                                              sid_path_func=sid_path_func)
 
         return DataPortal(
             env,

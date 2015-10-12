@@ -218,10 +218,10 @@ class Blotter(object):
         transactions = []
 
         for asset, asset_orders in self.open_orders.iteritems():
-            price = self.data_portal.get_spot_price(
+            price = self.data_portal.get_spot_value(
                 asset, 'close', current_dt)
 
-            volume = self.data_portal.get_spot_price(
+            volume = self.data_portal.get_spot_value(
                 asset, 'volume', current_dt)
 
             for order, txn in self.slippage_func(asset_orders, current_dt,
