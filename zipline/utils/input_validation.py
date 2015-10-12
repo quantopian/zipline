@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from six import iteritems, string_types
-from toolz import valmap
+from toolz import valmap, complement, flip, compose
+import toolz.curried.operator as op
 
 from zipline.utils.preprocess import preprocess
 
@@ -71,14 +72,28 @@ def _qualified_name(obj):
     return '.'.join([module, obj.__name__])
 
 
+def _mk_check(exc, template, pred, actual):
+    def _check(func, argname, argvalue):
+        if pred(argvalue):
+            raise exc(
+                template % {
+                    'funcname': _qualified_name(func),
+                    'argname': argname,
+                    'actual': actual(argvalue),
+                },
+            )
+        return argvalue
+    return _check
+
+
 def _expect_type(type_):
     """
     Factory for type-checking functions that work the @preprocess decorator.
     """
     # Slightly different messages for type and tuple of types.
     _template = (
-        "{{funcname}}() expected a value of type {type_or_types} "
-        "for argument '{{argname}}', but got {{actual}} instead."
+        "%(funcname)s() expected a value of type {type_or_types} "
+        "for argument '%(argname)s', but got %(actual)s instead."
     )
     if isinstance(type_, tuple):
         template = _template.format(
@@ -87,17 +102,12 @@ def _expect_type(type_):
     else:
         template = _template.format(type_or_types=_qualified_name(type_))
 
-    def _check_type(func, argname, argvalue):
-        if not isinstance(argvalue, type_):
-            raise TypeError(
-                template.format(
-                    funcname=_qualified_name(func),
-                    argname=argname,
-                    actual=_qualified_name(type(argvalue)),
-                )
-            )
-        return argvalue
-    return _check_type
+    return _mk_check(
+        TypeError,
+        template,
+        complement(flip(isinstance, type_)),
+        compose(_qualified_name, type),
+    )
 
 
 def optional(type_):
@@ -122,3 +132,39 @@ def optional(type_):
     False
     """
     return (type_, type(None))
+
+
+def expect_element(*_pos, **named):
+    """
+    Preprocessing decorator that verifies inputs have expected types.
+
+    Usage
+    -----
+    >>> @expect_types(x=int, y=str)
+    ... def foo(x, y):
+    ...    return x, y
+    ...
+    >>> foo(2, '3')
+    (2, '3')
+    >>> foo(2.0, '3')
+    Traceback (most recent call last):
+       ...
+    TypeError: foo() expected an argument of type 'int' for argument 'x', but got float instead.  # noqa
+    """
+    if _pos:
+        raise TypeError("expect_element() only takes keyword arguments.")
+
+    return preprocess(**valmap(_expect_element, named))
+
+
+def _expect_element(collection):
+    template = (
+        "%(funcname)s() expected a value in {collection} "
+        "for argument '%(argname)s', but got %(actual)s instead."
+    ).format(collection=collection)
+    return _mk_check(
+        ValueError,
+        template,
+        complement(op.contains(collection)),
+        repr,
+    )
