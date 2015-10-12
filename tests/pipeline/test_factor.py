@@ -1,10 +1,15 @@
 """
 Tests for Factor terms.
 """
-from numpy import array, eye, nan, ones
+from nose_parameterized import parameterized
+
+from numpy import arange, array, empty, eye, nan, ones, datetime64
+from numpy.random import randn, seed
+
 from zipline.errors import UnknownRankMethod
 from zipline.pipeline import Factor, Filter, TermGraph
-from zipline.utils.test_utils import check_arrays
+from zipline.pipeline.factors import RSI
+from zipline.utils.test_utils import check_allclose, check_arrays
 
 from .base import BasePipelineTestCase
 
@@ -190,3 +195,30 @@ class FactorTestCase(BasePipelineTestCase):
         )
         for method in results:
             check_arrays(expected[method], results[method])
+
+    @parameterized.expand([
+        # Test cases computed by doing:
+        # from numpy.random import seed, randn
+        # from talib import RSI
+        # seed(seed_value)
+        # data = abs(randn(15, 3))
+        # expected = [RSI(data[:, i])[-1] for i in range(3)]
+        (100, array([41.032913785966, 51.553585468393, 51.022005016446])),
+        (101, array([43.506969935466, 46.145367530182, 50.57407044197])),
+        (102, array([46.610102205934, 47.646892444315, 52.13182788538])),
+    ])
+    def test_rsi(self, seed_value, expected):
+
+        rsi = RSI()
+
+        today = datetime64(1, 'ns')
+        assets = arange(3)
+        out = empty((3,), dtype=float)
+
+        seed(seed_value)  # Seed so we get deterministic results.
+        test_data = abs(randn(15, 3))
+
+        out = empty((3,), dtype=float)
+        rsi.compute(today, assets, out, test_data)
+
+        check_allclose(expected, out)

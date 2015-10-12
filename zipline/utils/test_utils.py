@@ -4,7 +4,7 @@ from itertools import (
 )
 from logbook import FileHandler
 from mock import patch
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 import operator
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
@@ -310,18 +310,37 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
     )
 
 
-def check_arrays(left, right, err_msg='', verbose=True):
+def check_allclose(actual,
+                   desired,
+                   rtol=1e-07,
+                   atol=0,
+                   err_msg='',
+                   verbose=True):
     """
-    Wrapper around np.assert_array_equal that also verifies that inputs are
-    ndarrays.
+    Wrapper around np.testing.assert_allclose that also verifies that inputs
+    are ndarrays.
+
+    See Also
+    --------
+    np.assert_allclose
+    """
+    if type(actual) != type(desired):
+        raise AssertionError("%s != %s" % (type(actual), type(desired)))
+    return assert_allclose(actual, desired, err_msg=err_msg, verbose=True)
+
+
+def check_arrays(x, y, err_msg='', verbose=True):
+    """
+    Wrapper around np.testing.assert_array_equal that also verifies that inputs
+    are ndarrays.
 
     See Also
     --------
     np.assert_array_equal
     """
-    if type(left) != type(right):
-        raise AssertionError("%s != %s" % (type(left), type(right)))
-    return assert_array_equal(left, right, err_msg=err_msg, verbose=True)
+    if type(x) != type(y):
+        raise AssertionError("%s != %s" % (type(x), type(y)))
+    return assert_array_equal(x, y, err_msg=err_msg, verbose=True)
 
 
 class UnexpectedAttributeAccess(Exception):
