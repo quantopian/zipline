@@ -450,7 +450,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         class-level attribute named `inputs`.
     window_length : int, optional
         Number of rows of rows to pass for each input.  If this
-        argument is passed to the CustomFactor constructor, we look for a
+        argument is not passed to the CustomFactor constructor, we look for a
         class-level attribute named `window_length`.
 
     Notes
