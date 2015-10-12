@@ -79,6 +79,7 @@ from zipline.utils.api_support import (
     require_not_initialized,
     ZiplineAPI,
 )
+from zipline.utils.input_validation import ensure_upper_case
 from zipline.utils.cache import CachedObject, Expired
 import zipline.utils.events
 from zipline.utils.events import (
@@ -89,6 +90,7 @@ from zipline.utils.events import (
 )
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import tolerant_equals, round_if_near_integer
+from zipline.utils.preprocess import preprocess
 
 import zipline.protocol
 from zipline.sources.requests_csv import PandasRequestsCSV
@@ -575,6 +577,7 @@ class TradingAlgorithm(object):
             self._recorded_vars[name] = value
 
     @api_method
+    @preprocess(symbol_str=ensure_upper_case)
     def symbol(self, symbol_str):
         """
         Default symbol lookup for any source that directly maps the
@@ -607,6 +610,30 @@ class TradingAlgorithm(object):
         return self.asset_finder.retrieve_asset(a_sid)
 
     @api_method
+    @preprocess(symbol=ensure_upper_case)
+    def future_symbol(self, symbol):
+        """ Lookup a futures contract with a given symbol.
+
+        Parameters
+        ----------
+        symbol : str
+            The symbol of the desired contract.
+
+        Returns
+        -------
+        Future
+            A Future object.
+
+        Raises
+        ------
+        SymbolNotFound
+            Raised when no contract named 'symbol' is found.
+
+        """
+        return self.asset_finder.lookup_future_symbol(symbol)
+
+    @api_method
+    @preprocess(root_symbol=ensure_upper_case)
     def future_chain(self, root_symbol, as_of_date=None):
         """ Look up a future chain with the specified parameters.
 
@@ -638,7 +665,7 @@ class TradingAlgorithm(object):
         return FutureChain(
             asset_finder=self.asset_finder,
             get_datetime=self.get_datetime,
-            root_symbol=root_symbol.upper(),
+            root_symbol=root_symbol,
             as_of_date=as_of_date
         )
 

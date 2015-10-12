@@ -78,12 +78,14 @@ def binary_operator(op):
                 binds=(self,),
             )
         raise BadBinaryOperator(op, self, other)
+
+    binary_operator.__doc__ = "Binary Operator: '%s'" % op
     return binary_operator
 
 
 class Filter(Term):
     """
-    A boolean predicate on a universe of Assets.
+    Pipeline API expression producing boolean-valued outputs.
     """
     dtype = bool_
 

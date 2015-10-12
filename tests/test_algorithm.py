@@ -421,6 +421,65 @@ class TestMiscellaneousAPI(TestCase):
         self.assertIsInstance(algo.sid(3), Equity)
         self.assertIsInstance(algo.sid(4), Equity)
 
+        # Supplying a non-string argument to symbol()
+        # should result in a TypeError.
+        with self.assertRaises(TypeError):
+            algo.symbol(1)
+
+        with self.assertRaises(TypeError):
+            algo.symbol((1,))
+
+        with self.assertRaises(TypeError):
+            algo.symbol({1})
+
+        with self.assertRaises(TypeError):
+            algo.symbol([1])
+
+        with self.assertRaises(TypeError):
+            algo.symbol({'foo': 'bar'})
+
+    def test_future_symbol(self):
+        """ Tests the future_symbol API function.
+        """
+        algo = TradingAlgorithm(env=self.env)
+        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
+
+        # Check that we get the correct fields for the CLG06 symbol
+        cl = algo.future_symbol('CLG06')
+        self.assertEqual(cl.sid, 5)
+        self.assertEqual(cl.symbol, 'CLG06')
+        self.assertEqual(cl.root_symbol, 'CL')
+        self.assertEqual(cl.start_date, pd.Timestamp('2005-12-01', tz='UTC'))
+        self.assertEqual(cl.notice_date, pd.Timestamp('2005-12-20', tz='UTC'))
+        self.assertEqual(cl.expiration_date,
+                         pd.Timestamp('2006-01-20', tz='UTC'))
+
+        with self.assertRaises(SymbolNotFound):
+            algo.future_symbol('')
+
+        with self.assertRaises(SymbolNotFound):
+            algo.future_symbol('PLAY')
+
+        with self.assertRaises(SymbolNotFound):
+            algo.future_symbol('FOOBAR')
+
+        # Supplying a non-string argument to future_symbol()
+        # should result in a TypeError.
+        with self.assertRaises(TypeError):
+            algo.future_symbol(1)
+
+        with self.assertRaises(TypeError):
+            algo.future_symbol((1,))
+
+        with self.assertRaises(TypeError):
+            algo.future_symbol({1})
+
+        with self.assertRaises(TypeError):
+            algo.future_symbol([1])
+
+        with self.assertRaises(TypeError):
+            algo.future_symbol({'foo': 'bar'})
+
     def test_future_chain(self):
         """ Tests the future_chain API function.
         """
@@ -463,6 +522,23 @@ class TestMiscellaneousAPI(TestCase):
 
         with self.assertRaises(UnsupportedDatetimeFormat):
             algo.future_chain('CL', '2015-09-')
+
+        # Supplying a non-string argument to future_chain()
+        # should result in a TypeError.
+        with self.assertRaises(TypeError):
+            algo.future_chain(1)
+
+        with self.assertRaises(TypeError):
+            algo.future_chain((1,))
+
+        with self.assertRaises(TypeError):
+            algo.future_chain({1})
+
+        with self.assertRaises(TypeError):
+            algo.future_chain([1])
+
+        with self.assertRaises(TypeError):
+            algo.future_chain({'foo': 'bar'})
 
     def test_set_symbol_lookup_date(self):
         """

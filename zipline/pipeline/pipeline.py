@@ -1,4 +1,4 @@
-from zipline.utils.preprocess import expect_types, optional
+from zipline.utils.input_validation import expect_types, optional
 
 from .term import Term
 from .filters import Filter
@@ -7,7 +7,18 @@ from .graph import TermGraph
 
 class Pipeline(object):
     """
-    A computational Pipeline for use in trading algorithms.
+    A Pipeline object represents a collection of named expressions to be
+    compiled and executed by a PipelineEngine.
+
+    A Pipeline has two important attributes: 'columns', a dictionary of named
+    `Term` instances, and 'screen', a Filter representing criteria for
+    including an asset in the results of a Pipeline.
+
+    To compute a pipeline in the context of a TradingAlgorithm, users must call
+    ``attach_pipeline`` in their ``initialize`` function to register that the
+    pipeline should be computed each trading day.  The outputs of a pipeline on
+    a given day can be accessed by calling ``pipeline_outputs`` in
+    ``handle_data`` or ``before_trading_start``.
 
     Parameters
     ----------
@@ -15,17 +26,6 @@ class Pipeline(object):
         Initial columns.
     screen : zipline.pipeline.term.Filter, optional
         Initial screen.
-
-    Methods
-    -------
-    add
-    remove
-    set_screen
-
-    Attributes
-    ----------
-    columns
-    screen
     """
     __slots__ = ('_columns', '_screen', '__weakref__')
 
@@ -43,7 +43,7 @@ class Pipeline(object):
     @property
     def columns(self):
         """
-        The columns currently applied to this pipeline.
+        The columns registered with this pipeline.
         """
         return self._columns
 
@@ -103,13 +103,13 @@ class Pipeline(object):
         """
         return self.columns.pop(name)
 
-    @expect_types(screen=Filter)
+    @expect_types(screen=Filter, overwrite=(bool, int))
     def set_screen(self, screen, overwrite=False):
         """
         Set a screen on this Pipeline.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         filter : zipline.pipeline.Filter
             The filter to apply as a screen.
         overwrite : bool

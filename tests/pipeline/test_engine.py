@@ -30,12 +30,12 @@ from zipline.pipeline.loaders.synthetic import (
     NullAdjustmentReader,
     SyntheticDailyBarWriter,
 )
+from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
 from zipline.pipeline.loaders.equity_pricing_loader import (
-    BcolzDailyBarReader,
     USEquityPricingLoader,
 )
 from zipline.pipeline.engine import SimplePipelineEngine

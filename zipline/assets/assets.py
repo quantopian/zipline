@@ -175,6 +175,10 @@ class AssetFinder(object):
     def _select_asset_by_sid(asset_tbl, sid):
         return sa.select([asset_tbl]).where(asset_tbl.c.sid == int(sid))
 
+    @staticmethod
+    def _select_asset_by_symbol(asset_tbl, symbol):
+        return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
+
     def _retrieve_asset(self, sid, cache, asset_tbl, asset_type):
         try:
             return cache[sid]
@@ -205,7 +209,6 @@ class AssetFinder(object):
         """
 
         # Format inputs
-        symbol = symbol.upper()
         if as_of_date is not None:
             as_of_date = pd.Timestamp(normalize_date(as_of_date))
 
@@ -297,6 +300,49 @@ class AssetFinder(object):
                     ))
                 )
 
+    def lookup_future_symbol(self, symbol):
+        """ Return the Future object for a given symbol.
+
+        Parameters
+        ----------
+        symbol : str
+            The symbol of the desired contract.
+
+        Returns
+        -------
+        Future
+            A Future object.
+
+        Raises
+        ------
+        SymbolNotFound
+            Raised when no contract named 'symbol' is found.
+
+        """
+
+        data = self._select_asset_by_symbol(self.futures_contracts, symbol)\
+                   .execute().fetchone()
+
+        # If no data found, raise an exception
+        if not data:
+            raise SymbolNotFound(symbol=symbol)
+
+        # If we find a contract, check whether it's been cached
+        try:
+            return self._future_cache[data['sid']]
+        except KeyError:
+            pass
+
+        # Build the Future object from its parameters
+        data = dict(data.items())
+        _convert_asset_timestamp_fields(data)
+        future = Future(**data)
+
+        # Cache the Future object.
+        self._future_cache[data['sid']] = future
+
+        return future
+
     def lookup_future_chain(self, root_symbol, as_of_date, knowledge_date):
         """ Return the futures chain for a given root symbol.
 
@@ -305,11 +351,12 @@ class AssetFinder(object):
         root_symbol : str
             Root symbol of the desired future.
         as_of_date : pd.Timestamp or pd.NaT
+
             Date at which the chain determination is rooted. I.e. the
-            existing contract whose notice date is first after this
-            date is the primary contract, etc. If NaT is given, the
-            chain is unbounded, and all contracts for this root symbol
-            are returned.
+            existing contract whose notice date/expiration date is first
+            after this date is the primary contract, etc. If NaT is
+            given, the chain is unbounded, and all contracts for this
+            root symbol are returned.
         knowledge_date : pd.Timestamp or pd.NaT
             Date for determining which contracts exist for inclusion in
             this chain. Contracts exist only if they have a start_date
@@ -349,14 +396,48 @@ class AssetFinder(object):
                 knowledge_date = as_of_date
             else:
                 knowledge_date = knowledge_date.value
+
             sids = list(map(
                 itemgetter('sid'),
                 sa.select((fc_cols.sid,)).where(
                     (fc_cols.root_symbol == root_symbol) &
-                    (fc_cols.notice_date > as_of_date) &
-                    (fc_cols.start_date <= knowledge_date),
+                    (fc_cols.start_date <= knowledge_date) &
+
+                    # Filter to contracts that are still valid. If both
+                    # exist, use the one that comes first in time (i.e.
+                    # the lower value). If either notice_date or
+                    # expiration_date is NaT, use the other. If both are
+                    # NaT, the contract cannot be included in any chain.
+                    sa.case(
+                        [
+                            (
+                                fc_cols.notice_date == pd.NaT.value,
+                                fc_cols.expiration_date >= as_of_date
+                            ),
+                            (
+                                fc_cols.expiration_date == pd.NaT.value,
+                                fc_cols.notice_date >= as_of_date
+                            )
+                        ],
+                        else_=(
+                            sa.func.min(
+                                fc_cols.notice_date,
+                                fc_cols.expiration_date
+                            ) >= as_of_date
+                        )
+                    )
                 ).order_by(
-                    fc_cols.notice_date.asc(),
+                    # Sort using expiration_date if valid. If it's NaT,
+                    # use notice_date instead.
+                    sa.case(
+                        [
+                            (
+                                fc_cols.expiration_date == pd.NaT.value,
+                                fc_cols.notice_date
+                            )
+                        ],
+                        else_=fc_cols.expiration_date
+                    ).asc()
                 ).execute().fetchall()
             ))
 

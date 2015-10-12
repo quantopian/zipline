@@ -109,11 +109,11 @@ def build_lookup_generic_cases():
         (finder, 1, None, assets[1]),
         (finder, 2, None, assets[2]),
         # Duplicated symbol with resolution date
-        (finder, 'duplicated', dupe_0_start, dupe_0),
-        (finder, 'duplicated', dupe_1_start, dupe_1),
+        (finder, 'DUPLICATED', dupe_0_start, dupe_0),
+        (finder, 'DUPLICATED', dupe_1_start, dupe_1),
         # Unique symbol, with or without resolution date.
-        (finder, 'unique', unique_start, unique),
-        (finder, 'unique', None, unique),
+        (finder, 'UNIQUE', unique_start, unique),
+        (finder, 'UNIQUE', None, unique),
 
         ##
         # Iterables
@@ -125,11 +125,11 @@ def build_lookup_generic_cases():
         (finder, (0, 1), None, assets[:-1]),
         (finder, iter((0, 1)), None, assets[:-1]),
         # Iterables of symbols.
-        (finder, ('duplicated', 'unique'), dupe_0_start, [dupe_0, unique]),
-        (finder, ('duplicated', 'unique'), dupe_1_start, [dupe_1, unique]),
+        (finder, ('DUPLICATED', 'UNIQUE'), dupe_0_start, [dupe_0, unique]),
+        (finder, ('DUPLICATED', 'UNIQUE'), dupe_1_start, [dupe_1, unique]),
         # Mixed types
         (finder,
-         ('duplicated', 2, 'unique', 1, dupe_1),
+         ('DUPLICATED', 2, 'UNIQUE', 1, dupe_1),
          dupe_0_start,
          [dupe_0, assets[2], unique, assets[1], dupe_1]),
     ]
@@ -233,15 +233,30 @@ class AssetTestCase(TestCase):
 
 
 class TestFuture(TestCase):
-    future = Future(
-        2468,
-        symbol='OMH15',
-        root_symbol='OM',
-        notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
-        expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
-        auto_close_date=pd.Timestamp('2014-01-18', tz='UTC'),
-        contract_multiplier=500
-    )
+
+    @classmethod
+    def setUpClass(cls):
+        cls.future = Future(
+            2468,
+            symbol='OMH15',
+            root_symbol='OM',
+            notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
+            expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
+            auto_close_date=pd.Timestamp('2014-01-18', tz='UTC'),
+            contract_multiplier=500
+        )
+        cls.future2 = Future(
+            0,
+            symbol='CLG06',
+            root_symbol='CL',
+            start_date=pd.Timestamp('2005-12-01', tz='UTC'),
+            notice_date=pd.Timestamp('2005-12-20', tz='UTC'),
+            expiration_date=pd.Timestamp('2006-01-20', tz='UTC')
+        )
+        env = TradingEnvironment()
+        env.write_data(futures_identifiers=[TestFuture.future,
+                                            TestFuture.future2])
+        cls.asset_finder = env.asset_finder
 
     def test_str(self):
         strd = self.future.__str__()
@@ -280,6 +295,41 @@ class TestFuture(TestCase):
     def test_root_symbol(self):
         self.assertEqual('OM', self.future.root_symbol)
 
+    def test_lookup_future_symbol(self):
+        """
+        Test the lookup_future_symbol method.
+        """
+        om = TestFuture.asset_finder.lookup_future_symbol('OMH15')
+        self.assertEqual(om.sid, 2468)
+        self.assertEqual(om.symbol, 'OMH15')
+        self.assertEqual(om.root_symbol, 'OM')
+        self.assertEqual(om.notice_date, pd.Timestamp('2014-01-20', tz='UTC'))
+        self.assertEqual(om.expiration_date,
+                         pd.Timestamp('2014-02-20', tz='UTC'))
+        self.assertEqual(om.auto_close_date,
+                         pd.Timestamp('2014-01-18', tz='UTC'))
+
+        cl = TestFuture.asset_finder.lookup_future_symbol('CLG06')
+        self.assertEqual(cl.sid, 0)
+        self.assertEqual(cl.symbol, 'CLG06')
+        self.assertEqual(cl.root_symbol, 'CL')
+        self.assertEqual(cl.start_date, pd.Timestamp('2005-12-01', tz='UTC'))
+        self.assertEqual(cl.notice_date, pd.Timestamp('2005-12-20', tz='UTC'))
+        self.assertEqual(cl.expiration_date,
+                         pd.Timestamp('2006-01-20', tz='UTC'))
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('')
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('#&?!')
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('FOOBAR')
+
+        with self.assertRaises(SymbolNotFound):
+            TestFuture.asset_finder.lookup_future_symbol('XXX99')
+
 
 class AssetFinderTestCase(TestCase):
 
@@ -310,18 +360,18 @@ class AssetFinderTestCase(TestCase):
         # we do it twice to catch caching bugs
         for i in range(2):
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('test', as_of)
+                finder.lookup_symbol('TEST', as_of)
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('test1', as_of)
+                finder.lookup_symbol('TEST1', as_of)
             # '@' is not a supported delimiter
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('test@1', as_of)
+                finder.lookup_symbol('TEST@1', as_of)
 
             # Adding an unnecessary fuzzy shouldn't matter.
             for fuzzy_char in ['-', '/', '_', '.']:
                 self.assertEqual(
                     asset_1,
-                    finder.lookup_symbol('test%s1' % fuzzy_char, as_of)
+                    finder.lookup_symbol('TEST%s1' % fuzzy_char, as_of)
                 )
 
     def test_lookup_symbol_fuzzy(self):
@@ -384,15 +434,15 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
-                finder.lookup_symbol('non_existing', dates[0])
+                finder.lookup_symbol('NON_EXISTING', dates[0])
 
             with self.assertRaises(MultipleSymbolsFound):
-                finder.lookup_symbol('existing', None)
+                finder.lookup_symbol('EXISTING', None)
 
             for i, date in enumerate(dates):
                 # Verify that we correctly resolve multiple symbols using
                 # the supplied date
-                result = finder.lookup_symbol('existing', date)
+                result = finder.lookup_symbol('EXISTING', date)
                 self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
@@ -447,7 +497,7 @@ class AssetFinderTestCase(TestCase):
         self.env.write_data(equities_df=data)
         finder = AssetFinder(self.env.engine)
         results, missing = finder.lookup_generic(
-            ['real', 1, 'fake', 'real_but_old', 'real_but_in_the_future'],
+            ['REAL', 1, 'FAKE', 'REAL_BUT_OLD', 'REAL_BUT_IN_THE_FUTURE'],
             pd.Timestamp('2013-02-01', tz='UTC'),
         )
 
@@ -460,8 +510,8 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(results[2].sid, 2)
 
         self.assertEqual(len(missing), 2)
-        self.assertEqual(missing[0], 'fake')
-        self.assertEqual(missing[1], 'real_but_in_the_future')
+        self.assertEqual(missing[0], 'FAKE')
+        self.assertEqual(missing[1], 'REAL_BUT_IN_THE_FUTURE')
 
     def test_insert_metadata(self):
         data = {0: {'asset_type': 'equity',
@@ -576,12 +626,13 @@ class AssetFinderTestCase(TestCase):
 
     def test_lookup_future_chain(self):
         metadata = {
-            # Notice day is today, so not valid
+            # Notice day is today, so should be valid.
             2: {
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-06-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
@@ -589,6 +640,7 @@ class AssetFinderTestCase(TestCase):
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-08-14', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             # Starts trading today, so should be valid.
@@ -597,15 +649,25 @@ class AssetFinderTestCase(TestCase):
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-05-14', tz='UTC')
             },
-            # Copy of the above future, but starts trading in August,
-            # so it isn't valid.
+            # Starts trading in August, so not valid.
             3: {
-                'symbol': 'ADF16',
+                'symbol': 'ADX16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
+                'start_date': pd.Timestamp('2015-08-01', tz='UTC')
+            },
+            # Notice date comes after expiration
+            4: {
+                'symbol': 'ADZ16',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'notice_date': pd.Timestamp('2015-11-25', tz='UTC'),
+                'expiration_date': pd.Timestamp('2016-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
             },
         }
@@ -614,17 +676,18 @@ class AssetFinderTestCase(TestCase):
         dt = pd.Timestamp('2015-05-14', tz='UTC')
         last_year = pd.Timestamp('2014-01-01', tz='UTC')
         first_day = pd.Timestamp('2015-01-01', tz='UTC')
+        dt_2 = pd.Timestamp('2016-11-17', tz='UTC')
 
         # Check that we get the expected number of contracts, in the
         # right order
         ad_contracts = finder.lookup_future_chain('AD', dt, dt)
-        self.assertEqual(len(ad_contracts), 2)
-        self.assertEqual(ad_contracts[0].sid, 1)
-        self.assertEqual(ad_contracts[1].sid, 0)
+        self.assertEqual(len(ad_contracts), 3)
+        self.assertEqual(ad_contracts[0].sid, 2)
+        self.assertEqual(ad_contracts[1].sid, 1)
 
         # Check that pd.NaT for knowledge_date uses the value of as_of_date
         ad_contracts = finder.lookup_future_chain('AD', dt, pd.NaT)
-        self.assertEqual(len(ad_contracts), 2)
+        self.assertEqual(len(ad_contracts), 3)
 
         # Check that we get nothing if our knowledge date is last year
         ad_contracts = finder.lookup_future_chain('AD', dt, last_year)
@@ -632,11 +695,16 @@ class AssetFinderTestCase(TestCase):
 
         # Check that we get things that start on the knowledge date
         ad_contracts = finder.lookup_future_chain('AD', dt, first_day)
-        self.assertEqual(len(ad_contracts), 1)
+        self.assertEqual(len(ad_contracts), 2)
 
         # Check that pd.NaT for as_of_date gives the whole chain
         ad_contracts = finder.lookup_future_chain('AD', pd.NaT, first_day)
-        self.assertEqual(len(ad_contracts), 4)
+        self.assertEqual(len(ad_contracts), 5)
+
+        # Check that when the expiration_date has past but the
+        # notice_date hasn't, contract is still considered invalid.
+        ad_contracts = finder.lookup_future_chain('AD', dt_2, dt_2)
+        self.assertEqual(len(ad_contracts), 0)
 
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
@@ -785,12 +853,12 @@ class TestFutureChain(TestCase):
         cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
         self.assertEqual(len(cl), 3)
 
-        # Sid 0 is still valid the day before its notice date.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-19', 'CL')
+        # Sid 0 is still valid its notice date.
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
         self.assertEqual(len(cl), 3)
 
         # Sid 0 is now invalid, leaving only Sids 1 & 2 valid.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
         self.assertEqual(len(cl), 2)
 
         # Sid 3 has started, so 1, 2, & 3 are now valid.
@@ -798,7 +866,7 @@ class TestFutureChain(TestCase):
         self.assertEqual(len(cl), 3)
 
         # All contracts are no longer valid.
-        cl = FutureChain(self.asset_finder, lambda: '2006-09-20', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2006-09-21', 'CL')
         self.assertEqual(len(cl), 0)
 
     def test_getitem(self):
@@ -811,14 +879,26 @@ class TestFutureChain(TestCase):
         with self.assertRaises(IndexError):
             cl[3]
 
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-19', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
         self.assertEqual(cl[0], 0)
 
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
         self.assertEqual(cl[0], 1)
 
         cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
         self.assertEqual(cl[-1], 3)
+
+    def test_iter(self):
+        """ Test the __iter__ method of FutureChain.
+        """
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        for i, contract in enumerate(cl):
+            self.assertEqual(contract, i)
+
+        # First contract is now invalid, so sids will be offset by one
+        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
+        for i, contract in enumerate(cl):
+            self.assertEqual(contract, i + 1)
 
     def test_root_symbols(self):
         """ Test that different variations on root symbols are handled

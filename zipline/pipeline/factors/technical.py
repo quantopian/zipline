@@ -26,10 +26,11 @@ from .factor import CustomFactor
 
 class RSI(CustomFactor, SingleInputMixin):
     """
-    Factor computing rolling relative-strength index on a DataSet.
+    Relative Strength Index
 
-    Default Input: USEquityPricing.close
-    Default Window Length: 14
+    **Default Inputs**: [USEquityPricing.close]
+
+    **Default Window Length**: 14
     """
     window_length = 14
     inputs = (USEquityPricing.close,)
@@ -48,7 +49,11 @@ class RSI(CustomFactor, SingleInputMixin):
 
 class SimpleMovingAverage(CustomFactor, SingleInputMixin):
     """
-    Factor computing moving averages on a DataSet.
+    Average Value of an arbitrary column
+
+    **Default Inputs**: None
+
+    **Default Window Length**: None
     """
     # numpy's nan functions throw warnings when passed an array containing only
     # nans, but they still returns the desired value (nan), so we ignore the
@@ -62,6 +67,10 @@ class SimpleMovingAverage(CustomFactor, SingleInputMixin):
 class WeightedAverageValue(CustomFactor):
     """
     Helper for VWAP-like computations.
+
+    **Default Inputs:** None
+
+    **Default Window Length:** None
     """
     def compute(self, today, assets, out, base, weight):
         out[:] = nansum(base * weight, axis=0) / nansum(weight, axis=0)
@@ -69,14 +78,22 @@ class WeightedAverageValue(CustomFactor):
 
 class VWAP(WeightedAverageValue):
     """
-    Volume-weighted average price
+    Volume Weighted Average Price
+
+    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]
+
+    **Default Window Length:** None
     """
     inputs = (USEquityPricing.close, USEquityPricing.volume)
 
 
 class MaxDrawdown(CustomFactor, SingleInputMixin):
     """
-    Max Drawdown over a window
+    Max Drawdown
+
+    **Default Inputs:** None
+
+    **Default Window Length:** None
     """
     ctx = ignore_nanwarnings()
 

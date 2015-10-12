@@ -5,7 +5,8 @@ from types import FunctionType
 from unittest import TestCase
 from nose_parameterized import parameterized
 
-from zipline.utils.preprocess import call, expect_types, preprocess, optional
+from zipline.utils.preprocess import call, preprocess
+from zipline.utils.input_validation import expect_types, optional
 
 
 def noop(func, argname, argvalue):
