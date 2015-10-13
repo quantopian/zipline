@@ -81,6 +81,7 @@ class BlazeToPipelineTestCase(TestCase):
             self.assertIn("'%s'" % field, str(e.exception))
             self.assertIn("'datetime'", str(e.exception))
 
+        # test memoization
         self.assertIs(
             from_blaze(
                 expr,
@@ -340,14 +341,6 @@ class BlazeToPipelineTestCase(TestCase):
             value=deltas.value + 10,
             timestamp=deltas.timestamp + timedelta(days=1),
         )
-        loader = BlazeLoader()
-        ds = from_blaze(
-            expr,
-            deltas,
-            loader=loader,
-            no_deltas_rule='raise',
-        )
-        p = Pipeline()
 
         expected_views = keymap(pd.Timestamp, {
             '2014-01-02': np.array([[10.0, 11.0, 12.0],
@@ -355,40 +348,30 @@ class BlazeToPipelineTestCase(TestCase):
             '2014-01-03': np.array([[11.0, 12.0, 13.0],
                                     [2.0, 3.0, 4.0]]),
         })
-        assertTrue = self.assertTrue
-
-        class TestFactor(CustomFactor):
-            inputs = ds.value,
-            window_length = 2
-
-            def compute(self, today, assets, out, data):
-                assertTrue((data == expected_views[today]).all())
-                out[:] = np.max(data)
-
-        p.add(TestFactor(), 'value')
-        dates = self.dates
-
         with tmp_asset_finder() as finder:
-            result = SimplePipelineEngine(
-                loader,
-                dates,
-                finder,
-            ).run_pipeline(p, dates[1], dates[-1])
-
-        assert_frame_equal(
-            result,
-            pd.DataFrame(
+            expected_output = pd.DataFrame(
                 [12, 12, 12, 13, 13, 13],
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
                     tuple(map(finder.retrieve_asset, self.sids)),
                 )),
                 columns=('value',),
-            ),
-            check_dtype=False,
-        )
+            )
+            dates = self.dates
+            self._run_pipeline(
+                expr,
+                deltas,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+                compute_fn=np.max,
+            )
 
-    def test_deltas_macro_dataset(self):
+    def test_deltas_macro(self):
         expr = bz.Data(self.macro_df, name='expr', dshape=self.macro_dshape)
         deltas = bz.Data(
             self.macro_df.iloc[:-1],
@@ -400,6 +383,47 @@ class BlazeToPipelineTestCase(TestCase):
             value=deltas.value + 10,
             timestamp=deltas.timestamp + timedelta(days=1),
         )
+
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-02': np.array([[10.0, 10.0, 10.0],
+                                    [1.0, 1.0, 1.0]]),
+            '2014-01-03': np.array([[11.0, 11.0, 11.0],
+                                    [2.0, 2.0, 2.0]]),
+        })
+        with tmp_asset_finder() as finder:
+            expected_output = pd.DataFrame(
+                [10, 10, 10, 11, 11, 11],
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    finder.retrieve_all(self.sids),
+                )),
+                columns=('value',),
+            )
+            dates = self.dates
+            self._run_pipeline(
+                expr,
+                deltas,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+                compute_fn=np.max,
+            )
+
+    def _run_pipeline(self,
+                      expr,
+                      deltas,
+                      expected_views,
+                      expected_output,
+                      finder,
+                      calendar,
+                      start,
+                      end,
+                      window_length,
+                      compute_fn):
         loader = BlazeLoader()
         ds = from_blaze(
             expr,
@@ -409,41 +433,143 @@ class BlazeToPipelineTestCase(TestCase):
         )
         p = Pipeline()
 
-        expected_views = keymap(pd.Timestamp, {
-            '2014-01-02': np.array([[10.0, 10.0, 10.0],
-                                    [1.0, 1.0, 1.0]]),
-            '2014-01-03': np.array([[11.0, 11.0, 11.0],
-                                    [2.0, 2.0, 2.0]]),
-        })
+        # make this a local because `self` is shadowed in `TestFactor.compute`
         assertTrue = self.assertTrue
+        # prevent unbound locals issue in the inner class
+        window_length_ = window_length
 
         class TestFactor(CustomFactor):
             inputs = ds.value,
-            window_length = 2
+            window_length = window_length_
 
             def compute(self, today, assets, out, data):
                 assertTrue((data == expected_views[today]).all())
-                out[:] = np.max(data)
+                out[:] = compute_fn(data)
 
         p.add(TestFactor(), 'value')
-        dates = self.dates
 
-        with tmp_asset_finder() as finder:
-            result = SimplePipelineEngine(
-                loader,
-                dates,
-                finder,
-            ).run_pipeline(p, dates[1], dates[-1])
+        result = SimplePipelineEngine(
+            loader,
+            calendar,
+            finder,
+        ).run_pipeline(p, start, end)
 
         assert_frame_equal(
             result,
-            pd.DataFrame(
+            expected_output,
+            check_dtype=False,
+        )
+
+    def test_novel_deltas(self):
+        base_dates = pd.DatetimeIndex([
+            pd.Timestamp('2014-01-01'),
+            pd.Timestamp('2014-01-04')
+        ])
+        repeated_dates = base_dates.repeat(3)
+        baseline = pd.DataFrame({
+            'sid': self.sids * 2,
+            'value': (0, 1, 2, 1, 2, 3),
+            'asof_date': repeated_dates,
+            'timestamp': repeated_dates,
+        })
+        expr = bz.Data(baseline, name='expr', dshape=self.dshape)
+        deltas = bz.Data(baseline, name='deltas', dshape=self.dshape)
+        deltas = bz.transform(
+            deltas,
+            value=deltas.value + 10,
+            timestamp=deltas.timestamp + timedelta(days=1),
+        )
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-03': np.array([[10.0, 11.0, 12.0],
+                                    [10.0, 11.0, 12.0],
+                                    [10.0, 11.0, 12.0]]),
+            '2014-01-06': np.array([[10.0, 11.0, 12.0],
+                                    [10.0, 11.0, 12.0],
+                                    [11.0, 12.0, 13.0]]),
+        })
+
+        cal = pd.DatetimeIndex([
+            pd.Timestamp('2014-01-01'),
+            pd.Timestamp('2014-01-02'),
+            pd.Timestamp('2014-01-03'),
+            # omitting the 4th and 5th to simulate a weekend
+            pd.Timestamp('2014-01-06'),
+        ])
+
+        with tmp_asset_finder() as finder:
+            expected_output = pd.DataFrame(
+                [10, 11, 12, 11, 12, 13],
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    tuple(map(finder.retrieve_asset, self.sids)),
+                )),
+                columns=('value',),
+            )
+            self._run_pipeline(
+                expr,
+                deltas,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=cal,
+                start=cal[2],
+                end=cal[-1],
+                window_length=3,
+                compute_fn=op.itemgetter(-1),
+            )
+
+    def test_novel_deltas_macro(self):
+        base_dates = pd.DatetimeIndex([
+            pd.Timestamp('2014-01-01'),
+            pd.Timestamp('2014-01-04')
+        ])
+        baseline = pd.DataFrame({
+            'value': (0, 1),
+            'asof_date': base_dates,
+            'timestamp': base_dates,
+        })
+        expr = bz.Data(baseline, name='expr', dshape=self.macro_dshape)
+        deltas = bz.Data(baseline, name='deltas', dshape=self.macro_dshape)
+        deltas = bz.transform(
+            deltas,
+            value=deltas.value + 10,
+            timestamp=deltas.timestamp + timedelta(days=1),
+        )
+
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-03': np.array([[10.0, 10.0, 10.0],
+                                    [10.0, 10.0, 10.0],
+                                    [10.0, 10.0, 10.0]]),
+            '2014-01-06': np.array([[10.0, 10.0, 10.0],
+                                    [10.0, 10.0, 10.0],
+                                    [11.0, 11.0, 11.0]]),
+        })
+
+        cal = pd.DatetimeIndex([
+            pd.Timestamp('2014-01-01'),
+            pd.Timestamp('2014-01-02'),
+            pd.Timestamp('2014-01-03'),
+            # omitting the 4th and 5th to simulate a weekend
+            pd.Timestamp('2014-01-06'),
+        ])
+        with tmp_asset_finder() as finder:
+            expected_output = pd.DataFrame(
                 [10, 10, 10, 11, 11, 11],
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
                     tuple(map(finder.retrieve_asset, self.sids)),
                 )),
                 columns=('value',),
-            ),
-            check_dtype=False,
-        )
+            )
+            self._run_pipeline(
+                expr,
+                deltas,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=cal,
+                start=cal[2],
+                end=cal[-1],
+                window_length=3,
+                compute_fn=op.itemgetter(-1),
+            )

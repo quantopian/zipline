@@ -126,6 +126,7 @@ from __future__ import division, absolute_import
 
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
+from functools import partial
 from itertools import count
 import warnings
 from weakref import WeakKeyDictionary
@@ -140,7 +141,6 @@ from datashape import (
     isscalar,
     promote,
 )
-from numpy.lib.stride_tricks import as_strided
 from odo import odo
 import pandas as pd
 from toolz import (
@@ -153,13 +153,14 @@ from toolz import (
     memoize,
 )
 import toolz.curried.operator as op
-from six import with_metaclass, PY2, iteritems
+from six import with_metaclass, PY2, itervalues
 
 
 from ..data.dataset import DataSet, Column
 from zipline.lib.adjusted_array import adjusted_array
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.input_validation import expect_element
+from zipline.utils.numpy_utils import repeat_last_axis
 
 
 AD_FIELD_NAME = 'asof_date'
@@ -592,9 +593,9 @@ getdataset = op.attrgetter('dataset')
 dataset_name = op.attrgetter('name')
 
 
-def inline_novel_deltas(baseline, deltas, dates):
-    """Inline any deltas into the baseline set that would have changed our most
-    recently known value.
+def overwrite_novel_deltas(baseline, deltas, dates):
+    """overwrite any deltas into the baseline set that would have changed our
+    most recently known value.
 
     Parameters
     ----------
@@ -607,18 +608,20 @@ def inline_novel_deltas(baseline, deltas, dates):
 
     Returns
     -------
-    new_baseline : pd.DataFrame
-        The new baseline data with novel deltas inserted.
+    non_novel_deltas : pd.DataFrame
+        The deltas that do not represent a baseline value.
     """
     get_indexes = dates.searchsorted
+    novel_idx = (
+        get_indexes(deltas[TS_FIELD_NAME].values, 'right') -
+        get_indexes(deltas[AD_FIELD_NAME].values, 'left')
+    ) <= 1
+    novel_deltas = deltas.loc[novel_idx]
+    non_novel_deltas = deltas.loc[~novel_idx]
     return pd.concat(
-        (baseline,
-         deltas.loc[
-             (get_indexes(deltas[TS_FIELD_NAME].values, 'right') -
-              get_indexes(deltas[AD_FIELD_NAME].values, 'left')) <= 1
-         ].drop(AD_FIELD_NAME, 1)),
+        (baseline, novel_deltas),
         ignore_index=True,
-    )
+    ).sort(TS_FIELD_NAME), non_novel_deltas
 
 
 def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
@@ -634,8 +637,9 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
         The dates requested by the loader.
     sparse_dates : pd.DatetimeIndex
         The dates that appeared in the dataset.
-    asset_idx : int
-        The index of the asset in the block.
+    asset_idx : tuple of int
+        The index of the asset in the block. If this is a tuple, then this
+        is treated as the first and last index to use.
     value : np.float64
         The value to overwrite with.
 
@@ -645,12 +649,14 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
         The overwrite that will apply the new value to the data.
     """
     first_row = dense_dates.searchsorted(asof)
-    last_row = dense_dates.get_loc(
-        sparse_dates[sparse_dates.searchsorted(asof) + 1],
+    last_row = dense_dates.searchsorted(
+        sparse_dates[sparse_dates.searchsorted(asof, 'right')],
     ) - 1
     if first_row > last_row:
         return
-    yield Float64Overwrite(first_row, last_row, asset_idx, value)
+
+    first, last = asset_idx
+    yield Float64Overwrite(first_row, last_row, first, last, value)
 
 
 def adjustments_from_deltas_no_sids(dates,
@@ -680,16 +686,15 @@ def adjustments_from_deltas_no_sids(dates,
     adjustments : dict[idx -> Float64Overwrite]
         The adjustments dictionary to feed to the adjusted array.
     """
-    ad_series = deltas.loc[:, AD_FIELD_NAME]
+    ad_series = deltas[AD_FIELD_NAME]
+    asset_idx = 0, len(assets) - 1
     return {
-        dates.get_loc(kd): concat(tuple(
-            overwrite_from_dates(
-                ad_series.loc[kd],
-                dates,
-                dense_dates,
-                n,
-                v,
-            ) for n in range(len(assets)))
+        dates.get_loc(kd): overwrite_from_dates(
+            ad_series.loc[kd],
+            dates,
+            dense_dates,
+            asset_idx,
+            v,
         ) for kd, v in deltas[column_name].iteritems()
     }
 
@@ -725,12 +730,12 @@ def adjustments_from_deltas_with_sids(dates,
     adjustments = defaultdict(list)
     for sid_idx, (sid, per_sid) in enumerate(deltas[column_name].iteritems()):
         for kd, v in per_sid.iteritems():
-            adjustments[dates.get_loc(kd)].extend(
+            adjustments[dates.searchsorted(kd)].extend(
                 overwrite_from_dates(
                     ad_series.loc[kd, sid],
                     dates,
                     dense_dates,
-                    sid_idx,
+                    (sid_idx, sid_idx),
                     v,
                 ),
             )
@@ -757,17 +762,22 @@ class BlazeLoader(dict):
     def load_adjusted_array(self, columns, dates, assets, mask):
         return map(
             op.getitem(
-                dict(concat(
-                    self._load_dataset(cs, dates, assets, mask)
-                    for _, cs in iteritems(groupby(getdataset, columns))
-                )),
+                dict(concat(map(
+                    partial(
+                        self._load_dataset,
+                        dates,
+                        assets,
+                        mask
+                    ),
+                    itervalues(groupby(getdataset, columns))
+                ))),
             ),
             columns,
         )
 
-    def _load_dataset(self, columns, dates, assets, mask):
+    def _load_dataset(self, dates, assets, mask, columns):
         try:
-            dataset, = set(map(getdataset, columns))
+            (dataset,) = set(map(getdataset, columns))
         except ValueError:
             raise AssertionError('all columns must come from the same dataset')
 
@@ -816,67 +826,34 @@ class BlazeLoader(dict):
         # Inline the deltas that changed our most recently known value.
         # Also, we reindex by the dates to create a dense representation of
         # the data.
-        sparse_output = inline_novel_deltas(
+        sparse_output, non_novel_deltas = overwrite_novel_deltas(
             materialized_expr,
             materialized_deltas,
             dates,
-        ).drop(AD_FIELD_NAME, axis=1).set_index(TS_FIELD_NAME)
+        )
+        sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
 
         if have_sids:
             # Unstack by the sid so that we get a multi-index on the columns
             # of datacolumn, sid.
             sparse_output = sparse_output.set_index(
-                SID_FIELD_NAME,
-                append=True,
+                [TS_FIELD_NAME, SID_FIELD_NAME],
             ).unstack()
-            sparse_deltas = materialized_deltas.set_index(
+            sparse_deltas = non_novel_deltas.set_index(
                 [TS_FIELD_NAME, SID_FIELD_NAME],
             ).unstack()
 
-            # Allocate the whole output dataframe at once instead of
-            # reindexing.
-            dense_output = pd.DataFrame(
-                columns=pd.MultiIndex.from_product(
-                    (sparse_output.columns.levels[0], assets),
-                    names=(
-                        sparse_output.columns.levels[0].name,
-                        SID_FIELD_NAME,
-                    ),
-                ),
-                index=dates,
-            )
+            dense_output = sparse_output.reindex(dates, method='ffill')
 
-            # In place update the output based on the baseline.
-            dense_output.update(sparse_output)
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
         else:
             # We use the column view to make an array per asset.
-            dense_output = sparse_output.reindex(dates)
-            sparse_deltas = materialized_deltas.set_index(TS_FIELD_NAME)
+            column_view = partial(repeat_last_axis, count=len(assets))
+            sparse_output = sparse_output.set_index(TS_FIELD_NAME)
+            dense_output = sparse_output.reindex(dates, method='ffill')
+            sparse_deltas = non_novel_deltas.set_index(TS_FIELD_NAME)
             adjustments_from_deltas = adjustments_from_deltas_no_sids
-
-            def column_view(arr, _shape=(len(dates), len(assets))):
-                """Return a virtual matrix where we make a view that
-                duplicates a single column for all the assets.
-
-                Examples
-                --------
-                >>> arr = np.array([1, 2, 3])
-                >>> as_strided(arr, shape=(3, 3), strides=(arr.itemsize, 0))
-                array([[1, 1, 1],
-                       [2, 2, 2],
-                       [3, 3, 3]])
-                """
-                return as_strided(
-                    arr,
-                    shape=_shape,
-                    strides=(arr.itemsize, 0),
-                )
-
-        # Walk forward the data after any symbol mapped or non-symbol mapped
-        # specific transforms have been applied.
-        sparse_output = sparse_output.ffill()
 
         for column_idx, column in enumerate(columns):
             column_name = column.name
