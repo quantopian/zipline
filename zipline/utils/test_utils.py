@@ -416,7 +416,7 @@ class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
             )
 
 
-def create_data_portal(env, tempdir, sim_params, sids, sid_path_func):
+def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
         assets = {}
