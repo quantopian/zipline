@@ -513,9 +513,9 @@ def from_blaze(expr,
     measure = expr.dshape.measure
     if not isrecord(measure) or AD_FIELD_NAME not in measure.names:
         raise TypeError(
-            "expr must be a collection of records with at least an '{ad}'"
-            " field. Fields provided: '{fields}'\nhint: maybe you need to use "
-            " `relabel` to change your field names".format(
+            "The dataset must be a collection of records with at least an"
+            " '{ad}' field. Fields provided: '{fields}'\nhint: maybe you need"
+            " to use `relabel` to change your field names".format(
                 ad=AD_FIELD_NAME,
                 fields=measure,
             ),
