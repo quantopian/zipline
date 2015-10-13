@@ -225,7 +225,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        price_adj = Float64Multiply(0, date_loc, asset_ix, ratio)
+        price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
         for i, column in enumerate(columns):
             col_adjustments = results[i]
             if column != 'volume':
@@ -235,7 +235,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
                     col_adjustments[date_loc] = [price_adj]
             else:
                 volume_adj = Float64Multiply(
-                    0, date_loc, asset_ix, 1.0 / ratio
+                    0, date_loc, asset_ix, asset_ix, 1.0 / ratio
                 )
                 try:
                     col_adjustments[date_loc].append(volume_adj)
@@ -253,7 +253,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        adj = Float64Multiply(0, date_loc, asset_ix, ratio)
+        adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
         for i, column in enumerate(columns):
             col_adjustments = results[i]
             if column != 'volume':
@@ -273,7 +273,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        adj = Float64Multiply(0, date_loc, asset_ix, ratio)
+        adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
         for i, column in enumerate(columns):
             col_adjustments = results[i]
             if column != 'volume':

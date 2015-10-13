@@ -274,7 +274,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                     Float64Multiply(
                         first_row=0,
                         last_row=delta,
-                        col=sid - 1,
+                        first_col=sid - 1,
+                        last_col=sid - 1,
                         value=ratio,
                     )
                 )
@@ -284,7 +285,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                         Float64Multiply(
                             first_row=0,
                             last_row=delta,
-                            col=sid - 1,
+                            first_col=sid - 1,
+                            last_col=sid - 1,
                             value=1.0 / ratio,
                         )
                     )

@@ -189,14 +189,38 @@ class DataFrameLoaderTestCase(TestCase):
         )
         expected_formatted_adjustments = {
             6: [
-                Float64Multiply(first_row=0, last_row=5, col=0, value=0.5),
-                Float64Add(first_row=0, last_row=5, col=1, value=1.0),
+                Float64Multiply(
+                    first_row=0,
+                    last_row=5,
+                    first_col=0,
+                    last_col=0,
+                    value=0.5,
+                ),
+                Float64Add(
+                    first_row=0,
+                    last_row=5,
+                    first_col=1,
+                    last_col=1,
+                    value=1.0,
+                ),
             ],
             7: [
-                Float64Add(first_row=5, last_row=6, col=1, value=1.0),
+                Float64Add(
+                    first_row=5,
+                    last_row=6,
+                    first_col=1,
+                    last_col=1,
+                    value=1.0,
+                ),
             ],
             8: [
-                Float64Overwrite(first_row=6, last_row=7, col=2, value=99.0)
+                Float64Overwrite(
+                    first_row=6,
+                    last_row=7,
+                    first_col=2,
+                    last_col=2,
+                    value=99.0,
+                )
             ],
         }
         self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
