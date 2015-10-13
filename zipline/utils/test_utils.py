@@ -5,6 +5,7 @@ from itertools import (
 import operator
 import os
 import shutil
+from string import ascii_uppercase
 import tempfile
 
 from logbook import FileHandler
@@ -18,7 +19,7 @@ from six.moves import filter
 from sqlalchemy import create_engine
 
 from zipline.assets import AssetFinder
-from zipline.assets.asset_writer import AssetDBWriterFromDictionary
+from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
 
@@ -302,7 +303,7 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
     """
     num_assets = len(assets)
     if symbols is None:
-        symbols = [chr(ord('A') + i) for i in range(num_assets)]
+        symbols = list(ascii_uppercase[:num_assets])
     return pd.DataFrame(
         {
             'sid': assets,
@@ -369,30 +370,18 @@ class tmp_assets_db(object):
 
     Paramaters
     ----------
-    data : dict, optional
+    data : pd.DataFrame, optional
         The data to feed to the writer. By default this maps:
         ('A', 'B', 'C') -> map(ord, 'ABC')
     """
     def __init__(self, data=None):
         self._eng = None
-        self._data = AssetDBWriterFromDictionary(
-            data if data else {
-                ord('A'): {
-                    'symbol': 'A',
-                    'start_date': pd.Timestamp(0),
-                    'end_date': pd.Timestamp('2015'),
-                },
-                ord('B'): {
-                    'symbol': 'B',
-                    'start_date': pd.Timestamp(0),
-                    'end_date': pd.Timestamp('2015'),
-                },
-                ord('C'): {
-                    'symbol': 'C',
-                    'start_date': pd.Timestamp(0),
-                    'end_date': pd.Timestamp('2015'),
-                },
-            },
+        self._data = AssetDBWriterFromDataFrame(
+            data if data else make_simple_asset_info(
+                list(map(ord, 'ABC')),
+                pd.Timestamp(0),
+                pd.Timestamp('2015'),
+            )
         )
 
     def __enter__(self):
