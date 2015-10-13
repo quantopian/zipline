@@ -231,7 +231,9 @@ class PreprocessTestCase(TestCase):
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_element(self):
-        @expect_element(a={'a', 'b'})
+        set_ = {'a', 'b'}
+
+        @expect_element(a=set_)
         def f(a):
             return a
 
@@ -242,7 +244,7 @@ class PreprocessTestCase(TestCase):
             f('c')
 
         expected_message = (
-            "{modname}.f() expected a value in {{'a', 'b'}}"
+            "{modname}.f() expected a value in {set_!r}"
             " for argument 'a', but got 'c' instead."
-        ).format(modname=f.__module__)
+        ).format(set_=set_, modname=f.__module__)
         self.assertEqual(e.exception.args[0], expected_message)
