@@ -5,12 +5,12 @@ Test case definitions for history tests.
 import pandas as pd
 import numpy as np
 
-from zipline.finance.trading import TradingEnvironment
+from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.history.history import HistorySpec
 from zipline.protocol import BarData
 from zipline.utils.test_utils import to_utc
 
-_cases_env = TradingEnvironment()
+_cases_env = TradingEnvironment(load=noop_load)
 
 
 def mixed_frequency_expected_index(count, frequency):

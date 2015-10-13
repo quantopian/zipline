@@ -23,7 +23,9 @@ from zipline.protocol import Account
 from zipline.protocol import Portfolio
 from zipline.protocol import Position as ProtocolPosition
 
-from zipline.finance.trading import SimulationParameters, TradingEnvironment
+from zipline.finance.trading import (
+    SimulationParameters, TradingEnvironment, noop_load
+)
 
 from zipline.utils import factory
 
@@ -41,7 +43,7 @@ def stringify_cases(cases, func=None):
         results.append(new_case)
     return results
 
-cases_env = TradingEnvironment()
+cases_env = TradingEnvironment(load=noop_load)
 sim_params_daily = SimulationParameters(
     datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
     datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
