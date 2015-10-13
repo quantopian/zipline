@@ -174,32 +174,94 @@ MERGERS = DataFrame(
 DIVIDENDS = DataFrame(
     [
         # Before query range, should be excluded.
+        {'declared_date': Timestamp('2015-05-01', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-03', tz='UTC').to_datetime64(),
+         'pay_date': Timestamp('2015-06-05', tz='UTC').to_datetime64(),
+         'amount': 90.0,
+         'sid': 1},
+        # First day of query range, should be excluded.
+        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-10', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
+         'pay_date': Timestamp('2015-06-17', tz='UTC').to_datetime64(),
+         'amount': 80.0,
+         'sid': 3},
+        # Third day of query range, should have last_row of 2
+        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-12', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
+         'pay_date': Timestamp('2015-06-17', tz='UTC').to_datetime64(),
+         'amount': 70.0,
+         'sid': 3},
+        # After query range, should be excluded.
+        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-25', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-28', tz='UTC').to_datetime64(),
+         'pay_date': Timestamp('2015-06-30', tz='UTC').to_datetime64(),
+         'amount': 60.0,
+         'sid': 6},
+        # Another action in query range, should have last_row of 3
+        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-18', tz='UTC').to_datetime64(),
+         'pay_date': Timestamp('2015-06-20', tz='UTC').to_datetime64(),
+         'amount': 50.0,
+         'sid': 3},
+        # Last day of range.  Should have last_row of 7
+        {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-19', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-22', tz='UTC').to_datetime64(),
+         'pay_date': Timestamp('2015-06-30', tz='UTC').to_datetime64(),
+         'amount': 40.0,
+         'sid': 3},
+    ],
+    columns=['declared_date',
+             'ex_date',
+             'record_date',
+             'pay_date',
+             'amount',
+             'sid'],
+)
+
+
+DIVIDENDS_EXPECTED = DataFrame(
+    [
+        # Before query range, should be excluded.
         {'effective_date': str_to_seconds('2015-06-01'),
-         'ratio': 1.301,
+         'ratio': 0.1,
          'sid': 1},
         # First day of query range, should be excluded.
         {'effective_date': str_to_seconds('2015-06-10'),
-         'ratio': 3.310,
+         'ratio': 0.20,
          'sid': 3},
         # Third day of query range, should have last_row of 2
         {'effective_date': str_to_seconds('2015-06-12'),
-         'ratio': 3.312,
+         'ratio': 0.30,
          'sid': 3},
         # After query range, should be excluded.
         {'effective_date': str_to_seconds('2015-06-25'),
-         'ratio': 6.325,
+         'ratio': 0.40,
          'sid': 6},
         # Another action in query range, should have last_row of 3
         {'effective_date': str_to_seconds('2015-06-15'),
-         'ratio': 3.315,
+         'ratio': 0.50,
          'sid': 3},
         # Last day of range.  Should have last_row of 7
         {'effective_date': str_to_seconds('2015-06-19'),
-         'ratio': 3.319,
+         'ratio': 0.60,
          'sid': 3},
     ],
     columns=['effective_date', 'ratio', 'sid'],
 )
+
+
+class MockDailyBarSpotReader(object):
+    """
+    A BcolzDailyBarReader which returns a constant value for spot price.
+    """
+    def spot_price(self, sid, day, column):
+        return 100.0
 
 
 class USEquityPricingLoaderTestCase(TestCase):
@@ -208,15 +270,16 @@ class USEquityPricingLoaderTestCase(TestCase):
     def setUpClass(cls):
         cls.test_data_dir = TempDirectory()
         cls.db_path = cls.test_data_dir.getpath('adjustments.db')
-        writer = SQLiteAdjustmentWriter(cls.db_path)
-        writer.write(SPLITS, MERGERS, DIVIDENDS)
-
-        cls.assets = TEST_QUERY_ASSETS
         all_days = TradingEnvironment().trading_days
         cls.calendar_days = all_days[
             all_days.slice_indexer(TEST_CALENDAR_START, TEST_CALENDAR_STOP)
         ]
+        daily_bar_reader = MockDailyBarSpotReader()
+        writer = SQLiteAdjustmentWriter(cls.db_path, cls.calendar_days,
+                                        daily_bar_reader)
+        writer.write(SPLITS, MERGERS, DIVIDENDS)
 
+        cls.assets = TEST_QUERY_ASSETS
         cls.asset_info = EQUITY_INFO
         cls.bcolz_writer = SyntheticDailyBarWriter(
             cls.asset_info,
@@ -232,7 +295,7 @@ class USEquityPricingLoaderTestCase(TestCase):
     def test_input_sanity(self):
         # Ensure that the input data doesn't contain adjustments during periods
         # where the corresponding asset didn't exist.
-        for table in SPLITS, MERGERS, DIVIDENDS:
+        for table in SPLITS, MERGERS:
             for eff_date_secs, _, sid in table.itertuples(index=False):
                 eff_date = Timestamp(eff_date_secs, unit='s')
                 asset_start, asset_end = EQUITY_INFO.ix[
@@ -256,7 +319,7 @@ class USEquityPricingLoaderTestCase(TestCase):
         query_days = self.calendar_days_between(start_date, end_date)
         start_loc = query_days.get_loc(start_date)
 
-        for table in SPLITS, MERGERS, DIVIDENDS:
+        for table in SPLITS, MERGERS, DIVIDENDS_EXPECTED:
             for eff_date_secs, ratio, sid in table.itertuples(index=False):
                 eff_date = Timestamp(eff_date_secs, unit='s', tz='UTC')
 
@@ -309,8 +372,23 @@ class USEquityPricingLoaderTestCase(TestCase):
 
         expected_close_adjustments, expected_volume_adjustments = \
             self.expected_adjustments(TEST_QUERY_START, TEST_QUERY_STOP)
-        self.assertEqual(close_adjustments, expected_close_adjustments)
-        self.assertEqual(volume_adjustments, expected_volume_adjustments)
+        for key in expected_close_adjustments:
+            close_adjustment = close_adjustments[key]
+            for j, adj in enumerate(close_adjustment):
+                expected = expected_close_adjustments[key][j]
+                self.assertEqual(adj.first_row, expected.first_row)
+                self.assertEqual(adj.last_row, expected.last_row)
+                self.assertEqual(adj.col, expected.col)
+                assert_allclose(adj.value, expected.value)
+
+        for key in expected_volume_adjustments:
+            volume_adjustment = volume_adjustments[key]
+            for j, adj in enumerate(volume_adjustment):
+                expected = expected_volume_adjustments[key][j]
+                self.assertEqual(adj.first_row, expected.first_row)
+                self.assertEqual(adj.last_row, expected.last_row)
+                self.assertEqual(adj.col, expected.col)
+                assert_allclose(adj.value, expected.value)
 
     def test_read_no_adjustments(self):
         adjustment_reader = NullAdjustmentReader()
@@ -447,7 +525,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                     self.assets,
                     baseline,
                     # Apply all adjustments.
-                    concat([SPLITS, MERGERS, DIVIDENDS], ignore_index=True),
+                    concat([SPLITS, MERGERS, DIVIDENDS_EXPECTED],
+                           ignore_index=True),
                 )
                 assert_allclose(expected_adjusted_highs, window)
 
