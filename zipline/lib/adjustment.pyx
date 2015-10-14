@@ -75,7 +75,7 @@ cpdef _from_assets_and_dates(cls,
     ...     3,
     ...     0.5,
     ... )
-    Float64Multiply(first_row=2, last_row=4, first_col=3, last_col=3, value=0.500000)  # noqa
+    Float64Multiply(first_row=2, last_row=4, first_col=3, last_col=3, value=0.500000)
     """
     cdef:
         Py_ssize_t first_row, last_row, col
