@@ -27,7 +27,9 @@ from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
-from zipline.finance.trading import SimulationParameters, TradingEnvironment
+from zipline.finance.trading import (
+    SimulationParameters, TradingEnvironment, noop_load
+)
 from zipline.sources.test_source import create_trade
 
 
@@ -40,19 +42,18 @@ __all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
 
 def create_simulation_parameters(year=2006, start=None, end=None,
                                  capital_base=float("1.0e5"),
-                                 num_days=None, load=None,
+                                 num_days=None,
                                  data_frequency='daily',
                                  emission_rate='daily',
                                  env=None):
-    """Construct a complete environment with reasonable defaults"""
     if env is None:
-        env = TradingEnvironment(load=load)
+        # Construct a complete environment with reasonable defaults
+        env = TradingEnvironment(load=noop_load)
     if start is None:
         start = datetime(year, 1, 1, tzinfo=pytz.utc)
     if end is None:
         if num_days:
-            start_index = env.trading_days.searchsorted(
-                start)
+            start_index = env.trading_days.searchsorted(start)
             end = env.trading_days[start_index + num_days - 1]
         else:
             end = datetime(year, 12, 31, tzinfo=pytz.utc)
@@ -263,7 +264,7 @@ def create_test_df_source(sim_params=None, env=None, bars='daily'):
         index = sim_params.trading_days
     else:
         if env is None:
-            env = TradingEnvironment()
+            env = TradingEnvironment(load=noop_load)
 
         start = pd.datetime(1990, 1, 3, 0, 0, 0, 0, pytz.utc)
         end = pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
@@ -294,7 +295,7 @@ def create_test_panel_source(sim_params=None, env=None, source_type=None):
         if sim_params else pd.datetime(1990, 1, 8, 0, 0, 0, 0, pytz.utc)
 
     if env is None:
-        env = TradingEnvironment()
+        env = TradingEnvironment(load=noop_load)
 
     index = env.days_in_range(start, end)
 

@@ -40,7 +40,7 @@ from zipline.errors import (
     SidAssignmentError,
     RootSymbolNotFound,
 )
-from zipline.finance.trading import TradingEnvironment
+from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
     all_subindices,
     make_rotating_asset_info,
@@ -253,7 +253,7 @@ class TestFuture(TestCase):
             notice_date=pd.Timestamp('2005-12-20', tz='UTC'),
             expiration_date=pd.Timestamp('2006-01-20', tz='UTC')
         )
-        env = TradingEnvironment()
+        env = TradingEnvironment(load=noop_load)
         env.write_data(futures_identifiers=[TestFuture.future,
                                             TestFuture.future2])
         cls.asset_finder = env.asset_finder
@@ -334,7 +334,7 @@ class TestFuture(TestCase):
 class AssetFinderTestCase(TestCase):
 
     def setUp(self):
-        self.env = TradingEnvironment()
+        self.env = TradingEnvironment(load=noop_load)
 
     def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
@@ -550,7 +550,7 @@ class AssetFinderTestCase(TestCase):
         df['exchange'][0] = "NASDAQ"
         df['asset_name'][1] = "Microsoft"
         df['exchange'][1] = "NYSE"
-        self.env = TradingEnvironment()
+        self.env = TradingEnvironment(load=noop_load)
         self.env.write_data(equities_df=df)
         finder = AssetFinder(self.env.engine)
         self.assertEqual('NASDAQ', finder.retrieve_asset(0).exchange)
@@ -729,20 +729,19 @@ class AssetFinderTestCase(TestCase):
 
     def test_compute_lifetimes(self):
         num_assets = 4
-        env = TradingEnvironment()
-        trading_day = env.trading_day
+        trading_day = self.env.trading_day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
         frame = make_rotating_asset_info(
             num_assets=num_assets,
             first_start=first_start,
-            frequency=env.trading_day,
+            frequency=self.env.trading_day,
             periods_between_starts=3,
             asset_lifetime=5
         )
 
-        env.write_data(equities_df=frame)
-        finder = env.asset_finder
+        self.env.write_data(equities_df=frame)
+        finder = self.env.asset_finder
 
         all_dates = pd.date_range(
             start=first_start,
@@ -790,9 +789,8 @@ class AssetFinderTestCase(TestCase):
 
     def test_sids(self):
         # Ensure that the sids property of the AssetFinder is functioning
-        env = TradingEnvironment()
-        env.write_data(equities_identifiers=[1, 2, 3])
-        sids = env.asset_finder.sids
+        self.env.write_data(equities_identifiers=[1, 2, 3])
+        sids = self.env.asset_finder.sids
         self.assertEqual(3, len(sids))
         self.assertTrue(1 in sids)
         self.assertTrue(2 in sids)
@@ -834,7 +832,7 @@ class TestFutureChain(TestCase):
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
         }
 
-        env = TradingEnvironment()
+        env = TradingEnvironment(load=noop_load)
         env.write_data(futures_data=metadata)
         cls.asset_finder = env.asset_finder
 
