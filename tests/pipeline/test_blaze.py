@@ -300,7 +300,7 @@ class BlazeToPipelineTestCase(TestCase):
         )
         expected.index = pd.MultiIndex.from_product((
             expected.index.levels[0],
-            expected.index.levels[1].map(finder.retrieve_asset),
+            finder.retrieve_all(expected.index.levels[1]),
         ))
         assert_frame_equal(result, expected, check_dtype=False)
 
@@ -327,7 +327,7 @@ class BlazeToPipelineTestCase(TestCase):
             [0, 0, 0, 1, 1, 1, 2, 2, 2],
             index=pd.MultiIndex.from_product((
                 self.macro_df.timestamp,
-                tuple(map(finder.retrieve_asset, self.sids)),
+                finder.retrieve_all(self.sids),
             )),
             columns=('value',),
         )
@@ -353,7 +353,7 @@ class BlazeToPipelineTestCase(TestCase):
                 [12, 12, 12, 13, 13, 13],
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
-                    tuple(map(finder.retrieve_asset, self.sids)),
+                    finder.retrieve_all(self.sids),
                 )),
                 columns=('value',),
             )
@@ -501,7 +501,7 @@ class BlazeToPipelineTestCase(TestCase):
                 [10, 11, 12, 11, 12, 13],
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
-                    tuple(map(finder.retrieve_asset, self.sids)),
+                    finder.retrieve_all(self.sids),
                 )),
                 columns=('value',),
             )
@@ -557,7 +557,7 @@ class BlazeToPipelineTestCase(TestCase):
                 [10, 10, 10, 11, 11, 11],
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
-                    tuple(map(finder.retrieve_asset, self.sids)),
+                    finder.retrieve_all(self.sids),
                 )),
                 columns=('value',),
             )
