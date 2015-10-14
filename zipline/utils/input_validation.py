@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from six import iteritems, string_types
-from toolz import valmap, complement, flip, compose
+from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
 from zipline.utils.preprocess import preprocess
@@ -105,7 +105,7 @@ def _expect_type(type_):
     return _mk_check(
         TypeError,
         template,
-        complement(flip(isinstance, type_)),
+        lambda v: not isinstance(v, type_),
         compose(_qualified_name, type),
     )
 
@@ -140,16 +140,18 @@ def expect_element(*_pos, **named):
 
     Usage
     -----
-    >>> @expect_types(x=int, y=str)
-    ... def foo(x, y):
-    ...    return x, y
+    >>> @expect_element(x=('a', 'b'))
+    ... def foo(x):
+    ...    return x.upper()
     ...
-    >>> foo(2, '3')
-    (2, '3')
-    >>> foo(2.0, '3')
+    >>> foo('a')
+    'A'
+    >>> foo('b')
+    'B'
+    >>> foo('c')
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected an argument of type 'int' for argument 'x', but got float instead.  # noqa
+    TypeError: foo() expected a value in ('a', 'b') for argument 'x', but got 'c' instead.  # noqa
     """
     if _pos:
         raise TypeError("expect_element() only takes keyword arguments.")
