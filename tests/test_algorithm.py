@@ -1695,11 +1695,17 @@ class TestClosePosAlgo(TestCase):
         day_after_ix = env.trading_days.searchsorted(
             sim_params.trading_days[-1]) + 1
         auto_close_date = env.trading_days[day_after_ix]
-        metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'future',
-                        'auto_close_date': auto_close_date}}
 
-        env.write_data(futures_data=metadata)
+        env.write_data(futures_data={
+            1: {
+                "start_date": sim_params.trading_days[0],
+                "end_date": sim_params.trading_days[-1] + timedelta(days=1),
+                'symbol': 'TEST',
+                'asset_type': 'future',
+                'auto_close_date': auto_close_date
+            }
+        })
+
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
                              commission=PerShare(0),
                              sim_params=sim_params,

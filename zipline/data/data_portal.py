@@ -307,26 +307,26 @@ class DataPortal(object):
         asset_file_index = daily_attrs['first_row'][str(asset_int)]
 
         # find when the asset started trading
-        # TODO: only access this info once.
-        calendar = daily_attrs['calendar']
-        asset_data_start_date = \
-            pd.Timestamp(
-                calendar[daily_attrs['calendar_offset'][str(asset_int)]],
-                tz='UTC')
+        asset_data_start_date = self._get_asset_start_date(asset_int)
 
-        trading_days = tradingcalendar.trading_days
+        tradingdays = tradingcalendar.trading_days
 
         # figure out how many days it's been between now and when this
         # asset starting trading
-        window_offset = trading_days.searchsorted(dt) - \
-            trading_days.searchsorted(asset_data_start_date)
+        # FIXME can cache tradingdays.searchsorted(asset_data_start_date)
+        window_offset = tradingdays.searchsorted(dt) - \
+                        tradingdays.searchsorted(asset_data_start_date)
 
         # and use that offset to find our lookup index
         lookup_idx = asset_file_index + window_offset
 
         # sanity check
         assert lookup_idx >= asset_file_index
-        assert lookup_idx <= daily_attrs['last_row'][str(asset_int)] + 1
+        try:
+            assert lookup_idx <= daily_attrs['last_row'][str(asset_int)] + 1
+        except:
+            import pdb; pdb.set_trace()
+            z = 5
 
         ctable = daily_data[column]
         raw_value = ctable[lookup_idx]

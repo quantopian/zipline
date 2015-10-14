@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 import numpy as np
 import pandas as pd
 
@@ -20,6 +21,7 @@ class TestDataPortal(TestCase):
                     0: {
                         'start_date': pd.Timestamp("2015-09-28", tz='UTC'),
                         'end_date': pd.Timestamp("2015-09-29", tz='UTC')
+                                    + timedelta(days=1)
                     }
                 }
             )
