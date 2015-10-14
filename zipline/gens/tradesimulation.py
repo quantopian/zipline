@@ -165,7 +165,7 @@ class AlgorithmSimulator(object):
                     blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
 
-        with self.processor.threadbound(), ZiplineAPI(self.algo):
+        with self.processor, ZiplineAPI(self.algo):
             if self.sim_params.data_frequency == "daily":
                 for day_idx, trading_day in enumerate(trading_days):
                     once_a_day(trading_day)

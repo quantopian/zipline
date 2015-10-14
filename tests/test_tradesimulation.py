@@ -20,6 +20,7 @@ from unittest import TestCase
 from zipline import TradingAlgorithm
 from zipline.test_algorithms import NoopAlgorithm
 from zipline.utils import factory
+from zipline.utils.test_utils import FakeDataPortal
 
 
 class BeforeTradingAlgorithm(TradingAlgorithm):
@@ -35,11 +36,6 @@ class BeforeTradingAlgorithm(TradingAlgorithm):
 
 
 FREQUENCIES = {'daily': 0, 'minute': 1}  # daily is less frequent than minute
-
-
-class FakeDataPortal(object):
-    def __setattr__(self, key, value):
-        pass
 
 
 class TestTradeSimulation(TestCase):

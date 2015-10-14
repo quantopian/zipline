@@ -157,7 +157,7 @@ class BlotterTestCase(TestCase):
 
         # You can't reject a filled order.
         blotter = Blotter()   # Reset for paranoia
-        blotter.slippage_func.data_portal = self.data_portal
+        blotter.data_portal = self.data_portal
         filled_id = blotter.order(24, 100, MarketOrder(), dt=dt1)
         filled_order = None
         for txn in blotter.process_open_orders(
@@ -221,7 +221,7 @@ class BlotterTestCase(TestCase):
                 ORDER_STATUS.FILLED
 
             blotter = Blotter()
-            blotter.slippage_func.data_portal = self.data_portal
+            blotter.data_portal = self.data_portal
 
             open_id = blotter.order(24, order_size, MarketOrder(), dt=dt1)
             open_order = blotter.open_orders[24][0]

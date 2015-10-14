@@ -96,11 +96,14 @@ def check_algo_results(test,
         test.assertEqual(expected_transactions_count, len(txns))
 
     if expected_positions_count is not None:
-        import pdb; pdb.set_trace()
-        pass
+        raise NotImplementedError
 
     if expected_order_count is not None:
-        orders = flatten_list(results["orders"])
+        # de-dup orders on id, because orders are put back into perf packets
+        # whenever they a txn is filled
+        orders = set([order['id'] for order in
+                      flatten_list(results["orders"])])
+
         test.assertEqual(expected_order_count, len(orders))
 
 
@@ -416,7 +419,7 @@ class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
             )
 
 
-def create_data_portal(env, tempdir, sim_params, sids):
+def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
         assets = {}
@@ -463,7 +466,8 @@ def create_data_portal(env, tempdir, sim_params, sids):
                 "minute": minutes
             }, index=minutes)
 
-        MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+        MinuteBarWriterFromDataFrames().write(tempdir.path, assets,
+                                              sid_path_func=sid_path_func)
 
         return DataPortal(
             env,
@@ -555,3 +559,8 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
             sim_params=sim_params,
             asset_finder=env.asset_finder
         )
+
+
+class FakeDataPortal(object):
+    def __setattr__(self, key, value):
+        pass

@@ -431,7 +431,7 @@ class PositionTracker(object):
             return None
 
         amount = self.positions.get(event.sid).amount
-        price = self._data_portal.get_spot_price(event.sid, 'close')
+        price = self._data_portal.get_spot_value(event.sid, 'close')
 
         txn = Transaction(
             sid=event.sid,
@@ -466,7 +466,7 @@ class PositionTracker(object):
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price =\
-                self._data_portal.get_spot_price(sid, 'close', dt)
+                self._data_portal.get_spot_value(sid, 'close', dt)
             position.last_sale_date = pos.last_sale_date
         return positions
 
@@ -480,7 +480,7 @@ class PositionTracker(object):
     def sync_last_sale_prices(self, dt):
         data_portal = self._data_portal
         for sid, position in iteritems(self.positions):
-            position.last_sale_price = data_portal.get_spot_price(
+            position.last_sale_price = data_portal.get_spot_value(
                 sid, 'close', dt)
 
     def stats(self):

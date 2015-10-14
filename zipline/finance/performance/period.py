@@ -276,7 +276,7 @@ class PerformancePeriod(object):
                     sid,
                     'close',
                     dt=old_price_dt)
-                price = self.data_portal.get_spot_price(
+                price = self.data_portal.get_spot_value(
                     sid, 'close', dt=self.period_close)
                 payout = (
                     (price - old_price)

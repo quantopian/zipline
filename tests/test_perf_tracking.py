@@ -143,7 +143,7 @@ def benchmark_events_in_range(sim_params, env):
                'source_id': '1Abenchmarks'})
         for dt, ret in env.benchmark_returns.iteritems()
         if dt.date() >= sim_params.period_start.date() and
-        dt.date() <= sim_params.period_end.date()
+            dt.date() <= sim_params.period_end.date()
     ]
 
 
@@ -252,20 +252,33 @@ def check_perf_tracker_serialization(perf_tracker):
         nt.assert_equal(getattr(test, k), getattr(perf_tracker, k), k)
 
 
+def setup_env_data(env, sim_params, sids):
+    data = {}
+    for sid in sids:
+        data[sid] = {
+            "start_date": sim_params.trading_days[0],
+            "end_date": sim_params.trading_days[-1]
+        }
+
+    env.write_data(equities_data=data)
+
+
 class TestSplitPerformance(unittest.TestCase):
-    def setUp(self):
-        self.env = TradingEnvironment()
-        self.env.write_data(equities_identifiers=[1])
-        self.sim_params = create_simulation_parameters(num_days=2)
-        # start with $10,000
-        self.sim_params.capital_base = 10e3
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.sim_params = create_simulation_parameters(num_days=2,
+                                                      capital_base=10e3)
 
-        self.benchmark_events = benchmark_events_in_range(self.sim_params,
-                                                          self.env)
-        self.tempdir = TempDirectory()
+        setup_env_data(cls.env, cls.sim_params, [1])
 
-    def tearDown(self):
-        self.tempdir.cleanup()
+        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
+                                                         cls.env)
+        cls.tempdir = TempDirectory()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
 
     def test_split_long_position(self):
         events = factory.create_trade_history(
@@ -360,25 +373,20 @@ class TestSplitPerformance(unittest.TestCase):
 
 
 class TestCommissionEvents(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.sim_params = create_simulation_parameters(num_days=5,
+                                                      capital_base=10e3)
+        setup_env_data(cls.env, cls.sim_params, [0, 1, 133])
 
-    def setUp(self):
-        self.env = TradingEnvironment()
-        self.env.write_data(
-            equities_identifiers=[0, 1, 133]
-        )
-        self.sim_params = create_simulation_parameters(num_days=5)
+        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
+                                                          cls.env)
+        cls.tempdir = TempDirectory()
 
-        logger.info("sim_params: %s" % self.sim_params)
-
-        self.sim_params.capital_base = 10e3
-
-        self.benchmark_events = benchmark_events_in_range(self.sim_params,
-                                                          self.env)
-
-        self.tempdir = TempDirectory()
-
-    def tearDown(self):
-        self.tempdir.cleanup()
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
 
     def test_commission_event(self):
         trade_events = factory.create_trade_history(
@@ -536,23 +544,20 @@ class TestDividendPerformance(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[1, 2])
+        cls.sim_params = create_simulation_parameters(num_days=6,
+                                                      capital_base=10e3)
+
+        setup_env_data(cls.env, cls.sim_params, [1, 2])
+
+        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
+                                                          cls.env)
+
+        cls.tempdir = TempDirectory()
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
-
-    def setUp(self):
-        self.sim_params = create_simulation_parameters(num_days=6)
-        self.sim_params.capital_base = 10e3
-
-        self.benchmark_events = benchmark_events_in_range(self.sim_params,
-                                                          self.env)
-
-        self.tempdir = TempDirectory()
-
-    def tearDown(self):
-        self.tempdir.cleanup()
+        cls.tempdir.cleanup()
 
     def test_market_hours_calculations(self):
         # DST in US/Eastern began on Sunday March 14, 2010
@@ -968,13 +973,20 @@ class TestDividendPerformance(unittest.TestCase):
         )
 
         # Set the last day to be the last event
-        self.sim_params.period_end = events[-1].dt
-        self.sim_params.update_internal_from_env(self.env)
+        sim_params = create_simulation_parameters(
+            num_days=6,
+            capital_base=10e3,
+            start=self.sim_params.period_start,
+            end=self.sim_params.period_end
+        )
+
+        sim_params.period_end = events[-1].dt
+        sim_params.update_internal_from_env(self.env)
 
         # Simulate a transaction being filled prior to the ex_date.
         txns = [create_txn(events[0].sid, events[0].dt, 10.0, 100)]
         results = calculate_results(
-            self.sim_params,
+            sim_params,
             self.env,
             self.tempdir,
             self.benchmark_events,
@@ -1005,44 +1017,43 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
     # to be start + oneday will fail, since those events will
     # be skipped by the simulation.
 
-    def setUp(self):
-        # TODO: 2003-11-30 is not the day before thanksgiving.
-        self.dt = datetime(2003, 11, 30, tzinfo=pytz.utc)
-        self.end_dt = datetime(2003, 12, 8, tzinfo=pytz.utc)
-        self.sim_params = SimulationParameters(
-            self.dt,
-            self.end_dt,
-            env=self.env)
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.sim_params = create_simulation_parameters(
+            num_days=6,
+            capital_base=10e3,
+            start=pd.Timestamp("2003-11-30", tz='UTC'),
+            end=pd.Timestamp("2003-12-08", tz='UTC')
+        )
 
-        self.sim_params.capital_base = 10e3
+        setup_env_data(cls.env, cls.sim_params, [1, 2])
 
-        self.benchmark_events = benchmark_events_in_range(self.sim_params,
-                                                          self.env)
+        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
+                                                          cls.env)
 
-        self.tempdir = TempDirectory()
+        cls.tempdir = TempDirectory()
 
 
 class TestPositionPerformance(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[1, 2])
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
     def setUp(self):
         self.tempdir = TempDirectory()
-        self.sim_params = create_simulation_parameters(num_days=4)
+
+    def create_environment_stuff(self, num_days=4, sids=[1,2]):
+        self.env = TradingEnvironment()
+        self.sim_params = create_simulation_parameters(num_days=num_days)
+
+        setup_env_data(self.env, self.sim_params, [1, 2])
 
         self.finder = self.env.asset_finder
+
         self.benchmark_events = benchmark_events_in_range(self.sim_params,
                                                           self.env)
 
     def tearDown(self):
         self.tempdir.cleanup()
+        del self.env
 
     def test_long_short_positions(self):
         """
@@ -1052,6 +1063,7 @@ class TestPositionPerformance(unittest.TestCase):
         stock1 then goes down to $9
         stock2 goes to $11
         """
+        self.create_environment_stuff()
 
         trades_1 = factory.create_trade_history(
             1,
@@ -1152,9 +1164,9 @@ class TestPositionPerformance(unittest.TestCase):
             price goes to $11
         """
         # post some trades in the market
-        sim_params = factory.create_simulation_parameters(
-            num_days=4, env=self.env
-        )
+
+        self.create_environment_stuff()
+
         trades = factory.create_trade_history(
             1,
             [10, 10, 10, 11],
@@ -1167,7 +1179,7 @@ class TestPositionPerformance(unittest.TestCase):
         data_portal = create_data_portal_from_trade_history(
             self.env,
             self.tempdir,
-            sim_params,
+            self.sim_params,
             {1: trades})
 
         txn = create_txn(trades[1].sid, trades[1].dt, 10.0, 1000)
@@ -1239,31 +1251,30 @@ class TestPositionPerformance(unittest.TestCase):
             verify that the performance period calculates properly for a
             single buy transaction
         """
-        sim_params = factory.create_simulation_parameters(
-            num_days=4, env=self.env
-        )
+        self.create_environment_stuff()
+
         # post some trades in the market
         trades = factory.create_trade_history(
             1,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             onesec,
-            sim_params,
+            self.sim_params,
             env=self.env
         )
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
             self.tempdir,
-            sim_params,
+            self.sim_params,
             {1: trades})
 
         txn = create_txn(trades[1].sid, trades[1].dt, 10.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     data_portal,
-                                    period_open=sim_params.period_start,
-                                    period_close=sim_params.period_end)
+                                    period_open=self.sim_params.period_start,
+                                    period_close=self.sim_params.period_end)
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
@@ -1357,15 +1368,14 @@ class TestPositionPerformance(unittest.TestCase):
     def test_short_position(self):
         """verify that the performance period calculates properly for a \
 single short-sale transaction"""
-        sim_params = factory.create_simulation_parameters(
-            num_days=6, env=self.env
-        )
+        self.create_environment_stuff(num_days=6)
+
         trades = factory.create_trade_history(
             1,
             [10, 10, 10, 11, 10, 9],
             [100, 100, 100, 100, 100, 100],
             oneday,
-            sim_params,
+            self.sim_params,
             env=self.env
         )
 
@@ -1374,7 +1384,7 @@ single short-sale transaction"""
         data_portal = create_data_portal_from_trade_history(
             self.env,
             self.tempdir,
-            sim_params,
+            self.sim_params,
             {1: trades})
 
         txn = create_txn(trades[1].sid, trades[1].dt, 10.0, -100)
@@ -1584,9 +1594,8 @@ cost of sole txn in test"
     def test_covering_short(self):
         """verify performance where short is bought and covered, and shares \
 trade after cover"""
-        sim_params = factory.create_simulation_parameters(
-            num_days=10, env=self.env
-        )
+        self.create_environment_stuff(num_days=10)
+
         trades = factory.create_trade_history(
             1,
             [10, 10, 10, 11, 9, 8, 7, 8, 9, 10],
@@ -1599,7 +1608,7 @@ trade after cover"""
         data_portal = create_data_portal_from_trade_history(
             self.env,
             self.tempdir,
-            sim_params,
+            self.sim_params,
             {1: trades})
 
         short_txn = create_txn(
@@ -1700,15 +1709,14 @@ shares in position"
                       net_liquidation=1300.0)
 
     def test_cost_basis_calc(self):
-        sim_params = factory.create_simulation_parameters(
-            num_days=5, env=self.env
-        )
+        self.create_environment_stuff(num_days=5)
+
         history_args = (
             1,
             [10, 11, 11, 12, 10],
             [100, 100, 100, 100, 100],
             oneday,
-            sim_params,
+            self.sim_params,
             self.env
         )
         trades = factory.create_trade_history(*history_args)
@@ -1717,7 +1725,7 @@ shares in position"
         data_portal = create_data_portal_from_trade_history(
             self.env,
             self.tempdir,
-            sim_params,
+            self.sim_params,
             {1: trades})
 
         pt = perf.PositionTracker(self.env.asset_finder, data_portal)
@@ -1725,8 +1733,8 @@ shares in position"
             1000.0,
             self.env.asset_finder,
             data_portal,
-            period_open=sim_params.period_start,
-            period_close=sim_params.trading_days[-1]
+            period_open=self.sim_params.period_start,
+            period_close=self.sim_params.trading_days[-1]
         )
         average_cost = 0
         for i, txn in enumerate(transactions):
@@ -1835,15 +1843,14 @@ shares in position"
         )
 
     def test_cost_basis_calc_close_pos(self):
-        sim_params = factory.create_simulation_parameters(
-            num_days=8, env=self.env
-        )
+        self.create_environment_stuff(num_days=8)
+
         history_args = (
             1,
             [10, 9, 11, 8, 9, 12, 13, 14],
             [200, -100, -100, 100, -300, 100, 500, 400],
             onesec,
-            sim_params,
+            self.sim_params,
             self.env
         )
         cost_bases = [10, 10, 0, 8, 9, 9, 13, 13.5]
@@ -1854,7 +1861,7 @@ shares in position"
         data_portal = create_data_portal_from_trade_history(
             self.env,
             self.tempdir,
-            sim_params,
+            self.sim_params,
             {1: trades})
 
         pt = perf.PositionTracker(self.env.asset_finder, data_portal)
@@ -1969,13 +1976,26 @@ class TestPerformanceTracker(unittest.TestCase):
             price_list1[-days_to_delete.end:] = 0
             price_list2[-days_to_delete.end:] = 0
 
+        env = TradingEnvironment()
+
         sim_params = SimulationParameters(
             period_start=start_dt,
             period_end=end_dt,
-            env=self.env,
+            env=env,
         )
 
-        benchmark_events = benchmark_events_in_range(sim_params, self.env)
+        env.write_data(equities_data={
+            133: {
+                "start_date": sim_params.trading_days[0],
+                "end_date": sim_params.trading_days[-1]
+            },
+            134: {
+                "start_date": sim_params.trading_days[0],
+                "end_date": sim_params.trading_days[-1]
+            },
+        })
+
+        benchmark_events = benchmark_events_in_range(sim_params, env)
 
         trade_history = factory.create_trade_history(
             sid,
@@ -1984,7 +2004,7 @@ class TestPerformanceTracker(unittest.TestCase):
             trade_time_increment,
             sim_params,
             source_id="factory1",
-            env=self.env
+            env=env
         )
 
         sid2 = 134
@@ -1995,7 +2015,7 @@ class TestPerformanceTracker(unittest.TestCase):
             trade_time_increment,
             sim_params,
             source_id="factory2",
-            env=self.env
+            env=env
         )
 
         sim_params.capital_base = 1000.0
@@ -2007,7 +2027,7 @@ class TestPerformanceTracker(unittest.TestCase):
             'changed']
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            env,
             self.tempdir,
             sim_params,
             {sid: trade_history,
@@ -2015,7 +2035,7 @@ class TestPerformanceTracker(unittest.TestCase):
         )
 
         perf_tracker = perf.PerformanceTracker(
-            sim_params, self.env, data_portal
+            sim_params, env, data_portal
         )
 
         events = date_sorted_sources(trade_history, trade_history2)
@@ -2112,30 +2132,10 @@ class TestPerformanceTracker(unittest.TestCase):
         foo_event_1 = factory.create_trade(foosid, 10.0, 20, start_dt)
         bar_event_1 = factory.create_trade(barsid, 100.0, 200, start_dt)
 
-        order_event_1 = Order(sid=foo_event_1.sid,
-                              amount=-25,
-                              dt=foo_event_1.dt)
-        txn_event_1 = Transaction(sid=foo_event_1.sid,
-                                  amount=-25,
-                                  dt=foo_event_1.dt,
-                                  price=10.0,
-                                  commission=0.50,
-                                  order_id=order_event_1.id)
-        benchmark_event_1 = Event({
-            'dt': start_dt,
-            'returns': 0.01,
-            'type': zp.DATASOURCE_TYPE.BENCHMARK
-        })
-
         foo_event_2 = factory.create_trade(
             foosid, 11.0, 20, start_dt + timedelta(minutes=1))
         bar_event_2 = factory.create_trade(
             barsid, 11.0, 20, start_dt + timedelta(minutes=1))
-        benchmark_event_2 = Event({
-            'dt': start_dt + timedelta(minutes=1),
-            'returns': 0.02,
-            'type': zp.DATASOURCE_TYPE.BENCHMARK
-        })
 
         trade_events = {
             1: [
@@ -2209,55 +2209,15 @@ class TestPerformanceTracker(unittest.TestCase):
 
         check_perf_tracker_serialization(tracker)
 
-    def test_handle_sid_removed_from_universe(self):
-        # post some trades in the market
-        sim_params = create_simulation_parameters(num_days=5)
-        events = factory.create_trade_history(
-            1,
-            [10, 10, 10, 10, 10],
-            [100, 100, 100, 100, 100],
-            oneday,
-            sim_params,
-            env=self.env
-        )
+    def write_equity_data(self, env, sim_params, sids):
+        data = {}
+        for sid in sids:
+            data[sid] = {
+                "start_date": sim_params.trading_days[0],
+                "end_date": sim_params.trading_days[-1]
+            }
 
-        data_portal = create_data_portal_from_trade_history(
-            self.env,
-            self.tempdir,
-            sim_params,
-            {1: events}
-        )
-
-        # Create a tracker and a dividend
-        perf_tracker = perf.PerformanceTracker(sim_params,
-                                               env=self.env,
-                                               data_portal=data_portal)
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            # declared date, when the algorithm finds out about
-            # the dividend
-            events[0].dt,
-            # ex_date, the date before which the algorithm must hold stock
-            # to receive the dividend
-            events[1].dt,
-            # pay date, when the algorithm receives the dividend.
-            events[2].dt
-        )
-        dividend_frame = pd.DataFrame(
-            [dividend.to_series(index=zp.DIVIDEND_FIELDS)],
-        )
-        perf_tracker.update_dividends(dividend_frame)
-
-        # Ensure that the dividend is in the tracker
-        self.assertIn(1, perf_tracker.dividend_frame['sid'].values)
-
-        # Inform the tracker that sid 1 has been removed from the universe
-        perf_tracker.handle_sid_removed_from_universe(1)
-
-        # Ensure that the dividend for sid 1 has been removed from dividend
-        # frame
-        self.assertNotIn(1, perf_tracker.dividend_frame['sid'].values)
+        env.write_data(equities_data=data)
 
     def test_serialization(self):
         start_dt = datetime(year=2008,

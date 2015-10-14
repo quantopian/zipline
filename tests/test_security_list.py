@@ -62,7 +62,15 @@ class SecurityListTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # this is ugly, but we need to create two different
+        # TradingEnvironment/DataPortal pairs
+
         cls.env = TradingEnvironment()
+        cls.env2 = TradingEnvironment()
+
+        cls.extra_knowledge_date = pd.Timestamp("2015-01-27", tz='UTC')
+        cls.trading_day_before_first_kd = pd.Timestamp("2015-01-23", tz='UTC')
+
         symbols = ['AAPL', 'GOOG', 'BZQ', 'URTY', 'JFT']
 
         days = cls.env.days_in_range(
@@ -76,6 +84,10 @@ class SecurityListTestCase(TestCase):
             env=cls.env
         )
 
+        cls.sim_params2 = factory.create_simulation_parameters(
+            start=cls.trading_day_before_first_kd, num_days=4
+        )
+
         equities_metadata = {}
 
         for i, symbol in enumerate(symbols):
@@ -85,26 +97,41 @@ class SecurityListTestCase(TestCase):
                 'symbol': symbol
             }
 
+        equities_metadata2 = {}
+        for i, symbol in enumerate(symbols):
+            equities_metadata2[i] = {
+                'start_date': cls.sim_params2.period_start,
+                'end_date': cls.sim_params2.period_end,
+                'symbol': symbol
+            }
+
         cls.env.write_data(equities_data=equities_metadata)
+        cls.env2.write_data(equities_data=equities_metadata2)
+
         cls.tempdir = TempDirectory()
+        cls.tempdir2 = TempDirectory()
 
         cls.data_portal = create_data_portal(
             env=cls.env,
             tempdir=cls.tempdir,
             sim_params=cls.sim_params,
             sids=range(0, 5),
-            days=days
-
         )
-        setup_logger(cls)
 
-        cls.extra_knowledge_date = pd.Timestamp("2015-01-27", tz='UTC')
-        cls.trading_day_before_first_kd = pd.Timestamp("2015-01-23", tz='UTC')
+        cls.data_portal2 = create_data_portal(
+            env=cls.env2,
+            tempdir=cls.tempdir2,
+            sim_params=cls.sim_params2,
+            sids=range(0,5)
+        )
+
+        setup_logger(cls)
 
     @classmethod
     def tearDownClass(cls):
         del cls.env
         cls.tempdir.cleanup()
+        cls.tempdir2.cleanup()
         teardown_logger(cls)
 
     def test_iterate_over_restricted_list(self):
@@ -275,17 +302,14 @@ class SecurityListTestCase(TestCase):
             new_tempdir.cleanup()
 
     def test_algo_with_rl_violation_after_add(self):
-        sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2015-01-23", tz="UTC"), num_days=4, env=self.env)
-
         with security_list_copy():
             add_security_data(['AAPL'], [])
 
             algo = RestrictedAlgoWithoutCheck(symbol='AAPL',
-                                              sim_params=sim_params,
-                                              env=self.env)
+                                              sim_params=self.sim_params2,
+                                              env=self.env2)
             with self.assertRaises(TradingControlViolation) as ctx:
-                algo.run(self.data_portal)
+                algo.run(self.data_portal2)
 
             self.check_algo_exception(algo, ctx, 2)
 

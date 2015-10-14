@@ -13,8 +13,10 @@ from pandas import (
 from six import iteritems
 
 from zipline.data.data_portal import DataPortal
-from zipline.data.ffc.loaders.us_equity_pricing import DailyBarWriterFromCSVs, \
+from zipline.pipeline.loaders.equity_pricing_loader import (
+    DailyBarWriterFromCSVs,
     SQLiteAdjustmentWriter
+)
 from zipline.utils.test_utils import make_simple_asset_info, str_to_seconds
 from zipline.data.minute_writer import MinuteBarWriterFromCSVs
 from zipline.utils.tradingcalendar import trading_days
@@ -31,7 +33,7 @@ TEST_DAILY_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
     'tests',
     'resources',
-    'modelling_inputs',
+    'pipeline_inputs',
 )
 
 

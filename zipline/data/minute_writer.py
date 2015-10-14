@@ -2,6 +2,7 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
+import os
 from bcolz import ctable
 from datetime import datetime
 import numpy as np
@@ -29,10 +30,11 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
         """
         raise NotImplementedError()
 
-    def write(self, directory, assets):
+    def write(self, directory, assets, sid_path_func=None):
         _iterator = self.gen_frames(assets)
 
-        return self._write_internal(directory, _iterator)
+        return self._write_internal(directory, _iterator,
+                                    sid_path_func=sid_path_func)
 
     @staticmethod
     def full_minutes_for_days(env, dt1, dt2):
@@ -62,7 +64,7 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
             np.concatenate(all_minutes), copy=False, tz='UTC'
         )
 
-    def _write_internal(self, directory, iterator):
+    def _write_internal(self, directory, iterator, sid_path_func=None):
         first_open = pd.Timestamp(
             datetime(
                 year=2002,
@@ -73,7 +75,12 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
             ), tz='US/Eastern').tz_convert('UTC')
 
         for asset_id, df in iterator:
-            path = join(directory, "{0}.bcolz".format(asset_id))
+            if sid_path_func is None:
+                path = join(directory, "{0}.bcolz".format(asset_id))
+            else:
+                path = sid_path_func(directory, asset_id)
+
+            os.makedirs(path)
 
             minutes = self.full_minutes_for_days(_writer_env,
                                                  first_open, df.index[-1])
