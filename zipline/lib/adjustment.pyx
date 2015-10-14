@@ -75,7 +75,7 @@ cpdef _from_assets_and_dates(cls,
     ...     3,
     ...     0.5,
     ... )
-    Float64Multiply(first_row=2, last_row=4, col=3, value=0.500000)
+    Float64Multiply(first_row=2, last_row=4, first_col=3, last_col=3, value=0.500000)  # noqa
     """
     cdef:
         Py_ssize_t first_row, last_row, col
@@ -171,8 +171,8 @@ cdef class Float64Multiply(Float64Adjustment):
     >>> adj.mutate(arr)
     >>> arr
     array([[  0.,   1.,   2.],
-           [  3.,  16.,   20.],
-           [  6.,  28.,   32.]])
+           [  3.,  16.,  20.],
+           [  6.,  28.,  32.]])
     """
 
     cpdef mutate(self, float64_t[:, :] data):
