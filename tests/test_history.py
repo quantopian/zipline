@@ -13,7 +13,7 @@ from pandas import (
 from six import iteritems
 
 from zipline.data.data_portal import DataPortal
-from zipline.pipeline.loaders.equity_pricing_loader import (
+from zipline.data.us_equity_pricing import (
     DailyBarWriterFromCSVs,
     SQLiteAdjustmentWriter
 )
