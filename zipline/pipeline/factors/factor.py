@@ -21,7 +21,7 @@ from zipline.pipeline.term import (
     NotSpecified,
     RequiredWindowLengthMixin,
     SingleInputMixin,
-    Term,
+    CompositeTerm,
 )
 from zipline.pipeline.expression import (
     BadBinaryOperator,
@@ -184,7 +184,7 @@ def function_application(func):
     return mathfunc
 
 
-class Factor(Term):
+class Factor(CompositeTerm):
     """
     Pipeline API expression producing numerically-valued outputs.
     """
@@ -450,7 +450,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         class-level attribute named `inputs`.
     window_length : int, optional
         Number of rows of rows to pass for each input.  If this
-        argument is passed to the CustomFactor constructor, we look for a
+        argument is not passed to the CustomFactor constructor, we look for a
         class-level attribute named `window_length`.
 
     Notes

@@ -1,12 +1,13 @@
 """
 dataset.py
 """
+from functools import total_ordering
 from six import (
     iteritems,
     with_metaclass,
 )
 
-from zipline.pipeline.term import Term
+from zipline.pipeline.term import Term, AssetExists
 from zipline.pipeline.factors import Latest
 
 
@@ -29,12 +30,13 @@ class BoundColumn(Term):
     """
     A Column of data that's been concretely bound to a particular dataset.
     """
+    mask = AssetExists()
+    extra_input_rows = 0
+    inputs = ()
 
     def __new__(cls, dtype, dataset, name):
         return super(BoundColumn, cls).__new__(
             cls,
-            inputs=(),
-            window_length=0,
             domain=dataset.domain,
             dtype=dtype,
             dataset=dataset,
@@ -86,6 +88,7 @@ class BoundColumn(Term):
         return self.qualname
 
 
+@total_ordering
 class DataSetMeta(type):
     """
     Metaclass for DataSets
@@ -108,6 +111,9 @@ class DataSetMeta(type):
     @property
     def columns(self):
         return self._columns
+
+    def __lt__(self, other):
+        return id(self) < id(other)
 
 
 class DataSet(with_metaclass(DataSetMeta)):

@@ -2,6 +2,7 @@
 Tests for SimplePipelineEngine
 """
 from __future__ import division
+from collections import OrderedDict
 from unittest import TestCase
 from itertools import product
 
@@ -11,6 +12,8 @@ from numpy import (
     nan,
     tile,
     zeros,
+    float32,
+    concatenate,
 )
 from pandas import (
     DataFrame,
@@ -21,19 +24,20 @@ from pandas import (
     Series,
     Timestamp,
 )
+from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
+from six import iteritems, itervalues
 from testfixtures import TempDirectory
 
 from zipline.pipeline.loaders.synthetic import (
     ConstantLoader,
-    MultiColumnLoader,
     NullAdjustmentReader,
     SyntheticDailyBarWriter,
 )
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline import Pipeline
-from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.data import USEquityPricing, DataSet, Column
 from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
@@ -85,6 +89,49 @@ def assert_multi_index_is_product(testcase, index, *levels):
     testcase.assertEqual(set(index), set(product(*levels)))
 
 
+class ColumnArgs(tuple):
+    """A tuple of Columns that defines equivalence based on the order of the
+    columns' DataSets, instead of the columns themselves. This is used when
+    comparing the columns passed to a loader's load_adjusted_array method,
+    since we want to assert that they are ordered by DataSet.
+    """
+    def __new__(cls, *cols):
+        return super(ColumnArgs, cls).__new__(cls, cols)
+
+    @classmethod
+    def sorted_by_ds(cls, *cols):
+        return cls(*sorted(cols, key=lambda col: col.dataset))
+
+    def by_ds(self):
+        return tuple(col.dataset for col in self)
+
+    def __eq__(self, other):
+        return set(self) == set(other) and self.by_ds() == other.by_ds()
+
+    def __hash__(self):
+        return hash(frozenset(self))
+
+
+class RecordingConstantLoader(ConstantLoader):
+    def __init__(self, *args, **kwargs):
+        super(RecordingConstantLoader, self).__init__(*args, **kwargs)
+
+        self.load_calls = []
+
+    def load_adjusted_array(self, columns, dates, assets, mask):
+        self.load_calls.append(ColumnArgs(*columns))
+
+        return super(RecordingConstantLoader, self).load_adjusted_array(
+            columns, dates, assets, mask,
+        )
+
+
+class RollingSumSum(CustomFactor):
+    def compute(self, today, assets, out, *inputs):
+        assert len(self.inputs) == len(inputs)
+        out[:] = sum(inputs).sum(axis=0)
+
+
 class ConstantInputTestCase(TestCase):
 
     def setUp(self):
@@ -97,7 +144,7 @@ class ConstantInputTestCase(TestCase):
             USEquityPricing.high: 4,
         }
         self.assets = [1, 2, 3]
-        self.dates = date_range('2014-01-01', '2014-02-01', freq='D', tz='UTC')
+        self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
         self.loader = ConstantLoader(
             constants=self.constants,
             dates=self.dates,
@@ -115,7 +162,9 @@ class ConstantInputTestCase(TestCase):
 
     def test_bad_dates(self):
         loader = self.loader
-        engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
 
         p = Pipeline()
 
@@ -129,7 +178,9 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         finder = self.asset_finder
         assets = array(self.assets)
-        engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         num_dates = 5
         dates = self.dates[10:10 + num_dates]
 
@@ -152,7 +203,9 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         finder = self.asset_finder
         assets = self.assets
-        engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         result_shape = (num_dates, num_assets) = (5, len(assets))
         dates = self.dates[10:10 + num_dates]
 
@@ -185,7 +238,9 @@ class ConstantInputTestCase(TestCase):
         loader = self.loader
         finder = self.asset_finder
         assets = self.assets
-        engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         shape = num_dates, num_assets = (5, len(assets))
         dates = self.dates[10:10 + num_dates]
 
@@ -228,7 +283,9 @@ class ConstantInputTestCase(TestCase):
     def test_numeric_factor(self):
         constants = self.constants
         loader = self.loader
-        engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
         num_dates = 5
         dates = self.dates[10:10 + num_dates]
         high, low = USEquityPricing.high, USEquityPricing.low
@@ -270,6 +327,147 @@ class ConstantInputTestCase(TestCase):
             avg_result,
             DataFrame(expected_avg, index=dates, columns=self.assets),
         )
+
+    def test_rolling_and_nonrolling(self):
+        open_ = USEquityPricing.open
+        close = USEquityPricing.close
+        volume = USEquityPricing.volume
+
+        # Test for thirty days up to the last day that we think all
+        # the assets existed.
+        dates_to_test = self.dates[-30:]
+
+        constants = {open_: 1, close: 2, volume: 3}
+        loader = ConstantLoader(
+            constants=constants,
+            dates=self.dates,
+            assets=self.assets,
+        )
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+
+        sumdiff = RollingSumDifference()
+
+        result = engine.run_pipeline(
+            Pipeline(
+                columns={
+                    'sumdiff': sumdiff,
+                    'open': open_.latest,
+                    'close': close.latest,
+                    'volume': volume.latest,
+                },
+            ),
+            dates_to_test[0],
+            dates_to_test[-1]
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(
+            {'sumdiff', 'open', 'close', 'volume'},
+            set(result.columns)
+        )
+
+        result_index = self.assets * len(dates_to_test)
+        result_shape = (len(result_index),)
+        check_arrays(
+            result['sumdiff'],
+            Series(index=result_index, data=full(result_shape, -3)),
+        )
+
+        for name, const in [('open', 1), ('close', 2), ('volume', 3)]:
+            check_arrays(
+                result[name],
+                Series(index=result_index, data=full(result_shape, const)),
+            )
+
+    def test_loader_given_multiple_columns(self):
+
+        class Loader1DataSet1(DataSet):
+            col1 = Column(float32)
+            col2 = Column(float32)
+
+        class Loader1DataSet2(DataSet):
+            col1 = Column(float32)
+            col2 = Column(float32)
+
+        class Loader2DataSet(DataSet):
+            col1 = Column(float32)
+            col2 = Column(float32)
+
+        constants1 = {Loader1DataSet1.col1: 1,
+                      Loader1DataSet1.col2: 2,
+                      Loader1DataSet2.col1: 3,
+                      Loader1DataSet2.col2: 4}
+        loader1 = RecordingConstantLoader(constants=constants1,
+                                          dates=self.dates,
+                                          assets=self.assets)
+        constants2 = {Loader2DataSet.col1: 5,
+                      Loader2DataSet.col2: 6}
+        loader2 = RecordingConstantLoader(constants=constants2,
+                                          dates=self.dates,
+                                          assets=self.assets)
+
+        engine = SimplePipelineEngine(
+            lambda column:
+            loader2 if column.dataset == Loader2DataSet else loader1,
+            self.dates, self.asset_finder,
+        )
+
+        pipe_col1 = RollingSumSum(inputs=[Loader1DataSet1.col1,
+                                          Loader1DataSet2.col1,
+                                          Loader2DataSet.col1],
+                                  window_length=2)
+
+        pipe_col2 = RollingSumSum(inputs=[Loader1DataSet1.col2,
+                                          Loader1DataSet2.col2,
+                                          Loader2DataSet.col2],
+                                  window_length=3)
+
+        pipe_col3 = RollingSumSum(inputs=[Loader2DataSet.col1],
+                                  window_length=3)
+
+        columns = OrderedDict([
+            ('pipe_col1', pipe_col1),
+            ('pipe_col2', pipe_col2),
+            ('pipe_col3', pipe_col3),
+        ])
+        result = engine.run_pipeline(
+            Pipeline(columns=columns),
+            self.dates[2],  # index is >= the largest window length - 1
+            self.dates[-1]
+        )
+        min_window = min(pip_col.window_length
+                         for pip_col in itervalues(columns))
+        col_to_val = ChainMap(constants1, constants2)
+        vals = {name: (sum(col_to_val[col] for col in pipe_col.inputs)
+                       * pipe_col.window_length)
+                for name, pipe_col in iteritems(columns)}
+
+        index = MultiIndex.from_product([self.dates[2:], self.assets])
+        expected = DataFrame(
+            data={col:
+                  concatenate((
+                      full((columns[col].window_length - min_window)
+                           * index.levshape[1],
+                           nan),
+                      full((index.levshape[0]
+                            - (columns[col].window_length - min_window))
+                           * index.levshape[1],
+                           val)))
+                  for col, val in iteritems(vals)},
+            index=index,
+            columns=columns)
+
+        assert_frame_equal(result, expected)
+
+        self.assertEqual(set(loader1.load_calls),
+                         {ColumnArgs.sorted_by_ds(Loader1DataSet1.col1,
+                                                  Loader1DataSet2.col1),
+                          ColumnArgs.sorted_by_ds(Loader1DataSet1.col2,
+                                                  Loader1DataSet2.col2)})
+        self.assertEqual(set(loader2.load_calls),
+                         {ColumnArgs.sorted_by_ds(Loader2DataSet.col1,
+                                                  Loader2DataSet.col2)})
 
 
 class FrameInputTestCase(TestCase):
@@ -353,9 +551,12 @@ class FrameInputTestCase(TestCase):
         high_base.iloc[:apply_idxs[2], 1] /= 5.0
 
         high_loader = DataFrameLoader(high, high_base, adjustments)
-        loader = MultiColumnLoader({low: low_loader, high: high_loader})
 
-        engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
+        engine = SimplePipelineEngine(
+            {low: low_loader, high: high_loader}.__getitem__,
+            self.dates,
+            self.asset_finder,
+        )
 
         for window_length in range(1, 4):
             low_mavg = SimpleMovingAverage(
@@ -465,7 +666,7 @@ class SyntheticBcolzTestCase(TestCase):
 
     def test_SMA(self):
         engine = SimplePipelineEngine(
-            self.pipeline_loader,
+            lambda column: self.pipeline_loader,
             self.env.trading_days,
             self.finder,
         )
@@ -517,7 +718,7 @@ class SyntheticBcolzTestCase(TestCase):
         # or zero, but verifying we correctly handle those corner cases is
         # valuable.
         engine = SimplePipelineEngine(
-            self.pipeline_loader,
+            lambda column: self.pipeline_loader,
             self.env.trading_days,
             self.finder,
         )
@@ -552,69 +753,3 @@ class SyntheticBcolzTestCase(TestCase):
         result = results['drawdown'].unstack()
 
         assert_frame_equal(expected, result)
-
-
-class MultiColumnLoaderTestCase(TestCase):
-    def setUp(self):
-        self.assets = [1, 2, 3]
-        self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
-
-        asset_info = make_simple_asset_info(
-            self.assets,
-            start_date=self.dates[0],
-            end_date=self.dates[-1],
-        )
-        env = TradingEnvironment()
-        env.write_data(equities_df=asset_info)
-        self.asset_finder = env.asset_finder
-
-    def test_engine_with_multicolumn_loader(self):
-        open_ = USEquityPricing.open
-        close = USEquityPricing.close
-        volume = USEquityPricing.volume
-
-        # Test for thirty days up to the second to last day that we think all
-        # the assets existed.  If we test the last day of our calendar, no
-        # assets will be in our output, because their end dates are all
-        dates_to_test = self.dates[-32:-2]
-
-        constants = {open_: 1, close: 2, volume: 3}
-        loader = ConstantLoader(
-            constants=constants,
-            dates=self.dates,
-            assets=self.assets,
-        )
-        engine = SimplePipelineEngine(loader, self.dates, self.asset_finder)
-
-        sumdiff = RollingSumDifference()
-
-        result = engine.run_pipeline(
-            Pipeline(
-                columns={
-                    'sumdiff': sumdiff,
-                    'open': open_.latest,
-                    'close': close.latest,
-                    'volume': volume.latest,
-                },
-            ),
-            dates_to_test[0],
-            dates_to_test[-1]
-        )
-        self.assertIsNotNone(result)
-        self.assertEqual(
-            {'sumdiff', 'open', 'close', 'volume'},
-            set(result.columns)
-        )
-
-        result_index = self.assets * len(dates_to_test)
-        result_shape = (len(result_index),)
-        check_arrays(
-            result['sumdiff'],
-            Series(index=result_index, data=full(result_shape, -3)),
-        )
-
-        for name, const in [('open', 1), ('close', 2), ('volume', 3)]:
-            check_arrays(
-                result[name],
-                Series(index=result_index, data=full(result_shape, const)),
-            )

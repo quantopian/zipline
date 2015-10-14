@@ -1,9 +1,11 @@
 """
 Base class for Filters, Factors and Classifiers
 """
+from abc import ABCMeta, abstractproperty
 from weakref import WeakValueDictionary
 
 from numpy import bool_, full, nan
+from six import with_metaclass
 
 from zipline.errors import (
     DTypeNotSpecified,
@@ -38,23 +40,17 @@ class NotSpecified(object):
         return self
 
 
-class Term(object):
+class Term(with_metaclass(ABCMeta, object)):
     """
     Base class for terms in a Pipeline API compute graph.
     """
     # These are NotSpecified because a subclass is required to provide them.
-    inputs = NotSpecified
-    window_length = NotSpecified
     dtype = NotSpecified
-    mask = NotSpecified
     domain = NotSpecified
 
     _term_cache = WeakValueDictionary()
 
     def __new__(cls,
-                inputs=NotSpecified,
-                mask=NotSpecified,
-                window_length=NotSpecified,
                 domain=NotSpecified,
                 dtype=NotSpecified,
                 *args,
@@ -72,23 +68,6 @@ class Term(object):
         # Class-level attributes can be used to provide defaults for Term
         # subclasses.
 
-        if inputs is NotSpecified:
-            inputs = cls.inputs
-        # Having inputs = NotSpecified is an error, but we handle it later
-        # in self._validate rather than here.
-        if inputs is not NotSpecified:
-            # Allow users to specify lists as class-level defaults, but
-            # normalize to a tuple so that inputs is hashable.
-            inputs = tuple(inputs)
-
-        if mask is NotSpecified:
-            mask = cls.mask
-        if mask is NotSpecified:
-            mask = AssetExists()
-
-        if window_length is NotSpecified:
-            window_length = cls.window_length
-
         if domain is NotSpecified:
             domain = cls.domain
 
@@ -96,9 +75,6 @@ class Term(object):
             dtype = cls.dtype
 
         identity = cls.static_identity(
-            inputs=inputs,
-            mask=mask,
-            window_length=window_length,
             domain=domain,
             dtype=dtype,
             *args, **kwargs
@@ -109,9 +85,6 @@ class Term(object):
         except KeyError:
             new_instance = cls._term_cache[identity] = \
                 super(Term, cls).__new__(cls)._init(
-                    inputs=inputs,
-                    mask=mask,
-                    window_length=window_length,
                     domain=domain,
                     dtype=dtype,
                     *args, **kwargs
@@ -134,10 +107,7 @@ class Term(object):
         """
         pass
 
-    def _init(self, inputs, mask, window_length, domain, dtype):
-        self.inputs = inputs
-        self.mask = mask
-        self.window_length = window_length
+    def _init(self, domain, dtype):
         self.domain = domain
         self.dtype = dtype
 
@@ -145,7 +115,7 @@ class Term(object):
         return self
 
     @classmethod
-    def static_identity(cls, inputs, mask, window_length, domain, dtype):
+    def static_identity(cls, domain, dtype):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -157,79 +127,64 @@ class Term(object):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, inputs, mask, window_length, domain, dtype)
+        return (cls, domain, dtype)
 
     def _validate(self):
         """
         Assert that this term is well-formed.  This should be called exactly
         once, at the end of Term._init().
         """
-        if self.inputs is NotSpecified:
-            raise TermInputsNotSpecified(termname=type(self).__name__)
-        if self.window_length is NotSpecified:
-            raise WindowLengthNotSpecified(termname=type(self).__name__)
         if self.dtype is NotSpecified:
             raise DTypeNotSpecified(termname=type(self).__name__)
-        if self.mask is NotSpecified and not self.atomic:
-            # This isn't user error, this is a bug in our code.
-            raise AssertionError("{term} has no mask".format(term=self))
 
-        if self.window_length:
-            for child in self.inputs:
-                if not child.atomic:
-                    raise InputTermNotAtomic(parent=self, child=child)
-
-    @lazyval
-    def atomic(self):
+    @abstractproperty
+    def inputs(self):
         """
-        Whether or not this term has dependencies.
-
-        If term.atomic is truthy, it should have dataset and dtype attributes.
-        """
-        return len(self.inputs) == 0
-
-    @lazyval
-    def windowed(self):
-        """
-        Whether or not this term represents a trailing window computation.
-
-        If term.windowed is truthy, its compute_from_windows method will be
-        called with instances of AdjustedArray as inputs.
-
-        If term.windowed is falsey, its compute_from_baseline will be called
-        with instances of np.ndarray as inputs.
-        """
-        return (
-            self.window_length is not NotSpecified
-            and self.window_length > 0
-        )
-
-    @lazyval
-    def extra_input_rows(self):
-        """
-        The number of extra rows needed for each of our inputs to compute this
-        term.
-        """
-        return max(0, self.window_length - 1)
-
-    def _compute(self, inputs, dates, assets, mask):
-        """
-        Subclasses should implement this to perform actual computation.
-
-        This is `_compute` rather than just `compute` because `compute` is
-        reserved for user-supplied functions in CustomFactor.
+        A tuple of other Terms that this Term requires for computation.
         """
         raise NotImplementedError()
 
+    @abstractproperty
+    def mask(self):
+        """
+        A 2D Filter representing asset/date pairs to include while
+        computing this Term. (True means include; False means exclude.)
+        """
+        raise NotImplementedError()
+
+    @lazyval
+    def dependencies(self):
+        return self.inputs + (self.mask,)
+
+    @lazyval
+    def atomic(self):
+        return not any(dep for dep in self.dependencies
+                       if dep is not AssetExists())
+
+
+class AssetExists(Term):
+    """
+    Pseudo-filter describing whether or not an asset existed on a given day.
+    This is the default mask for all terms that haven't been passed a mask
+    explicitly.
+
+    This is morally a Filter, in the sense that it produces a boolean value for
+    every asset on every date.  We don't subclass Filter, however, because
+    `AssetExists` is computed directly by the PipelineEngine.
+
+    See Also
+    --------
+    zipline.assets.AssetFinder.lifetimes
+    """
+    dtype = bool_
+    dataset = None
+    extra_input_rows = 0
+    inputs = ()
+    dependencies = ()
+    mask = None
+
     def __repr__(self):
-        return (
-            "{type}({inputs}, window_length={window_length})"
-        ).format(
-            type=type(self).__name__,
-            inputs=self.inputs,
-            window_length=self.window_length,
-            mask=self.mask,
-        )
+        return "AssetExists()"
 
 
 # TODO: Move mixins to a separate file?
@@ -307,28 +262,107 @@ class CustomTermMixin(object):
         return out
 
 
-class AssetExists(Term):
-    """
-    Pseudo-filter describing whether or not an asset existed on a given day.
-    This is the default mask for all terms that haven't been passed a mask
-    explicitly.
+class CompositeTerm(Term):
+    inputs = NotSpecified
+    window_length = NotSpecified
+    mask = NotSpecified
 
-    This is morally a Filter, in the sense that it produces a boolean value for
-    every asset on every date.  We don't subclass Filter, however, because
-    `AssetExists` is computed directly by the PipelineEngine.
+    def __new__(cls, inputs=NotSpecified, window_length=NotSpecified,
+                mask=NotSpecified, *args, **kwargs):
 
-    See Also
-    --------
-    zipline.assets.AssetFinder.lifetimes
-    """
-    inputs = ()
-    dtype = bool_
-    window_length = 0
-    mask = None
+        if inputs is NotSpecified:
+            inputs = cls.inputs
+        # Having inputs = NotSpecified is an error, but we handle it later
+        # in self._validate rather than here.
+        if inputs is not NotSpecified:
+            # Allow users to specify lists as class-level defaults, but
+            # normalize to a tuple so that inputs is hashable.
+            inputs = tuple(inputs)
 
-    def _compute(self, *args, **kwargs):
-        # TODO: Consider moving the bulk of the logic from
-        # SimplePipelineEngine._compute_root_mask here.
-        raise NotImplementedError(
-            "Direct computation of AssetExists is not supported!"
+        if mask is NotSpecified:
+            mask = cls.mask
+        if mask is NotSpecified:
+            mask = AssetExists()
+
+        if window_length is NotSpecified:
+            window_length = cls.window_length
+
+        return super(CompositeTerm, cls).__new__(cls, inputs=inputs, mask=mask,
+                                                 window_length=window_length,
+                                                 *args, **kwargs)
+
+    def _init(self, inputs, window_length, mask, *args, **kwargs):
+        self.inputs = inputs
+        self.window_length = window_length
+        self.mask = mask
+        return super(CompositeTerm, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, inputs, window_length, mask, *args, **kwargs):
+        return (
+            super(CompositeTerm, cls).static_identity(*args, **kwargs),
+            inputs,
+            window_length,
+            mask,
+        )
+
+    def _validate(self):
+        """
+        Assert that this term is well-formed.  This should be called exactly
+        once, at the end of Term._init().
+        """
+        if self.inputs is NotSpecified:
+            raise TermInputsNotSpecified(termname=type(self).__name__)
+        if self.window_length is NotSpecified:
+            raise WindowLengthNotSpecified(termname=type(self).__name__)
+        if self.mask is NotSpecified:
+            # This isn't user error, this is a bug in our code.
+            raise AssertionError("{term} has no mask".format(term=self))
+
+        if self.window_length:
+            for child in self.inputs:
+                if not child.atomic:
+                    raise InputTermNotAtomic(parent=self, child=child)
+
+        return super(CompositeTerm, self)._validate()
+
+    def _compute(self, inputs, dates, assets, mask):
+        """
+        Subclasses should implement this to perform actual computation.
+        This is `_compute` rather than just `compute` because `compute` is
+        reserved for user-supplied functions in CustomFactor.
+        """
+        raise NotImplementedError()
+
+    @lazyval
+    def windowed(self):
+        """
+        Whether or not this term represents a trailing window computation.
+
+        If term.windowed is truthy, its compute_from_windows method will be
+        called with instances of AdjustedArray as inputs.
+
+        If term.windowed is falsey, its compute_from_baseline will be called
+        with instances of np.ndarray as inputs.
+        """
+        return (
+            self.window_length is not NotSpecified
+            and self.window_length > 0
+        )
+
+    @lazyval
+    def extra_input_rows(self):
+        """
+        The number of extra rows needed for each of our inputs to compute this
+        term.
+        """
+        return max(0, self.window_length - 1)
+
+    def __repr__(self):
+        return (
+            "{type}({inputs}, window_length={window_length})"
+        ).format(
+            type=type(self).__name__,
+            inputs=self.inputs,
+            window_length=self.window_length,
         )

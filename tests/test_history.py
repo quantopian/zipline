@@ -37,6 +37,12 @@ TEST_DAILY_RESOURCE_PATH = join(
 )
 
 
+class MockDailyBarReader(object):
+
+    def spot_price(self, col, sid, dt):
+        return 100
+
+
 class HistoryTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -99,13 +105,32 @@ class HistoryTestCase(TestCase):
                 columns=['effective_date', 'ratio', 'sid'])
 
             dividends = DataFrame([
-                {'effective_date': str_to_seconds("2014-03-18"),
-                 'ratio': 0.98,
+                {'ex_date':
+                 Timestamp("2014-03-18", tz='UTC').to_datetime64(),
+                 'record_date':
+                 Timestamp("2014-03-19", tz='UTC').to_datetime64(),
+                 'declared_date':
+                 Timestamp("2014-03-18", tz='UTC').to_datetime64(),
+                 'pay_date':
+                 Timestamp("2014-03-20", tz='UTC').to_datetime64(),
+                 'amount': 2.0,
                  'sid': cls.DIVIDEND_SID},
-                {'effective_date': str_to_seconds("2014-03-20"),
-                 'ratio': 0.96,
+                {'ex_date':
+                 Timestamp("2014-03-20", tz='UTC').to_datetime64(),
+                 'record_date':
+                 Timestamp("2014-03-21", tz='UTC').to_datetime64(),
+                 'declared_date':
+                 Timestamp("2014-03-18", tz='UTC').to_datetime64(),
+                 'pay_date':
+                 Timestamp("2014-03-23", tz='UTC').to_datetime64(),
+                 'amount': 4.0,
                  'sid': cls.DIVIDEND_SID}],
-                columns=['effective_date', 'ratio', 'sid'])
+                columns=['ex_date',
+                         'record_date',
+                         'declared_date',
+                         'pay_date',
+                         'amount',
+                         'sid'])
 
             cls.create_fake_adjustments(cls.tempdir,
                                         "adjustments.sqlite",
@@ -166,25 +191,49 @@ class HistoryTestCase(TestCase):
     @classmethod
     def create_fake_adjustments(cls, tempdir, filename,
                                 splits=None, mergers=None, dividends=None):
-        writer = SQLiteAdjustmentWriter(tempdir.getpath(filename))
+        writer = SQLiteAdjustmentWriter(tempdir.getpath(filename),
+                                        cls.env.trading_days,
+                                        MockDailyBarReader())
 
         if dividends is None:
             dividends = DataFrame(
+                {
+                    # Hackery to make the dtypes correct on an empty frame.
+                    'ex_date': array([], dtype='datetime64[ns]'),
+                    'pay_date': array([], dtype='datetime64[ns]'),
+                    'record_date': array([], dtype='datetime64[ns]'),
+                    'declared_date': array([], dtype='datetime64[ns]'),
+                    'amount': array([], dtype=float),
+                    'sid': array([], dtype=int),
+                },
+                index=DatetimeIndex([], tz='UTC'),
+                columns=['ex_date',
+                         'pay_date',
+                         'record_date',
+                         'declared_date',
+                         'amount',
+                         'sid']
+                )
+
+        if splits is None:
+            splits = DataFrame(
                 {
                     # Hackery to make the dtypes correct on an empty frame.
                     'effective_date': array([], dtype=int),
                     'ratio': array([], dtype=float),
                     'sid': array([], dtype=int),
                 },
-                index=DatetimeIndex([], tz='UTC'),
-                columns=['effective_date', 'ratio', 'sid'],
-            )
-
-        if splits is None:
-            splits = dividends
+                index=DatetimeIndex([], tz='UTC'))
 
         if mergers is None:
-            mergers = dividends
+            mergers = DataFrame(
+                {
+                    # Hackery to make the dtypes correct on an empty frame.
+                    'effective_date': array([], dtype=int),
+                    'ratio': array([], dtype=float),
+                    'sid': array([], dtype=int),
+                },
+                index=DatetimeIndex([], tz='UTC'))
 
         writer.write(splits, mergers, dividends)
 

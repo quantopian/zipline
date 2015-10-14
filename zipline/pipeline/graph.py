@@ -102,15 +102,9 @@ class TermGraph(DiGraph):
         zipline.pipeline.engine.SimplePipelineEngine._inputs_for_term
         zipline.pipeline.engine.SimplePipelineEngine._mask_and_dates_for_term
         """
-        out = {}
-        for term in self:
-            extra_input_rows = term.extra_input_rows
-            for input_ in term.inputs:
-                out[term, input_] = self.extra_rows[input_] - extra_input_rows
-            mask = term.mask
-            if term.mask is not None:
-                out[term, mask] = self.extra_rows[mask] - extra_input_rows
-        return out
+        return {(term, dep): self.extra_rows[dep] - term.extra_input_rows
+                for term in self
+                for dep in term.dependencies}
 
     @lazyval
     def extra_rows(self):
@@ -168,6 +162,10 @@ class TermGraph(DiGraph):
         """
         return iter(self._ordered)
 
+    @lazyval
+    def atomic_terms(self):
+        return tuple(term for term in self if term.atomic)
+
     def _add_to_graph(self, term, parents, extra_rows):
         """
         Add `term` and all its inputs to the graph.
@@ -191,19 +189,13 @@ class TermGraph(DiGraph):
         dependency_extra_rows = extra_rows + term.extra_input_rows
 
         # Recursively add dependencies.
-        for dependency in term.inputs:
+        for dependency in term.dependencies:
             self._add_to_graph(
                 dependency,
                 parents,
                 extra_rows=dependency_extra_rows,
             )
             self.add_edge(dependency, term)
-
-        # Add term's mask, which is really just a specially-enumerated input.
-        mask = term.mask
-        if mask is not None:
-            self._add_to_graph(mask, parents, extra_rows=dependency_extra_rows)
-            self.add_edge(mask, term)
 
         parents.remove(term)
 

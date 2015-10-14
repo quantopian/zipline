@@ -92,7 +92,7 @@ def _render(g, out, format_, include_asset_exists=False):
     graph_attrs = {'rankdir': 'TB', 'splines': 'ortho'}
     cluster_attrs = {'style': 'filled', 'color': 'lightgoldenrod1'}
 
-    in_nodes = list(node for node in g if node.atomic)
+    in_nodes = g.atomic_terms
     out_nodes = list(g.outputs.values())
 
     f = BytesIO()

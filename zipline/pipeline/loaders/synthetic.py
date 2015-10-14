@@ -32,33 +32,7 @@ def nanos_to_seconds(nanos):
     return nanos / (1000 * 1000 * 1000)
 
 
-class MultiColumnLoader(PipelineLoader):
-    """
-    PipelineLoader that can delegate to sub-loaders.
-
-    Parameters
-    ----------
-    loaders : dict
-        Dictionary mapping columns -> loader
-    """
-    def __init__(self, loaders):
-        self._loaders = loaders
-
-    def load_adjusted_array(self, columns, dates, assets, mask):
-        """
-        Load by delegating to sub-loaders.
-        """
-        out = []
-        for col in columns:
-            try:
-                loader = self._loaders[col]
-            except KeyError:
-                raise ValueError("Couldn't find loader for %s" % col)
-            out.extend(loader.load_adjusted_array([col], dates, assets, mask))
-        return out
-
-
-class ConstantLoader(MultiColumnLoader):
+class ConstantLoader(PipelineLoader):
     """
     Synthetic PipelineLoader that returns a constant value for each column.
 
@@ -91,7 +65,20 @@ class ConstantLoader(MultiColumnLoader):
                 adjustments=None,
             )
 
-        super(ConstantLoader, self).__init__(loaders)
+        self._loaders = loaders
+
+    def load_adjusted_array(self, columns, dates, assets, mask):
+        """
+        Load by delegating to sub-loaders.
+        """
+        out = []
+        for col in columns:
+            try:
+                loader = self._loaders[col]
+            except KeyError:
+                raise ValueError("Couldn't find loader for %s" % col)
+            out.extend(loader.load_adjusted_array([col], dates, assets, mask))
+        return out
 
 
 class SyntheticDailyBarWriter(BcolzDailyBarWriter):
@@ -253,11 +240,19 @@ class NullAdjustmentReader(SQLiteAdjustmentReader):
 
     def __init__(self):
         conn = sqlite3_connect(':memory:')
-        writer = SQLiteAdjustmentWriter(conn)
+        writer = SQLiteAdjustmentWriter(conn, None, None)
         empty = DataFrame({
             'sid': array([], dtype=uint32),
             'effective_date': array([], dtype=uint32),
             'ratio': array([], dtype=float),
         })
-        writer.write(splits=empty, mergers=empty, dividends=empty)
+        empty_dividends = DataFrame({
+            'sid': array([], dtype=uint32),
+            'amount': array([], dtype=float64),
+            'record_date': array([], dtype='datetime64[ns]'),
+            'ex_date': array([], dtype='datetime64[ns]'),
+            'declared_date': array([], dtype='datetime64[ns]'),
+            'pay_date': array([], dtype='datetime64[ns]'),
+        })
+        writer.write(splits=empty, mergers=empty, dividends=empty_dividends)
         super(NullAdjustmentReader, self).__init__(conn)
