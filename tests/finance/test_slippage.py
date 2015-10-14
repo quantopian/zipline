@@ -77,6 +77,13 @@ class SlippageTestCase(TestCase):
 
         MinuteBarWriterFromDataFrames().write(cls.tempdir.path, assets)
 
+        cls.env.write_data(equities_data={
+            133: {
+                "start_date": pd.Timestamp("2006-01-05", tz='utc'),
+                "end_date": pd.Timestamp("2006-01-07", tz='utc')
+            }
+        })
+
         cls.data_portal = DataPortal(
             cls.env,
             minutes_equities_path=cls.tempdir.path,
@@ -114,7 +121,6 @@ class SlippageTestCase(TestCase):
             )
 
             slippage_model = VolumeShareSlippage()
-            slippage_model.data_portal = data_portal
 
             open_orders = [
                 Order(
@@ -456,16 +462,15 @@ class SlippageTestCase(TestCase):
             )
 
             slippage_model = VolumeShareSlippage()
-            slippage_model.data_portal = data_portal
-
-            event = Event(initial_values=event_data)
 
             try:
                 dt = pd.Timestamp('2006-01-05 14:31', tz='UTC')
                 _, txn = next(slippage_model.simulate(
-                    [order], dt,
-                    event.price,
-                    event.volume))
+                    [order],
+                    dt,
+                    data_portal.get_spot_value(133, "close", dt),
+                    data_portal.get_spot_value(133, "volume", dt)
+                ))
             except StopIteration:
                 txn = None
 
@@ -557,7 +562,6 @@ class SlippageTestCase(TestCase):
             self.minutes[2],
             self.data_portal.get_spot_price(133, 'close', self.minutes[2]),
             self.data_portal.get_spot_price(133, 'volume', self.minutes[2])
-
         ))
 
         self.assertEquals(len(orders_txns), 0)

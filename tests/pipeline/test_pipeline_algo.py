@@ -1,6 +1,7 @@
 """
 Tests for Algorithms using the Pipeline API.
 """
+import os
 from unittest import TestCase
 from os.path import (
     dirname,
@@ -35,6 +36,7 @@ from zipline.api import (
     pipeline_output,
     get_datetime,
 )
+from zipline.data.data_portal import DataPortal
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     PipelineOutputDuringInitialize,
@@ -47,6 +49,7 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentReader,
 )
 from zipline.finance import trading
+from zipline.finance.trading import SimulationParameters
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
@@ -57,7 +60,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.utils.test_utils import (
     make_simple_asset_info,
     str_to_seconds,
-)
+    DailyBarWriterFromDataFrames, FakeDataPortal)
 from zipline.utils.tradingcalendar import (
     trading_day,
     trading_days,
@@ -85,6 +88,14 @@ def rolling_vwap(df, length):
 
 
 class ClosesOnly(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tempdir = TempDirectory()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
 
     def setUp(self):
         self.env = env = trading.TradingEnvironment()
@@ -130,6 +141,36 @@ class ClosesOnly(TestCase):
             {sid: arange(1, len(self.dates) + 1) * sid for sid in sids},
             index=self.dates,
             dtype=float,
+        )
+
+        # Create a data portal holding the data in self.closes
+        data = {}
+        for sid in sids:
+            data[sid] = DataFrame({
+                "open": self.closes[sid].values,
+                "high": self.closes[sid].values,
+                "low": self.closes[sid].values,
+                "close": self.closes[sid].values,
+                "volume": self.closes[sid].values,
+                "day": [day.value for day in self.dates]
+            })
+
+        path = os.path.join(self.tempdir.path, "testdaily.bcolz")
+
+        DailyBarWriterFromDataFrames(data).write(
+            path,
+            self.dates,
+            data
+        )
+
+        self.data_portal = DataPortal(
+            self.env,
+            daily_equities_path=path,
+            sim_params=SimulationParameters(
+                period_start=self.dates[0],
+                period_end=self.dates[-1],
+                env=self.env),
+            asset_finder=self.asset_finder
         )
 
         # Add a split for 'A' on its second date.
@@ -189,7 +230,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(AttachPipelineAfterInitialize):
-            algo.run(source=self.closes)
+            algo.run(data_portal=self.data_portal)
 
         def barf(context, data):
             raise AssertionError("Shouldn't make it past before_trading_start")
@@ -206,7 +247,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(AttachPipelineAfterInitialize):
-            algo.run(source=self.closes)
+            algo.run(data_portal=self.data_portal)
 
     def test_pipeline_output_after_initialize(self):
         """
@@ -235,7 +276,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(PipelineOutputDuringInitialize):
-            algo.run(source=self.closes)
+            algo.run(data_portal=self.data_portal)
 
     def test_get_output_nonexistent_pipeline(self):
         """
@@ -263,7 +304,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(NoSuchPipeline):
-            algo.run(source=self.closes)
+            algo.run(data_portal=self.data_portal)
 
     def test_assets_appear_on_correct_days(self):
         """
@@ -301,7 +342,7 @@ class ClosesOnly(TestCase):
         )
 
         # Run for a week in the middle of our data.
-        algo.run(source=self.closes.iloc[10:17])
+        algo.run(data_portal=self.data_portal)
 
 
 class PipelineAlgorithmTestCase(TestCase):
@@ -385,8 +426,12 @@ class PipelineAlgorithmTestCase(TestCase):
         writer.write(splits, mergers, dividends)
         return SQLiteAdjustmentReader(dbpath)
 
-    def make_source(self):
-        return Panel(self.raw_data).tz_localize('UTC', axis=1)
+    def make_data_portal(self):
+        p = Panel(self.raw_data).tz_localize('UTC', axis=1)
+
+        import pdb; pdb.set_trace()
+
+        return p
 
     def compute_expected_vwaps(self, window_lengths):
         AAPL, MSFT, BRK_A = self.AAPL, self.MSFT, self.BRK_A
@@ -501,7 +546,6 @@ class PipelineAlgorithmTestCase(TestCase):
                 BRK_A: True,
             }
             for asset in assets:
-
                 should_pass_filter = expect_over_300[asset]
                 if set_screen and not should_pass_filter:
                     self.assertNotIn(asset, results.index)
@@ -530,9 +574,4 @@ class PipelineAlgorithmTestCase(TestCase):
             env=self.env,
         )
 
-        algo.run(
-            source=self.make_source(),
-            # Yes, I really do want to use the start and end dates I passed to
-            # TradingAlgorithm.
-            overwrite_sim_params=False,
-        )
+        algo.run(data_portal=FakeDataPortal())
