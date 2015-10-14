@@ -151,7 +151,7 @@ def expect_element(*_pos, **named):
     >>> foo('c')
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected a value in ('a', 'b') for argument 'x', but got 'c' instead.  # noqa
+    ValueError: foo() expected a value in ('a', 'b') for argument 'x', but got 'c' instead.  # noqa
     """
     if _pos:
         raise TypeError("expect_element() only takes keyword arguments.")
