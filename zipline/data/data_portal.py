@@ -1,6 +1,5 @@
 from datetime import datetime
 import bcolz
-import sqlite3
 from logbook import Logger
 
 import numpy as np
@@ -44,7 +43,7 @@ class DataPortal(object):
                  benchmark_iter=None,  # FIXME hack
                  minutes_equities_path=None,
                  daily_equities_path=None,
-                 adjustments_path=None,
+                 adjustment_reader=None,
                  asset_finder=None,
                  sid_path_func=None):
         self.env = env
@@ -57,12 +56,6 @@ class DataPortal(object):
         if minutes_equities_path is None and daily_equities_path is None:
             raise ValueError("Must provide at least one of minute or "
                              "daily data path!")
-
-        # if adjustments_path is None:
-        #     raise ValueError("Must provide adjustments path!")
-        #
-        # if asset_finder is None:
-        #     raise ValueError("Must provide asset finder!")
 
         self.minutes_equities_path = minutes_equities_path
         self.daily_equities_path = daily_equities_path
@@ -80,10 +73,7 @@ class DataPortal(object):
 
         self.benchmark_iter = benchmark_iter
 
-        if adjustments_path is not None:
-            self.adjustments_conn = sqlite3.connect(adjustments_path)
-        else:
-            self.adjustments_conn = None
+        self._adjustment_reader = adjustment_reader
 
         # caches of sid -> adjustment list
         self.splits_dict = {}
@@ -848,20 +838,13 @@ class DataPortal(object):
             A list of [multiplier, pd.Timestamp], earliest first
 
         """
-        if self.adjustments_conn is None:
+        if self._adjustment_reader is None:
             return []
 
         if sid not in adjustments_dict:
-            adjustments_for_sid = self.adjustments_conn.execute(
-                "SELECT effective_date, ratio FROM %s WHERE sid = ?" %
-                table_name, [sid]).fetchall()
-
-            adjustments_dict[sid] = [[pd.Timestamp(adjustment[0],
-                                                   unit='s',
-                                                   tz='UTC'),
-                                      adjustment[1]]
-                                     for adjustment in
-                                     adjustments_for_sid]
+            adjustments_for_sid = self._adjustment_reader.\
+                get_adjustments_for_sid(table_name, sid)
+            adjustments_dict[sid] = adjustments_for_sid
 
         return adjustments_dict[sid]
 
@@ -921,14 +904,14 @@ class DataPortal(object):
         -------
         list: List of splits, where each split is a (sid, ratio) tuple.
         """
-        if self.adjustments_conn is None or len(sids) == 0:
+        if self._adjustment_reader is None or len(sids) == 0:
             return {}
 
         # convert dt to # of seconds since epoch, because that's what we use
         # in the adjustments db
         seconds = int(dt.value / 1e9)
 
-        splits = self.adjustments_conn.execute(
+        splits = self._adjustment_reader.conn.execute(
             "SELECT sid, ratio FROM SPLITS WHERE effective_date = ?",
             (seconds,)).fetchall()
 
@@ -1020,4 +1003,3 @@ class DataPortalSidView(object):
 
     def __getitem__(self, column):
         return self.__getattr__(column)
-

@@ -65,35 +65,6 @@ DIVIDEND_PAYMENT_FIELDS = [
 ]
 
 
-def dividend_payment(data=None):
-    """
-    Take a dictionary whose values are in DIVIDEND_PAYMENT_FIELDS and return a
-    series representing the payment of a dividend.
-
-    Ids are assigned to each historical dividend in
-    PerformanceTracker.update_dividends. They are guaranteed to be unique
-    integers with the context of a single simulation. If @data is non-empty, a
-    id is required to identify the historical dividend associated with this
-    payment.
-
-    Additionally, if @data is non-empty, either data['cash_amount'] should be
-    nonzero or data['payment_sid'] should be an asset identifier and
-    data['share_count'] should be nonzero.
-
-    The returned Series is given its id value as a name so that concatenating
-    payments results in a DataFrame indexed by id.  (Note, however, that the
-    name value is not used to construct an index when this series is returned
-    by function passed to `DataFrame.apply`.  In such a case, pandas preserves
-    the index of the DataFrame on which `apply` is being called.)
-    """
-    return pd.Series(
-        data=data,
-        name=data['id'] if data is not None else None,
-        index=DIVIDEND_PAYMENT_FIELDS,
-        dtype=object,
-    )
-
-
 class Event(object):
 
     def __init__(self, initial_values=None):

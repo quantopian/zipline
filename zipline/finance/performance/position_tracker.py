@@ -182,9 +182,8 @@ class PositionTracker(object):
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()
-        self._unpaid_dividends = pd.DataFrame(
-            columns=zp.DIVIDEND_PAYMENT_FIELDS,
-        )
+        self._unpaid_dividends = {}
+        self._unpaid_stock_dividends = {}
         self._positions_store = zp.Positions()
 
         # Dict, keyed on dates, that contains lists of close position events
@@ -366,64 +365,73 @@ class PositionTracker(object):
         else:
             return zp.dividend_payment()
 
-    def earn_dividends(self, dividend_frame):
+    def earn_dividends(self, dividends, stock_dividends):
         """
-        Given a frame of dividends whose ex_dates are all the next trading day,
+        Given a list of dividends whose ex_dates are all the next trading day,
         calculate and store the cash and/or stock payments to be paid on each
         dividend's pay date.
         """
-        earned = dividend_frame.apply(self._maybe_earn_dividend, axis=1)\
-                               .dropna(how='all')
-        if len(earned) > 0:
+        for dividend in dividends:
             # Store the earned dividends so that they can be paid on the
             # dividends' pay_dates.
-            self._unpaid_dividends = pd.concat(
-                [self._unpaid_dividends, earned],
-            )
+            div_owed = self.positions[dividend.sid].earn_dividend(dividend)
+            try:
+                self._unpaid_dividends[dividend.pay_date].append(
+                    div_owed)
+            except KeyError:
+                self._unpaid_dividends[dividend.pay_date] = [div_owed]
 
-    def _maybe_pay_dividend(self, dividend):
-        """
-        Take a historical dividend record, look up any stored record of
-        cash/stock we are owed for that dividend, and return a Series
-        with fields drawn from zipline.protocol.DIVIDEND_PAYMENT_FIELDS.
-        """
-        try:
-            unpaid_dividend = self._unpaid_dividends.loc[dividend['id']]
-            return unpaid_dividend
-        except KeyError:
-            return zp.dividend_payment()
+        for stock_dividend in stock_dividends:
+            div_owed = self.positions[stock_dividend.sid].earn_stock_dividend(
+                stock_dividend)
+            try:
+                self._unpaid_stock_dividends[stock_dividend.pay_date].\
+                    append(div_owed)
+            except KeyError:
+                self._unpaid_stock_dividends[stock_dividend.pay_date] = \
+                    [div_owed]
 
-    def pay_dividends(self, dividend_frame):
+    def pay_dividends(self, next_trading_day):
         """
         Given a frame of dividends whose pay_dates are all the next trading
         day, grant the cash and/or stock payments that were calculated on the
         given dividends' ex dates.
         """
-        payments = dividend_frame.apply(self._maybe_pay_dividend, axis=1)\
-                                 .dropna(how='all')
+        net_cash_payment = 0.0
 
-        # Mark these dividends as paid by dropping them from our unpaid
-        # table.
-        self._unpaid_dividends.drop(payments.index)
+        try:
+            payments = self._unpaid_dividends[next_trading_day]
+            # Mark these dividends as paid by dropping them from our unpaid
+            del self._unpaid_dividends[next_trading_day]
+        except KeyError:
+            payments = []
+
+        # representing the fact that we're required to reimburse the owner of
+        # the stock for any dividends paid while borrowing.
+        for payment in payments:
+            net_cash_payment += payment['amount']
 
         # Add stock for any stock dividends paid.  Again, the values here may
         # be negative in the case of short positions.
-        stock_payments = payments[payments['payment_sid'].notnull()]
-        for _, row in stock_payments.iterrows():
-            stock = row['payment_sid']
-            share_count = row['share_count']
+
+        try:
+            stock_payments = self._unpaid_stock_dividends[next_trading_day]
+        except:
+            stock_payments = []
+
+        for stock_payment in stock_payments:
+            stock = stock_payment['payment_sid']
+            share_count = stock_payment['share_count']
             # note we create a Position for stock dividend if we don't
             # already own the asset
-            position = self.positions[stock]
+            if stock in self.positions:
+                position = self.positions[stock]
+            else:
+                position = self.positions[stock] = Position(stock)
 
             position.amount += share_count
             self._update_asset(stock)
 
-        # Add cash equal to the net cash payed from all dividends.  Note that
-        # "negative cash" is effectively paid if we're short an asset,
-        # representing the fact that we're required to reimburse the owner of
-        # the stock for any dividends paid while borrowing.
-        net_cash_payment = payments['cash_amount'].fillna(0).sum()
         return net_cash_payment
 
     def maybe_create_close_position_transaction(self, event):
@@ -494,6 +502,7 @@ class PositionTracker(object):
         state_dict['asset_finder'] = self.asset_finder
         state_dict['positions'] = dict(self.positions)
         state_dict['unpaid_dividends'] = self._unpaid_dividends
+        state_dict['unpaid_stock_dividends'] = self._unpaid_stock_dividends
         state_dict['auto_close_position_sids'] = self._auto_close_position_sids
 
         STATE_VERSION = 3
@@ -514,6 +523,7 @@ class PositionTracker(object):
         self._positions_store = zp.Positions()
 
         self._unpaid_dividends = state['unpaid_dividends']
+        self._unpaid_stock_dividends = state['unpaid_stock_dividends']
         self._auto_close_position_sids = state['auto_close_position_sids']
 
         # Arrays for quick calculations of positions value

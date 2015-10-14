@@ -15,7 +15,8 @@ from six import iteritems
 from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import (
     DailyBarWriterFromCSVs,
-    SQLiteAdjustmentWriter
+    SQLiteAdjustmentWriter,
+    SQLiteAdjustmentReader,
 )
 from zipline.utils.test_utils import make_simple_asset_info, str_to_seconds
 from zipline.data.minute_writer import MinuteBarWriterFromCSVs
@@ -247,13 +248,16 @@ class HistoryTestCase(TestCase):
 
         temp_path = self.tempdir.path
 
+        adjustment_reader = SQLiteAdjustmentReader(
+            join(temp_path, adjustments_filename))
+
         return DataPortal(
             self.env,
             asset_finder=asset_finder,
             # TODO: Change this to a subdir.
             minutes_equities_path=temp_path,
             daily_equities_path=join(temp_path, daily_equities_filename),
-            adjustments_path=join(temp_path, adjustments_filename)
+            adjustment_reader=adjustment_reader
         )
 
     def test_minute_basic_functionality(self):

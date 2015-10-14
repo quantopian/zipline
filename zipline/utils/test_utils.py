@@ -581,5 +581,6 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
 
 
 class FakeDataPortal(object):
-    def __setattr__(self, key, value):
-        pass
+
+    def __init__(self):
+        self._adjustment_reader = None

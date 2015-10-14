@@ -23,6 +23,7 @@ from datetime import (
 import logging
 import operator
 
+from testfixtures import TempDirectory
 import unittest
 from nose_parameterized import parameterized
 import nose.tools as nt
@@ -34,6 +35,10 @@ import pandas as pd
 import numpy as np
 from six.moves import range, zip
 
+from zipline.data.us_equity_pricing import (
+    SQLiteAdjustmentWriter,
+    SQLiteAdjustmentReader,
+)
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.transaction import Transaction, create_transaction
@@ -44,6 +49,7 @@ from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment
+from zipline.pipeline.loaders.synthetic import NullAdjustmentReader
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
@@ -152,7 +158,7 @@ def calculate_results(sim_params,
                       tempdir,
                       benchmark_events,
                       trade_events,
-                      dividend_events=None,
+                      adjustment_reader,
                       splits=None,
                       txns=None,
                       commissions=None):
@@ -183,23 +189,17 @@ def calculate_results(sim_params,
     splits = splits or {}
     commissions = commissions or {}
 
+    adjustment_reader = adjustment_reader or NullAdjustmentReader()
+
     data_portal = create_data_portal_from_trade_history(
         env,
         tempdir,
         sim_params,
-        trade_events
+        trade_events,
     )
+    data_portal._adjustment_reader = adjustment_reader
 
     perf_tracker = perf.PerformanceTracker(sim_params, env, data_portal)
-
-    if dividend_events is not None:
-        dividend_frame = pd.DataFrame(
-            [
-                event.to_series(index=zp.DIVIDEND_FIELDS)
-                for event in dividend_events
-            ],
-        )
-        perf_tracker.update_dividends(dividend_frame)
 
     results = []
 
@@ -234,7 +234,6 @@ def check_perf_tracker_serialization(perf_tracker):
         'txn_count',
         'market_open',
         'last_close',
-        '_dividend_count',
         'period_start',
         'day_count',
         'capital_base',
@@ -243,7 +242,6 @@ def check_perf_tracker_serialization(perf_tracker):
         'period_end',
         'total_days',
     ]
-
     p_string = dumps_with_persistent_ids(perf_tracker)
 
     test = loads_with_persistent_ids(p_string, env=perf_tracker.env)
@@ -305,7 +303,9 @@ class TestSplitPerformance(unittest.TestCase):
         results = calculate_results(self.sim_params, self.env,
                                     self.tempdir,
                                     self.benchmark_events,
-                                    {1: events}, txns=txns, splits=splits)
+                                    {1: events},
+                                    NullAdjustmentReader(),
+                                    txns=txns, splits=splits)
 
         # should have 33 shares (at $60 apiece) and $20 in cash
         self.assertEqual(2, len(results))
@@ -438,6 +438,7 @@ class TestCommissionEvents(unittest.TestCase):
                                     self.tempdir,
                                     self.benchmark_events,
                                     {1: trade_events},
+                                    NullAdjustmentReader(),
                                     txns=txns,
                                     commissions=commissions)
 
@@ -503,6 +504,7 @@ class TestCommissionEvents(unittest.TestCase):
                                     self.tempdir,
                                     self.benchmark_events,
                                     {1: events},
+                                    NullAdjustmentReader(),
                                     txns=txns,
                                     commissions=commissions)
         # Validate that we lost 300 dollars from our cash pool.
@@ -533,10 +535,17 @@ class TestCommissionEvents(unittest.TestCase):
                                     self.tempdir,
                                     self.benchmark_events,
                                     {1: events},
+                                    NullAdjustmentReader(),
                                     commissions=commissions)
         # Validate that we lost 300 dollars from our cash pool.
         self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
                          9700)
+
+
+class MockDailyBarSpotReader(object):
+
+    def spot_price(self, sid, day, colname):
+        return 100.0
 
 
 class TestDividendPerformance(unittest.TestCase):
@@ -552,12 +561,15 @@ class TestDividendPerformance(unittest.TestCase):
         cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
                                                           cls.env)
 
-        cls.tempdir = TempDirectory()
-
     @classmethod
     def tearDownClass(cls):
         del cls.env
-        cls.tempdir.cleanup()
+
+    def setUp(self):
+        self.tempdir = TempDirectory()
+
+    def tearDown(self):
+        self.tempdir.cleanup()
 
     def test_market_hours_calculations(self):
         # DST in US/Eastern began on Sunday March 14, 2010
@@ -579,18 +591,31 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             env=self.env
         )
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            # declared date, when the algorithm finds out about
-            # the dividend
-            events[0].dt,
-            # ex_date, the date before which the algorithm must hold stock
-            # to receive the dividend
-            events[1].dt,
-            # pay date, when the algorithm receives the dividend.
-            events[2].dt
+
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.00], dtype=np.float64),
+            'declared_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[1].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[1].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([events[2].dt], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         # Simulate a transaction being filled prior to the ex_date.
         txns = [create_txn(events[0].sid, events[0].dt, 10.0, 100)]
@@ -600,7 +625,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
+            adjustment_reader,
             txns=txns,
         )
 
@@ -647,6 +672,40 @@ class TestDividendPerformance(unittest.TestCase):
             # pay date, when the algorithm receives the dividend.
             pay_date=events[1][2].dt
         )
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
+        )
+        dividends = pd.DataFrame({
+            'sid': np.array([], dtype=np.uint32),
+            'amount': np.array([], dtype=np.float64),
+            'declared_date': np.array([], dtype='datetime64[ns]'),
+            'ex_date': np.array([], dtype='datetime64[ns]'),
+            'pay_date': np.array([], dtype='datetime64[ns]'),
+            'record_date': np.array([], dtype='datetime64[ns]'),
+        })
+        sid_1 = events[1]
+        stock_dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'payment_sid': np.array([2], dtype=np.uint32),
+            'ratio': np.array([2], dtype=np.float64),
+            'declared_date': np.array([sid_1[0].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([sid_1[1].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([sid_1[1].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([sid_1[2].dt], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends, stock_dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         txns = [create_txn(events[1][0].sid, events[1][0].dt, 10.0, 100)]
 
@@ -656,7 +715,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             events,
-            dividend_events=[dividend],
+            adjustment_reader,
             txns=txns,
         )
 
@@ -688,13 +747,30 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            events[0].dt,  # Declared date
-            events[1].dt,  # Exclusion date
-            events[2].dt   # Pay date
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.00], dtype=np.float64),
+            'declared_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[1].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[1].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([events[2].dt], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         # Simulate a transaction being filled on the ex_date.
         txns = [create_txn(events[1].sid, events[1].dt, 10.0, 100)]
@@ -705,7 +781,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
+            adjustment_reader,
             txns=txns,
         )
 
@@ -733,13 +809,30 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            events[0].dt,  # Declared date
-            events[1].dt,  # Exclusion date
-            events[3].dt   # Pay date
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.00], dtype=np.float64),
+            'declared_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[1].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[1].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([events[3].dt], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         buy_txn = create_txn(events[0].sid, events[0].dt, 10.0, 100)
         sell_txn = create_txn(events[2].sid, events[2].dt, 10.0, -100)
@@ -751,7 +844,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
+            adjustment_reader,
             txns=txns,
         )
 
@@ -778,14 +871,31 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             env=self.env
         )
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
 
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            events[3].dt,
-            events[4].dt,
-            events[5].dt
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.0], dtype=np.float64),
+            'declared_date': np.array([events[3].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[4].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([events[5].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[4].dt], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         buy_txn = create_txn(events[1].sid, events[1].dt, 10.0, 100)
         sell_txn = create_txn(events[2].sid, events[2].dt, 10.0, -100)
@@ -797,8 +907,8 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
             txns=txns,
+            adjustment_reader=adjustment_reader,
         )
 
         self.assertEqual(len(results), 6)
@@ -828,13 +938,31 @@ class TestDividendPerformance(unittest.TestCase):
         # find pay date that is much later.
         for i in range(30):
             pay_date = factory.get_next_trading_dt(pay_date, oneday, self.env)
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            events[0].dt,
-            events[0].dt,
-            pay_date
+
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.00], dtype=np.float64),
+            'declared_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([pay_date], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         txns = [create_txn(events[1].sid, events[1].dt, 10.0, 100)]
 
@@ -844,8 +972,8 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
             txns=txns,
+            adjustment_reader=adjustment_reader,
         )
 
         self.assertEqual(len(results), 6)
@@ -874,15 +1002,30 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            # declare at open of test
-            events[0].dt,
-            # ex_date same as trade 2
-            events[2].dt,
-            events[3].dt
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.00], dtype=np.float64),
+            'declared_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[2].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[2].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([events[3].dt], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         txns = [create_txn(events[1].sid, events[1].dt, 10.0, -100)]
 
@@ -892,7 +1035,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
+            adjustment_reader,
             txns=txns,
         )
 
@@ -919,13 +1062,30 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            events[0].dt,
-            events[1].dt,
-            events[2].dt
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.00], dtype=np.float64),
+            'declared_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[1].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([events[2].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[2].dt], dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         results = calculate_results(
             self.sim_params,
@@ -933,7 +1093,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
+            adjustment_reader,
         )
 
         self.assertEqual(len(results), 6)
@@ -958,19 +1118,32 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             env=self.env
         )
-        dividend = factory.create_dividend(
-            1,
-            10.00,
-            # declared date, when the algorithm finds out about
-            # the dividend
-            events[-3].dt,
-            # ex_date, the date before which the algorithm must hold stock
-            # to receive the dividend
-            events[-2].dt,
-            # pay date, when the algorithm receives the dividend.
-            # This pays out on the day after the last event
-            self.env.next_trading_day(events[-1].dt)
+
+        dbpath = self.tempdir.getpath('adjustments.sqlite')
+
+        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
+                                        MockDailyBarSpotReader())
+        splits = mergers = pd.DataFrame(
+            {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['effective_date', 'ratio', 'sid'],
         )
+        dividends = pd.DataFrame({
+            'sid': np.array([1], dtype=np.uint32),
+            'amount': np.array([10.00], dtype=np.float64),
+            'declared_date': np.array([events[-3].dt], dtype='datetime64[ns]'),
+            'ex_date': np.array([events[-2].dt], dtype='datetime64[ns]'),
+            'record_date': np.array([events[0].dt], dtype='datetime64[ns]'),
+            'pay_date': np.array([self.env.next_trading_day(events[-1].dt)],
+                                 dtype='datetime64[ns]'),
+        })
+        writer.write(splits, mergers, dividends)
+        adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         # Set the last day to be the last event
         sim_params = create_simulation_parameters(
@@ -991,7 +1164,7 @@ class TestDividendPerformance(unittest.TestCase):
             self.tempdir,
             self.benchmark_events,
             {1: events},
-            dividend_events=[dividend],
+            adjustment_reader=adjustment_reader,
             txns=txns,
         )
 
@@ -1031,8 +1204,6 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
 
         cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
                                                           cls.env)
-
-        cls.tempdir = TempDirectory()
 
 
 class TestPositionPerformance(unittest.TestCase):
@@ -2033,6 +2204,7 @@ class TestPerformanceTracker(unittest.TestCase):
             {sid: trade_history,
              sid2: trade_history2},
         )
+        data_portal._adjustment_reader = NullAdjustmentReader()
 
         perf_tracker = perf.PerformanceTracker(
             sim_params, env, data_portal
@@ -2084,8 +2256,6 @@ class TestPerformanceTracker(unittest.TestCase):
 
             self.assertEqual(len(perf_messages),
                              sim_params.days_in_period)
-
-        check_perf_tracker_serialization(perf_tracker)
 
     def trades_with_txns(self, events, no_txn_dt):
         for event in events:
@@ -2207,8 +2377,6 @@ class TestPerformanceTracker(unittest.TestCase):
         self.assertIsNone(msg_1['cumulative_risk_metrics']['sharpe'])
         self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
 
-        check_perf_tracker_serialization(tracker)
-
     def write_equity_data(self, env, sim_params, sids):
         data = {}
         for sid in sids:
@@ -2238,8 +2406,6 @@ class TestPerformanceTracker(unittest.TestCase):
         perf_tracker = perf.PerformanceTracker(
             sim_params, env=self.env, data_portal=None,
         )
-        check_perf_tracker_serialization(perf_tracker)
-
 
 class TestPosition(unittest.TestCase):
     def setUp(self):

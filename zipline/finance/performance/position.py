@@ -65,22 +65,24 @@ class Position(object):
         Register the number of shares we held at this dividend's ex date so
         that we can pay out the correct amount on the dividend's pay date.
         """
-        assert dividend['sid'] == self.sid
-        out = {'id': dividend['id']}
+        out = {}
+
+        out['amount'] = self.amount * dividend.amount
+        return out
+
+    def earn_stock_dividend(self, stock_dividend):
+        """
+        Register the number of shares we held at this dividend's ex date so
+        that we can pay out the correct amount on the dividend's pay date.
+        """
+        out = {}
 
         # stock dividend
-        if dividend['payment_sid']:
-            out['payment_sid'] = dividend['payment_sid']
-            out['share_count'] = floor(self.amount * float(dividend['ratio']))
+        out['payment_sid'] = stock_dividend.payment_sid
+        out['share_count'] = floor(
+            self.amount * float(stock_dividend.ratio))
 
-        # cash dividend
-        if dividend['net_amount']:
-            out['cash_amount'] = self.amount * dividend['net_amount']
-        elif dividend['gross_amount']:
-            out['cash_amount'] = self.amount * dividend['gross_amount']
-
-        payment_owed = zp.dividend_payment(out)
-        return payment_owed
+        return out
 
     def handle_split(self, sid, ratio):
         """
