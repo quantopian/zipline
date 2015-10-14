@@ -380,7 +380,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                 expected = expected_close_adjustments[key][j]
                 self.assertEqual(adj.first_row, expected.first_row)
                 self.assertEqual(adj.last_row, expected.last_row)
-                self.assertEqual(adj.col, expected.col)
+                self.assertEqual(adj.first_col, expected.first_col)
+                self.assertEqual(adj.last_col, expected.last_col)
                 assert_allclose(adj.value, expected.value)
 
         for key in expected_volume_adjustments:
@@ -389,7 +390,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                 expected = expected_volume_adjustments[key][j]
                 self.assertEqual(adj.first_row, expected.first_row)
                 self.assertEqual(adj.last_row, expected.last_row)
-                self.assertEqual(adj.col, expected.col)
+                self.assertEqual(adj.first_col, expected.first_col)
+                self.assertEqual(adj.last_col, expected.last_col)
                 assert_allclose(adj.value, expected.value)
 
     def test_read_no_adjustments(self):
