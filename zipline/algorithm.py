@@ -21,14 +21,14 @@ import numpy as np
 
 from datetime import datetime
 
-from itertools import groupby, chain
+from itertools import chain
 from six import (
     exec_,
     iteritems,
     itervalues,
     string_types,
 )
-
+from zipline.data.data_portal import DataPortal
 
 from zipline.errors import (
     AttachPipelineAfterInitialize,
@@ -191,6 +191,7 @@ class TradingAlgorithm(object):
         if self.trading_environment is None:
             self.trading_environment = TradingEnvironment()
 
+        self.data_portal = None
 
         # Update the TradingEnvironment with the provided asset metadata
         self.trading_environment.write_data(
@@ -312,6 +313,30 @@ class TradingAlgorithm(object):
         else:
             self.engine = NoOpPipelineEngine()
 
+    def init_data_portal(self, paths):
+        daily_path = None
+        minute_path = None
+        adjustments_path = None
+
+        if "daily" in paths:
+            daily_path = paths["daily"]
+
+        if "minute" in paths:
+            minute_path = paths["minute"]
+
+        if "adjustments" in paths:
+            adjustments_path = paths["adjustments"]
+
+        self.data_portal = DataPortal(
+            self.trading_environment,
+            daily_equities_path=daily_path,
+            minutes_equities_path=minute_path,
+            adjustments_path=adjustments_path,
+            sim_params=self.sim_params,
+            asset_finder=self.asset_finder,
+        )
+
+
     def initialize(self, *args, **kwargs):
         """
         Call self._initialize with `self` made available to Zipline API
@@ -423,9 +448,8 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-
-        # FIXME handle case if no portal is passed in
-        self.data_portal = data_portal
+        if self.data_portal is None:
+            self.data_portal = data_portal
 
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.

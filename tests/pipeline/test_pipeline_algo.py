@@ -426,13 +426,6 @@ class PipelineAlgorithmTestCase(TestCase):
         writer.write(splits, mergers, dividends)
         return SQLiteAdjustmentReader(dbpath)
 
-    def make_data_portal(self):
-        p = Panel(self.raw_data).tz_localize('UTC', axis=1)
-
-        import pdb; pdb.set_trace()
-
-        return p
-
     def compute_expected_vwaps(self, window_lengths):
         AAPL, MSFT, BRK_A = self.AAPL, self.MSFT, self.BRK_A
 

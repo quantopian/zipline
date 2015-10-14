@@ -15,6 +15,7 @@ from zipline.errors import (
 )
 
 # FIXME anything to do with 2002-01-02 probably belongs in qexec, right/
+FIRST_TRADING_DAY = pd.Timestamp("2002-01-02 00:00:00", tz='UTC')
 FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
 
 # FIXME should this be passed in (is this qexec specific?)?
@@ -97,7 +98,6 @@ class DataPortal(object):
         self.asset_start_dates = {}
         self.asset_end_dates = {}
 
-        self.new_sources_map = {}
         self.augmented_sources_map = {}
 
         self.sim_params = sim_params
@@ -116,17 +116,24 @@ class DataPortal(object):
         if source_df is None:
             return
 
-        # the sid column can either consist of assets we know about
+        # source_df's sid column can either consist of assets we know about
         # (such as sid(24)) or of assets we don't know about (such as
         # palladium).
-
-        # if it's an asset we don't know about, store an asset_name -> df
-        # mapping in self.new_sources_map.
-
-        # if it's an asset we do know about, store a field_name -> df mapping
-        # in self._extra_sources_map. We only want to read this dictionary
-        # when asked for a new field  (like 'days_to_cover'), not every time
-        # we're asked for data on an existing asset like AAPL.
+        #
+        # In both cases, we break up the dataframe into individual dfs
+        # that only contain a single asset's information.  ie, if source_df
+        # has data for PALLADIUM and GOLD, we split source_df into two
+        # dataframes, one for each. (same applies if source_df has data for
+        # AAPL and IBM).
+        #
+        # We then take each child df and reindex it to the simulation's date
+        # range by forward-filling missing values. this makes reads simpler.
+        #
+        # Finally, we store the data. For each fetcher column, we store a
+        # mapping in self.augmented_sources_map from it to a dictionary of
+        # asset -> df.  In other words,
+        # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
+        # holding that data.
 
         backtest_days = tradingcalendar.get_trading_days(
             self.sim_params.period_start,
@@ -155,31 +162,16 @@ class DataPortal(object):
             # this makes reads easier during the backtest.
             df = df.reindex(index=backtest_days, method='ffill')
 
-            if isinstance(identifier, Asset):
-                # we're adding a signal to an existing asset.
-
-                # add a sid index, so we can find things more easily
-                df_to_use = df.set_index(['sid'], append=True)
-
-                # spin over all the custom signals.  for each one,
-                # store a mapping from it to the dataframe containing the
-                # information for that field.
-
-                # FIXME this breaks if we have multiple fetcher files
-                # with the same signal name
-                for col_name in df.columns.difference(['sid']):
-                    if col_name not in self.augmented_sources_map:
-                        self.augmented_sources_map[col_name]= {}
-
-                    self.augmented_sources_map[col_name][identifier] = \
-                        df_to_use
-            else:
-                # this is a 'fake' asset, like "palladium".
-                # store a mapping of it to the relevant dataframe.
-                self.new_sources_map[identifier] = df
-
+            if not isinstance(identifier, Asset):
+                # for fake assets we need to store a start/end date
                 self.asset_start_dates[identifier] = earliest_date
                 self.asset_end_dates[identifier] = latest_date
+
+            for col_name in df.columns.difference(['sid']):
+                if col_name not in self.augmented_sources_map:
+                    self.augmented_sources_map[col_name] = {}
+
+                self.augmented_sources_map[col_name][identifier] = df
 
     def _open_daily_file(self):
         if self.daily_equities_data is None:
@@ -212,26 +204,18 @@ class DataPortal(object):
     def get_spot_value(self, asset, column, dt=None):
         day_to_use = dt or self.current_day
 
-        if asset in self.new_sources_map:
-            # go find this asset in our custom sources
-            try:
-                return self.new_sources_map[asset].loc[day_to_use, column]
-            except:
-                log.error(
-                    "Could not find price for asset={0}, current_day={1},"
-                    "column={2}".format(
-                        str(asset),
-                        str(self.current_day),
-                        str(column)))
+        # if there is a fetcher column called "price", only look at it if
+        # it's on something like palladium and not AAPL (since our own price
+        # data always wins when dealing with assets)
+        look_in_augmented_sources = column in self.augmented_sources_map and \
+            not (column in BASE_FIELDS and isinstance(asset, Asset))
 
-                raise KeyError
-
-        if column in self.augmented_sources_map:
+        if look_in_augmented_sources:
             # we're being asked for a column that was added via fetcher to
             # an existing sid
             try:
                 return self.augmented_sources_map[column][asset].\
-                    loc[day_to_use, column][0]
+                    loc[day_to_use, column]
             except:
                 log.error(
                     "Could not find value for asset={0}, current_day={1},"
@@ -307,7 +291,8 @@ class DataPortal(object):
         asset_file_index = daily_attrs['first_row'][str(asset_int)]
 
         # find when the asset started trading
-        asset_data_start_date = self._get_asset_start_date(asset_int)
+        asset_data_start_date = max(self._get_asset_start_date(asset_int),
+                                    FIRST_TRADING_DAY)
 
         tradingdays = tradingcalendar.trading_days
 
@@ -322,11 +307,7 @@ class DataPortal(object):
 
         # sanity check
         assert lookup_idx >= asset_file_index
-        try:
-            assert lookup_idx <= daily_attrs['last_row'][str(asset_int)] + 1
-        except:
-            import pdb; pdb.set_trace()
-            z = 5
+        assert lookup_idx <= daily_attrs['last_row'][str(asset_int)] + 1
 
         ctable = daily_data[column]
         raw_value = ctable[lookup_idx]
@@ -896,9 +877,6 @@ class DataPortal(object):
         if dt is None:
             dt = self.current_day
 
-        if name not in self.new_sources_map:
-            name = int(name)
-
         if name not in self.asset_start_dates:
             self._get_asset_start_date(name)
 
@@ -1023,6 +1001,11 @@ class DataPortal(object):
 
         return relevant_earnable_dividends, relevant_payable_dividends
 
+    def contains(self, asset, field):
+        return field in BASE_FIELDS or \
+            (field in self.augmented_sources_map and
+             asset in self.augmented_sources_map[field])
+
 
 class DataPortalSidView(object):
     def __init__(self, asset, portal):
@@ -1032,21 +1015,9 @@ class DataPortalSidView(object):
     def __getattr__(self, column):
         return self.portal.get_spot_value(self.asset, column)
 
-    def __contains__(self, field):
-        if isinstance(self.asset, Asset):
-            # if this is an asset, we just have to check that the field is
-            # one of our known fields, or has augmented an asset
-            return field in BASE_FIELDS or \
-                   (field in self.portal.augmented_sources_map and
-                    self.asset in self.portal.augmented_sources_map[field])
+    def __contains__(self, column):
+        return self.portal.contains(self.asset, column)
 
-        # since everything is forward-filled for fetcher, we only need to
-        # check if item is a valid field for self.asset
-        try:
-            return field in self.portal.new_sources_map[self.asset].columns
-        except KeyError:
-            return False
-
-    def __getitem__(self, item):
-        return self.__getattr__(item)
+    def __getitem__(self, column):
+        return self.__getattr__(column)
 
