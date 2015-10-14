@@ -75,7 +75,7 @@ cpdef _from_assets_and_dates(cls,
     ...     3,
     ...     0.5,
     ... )
-    Float64Multiply(first_row=2, last_row=4, col=3, value=0.500000)
+    Float64Multiply(first_row=2, last_row=4, first_col=3, last_col=3, value=0.500000)
     """
     cdef:
         Py_ssize_t first_row, last_row, col
@@ -87,7 +87,7 @@ cpdef _from_assets_and_dates(cls,
         end_date,
         asset_id,
     )
-    return cls(first_row, last_row, col, value)
+    return cls(first_row, last_row, col, col, value)
 
 
 cdef class Float64Adjustment:
@@ -95,30 +95,37 @@ cdef class Float64Adjustment:
     Base class for adjustments that operate on Float64 buffers.
     """
     cdef:
-        readonly Py_ssize_t col, first_row, last_row
+        readonly Py_ssize_t first_col, last_col, first_row, last_row
         readonly float64_t value
 
     def __cinit__(self,
                   Py_ssize_t first_row,
                   Py_ssize_t last_row,
-                  Py_ssize_t col,
+                  Py_ssize_t first_col,
+                  Py_ssize_t last_col,
                   object value):
         assert 0 <= first_row <= last_row
+        assert 0 <= first_col <= last_col
 
         self.first_row = first_row
         self.last_row = last_row
-        self.col = col
+        self.first_col = first_col
+        self.last_col = last_col
         self.value = float(value)
 
     from_assets_and_dates = classmethod(_from_assets_and_dates)
 
     def __repr__(self):
-        return "%s(first_row=%d, last_row=%d, col=%d, value=%f)" % (
-            type(self).__name__,
-            self.first_row,
-            self.last_row,
-            self.col,
-            self.value,
+        return (
+            "%s(first_row=%d, last_row=%d,"
+            " first_col=%d, last_col=%d, value=%f)" % (
+                type(self).__name__,
+                self.first_row,
+                self.last_row,
+                self.first_col,
+                self.last_col,
+                self.value,
+            )
         )
 
     def __richcmp__(self, object other, int op):
@@ -128,9 +135,15 @@ cdef class Float64Adjustment:
         if op != Py_EQ or type(self) != type(other):
             return NotImplemented
 
+        return self._key() == other._key()
+
+    cpdef _key(self):
         return (
-            (self.first_row, self.last_row, self.col, self.value) == \
-            (other.first_row, other.last_row, other.col, other.value)
+            self.first_row,
+            self.last_row,
+            self.first_col,
+            self.last_col,
+            self.value,
         )
 
 
@@ -148,21 +161,28 @@ cdef class Float64Multiply(Float64Adjustment):
            [ 3.,  4.,  5.],
            [ 6.,  7.,  8.]])
 
-    >>> adj = Float64Multiply(first_row=1, last_row=2, col=1, value=4.0)
+    >>> adj = Float64Multiply(
+    ...     first_row=1,
+    ...     last_row=2,
+    ...     first_col=1,
+    ...     last_col=2,
+    ...     value=4.0,
+    ... )
     >>> adj.mutate(arr)
     >>> arr
     array([[  0.,   1.,   2.],
-           [  3.,  16.,   5.],
-           [  6.,  28.,   8.]])
+           [  3.,  16.,  20.],
+           [  6.,  28.,  32.]])
     """
 
     cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
-        col = self.col
 
-        # last_row + 1 because last_row should also be affected.
-        for row in range(self.first_row, self.last_row + 1):
-            data[row, col] *= self.value
+        # last_col + 1 because last_col should also be affected.
+        for col in range(self.first_col, self.last_col + 1):
+            # last_row + 1 because last_row should also be affected.
+            for row in range(self.first_row, self.last_row + 1):
+                data[row, col] *= self.value
 
 
 cdef class Float64Overwrite(Float64Adjustment):
@@ -179,21 +199,28 @@ cdef class Float64Overwrite(Float64Adjustment):
            [ 3.,  4.,  5.],
            [ 6.,  7.,  8.]])
 
-    >>> adj = Float64Overwrite(first_row=1, last_row=2, col=1, value=0.0)
+    >>> adj = Float64Overwrite(
+    ...     first_row=1,
+    ...     last_row=2,
+    ...     first_col=1,
+    ...     last_col=2,
+    ...     value=0.0,
+    ... )
     >>> adj.mutate(arr)
     >>> arr
     array([[ 0.,  1.,  2.],
-           [ 3.,  0.,  5.],
-           [ 6.,  0.,  8.]])
+           [ 3.,  0.,  0.],
+           [ 6.,  0.,  0.]])
     """
 
     cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
-        col = self.col
 
-        # last_row + 1 because last_row should also be affected.
-        for row in range(self.first_row, self.last_row + 1):
-            data[row, col] = self.value
+        # last_col + 1 because last_col should also be affected.
+        for col in range(self.first_col, self.last_col + 1):
+            # last_row + 1 because last_row should also be affected.
+            for row in range(self.first_row, self.last_row + 1):
+                data[row, col] = self.value
 
 
 cdef class Float64Add(Float64Adjustment):
@@ -210,18 +237,25 @@ cdef class Float64Add(Float64Adjustment):
            [ 3.,  4.,  5.],
            [ 6.,  7.,  8.]])
 
-    >>> adj = Float64Add(first_row=1, last_row=2, col=1, value=1.0)
+    >>> adj = Float64Add(
+    ...     first_row=1,
+    ...     last_row=2,
+    ...     first_col=1,
+    ...     last_col=2,
+    ...     value=1.0,
+    ... )
     >>> adj.mutate(arr)
     >>> arr
     array([[ 0.,  1.,  2.],
-           [ 3.,  5.,  5.],
-           [ 6.,  8.,  8.]])
+           [ 3.,  5.,  6.],
+           [ 6.,  8.,  9.]])
     """
 
     cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
-        col = self.col
 
-        # last_row + 1 because last_row should also be affected.
-        for row in range(self.first_row, self.last_row + 1):
-            data[row, col] += self.value
+        # last_col + 1 because last_col should also be affected.
+        for col in range(self.first_col, self.last_col + 1):
+            # last_row + 1 because last_row should also be affected.
+            for row in range(self.first_row, self.last_row + 1):
+                data[row, col] += self.value

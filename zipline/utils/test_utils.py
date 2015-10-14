@@ -2,21 +2,27 @@ from contextlib import contextmanager
 from itertools import (
     product,
 )
+import operator
+import os
+import shutil
+from string import ascii_uppercase
+import tempfile
+
 from logbook import FileHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
-import operator
-from zipline.finance.blotter import ORDER_STATUS
-from zipline.utils import security_list
+import pandas as pd
 from six import (
     itervalues,
 )
 from six.moves import filter
+from sqlalchemy import create_engine
 
-import os
-import pandas as pd
-import shutil
-import tempfile
+from zipline.assets import AssetFinder
+from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
+from zipline.finance.blotter import ORDER_STATUS
+from zipline.utils import security_list
+
 
 EPOCH = pd.Timestamp(0, tz='UTC')
 
@@ -297,7 +303,7 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
     """
     num_assets = len(assets)
     if symbols is None:
-        symbols = [chr(ord('A') + i) for i in range(num_assets)]
+        symbols = list(ascii_uppercase[:num_assets])
     return pd.DataFrame(
         {
             'sid': assets,
@@ -356,3 +362,45 @@ class ExplodingObject(object):
     """
     def __getattribute__(self, name):
         raise UnexpectedAttributeAccess(name)
+
+
+class tmp_assets_db(object):
+    """Create a temporary assets sqlite database.
+    This is meant to be used as a context manager.
+
+    Paramaters
+    ----------
+    data : pd.DataFrame, optional
+        The data to feed to the writer. By default this maps:
+        ('A', 'B', 'C') -> map(ord, 'ABC')
+    """
+    def __init__(self, data=None):
+        self._eng = None
+        self._data = AssetDBWriterFromDataFrame(
+            data if data else make_simple_asset_info(
+                list(map(ord, 'ABC')),
+                pd.Timestamp(0),
+                pd.Timestamp('2015'),
+            )
+        )
+
+    def __enter__(self):
+        self._eng = eng = create_engine('sqlite://')
+        self._data.write_all(eng)
+        return eng
+
+    def __exit__(self, *excinfo):
+        assert self._eng is not None, '_eng was not set in __enter__'
+        self._eng.dispose()
+
+
+class tmp_asset_finder(tmp_assets_db):
+    """Create a temporary asset finder using an in memory sqlite db.
+
+    Paramaters
+    ----------
+    data : dict, optional
+        The data to feed to the writer
+    """
+    def __enter__(self):
+        return AssetFinder(super(tmp_asset_finder, self).__enter__())

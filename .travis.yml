@@ -21,7 +21,9 @@ install:
   - conda install --yes -c https://conda.binstar.org/Quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy==$SCIPY_VERSION matplotlib Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
   - pip install --upgrade pip nose-timer coverage
   - pip install -e .[dev]
+  - pip install -r etc/requirements_blaze.txt
 before_script:
+  - pip freeze | sort
   - "flake8 zipline tests"
 script:
   - nosetests --with-timer --exclude=^test_examples --with-coverage --cover-package=zipline

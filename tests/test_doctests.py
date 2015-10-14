@@ -10,10 +10,11 @@ from zipline.pipeline import (
 )
 from zipline.utils import (
     cache,
+    input_validation,
     memoize,
+    numpy_utils,
     preprocess,
     test_utils,
-    numpy_utils,
 )
 
 
@@ -68,6 +69,9 @@ class DoctestTestCase(TestCase):
 
     def test_preprocess_docs(self):
         self._check_docs(preprocess)
+
+    def test_input_validation_docs(self):
+        self._check_docs(input_validation)
 
     def test_cache_docs(self):
         self._check_docs(cache)
