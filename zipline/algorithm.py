@@ -801,7 +801,7 @@ class TradingAlgorithm(object):
                     limit_price=None, stop_price=None, style=None):
         """
         Place an order by desired value rather than desired number of shares.
-        If the requested sid is found in the universe, the requested value is
+        If the requested sid exists, the requested value is
         divided by its price to imply the number of shares to transact.
         If the Asset being ordered is a Future, the 'value' calculated
         is actually the exposure, as Futures have no 'value'.
@@ -1254,9 +1254,6 @@ class TradingAlgorithm(object):
     ##################
     # End Pipeline API
     ##################
-
-    def current_universe(self):
-        return self._current_universe
 
     @classmethod
     def all_api_methods(cls):
