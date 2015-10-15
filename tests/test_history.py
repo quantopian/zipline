@@ -22,6 +22,7 @@ from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
+from pandas.tseries.tools import normalize_date
 
 from zipline.history import history
 from zipline.history.history_container import HistoryContainer
@@ -556,6 +557,310 @@ def handle_data(context, data):
         # Random, depends on seed
         self.assertEquals(139.36946942498648, last_prices[oldest_dt])
         self.assertEquals(180.15661995395106, last_prices[newest_dt])
+
+    @parameterized.expand([
+        ('daily',),
+        ('minute',),
+    ])
+    def test_history_in_bts_price_days(self, data_freq):
+        """
+        Test calling history() in before_trading_start()
+        with daily price bars.
+        """
+        algo_text = """
+from zipline.api import history
+
+def initialize(context):
+    context.first_bts_call = True
+
+def before_trading_start(context, data):
+    if not context.first_bts_call:
+        prices_bts = history(bar_count=3, frequency='1d', field='price')
+        context.prices_bts = prices_bts
+    context.first_bts_call = False
+
+def handle_data(context, data):
+    prices_hd = history(bar_count=3, frequency='1d', field='price')
+    context.prices_hd = prices_hd
+""".strip()
+
+        #      March 2006
+        # Su Mo Tu We Th Fr Sa
+        #          1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30 31
+        start = pd.Timestamp('2006-03-20', tz='UTC')
+        end = pd.Timestamp('2006-03-22', tz='UTC')
+
+        sim_params = factory.create_simulation_parameters(
+            start=start, end=end, data_frequency=data_freq)
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency=data_freq,
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
+        )
+
+        source = RandomWalkSource(start=start, end=end, freq=data_freq)
+        output = test_algo.run(source)
+        self.assertIsNotNone(output)
+
+        # Get the prices recorded by history() within handle_data()
+        prices_hd = test_algo.prices_hd[0]
+        # Get the prices recorded by history() within BTS
+        prices_bts = test_algo.prices_bts[0]
+
+        # before_trading_start() is timestamp'd to midnight prior to
+        # the day's trading. Since no equity trades occur at midnight,
+        # the price recorded for this time is forward filled from the
+        # last trade - typically ~4pm the previous day. This results
+        # in the OHLCV data recorded by history() in BTS lagging
+        # that recorded by history in handle_data().
+        # The trace of the pricing data from history() called within
+        # handle_data() vs. BTS in the above algo is as follows:
+
+        #  When called within handle_data()
+        # ---------------------------------
+        # 2006-03-20 21:00:00    139.369469
+        # 2006-03-21 21:00:00    180.156620
+        # 2006-03-22 21:00:00    221.344654
+
+        #       When called within BTS
+        # ---------------------------------
+        # 2006-03-17 21:00:00           NaN
+        # 2006-03-20 21:00:00    139.369469
+        # 2006-03-22 00:00:00    180.156620
+
+        # Get relevant Timestamps for the history() call within handle_data()
+        oldest_hd_dt = pd.Timestamp(
+            '2006-03-20 4:00 PM', tz='US/Eastern').tz_convert('UTC')
+        penultimate_hd_dt = pd.Timestamp(
+            '2006-03-21 4:00 PM', tz='US/Eastern').tz_convert('UTC')
+
+        # Get relevant Timestamps for the history() call within BTS
+        penultimate_bts_dt = pd.Timestamp(
+            '2006-03-20 4:00 PM', tz='US/Eastern').tz_convert('UTC')
+        newest_bts_dt = normalize_date(pd.Timestamp(
+            '2006-03-22 04:00 PM', tz='US/Eastern').tz_convert('UTC'))
+
+        if data_freq == 'daily':
+            # If we're dealing with daily data, then we record
+            # canonicalized timestamps, so make conversion here:
+            oldest_hd_dt = normalize_date(oldest_hd_dt)
+            penultimate_hd_dt = normalize_date(penultimate_hd_dt)
+            penultimate_bts_dt = normalize_date(penultimate_bts_dt)
+
+        self.assertEquals(prices_hd[oldest_hd_dt],
+                          prices_bts[penultimate_bts_dt])
+        self.assertEquals(prices_hd[penultimate_hd_dt],
+                          prices_bts[newest_bts_dt])
+
+    def test_history_in_bts_price_minutes(self):
+        """
+        Test calling history() in before_trading_start()
+        with minutely price bars.
+        """
+        algo_text = """
+from zipline.api import history
+
+def initialize(context):
+    context.first_bts_call = True
+
+def before_trading_start(context, data):
+    if not context.first_bts_call:
+        price_bts = history(bar_count=1, frequency='1m', field='price')
+        context.price_bts = price_bts
+    context.first_bts_call = False
+
+def handle_data(context, data):
+    pass
+
+""".strip()
+
+        #      March 2006
+        # Su Mo Tu We Th Fr Sa
+        #          1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30 31
+        start = pd.Timestamp('2006-03-20', tz='UTC')
+        end = pd.Timestamp('2006-03-22', tz='UTC')
+
+        sim_params = factory.create_simulation_parameters(
+            start=start, end=end)
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency='minute',
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
+        )
+
+        source = RandomWalkSource(start=start, end=end)
+        output = test_algo.run(source)
+        self.assertIsNotNone(output)
+
+        # Get the prices recorded by history() within BTS
+        price_bts_0 = test_algo.price_bts[0]
+        price_bts_1 = test_algo.price_bts[1]
+
+        # The prices recorded by history() in BTS should
+        # be the closing price of the previous day, which are:
+        #
+        #          sid | close on 2006-03-21
+        #         ----------------------------
+        #           0  | 180.15661995395106
+        #           1  | 578.41665003444723
+
+        # These are not 'real' price values. They are the product of
+        # RandonWalkSource, which produces random walk OHLCV timeseries. For a
+        # given seed these values are deterministc.
+        self.assertEquals(180.15661995395106, price_bts_0.ix[0])
+        self.assertEquals(578.41665003444723, price_bts_1.ix[0])
+
+    @parameterized.expand([
+        ('daily',),
+        ('minute',),
+    ])
+    def test_history_in_bts_volume_days(self, data_freq):
+        """
+        Test calling history() in before_trading_start()
+        with daily volume bars.
+        """
+        algo_text = """
+from zipline.api import history
+
+def initialize(context):
+    context.first_bts_call = True
+
+def before_trading_start(context, data):
+    if not context.first_bts_call:
+        volume_bts = history(bar_count=2, frequency='1d', field='volume')
+        context.volume_bts = volume_bts
+    context.first_bts_call = False
+
+def handle_data(context, data):
+    volume_hd = history(bar_count=2, frequency='1d', field='volume')
+    context.volume_hd = volume_hd
+""".strip()
+
+        #      March 2006
+        # Su Mo Tu We Th Fr Sa
+        #          1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30 31
+        start = pd.Timestamp('2006-03-20', tz='UTC')
+        end = pd.Timestamp('2006-03-22', tz='UTC')
+
+        sim_params = factory.create_simulation_parameters(
+            start=start, end=end, data_frequency=data_freq)
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency=data_freq,
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
+        )
+
+        source = RandomWalkSource(start=start, end=end, freq=data_freq)
+        output = test_algo.run(source)
+        self.assertIsNotNone(output)
+
+        # Get the volume recorded by history() within handle_data()
+        volume_hd_0 = test_algo.volume_hd[0]
+        volume_hd_1 = test_algo.volume_hd[1]
+        # Get the volume recorded by history() within BTS
+        volume_bts_0 = test_algo.volume_bts[0]
+        volume_bts_1 = test_algo.volume_bts[1]
+
+        penultimate_hd_dt = pd.Timestamp(
+            '2006-03-21 4:00 PM', tz='US/Eastern').tz_convert('UTC')
+        # Midnight of the day on which BTS is invoked.
+        newest_bts_dt = normalize_date(pd.Timestamp(
+            '2006-03-22 04:00 PM', tz='US/Eastern').tz_convert('UTC'))
+
+        if data_freq == 'daily':
+            # If we're dealing with daily data, then we record
+            # canonicalized timestamps, so make conversion here:
+            penultimate_hd_dt = normalize_date(penultimate_hd_dt)
+
+        # When history() is called in BTS, its 'current' volume value
+        # should equal the sum of the previous day.
+        self.assertEquals(volume_hd_0[penultimate_hd_dt],
+                          volume_bts_0[newest_bts_dt])
+        self.assertEquals(volume_hd_1[penultimate_hd_dt],
+                          volume_bts_1[newest_bts_dt])
+
+    def test_history_in_bts_volume_minutes(self):
+        """
+        Test calling history() in before_trading_start()
+        with minutely volume bars.
+        """
+        algo_text = """
+from zipline.api import history
+
+def initialize(context):
+    context.first_bts_call = True
+
+def before_trading_start(context, data):
+    if not context.first_bts_call:
+        volume_bts = history(bar_count=2, frequency='1m', field='volume')
+        context.volume_bts = volume_bts
+    context.first_bts_call = False
+
+def handle_data(context, data):
+    pass
+""".strip()
+
+        #      March 2006
+        # Su Mo Tu We Th Fr Sa
+        #          1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30 31
+        start = pd.Timestamp('2006-03-20', tz='UTC')
+        end = pd.Timestamp('2006-03-22', tz='UTC')
+
+        sim_params = factory.create_simulation_parameters(
+            start=start, end=end)
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency='minute',
+            sim_params=sim_params,
+            env=TestHistoryAlgo.env,
+        )
+
+        source = RandomWalkSource(start=start, end=end)
+        output = test_algo.run(source)
+        self.assertIsNotNone(output)
+
+        # Get the volumes recorded for sid 0 by history() within BTS
+        volume_bts_0 = test_algo.volume_bts[0]
+        # Get the volumes recorded for sid 1 by history() within BTS
+        volume_bts_1 = test_algo.volume_bts[1]
+
+        # The values recorded on 2006-03-22 by history() in BTS
+        # should equal the final volume values for the trading
+        # day 2006-03-21:
+        #                             0       1
+        #   2006-03-21 20:59:00  215548  439908
+        #   2006-03-21 21:00:00  985645  664313
+        #
+        # Note: These are not 'real' volume values. They are the product of
+        # RandonWalkSource, which produces random walk OHLCV timeseries. For a
+        # given seed these values are deterministc.
+        self.assertEquals(215548, volume_bts_0.ix[0])
+        self.assertEquals(985645, volume_bts_0.ix[1])
+        self.assertEquals(439908, volume_bts_1.ix[0])
+        self.assertEquals(664313, volume_bts_1.ix[1])
 
     def test_basic_history_one_day(self):
         algo_text = """
