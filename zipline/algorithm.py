@@ -313,29 +313,6 @@ class TradingAlgorithm(object):
         else:
             self.engine = NoOpPipelineEngine()
 
-    def init_data_portal(self, paths):
-        daily_path = None
-        minute_path = None
-        adjustments_path = None
-
-        if "daily" in paths:
-            daily_path = paths["daily"]
-
-        if "minute" in paths:
-            minute_path = paths["minute"]
-
-        if "adjustments" in paths:
-            adjustments_path = paths["adjustments"]
-
-        self.data_portal = DataPortal(
-            self.trading_environment,
-            daily_equities_path=daily_path,
-            minutes_equities_path=minute_path,
-            adjustments_path=adjustments_path,
-            sim_params=self.sim_params,
-            asset_finder=self.asset_finder,
-        )
-
     def initialize(self, *args, **kwargs):
         """
         Call self._initialize with `self` made available to Zipline API

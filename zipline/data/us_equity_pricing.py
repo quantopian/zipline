@@ -918,9 +918,10 @@ class SQLiteAdjustmentReader(object):
         c = self.conn.cursor()
 
         query = UNPAID_QUERY_TEMPLATE.format(",".join(['?' for _ in assets]))
-        t = (seconds,) + tuple(assets)
+        t = (seconds,) + tuple(map(lambda x: int(x), assets))
 
         c.execute(query, t)
+
         rows = c.fetchall()
         c.close()
         divs = []
@@ -936,9 +937,10 @@ class SQLiteAdjustmentReader(object):
 
         query = UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE.format(
             ",".join(['?' for _ in assets]))
-        t = (seconds,) + tuple(assets)
+        t = (seconds,) + tuple(map(lambda x: int(x), assets))
 
         c.execute(query, t)
+
         rows = c.fetchall()
         c.close()
 
