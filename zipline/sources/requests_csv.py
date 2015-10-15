@@ -338,8 +338,8 @@ class PandasCSV(object):
 
                         # It's possible that no asset comes back here if our
                         # lookup date is from before any asset held the
-                        # requested symbol.  Mark such cases as NaN so that they
-                        # get dropped in the next step.
+                        # requested symbol.  Mark such cases as NaN so that
+                        # they get dropped in the next step.
                     ) or numpy.nan
                 except SymbolNotFound:
                     asset = numpy.nan

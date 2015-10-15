@@ -40,7 +40,6 @@ from math import (
 from copy import copy
 
 import logbook
-import zipline.protocol as zp
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL

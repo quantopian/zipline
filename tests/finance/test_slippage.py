@@ -31,10 +31,9 @@ from testfixtures import TempDirectory
 from zipline.finance.slippage import VolumeShareSlippage
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
 
-from zipline.protocol import Event, DATASOURCE_TYPE
+from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
-import zipline.utils.factory as factory
 from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
 from zipline.data.data_portal import DataPortal
 

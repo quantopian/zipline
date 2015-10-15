@@ -202,8 +202,9 @@ class FinanceTestCase(TestCase):
                 )
 
                 minutes = env.market_minute_window(
-                    sim_params.first_open, int((trade_interval.total_seconds() /
-                                               60) * trade_count) + 100)
+                    sim_params.first_open,
+                    int((trade_interval.total_seconds() / 60) * trade_count)
+                    + 100)
 
                 price_data = np.array([10.1] * len(minutes)) * 1000
                 assets = {
@@ -286,8 +287,10 @@ class FinanceTestCase(TestCase):
                 if tick >= order_date and len(order_list) < order_count:
                     # place an order
                     direction = alternator ** len(order_list)
-                    order_id = blotter.order(sid, order_amount * direction,
-                              MarketOrder(), dt=order_date)
+                    order_id = blotter.order(sid,
+                                             order_amount * direction,
+                                             MarketOrder(),
+                                             dt=order_date)
                     order_list.append(blotter.orders[order_id])
                     order_date = order_date + order_interval
                     # move after market orders to just after market next

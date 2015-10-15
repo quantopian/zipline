@@ -21,7 +21,7 @@ class TestDataPortal(TestCase):
                     0: {
                         'start_date': pd.Timestamp("2015-09-28", tz='UTC'),
                         'end_date': pd.Timestamp("2015-09-29", tz='UTC')
-                                    + timedelta(days=1)
+                        + timedelta(days=1)
                     }
                 }
             )

@@ -54,7 +54,7 @@ class ExceptionTestCase(TestCase):
         cls.data_portal = create_data_portal(
             env=cls.env,
             tempdir=cls.tempdir,
-            sim_params=cls.sim_params ,
+            sim_params=cls.sim_params,
             sids=[cls.sid]
         )
 

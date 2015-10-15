@@ -386,7 +386,8 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
         self.order_percent(self.sid(0), .001)
 
         if isinstance(self.sid(0), Equity):
-            new_shares = (.001 * self.portfolio.portfolio_value) / data[0].price
+            price = data[0].price
+            new_shares = (.001 * self.portfolio.portfolio_value) / price
         elif isinstance(self.sid(0), Future):
             new_shares = (.001 * self.portfolio.portfolio_value) / \
                 (data[0].price * self.sid(0).contract_multiplier)
@@ -414,7 +415,7 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
             # holdings.
             target_value = self.portfolio.portfolio_value * 0.002
             position_value = self.portfolio.positions[0]['amount'] * \
-                             self.sale_price
+                self.sale_price
 
             assert abs(target_value - position_value) <= self.sale_price, \
                 "Orders not filled correctly"

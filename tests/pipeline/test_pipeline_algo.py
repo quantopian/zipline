@@ -24,7 +24,6 @@ from pandas import (
     DataFrame,
     date_range,
     DatetimeIndex,
-    Panel,
     read_csv,
     Series,
     Timestamp,

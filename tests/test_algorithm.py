@@ -16,7 +16,7 @@ import datetime
 from datetime import timedelta
 from mock import MagicMock
 from nose_parameterized import parameterized
-from six.moves import range, map
+from six.moves import range
 from testfixtures import TempDirectory
 from textwrap import dedent
 from unittest import TestCase
@@ -613,13 +613,13 @@ class TestTransformAlgorithm(TestCase):
         trades_by_sid = {}
         for sid in cls.sids:
             trades_by_sid[sid] = factory.create_trade_history(
-                    sid,
-                    [10.0, 10.0, 11.0, 11.0],
-                    [100, 100, 100, 300],
-                    timedelta(days=1),
-                    cls.sim_params,
-                    cls.env
-                )
+                sid,
+                [10.0, 10.0, 11.0, 11.0],
+                [100, 100, 100, 300],
+                timedelta(days=1),
+                cls.sim_params,
+                cls.env
+            )
 
         cls.data_portal = create_data_portal_from_trade_history(cls.env,
                                                                 cls.tempdir,
@@ -1014,8 +1014,9 @@ def handle_data(context, data):
                 self.env, tempdir, self.sim_params, {0: trades})
             results = test_algo.run(data_portal=data_portal)
 
-            all_txns = [val for sublist in results["transactions"].tolist()
-                    for val in sublist]
+            all_txns = [
+                val for sublist in results["transactions"].tolist()
+                for val in sublist]
 
             self.assertEqual(len(all_txns), 67)
 
@@ -1552,9 +1553,9 @@ class TestTradingControls(TestCase):
                             'end_date': '1990-01-01'}}
 
             algo = SetAssetDateBoundsAlgorithm(
-                    equities_metadata=metadata,
-                    sim_params=self.sim_params,
-                    env=temp_env,
+                equities_metadata=metadata,
+                sim_params=self.sim_params,
+                env=temp_env,
             )
             with self.assertRaises(TradingControlViolation):
                 algo.run(data_portal)
@@ -1573,12 +1574,12 @@ class TestTradingControls(TestCase):
             )
 
             metadata = {0: {'start_date': '2020-01-01',
-                         'end_date': '2021-01-01'}}
+                            'end_date': '2021-01-01'}}
 
             algo = SetAssetDateBoundsAlgorithm(
-                    equities_metadata=metadata,
-                    sim_params=self.sim_params,
-                    env=temp_env,
+                equities_metadata=metadata,
+                sim_params=self.sim_params,
+                env=temp_env,
             )
 
             with self.assertRaises(TradingControlViolation):
@@ -1636,7 +1637,6 @@ class TestAccountControls(TestCase):
         algo._handle_data = handle_data
         with self.assertRaises(expected_exc) if expected_exc else nullctx():
             algo.run(self.data_portal)
-        #self.source.rewind()
 
     def check_algo_succeeds(self, algo, handle_data):
         # Default for order_count assumes one order per handle_data call.

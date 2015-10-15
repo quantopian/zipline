@@ -234,7 +234,7 @@ class Blotter(object):
 
                 if txn.commission is not None:
                     order.commission = (order.commission or 0.0) + \
-                                       txn.commission
+                        txn.commission
 
                 txn.dt = pd.Timestamp(txn.dt, tz='UTC')
                 order.dt = txn.dt
@@ -291,5 +291,3 @@ class Blotter(object):
         self.open_orders = open_orders
 
         self.__dict__.update(state)
-
-

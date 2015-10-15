@@ -290,7 +290,7 @@ class DataPortal(object):
         # asset starting trading
         # FIXME can cache tradingdays.searchsorted(asset_data_start_date)
         window_offset = tradingdays.searchsorted(dt) - \
-                        tradingdays.searchsorted(asset_data_start_date)
+            tradingdays.searchsorted(asset_data_start_date)
 
         # and use that offset to find our lookup index
         lookup_idx = asset_file_index + window_offset

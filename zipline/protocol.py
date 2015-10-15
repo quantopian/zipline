@@ -15,14 +15,10 @@
 
 from copy import copy
 
-from six import iteritems, iterkeys
 import pandas as pd
-import numpy as np
 
 from . utils.protocol_utils import Enum
-from . utils.math_utils import nanstd, nanmean, nansum
 
-from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )

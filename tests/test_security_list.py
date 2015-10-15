@@ -1,6 +1,6 @@
 import pandas as pd
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest import TestCase
 from testfixtures import TempDirectory
 
@@ -122,7 +122,7 @@ class SecurityListTestCase(TestCase):
             env=cls.env2,
             tempdir=cls.tempdir2,
             sim_params=cls.sim_params2,
-            sids=range(0,5)
+            sids=range(0, 5)
         )
 
         setup_logger(cls)

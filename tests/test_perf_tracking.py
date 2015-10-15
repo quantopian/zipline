@@ -21,13 +21,11 @@ from datetime import (
     timedelta,
 )
 import logging
-import operator
 
 from testfixtures import TempDirectory
 import unittest
 from nose_parameterized import parameterized
 import nose.tools as nt
-from testfixtures import TempDirectory
 import pytz
 import itertools
 
@@ -149,7 +147,7 @@ def benchmark_events_in_range(sim_params, env):
                'source_id': '1Abenchmarks'})
         for dt, ret in env.benchmark_returns.iteritems()
         if dt.date() >= sim_params.period_start.date() and
-            dt.date() <= sim_params.period_end.date()
+        dt.date() <= sim_params.period_end.date()
     ]
 
 
@@ -381,7 +379,7 @@ class TestCommissionEvents(unittest.TestCase):
         setup_env_data(cls.env, cls.sim_params, [0, 1, 133])
 
         cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
-                                                          cls.env)
+                                                         cls.env)
         cls.tempdir = TempDirectory()
 
     @classmethod
@@ -425,7 +423,6 @@ class TestCommissionEvents(unittest.TestCase):
 
         # Verify that commission events are handled correctly by
         # PerformanceTracker.
-        events = []
         commissions = {}
         cash_adj_dt = trade_events[0].dt
         cash_adjustment = factory.create_commission(1, 300.0, cash_adj_dt)
@@ -559,7 +556,7 @@ class TestDividendPerformance(unittest.TestCase):
         setup_env_data(cls.env, cls.sim_params, [1, 2])
 
         cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
-                                                          cls.env)
+                                                         cls.env)
 
     @classmethod
     def tearDownClass(cls):
@@ -659,19 +656,6 @@ class TestDividendPerformance(unittest.TestCase):
                 env=self.env
             )
 
-        dividend = factory.create_stock_dividend(
-            1,
-            payment_sid=2,
-            ratio=2,
-            # declared date, when the algorithm finds out about
-            # the dividend
-            declared_date=events[1][0].dt,
-            # ex_date, the date before which the algorithm must hold stock
-            # to receive the dividend
-            ex_date=events[1][1].dt,
-            # pay date, when the algorithm receives the dividend.
-            pay_date=events[1][2].dt
-        )
         dbpath = self.tempdir.getpath('adjustments.sqlite')
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
@@ -1203,7 +1187,7 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
         setup_env_data(cls.env, cls.sim_params, [1, 2])
 
         cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
-                                                          cls.env)
+                                                         cls.env)
 
 
 class TestPositionPerformance(unittest.TestCase):
@@ -1211,7 +1195,7 @@ class TestPositionPerformance(unittest.TestCase):
     def setUp(self):
         self.tempdir = TempDirectory()
 
-    def create_environment_stuff(self, num_days=4, sids=[1,2]):
+    def create_environment_stuff(self, num_days=4, sids=[1, 2]):
         self.env = TradingEnvironment()
         self.sim_params = create_simulation_parameters(num_days=num_days)
 
@@ -2284,99 +2268,6 @@ class TestPerformanceTracker(unittest.TestCase):
             else:
                 yield event
 
-    def skip_minute_tracker(self):
-        """ Tests minute performance tracking."""
-        start_dt = self.env.exchange_dt_in_utc(datetime(2013, 3, 1, 9, 31))
-        end_dt = self.env.exchange_dt_in_utc(datetime(2013, 3, 1, 16, 0))
-
-        foosid = 1
-        barsid = 2
-
-        sim_params = SimulationParameters(
-            period_start=start_dt,
-            period_end=end_dt,
-            emission_rate='minute',
-            env=self.env,
-        )
-
-        foo_event_1 = factory.create_trade(foosid, 10.0, 20, start_dt)
-        bar_event_1 = factory.create_trade(barsid, 100.0, 200, start_dt)
-
-        foo_event_2 = factory.create_trade(
-            foosid, 11.0, 20, start_dt + timedelta(minutes=1))
-        bar_event_2 = factory.create_trade(
-            barsid, 11.0, 20, start_dt + timedelta(minutes=1))
-
-        trade_events = {
-            1: [
-                foo_event_1,
-                foo_event_2,
-            ],
-            2: [
-                bar_event_1,
-                bar_event_2,
-            ]
-        }
-
-        data_portal = create_data_portal_from_trade_history(
-            self.env,
-            self.tempdir,
-            sim_params,
-            trade_events
-        )
-
-        tracker = perf.PerformanceTracker(sim_params,
-                                          env=self.env,
-                                          data_portal=data_portal)
-
-        messages = {}
-        for date, group in grouped_events:
-            tracker.set_date(date)
-            for event in group:
-                if event.type == zp.DATASOURCE_TYPE.TRADE:
-                    tracker.process_trade(event)
-                elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
-                    tracker.process_benchmark(event)
-                elif event.type == zp.DATASOURCE_TYPE.ORDER:
-                    tracker.process_order(event)
-                elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
-                    tracker.process_transaction(event)
-            msg, _ = tracker.handle_minute_close(date)
-            messages[date] = msg
-
-        self.assertEquals(2, len(messages))
-
-        msg_1 = messages[foo_event_1.dt]
-        msg_2 = messages[foo_event_2.dt]
-
-        self.assertEquals(1, len(msg_1['minute_perf']['transactions']),
-                          "The first message should contain one "
-                          "transaction.")
-        # Check that transactions aren't emitted for previous events.
-        self.assertEquals(0, len(msg_2['minute_perf']['transactions']),
-                          "The second message should have no "
-                          "transactions.")
-
-        self.assertEquals(1, len(msg_1['minute_perf']['orders']),
-                          "The first message should contain one orders.")
-        # Check that orders aren't emitted for previous events.
-        self.assertEquals(0, len(msg_2['minute_perf']['orders']),
-                          "The second message should have no orders.")
-
-        # Ensure that period_close moves through time.
-        # Also, ensure that the period_closes are the expected dts.
-        self.assertEquals(foo_event_1.dt,
-                          msg_1['minute_perf']['period_close'])
-        self.assertEquals(foo_event_2.dt,
-                          msg_2['minute_perf']['period_close'])
-
-        # In this test event1 transactions arrive on the first bar.
-        # This leads to no returns as the price is constant.
-        # Sharpe ratio cannot be computed and is None.
-        # In the second bar we can start establishing a sharpe ratio.
-        self.assertIsNone(msg_1['cumulative_risk_metrics']['sharpe'])
-        self.assertIsNotNone(msg_2['cumulative_risk_metrics']['sharpe'])
-
     def write_equity_data(self, env, sim_params, sids):
         data = {}
         for sid in sids:
@@ -2387,25 +2278,6 @@ class TestPerformanceTracker(unittest.TestCase):
 
         env.write_data(equities_data=data)
 
-    def test_serialization(self):
-        start_dt = datetime(year=2008,
-                            month=10,
-                            day=9,
-                            tzinfo=pytz.utc)
-        end_dt = datetime(year=2008,
-                          month=10,
-                          day=16,
-                          tzinfo=pytz.utc)
-
-        sim_params = SimulationParameters(
-            period_start=start_dt,
-            period_end=end_dt,
-            env=self.env,
-        )
-
-        perf_tracker = perf.PerformanceTracker(
-            sim_params, env=self.env, data_portal=None,
-        )
 
 class TestPosition(unittest.TestCase):
     def setUp(self):
@@ -2546,7 +2418,6 @@ class TestPerformancePeriod(unittest.TestCase):
 
     def test_serialization(self):
         env = TradingEnvironment()
-        pt = perf.PositionTracker(env.asset_finder, data_portal=None)
         pp = perf.PerformancePeriod(100, env.asset_finder, data_portal=None)
 
         p_string = dumps_with_persistent_ids(pp)

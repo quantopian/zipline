@@ -336,7 +336,6 @@ class TradingAlgorithm(object):
             asset_finder=self.asset_finder,
         )
 
-
     def initialize(self, *args, **kwargs):
         """
         Call self._initialize with `self` made available to Zipline API
