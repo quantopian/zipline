@@ -883,10 +883,4 @@ class BlazeLoader(dict):
                 )
             )
 
-    def __repr__(self):
-        return '%s(%s)' % (
-            type(self).__name__,
-            super(BlazeLoader, self).__repr__(),
-        )
-
 global_loader = BlazeLoader.global_instance()
