@@ -292,27 +292,6 @@ class PerformanceTracker(object):
         self.cumulative_performance.handle_commission(event)
         self.todays_performance.handle_commission(event)
 
-    def process_benchmark(self, event):
-        if self.sim_params.data_frequency == 'minute' and \
-           self.sim_params.emission_rate == 'daily':
-            # Minute data benchmarks should have a timestamp of market
-            # close, so that calculations are triggered at the right time.
-            # However, risk module uses midnight as the 'day'
-            # marker for returns, so adjust back to midnight.
-            midnight = pd.tseries.tools.normalize_date(event.dt)
-        else:
-            midnight = event.dt
-
-        if midnight not in self.all_benchmark_returns.index:
-            raise AssertionError(
-                ("Date %s not allocated in all_benchmark_returns. "
-                 "Calendar seems to mismatch with benchmark. "
-                 "Benchmark container is=%s" %
-                 (midnight,
-                  self.all_benchmark_returns.index)))
-
-        self.all_benchmark_returns[midnight] = event.returns
-
     def process_close_position(self, event):
         txn = self.position_tracker.\
             maybe_create_close_position_transaction(event)

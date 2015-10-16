@@ -173,6 +173,13 @@ class OrderDuringInitialize(ZiplineError):
     msg = "{msg}"
 
 
+class SetBenchmarkOutsideInitialize(ZiplineError):
+    """
+    Raised if set_benchmark is called outside initialize()
+    """
+    msg = "'set_benchmark' can only be called within initialize function."
+
+
 class AccountControlViolation(ZiplineError):
     """
     Raised if the account violates a constraint set by a AccountControl.

@@ -57,11 +57,6 @@ class AlgorithmSimulator(object):
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        # FIXME
-        # benchmark_iter = None
-        # if hasattr(self.algo, "benchmark_iter"):
-        #     benchmark_iter = iter(self.algo.benchmark_iter)
-
         self.current_data = BarData(data_portal=self.data_portal)
 
         # We don't have a datetime for the current snapshot until we
@@ -113,6 +108,25 @@ class AlgorithmSimulator(object):
         all_trading_days = all_trading_days[all_trading_days.slice_indexer(
             '2002-01-02')]
         first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
+
+        if algo.benchmark_sid is None:
+            # get benchmark info from tradingenvironment
+            benchmark_series = env.benchmark_returns[
+                trading_days[0]:trading_days[-1]]
+        else:
+            # calculate benchmark. start one day before the first trading day,
+            # so we can get a return value for the first day.
+            benchmark_sid = algo.benchmark_sid
+            benchmark_series = data_portal.get_history_window(
+                [benchmark_sid],
+                trading_days[-1],
+                bar_count=len(trading_days) + 1,
+                frequency="1d",
+                field="close"
+            )[benchmark_sid].pct_change()
+
+            if np.isnan(benchmark_series[0]):
+                benchmark_series[0] = 0
 
         def inner_loop(dt_to_use):
             # called every tick (minute or day).
@@ -171,7 +185,9 @@ class AlgorithmSimulator(object):
                     inner_loop(trading_day)
 
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[trading_day] = 0.001
+                    perf_tracker_benchmark_returns[trading_day] = \
+                        benchmark_series.loc[trading_day]
+
                     yield self.get_message(trading_day)
             else:
                 for day_idx, trading_day in enumerate(trading_days):
@@ -186,7 +202,9 @@ class AlgorithmSimulator(object):
                         inner_loop(minute)
 
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[trading_day] = 0.001
+                    perf_tracker_benchmark_returns[trading_day] = \
+                        benchmark_series.loc[trading_day]
+
                     yield self.get_message(minute)
 
         risk_message = self.algo.perf_tracker.handle_simulation_end()

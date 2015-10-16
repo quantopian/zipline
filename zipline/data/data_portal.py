@@ -40,7 +40,6 @@ class DataPortal(object):
     def __init__(self,
                  env,
                  sim_params=None,
-                 benchmark_iter=None,  # FIXME hack
                  minutes_equities_path=None,
                  daily_equities_path=None,
                  adjustment_reader=None,
@@ -70,8 +69,6 @@ class DataPortal(object):
             'sid': {},
             'dt': {},
         }
-
-        self.benchmark_iter = benchmark_iter
 
         self._adjustment_reader = adjustment_reader
 
@@ -339,7 +336,6 @@ class DataPortal(object):
         -------
         A dataframe containing the requested data.
         """
-
         try:
             field_to_use = BASE_FIELDS[field]
         except KeyError:
@@ -349,13 +345,12 @@ class DataPortal(object):
             data = []
 
             day = end_dt.date()
-
-            # for daily history, we need to get bar_count - 1 complete days,
-            # and then a partial day constructed from the minute data of this
-            # day.
             day_idx = tradingcalendar.trading_days.searchsorted(day)
             days_for_window = tradingcalendar.trading_days[
                 (day_idx - bar_count + 1):(day_idx + 1)]
+
+            ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0 \
+                and end_dt.second == 0
 
             if len(sids) == 0:
                 return pd.DataFrame(None,
@@ -371,8 +366,11 @@ class DataPortal(object):
                     self.asset_start_dates[sid] = asset.start_date
                     self.asset_end_dates[sid] = asset.end_date
 
-                if days_for_window[-1] > self.asset_end_dates[sid]:
-                    # if the last desired day of the window is after the
+                if ends_at_midnight or \
+                        (days_for_window[-1] > self.asset_end_dates[sid]):
+                    # two cases where we use daily data for the whole range:
+                    # 1) the history window ends at midnight utc.
+                    # 2) the last desired day of the window is after the
                     # last trading day, use daily data for the whole range.
                     data.append(self._get_daily_window_for_sid(
                         sid,
