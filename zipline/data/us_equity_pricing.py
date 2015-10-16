@@ -41,7 +41,6 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     read_csv,
-    to_datetime,
     Timestamp,
 )
 from six import (
