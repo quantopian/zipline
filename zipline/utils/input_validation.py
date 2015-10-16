@@ -136,7 +136,8 @@ def optional(type_):
 
 def expect_element(*_pos, **named):
     """
-    Preprocessing decorator that verifies inputs have expected types.
+    Preprocessing decorator that verifies inputs are elements of some
+    expected collection.
 
     Usage
     -----
@@ -152,6 +153,12 @@ def expect_element(*_pos, **named):
     Traceback (most recent call last):
        ...
     ValueError: foo() expected a value in ('a', 'b') for argument 'x', but got 'c' instead.  # noqa
+
+    Notes
+    -----
+    This uses the `in` operator (__contains__) to make the containment check.
+    This allows us to use any custom container as long as the object supports
+    the container protocol.
     """
     if _pos:
         raise TypeError("expect_element() only takes keyword arguments.")
