@@ -377,7 +377,7 @@ class tmp_assets_db(object):
     def __init__(self, data=None):
         self._eng = None
         self._data = AssetDBWriterFromDataFrame(
-            data if data else make_simple_asset_info(
+            data if data is not None else make_simple_asset_info(
                 list(map(ord, 'ABC')),
                 pd.Timestamp(0),
                 pd.Timestamp('2015'),

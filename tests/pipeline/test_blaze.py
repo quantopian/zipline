@@ -10,10 +10,12 @@ import warnings
 
 import blaze as bz
 from datashape import dshape, var, Record
+from nose_parameterized import parameterized
 import numpy as np
+from numpy.testing.utils import assert_array_almost_equal
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from toolz import keymap
+from toolz import keymap, valmap, concatv
 from toolz.curried import operator as op
 
 from zipline.pipeline import Pipeline, CustomFactor
@@ -26,11 +28,25 @@ from zipline.pipeline.loaders.blaze import (
     NonNumpyField,
     NonPipelineField,
 )
-from zipline.utils.test_utils import tmp_asset_finder
+from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.test_utils import tmp_asset_finder, make_simple_asset_info
 
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
+asset_infos = (
+    (make_simple_asset_info(
+        tuple(map(ord, 'ABC')),
+        pd.Timestamp(0),
+        pd.Timestamp('2015'),
+    ),),
+    (make_simple_asset_info(
+        tuple(map(ord, 'ABCD')),
+        pd.Timestamp(0),
+        pd.Timestamp('2015'),
+    ),),
+)
+with_extra_sid = parameterized.expand(asset_infos)
 
 
 class BlazeToPipelineTestCase(TestCase):
@@ -316,102 +332,24 @@ class BlazeToPipelineTestCase(TestCase):
         p.add(ds.value.latest, 'value')
         dates = self.dates
 
-        with tmp_asset_finder() as finder:
+        asset_info = asset_infos[0][0]
+        with tmp_asset_finder(asset_info) as finder:
             result = SimplePipelineEngine(
                 loader,
                 dates,
                 finder,
             ).run_pipeline(p, dates[0], dates[-1])
 
+        nassets = len(asset_info)
         expected = pd.DataFrame(
-            [0, 0, 0, 1, 1, 1, 2, 2, 2],
+            list(concatv([0] * nassets, [1] * nassets, [2] * nassets)),
             index=pd.MultiIndex.from_product((
                 self.macro_df.timestamp,
-                finder.retrieve_all(self.sids),
+                finder.retrieve_all(asset_info.index),
             )),
             columns=('value',),
         )
         assert_frame_equal(result, expected, check_dtype=False)
-
-    def test_deltas(self):
-        expr = bz.Data(self.df, name='expr', dshape=self.dshape)
-        deltas = bz.Data(self.df.iloc[:-3], name='deltas', dshape=self.dshape)
-        deltas = bz.transform(
-            deltas,
-            value=deltas.value + 10,
-            timestamp=deltas.timestamp + timedelta(days=1),
-        )
-
-        expected_views = keymap(pd.Timestamp, {
-            '2014-01-02': np.array([[10.0, 11.0, 12.0],
-                                    [1.0, 2.0, 3.0]]),
-            '2014-01-03': np.array([[11.0, 12.0, 13.0],
-                                    [2.0, 3.0, 4.0]]),
-        })
-        with tmp_asset_finder() as finder:
-            expected_output = pd.DataFrame(
-                [12, 12, 12, 13, 13, 13],
-                index=pd.MultiIndex.from_product((
-                    sorted(expected_views.keys()),
-                    finder.retrieve_all(self.sids),
-                )),
-                columns=('value',),
-            )
-            dates = self.dates
-            self._run_pipeline(
-                expr,
-                deltas,
-                expected_views,
-                expected_output,
-                finder,
-                calendar=dates,
-                start=dates[1],
-                end=dates[-1],
-                window_length=2,
-                compute_fn=np.max,
-            )
-
-    def test_deltas_macro(self):
-        expr = bz.Data(self.macro_df, name='expr', dshape=self.macro_dshape)
-        deltas = bz.Data(
-            self.macro_df.iloc[:-1],
-            name='deltas',
-            dshape=self.macro_dshape,
-        )
-        deltas = bz.transform(
-            deltas,
-            value=deltas.value + 10,
-            timestamp=deltas.timestamp + timedelta(days=1),
-        )
-
-        expected_views = keymap(pd.Timestamp, {
-            '2014-01-02': np.array([[10.0, 10.0, 10.0],
-                                    [1.0, 1.0, 1.0]]),
-            '2014-01-03': np.array([[11.0, 11.0, 11.0],
-                                    [2.0, 2.0, 2.0]]),
-        })
-        with tmp_asset_finder() as finder:
-            expected_output = pd.DataFrame(
-                [10, 10, 10, 11, 11, 11],
-                index=pd.MultiIndex.from_product((
-                    sorted(expected_views.keys()),
-                    finder.retrieve_all(self.sids),
-                )),
-                columns=('value',),
-            )
-            dates = self.dates
-            self._run_pipeline(
-                expr,
-                deltas,
-                expected_views,
-                expected_output,
-                finder,
-                calendar=dates,
-                start=dates[1],
-                end=dates[-1],
-                window_length=2,
-                compute_fn=np.max,
-            )
 
     def _run_pipeline(self,
                       expr,
@@ -433,8 +371,6 @@ class BlazeToPipelineTestCase(TestCase):
         )
         p = Pipeline()
 
-        # make this a local because `self` is shadowed in `TestFactor.compute`
-        assertTrue = self.assertTrue
         # prevent unbound locals issue in the inner class
         window_length_ = window_length
 
@@ -443,7 +379,7 @@ class BlazeToPipelineTestCase(TestCase):
             window_length = window_length_
 
             def compute(self, today, assets, out, data):
-                assertTrue((data == expected_views[today]).all())
+                assert_array_almost_equal(data, expected_views[today])
                 out[:] = compute_fn(data)
 
         p.add(TestFactor(), 'value')
@@ -460,7 +396,98 @@ class BlazeToPipelineTestCase(TestCase):
             check_dtype=False,
         )
 
-    def test_novel_deltas(self):
+    @with_extra_sid
+    def test_deltas(self, asset_info):
+        expr = bz.Data(self.df, name='expr', dshape=self.dshape)
+        deltas = bz.Data(self.df.iloc[:-3], name='deltas', dshape=self.dshape)
+        deltas = bz.transform(
+            deltas,
+            value=deltas.value + 10,
+            timestamp=deltas.timestamp + timedelta(days=1),
+        )
+
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-02': np.array([[10.0, 11.0, 12.0],
+                                    [1.0, 2.0, 3.0]]),
+            '2014-01-03': np.array([[11.0, 12.0, 13.0],
+                                    [2.0, 3.0, 4.0]]),
+        })
+
+        nassets = len(asset_info)
+        if nassets == 4:
+            expected_views = valmap(
+                lambda view: np.c_[view, [np.nan, np.nan]],
+                expected_views,
+            )
+
+        with tmp_asset_finder(asset_info) as finder:
+            expected_output = pd.DataFrame(
+                list(concatv([12] * nassets, [13] * nassets)),
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    finder.retrieve_all(asset_info.index),
+                )),
+                columns=('value',),
+            )
+            dates = self.dates
+            self._run_pipeline(
+                expr,
+                deltas,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+                compute_fn=np.nanmax,
+            )
+
+    def test_deltas_macro(self):
+        asset_info = asset_infos[0][0]
+        expr = bz.Data(self.macro_df, name='expr', dshape=self.macro_dshape)
+        deltas = bz.Data(
+            self.macro_df.iloc[:-1],
+            name='deltas',
+            dshape=self.macro_dshape,
+        )
+        deltas = bz.transform(
+            deltas,
+            value=deltas.value + 10,
+            timestamp=deltas.timestamp + timedelta(days=1),
+        )
+
+        nassets = len(asset_info)
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-02': repeat_last_axis(np.array([10.0, 1.0]), nassets),
+            '2014-01-03': repeat_last_axis(np.array([11.0, 2.0]), nassets),
+        })
+
+        with tmp_asset_finder(asset_info) as finder:
+            expected_output = pd.DataFrame(
+                list(concatv([10] * nassets, [11] * nassets)),
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    finder.retrieve_all(asset_info.index),
+                )),
+                columns=('value',),
+            )
+            dates = self.dates
+            self._run_pipeline(
+                expr,
+                deltas,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+                compute_fn=np.nanmax,
+            )
+
+    @with_extra_sid
+    def test_novel_deltas(self, asset_info):
         base_dates = pd.DatetimeIndex([
             pd.Timestamp('2014-01-01'),
             pd.Timestamp('2014-01-04')
@@ -487,6 +514,14 @@ class BlazeToPipelineTestCase(TestCase):
                                     [10.0, 11.0, 12.0],
                                     [11.0, 12.0, 13.0]]),
         })
+        if len(asset_info) == 4:
+            expected_views = valmap(
+                lambda view: np.c_[view, [np.nan, np.nan, np.nan]],
+                expected_views,
+            )
+            expected_output_buffer = [10, 11, 12, np.nan, 11, 12, 13, np.nan]
+        else:
+            expected_output_buffer = [10, 11, 12, 11, 12, 13]
 
         cal = pd.DatetimeIndex([
             pd.Timestamp('2014-01-01'),
@@ -496,12 +531,12 @@ class BlazeToPipelineTestCase(TestCase):
             pd.Timestamp('2014-01-06'),
         ])
 
-        with tmp_asset_finder() as finder:
+        with tmp_asset_finder(asset_info) as finder:
             expected_output = pd.DataFrame(
-                [10, 11, 12, 11, 12, 13],
+                expected_output_buffer,
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
-                    finder.retrieve_all(self.sids),
+                    finder.retrieve_all(asset_info.index),
                 )),
                 columns=('value',),
             )
@@ -519,6 +554,7 @@ class BlazeToPipelineTestCase(TestCase):
             )
 
     def test_novel_deltas_macro(self):
+        asset_info = asset_infos[0][0]
         base_dates = pd.DatetimeIndex([
             pd.Timestamp('2014-01-01'),
             pd.Timestamp('2014-01-04')
@@ -536,13 +572,16 @@ class BlazeToPipelineTestCase(TestCase):
             timestamp=deltas.timestamp + timedelta(days=1),
         )
 
+        nassets = len(asset_info)
         expected_views = keymap(pd.Timestamp, {
-            '2014-01-03': np.array([[10.0, 10.0, 10.0],
-                                    [10.0, 10.0, 10.0],
-                                    [10.0, 10.0, 10.0]]),
-            '2014-01-06': np.array([[10.0, 10.0, 10.0],
-                                    [10.0, 10.0, 10.0],
-                                    [11.0, 11.0, 11.0]]),
+            '2014-01-03': repeat_last_axis(
+                np.array([10.0, 10.0, 10.0]),
+                nassets,
+            ),
+            '2014-01-06': repeat_last_axis(
+                np.array([10.0, 10.0, 11.0]),
+                nassets,
+            ),
         })
 
         cal = pd.DatetimeIndex([
@@ -552,12 +591,12 @@ class BlazeToPipelineTestCase(TestCase):
             # omitting the 4th and 5th to simulate a weekend
             pd.Timestamp('2014-01-06'),
         ])
-        with tmp_asset_finder() as finder:
+        with tmp_asset_finder(asset_info) as finder:
             expected_output = pd.DataFrame(
-                [10, 10, 10, 11, 11, 11],
+                list(concatv([10] * nassets, [11] * nassets)),
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
-                    finder.retrieve_all(self.sids),
+                    finder.retrieve_all(asset_info.index),
                 )),
                 columns=('value',),
             )
