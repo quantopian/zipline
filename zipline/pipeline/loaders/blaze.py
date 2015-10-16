@@ -126,6 +126,7 @@ from __future__ import division, absolute_import
 
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
+from copy import copy
 from functools import partial
 from itertools import count
 import warnings
@@ -849,7 +850,17 @@ class BlazeLoader(dict):
             column_view = identity
         else:
             # We use the column view to make an array per asset.
-            column_view = partial(repeat_last_axis, count=len(assets))
+            column_view = compose(
+                # We need to copy this because we need a concrete ndarray.
+                # The `repeat_last_axis` call will give us a fancy strided
+                # array which uses a buffer to represent `len(assets)` columns.
+                # The engine puts nans at the indicies for which we do not have
+                # sid information so that the nan-aware reductions still work.
+                # A future change to the engine would be to add first class
+                # support for macro econimic datasets.
+                copy,
+                partial(repeat_last_axis, count=len(assets)),
+            )
             sparse_output = sparse_output.set_index(TS_FIELD_NAME)
             dense_output = sparse_output.reindex(dates, method='ffill')
             sparse_deltas = non_novel_deltas.set_index(TS_FIELD_NAME)
