@@ -845,6 +845,13 @@ class BlazeLoader(dict):
             ).unstack()
 
             dense_output = sparse_output.reindex(dates, method='ffill')
+            cols = dense_output.columns
+            dense_output = dense_output.reindex(
+                columns=pd.MultiIndex.from_product(
+                    (cols.levels[0], assets),
+                    names=cols.names,
+                ),
+            )
 
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
