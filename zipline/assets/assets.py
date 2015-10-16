@@ -385,6 +385,7 @@ class AssetFinder(object):
             sids = list(map(
                 itemgetter('sid'),
                 sa.select((fc_cols.sid,)).where(
+                    (fc_cols.start_date > 0) &
                     (fc_cols.root_symbol == root_symbol),
                 ).order_by(
                     fc_cols.notice_date.asc(),
@@ -402,6 +403,7 @@ class AssetFinder(object):
                 sa.select((fc_cols.sid,)).where(
                     (fc_cols.root_symbol == root_symbol) &
                     (fc_cols.start_date <= knowledge_date) &
+                    (fc_cols.start_date > 0) &
 
                     # Filter to contracts that are still valid. If both
                     # exist, use the one that comes first in time (i.e.

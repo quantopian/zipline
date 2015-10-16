@@ -670,6 +670,14 @@ class AssetFinderTestCase(TestCase):
                 'expiration_date': pd.Timestamp('2016-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
             },
+            # No start date, shouldn't be in any chains
+            5: {
+                'symbol': 'ADZ25',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'notice_date': pd.Timestamp('2020-11-25', tz='UTC'),
+                'expiration_date': pd.Timestamp('2020-11-16', tz='UTC')
+            },
         }
         self.env.write_data(futures_data=metadata)
         finder = AssetFinder(self.env.engine)
