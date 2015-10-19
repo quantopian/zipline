@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,21 @@ class NoTradeDataAvailableTooEarly(NoTradeDataAvailable):
 
 class NoTradeDataAvailableTooLate(NoTradeDataAvailable):
     msg = "{sid} does not exist on {dt}. It stopped trading on {end_dt}."
+
+
+class BenchmarkAssetNotAvailableTooEarly(NoTradeDataAvailableTooEarly):
+    pass
+
+
+class BenchmarkAssetNotAvailableTooLate(NoTradeDataAvailableTooLate):
+    pass
+
+
+class InvalidBenchmarkAsset(ZiplineError):
+    msg = """
+{sid} cannot be used as the benchmark because it has a stock \
+dividend on {dt}.  Choose another asset to use as the benchmark.
+""".strip()
 
 
 class WrongDataForTransform(ZiplineError):

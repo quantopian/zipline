@@ -1,3 +1,18 @@
+#
+# Copyright 2015 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from datetime import datetime
 import bcolz
 from logbook import Logger
@@ -389,8 +404,8 @@ class DataPortal(object):
                 data.append(daily_data)
 
         return pd.DataFrame(np.array(data).T,
-                          index=days_for_window,
-                          columns=sids)
+                            index=days_for_window,
+                            columns=sids)
 
     def _get_history_minute_window(self, sids, end_dt, bar_count,
                                    field_to_use):
@@ -445,8 +460,8 @@ class DataPortal(object):
             data.append(sid_minute_data)
 
         return pd.DataFrame(np.array(data).T,
-                          index=minutes_for_window,
-                          columns=sids)
+                            index=minutes_for_window,
+                            columns=sids)
 
     def get_history_window(self, sids, end_dt, bar_count, frequency, field,
                            ffill=True):
@@ -739,9 +754,9 @@ class DataPortal(object):
 
         # create an np.array of size bar_count
         if extra_slot:
-            return_array = np.empty((bar_count + 1,))
+            return_array = np.zeros((bar_count + 1,))
         else:
-            return_array = np.empty((bar_count,))
+            return_array = np.zeros((bar_count,))
 
         return_array[:] = np.NAN
 
@@ -785,7 +800,10 @@ class DataPortal(object):
         if window_offset < 0:
             return_array[abs(window_offset):(bar_count + 1)] = data
         else:
-            return_array[0:len(data)] = data
+            if len(data) > len(return_array):
+                return_array[:] = data[0:len(return_array)]
+            else:
+                return_array[0:len(data)] = data
 
         self._apply_all_adjustments(
             return_array,
@@ -932,69 +950,49 @@ class DataPortal(object):
 
         return splits
 
-    def get_dividends(self, sids, dt):
+    def get_stock_dividends(self, sid, trading_days):
         """
-        Returns any dividends for the given sids where either the ex date
-        or the pay date matches the given dt.
+        Returns all the stock dividends for a specific sid that occur
+        in the given trading range.
 
         Parameters
         ----------
-        sids: list
-            Sids for which we want dividends.
+        sid: int
+            The asset whose stock dividends should be returned.
 
-        dt: pd.Timestamp
-            The date for which we are checking for dividends.  This date will
-            be used to match either ex date or pay date.
+        trading_days: pd.DatetimeIndex
+            The trading range.
 
         Returns
         -------
-        (earnable_dividends, payable_dividends): tuple (list, list) where each
-        list consists of (sid, ratio) pairs.
+        list: A list of objects with all relevant attributes populated.
+        All timestamp fields are converted to pd.Timestamps.
         """
-        if self.adjustments_conn is None or len(sids) == 0:
-            return [], []
 
-        # convert dt to # of seconds since epoch, because that's what we use
-        # in the adjustments db
-        seconds = int(dt.value / 1e9)
+        if self._adjustment_reader is None:
+            return []
 
-        earnable_dividends = self.adjustments_conn.execute(
-            "SELECT sid, ratio, ex_date, pay_date, declared_date FROM "
-            "DIVIDENDS WHERE ex_date = ?", (seconds,)).fetchall()
+        start_dt = trading_days[0].value / 1e9
+        end_dt = trading_days[-1].value / 1e9
 
-        payable_dividends = self.adjustments_conn.execute(
-            "SELECT sid, ratio, ex_date, pay_date, declared_date FROM "
-            "DIVIDENDS WHERE pay_date = ?", (seconds,)).fetchall()
+        dividends = self._adjustment_reader.conn.execute(
+            "SELECT * FROM stock_dividend_payouts WHERE sid = ? AND "
+            "ex_date > ? AND pay_date < ?", (int(sid), start_dt, end_dt,)).\
+            fetchall()
 
-        sids_set = set(sids)
+        dividend_info = []
+        for dividend_tuple in dividends:
+            dividend_info.append({
+                "declared_date": dividend_tuple[1],
+                "ex_date": pd.Timestamp(dividend_tuple[2], unit="s"),
+                "pay_date": pd.Timestamp(dividend_tuple[3], unit="s"),
+                "payment_sid": dividend_tuple[4],
+                "ratio": dividend_tuple[5],
+                "record_date": pd.Timestamp(dividend_tuple[6], unit="s"),
+                "sid": dividend_tuple[7]
+            })
 
-        def filter_dividend(dividend):
-            ex_date = dividend[2]
-            pay_date = dividend[3]
-            declared_date = dividend[4]
-
-            if pay_date == 0:
-                return False
-
-            if ex_date > pay_date:
-                return False
-
-            if ex_date < declared_date:
-                return False
-
-            return True
-
-        relevant_earnable_dividends = \
-            [dividend for dividend in earnable_dividends
-             if (dividend[0] in sids_set) and
-                filter_dividend(dividend)]
-
-        relevant_payable_dividends = \
-            [dividend for dividend in payable_dividends
-             if (dividend[0] in sids_set) and
-                filter_dividend(dividend)]
-
-        return relevant_earnable_dividends, relevant_payable_dividends
+        return dividend_info
 
     def contains(self, asset, field):
         return field in BASE_FIELDS or \
