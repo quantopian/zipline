@@ -126,15 +126,13 @@ class FutureChain(object):
             list
                 The up-to-date current chain, a list of Future objects.
         """
-        dt = self._get_datetime()
-
-        if (self._last_updated is None) or (self._last_updated != dt):
+        if (self._last_updated is None)\
+                or (self._last_updated != self.as_of_date):
             self._current_chain = self._asset_finder.lookup_future_chain(
                 self.root_symbol,
-                self.as_of_date,
-                dt
+                self.as_of_date
             )
-            self._last_updated = dt
+            self._last_updated = self.as_of_date
 
         return self._current_chain
 

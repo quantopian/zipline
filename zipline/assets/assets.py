@@ -343,26 +343,20 @@ class AssetFinder(object):
 
         return future
 
-    def lookup_future_chain(self, root_symbol, as_of_date, knowledge_date):
+    def lookup_future_chain(self, root_symbol, as_of_date):
         """ Return the futures chain for a given root symbol.
 
         Parameters
         ----------
         root_symbol : str
             Root symbol of the desired future.
-        as_of_date : pd.Timestamp or pd.NaT
 
+        as_of_date : pd.Timestamp or pd.NaT
             Date at which the chain determination is rooted. I.e. the
             existing contract whose notice date/expiration date is first
             after this date is the primary contract, etc. If NaT is
             given, the chain is unbounded, and all contracts for this
             root symbol are returned.
-        knowledge_date : pd.Timestamp or pd.NaT
-            Date for determining which contracts exist for inclusion in
-            this chain. Contracts exist only if they have a start_date
-            on or before this date. If NaT is given and as_of_date is
-            is not NaT, the value of as_of_date is used for
-            knowledge_date.
 
         Returns
         -------
@@ -391,17 +385,11 @@ class AssetFinder(object):
                 ).execute().fetchall()))
         else:
             as_of_date = as_of_date.value
-            if knowledge_date is pd.NaT:
-                # If knowledge_date is NaT, default to using as_of_date
-                knowledge_date = as_of_date
-            else:
-                knowledge_date = knowledge_date.value
 
             sids = list(map(
                 itemgetter('sid'),
                 sa.select((fc_cols.sid,)).where(
                     (fc_cols.root_symbol == root_symbol) &
-                    (fc_cols.start_date <= knowledge_date) &
 
                     # Filter to contracts that are still valid. If both
                     # exist, use the one that comes first in time (i.e.
