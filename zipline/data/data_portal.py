@@ -308,6 +308,146 @@ class DataPortal(object):
         else:
             return raw_value
 
+    def _get_history_daily_window(self, sids, end_dt, bar_count, field_to_use):
+        """
+        Internal method that returns a dataframe containing history bars
+        of daily frequency for the given sids.
+        """
+        data = []
+
+        day = end_dt.date()
+        day_idx = tradingcalendar.trading_days.searchsorted(day)
+        days_for_window = tradingcalendar.trading_days[
+            (day_idx - bar_count + 1):(day_idx + 1)]
+
+        ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
+
+        if len(sids) == 0:
+            return pd.DataFrame(None,
+                                index=days_for_window,
+                                columns=None)
+
+        for sid in sids:
+            sid = int(sid)
+
+            # get the start and end dates for this sid
+            if sid not in self.asset_start_dates:
+                asset = self.asset_finder.retrieve_asset(sid)
+                self.asset_start_dates[sid] = asset.start_date
+                self.asset_end_dates[sid] = asset.end_date
+
+            if ends_at_midnight or \
+                    (days_for_window[-1] > self.asset_end_dates[sid]):
+                # two cases where we use daily data for the whole range:
+                # 1) the history window ends at midnight utc.
+                # 2) the last desired day of the window is after the
+                # last trading day, use daily data for the whole range.
+                data.append(self._get_daily_window_for_sid(
+                    sid,
+                    field_to_use,
+                    days_for_window,
+                    extra_slot=False
+                ))
+            else:
+                # for the last day of the desired window, use minute
+                # data and aggregate it.
+                all_minutes_for_day = self.env.market_minutes_for_day(
+                    pd.Timestamp(day))
+
+                last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
+
+                # these are the minutes for the partial day
+                minutes_for_partial_day =\
+                    all_minutes_for_day[0:(last_minute_idx + 1)]
+
+                daily_data = self._get_daily_window_for_sid(
+                    sid,
+                    field_to_use,
+                    days_for_window[0:-1]
+                )
+
+                minute_data = self._get_minute_window_for_sid(
+                    sid,
+                    field_to_use,
+                    minutes_for_partial_day
+                )
+
+                if field_to_use == 'volume':
+                    minute_value = np.sum(minute_data)
+                elif field_to_use == 'open':
+                    minute_value = minute_data[0]
+                elif field_to_use == 'close':
+                    minute_value = minute_data[-1]
+                elif field_to_use == 'high':
+                    minute_value = np.amax(minute_data)
+                elif field_to_use == 'low':
+                    minute_value = np.amin(minute_data)
+
+                # append the partial day.
+                daily_data[-1] = minute_value
+
+                data.append(daily_data)
+
+        return pd.DataFrame(np.array(data).T,
+                          index=days_for_window,
+                          columns=sids)
+
+    def _get_history_minute_window(self, sids, end_dt, bar_count,
+                                   field_to_use):
+        """
+        Internal method that returns a dataframe containing history bars
+        of minute frequency for the given sids.
+        """
+        # get all the minutes for this window
+        minutes_for_window = self.env.market_minute_window(
+            end_dt, bar_count, step=-1)[::-1]
+
+        # but then cut it down to only the minutes after
+        # FIRST_TRADING_MINUTE
+        modified_minutes_for_window = minutes_for_window[
+            minutes_for_window.slice_indexer(FIRST_TRADING_MINUTE)]
+
+        modified_minutes_length = len(modified_minutes_for_window)
+
+        if modified_minutes_length == 0:
+            raise ValueError("Cannot calculate history window that ends"
+                             "before 2002-01-02 14:31 UTC!")
+
+        data = []
+        bars_to_prepend = 0
+        nans_to_prepend = None
+
+        if modified_minutes_length < bar_count and \
+           (modified_minutes_for_window[0] == FIRST_TRADING_MINUTE):
+            # the beginning of the window goes before our global trading
+            # start date
+            bars_to_prepend = bar_count - modified_minutes_length
+            nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
+
+        if len(sids) == 0:
+            return pd.DataFrame(
+                None,
+                index=modified_minutes_for_window,
+                columns=None
+            )
+
+        for sid in sids:
+            sid_minute_data = self._get_minute_window_for_sid(
+                int(sid),
+                field_to_use,
+                modified_minutes_for_window
+            )
+
+            if bars_to_prepend != 0:
+                sid_minute_data = np.insert(sid_minute_data, 0,
+                                            nans_to_prepend)
+
+            data.append(sid_minute_data)
+
+        return pd.DataFrame(np.array(data).T,
+                          index=minutes_for_window,
+                          columns=sids)
+
     def get_history_window(self, sids, end_dt, bar_count, frequency, field,
                            ffill=True):
         """
@@ -342,137 +482,11 @@ class DataPortal(object):
             raise ValueError("Invalid history field: " + str(field))
 
         if frequency == "1d":
-            data = []
-
-            day = end_dt.date()
-            day_idx = tradingcalendar.trading_days.searchsorted(day)
-            days_for_window = tradingcalendar.trading_days[
-                (day_idx - bar_count + 1):(day_idx + 1)]
-
-            ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0 \
-                and end_dt.second == 0
-
-            if len(sids) == 0:
-                return pd.DataFrame(None,
-                                    index=days_for_window,
-                                    columns=None)
-
-            for sid in sids:
-                sid = int(sid)
-
-                # get the start and end dates for this sid
-                if sid not in self.asset_start_dates:
-                    asset = self.asset_finder.retrieve_asset(sid)
-                    self.asset_start_dates[sid] = asset.start_date
-                    self.asset_end_dates[sid] = asset.end_date
-
-                if ends_at_midnight or \
-                        (days_for_window[-1] > self.asset_end_dates[sid]):
-                    # two cases where we use daily data for the whole range:
-                    # 1) the history window ends at midnight utc.
-                    # 2) the last desired day of the window is after the
-                    # last trading day, use daily data for the whole range.
-                    data.append(self._get_daily_window_for_sid(
-                        sid,
-                        field_to_use,
-                        days_for_window,
-                        extra_slot=False
-                    ))
-                else:
-                    # for the last day of the desired window, use minute
-                    # data and aggregate it.
-                    all_minutes_for_day = self.env.market_minutes_for_day(
-                        pd.Timestamp(day))
-
-                    last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
-
-                    # these are the minutes for the partial day
-                    minutes_for_partial_day =\
-                        all_minutes_for_day[0:(last_minute_idx + 1)]
-
-                    daily_data = self._get_daily_window_for_sid(
-                        sid,
-                        field_to_use,
-                        days_for_window[0:-1]
-                    )
-
-                    minute_data = self._get_minute_window_for_sid(
-                        sid,
-                        field_to_use,
-                        minutes_for_partial_day
-                    )
-
-                    if field_to_use == 'volume':
-                        minute_value = np.sum(minute_data)
-                    elif field_to_use == 'open':
-                        minute_value = minute_data[0]
-                    elif field_to_use == 'close':
-                        minute_value = minute_data[-1]
-                    elif field_to_use == 'high':
-                        minute_value = np.amax(minute_data)
-                    elif field_to_use == 'low':
-                        minute_value = np.amin(minute_data)
-
-                    # append the partial day.
-                    daily_data[-1] = minute_value
-
-                    data.append(daily_data)
-
-            df = pd.DataFrame(np.array(data).T,
-                              index=days_for_window,
-                              columns=sids)
-
+            df = self._get_history_daily_window(sids, end_dt, bar_count,
+                                                field_to_use)
         elif frequency == "1m":
-            # get all the minutes for this window
-            minutes_for_window = self.env.market_minute_window(
-                end_dt, bar_count, step=-1)[::-1]
-
-            # but then cut it down to only the minutes after
-            # FIRST_TRADING_MINUTE
-            modified_minutes_for_window = minutes_for_window[
-                minutes_for_window.slice_indexer(FIRST_TRADING_MINUTE)]
-
-            modified_minutes_length = len(modified_minutes_for_window)
-
-            if modified_minutes_length == 0:
-                raise ValueError("Cannot calculate history window that ends"
-                                 "before 2002-01-02 14:31 UTC!")
-
-            data = []
-            bars_to_prepend = 0
-            nans_to_prepend = None
-
-            if modified_minutes_length < bar_count and \
-               (modified_minutes_for_window[0] == FIRST_TRADING_MINUTE):
-                # the beginning of the window goes before our global trading
-                # start date
-                bars_to_prepend = bar_count - modified_minutes_length
-                nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
-
-            if len(sids) == 0:
-                return pd.DataFrame(
-                    None,
-                    index=modified_minutes_for_window,
-                    columns=None
-                )
-
-            for sid in sids:
-                sid_minute_data = self._get_minute_window_for_sid(
-                    int(sid),
-                    field_to_use,
-                    modified_minutes_for_window
-                )
-
-                if bars_to_prepend != 0:
-                    sid_minute_data = np.insert(sid_minute_data, 0,
-                                                nans_to_prepend)
-
-                data.append(sid_minute_data)
-
-            df = pd.DataFrame(np.array(data).T,
-                              index=minutes_for_window,
-                              columns=sids)
-
+            df = self._get_history_minute_window(sids, end_dt, bar_count,
+                                                 field_to_use)
         else:
             raise ValueError("Invalid frequency: {0}".format(frequency))
 
