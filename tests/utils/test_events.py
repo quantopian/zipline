@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
+from inspect import isabstract
 from itertools import islice
 from six import iteritems
 import random
@@ -232,7 +233,8 @@ class RuleTestCase(TestCase):
             k for k, v in iteritems(vars(zipline.utils.events))
             if isinstance(v, type) and
             issubclass(v, self.class_) and
-            v is not self.class_
+            v is not self.class_ and
+            not isabstract(v)
         }
         ds = {
             k[5:] for k in dir(self)

@@ -372,23 +372,61 @@ class NotHalfDay(StatelessRule):
         return dt.date() not in env.early_closes
 
 
-class NthTradingDayOfWeek(StatelessRule):
+class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
+    def __init__(self, n=0):
+        if not 0 <= abs(n) < MAX_WEEK_RANGE:
+            raise _out_of_range_error(MAX_WEEK_RANGE)
+
+        self.td_delta = n
+
+        self.next_date_start = None
+        self.next_date_end = None
+        self.next_midnight_timestamp = None
+
+    @abstractmethod
+    def date_func(self, dt, env):
+        raise NotImplementedError
+
+    def calculate_start_and_end(self, dt, env):
+        next_trading_day = _coerce_datetime(
+            env.add_trading_days(
+                self.td_delta,
+                self.date_func(dt, env),
+            )
+        )
+
+        next_open, next_close = env.get_open_and_close(next_trading_day)
+        self.next_date_start = next_open
+        self.next_date_end = next_close
+        self.next_midnight_timestamp = \
+            pd.Timestamp(next_trading_day.date(), tz='UTC')
+
+    def should_trigger(self, dt, env):
+        if self.next_date_start is None:
+            # first time this method has been called.  calculate the midnight,
+            # open, and close of the next matching day.
+            self.calculate_start_and_end(dt, env)
+
+        # if the next matching day is in the past, calculate the next one.
+        if dt > self.next_date_end:
+            self.calculate_start_and_end(dt + datetime.timedelta(days=7),
+                                         env)
+
+        # if the given dt is within the next matching day, return true.
+        if self.next_date_start <= dt <= self.next_date_end or \
+                dt == self.next_midnight_timestamp:
+            return True
+
+        return False
+
+
+class NthTradingDayOfWeek(TradingDayOfWeekRule):
     """
     A rule that triggers on the nth trading day of the week.
     This is zero-indexed, n=0 is the first trading day of the week.
     """
-    def __init__(self, n=0):
-        if not 0 <= n < MAX_WEEK_RANGE:
-            raise _out_of_range_error(MAX_WEEK_RANGE)
-        self.td_delta = n
-
-    def should_trigger(self, dt, env):
-        return _coerce_datetime(env.add_trading_days(
-            self.td_delta,
-            self.get_first_trading_day_of_week(dt, env),
-        )).date() == dt.date()
-
-    def get_first_trading_day_of_week(self, dt, env):
+    @staticmethod
+    def get_first_trading_day_of_week(dt, env):
         prev = dt
         dt = env.previous_trading_day(dt)
         while dt.date().weekday() < prev.date().weekday():
@@ -396,24 +434,18 @@ class NthTradingDayOfWeek(StatelessRule):
             dt = env.previous_trading_day(dt)
         return prev.date()
 
+    date_func = get_first_trading_day_of_week
 
-class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
+
+class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
     """
     A rule that triggers n days before the last trading day of the week.
     """
     def __init__(self, n):
-        if not 0 <= n < MAX_WEEK_RANGE:
-            raise _out_of_range_error(MAX_WEEK_RANGE)
-        self.td_delta = -n
-        self.date = None
+        super(NDaysBeforeLastTradingDayOfWeek, self).__init__(-n)
 
-    def should_trigger(self, dt, env):
-        return _coerce_datetime(env.add_trading_days(
-            self.td_delta,
-            self.get_last_trading_day_of_week(dt, env),
-        )).date() == dt.date()
-
-    def get_last_trading_day_of_week(self, dt, env):
+    @staticmethod
+    def get_last_trading_day_of_week(dt, env):
         prev = dt
         dt = env.next_trading_day(dt)
         # Traverse forward until we hit a week border, then jump back to the
@@ -422,6 +454,8 @@ class NDaysBeforeLastTradingDayOfWeek(StatelessRule):
             prev = dt
             dt = env.next_trading_day(dt)
         return prev.date()
+
+    date_func = get_last_trading_day_of_week
 
 
 class NthTradingDayOfMonth(StatelessRule):
