@@ -251,8 +251,7 @@ class AlgorithmSimulator(object):
         """
         if sid is None:
             # get benchmark info from trading environment
-            benchmark_series = \
-                env.benchmark_returns[trading_days[0]:trading_days[-1]]
+            return env.benchmark_returns[trading_days[0]:trading_days[-1]]
         else:
             # check if this security has a stock dividend.  if so, raise an
             # error suggesting that the user pick a different asset to use
@@ -321,4 +320,4 @@ class AlgorithmSimulator(object):
                 value_to_use = minute_window[minute_window != 0][0]
                 benchmark_series[0] = value_to_use
 
-        return benchmark_series.pct_change()[1:]
+            return benchmark_series.pct_change()[1:]
