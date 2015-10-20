@@ -538,3 +538,14 @@ class SimulationParameters(object):
            emission_rate=self.emission_rate,
            first_open=self.first_open,
            last_close=self.last_close)
+
+
+def noop_load(*args, **kwargs):
+    """
+    A method that can be substituted in as the load method in a
+    TradingEnvironment to prevent it from loading benchmarks.
+
+    Accepts any arguments, but returns only a tuple of Nones regardless
+    of input.
+    """
+    return None, None

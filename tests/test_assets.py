@@ -40,7 +40,7 @@ from zipline.errors import (
     SidAssignmentError,
     RootSymbolNotFound,
 )
-from zipline.finance.trading import TradingEnvironment
+from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
     all_subindices,
     make_rotating_asset_info,
@@ -253,7 +253,7 @@ class TestFuture(TestCase):
             notice_date=pd.Timestamp('2005-12-20', tz='UTC'),
             expiration_date=pd.Timestamp('2006-01-20', tz='UTC')
         )
-        env = TradingEnvironment()
+        env = TradingEnvironment(load=noop_load)
         env.write_data(futures_identifiers=[TestFuture.future,
                                             TestFuture.future2])
         cls.asset_finder = env.asset_finder
@@ -334,7 +334,7 @@ class TestFuture(TestCase):
 class AssetFinderTestCase(TestCase):
 
     def setUp(self):
-        self.env = TradingEnvironment()
+        self.env = TradingEnvironment(load=noop_load)
 
     def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
@@ -550,7 +550,7 @@ class AssetFinderTestCase(TestCase):
         df['exchange'][0] = "NASDAQ"
         df['asset_name'][1] = "Microsoft"
         df['exchange'][1] = "NYSE"
-        self.env = TradingEnvironment()
+        self.env = TradingEnvironment(load=noop_load)
         self.env.write_data(equities_df=df)
         finder = AssetFinder(self.env.engine)
         self.assertEqual('NASDAQ', finder.retrieve_asset(0).exchange)
@@ -627,7 +627,7 @@ class AssetFinderTestCase(TestCase):
     def test_lookup_future_chain(self):
         metadata = {
             # Notice day is today, so should be valid.
-            2: {
+            0: {
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
@@ -644,7 +644,7 @@ class AssetFinderTestCase(TestCase):
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             # Starts trading today, so should be valid.
-            0: {
+            2: {
                 'symbol': 'ADF16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
@@ -666,45 +666,51 @@ class AssetFinderTestCase(TestCase):
                 'symbol': 'ADZ16',
                 'root_symbol': 'AD',
                 'asset_type': 'future',
-                'notice_date': pd.Timestamp('2015-11-25', tz='UTC'),
+                'notice_date': pd.Timestamp('2016-11-25', tz='UTC'),
                 'expiration_date': pd.Timestamp('2016-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
+            },
+            # This contract has no start date and also this contract should be
+            # last in all chains
+            5: {
+                'symbol': 'ADZ20',
+                'root_symbol': 'AD',
+                'asset_type': 'future',
+                'notice_date': pd.Timestamp('2020-11-25', tz='UTC'),
+                'expiration_date': pd.Timestamp('2020-11-16', tz='UTC')
             },
         }
         self.env.write_data(futures_data=metadata)
         finder = AssetFinder(self.env.engine)
         dt = pd.Timestamp('2015-05-14', tz='UTC')
-        last_year = pd.Timestamp('2014-01-01', tz='UTC')
-        first_day = pd.Timestamp('2015-01-01', tz='UTC')
-        dt_2 = pd.Timestamp('2016-11-17', tz='UTC')
+        dt_2 = pd.Timestamp('2015-10-14', tz='UTC')
+        dt_3 = pd.Timestamp('2016-11-17', tz='UTC')
 
         # Check that we get the expected number of contracts, in the
         # right order
-        ad_contracts = finder.lookup_future_chain('AD', dt, dt)
-        self.assertEqual(len(ad_contracts), 3)
-        self.assertEqual(ad_contracts[0].sid, 2)
+        ad_contracts = finder.lookup_future_chain('AD', dt)
+        self.assertEqual(len(ad_contracts), 6)
+        self.assertEqual(ad_contracts[0].sid, 0)
         self.assertEqual(ad_contracts[1].sid, 1)
+        self.assertEqual(ad_contracts[5].sid, 5)
 
-        # Check that pd.NaT for knowledge_date uses the value of as_of_date
-        ad_contracts = finder.lookup_future_chain('AD', dt, pd.NaT)
-        self.assertEqual(len(ad_contracts), 3)
+        # Check that, when some contracts have expired, the chain has advanced
+        # properly to the next contracts
+        ad_contracts = finder.lookup_future_chain('AD', dt_2)
+        self.assertEqual(len(ad_contracts), 4)
+        self.assertEqual(ad_contracts[0].sid, 2)
+        self.assertEqual(ad_contracts[3].sid, 5)
 
-        # Check that we get nothing if our knowledge date is last year
-        ad_contracts = finder.lookup_future_chain('AD', dt, last_year)
-        self.assertEqual(len(ad_contracts), 0)
-
-        # Check that we get things that start on the knowledge date
-        ad_contracts = finder.lookup_future_chain('AD', dt, first_day)
-        self.assertEqual(len(ad_contracts), 2)
+        # Check that when the expiration_date has passed but the
+        # notice_date hasn't, contract is still considered invalid.
+        ad_contracts = finder.lookup_future_chain('AD', dt_3)
+        self.assertEqual(len(ad_contracts), 1)
+        self.assertEqual(ad_contracts[0].sid, 5)
 
         # Check that pd.NaT for as_of_date gives the whole chain
-        ad_contracts = finder.lookup_future_chain('AD', pd.NaT, first_day)
-        self.assertEqual(len(ad_contracts), 5)
-
-        # Check that when the expiration_date has past but the
-        # notice_date hasn't, contract is still considered invalid.
-        ad_contracts = finder.lookup_future_chain('AD', dt_2, dt_2)
-        self.assertEqual(len(ad_contracts), 0)
+        ad_contracts = finder.lookup_future_chain('AD', pd.NaT)
+        self.assertEqual(len(ad_contracts), 6)
+        self.assertEqual(ad_contracts[5].sid, 5)
 
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
@@ -729,20 +735,19 @@ class AssetFinderTestCase(TestCase):
 
     def test_compute_lifetimes(self):
         num_assets = 4
-        env = TradingEnvironment()
-        trading_day = env.trading_day
+        trading_day = self.env.trading_day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
         frame = make_rotating_asset_info(
             num_assets=num_assets,
             first_start=first_start,
-            frequency=env.trading_day,
+            frequency=self.env.trading_day,
             periods_between_starts=3,
             asset_lifetime=5
         )
 
-        env.write_data(equities_df=frame)
-        finder = env.asset_finder
+        self.env.write_data(equities_df=frame)
+        finder = self.env.asset_finder
 
         all_dates = pd.date_range(
             start=first_start,
@@ -790,9 +795,8 @@ class AssetFinderTestCase(TestCase):
 
     def test_sids(self):
         # Ensure that the sids property of the AssetFinder is functioning
-        env = TradingEnvironment()
-        env.write_data(equities_identifiers=[1, 2, 3])
-        sids = env.asset_finder.sids
+        self.env.write_data(equities_identifiers=[1, 2, 3])
+        sids = self.env.asset_finder.sids
         self.assertEqual(3, len(sids))
         self.assertTrue(1 in sids)
         self.assertTrue(2 in sids)
@@ -834,7 +838,7 @@ class TestFutureChain(TestCase):
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
         }
 
-        env = TradingEnvironment()
+        env = TradingEnvironment(load=noop_load)
         env.write_data(futures_data=metadata)
         cls.asset_finder = env.asset_finder
 
@@ -845,21 +849,18 @@ class TestFutureChain(TestCase):
     def test_len(self):
         """ Test the __len__ method of FutureChain.
         """
-        # None of the contracts have started yet.
-        cl = FutureChain(self.asset_finder, lambda: '2005-11-30', 'CL')
-        self.assertEqual(len(cl), 0)
-
-        # Sids 0, 1, & 2 have started, 3 has not yet started.
+        # Sids 0, 1, & 2 have started, 3 has not yet started, but all are in
+        # the chain
         cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-        self.assertEqual(len(cl), 3)
+        self.assertEqual(len(cl), 4)
 
-        # Sid 0 is still valid its notice date.
+        # Sid 0 is still valid on its notice date.
         cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
-        self.assertEqual(len(cl), 3)
+        self.assertEqual(len(cl), 4)
 
-        # Sid 0 is now invalid, leaving only Sids 1 & 2 valid.
+        # Sid 0 is now invalid, leaving Sids 1 & 2 valid (and 3 not started).
         cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
-        self.assertEqual(len(cl), 2)
+        self.assertEqual(len(cl), 3)
 
         # Sid 3 has started, so 1, 2, & 3 are now valid.
         cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
@@ -876,8 +877,6 @@ class TestFutureChain(TestCase):
         self.assertEqual(cl[0], 0)
         self.assertEqual(cl[1], 1)
         self.assertEqual(cl[2], 2)
-        with self.assertRaises(IndexError):
-            cl[3]
 
         cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
         self.assertEqual(cl[0], 0)

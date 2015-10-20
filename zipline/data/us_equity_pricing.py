@@ -28,6 +28,7 @@ from collections import namedtuple
 from click import progressbar
 from numpy import (
     array,
+    int64,
     float64,
     floating,
     full,
@@ -648,6 +649,8 @@ class SQLiteAdjustmentWriter(object):
 
         calendar = self._calendar
 
+        effective_dates = full(len(amounts), -1, dtype=int64)
+
         for i, amount in enumerate(amounts):
             sid = sids[i]
             ex_date = ex_dates[i]
@@ -656,8 +659,11 @@ class SQLiteAdjustmentWriter(object):
             try:
                 prev_close = daily_bar_reader.spot_price(
                     sid, div_adj_date, 'close')
-                ratio = 1.0 - amount / (prev_close)
-                ratios[i] = ratio
+                if prev_close != 0.0:
+                    ratio = 1.0 - amount / prev_close
+                    ratios[i] = ratio
+                    # only assign effective_date when data is found
+                    effective_dates[i] = div_adj_date.value
             except NoDataOnDate:
                 logger.warn("Couldn't compute ratio for dividend %s" % {
                     'sid': sid,
@@ -666,7 +672,14 @@ class SQLiteAdjustmentWriter(object):
                 })
                 continue
 
-        effective_dates = ex_dates.astype('datetime64[s]').astype(uint32)
+        # Create a mask to filter out indices in the effective_date, sid, and
+        # ratio vectors for which a ratio was not calculable.
+        effective_mask = effective_dates != -1
+        effective_dates = effective_dates[effective_mask]
+        effective_dates = effective_dates.astype('datetime64[ns]').\
+            astype('datetime64[s]').astype(uint32)
+        sids = sids[effective_mask]
+        ratios = ratios[effective_mask]
 
         return DataFrame({
             'sid': sids,
