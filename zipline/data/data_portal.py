@@ -213,8 +213,7 @@ class DataPortal(object):
             not (column in BASE_FIELDS and isinstance(asset, Asset))
 
         if look_in_augmented_sources:
-            # we're being asked for a column that was added via fetcher to
-            # an existing sid
+            # we're being asked for a fetcher field
             try:
                 return self.augmented_sources_map[column][asset].\
                     loc[day_to_use, column]
@@ -248,21 +247,23 @@ class DataPortal(object):
                 # given a dt to use.
                 minute_offset_to_use = self.cur_data_offset
             else:
-                # dt was passed in, so calculate the offset.
-                # = (390 * number of trading days since 1/2/2002) +
-                #   (index of minute in day)
+                if dt == self.current_dt:
+                    minute_offset_to_use = self.cur_data_offset
+                else:
+                    # dt was passed in, so calculate the offset.
+                    # = (390 * number of trading days since 1/2/2002) +
+                    #   (index of minute in day)
+                    given_day = pd.Timestamp(dt.date(), tz='utc')
+                    day_index = tradingcalendar.trading_days.searchsorted(
+                        given_day) - INDEX_OF_FIRST_TRADING_DAY
 
-                # FIXME is this expensive?
-                if not self.env.is_market_hours(dt):
-                    dt = self.env.previous_market_minute(dt)
+                    # if dt is before the first market minute, minute_index
+                    # will be 0.  if it's after the last market minute, it'll
+                    # be len(minutes_for_day)
+                    minute_index = self.env.market_minutes_for_day(given_day).\
+                        searchsorted(dt)
 
-                given_day = pd.Timestamp(dt.date(), tz='utc')
-                day_index = tradingcalendar.trading_days.searchsorted(
-                    given_day) - INDEX_OF_FIRST_TRADING_DAY
-                minute_index = self.env.market_minutes_for_day(given_day).\
-                    searchsorted(dt)
-
-                minute_offset_to_use = (day_index * 390) + minute_index
+                    minute_offset_to_use = (day_index * 390) + minute_index
 
             result = carray[minute_offset_to_use]
             if result == 0:
