@@ -103,7 +103,7 @@ class TestBenchmark(TestCase):
             cls.tempdir,
             cls.sim_params,
             [1, 2, 3, 4],
-            adjustment_reader= SQLiteAdjustmentReader(dbpath)
+            adjustment_reader=SQLiteAdjustmentReader(dbpath)
         )
 
     @classmethod
@@ -204,9 +204,7 @@ class TestBenchmark(TestCase):
                 4, self.env, self.sim_params.trading_days, self.data_portal
             )
 
-        self.assertEqual("""
-4 cannot be used as the benchmark because it has a stock dividend on \
-2006-03-16 00:00:00.  Choose another asset to use as the benchmark.""".strip(),
-            exc.exception.message
-        )
-
+        self.assertEqual(""" 4 cannot be used as the benchmark because it has a stock dividend on \
+        2006-03-16 00:00:00.  Choose another asset to use as the
+        benchmark.""".strip(),
+                         exc.exception.message)
