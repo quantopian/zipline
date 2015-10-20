@@ -515,7 +515,7 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
             sim_params.last_close
         )
 
-        minute_path = write_minute_data(minutes, sim_params, sids,
+        minute_path = write_minute_data(tempdir, minutes, sids,
                                         sid_path_func)
 
         return DataPortal(

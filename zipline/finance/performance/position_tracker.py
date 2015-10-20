@@ -20,6 +20,7 @@ import numpy as np
 from pandas.lib import checknull
 from collections import namedtuple
 from zipline.finance.performance.position import Position
+from zipline.finance.transaction import Transaction
 
 try:
     # optional cython based OrderedDict
@@ -29,7 +30,6 @@ except ImportError:
 from six import iteritems, itervalues
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.finance.transaction import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )

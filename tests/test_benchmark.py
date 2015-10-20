@@ -204,7 +204,7 @@ class TestBenchmark(TestCase):
                 4, self.env, self.sim_params.trading_days, self.data_portal
             )
 
-        self.assertEqual(""" 4 cannot be used as the benchmark because it has a stock dividend on \
-        2006-03-16 00:00:00.  Choose another asset to use as the
-        benchmark.""".strip(),
+        self.assertEqual("4 cannot be used as the benchmark because it has a "
+                         "stock dividend on 2006-03-16 00:00:00.  Choose "
+                         "another asset to use as the benchmark.",
                          exc.exception.message)
