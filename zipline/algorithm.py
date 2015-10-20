@@ -28,7 +28,6 @@ from six import (
     itervalues,
     string_types,
 )
-from zipline.data.data_portal import DataPortal
 
 from zipline.errors import (
     AttachPipelineAfterInitialize,
@@ -39,6 +38,7 @@ from zipline.errors import (
     PipelineOutputDuringInitialize,
     RegisterAccountControlPostInit,
     RegisterTradingControlPostInit,
+    SetBenchmarkOutsideInitialize,
     UnsupportedCommissionModel,
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
@@ -297,6 +297,8 @@ class TradingAlgorithm(object):
         self.initialized = False
         self.initialize_args = args
         self.initialize_kwargs = kwargs
+
+        self.benchmark_sid = kwargs.pop('benchmark_sid', None)
 
     def init_engine(self, get_loader):
         """
@@ -565,6 +567,13 @@ class TradingAlgorithm(object):
         positionals = zip(*args)
         for name, value in chain(positionals, iteritems(kwargs)):
             self._recorded_vars[name] = value
+
+    @api_method
+    def set_benchmark(self, benchmark_sid):
+        if self.initialized:
+            raise SetBenchmarkOutsideInitialize()
+
+        self.benchmark_sid = benchmark_sid
 
     @api_method
     @preprocess(symbol_str=ensure_upper_case)

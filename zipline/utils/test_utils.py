@@ -1,3 +1,18 @@
+#
+# Copyright 2015 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from contextlib import contextmanager
 from itertools import (
     product,
@@ -438,61 +453,77 @@ class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
             )
 
 
-def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None):
-    if sim_params.data_frequency == "daily":
-        path = os.path.join(tempdir.path, "testdaily.bcolz")
-        assets = {}
-        length = sim_params.days_in_period
-        for sid_idx, sid in enumerate(sids):
-            assets[sid] = pd.DataFrame({
-                "open": (np.array(range(10, 10 + length)) + sid_idx),
-                "high": (np.array(range(15, 15 + length)) + sid_idx),
-                "low": (np.array(range(8, 8 + length)) + sid_idx),
-                "close": (np.array(range(10, 10 + length)) + sid_idx),
-                "volume": np.array(range(100, 100 + length)) + sid_idx,
-                "day": [day.value for day in sim_params.trading_days]
-            }, index=sim_params.trading_days)
+def write_minute_data(tempdir, minutes, sids, sid_path_func=None):
+    assets = {}
 
-        DailyBarWriterFromDataFrames(assets).write(
-            path,
-            sim_params.trading_days,
-            assets
-        )
+    length = len(minutes)
+
+    for sid_idx, sid in enumerate(sids):
+        assets[sid] = pd.DataFrame({
+            "open": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
+            "high": (np.array(range(15, 15 + length)) + sid_idx) * 1000,
+            "low": (np.array(range(8, 8 + length)) + sid_idx) * 1000,
+            "close": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
+            "volume": np.array(range(100, 100 + length)) + sid_idx,
+            "minute": minutes
+        }, index=minutes)
+
+    MinuteBarWriterFromDataFrames().write(tempdir.path, assets,
+                                          sid_path_func=sid_path_func)
+
+    return tempdir.path
+
+
+def write_daily_data(tempdir, sim_params, sids):
+    path = os.path.join(tempdir.path, "testdaily.bcolz")
+    assets = {}
+    length = sim_params.days_in_period
+    for sid_idx, sid in enumerate(sids):
+        assets[sid] = pd.DataFrame({
+            "open": (np.array(range(10, 10 + length)) + sid_idx),
+            "high": (np.array(range(15, 15 + length)) + sid_idx),
+            "low": (np.array(range(8, 8 + length)) + sid_idx),
+            "close": (np.array(range(10, 10 + length)) + sid_idx),
+            "volume": np.array(range(100, 100 + length)) + sid_idx,
+            "day": [day.value for day in sim_params.trading_days]
+        }, index=sim_params.trading_days)
+
+    DailyBarWriterFromDataFrames(assets).write(
+        path,
+        sim_params.trading_days,
+        assets
+    )
+
+    return path
+
+
+def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
+                       adjustment_reader=None):
+    if sim_params.data_frequency == "daily":
+        daily_path = write_daily_data(tempdir, sim_params, sids)
 
         return DataPortal(
             env,
-            daily_equities_path=path,
+            daily_equities_path=daily_path,
             sim_params=sim_params,
-            asset_finder=env.asset_finder
+            asset_finder=env.asset_finder,
+            adjustment_reader=adjustment_reader
         )
     else:
-        assets = {}
-
         minutes = env.minutes_for_days_in_range(
             sim_params.first_open,
             sim_params.last_close
         )
 
-        length = len(minutes)
-
-        for sid_idx, sid in enumerate(sids):
-            assets[sid] = pd.DataFrame({
-                "open": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
-                "high": (np.array(range(15, 15 + length)) + sid_idx) * 1000,
-                "low": (np.array(range(8, 8 + length)) + sid_idx) * 1000,
-                "close": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
-                "volume": np.array(range(100, 100 + length)) + sid_idx,
-                "minute": minutes
-            }, index=minutes)
-
-        MinuteBarWriterFromDataFrames().write(tempdir.path, assets,
-                                              sid_path_func=sid_path_func)
+        minute_path = write_minute_data(minutes, sim_params, sids,
+                                        sid_path_func)
 
         return DataPortal(
             env,
-            minutes_equities_path=tempdir.path,
+            minutes_equities_path=minute_path,
             sim_params=sim_params,
-            asset_finder=env.asset_finder
+            asset_finder=env.asset_finder,
+            adjustment_reader=adjustment_reader
         )
 
 

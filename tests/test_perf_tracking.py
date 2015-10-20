@@ -2220,8 +2220,6 @@ class TestPerformanceTracker(unittest.TestCase):
                     perf_tracker.process_trade(event)
                 elif event.type == zp.DATASOURCE_TYPE.ORDER:
                     perf_tracker.process_order(event)
-                elif event.type == zp.DATASOURCE_TYPE.BENCHMARK:
-                    perf_tracker.process_benchmark(event)
                 elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
                     perf_tracker.process_transaction(event)
             msg = perf_tracker.handle_market_close_daily()
