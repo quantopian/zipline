@@ -153,9 +153,9 @@ class SimplePipelineEngine(object):
         --------
         PipelineEngine.run_pipeline
         """
-        if end_date <= start_date:
+        if end_date < start_date:
             raise ValueError(
-                "start_date must be before end_date \n"
+                "start_date must be before or equal to end_date \n"
                 "start_date=%s, end_date=%s" % (start_date, end_date)
             )
 

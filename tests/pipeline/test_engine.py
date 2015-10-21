@@ -168,11 +168,24 @@ class ConstantInputTestCase(TestCase):
 
         p = Pipeline()
 
-        msg = "start_date must be before end_date .*"
+        msg = "start_date must be before or equal to end_date .*"
         with self.assertRaisesRegexp(ValueError, msg):
             engine.run_pipeline(p, self.dates[2], self.dates[1])
-        with self.assertRaisesRegexp(ValueError, msg):
-            engine.run_pipeline(p, self.dates[2], self.dates[2])
+
+    def test_same_day_pipeline(self):
+        loader = self.loader
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+        factor = AssetID()
+        asset = self.assets[0]
+        p = Pipeline(columns={'f': factor}, screen=factor <= asset)
+
+        # The crux of this is that when we run the pipeline for a single day
+        #  (i.e. start and end dates are the same) we should accurately get
+        # data for the day prior.
+        result = engine.run_pipeline(p, self.dates[1], self.dates[1])
+        self.assertEqual(result['f'][0], 1.0)
 
     def test_screen(self):
         loader = self.loader
