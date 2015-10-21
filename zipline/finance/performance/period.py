@@ -265,7 +265,7 @@ class PerformancePeriod(object):
         # TODO: passing positions here seems off, since we have already
         # calculated pos_stats.
         futures_payouts = []
-        for sid, pos in positions.iteritems():
+        for sid, pos in iteritems(positions):
             asset = self.asset_finder.retrieve_asset(sid)
             if isinstance(asset, Future):
                 old_price_dt = max(pos.last_sale_date,

@@ -709,7 +709,7 @@ class DataPortal(object):
 
         minutes_offset = int((minute_dt - day_open).total_seconds()) / 60
 
-        return (390 * day_idx) + minutes_offset
+        return int((390 * day_idx) + minutes_offset)
 
     def _get_daily_window_for_sid(self, sid, field, days_in_window,
                                   extra_slot=True):

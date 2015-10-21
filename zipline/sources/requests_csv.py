@@ -1,4 +1,4 @@
-from StringIO import StringIO
+from six import StringIO
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import hashlib

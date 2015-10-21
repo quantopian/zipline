@@ -28,7 +28,7 @@ from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
 from six import (
     itervalues,
-)
+    iteritems)
 from six.moves import filter
 
 import os
@@ -532,7 +532,7 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
         assets = {}
-        for sidint, trades in trades_by_sid.iteritems():
+        for sidint, trades in iteritems(trades_by_sid):
             opens = []
             highs = []
             lows = []

@@ -156,8 +156,8 @@ class AlgorithmSimulator(object):
 
             # handle any splits that impact any positions or any open orders.
             sids_we_care_about = \
-                list(set(perf_tracker.position_tracker.positions.keys() +
-                         blotter.open_orders.keys()))
+                list(set(list(perf_tracker.position_tracker.positions.keys()) +
+                         list(blotter.open_orders.keys())))
 
             if len(sids_we_care_about) > 0:
                 splits = data_portal.get_splits(sids_we_care_about,
