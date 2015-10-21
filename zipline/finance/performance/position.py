@@ -40,7 +40,6 @@ from math import (
 from copy import copy
 
 import logbook
-import zipline.protocol as zp
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -65,37 +64,37 @@ class Position(object):
         Register the number of shares we held at this dividend's ex date so
         that we can pay out the correct amount on the dividend's pay date.
         """
-        assert dividend['sid'] == self.sid
-        out = {'id': dividend['id']}
+        out = {}
+
+        out['amount'] = self.amount * dividend.amount
+        return out
+
+    def earn_stock_dividend(self, stock_dividend):
+        """
+        Register the number of shares we held at this dividend's ex date so
+        that we can pay out the correct amount on the dividend's pay date.
+        """
+        out = {}
 
         # stock dividend
-        if dividend['payment_sid']:
-            out['payment_sid'] = dividend['payment_sid']
-            out['share_count'] = floor(self.amount * float(dividend['ratio']))
+        out['payment_sid'] = stock_dividend.payment_sid
+        out['share_count'] = floor(
+            self.amount * float(stock_dividend.ratio))
 
-        # cash dividend
-        if dividend['net_amount']:
-            out['cash_amount'] = self.amount * dividend['net_amount']
-        elif dividend['gross_amount']:
-            out['cash_amount'] = self.amount * dividend['gross_amount']
+        return out
 
-        payment_owed = zp.dividend_payment(out)
-        return payment_owed
-
-    def handle_split(self, split):
+    def handle_split(self, sid, ratio):
         """
         Update the position by the split ratio, and return the resulting
         fractional share that will be converted into cash.
 
         Returns the unused cash.
         """
-        if self.sid != split.sid:
+        if self.sid != sid:
             raise Exception("updating split with the wrong sid!")
 
-        ratio = split.ratio
-
-        log.info("handling split for sid = " + str(split.sid) +
-                 ", ratio = " + str(split.ratio))
+        log.info("handling split for sid = " + str(sid) +
+                 ", ratio = " + str(ratio))
         log.info("before split: " + str(self))
 
         # adjust the # of shares by the ratio
@@ -116,11 +115,7 @@ class Position(object):
         # adjust the cost basis to the nearest cent, e.g., 60.0
         new_cost_basis = round(self.cost_basis * ratio, 2)
 
-        # adjust the last sale price
-        new_last_sale_price = round(self.last_sale_price * ratio, 2)
-
         self.cost_basis = new_cost_basis
-        self.last_sale_price = new_last_sale_price
         self.amount = full_share_count
 
         return_cash = round(float(fractional_share_count * new_cost_basis), 2)
@@ -232,8 +227,5 @@ last_sale_price: {last_sale_price}"
 
 
 class positiondict(dict):
-
     def __missing__(self, key):
-        pos = Position(key)
-        self[key] = pos
-        return pos
+        return None

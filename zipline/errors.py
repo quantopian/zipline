@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +28,33 @@ class ZiplineError(Exception):
 
     __unicode__ = __str__
     __repr__ = __str__
+
+
+class NoTradeDataAvailable(ZiplineError):
+    pass
+
+
+class NoTradeDataAvailableTooEarly(NoTradeDataAvailable):
+    msg = "{sid} does not exist on {dt}. It started trading on {start_dt}."
+
+
+class NoTradeDataAvailableTooLate(NoTradeDataAvailable):
+    msg = "{sid} does not exist on {dt}. It stopped trading on {end_dt}."
+
+
+class BenchmarkAssetNotAvailableTooEarly(NoTradeDataAvailableTooEarly):
+    pass
+
+
+class BenchmarkAssetNotAvailableTooLate(NoTradeDataAvailableTooLate):
+    pass
+
+
+class InvalidBenchmarkAsset(ZiplineError):
+    msg = """
+{sid} cannot be used as the benchmark because it has a stock \
+dividend on {dt}.  Choose another asset to use as the benchmark.
+""".strip()
 
 
 class WrongDataForTransform(ZiplineError):
@@ -161,6 +188,13 @@ class OrderDuringInitialize(ZiplineError):
     msg = "{msg}"
 
 
+class SetBenchmarkOutsideInitialize(ZiplineError):
+    """
+    Raised if set_benchmark is called outside initialize()
+    """
+    msg = "'set_benchmark' can only be called within initialize function."
+
+
 class AccountControlViolation(ZiplineError):
     """
     Raised if the account violates a constraint set by a AccountControl.
@@ -177,17 +211,6 @@ class TradingControlViolation(ZiplineError):
     msg = """
 Order for {amount} shares of {asset} at {datetime} violates trading constraint
 {constraint}.
-""".strip()
-
-
-class IncompatibleHistoryFrequency(ZiplineError):
-    """
-    Raised when a frequency is given to history which is not supported.
-    At least, not yet.
-    """
-    msg = """
-Requested history at frequency '{frequency}' cannot be created with data
-at frequency '{data_frequency}'.
 """.strip()
 
 

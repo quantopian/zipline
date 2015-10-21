@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
-import warnings
 
 import pytz
 import pandas as pd
@@ -22,16 +21,13 @@ import numpy as np
 
 from datetime import datetime
 
-from itertools import groupby, chain
-from six.moves import filter
+from itertools import chain
 from six import (
     exec_,
     iteritems,
     itervalues,
     string_types,
 )
-from operator import attrgetter
-
 
 from zipline.errors import (
     AttachPipelineAfterInitialize,
@@ -42,6 +38,7 @@ from zipline.errors import (
     PipelineOutputDuringInitialize,
     RegisterAccountControlPostInit,
     RegisterTradingControlPostInit,
+    SetBenchmarkOutsideInitialize,
     UnsupportedCommissionModel,
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
@@ -67,18 +64,15 @@ from zipline.finance.execution import (
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.slippage import (
     VolumeShareSlippage,
-    SlippageModel,
-    transact_partial
+    SlippageModel
 )
 from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
-from zipline.gens.composites import date_sorted_sources
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline.engine import (
     NoOpPipelineEngine,
     SimplePipelineEngine,
 )
-from zipline.sources import DataFrameSource, DataPanelSource
 from zipline.utils.api_support import (
     api_method,
     require_initialized,
@@ -95,14 +89,11 @@ from zipline.utils.events import (
     TimeRuleFactory,
 )
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.math_utils import tolerant_equals
+from zipline.utils.math_utils import tolerant_equals, round_if_near_integer
 from zipline.utils.preprocess import preprocess
 
 import zipline.protocol
-from zipline.protocol import Event
-
-from zipline.history import HistorySpec
-from zipline.history.history_container import HistoryContainer
+from zipline.sources.requests_csv import PandasRequestsCSV
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -192,10 +183,6 @@ class TradingAlgorithm(object):
 
         self.benchmark_return_source = None
 
-        # default components for transact
-        self.slippage = VolumeShareSlippage()
-        self.commission = PerShare()
-
         self.instant_fill = kwargs.pop('instant_fill', False)
 
         # If an env has been provided, pop it
@@ -203,6 +190,8 @@ class TradingAlgorithm(object):
 
         if self.trading_environment is None:
             self.trading_environment = TradingEnvironment()
+
+        self.data_portal = None
 
         # Update the TradingEnvironment with the provided asset metadata
         self.trading_environment.write_data(
@@ -224,10 +213,7 @@ class TradingAlgorithm(object):
         else:
             self.sim_params.update_internal_from_env(self.trading_environment)
 
-        # Build a perf_tracker
-        self.perf_tracker = PerformanceTracker(sim_params=self.sim_params,
-                                               env=self.trading_environment)
-
+        self.perf_tracker = None
         # Pull in the environment's new AssetFinder for quick reference
         self.asset_finder = self.trading_environment.asset_finder
 
@@ -240,26 +226,17 @@ class TradingAlgorithm(object):
 
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
-            self.blotter = Blotter()
-
-        # Set the dt initally to the period start by forcing it to change
-        self.on_dt_changed(self.sim_params.period_start)
+            self.blotter = Blotter(
+                slippage_func=VolumeShareSlippage(),
+                commission=PerShare()
+            )
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
         self._symbol_lookup_date = None
 
-        self.portfolio_needs_update = True
-        self.account_needs_update = True
-        self.performance_needs_update = True
         self._portfolio = None
         self._account = None
-
-        self.history_container_class = kwargs.pop(
-            'history_container_class', HistoryContainer,
-        )
-        self.history_container = None
-        self.history_specs = {}
 
         # If string is passed in, execute and get reference to
         # functions.
@@ -316,12 +293,12 @@ class TradingAlgorithm(object):
         if 'data_frequency' in kwargs:
             self.data_frequency = kwargs.pop('data_frequency')
 
-        self._most_recent_data = None
-
         # Prepare the algo for initialization
         self.initialized = False
         self.initialize_args = args
         self.initialize_kwargs = kwargs
+
+        self.benchmark_sid = kwargs.pop('benchmark_sid', None)
 
     def init_engine(self, get_loader):
         """
@@ -353,10 +330,6 @@ class TradingAlgorithm(object):
         self._before_trading_start(self, data)
 
     def handle_data(self, data):
-        self._most_recent_data = data
-        if self.history_container:
-            self.history_container.update(data, self.datetime)
-
         self._handle_data(self, data)
 
         # Unlike trading controls which remain constant unless placing an
@@ -392,56 +365,10 @@ class TradingAlgorithm(object):
                    capital_base=self.capital_base,
                    sim_params=repr(self.sim_params),
                    initialized=self.initialized,
-                   slippage=repr(self.slippage),
-                   commission=repr(self.commission),
+                   slippage=repr(self.blotter.slippage_func),
+                   commission=repr(self.blotter.commission),
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
-
-    def _create_data_generator(self, source_filter, sim_params=None):
-        """
-        Create a merged data generator using the sources attached to this
-        algorithm.
-
-        ::source_filter:: is a method that receives events in date
-        sorted order, and returns True for those events that should be
-        processed by the zipline, and False for those that should be
-        skipped.
-        """
-        if sim_params is None:
-            sim_params = self.sim_params
-
-        if self.benchmark_return_source is None:
-            if sim_params.data_frequency == 'minute' or \
-               sim_params.emission_rate == 'minute':
-                def update_time(date):
-                    return self.trading_environment.get_open_and_close(date)[1]
-            else:
-                def update_time(date):
-                    return date
-            benchmark_return_source = [
-                Event({'dt': update_time(dt),
-                       'returns': ret,
-                       'type': zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
-                       'source_id': 'benchmarks'})
-                for dt, ret in
-                self.trading_environment.benchmark_returns.iteritems()
-                if dt.date() >= sim_params.period_start.date() and
-                dt.date() <= sim_params.period_end.date()
-            ]
-        else:
-            benchmark_return_source = self.benchmark_return_source
-
-        date_sorted = date_sorted_sources(*self.sources)
-
-        if source_filter:
-            date_sorted = filter(source_filter, date_sorted)
-
-        with_benchmarks = date_sorted_sources(benchmark_return_source,
-                                              date_sorted)
-
-        # Group together events with the same dt field. This depends on the
-        # events already being sorted.
-        return groupby(with_benchmarks, attrgetter('dt'))
 
     def _create_generator(self, sim_params, source_filter=None):
         """
@@ -452,30 +379,33 @@ class TradingAlgorithm(object):
         processed by the zipline, and False for those that should be
         skipped.
         """
+        if sim_params is not None:
+            self.sim_params = sim_params
+
+        if self.perf_tracker is None:
+            # Build a perf_tracker
+            self.perf_tracker = PerformanceTracker(
+                sim_params=self.sim_params,
+                env=self.trading_environment,
+                data_portal=self.data_portal)
+            # Set the dt initally to the period start by forcing it to change
+            self.on_dt_changed(self.sim_params.period_start)
+
+            # HACK: When running with the `run` method, we set perf_tracker to
+            # None so that it will be overwritten here.
+            self.perf_tracker = PerformanceTracker(
+                sim_params=sim_params, env=self.trading_environment,
+                data_portal=self.data_portal
+            )
 
         if not self.initialized:
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
 
-        if self.perf_tracker is None:
-            # HACK: When running with the `run` method, we set perf_tracker to
-            # None so that it will be overwritten here.
-            self.perf_tracker = PerformanceTracker(
-                sim_params=sim_params, env=self.trading_environment
-            )
+        self.trading_client = AlgorithmSimulator(self, sim_params,
+                                                 self.data_portal)
 
-        self.portfolio_needs_update = True
-        self.account_needs_update = True
-        self.performance_needs_update = True
-
-        self.data_gen = self._create_data_generator(source_filter, sim_params)
-
-        self.trading_client = AlgorithmSimulator(self, sim_params)
-
-        transact_method = transact_partial(self.slippage, self.commission)
-        self.set_transact(transact_method)
-
-        return self.trading_client.transform(self.data_gen)
+        return self.trading_client.transform()
 
     def get_generator(self):
         """
@@ -485,101 +415,26 @@ class TradingAlgorithm(object):
         """
         return self._create_generator(self.sim_params)
 
-    # TODO: make a new subclass, e.g. BatchAlgorithm, and move
-    # the run method to the subclass, and refactor to put the
-    # generator creation logic into get_generator.
-    def run(self, source, overwrite_sim_params=True,
-            benchmark_return_source=None):
+    def run(self, data_portal=None):
         """Run the algorithm.
 
         :Arguments:
-            source : can be either:
-                     - pandas.DataFrame
-                     - zipline source
-                     - list of sources
-
-               If pandas.DataFrame is provided, it must have the
-               following structure:
-               * column names must be the different asset identifiers
-               * index must be DatetimeIndex
-               * array contents should be price info.
+            source : DataPortal
 
         :Returns:
             daily_stats : pandas.DataFrame
               Daily performance metrics such as returns, alpha etc.
 
         """
-
-        # Ensure that source is a DataSource object
-        if isinstance(source, list):
-            if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract start and end
- dates. Make sure to set the correct fields in sim_params passed to
- __init__().""", UserWarning)
-                overwrite_sim_params = False
-        elif isinstance(source, pd.DataFrame):
-            # if DataFrame provided, map columns to sids and wrap
-            # in DataFrameSource
-            copy_frame = source.copy()
-            copy_frame.columns = self._write_and_map_id_index_to_sids(
-                source.columns, source.index[0],
-            )
-            source = DataFrameSource(copy_frame)
-
-        elif isinstance(source, pd.Panel):
-            # If Panel provided, map items to sids and wrap
-            # in DataPanelSource
-            copy_panel = source.copy()
-            copy_panel.items = self._write_and_map_id_index_to_sids(
-                source.items, source.major_axis[0],
-            )
-            source = DataPanelSource(copy_panel)
-
-        if isinstance(source, list):
-            self.set_sources(source)
-        else:
-            self.set_sources([source])
-
-        # Override sim_params if params are provided by the source.
-        if overwrite_sim_params:
-            if hasattr(source, 'start'):
-                self.sim_params.period_start = source.start
-            if hasattr(source, 'end'):
-                self.sim_params.period_end = source.end
-            # Changing period_start and period_close might require updating
-            # of first_open and last_close.
-            self.sim_params.update_internal_from_env(
-                env=self.trading_environment
-            )
-
-        # The sids field of the source is the reference for the universe at
-        # the start of the run
-        self._current_universe = set()
-        for source in self.sources:
-            for sid in source.sids:
-                self._current_universe.add(sid)
-        # Check that all sids from the source are accounted for in
-        # the AssetFinder. This retrieve call will raise an exception if the
-        # sid is not found.
-        for sid in self._current_universe:
-            self.asset_finder.retrieve_asset(sid)
+        if self.data_portal is None:
+            self.data_portal = data_portal
 
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
         self.perf_tracker = None
 
         # create zipline
-        self.gen = self._create_generator(self.sim_params)
-
-        # Create history containers
-        if self.history_specs:
-            self.history_container = self.history_container_class(
-                self.history_specs,
-                self.current_universe(),
-                self.sim_params.first_open,
-                self.sim_params.data_frequency,
-                self.trading_environment,
-            )
+        self.gen = self.get_generator()
 
         # loop through simulated_trading, each iteration returns a
         # perf dictionary
@@ -593,30 +448,6 @@ class TradingAlgorithm(object):
         self.analyze(daily_stats)
 
         return daily_stats
-
-    def _write_and_map_id_index_to_sids(self, identifiers, as_of_date):
-        # Build new Assets for identifiers that can't be resolved as
-        # sids/Assets
-        identifiers_to_build = []
-        for identifier in identifiers:
-            asset = None
-
-            if isinstance(identifier, Asset):
-                asset = self.asset_finder.retrieve_asset(sid=identifier.sid,
-                                                         default_none=True)
-
-            elif hasattr(identifier, '__int__'):
-                asset = self.asset_finder.retrieve_asset(sid=identifier,
-                                                         default_none=True)
-            if asset is None:
-                identifiers_to_build.append(identifier)
-
-        self.trading_environment.write_data(
-            equities_identifiers=identifiers_to_build)
-
-        return self.asset_finder.map_identifier_index_to_sids(
-            identifiers, as_of_date,
-        )
 
     def _create_daily_stats(self, perfs):
         # create daily and cumulative stats dataframe
@@ -642,45 +473,6 @@ class TradingAlgorithm(object):
         return daily_stats
 
     @api_method
-    def add_transform(self, transform, days=None):
-        """
-        Ensures that the history container will have enough size to service
-        a simple transform.
-
-        :Arguments:
-            transform : string
-                The transform to add. must be an element of:
-                {'mavg', 'stddev', 'vwap', 'returns'}.
-            days : int <default=None>
-                The maximum amount of days you will want for this transform.
-                This is not needed for 'returns'.
-        """
-        if transform not in {'mavg', 'stddev', 'vwap', 'returns'}:
-            raise ValueError('Invalid transform')
-
-        if transform == 'returns':
-            if days is not None:
-                raise ValueError('returns does use days')
-
-            self.add_history(2, '1d', 'price')
-            return
-        elif days is None:
-            raise ValueError('no number of days specified')
-
-        if self.sim_params.data_frequency == 'daily':
-            mult = 1
-            freq = '1d'
-        else:
-            mult = 390
-            freq = '1m'
-
-        bars = mult * days
-        self.add_history(bars, freq, 'price')
-
-        if transform == 'vwap':
-            self.add_history(bars, freq, 'volume')
-
-    @api_method
     def get_environment(self, field='platform'):
         env = {
             'arena': self.sim_params.arena,
@@ -694,6 +486,43 @@ class TradingAlgorithm(object):
             return env
         else:
             return env[field]
+
+    @api_method
+    def fetch_csv(self, url,
+                  pre_func=None,
+                  post_func=None,
+                  date_column='date',
+                  date_format=None,
+                  timezone=pytz.utc.zone,
+                  symbol=None,
+                  mask=True,
+                  symbol_column=None,
+                  special_params_checker=None,
+                  **kwargs):
+
+        # Show all the logs every time fetcher is used.
+        csv_data_source = PandasRequestsCSV(
+            url,
+            pre_func,
+            post_func,
+            self.trading_environment,
+            self.sim_params.period_start,
+            self.sim_params.period_end,
+            date_column,
+            date_format,
+            timezone,
+            symbol,
+            mask,
+            symbol_column,
+            data_frequency=self.data_frequency,
+            special_params_checker=special_params_checker,
+            **kwargs
+        )
+
+        # ingest this into dataportal
+        self.data_portal.handle_extra_source(csv_data_source.df)
+
+        return csv_data_source
 
     def add_event(self, rule=None, callback=None):
         """
@@ -738,6 +567,13 @@ class TradingAlgorithm(object):
         positionals = zip(*args)
         for name, value in chain(positionals, iteritems(kwargs)):
             self._recorded_vars[name] = value
+
+    @api_method
+    def set_benchmark(self, benchmark_sid):
+        if self.initialized:
+            raise SetBenchmarkOutsideInitialize()
+
+        self.benchmark_sid = benchmark_sid
 
     @api_method
     @preprocess(symbol_str=ensure_upper_case)
@@ -863,17 +699,6 @@ class TradingAlgorithm(object):
         """
         Place an order using the specified parameters.
         """
-
-        def round_if_near_integer(a, epsilon=1e-4):
-            """
-            Round a to the nearest integer if that integer is within an epsilon
-            of a.
-            """
-            if abs(a - round(a)) <= epsilon:
-                return round(a)
-            else:
-                return a
-
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
@@ -891,7 +716,7 @@ class TradingAlgorithm(object):
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(sid, amount, style)
+        return self.blotter.order(sid, amount, style, dt=self.datetime)
 
     def validate_order_params(self,
                               asset,
@@ -930,7 +755,7 @@ class TradingAlgorithm(object):
         for control in self.trading_controls:
             control.validate(asset,
                              amount,
-                             self.updated_portfolio(),
+                             self.portfolio,
                              self.get_datetime(),
                              self.trading_client.current_data)
 
@@ -961,7 +786,7 @@ class TradingAlgorithm(object):
                     limit_price=None, stop_price=None, style=None):
         """
         Place an order by desired value rather than desired number of shares.
-        If the requested sid is found in the universe, the requested value is
+        If the requested sid exists, the requested value is
         divided by its price to imply the number of shares to transact.
         If the Asset being ordered is a Future, the 'value' calculated
         is actually the exposure, as Futures have no 'value'.
@@ -983,28 +808,24 @@ class TradingAlgorithm(object):
     def recorded_vars(self):
         return copy(self._recorded_vars)
 
+    def updated_portfolio(self):
+        return self.portfolio
+
+    def updated_account(self):
+        return self.account
+
     @property
     def portfolio(self):
-        return self.updated_portfolio()
-
-    def updated_portfolio(self):
-        if self.portfolio_needs_update:
+        if self._portfolio is None:
             self._portfolio = \
-                self.perf_tracker.get_portfolio(self.performance_needs_update)
-            self.portfolio_needs_update = False
-            self.performance_needs_update = False
+                self.perf_tracker.get_portfolio(self.datetime)
         return self._portfolio
 
     @property
     def account(self):
-        return self.updated_account()
-
-    def updated_account(self):
-        if self.account_needs_update:
+        if self._account is None:
             self._account = \
-                self.perf_tracker.get_account(self.performance_needs_update)
-            self.account_needs_update = False
-            self.performance_needs_update = False
+                self.perf_tracker.get_account(self.datetime)
         return self._account
 
     def set_logger(self, logger):
@@ -1025,7 +846,9 @@ class TradingAlgorithm(object):
 
         self.datetime = dt
         self.perf_tracker.set_date(dt)
-        self.blotter.set_date(dt)
+
+        self._portfolio = None
+        self._account = None
 
     @api_method
     def get_datetime(self, tz=None):
@@ -1043,13 +866,6 @@ class TradingAlgorithm(object):
 
         return dt  # datetime.datetime objects are immutable.
 
-    def set_transact(self, transact):
-        """
-        Set the method that will be called to create a
-        transaction from open orders and trade events.
-        """
-        self.blotter.transact = transact
-
     def update_dividends(self, dividend_frame):
         """
         Set DataFrame used to process dividends.  DataFrame columns should
@@ -1063,7 +879,7 @@ class TradingAlgorithm(object):
             raise UnsupportedSlippageModel()
         if self.initialized:
             raise OverrideSlippagePostInit()
-        self.slippage = slippage
+        self.blotter.slippage_func = slippage
 
     @api_method
     def set_commission(self, commission):
@@ -1072,7 +888,7 @@ class TradingAlgorithm(object):
 
         if self.initialized:
             raise OverrideCommissionPostInit()
-        self.commission = commission
+        self.blotter.commission = commission
 
     @api_method
     def set_symbol_lookup_date(self, dt):
@@ -1086,10 +902,6 @@ class TradingAlgorithm(object):
         except ValueError:
             raise UnsupportedDatetimeFormat(input=dt,
                                             method='set_symbol_lookup_date')
-
-    def set_sources(self, sources):
-        assert isinstance(sources, list)
-        self.sources = sources
 
     # Remain backwards compatibility
     @property
@@ -1199,66 +1011,21 @@ class TradingAlgorithm(object):
         if isinstance(order_param, zipline.protocol.Order):
             order_id = order_param.id
 
-        self.blotter.cancel(order_id)
+        self.blotter.cancel(order_id, self.datetime)
 
     @api_method
-    def add_history(self, bar_count, frequency, field, ffill=True):
-        data_frequency = self.sim_params.data_frequency
-        history_spec = HistorySpec(bar_count, frequency, field, ffill,
-                                   data_frequency=data_frequency,
-                                   env=self.trading_environment)
-        self.history_specs[history_spec.key_str] = history_spec
-        if self.initialized:
-            if self.history_container:
-                self.history_container.ensure_spec(
-                    history_spec, self.datetime, self._most_recent_data,
-                )
-            else:
-                self.history_container = self.history_container_class(
-                    self.history_specs,
-                    self.current_universe(),
-                    self.sim_params.first_open,
-                    self.sim_params.data_frequency,
-                    env=self.trading_environment,
-                )
+    def history(self, sids, bar_count, frequency, field, ffill=True):
+        if self.data_portal is None:
+            raise Exception("no data portal!")
 
-    def get_history_spec(self, bar_count, frequency, field, ffill):
-        spec_key = HistorySpec.spec_key(bar_count, frequency, field, ffill)
-        if spec_key not in self.history_specs:
-            data_freq = self.sim_params.data_frequency
-            spec = HistorySpec(
-                bar_count,
-                frequency,
-                field,
-                ffill,
-                data_frequency=data_freq,
-                env=self.trading_environment,
-            )
-            self.history_specs[spec_key] = spec
-            if not self.history_container:
-                self.history_container = self.history_container_class(
-                    self.history_specs,
-                    self.current_universe(),
-                    self.datetime,
-                    self.sim_params.data_frequency,
-                    bar_data=self._most_recent_data,
-                    env=self.trading_environment,
-                )
-            self.history_container.ensure_spec(
-                spec, self.datetime, self._most_recent_data,
-            )
-        return self.history_specs[spec_key]
-
-    @api_method
-    def history(self, bar_count, frequency, field, ffill=True):
-        history_spec = self.get_history_spec(
+        return self.data_portal.get_history_window(
+            sids,
+            self.get_datetime(),
             bar_count,
             frequency,
             field,
-            ffill,
+            ffill
         )
-        return self.history_container.get_history(history_spec, self.datetime)
-
     ####################
     # Account Controls #
     ####################
@@ -1273,8 +1040,8 @@ class TradingAlgorithm(object):
 
     def validate_account_controls(self):
         for control in self.account_controls:
-            control.validate(self.updated_portfolio(),
-                             self.updated_account(),
+            control.validate(self.portfolio,
+                             self.account,
                              self.get_datetime(),
                              self.trading_client.current_data)
 
@@ -1472,9 +1239,6 @@ class TradingAlgorithm(object):
     ##################
     # End Pipeline API
     ##################
-
-    def current_universe(self):
-        return self._current_universe
 
     @classmethod
     def all_api_methods(cls):

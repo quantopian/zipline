@@ -20,6 +20,7 @@ from unittest import TestCase
 from zipline import TradingAlgorithm
 from zipline.test_algorithms import NoopAlgorithm
 from zipline.utils import factory
+from zipline.utils.test_utils import FakeDataPortal
 
 
 class BeforeTradingAlgorithm(TradingAlgorithm):
@@ -29,6 +30,9 @@ class BeforeTradingAlgorithm(TradingAlgorithm):
 
     def before_trading_start(self, data):
         self.before_trading_at.append(self.datetime)
+
+    def handle_data(self, data):
+        pass
 
 
 FREQUENCIES = {'daily': 0, 'minute': 1}  # daily is less frequent than minute
@@ -41,7 +45,7 @@ class TestTradeSimulation(TestCase):
                                                       data_frequency='minute',
                                                       emission_rate='minute')
         algo = NoopAlgorithm(sim_params=params)
-        algo.run(source=[], overwrite_sim_params=False)
+        algo.run(data_portal=FakeDataPortal())
         self.assertEqual(algo.perf_tracker.day_count, 1.0)
 
     @parameterized.expand([('%s_%s_%s' % (num_days, freq, emission_rate),
@@ -57,9 +61,10 @@ class TestTradeSimulation(TestCase):
             emission_rate=emission_rate)
 
         algo = BeforeTradingAlgorithm(sim_params=params)
-        algo.run(source=[], overwrite_sim_params=False)
+        algo.run(data_portal=FakeDataPortal())
 
         self.assertEqual(algo.perf_tracker.day_count, num_days)
+
         self.assertTrue(params.trading_days.equals(
             pd.DatetimeIndex(algo.before_trading_at)),
             "Expected %s but was %s."

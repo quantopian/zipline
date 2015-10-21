@@ -17,9 +17,11 @@ from __future__ import division
 
 import logbook
 import numpy as np
-import pandas as pd
 from pandas.lib import checknull
 from collections import namedtuple
+from zipline.finance.performance.position import Position
+from zipline.finance.transaction import Transaction
+
 try:
     # optional cython based OrderedDict
     from cyordereddict import OrderedDict
@@ -28,7 +30,6 @@ except ImportError:
 from six import iteritems, itervalues
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.finance.slippage import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -121,15 +122,14 @@ def calc_gross_value(long_value, short_value):
     return long_value + abs(short_value)
 
 
-def calc_position_stats(pt):
+def calc_position_stats(positions,
+                        position_value_multipliers,
+                        position_exposure_multipliers):
     amounts = []
     last_sale_prices = []
-    for pos in itervalues(pt.positions):
+    for pos in itervalues(positions):
         amounts.append(pos.amount)
         last_sale_prices.append(pos.last_sale_price)
-
-    position_value_multipliers = pt._position_value_multipliers
-    position_exposure_multipliers = pt._position_exposure_multipliers
 
     position_values = calc_position_values(
         amounts,
@@ -170,8 +170,10 @@ def calc_position_stats(pt):
 
 class PositionTracker(object):
 
-    def __init__(self, asset_finder):
+    def __init__(self, asset_finder, data_portal):
         self.asset_finder = asset_finder
+
+        self._data_portal = data_portal
 
         # sid => position object
         self.positions = positiondict()
@@ -179,9 +181,8 @@ class PositionTracker(object):
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
         self._position_payout_multipliers = OrderedDict()
-        self._unpaid_dividends = pd.DataFrame(
-            columns=zp.DIVIDEND_PAYMENT_FIELDS,
-        )
+        self._unpaid_dividends = {}
+        self._unpaid_stock_dividends = {}
         self._positions_store = zp.Positions()
 
         # Dict, keyed on dates, that contains lists of close position events
@@ -313,7 +314,13 @@ class PositionTracker(object):
         # Update Position
         # ----------------
         sid = txn.sid
-        position = self.positions[sid]
+
+        if sid not in self.positions:
+            position = Position(sid)
+            self.positions[sid] = position
+        else:
+            position = self.positions[sid]
+
         position.update(txn)
         self._update_asset(sid)
 
@@ -323,14 +330,28 @@ class PositionTracker(object):
             self.positions[commission.sid].\
                 adjust_commission_cost_basis(commission)
 
-    def handle_split(self, split):
-        if split.sid in self.positions:
-            # Make the position object handle the split. It returns the
-            # leftover cash from a fractional share, if there is any.
-            position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
-            self._update_asset(split.sid)
-            return leftover_cash
+    def handle_splits(self, splits):
+        """
+        Processes a list of splits by modifying any positions as needed.
+
+        Parameters
+        ----------
+        splits: list
+            A list of splits.  Each split is a tuple of (sid, ratio).
+
+        Returns
+        -------
+        None
+        """
+        for split in splits:
+            sid = split[0]
+            if sid in self.positions:
+                # Make the position object handle the split. It returns the
+                # leftover cash from a fractional share, if there is any.
+                position = self.positions[sid]
+                leftover_cash = position.handle_split(sid, split[1])
+                self._update_asset(split[0])
+                return leftover_cash
 
     def _maybe_earn_dividend(self, dividend):
         """
@@ -343,81 +364,85 @@ class PositionTracker(object):
         else:
             return zp.dividend_payment()
 
-    def earn_dividends(self, dividend_frame):
+    def earn_dividends(self, dividends, stock_dividends):
         """
-        Given a frame of dividends whose ex_dates are all the next trading day,
+        Given a list of dividends whose ex_dates are all the next trading day,
         calculate and store the cash and/or stock payments to be paid on each
         dividend's pay date.
         """
-        earned = dividend_frame.apply(self._maybe_earn_dividend, axis=1)\
-                               .dropna(how='all')
-        if len(earned) > 0:
+        for dividend in dividends:
             # Store the earned dividends so that they can be paid on the
             # dividends' pay_dates.
-            self._unpaid_dividends = pd.concat(
-                [self._unpaid_dividends, earned],
-            )
+            div_owed = self.positions[dividend.sid].earn_dividend(dividend)
+            try:
+                self._unpaid_dividends[dividend.pay_date].append(
+                    div_owed)
+            except KeyError:
+                self._unpaid_dividends[dividend.pay_date] = [div_owed]
 
-    def _maybe_pay_dividend(self, dividend):
-        """
-        Take a historical dividend record, look up any stored record of
-        cash/stock we are owed for that dividend, and return a Series
-        with fields drawn from zipline.protocol.DIVIDEND_PAYMENT_FIELDS.
-        """
-        try:
-            unpaid_dividend = self._unpaid_dividends.loc[dividend['id']]
-            return unpaid_dividend
-        except KeyError:
-            return zp.dividend_payment()
+        for stock_dividend in stock_dividends:
+            div_owed = self.positions[stock_dividend.sid].earn_stock_dividend(
+                stock_dividend)
+            try:
+                self._unpaid_stock_dividends[stock_dividend.pay_date].\
+                    append(div_owed)
+            except KeyError:
+                self._unpaid_stock_dividends[stock_dividend.pay_date] = \
+                    [div_owed]
 
-    def pay_dividends(self, dividend_frame):
+    def pay_dividends(self, next_trading_day):
         """
         Given a frame of dividends whose pay_dates are all the next trading
         day, grant the cash and/or stock payments that were calculated on the
         given dividends' ex dates.
         """
-        payments = dividend_frame.apply(self._maybe_pay_dividend, axis=1)\
-                                 .dropna(how='all')
+        net_cash_payment = 0.0
 
-        # Mark these dividends as paid by dropping them from our unpaid
-        # table.
-        self._unpaid_dividends.drop(payments.index)
+        try:
+            payments = self._unpaid_dividends[next_trading_day]
+            # Mark these dividends as paid by dropping them from our unpaid
+            del self._unpaid_dividends[next_trading_day]
+        except KeyError:
+            payments = []
+
+        # representing the fact that we're required to reimburse the owner of
+        # the stock for any dividends paid while borrowing.
+        for payment in payments:
+            net_cash_payment += payment['amount']
 
         # Add stock for any stock dividends paid.  Again, the values here may
         # be negative in the case of short positions.
-        stock_payments = payments[payments['payment_sid'].notnull()]
-        for _, row in stock_payments.iterrows():
-            stock = row['payment_sid']
-            share_count = row['share_count']
+
+        try:
+            stock_payments = self._unpaid_stock_dividends[next_trading_day]
+        except:
+            stock_payments = []
+
+        for stock_payment in stock_payments:
+            stock = stock_payment['payment_sid']
+            share_count = stock_payment['share_count']
             # note we create a Position for stock dividend if we don't
             # already own the asset
-            position = self.positions[stock]
+            if stock in self.positions:
+                position = self.positions[stock]
+            else:
+                position = self.positions[stock] = Position(stock)
 
             position.amount += share_count
             self._update_asset(stock)
 
-        # Add cash equal to the net cash payed from all dividends.  Note that
-        # "negative cash" is effectively paid if we're short an asset,
-        # representing the fact that we're required to reimburse the owner of
-        # the stock for any dividends paid while borrowing.
-        net_cash_payment = payments['cash_amount'].fillna(0).sum()
         return net_cash_payment
 
     def maybe_create_close_position_transaction(self, event):
-        try:
-            pos = self.positions[event.sid]
-            amount = pos.amount
-            if amount == 0:
-                return None
-        except KeyError:
+        if not self.positions.get(event.sid):
             return None
-        if 'price' in event:
-            price = event.price
-        else:
-            price = pos.last_sale_price
+
+        amount = self.positions.get(event.sid).amount
+        price = self._data_portal.get_spot_value(event.sid, 'close')
+
         txn = Transaction(
             sid=event.sid,
-            amount=(-1 * pos.amount),
+            amount=(-1 * amount),
             dt=event.dt,
             price=price,
             commission=0,
@@ -425,7 +450,7 @@ class PositionTracker(object):
         )
         return txn
 
-    def get_positions(self):
+    def get_positions(self, dt):
 
         positions = self._positions_store
 
@@ -447,7 +472,9 @@ class PositionTracker(object):
             position = positions[sid]
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
-            position.last_sale_price = pos.last_sale_price
+            position.last_sale_price =\
+                self._data_portal.get_spot_value(sid, 'close', dt)
+            position.last_sale_date = pos.last_sale_date
         return positions
 
     def get_positions_list(self):
@@ -457,12 +484,24 @@ class PositionTracker(object):
                 positions.append(pos.to_dict())
         return positions
 
+    def sync_last_sale_prices(self, dt):
+        data_portal = self._data_portal
+        for sid, position in iteritems(self.positions):
+            position.last_sale_price = data_portal.get_spot_value(
+                sid, 'close', dt)
+
+    def stats(self):
+        return calc_position_stats(self.positions,
+                                   self._position_value_multipliers,
+                                   self._position_exposure_multipliers)
+
     def __getstate__(self):
         state_dict = {}
 
         state_dict['asset_finder'] = self.asset_finder
         state_dict['positions'] = dict(self.positions)
         state_dict['unpaid_dividends'] = self._unpaid_dividends
+        state_dict['unpaid_stock_dividends'] = self._unpaid_stock_dividends
         state_dict['auto_close_position_sids'] = self._auto_close_position_sids
 
         STATE_VERSION = 3
@@ -483,6 +522,7 @@ class PositionTracker(object):
         self._positions_store = zp.Positions()
 
         self._unpaid_dividends = state['unpaid_dividends']
+        self._unpaid_stock_dividends = state['unpaid_stock_dividends']
         self._auto_close_position_sids = state['auto_close_position_sids']
 
         # Arrays for quick calculations of positions value
@@ -492,3 +532,6 @@ class PositionTracker(object):
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])
+
+        # FIXME
+        self._data_portal = None

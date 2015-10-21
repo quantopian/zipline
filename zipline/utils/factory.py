@@ -21,7 +21,7 @@ import pytz
 
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
@@ -50,13 +50,13 @@ def create_simulation_parameters(year=2006, start=None, end=None,
         # Construct a complete environment with reasonable defaults
         env = TradingEnvironment(load=noop_load)
     if start is None:
-        start = datetime(year, 1, 1, tzinfo=pytz.utc)
+        start = pd.Timestamp("{0}-01-01".format(year), tz='UTC')
     if end is None:
         if num_days:
             start_index = env.trading_days.searchsorted(start)
             end = env.trading_days[start_index + num_days - 1]
         else:
-            end = datetime(year, 12, 31, tzinfo=pytz.utc)
+            end = pd.Timestamp("{0}-12-31".format(year), tz='UTC')
     sim_params = SimulationParameters(
         period_start=start,
         period_end=end,
