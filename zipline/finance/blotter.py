@@ -18,6 +18,7 @@ from logbook import Logger
 from collections import defaultdict
 
 import pandas as pd
+from six import iteritems
 
 from zipline.finance.order import Order
 
@@ -217,7 +218,7 @@ class Blotter(object):
         closed_orders = []
         transactions = []
 
-        for asset, asset_orders in self.open_orders.iteritems():
+        for asset, asset_orders in iteritems(self.open_orders):
             price = self.data_portal.get_spot_value(
                 asset, 'close', current_dt)
 
@@ -255,7 +256,7 @@ class Blotter(object):
 
         # now clear out the sids from our open_orders dict that have
         # zero open orders
-        for sid in self.open_orders.keys():
+        for sid in list(self.open_orders.keys()):
             if len(self.open_orders[sid]) == 0:
                 del self.open_orders[sid]
 

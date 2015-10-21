@@ -34,11 +34,15 @@ class TestDataPortal(TestCase):
             df = pd.DataFrame({
                 # one missing bar, then 200 bars of real data,
                 # then 1.5 days of missing data
-                "open": np.array([0] + range(0, 200) + [0] * 579) * 1000,
-                "high": np.array([0] + range(1000, 1200) + [0] * 579) * 1000,
-                "low": np.array([0] + range(2000, 2200) + [0] * 579) * 1000,
-                "close": np.array([0] + range(3000, 3200) + [0] * 579) * 1000,
-                "volume": [0] + range(4000, 4200) + [0] * 579,
+                "open": np.array([0] + list(range(0, 200)) + [0] * 579) \
+                        * 1000,
+                "high": np.array([0] + list(range(1000, 1200)) + [0] * 579) \
+                        * 1000,
+                "low": np.array([0] + list(range(2000, 2200)) + [0] * 579) \
+                       * 1000,
+                "close": np.array([0] + list(range(3000, 3200)) + [0] * 579) \
+                         * 1000,
+                "volume": [0] + list(range(4000, 4200)) + [0] * 579,
                 "minute": minutes
             })
 
@@ -93,11 +97,11 @@ class TestDataPortal(TestCase):
             # first bar is missing.  then 8 real bars.  then 8 more missing
             # bars.
             df = pd.DataFrame({
-                "open": [0] + range(0, 8) + [0] * 8,
-                "high": [0] + range(10, 18) + [0] * 8,
-                "low": [0] + range(20, 28) + [0] * 8,
-                "close": [0] + range(30, 38) + [0] * 8,
-                "volume": [0] + range(40, 48) + [0] * 8,
+                "open": [0] + list(range(0, 8)) + [0] * 8,
+                "high": [0] + list(range(10, 18)) + [0] * 8,
+                "low": [0] + list(range(20, 28)) + [0] * 8,
+                "close": [0] + list(range(30, 38)) + [0] * 8,
+                "volume": [0] + list(range(40, 48)) + [0] * 8,
                 "day": [day.value for day in days]
             }, index=days)
 
