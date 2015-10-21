@@ -307,7 +307,7 @@ class Never(StatelessRule):
 class AfterOpen(StatelessRule):
     """
     A rule that triggers for some offset after the market opens.
-    Example that triggers triggers after 30 minutes of the market opening:
+    Example that triggers after 30 minutes of the market opening:
 
     >>> AfterOpen(minutes=30)
     """
@@ -318,21 +318,29 @@ class AfterOpen(StatelessRule):
             datetime.timedelta(minutes=1),  # Defaults to the first minute.
         )
 
-        self._dt = None
+        self._next_period_start = None
+        self._next_period_end = None
+
+        self._one_minute = datetime.timedelta(minutes=1)
+
+    def calculate_dates(self, dt, env):
+        # given a dt, find that day's open and period end (open + offset)
+        self._next_period_start = env.get_open_and_close(dt)[0]
+        self._next_period_end = \
+            self._next_period_start + self.offset - self._one_minute
 
     def should_trigger(self, dt, env):
-        dt = pd.Timestamp(dt, tz='UTC')
-        return self._get_open(dt, env) + self.offset <= dt
+        if self._next_period_start is None:
+            self.calculate_dates(dt, env)
 
-    def _get_open(self, dt, env):
-        """
-        Cache the open for each day.
-        """
-        if self._dt is None or (self._dt.date() != dt.date()):
-            self._dt = env.get_open_and_close(dt)[0] \
-                - datetime.timedelta(minutes=1)
+        if self._next_period_start <= dt < self._next_period_end:
+            # haven't made it past the offset yet
+            return False
+        else:
+            if dt >= self._next_period_end:
+                self.calculate_dates(env.next_trading_day(dt), env)
 
-        return self._dt
+            return True
 
 
 class BeforeClose(StatelessRule):
@@ -349,19 +357,28 @@ class BeforeClose(StatelessRule):
             datetime.timedelta(minutes=1),  # Defaults to the last minute.
         )
 
-        self._dt = None
+        self._next_period_start = None
+        self._next_period_end = None
+
+        self._one_minute = datetime.timedelta(minutes=1)
+
+    def calculate_dates(self, dt, env):
+        # given a dt, find that day's close and period start (close - offset)
+        self._next_period_end = env.get_open_and_close(dt)[1]
+        self._next_period_start = \
+            self._next_period_end - self.offset - self._one_minute
 
     def should_trigger(self, dt, env):
-        return self._get_close(dt, env) - self.offset <= dt
+        if self._next_period_start is None:
+            self.calculate_dates(dt, env)
 
-    def _get_close(self, dt, env):
-        """
-        Cache the close for each day.
-        """
-        if self._dt is None or (self._dt.date() != dt.date()):
-            self._dt = env.get_open_and_close(dt)[1]
+        if dt <= self._next_period_start:
+            return False
+        else:
+            if dt > self._next_period_end:
+                self.calculate_dates(env.next_trading_day(dt), env)
 
-        return self._dt
+            return True
 
 
 class NotHalfDay(StatelessRule):
