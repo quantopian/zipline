@@ -34,14 +34,14 @@ class TestDataPortal(TestCase):
             df = pd.DataFrame({
                 # one missing bar, then 200 bars of real data,
                 # then 1.5 days of missing data
-                "open": np.array([0] + list(range(0, 200)) + [0] * 579) \
-                        * 1000,
-                "high": np.array([0] + list(range(1000, 1200)) + [0] * 579) \
-                        * 1000,
-                "low": np.array([0] + list(range(2000, 2200)) + [0] * 579) \
-                       * 1000,
-                "close": np.array([0] + list(range(3000, 3200)) + [0] * 579) \
-                         * 1000,
+                "open": np.array([0] + list(range(0, 200)) + [0] * 579)
+                * 1000,
+                "high": np.array([0] + list(range(1000, 1200)) + [0] * 579)
+                * 1000,
+                "low": np.array([0] + list(range(2000, 2200)) + [0] * 579)
+                * 1000,
+                "close": np.array([0] + list(range(3000, 3200)) + [0] * 579)
+                * 1000,
                 "volume": [0] + list(range(4000, 4200)) + [0] * 579,
                 "minute": minutes
             })

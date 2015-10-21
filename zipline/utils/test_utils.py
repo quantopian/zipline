@@ -27,7 +27,6 @@ from logbook import FileHandler
 from mock import patch
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
-import operator
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
 from zipline.finance.order import ORDER_STATUS
