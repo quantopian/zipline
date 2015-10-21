@@ -208,7 +208,6 @@ class Position(object):
         return "Position({0})".format(self.__dict__)
 
     def __getstate__(self):
-
         state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
@@ -240,12 +239,9 @@ class BarData(object):
     Holds the event data for all sids for a given dt.
 
     This is what is passed as `data` to the `handle_data` function.
-
-    Note: Many methods are analogues of dictionary because of historical
-    usage of what this replaced as a dictionary subclass.
     """
 
-    def __init__(self, data=None, data_portal=None):
+    def __init__(self, data_portal=None):
         self.data_portal = data_portal or {}
 
     def __getitem__(self, name):
@@ -254,3 +250,7 @@ class BarData(object):
     def __iter__(self):
         raise TypeError('%r object is not iterable'
                         % self.__class__.__name__)
+
+    @property
+    def fetcher_assets(self):
+        return self.data_portal.get_fetcher_assets()

@@ -101,6 +101,7 @@ class DataPortal(object):
         self.asset_end_dates = {}
 
         self.augmented_sources_map = {}
+        self.fetcher_df = None
 
         self.sim_params = sim_params
         if self.sim_params is not None:
@@ -117,6 +118,8 @@ class DataPortal(object):
         """
         if source_df is None:
             return
+
+        self.fetcher_df = source_df
 
         # source_df's sid column can either consist of assets we know about
         # (such as sid(24)) or of assets we don't know about (such as
@@ -999,6 +1002,44 @@ class DataPortal(object):
         return field in BASE_FIELDS or \
             (field in self.augmented_sources_map and
              asset in self.augmented_sources_map[field])
+
+    def get_fetcher_assets(self):
+        """
+        Returns a list of assets for the current date, as defined by the
+        fetcher data.
+
+        Notes
+        -----
+        Data is forward-filled.  If there is no fetcher data defined for day
+        N, we use day N-1's data (if available, otherwise we keep going back).
+
+        Returns
+        -------
+        list: a list of Asset objects.
+        """
+        # return a list of assets for the current date, as defined by the
+        # fetcher source
+        if self.fetcher_df is None:
+            return []
+
+        if self.current_day in self.fetcher_df.index:
+            date_to_use = self.current_day
+        else:
+            # current day isn't in the fetcher df, go back the last
+            # available day
+            idx = self.fetcher_df.index.searchsorted(self.current_day)
+            if idx == 0:
+                return []
+
+            date_to_use = self.fetcher_df.index[idx - 1]
+
+        asset_list = self.fetcher_df.loc[date_to_use]["sid"]
+
+        # make sure they're actually assets
+        asset_list = [asset for asset in asset_list
+                      if isinstance(asset, Asset)]
+
+        return asset_list
 
 
 class DataPortalSidView(object):
