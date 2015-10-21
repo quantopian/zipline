@@ -655,15 +655,15 @@ class SQLiteAdjustmentWriter(object):
             sid = sids[i]
             ex_date = ex_dates[i]
             day_loc = calendar.get_loc(ex_date)
-            div_adj_date = calendar[day_loc - 1]
+            prev_close_date = calendar[day_loc - 1]
             try:
                 prev_close = daily_bar_reader.spot_price(
-                    sid, div_adj_date, 'close')
+                    sid, prev_close_date, 'close')
                 if prev_close != 0.0:
                     ratio = 1.0 - amount / prev_close
                     ratios[i] = ratio
                     # only assign effective_date when data is found
-                    effective_dates[i] = div_adj_date.value
+                    effective_dates[i] = ex_date
             except NoDataOnDate:
                 logger.warn("Couldn't compute ratio for dividend %s" % {
                     'sid': sid,

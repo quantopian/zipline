@@ -15,29 +15,13 @@ from zipline.errors import (
     WindowLengthNotSpecified,
 )
 from zipline.utils.memoize import lazyval
+from zipline.utils.sentinel import sentinel
 
 
-@object.__new__   # bind a single instance to the name 'NotSpecified'
-class NotSpecified(object):
-    """
-    Singleton sentinel value used for Term defaults.
-    """
-    __slots__ = ('__weakref__',)
-
-    def __new__(cls):
-        raise TypeError("Can't construct new instances of NotSpecified")
-
-    def __repr__(self):
-        return type(self).__name__
-
-    def __reduce__(self):
-        return type(self).__name__
-
-    def __deepcopy__(self, _memo):
-        return self
-
-    def __copy__(self):
-        return self
+NotSpecified = sentinel(
+    'NotSpecified',
+    'Singleton sentinel value used for Term defaults.',
+)
 
 
 class Term(with_metaclass(ABCMeta, object)):

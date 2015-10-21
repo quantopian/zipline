@@ -95,7 +95,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
 
     # Note that row indices are inclusive!
     adjustments[1] = [
-        adjustment_type(0, 0, 0, dtype(2)),
+        adjustment_type(0, 0, 0, 0, dtype(2)),
     ]
     buffer_as_of[1] = array([[2, 1, 1],
                              [1, 1, 1],
@@ -108,8 +108,8 @@ def _gen_multiplicative_adjustment_cases(dtype):
     buffer_as_of[2] = buffer_as_of[1]
 
     adjustments[3] = [
-        adjustment_type(1, 2, 1, dtype(3)),
-        adjustment_type(0, 1, 0, dtype(4)),
+        adjustment_type(1, 2, 1, 1, dtype(3)),
+        adjustment_type(0, 1, 0, 0, dtype(4)),
     ]
     buffer_as_of[3] = array([[8, 1, 1],
                              [4, 3, 1],
@@ -119,7 +119,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
                              [1, 1, 1]], dtype=dtype)
 
     adjustments[4] = [
-        adjustment_type(0, 3, 2, dtype(5))
+        adjustment_type(0, 3, 2, 2, dtype(5))
     ]
     buffer_as_of[4] = array([[8, 1, 5],
                              [4, 3, 5],
@@ -129,8 +129,8 @@ def _gen_multiplicative_adjustment_cases(dtype):
                              [1, 1, 1]], dtype=dtype)
 
     adjustments[5] = [
-        adjustment_type(0, 4, 1, dtype(6)),
-        adjustment_type(2, 2, 2, dtype(7)),
+        adjustment_type(0, 4, 1, 1, dtype(6)),
+        adjustment_type(2, 2, 2, 2, dtype(7)),
     ]
     buffer_as_of[5] = array([[8,  6,  5],
                              [4, 18,  5],
@@ -162,7 +162,7 @@ def _gen_overwrite_adjustment_cases(dtype):
 
     # Note that row indices are inclusive!
     adjustments[1] = [
-        adjustment_type(0, 0, 0, dtype(1)),
+        adjustment_type(0, 0, 0, 0, dtype(1)),
     ]
     buffer_as_of[1] = array([[1, 2, 2],
                              [2, 2, 2],
@@ -175,8 +175,8 @@ def _gen_overwrite_adjustment_cases(dtype):
     buffer_as_of[2] = buffer_as_of[1]
 
     adjustments[3] = [
-        adjustment_type(1, 2, 1, dtype(3)),
-        adjustment_type(0, 1, 0, dtype(4)),
+        adjustment_type(1, 2, 1, 1, dtype(3)),
+        adjustment_type(0, 1, 0, 0, dtype(4)),
     ]
     buffer_as_of[3] = array([[4, 2, 2],
                              [4, 3, 2],
@@ -186,7 +186,7 @@ def _gen_overwrite_adjustment_cases(dtype):
                              [2, 2, 2]], dtype=dtype)
 
     adjustments[4] = [
-        adjustment_type(0, 3, 2, dtype(5))
+        adjustment_type(0, 3, 2, 2, dtype(5))
     ]
     buffer_as_of[4] = array([[4, 2, 5],
                              [4, 3, 5],
@@ -196,8 +196,8 @@ def _gen_overwrite_adjustment_cases(dtype):
                              [2, 2, 2]], dtype=dtype)
 
     adjustments[5] = [
-        adjustment_type(0, 4, 1, dtype(6)),
-        adjustment_type(2, 2, 2, dtype(7)),
+        adjustment_type(0, 4, 1, 1, dtype(6)),
+        adjustment_type(2, 2, 2, 2, dtype(7)),
     ]
     buffer_as_of[5] = array([[4,  6,  5],
                              [4,  6,  5],

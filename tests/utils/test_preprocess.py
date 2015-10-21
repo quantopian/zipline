@@ -6,7 +6,11 @@ from unittest import TestCase
 from nose_parameterized import parameterized
 
 from zipline.utils.preprocess import call, preprocess
-from zipline.utils.input_validation import expect_types, optional
+from zipline.utils.input_validation import (
+    expect_element,
+    expect_types,
+    optional,
+)
 
 
 def noop(func, argname, argvalue):
@@ -224,4 +228,23 @@ class PreprocessTestCase(TestCase):
             "{modname}.foo() expected a value of "
             "type int or NoneType for argument 'a', but got str instead."
         ).format(modname=foo.__module__)
+        self.assertEqual(e.exception.args[0], expected_message)
+
+    def test_expect_element(self):
+        set_ = {'a', 'b'}
+
+        @expect_element(a=set_)
+        def f(a):
+            return a
+
+        self.assertEqual(f('a'), 'a')
+        self.assertEqual(f('b'), 'b')
+
+        with self.assertRaises(ValueError) as e:
+            f('c')
+
+        expected_message = (
+            "{modname}.f() expected a value in {set_!r}"
+            " for argument 'a', but got 'c' instead."
+        ).format(set_=set_, modname=f.__module__)
         self.assertEqual(e.exception.args[0], expected_message)

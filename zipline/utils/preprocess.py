@@ -2,12 +2,32 @@
 Utilities for validating inputs to user-facing API functions.
 """
 from textwrap import dedent
+from types import CodeType
 from functools import wraps
 from inspect import getargspec
 from uuid import uuid4
 
-from six import viewkeys, exec_
+from toolz.curried.operator import getitem
+from six import viewkeys, exec_, PY3
 
+
+_code_argorder = (
+    ('co_argcount', 'co_kwonlyargcount') if PY3 else ('co_argcount',)
+) + (
+    'co_nlocals',
+    'co_stacksize',
+    'co_flags',
+    'co_code',
+    'co_consts',
+    'co_names',
+    'co_varnames',
+    'co_filename',
+    'co_name',
+    'co_firstlineno',
+    'co_lnotab',
+    'co_freevars',
+    'co_cellvars',
+)
 
 NO_DEFAULT = object()
 
@@ -169,7 +189,7 @@ def _build_preprocessed_function(func, processors, args_defaults):
         call_args.append(arg + '=' + arg)
 
     exec_str = dedent(
-        """
+        """\
         @wraps({wrapped_funcname})
         def {func_name}({signature}):
             {assignments}
@@ -190,4 +210,31 @@ def _build_preprocessed_function(func, processors, args_defaults):
 
     exec_locals = {}
     exec_(compiled, exec_globals, exec_locals)
-    return exec_locals[func.__name__]
+    new_func = exec_locals[func.__name__]
+
+    code = new_func.__code__
+    args = {
+        attr: getattr(code, attr)
+        for attr in dir(code)
+        if attr.startswith('co_')
+    }
+    # Copy the firstlineno out of the underlying function so that exceptions
+    # get raised with the correct traceback.
+    # This also makes dynamic source inspection (like IPython `??` operator)
+    # work as intended.
+    try:
+        # Try to get the pycode object from the underlying function.
+        original_code = func.__code__
+    except AttributeError:
+        try:
+            # The underlying callable was not a function, try to grab the
+            # `__func__.__code__` which exists on method objects.
+            original_code = func.__func__.__code__
+        except AttributeError:
+            # The underlying callable does not have a `__code__`. There is
+            # nothing for us to correct.
+            return new_func
+
+    args['co_firstlineno'] = original_code.co_firstlineno
+    new_func.__code__ = CodeType(*map(getitem(args), _code_argorder))
+    return new_func

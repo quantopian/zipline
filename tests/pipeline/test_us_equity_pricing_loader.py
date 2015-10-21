@@ -175,43 +175,43 @@ DIVIDENDS = DataFrame(
     [
         # Before query range, should be excluded.
         {'declared_date': Timestamp('2015-05-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-02', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
          'record_date': Timestamp('2015-06-03', tz='UTC').to_datetime64(),
          'pay_date': Timestamp('2015-06-05', tz='UTC').to_datetime64(),
          'amount': 90.0,
          'sid': 1},
         # First day of query range, should be excluded.
         {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-11', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-10', tz='UTC').to_datetime64(),
          'record_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
          'pay_date': Timestamp('2015-06-17', tz='UTC').to_datetime64(),
          'amount': 80.0,
          'sid': 3},
         # Third day of query range, should have last_row of 2
         {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-16', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-12', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
          'pay_date': Timestamp('2015-06-17', tz='UTC').to_datetime64(),
          'amount': 70.0,
          'sid': 3},
         # After query range, should be excluded.
         {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-26', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-25', tz='UTC').to_datetime64(),
          'record_date': Timestamp('2015-06-28', tz='UTC').to_datetime64(),
          'pay_date': Timestamp('2015-06-30', tz='UTC').to_datetime64(),
          'amount': 60.0,
          'sid': 6},
         # Another action in query range, should have last_row of 3
         {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-16', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-15', tz='UTC').to_datetime64(),
          'record_date': Timestamp('2015-06-18', tz='UTC').to_datetime64(),
          'pay_date': Timestamp('2015-06-20', tz='UTC').to_datetime64(),
          'amount': 50.0,
          'sid': 3},
         # Last day of range.  Should have last_row of 7
         {'declared_date': Timestamp('2015-06-01', tz='UTC').to_datetime64(),
-         'ex_date': Timestamp('2015-06-22', tz='UTC').to_datetime64(),
-         'record_date': Timestamp('2015-06-23', tz='UTC').to_datetime64(),
+         'ex_date': Timestamp('2015-06-19', tz='UTC').to_datetime64(),
+         'record_date': Timestamp('2015-06-22', tz='UTC').to_datetime64(),
          'pay_date': Timestamp('2015-06-30', tz='UTC').to_datetime64(),
          'amount': 40.0,
          'sid': 3},
@@ -337,7 +337,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                     Float64Multiply(
                         first_row=0,
                         last_row=delta,
-                        col=sid - 1,
+                        first_col=sid - 1,
+                        last_col=sid - 1,
                         value=ratio,
                     )
                 )
@@ -347,7 +348,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                         Float64Multiply(
                             first_row=0,
                             last_row=delta,
-                            col=sid - 1,
+                            first_col=sid - 1,
+                            last_col=sid - 1,
                             value=1.0 / ratio,
                         )
                     )
@@ -378,7 +380,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                 expected = expected_close_adjustments[key][j]
                 self.assertEqual(adj.first_row, expected.first_row)
                 self.assertEqual(adj.last_row, expected.last_row)
-                self.assertEqual(adj.col, expected.col)
+                self.assertEqual(adj.first_col, expected.first_col)
+                self.assertEqual(adj.last_col, expected.last_col)
                 assert_allclose(adj.value, expected.value)
 
         for key in expected_volume_adjustments:
@@ -387,7 +390,8 @@ class USEquityPricingLoaderTestCase(TestCase):
                 expected = expected_volume_adjustments[key][j]
                 self.assertEqual(adj.first_row, expected.first_row)
                 self.assertEqual(adj.last_row, expected.last_row)
-                self.assertEqual(adj.col, expected.col)
+                self.assertEqual(adj.first_col, expected.first_col)
+                self.assertEqual(adj.last_col, expected.last_col)
                 assert_allclose(adj.value, expected.value)
 
     def test_read_no_adjustments(self):
