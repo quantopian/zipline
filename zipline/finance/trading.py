@@ -340,21 +340,37 @@ class TradingEnvironment(object):
     def next_market_minute(self, start):
         """
         Get the next market minute after @start. This is either the immediate
-        next minute, or the open of the next market day after start.
+        next minute, the open of the same day if @start is before the market
+        open on a trading day, or the open of the next market day after @start.
         """
-        next_minute = start + datetime.timedelta(minutes=1)
-        if self.is_market_hours(next_minute):
-            return next_minute
+        if self.is_trading_day(start):
+            market_open, market_close = self.get_open_and_close(start)
+            # If start before market open on a trading day, return market open.
+            if start < market_open:
+                return market_open
+            # If start is during trading hours, then get the next minute.
+            elif start < market_close:
+                return start + datetime.timedelta(minutes=1)
+        # If start is not in a trading day, or is after the market close
+        # then return the open of the *next* trading day.
         return self.next_open_and_close(start)[0]
 
     def previous_market_minute(self, start):
         """
         Get the next market minute before @start. This is either the immediate
-        previous minute, or the close of the market day before start.
+        previous minute, the close of the same day if @start is after the close
+        on a trading day, or the close of the market day before @start.
         """
-        prev_minute = start - datetime.timedelta(minutes=1)
-        if self.is_market_hours(prev_minute):
-            return prev_minute
+        if self.is_trading_day(start):
+            market_open, market_close = self.get_open_and_close(start)
+            # If start after the market close, return market close.
+            if start > market_close:
+                return market_close
+            # If start is during trading hours, then get previous minute.
+            if start > market_open:
+                return start - datetime.timedelta(minutes=1)
+        # If start is not a trading day, or is before the market open
+        # then return the close of the *previous* trading day.
         return self.previous_open_and_close(start)[1]
 
     def get_open_and_close(self, day):
