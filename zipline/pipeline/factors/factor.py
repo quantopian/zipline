@@ -239,6 +239,10 @@ class Factor(CompositeTerm):
         ascending : bool, optional
             Whether to return sorted rank in ascending or descending order.
             Default is True.
+        mask : zipline.pipeline.Filter, optional
+            A Filter representing assets to consider when computing ranks.
+            If mask is supplied, ranks are computed ignoring any asset/date
+            pairs for which `mask` produces a value of False.
 
         Returns
         -------
@@ -271,8 +275,10 @@ class Factor(CompositeTerm):
         ----------
         N : int
             Number of assets passing the returned filter each day.
-        mask : zipline.pipeline.Filter
-            Filter to apply as a mask before computing top values.
+        mask : zipline.pipeline.Filter, optional
+            A Filter representing assets to consider when computing ranks.
+            If mask is supplied, top values are computed ignoring any
+            asset/date pairs for which `mask` produces a value of False.
 
         Returns
         -------
@@ -288,8 +294,10 @@ class Factor(CompositeTerm):
         ----------
         N : int
             Number of assets passing the returned filter each day.
-        mask : zipline.pipeline.filters.Filter
-            Filter to apply as a mask before computing bottom values.
+        mask : zipline.pipeline.Filter, optional
+            A Filter representing assets to consider when computing ranks.
+            If mask is supplied, bottom values are computed ignoring any
+            asset/date pairs for which `mask` produces a value of False.
 
         Returns
         -------
@@ -309,7 +317,15 @@ class Factor(CompositeTerm):
         Parameters
         ----------
         min_percentile : float [0.0, 100.0]
+            Return True for assets falling above this percentile in the data.
         max_percentile : float [0.0, 100.0]
+            Return True for assets falling below this percentile in the data.
+        mask : zipline.pipeline.Filter, optional
+            A Filter representing assets to consider when percentile
+            thresholds.  If mask is supplied, percentile cutoffs are computed
+            each day using only assets for which `mask` returns True, and
+            assets not passing `mask` will produce False in the output of this
+            filter as well.
 
         Returns
         -------
