@@ -72,17 +72,17 @@ def get_cache_filepath(name):
     return os.path.join(cr, name)
 
 
-def dump_treasury_curves(module='treasuries', filename='treasury_curves.csv'):
+def dump_treasury_curves(module_name, filename):
     """
     Dumps data to be used with zipline.
 
     Puts source treasury and data into zipline.
     """
     try:
-        m = importlib.import_module("." + module, package='zipline.data')
+        m = importlib.import_module("." + module_name, package='zipline.data')
     except ImportError:
         raise NotImplementedError(
-            'Treasury curve {0} module not implemented'.format(module))
+            'Treasury curve {0} module not implemented'.format(module_name))
 
     tr_data = {}
 
