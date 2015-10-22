@@ -42,15 +42,10 @@ def format_yahoo_index_url(symbol, start_date, end_date):
     )
 
 
-def get_benchmark_returns(symbol, start_date=None, end_date=None):
+def get_benchmark_returns(symbol, start_date, end_date):
     """
     Get a Series of benchmark returns from Yahoo.
     """
-    if start_date is None:
-        start_date = pd.Timestamp(0, tz='UTC')
-    if end_date is None:
-        end_date = pd.Timestamp('now', tz='UTC')
-
     data = pd.read_csv(
         format_yahoo_index_url(symbol, start_date, end_date),
         parse_dates=['Date'],
