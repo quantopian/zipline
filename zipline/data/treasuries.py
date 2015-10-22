@@ -26,9 +26,10 @@ def parse_treasury_csv_column(column):
     """
     Parse a treasury CSV column into a more human-readable format.
 
-    Columns are start with 'RIFLGFC', followed by Y or M (year or month),
-    followed by a two-digit number, followed by _N.B.  We only care about the
-    middle two entries which we turn into a string like 3month or 30year.
+    Columns start with 'RIFLGFC', followed by Y or M (year or month), followed
+    by a two-digit number signifying number of years/months, followed by _N.B.
+    We only care about the middle two entries, which we turn into a string like
+    3month or 30year.
     """
     column_re = re.compile(
         r"^(?P<prefix>RIFLGFC)"
