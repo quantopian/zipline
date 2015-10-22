@@ -10,6 +10,7 @@ from numpy import (
     full,
 )
 from numpy.testing import assert_array_equal
+from pandas import date_range, Timestamp
 from six.moves import zip_longest
 
 from zipline.lib.adjustment import (
@@ -47,10 +48,15 @@ def valid_window_lengths(underlying_buffer_length):
     return iter(range(1, underlying_buffer_length + 1))
 
 
+def sample_dates(length):
+    return date_range('2014', freq='d', periods=length).values
+
+
 def _gen_unadjusted_cases(dtype):
 
     nrows = 6
     ncols = 3
+    dates = sample_dates(nrows)
     data = arange(nrows * ncols, dtype=dtype).reshape(nrows, ncols)
 
     for windowlen in valid_window_lengths(nrows):
@@ -62,12 +68,19 @@ def _gen_unadjusted_cases(dtype):
         yield (
             "length_%d" % windowlen,
             data,
+            dates,
             windowlen,
             {},
-            [
-                data[offset:offset + windowlen]
-                for offset in range(num_legal_windows)
-            ],
+            zip(
+                [
+                    dates[offset:offset + windowlen]
+                    for offset in range(num_legal_windows)
+                ],
+                [
+                    data[offset:offset + windowlen]
+                    for offset in range(num_legal_windows)
+                ],
+            )
         )
 
 
@@ -216,6 +229,7 @@ def _gen_overwrite_adjustment_cases(dtype):
 
 def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
 
+    dates = sample_dates(nrows)
     for windowlen in valid_window_lengths(nrows):
 
         num_legal_windows = num_windows_of_length_M_on_buffers_of_length_N(
@@ -225,78 +239,84 @@ def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
         yield (
             "length_%d" % windowlen,
             baseline,
+            dates,
             windowlen,
             adjustments,
-            [
-                # This is a nasty expression...
-                #
-                # Reading from right to left: we want a slice of length
-                # 'windowlen', starting at 'offset', from the buffer on which
-                # we've applied all adjustments corresponding to the last row
-                # of the data, which will be (offset + windowlen - 1).
-                buffer_as_of[offset + windowlen - 1][offset:offset + windowlen]
-                for offset in range(num_legal_windows)
-            ],
+            zip(
+                [
+                    dates[offset: offset + windowlen]
+                    for offset in range(num_legal_windows)
+                ],
+                [
+                    # This is a nasty expression...
+                    #
+                    # Reading from right to left: we want a slice of length
+                    # 'windowlen', starting at 'offset', from the buffer on
+                    # which we've applied all adjustments corresponding to
+                    # the last row of the data, which will be
+                    # (offset + windowlen - 1)
+                    buffer_as_of[offset + windowlen - 1][offset:offset + windowlen]  # noqa
+                    for offset in range(num_legal_windows)
+                ],
+            )
         )
 
 
 class AdjustedArrayTestCase(TestCase):
 
-    @parameterized.expand(_gen_unadjusted_cases(float))
-    def test_no_adjustments(self,
-                            name,
-                            data,
-                            lookback,
-                            adjustments,
-                            expected):
+    @staticmethod
+    def _check_adj_array(data, dates, lookback, adjustments, expected):
         array = adjusted_array(
             data,
+            dates,
             NOMASK,
             adjustments,
         )
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
-            window_iter = array.traverse(lookback)
-            for yielded, expected_yield in zip_longest(window_iter, expected):
-                assert_array_equal(yielded, expected_yield)
+            window_iter = zip_longest(array.traverse(lookback), expected)
+            for (dates, data), (exp_dates, exp_data) in window_iter:
+                assert_array_equal(dates, exp_dates)
+                assert_array_equal(data, exp_data)
+
+    @parameterized.expand(_gen_unadjusted_cases(float))
+    def test_no_adjustments(self,
+                            name,
+                            data,
+                            dates,
+                            lookback,
+                            adjustments,
+                            expected):
+        self._check_adj_array(data, dates, lookback, adjustments, expected)
 
     @parameterized.expand(_gen_multiplicative_adjustment_cases(float))
     def test_multiplicative_adjustments(self,
                                         name,
                                         data,
+                                        dates,
                                         lookback,
                                         adjustments,
                                         expected):
-        array = adjusted_array(
-            data,
-            NOMASK,
-            adjustments,
-        )
-        for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
-            window_iter = array.traverse(lookback)
-            for yielded, expected_yield in zip_longest(window_iter, expected):
-                assert_array_equal(yielded, expected_yield)
+        self._check_adj_array(data, dates, lookback, adjustments, expected)
 
     @parameterized.expand(_gen_overwrite_adjustment_cases(float))
     def test_overwrite_adjustment_cases(self,
                                         name,
                                         data,
+                                        dates,
                                         lookback,
                                         adjustments,
                                         expected):
-        array = adjusted_array(
-            data,
-            NOMASK,
-            adjustments,
-        )
-        for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
-            window_iter = array.traverse(lookback)
-            for yielded, expected_yield in zip_longest(window_iter, expected):
-                assert_array_equal(yielded, expected_yield)
+        self._check_adj_array(data, dates, lookback, adjustments, expected)
 
     def test_invalid_lookback(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = adjusted_array(data, NOMASK, {})
+        adj_array = adjusted_array(
+            data,
+            sample_dates(data.shape[0]),
+            NOMASK,
+            {},
+        )
 
         with self.assertRaises(WindowLengthTooLong):
             adj_array.traverse(7)
@@ -310,11 +330,18 @@ class AdjustedArrayTestCase(TestCase):
     def test_array_views_arent_writable(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = adjusted_array(data, NOMASK, {})
+        adj_array = adjusted_array(
+            data,
+            sample_dates(data.shape[0]),
+            NOMASK,
+            {},
+        )
 
-        for frame in adj_array.traverse(3):
+        for dates, data in adj_array.traverse(3):
             with self.assertRaises(ValueError):
-                frame[0, 0] = 5.0
+                data[0, 0] = 5.0
+            with self.assertRaises(ValueError):
+                dates[0] = Timestamp('2014').asm8
 
     def test_bad_input(self):
         msg = "Mask shape \(2, 3\) != data shape \(5, 5\)"
@@ -322,4 +349,4 @@ class AdjustedArrayTestCase(TestCase):
         bad_mask = array([[0, 1, 1], [0, 0, 1]], dtype=bool)
 
         with self.assertRaisesRegexp(ValueError, msg):
-            adjusted_array(data, bad_mask, {})
+            adjusted_array(data, sample_dates(data.shape[0]), bad_mask, {})

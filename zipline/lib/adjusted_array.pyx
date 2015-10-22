@@ -8,6 +8,7 @@ from cpython cimport (
 from numpy import (
     asarray,
     bool_,
+    datetime64,
     float64,
     full,
     uint8,
@@ -16,6 +17,7 @@ from numpy cimport (
     float64_t,
     ndarray,
     uint8_t,
+    int64_t,
 )
 
 from zipline.errors import (
@@ -56,7 +58,7 @@ def ensure_ndarray(ndarray_or_adjusted_array):
         )
 
 
-cpdef adjusted_array(ndarray data, ndarray mask, dict adjustments):
+cpdef adjusted_array(ndarray data, ndarray dates, ndarray mask, dict adjustments):
     """
     Factory function for producing adjusted arrays on inputs of different
     dtypes.
@@ -73,7 +75,10 @@ cpdef adjusted_array(ndarray data, ndarray mask, dict adjustments):
             # arrays are bools internally.
             mask = mask.view(uint8)
 
-    return Float64AdjustedArray(data, mask, adjustments)
+    if dates.dtype.name != 'datetime64[ns]':
+        raise TypeError("dates must be datetime64[ns], not %s" % dates.dtype)
+
+    return Float64AdjustedArray(data, dates.astype(int), mask, adjustments)
 
 
 cdef _check_window_length(object data, int window_length):
@@ -103,10 +108,12 @@ cdef class Float64AdjustedArray(AdjustedArray):
     """
     cdef:
         readonly float64_t[:, :] _data
+        readonly int64_t[:] _dates
         dict adjustments
 
     def __cinit__(self,
                   float64_t[:, :] data not None,
+                  int64_t[:] dates not None,
                   uint8_t[:, :] mask,  # None is equivalent to all 0s.
                   dict adjustments):
         cdef Py_ssize_t row, col
@@ -126,6 +133,7 @@ cdef class Float64AdjustedArray(AdjustedArray):
                         data[row, col] = NAN
 
         self._data = data
+        self._dates = dates
         self.adjustments = adjustments
 
     property dtype:
@@ -135,6 +143,7 @@ cdef class Float64AdjustedArray(AdjustedArray):
     cpdef traverse(self, Py_ssize_t window_length, Py_ssize_t offset=0):
         return _Float64AdjustedArrayWindow(
             self._data.copy(),
+            self._dates.copy(),
             self.adjustments,
             window_length,
             offset,
@@ -154,13 +163,15 @@ cdef class _Float64AdjustedArrayWindow:
     """
 
     cdef float64_t[:, :] data
+    cdef int64_t[:] dates
     cdef readonly Py_ssize_t window_length
     cdef Py_ssize_t anchor, max_anchor, next_adj
     cdef dict adjustments
     cdef list adjustment_indices
 
     def __cinit__(self,
-                  float64_t[:, :] data,
+                  float64_t[:, :] data not None,
+                  int64_t[:] dates not None,
                   dict adjustments,
                   Py_ssize_t window_length,
                   Py_ssize_t offset):
@@ -168,6 +179,7 @@ cdef class _Float64AdjustedArrayWindow:
         _check_window_length(data, window_length)
 
         self.data = data
+        self.dates = dates
         self.window_length = window_length
 
         # anchor is the index of the row **after** the row from which we're
@@ -212,9 +224,11 @@ cdef class _Float64AdjustedArrayWindow:
         start = anchor - self.window_length
         out = asarray(self.data[start:self.anchor])
         out.setflags(write=False)
+        dates = asarray(self.dates[start:self.anchor], dtype='datetime64[ns]')
+        dates.setflags(write=False)
 
         self.anchor += 1
-        return out
+        return dates, out
 
     def __repr__(self):
         return "%s(window_length=%d, anchor=%d, max_anchor=%d)" % (
