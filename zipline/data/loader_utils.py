@@ -40,17 +40,6 @@ def get_utc_from_exchange_time(naive):
     return utc_dt
 
 
-def get_exchange_time_from_utc(utc_dt):
-    """
-    Takes in result from exchange time.
-    """
-    dt = utc_dt.replace(tzinfo=pytz.utc)
-    local = pytz.timezone('US/Eastern')
-    dt = dt.astimezone(local)
-
-    return dt
-
-
 def guarded_conversion(conversion, str_val):
     """
     Returns the result of applying the @conversion to @str_val
@@ -58,16 +47,6 @@ def guarded_conversion(conversion, str_val):
     if str_val in (None, ""):
         return None
     return conversion(str_val)
-
-
-def safe_int(str_val):
-    """
-    casts the @str_val to a float to handle the occassional
-    decimal point in int fields from data providers.
-    """
-    f = float(str_val)
-    i = int(f)
-    return i
 
 
 def date_conversion(date_str, date_pattern='%m/%d/%Y', to_utc=True):
