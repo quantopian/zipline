@@ -119,24 +119,24 @@ def check_known_inconsistencies(bill_data, bond_data):
         )
 
 
-def get_treasury_source(start_date=None, end_date=None):
-
-    today = pd.Timestamp('now').normalize()
+def earliest_possible_date():
+    """
+    The earliest date for which we can load data from this module.
+    """
+    today = pd.Timestamp('now', tz='UTC').normalize()
     # Bank of Canada only has the last 10 years of data at any given time.
-    earliest_date = today.date().replace(year=today.year - 10)
-    if not end_date:
-        end_date = today
-    if not start_date:
-        start_date = earliest_date
+    return today.replace(year=today.year - 10)
 
+
+def get_treasury_data(start_date, end_date):
     bill_data = load_frame(
-        format_bill_url(start_date, end_date, earliest_date),
+        format_bill_url(start_date, end_date, start_date),
         # We skip fewer rows here because we query for fewer bill fields,
         # which makes the header smaller.
         skiprows=18,
     )
     bond_data = load_frame(
-        format_bond_url(start_date, end_date, earliest_date),
+        format_bond_url(start_date, end_date, start_date),
         skiprows=22,
     )
     check_known_inconsistencies(bill_data, bond_data)

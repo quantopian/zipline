@@ -12,9 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
-import importlib
 import os
 from collections import OrderedDict
 
@@ -27,6 +24,7 @@ import pytz
 from six import iteritems
 
 from . benchmarks import get_benchmark_returns
+from . import treasuries, treasuries_can
 from .paths import (
     cache_root,
     data_root,
@@ -42,11 +40,11 @@ logger = logbook.Logger('Loader')
 # Mapping from index symbol to appropriate bond data
 INDEX_MAPPING = {
     '^GSPC':
-    ('treasuries', 'treasury_curves.csv', 'data.treasury.gov'),
+    (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
     '^GSPTSE':
-    ('treasuries_can', 'treasury_curves_can.csv', 'bankofcanada.ca'),
+    (treasuries_can, 'treasury_curves_can.csv', 'bankofcanada.ca'),
     '^FTSE':  # use US treasuries until UK bonds implemented
-    ('treasuries', 'treasury_curves.csv', 'data.treasury.gov'),
+    (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
 }
 
 
@@ -89,7 +87,46 @@ def has_data_for_dates(series_or_df, first_date, last_date):
 
 
 def load_market_data(trading_day=trading_day_nyse,
-                     trading_days=trading_days_nyse, bm_symbol='^GSPC'):
+                     trading_days=trading_days_nyse,
+                     bm_symbol='^GSPC'):
+    """
+    Load benchmark returns and treasury yield curves for the given calendar and
+    benchmark symbol.
+
+    Benchmarks are downloaded as a Series from Yahoo Finance.  Treasury curves
+    are US Treasury Bond rates and are downloaded from 'www.federalreserve.gov'
+    by default.  For Canadian exchanges, a loader for Canadian bonds from the
+    Bank of Canada is also available.
+
+    Results downloaded from the internet are cached in
+    ~/.zipline/data. Subsequent loads will attempt to read from the cached
+    files before falling back to redownload.
+
+    Parameters
+    ----------
+    trading_day : pandas.CustomBusinessDay, optional
+        A trading_day used to determine the latest day for which we
+        expect to have data.  Defaults to an NYSE trading day.
+    trading_days : pd.DatetimeIndex, optional
+        A calendar of trading days.  Also used for determining what cached
+        dates we should expect to have cached. Defaults to the NYSE calendar.
+    bm_symbol : str, optional
+        Symbol for the benchmark index to load.  Defaults to '^GSPC', the Yahoo
+        ticker for the S&P 500.
+
+    Returns
+    -------
+    (benchmark_returns, treasury_curves) : (pd.Series, pd.DataFrame)
+
+    Notes
+    -----
+
+    Both return values are DatetimeIndexed with values dated to midnight in UTC
+    of each stored date.  The columns of `treasury_curves` are:
+
+    '1month', '3month', '6month',
+    '1year','2year','3year','5year','7year','10year','20year','30year'
+    """
     first_date = trading_days[0]
 
     # We expect to have benchmark and treasury data that's current up until
@@ -185,9 +222,10 @@ def ensure_treasury_data(bm_symbol, first_date, last_date):
     for `module_name` whose first entry is before or on `first_date` and whose
     last entry is on or after `last_date`.
     """
-    module_name, filename, source = INDEX_MAPPING.get(
+    loader_module, filename, source = INDEX_MAPPING.get(
         bm_symbol, INDEX_MAPPING['^GSPC']
     )
+    first_date = max(first_date, loader_module.earliest_possible_date())
     path = get_data_filepath(filename)
     try:
         data = pd.DataFrame.from_csv(path).tz_localize('UTC')
@@ -202,13 +240,7 @@ def ensure_treasury_data(bm_symbol, first_date, last_date):
             )
         )
 
-    try:
-        m = importlib.import_module("." + module_name, package='zipline.data')
-    except ImportError:
-        raise NotImplementedError(
-            'Treasury curve {0} module not implemented'.format(module_name))
-
-    data = m.get_treasury_data()
+    data = loader_module.get_treasury_data(first_date, last_date)
     data.to_csv(path)
     if not has_data_for_dates(data, first_date, last_date):
         logger.warn("Still don't have expected data after redownload!")
