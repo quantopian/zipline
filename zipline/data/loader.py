@@ -17,7 +17,6 @@
 import importlib
 import os
 from collections import OrderedDict
-from datetime import timedelta
 
 import logbook
 
@@ -27,15 +26,16 @@ import pytz
 
 from six import iteritems
 
-from . import benchmarks
 from . benchmarks import get_benchmark_returns
 from .paths import (
     cache_root,
     data_root,
 )
 
-from zipline.utils.tradingcalendar import trading_day as trading_day_nyse
-from zipline.utils.tradingcalendar import trading_days as trading_days_nyse
+from zipline.utils.tradingcalendar import (
+    trading_day as trading_day_nyse,
+    trading_days as trading_days_nyse,
+)
 
 logger = logbook.Logger('Loader')
 
@@ -72,148 +72,147 @@ def get_cache_filepath(name):
     return os.path.join(cr, name)
 
 
-def dump_treasury_curves(module_name, filename):
-    """
-    Dumps data to be used with zipline.
+def get_benchmark_filename(symbol):
+    return "%s_benchmark.csv" % symbol
 
-    Puts source treasury and data into zipline.
+
+def has_data_for_dates(series_or_df, first_date, last_date):
     """
+    Does `series_or_df` have data on or before first_date and on or after
+    last_date?
+    """
+    dts = series_or_df.index
+    if not isinstance(dts, pd.DatetimeIndex):
+        raise TypeError("Expected a DatetimeIndex, but got %s." % type(dts))
+    first, last = dts[[0, -1]]
+    return (first <= first_date) and (last >= last_date)
+
+
+def load_market_data(trading_day=trading_day_nyse,
+                     trading_days=trading_days_nyse, bm_symbol='^GSPC'):
+    first_date = trading_days[0]
+
+    # We expect to have benchmark and treasury data that's current up until
+    # two full trading days prior to the most recently completed trading day.
+    # Example:
+    # On Thu Oct 22 2015, the previous completed trading day is Wed Oct 21.
+    # However, data for Oct 21 doesn't become available until the early morning
+    # hours of Oct 22.  This means that there are times on the 22nd at which we
+    # cannot reasonably expect to have data for the 21st available.  To be
+    # conservative, we instead expect that at any time on the 22nd, we can
+    # download data for Tuesday the 20th, which is two full trading days prior
+    # to the date on which we're running a test.
+
+    # We'll attempt to download new data if the latest entry in our cache is
+    # before this date.
+    last_date = (
+        pd.Timestamp('now', tz='UTC').normalize() - (2 * trading_day)
+    )
+    benchmark_returns = ensure_benchmark_data(
+        bm_symbol,
+        first_date,
+        last_date,
+    )
+    treasury_curves = ensure_treasury_data(
+        bm_symbol,
+        first_date,
+        last_date,
+    )
+    return benchmark_returns, treasury_curves
+
+
+def ensure_benchmark_data(symbol, first_date, last_date):
+    """
+    Ensure we have benchmark data for `symbol` from `first_date` to `last_date`
+
+    Parameters
+    ----------
+    symbol : str
+        The symbol for the benchmark to load.
+    first_date : pd.Timestamp
+        First required date for the cache.
+    last_date : pd.Timestamp
+        Last required date for the cache.
+
+    We attempt to download data unless we already have data stored at the data
+    cache for `symbol` whose first entry is before or on `first_date` and whose
+    last entry is on or after `last_date`.
+    """
+    path = get_data_filepath(get_benchmark_filename(symbol))
+    try:
+        data = pd.Series.from_csv(path).tz_localize('UTC')
+        if has_data_for_dates(data, first_date, last_date):
+            return data
+    except (OSError, IOError, ValueError) as e:
+        # These can all be raised by various versions of pandas on various
+        # classes of malformed input.  Treat them all as cache misses.
+        logger.info(
+            "Loading data for {path} failed with error [{error}].".format(
+                path=path, error=e,
+            )
+        )
+    logger.info(
+        "Cache at {path} does not have data from {start} to {end}.\n"
+        "Downloading benchmark data for '{symbol}'.",
+        start=first_date,
+        end=last_date,
+        symbol=symbol,
+        path=path,
+    )
+
+    data = get_benchmark_returns(symbol, first_date, last_date)
+    data.to_csv(path)
+    if not has_data_for_dates(data, first_date, last_date):
+        logger.warn("Still don't have expected data after redownload!")
+    return data
+
+
+def ensure_treasury_data(bm_symbol, first_date, last_date):
+    """
+    Ensure we have treasury data from treasury module associated with
+    `bm_symbol`.
+
+    Parameters
+    ----------
+    bm_symbol : str
+        Benchmark symbol for which we're loading associated treasury curves.
+    first_date : pd.Timestamp
+        First date required to be in the cache.
+    last_date : pd.Timestamp
+        Last date required to be in the cache.
+
+    We attempt to download data unless we already have data stored in the cache
+    for `module_name` whose first entry is before or on `first_date` and whose
+    last entry is on or after `last_date`.
+    """
+    module_name, filename, source = INDEX_MAPPING.get(
+        bm_symbol, INDEX_MAPPING['^GSPC']
+    )
+    path = get_data_filepath(filename)
+    try:
+        data = pd.DataFrame.from_csv(path).tz_localize('UTC')
+        if has_data_for_dates(data, first_date, last_date):
+            return data
+    except (OSError, IOError, ValueError) as e:
+        # These can all be raised by various versions of pandas on various
+        # classes of malformed input.  Treat them all as cache misses.
+        logger.info(
+            "Loading data for {path} failed with error [{error}].".format(
+                path=path, error=e,
+            )
+        )
+
     try:
         m = importlib.import_module("." + module_name, package='zipline.data')
     except ImportError:
         raise NotImplementedError(
             'Treasury curve {0} module not implemented'.format(module_name))
 
-    curves = m.get_treasury_data()
-
-    data_filepath = get_data_filepath(filename)
-    curves.to_csv(data_filepath)
-    return curves
-
-
-def dump_benchmarks(symbol):
-    """
-    Dumps data to be used with zipline.
-
-    Puts source treasury and data into zipline.
-    """
-    benchmark_data = []
-    for daily_return in get_benchmark_returns(symbol):
-        # Not ideal but massaging data into expected format
-        benchmark = (daily_return.date, daily_return.returns)
-        benchmark_data.append(benchmark)
-
-    data_filepath = get_data_filepath(get_benchmark_filename(symbol))
-    benchmark_returns = pd.Series(dict(benchmark_data))
-    benchmark_returns.to_csv(data_filepath)
-
-
-def update_benchmarks(symbol, last_date):
-    """
-    Updates data in the zipline message pack
-
-    last_date should be a datetime object of the most recent data
-
-    Puts source benchmark into zipline.
-    """
-    datafile = get_data_filepath(get_benchmark_filename(symbol))
-    saved_benchmarks = pd.Series.from_csv(datafile)
-
-    try:
-        start = last_date + timedelta(days=1)
-        for daily_return in get_benchmark_returns(symbol, start_date=start):
-            # Not ideal but massaging data into expected format
-            benchmark = pd.Series({daily_return.date: daily_return.returns})
-            saved_benchmarks = saved_benchmarks.append(benchmark)
-
-        datafile = get_data_filepath(get_benchmark_filename(symbol))
-        saved_benchmarks.to_csv(datafile)
-    except benchmarks.BenchmarkDataNotFoundError as exc:
-        logger.warn(exc)
-    return saved_benchmarks
-
-
-def get_benchmark_filename(symbol):
-    return "%s_benchmark.csv" % symbol
-
-
-def load_market_data(trading_day=trading_day_nyse,
-                     trading_days=trading_days_nyse, bm_symbol='^GSPC'):
-    bm_filepath = get_data_filepath(get_benchmark_filename(bm_symbol))
-    try:
-        saved_benchmarks = pd.Series.from_csv(bm_filepath)
-    except (OSError, IOError, ValueError):
-        logger.info(
-            "No cache found at {path}. "
-            "Downloading benchmark data for '{symbol}'.",
-            symbol=bm_symbol,
-            path=bm_filepath,
-        )
-
-        dump_benchmarks(bm_symbol)
-        saved_benchmarks = pd.Series.from_csv(bm_filepath)
-
-    saved_benchmarks = saved_benchmarks.tz_localize('UTC')
-
-    most_recent = pd.Timestamp('today', tz='UTC') - trading_day
-    most_recent_index = trading_days.searchsorted(most_recent)
-    days_up_to_now = trading_days[:most_recent_index + 1]
-
-    # Find the offset of the last date for which we have trading data in our
-    # list of valid trading days
-    last_bm_date = saved_benchmarks.index[-1]
-    last_bm_date_offset = days_up_to_now.searchsorted(last_bm_date)
-
-    # If more than 1 trading days has elapsed since the last day where
-    # we have data,then we need to update
-    # We're doing "> 2" rather than "> 1" because we're subtracting an array
-    # _length_ from an array _index_, and therefore even if we had data up to
-    # and including the current day, the difference would still be 1.
-    if len(days_up_to_now) - last_bm_date_offset > 2:
-        benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
-        if benchmark_returns.index.tz is None or \
-           benchmark_returns.index.tz.zone != 'UTC':
-            benchmark_returns = benchmark_returns.tz_localize('UTC')
-    else:
-        benchmark_returns = saved_benchmarks
-        if benchmark_returns.index.tz is None or\
-           benchmark_returns.index.tz.zone != 'UTC':
-            benchmark_returns = benchmark_returns.tz_localize('UTC')
-
-    # Get treasury curve module, filename & source from mapping.
-    # Default to USA.
-    module, filename, source = INDEX_MAPPING.get(
-        bm_symbol, INDEX_MAPPING['^GSPC'])
-
-    tr_filepath = get_data_filepath(filename)
-    try:
-        saved_curves = pd.DataFrame.from_csv(tr_filepath)
-    except (OSError, IOError, ValueError):
-        logger.info(
-            "No cache found at {path}. "
-            "Downloading treasury data from {source}.",
-            path=tr_filepath,
-            source=source,
-        )
-
-        dump_treasury_curves(module, filename)
-        saved_curves = pd.DataFrame.from_csv(tr_filepath)
-
-    # Find the offset of the last date for which we have trading data in our
-    # list of valid trading days
-    last_tr_date = saved_curves.index[-1]
-    last_tr_date_offset = days_up_to_now.searchsorted(
-        last_tr_date.strftime('%Y/%m/%d'))
-
-    # If more than 1 trading days has elapsed since the last day where
-    # we have data,then we need to update
-    # Comment above explains why this is "> 2".
-    if len(days_up_to_now) - last_tr_date_offset > 2:
-        treasury_curves = dump_treasury_curves(module, filename)
-    else:
-        treasury_curves = saved_curves.tz_localize('UTC')
-
-    return benchmark_returns, treasury_curves
+    data = m.get_treasury_data()
+    data.to_csv(path)
+    if not has_data_for_dates(data, first_date, last_date):
+        logger.warn("Still don't have expected data after redownload!")
+    return data
 
 
 def _load_raw_yahoo_data(indexes=None, stocks=None, start=None, end=None):
