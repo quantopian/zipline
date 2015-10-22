@@ -169,8 +169,7 @@ def load_market_data(trading_day=trading_day_nyse,
     # Find the offset of the last date for which we have trading data in our
     # list of valid trading days
     last_bm_date = saved_benchmarks.index[-1]
-    last_bm_date_offset = days_up_to_now.searchsorted(
-        last_bm_date.strftime('%Y/%m/%d'))
+    last_bm_date_offset = days_up_to_now.searchsorted(last_bm_date)
 
     # If more than 1 trading days has elapsed since the last day where
     # we have data,then we need to update
