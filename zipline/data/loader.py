@@ -84,17 +84,10 @@ def dump_treasury_curves(module_name, filename):
         raise NotImplementedError(
             'Treasury curve {0} module not implemented'.format(module_name))
 
-    tr_data = {}
-
-    for curve in m.get_treasury_data():
-        # Not ideal but massaging data into expected format
-        tr_data[curve['date']] = curve
-
-    curves = pd.DataFrame(tr_data).T
+    curves = m.get_treasury_data()
 
     data_filepath = get_data_filepath(filename)
     curves.to_csv(data_filepath)
-
     return curves
 
 
