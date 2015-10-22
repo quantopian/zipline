@@ -149,6 +149,9 @@ def load_market_data(trading_day=trading_day_nyse,
         bm_symbol,
         first_date,
         last_date,
+        # We need the trading_day to figure out the close prior to the first
+        # date so that we can compute returns for the first date.
+        trading_day,
     )
     treasury_curves = ensure_treasury_data(
         bm_symbol,
@@ -158,7 +161,7 @@ def load_market_data(trading_day=trading_day_nyse,
     return benchmark_returns, treasury_curves
 
 
-def ensure_benchmark_data(symbol, first_date, last_date):
+def ensure_benchmark_data(symbol, first_date, last_date, trading_day):
     """
     Ensure we have benchmark data for `symbol` from `first_date` to `last_date`
 
@@ -170,6 +173,9 @@ def ensure_benchmark_data(symbol, first_date, last_date):
         First required date for the cache.
     last_date : pd.Timestamp
         Last required date for the cache.
+    trading_day : pd.CustomBusinessDay
+        A trading day delta.  Used to find the day before first_date so we can
+        get the close of the day prior to first_date.
 
     We attempt to download data unless we already have data stored at the data
     cache for `symbol` whose first entry is before or on `first_date` and whose
@@ -197,7 +203,7 @@ def ensure_benchmark_data(symbol, first_date, last_date):
         path=path,
     )
 
-    data = get_benchmark_returns(symbol, first_date, last_date)
+    data = get_benchmark_returns(symbol, first_date - trading_day, last_date)
     data.to_csv(path)
     if not has_data_for_dates(data, first_date, last_date):
         logger.warn("Still don't have expected data after redownload!")

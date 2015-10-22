@@ -45,18 +45,17 @@ def format_yahoo_index_url(symbol, start_date, end_date):
 def get_benchmark_returns(symbol, start_date, end_date):
     """
     Get a Series of benchmark returns from Yahoo.
+
+    Returns a Series with returns from (start_date, end_date].
+
+    start_date is **not** included because we need the close from day N - 1 to
+    compute the returns for day N.
     """
-    data = pd.read_csv(
+    return pd.read_csv(
         format_yahoo_index_url(symbol, start_date, end_date),
         parse_dates=['Date'],
         index_col='Date',
-        usecols=["Open", "Close", "Date"],
-    ).sort_index().tz_localize('UTC')
-
-    returns = data["Close"].pct_change()
-    # Calculate the returns for the first day using the open of that day since
-    # we don't have the close of the previous day.
-    first_open, first_close = data.ix[0, ["Open", "Close"]]
-    returns.iloc[0] = (first_close - first_open) / first_open
-
-    return returns
+        usecols=["Adj Close", "Date"],
+        squeeze=True,  # squeeze tells pandas to make this a Series
+                       # instead of a 1-column DataFrame
+    ).sort_index().tz_localize('UTC').pct_change(1).iloc[1:]
