@@ -633,15 +633,22 @@ class tmp_assets_db(object):
         The data to feed to the writer. By default this maps:
         ('A', 'B', 'C') -> map(ord, 'ABC')
     """
-    def __init__(self, data=None):
+    def __init__(self, data=None, start_date=None, end_date=None):
         self._eng = None
-        self._data = AssetDBWriterFromDataFrame(
-            data if data is not None else make_simple_asset_info(
+        if start_date is None:
+            start_date = pd.Timestamp(0)
+
+        if end_date is None:
+            end_date = pd.Timestamp(2015)
+
+        if data is None:
+            data = make_simple_asset_info(
                 list(map(ord, 'ABC')),
-                pd.Timestamp(0),
-                pd.Timestamp('2015'),
+                start_date,
+                end_date,
             )
-        )
+
+        self._data = AssetDBWriterFromDataFrame(data)
 
     def __enter__(self):
         self._eng = eng = create_engine('sqlite://')
@@ -656,7 +663,7 @@ class tmp_assets_db(object):
 class tmp_asset_finder(tmp_assets_db):
     """Create a temporary asset finder using an in memory sqlite db.
 
-    Paramaters
+    Parameters
     ----------
     data : dict, optional
         The data to feed to the writer

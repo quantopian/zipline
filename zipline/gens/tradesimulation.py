@@ -284,7 +284,7 @@ class AlgorithmSimulator(object):
 
             # get the window of close prices for benchmark_sid from the last
             # trading day of the simulation, going up to one day before the
-            # simulation start day.
+            # simulation start day (so that we can get the % change on day 1)
             benchmark_series = data_portal.get_history_window(
                 [sid],
                 trading_days[-1],
