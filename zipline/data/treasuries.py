@@ -12,14 +12,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from operator import itemgetter
 import re
 
 import numpy as np
 import pandas as pd
 
 
-def getkeys(d, keys):
-    return (d[key] for key in keys)
+get_unit_and_periods = itemgetter('unit', 'periods')
 
 
 def parse_treasury_csv_column(column):
@@ -41,7 +41,7 @@ def parse_treasury_csv_column(column):
     match = column_re.match(column)
     if match is None:
         raise ValueError("Couldn't parse CSV column %r." % column)
-    unit, periods = getkeys(match.groupdict(), ['unit', 'periods'])
+    unit, periods = get_unit_and_periods(match.groupdict())
 
     # Roundtrip through int to coerce '06' into '6'.
     return str(int(periods)) + ('year' if unit == 'Y' else 'month')
