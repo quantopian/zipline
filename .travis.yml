@@ -19,7 +19,7 @@ install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
   - conda install --yes -c https://conda.binstar.org/Quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy==$SCIPY_VERSION matplotlib Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
-  - pip install --upgrade pip nose-timer coverage
+  - pip install --upgrade pip coverage
   - pip install -e .[dev]
   - pip install -r etc/requirements_blaze.txt
 before_script:
