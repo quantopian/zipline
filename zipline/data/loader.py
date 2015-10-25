@@ -130,7 +130,8 @@ def load_market_data(trading_day=trading_day_nyse,
     first_date = trading_days[0]
 
     # We expect to have benchmark and treasury data that's current up until
-    # two full trading days prior to the most recently completed trading day.
+    # **two** full trading days prior to the most recently completed trading
+    # day.
     # Example:
     # On Thu Oct 22 2015, the previous completed trading day is Wed Oct 21.
     # However, data for Oct 21 doesn't become available until the early morning
@@ -142,9 +143,10 @@ def load_market_data(trading_day=trading_day_nyse,
 
     # We'll attempt to download new data if the latest entry in our cache is
     # before this date.
-    last_date = (
-        pd.Timestamp('now', tz='UTC').normalize() - (2 * trading_day)
-    )
+    last_date = trading_days[
+        trading_days.get_loc(pd.Timestamp.utcnow(), method='ffill') - 2
+    ]
+
     benchmark_returns = ensure_benchmark_data(
         bm_symbol,
         first_date,
