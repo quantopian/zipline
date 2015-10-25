@@ -80,7 +80,7 @@ def get_treasury_data(start_date, end_date):
         how='all'
     ).rename(
         columns=parse_treasury_csv_column
-    ).tz_localize('UTC') * 0.01
+    ).tz_localize('UTC') * 0.01  # Convert from 2.57% to 0.0257.
 
 
 def dataconverter(s):
