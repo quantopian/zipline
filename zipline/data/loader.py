@@ -149,6 +149,10 @@ def load_market_data(trading_day=trading_day_nyse,
     bm_filepath = get_data_filepath(get_benchmark_filename(bm_symbol))
     try:
         saved_benchmarks = pd.Series.from_csv(bm_filepath)
+        logger.info(
+            "Using cached benchmark data found at {path}.",
+            path=bm_filepath,
+        )
     except (OSError, IOError, ValueError):
         logger.info(
             "No cache found at {path}. "
@@ -178,7 +182,19 @@ def load_market_data(trading_day=trading_day_nyse,
     # _length_ from an array _index_, and therefore even if we had data up to
     # and including the current day, the difference would still be 1.
     if len(days_up_to_now) - last_bm_date_offset > 2:
-        benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
+        try:
+            benchmark_returns = update_benchmarks(bm_symbol, last_bm_date)
+        except ValueError:
+            logger.error(
+                "Failed to update benchmarks file {path}"
+                "(last date is {date}).",
+                path=bm_filepath,
+                date=last_bm_date.strftime('%Y-%m-%d'),
+            )
+            raise
+        else:
+            logger.info("Updated benchmarks file {path} .", path=bm_filepath)
+
         if benchmark_returns.index.tz is None or \
            benchmark_returns.index.tz.zone != 'UTC':
             benchmark_returns = benchmark_returns.tz_localize('UTC')
