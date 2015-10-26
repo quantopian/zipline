@@ -27,8 +27,8 @@ before_install:
   - sudo apt-add-repository -y ppa:fkrull/deadsnakes-python2.7
   - sudo apt-get update
   - sudo apt-get install -y python2.7=2.7.10-0+trusty1
-  - which python
-  - python -c "import sys; print sys.maxunicode"
+  - which python2.7
+  - python2.7 -c "import sys; print sys.maxunicode"
   - sudo apt-get install -y gfortran libatlas-dev libatlas-base-dev
   - virtualenv --python=python buildenv
   - source buildenv/bin/activate
