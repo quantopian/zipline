@@ -23,10 +23,11 @@ matrix:
 before_install:
   - python --version
   - python -c "import sys; print sys.maxunicode"
-  # - sudo apt-add-repository -y ppa:fkrull/deadsnakes-python2.7
-  # - sudo apt-get update
-  # - sudo apt-get install -y python2.7=2.7.10-0+trusty1
-  # - sudo apt-get install -y gfortran libatlas-dev libatlas-base-dev
+  - sudo apt-add-repository -y ppa:fkrull/deadsnakes-python2.7
+  - sudo apt-get update
+  - sudo apt-get install -y python2.7=2.7.10-0+trusty1
+  - python -c "import sys; print sys.maxunicode"
+  - sudo apt-get install -y gfortran libatlas-dev libatlas-base-dev
   - virtualenv --python=python buildenv
   - source buildenv/bin/activate
   - pip install --upgrade pip setuptools
