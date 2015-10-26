@@ -11,6 +11,11 @@ addons:
       - libatlas-base-dev
       - pkg-config
 
+env:
+  - PIP_INDEX_URL="https://wheels.dynoquant.com/simple/"
+  - PIP_EXTRA_INDEX_URL="https://pypi.python.org/simple/"
+  - PIP_EXISTS_ACTION="w"
+
 matrix:
   include:
   - python: 2.7
@@ -23,7 +28,6 @@ before_install:
   - pip install --upgrade pip setuptools
 install:
   - pip install .[dev]
-  # Try a random import that requires a working LAPACK/BLAS
   - python -c "from scipy.stats import rankdata"
   - pip install -r etc/requirements_blaze.txt $PIP_INSTALL_ARGS
   - pip install coverage
