@@ -191,6 +191,13 @@ at frequency '{data_frequency}'.
 """.strip()
 
 
+class HistoryInInitialize(ZiplineError):
+    """
+    Raised when an algorithm calls history() in initialize.
+    """
+    msg = "history() can only be called in handle_data()"
+
+
 class MultipleSymbolsFound(ZiplineError):
     """
     Raised when a symbol() call contains a symbol that changed over

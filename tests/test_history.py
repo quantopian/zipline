@@ -34,7 +34,7 @@ from zipline.finance.trading import (
     SimulationParameters,
     TradingEnvironment,
 )
-from zipline.errors import IncompatibleHistoryFrequency
+from zipline.errors import HistoryInInitialize, IncompatibleHistoryFrequency
 
 from zipline.sources import RandomWalkSource, DataFrameSource
 
@@ -1328,6 +1328,41 @@ def handle_data(context, data):
             msg='The digest panel is not large enough to service the given'
             ' HistorySpec',
         )
+
+    def test_history_in_initialize(self):
+        algo_text = dedent(
+            """\
+            from zipline.api import history
+
+            def initialize(context):
+                history(10, '1d', 'price')
+
+            def handle_data(context, data):
+                pass
+            """
+        )
+
+        start = pd.Timestamp('2007-04-05', tz='UTC')
+        end = pd.Timestamp('2007-04-10', tz='UTC')
+
+        sim_params = SimulationParameters(
+            period_start=start,
+            period_end=end,
+            capital_base=float("1.0e5"),
+            data_frequency='minute',
+            emission_rate='daily',
+            env=self.env,
+        )
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency='minute',
+            sim_params=sim_params,
+            env=self.env,
+        )
+
+        with self.assertRaises(HistoryInInitialize):
+            test_algo.initialize()
 
     @parameterized.expand([
         (1,),
