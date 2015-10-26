@@ -23,8 +23,10 @@ before_install:
   - pip install --upgrade pip setuptools
 install:
   - echo $LD_LIBRARY_PATH
+  - ls -l /etc/alternatives | grep atlas
+  - ls -l /etc/alternatives | grep blas
   - ls /usr/lib | grep libatlas
-  - ls /usr/lib/atlast-base | grep libatlas
+  - ls /usr/lib/atlas-base | grep libatlas
   - pip install .[dev]
   - python -c "from scipy.stats import rankdata"
   - pip install -r etc/requirements_blaze.txt $PIP_INSTALL_ARGS
