@@ -30,7 +30,7 @@ install:
   - ls /usr/lib | grep libatlas
   - ls /usr/lib/atlas-base | grep libatlas
   - pip install numpy==1.9.2 Cython==0.22.1
-  - python -c "from scipy.stats import rankdata"
+  - python -c "from numpy.linalg import lapack_lite"
   - pip install .[dev]
   - pip install -r etc/requirements_blaze.txt $PIP_INSTALL_ARGS
   - pip install coverage
