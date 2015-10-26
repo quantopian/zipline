@@ -22,7 +22,6 @@ matrix:
 before_install:
   - virtualenv --python=python buildenv
   - source buildenv/bin/activate
-  - python etc/write_pipconf.py
   - pip install --upgrade pip setuptools
 install:
   - pip install .[dev]
