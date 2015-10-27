@@ -24,7 +24,16 @@ from zipline.errors import (
 
 from zipline.protocol import BarData
 
-from zipline.gens.sim_engine import DayEngine
+from zipline.gens.sim_engine import (
+    MinuteSimulationClock,
+    DailySimulationClock
+)
+
+DATA_AVAILABLE = 0
+ONCE_A_DAY = 1
+UPDATE_BENCHMARK = 2
+CALC_PERFORMANCE = 3
+
 
 from zipline.utils.api_support import ZiplineAPI
 
@@ -99,8 +108,6 @@ class AlgorithmSimulator(object):
         perf_tracker_benchmark_returns = perf_tracker.all_benchmark_returns
         data_portal = self.data_portal
 
-        day_engine = DayEngine(market_opens, market_closes)
-
         blotter = self.algo.blotter
         blotter.data_portal = data_portal
 
@@ -111,7 +118,6 @@ class AlgorithmSimulator(object):
         all_trading_days = self.env.trading_days
         all_trading_days = all_trading_days[all_trading_days.slice_indexer(
             '2002-01-02')]
-        first_trading_day_idx = all_trading_days.searchsorted(trading_days[0])
 
         benchmark_series = self._prepare_benchmark_series(
             algo.benchmark_sid, env, trading_days, data_portal
@@ -166,35 +172,25 @@ class AlgorithmSimulator(object):
                     blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
 
+        if self.sim_params.data_frequency == 'minute':
+            clock = MinuteSimulationClock(
+                trading_days, market_opens, market_closes)
+        elif self.sim_params.data_frequency == 'daily':
+            clock = DailySimulationClock(trading_days)
+
         with self.processor, ZiplineAPI(self.algo):
-            if self.sim_params.data_frequency == "daily":
-                for day_idx, trading_day in enumerate(trading_days):
-                    once_a_day(trading_day)
-                    inner_loop(trading_day)
-
+            for dt, action in clock:
+                if action == DATA_AVAILABLE:
+                    inner_loop(dt)
+                elif action == ONCE_A_DAY:
+                    once_a_day(dt)
+                elif action == UPDATE_BENCHMARK:
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[trading_day] = \
-                        benchmark_series.loc[trading_day]
-
-                    yield self.get_message(trading_day, algo, perf_tracker)
-            else:
-                for day_idx, trading_day in enumerate(trading_days):
-                    once_a_day(trading_day)
-
-                    day_offset = (day_idx + first_trading_day_idx) * 390
-                    minutes = pd.DatetimeIndex(day_engine.
-                                               market_minutes(day_idx),
-                                               tz='UTC')
-                    for minute_idx, minute in enumerate(minutes):
-                        data_portal.cur_data_offset = day_offset + minute_idx
-                        inner_loop(minute)
-
-                    # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[trading_day] = \
-                        benchmark_series.loc[trading_day]
-
-                    yield self.get_message(minute, algo, perf_tracker)
-
+                    perf_tracker_benchmark_returns[dt] = \
+                        benchmark_series.loc[dt]
+                elif action == CALC_PERFORMANCE:
+                    yield self.get_message(dt, algo, perf_tracker)
+                    
         risk_message = perf_tracker.handle_simulation_end()
         yield risk_message
 
