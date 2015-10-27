@@ -267,13 +267,25 @@ class ClosesOnly(TestCase):
         with self.assertRaises(NoSuchPipeline):
             algo.run(source=self.closes)
 
-    def test_assets_appear_on_correct_days(self):
+    @parameterized.expand([('default', None),
+                           ('day', 1),
+                           ('week', 5),
+                           ('year', 252),
+                           ('all_but_one_day', 'all_but_one_day')])
+    def test_assets_appear_on_correct_days(self, test_name, chunksize):
         """
         Assert that assets appear at correct times during a backtest, with
         correctly-adjusted close price values.
         """
+
+        if chunksize == 'all_but_one_day':
+            chunksize = (
+                self.dates.get_loc(self.last_asset_end) -
+                self.dates.get_loc(self.first_asset_start)
+            ) - 1
+
         def initialize(context):
-            p = attach_pipeline(Pipeline(), 'test')
+            p = attach_pipeline(Pipeline(), 'test', chunksize=chunksize)
             p.add(USEquityPricing.close.latest, 'close')
 
         def handle_data(context, data):
@@ -297,13 +309,14 @@ class ClosesOnly(TestCase):
             before_trading_start=before_trading_start,
             data_frequency='daily',
             get_pipeline_loader=lambda column: self.pipeline_loader,
-            start=self.first_asset_start - trading_day,
-            end=self.last_asset_end + trading_day,
+            start=self.first_asset_start,
+            end=self.last_asset_end,
             env=self.env,
         )
 
         # Run for a week in the middle of our data.
-        algo.run(source=self.closes.iloc[10:17])
+        algo.run(source=self.closes.loc[self.first_asset_start:
+                                        self.last_asset_end])
 
 
 class MockDailyBarSpotReader(object):
