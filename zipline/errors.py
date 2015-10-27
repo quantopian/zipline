@@ -195,7 +195,7 @@ class HistoryInInitialize(ZiplineError):
     """
     Raised when an algorithm calls history() in initialize.
     """
-    msg = "history() can only be called in handle_data()"
+    msg = "history() should only be called in handle_data()"
 
 
 class MultipleSymbolsFound(ZiplineError):
