@@ -27,7 +27,8 @@ from zipline.protocol import BarData
 DATA_AVAILABLE = 0
 ONCE_A_DAY = 1
 UPDATE_BENCHMARK = 2
-CALC_PERFORMANCE = 3
+DAILY_PERFORMANCE = 3
+MINUTE_PERFORMANCE = 4
 
 
 from zipline.utils.api_support import ZiplineAPI
@@ -171,30 +172,38 @@ class AlgorithmSimulator(object):
                     once_a_day(dt)
                 elif action == UPDATE_BENCHMARK:
                     # Update benchmark before getting market close.
-                    perf_tracker_benchmark_returns[dt] = \
-                        benchmark_series.loc[dt]
-                elif action == CALC_PERFORMANCE:
-                    yield self.get_message(dt, algo, perf_tracker)
+                    try:
+                        perf_tracker_benchmark_returns[dt] = \
+                            benchmark_series.loc[dt]
+                    except KeyError:
+                        perf_tracker_benchmark_returns[dt] = 0.01
+                elif action == DAILY_PERFORMANCE:
+                    yield self.get_daily_message(dt, algo, perf_tracker)
+                elif action == MINUTE_PERFORMANCE:
+                    yield self.get_daily_message(dt, algo, perf_tracker)
 
         risk_message = perf_tracker.handle_simulation_end()
         yield risk_message
 
-    def get_message(self, dt, algo, perf_tracker):
+    def get_daily_message(self, dt, algo, perf_tracker):
         """
         Get a perf message for the given datetime.
         """
         rvars = algo.recorded_vars
-        if perf_tracker.emission_rate == 'daily':
-            perf_message = \
-                perf_tracker.handle_market_close_daily()
-            perf_message['daily_perf']['recorded_vars'] = rvars
-            return perf_message
+        perf_message = \
+            perf_tracker.handle_market_close_daily()
+        perf_message['daily_perf']['recorded_vars'] = rvars
+        return perf_message
 
-        elif perf_tracker.emission_rate == 'minute':
-            perf_tracker.handle_minute_close(dt)
-            perf_message = perf_tracker.to_dict()
-            perf_message['minute_perf']['recorded_vars'] = rvars
-            return perf_message
+    def get_minute_message(self, dt, algo, perf_tracker):
+        """
+        Get a perf message for the given datetime.
+        """
+        rvars = algo.recorded_vars
+        perf_tracker.handle_minute_close(dt)
+        perf_message = perf_tracker.to_dict()
+        perf_message['minute_perf']['recorded_vars'] = rvars
+        return perf_message
 
     @staticmethod
     def _prepare_benchmark_series(sid, env, trading_days, data_portal):
