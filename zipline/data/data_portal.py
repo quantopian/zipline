@@ -109,6 +109,9 @@ class DataPortal(object):
 
         self.sid_path_func = sid_path_func
 
+        self.DAILY_PRICE_ADJUSTMENT_FACTOR = 0.001
+        self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
+
     def handle_extra_source(self, source_df):
         """
         Extra sources always have a sid column.
@@ -285,7 +288,7 @@ class DataPortal(object):
                     result = carray[minute_offset_to_use]
 
             if column_to_use != 'volume':
-                return result * 0.001
+                return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
             else:
                 return result
 
@@ -323,7 +326,7 @@ class DataPortal(object):
             raw_value = ctable[lookup_idx]
 
         if column != 'volume':
-            return raw_value * 0.001
+            return raw_value * self.DAILY_PRICE_ADJUSTMENT_FACTOR
         else:
             return raw_value
 
@@ -601,12 +604,14 @@ class DataPortal(object):
             return_data,
             sid,
             minutes_for_window,
-            field
+            field,
+            self.MINUTE_PRICE_ADJUSTMENT_FACTOR
         )
 
         return return_data
 
-    def _apply_all_adjustments(self, data, sid, dts, field):
+    def _apply_all_adjustments(self, data, sid, dts, field,
+                               price_adj_factor=1.0):
         """
         Internal method that applies all the necessary adjustments on the
         given data array.
@@ -634,6 +639,8 @@ class DataPortal(object):
         field: string
             The field whose values are in the data array.
 
+        price_adj_factor: float
+            Factor with which to adjust OHLC values.
         Returns
         -------
         None.  The data array is modified in place.
@@ -666,7 +673,7 @@ class DataPortal(object):
                 True
             )
 
-            data *= 0.001
+            data *= price_adj_factor
 
             # if anything is zero, it's a missing bar, so replace it with NaN.
             # we only want to do this for non-volume fields, because a missing
@@ -813,7 +820,8 @@ class DataPortal(object):
             return_array,
             sid,
             days_in_window,
-            field
+            field,
+            self.DAILY_PRICE_ADJUSTMENT_FACTOR
         )
 
         return return_array
