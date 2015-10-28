@@ -174,7 +174,7 @@ class AlgorithmSimulator(object):
 
         if self.sim_params.data_frequency == 'minute':
             clock = MinuteSimulationClock(
-                trading_days, market_opens, market_closes)
+                trading_days, market_opens, market_closes, data_portal)
         elif self.sim_params.data_frequency == 'daily':
             clock = DailySimulationClock(trading_days)
 

@@ -39,15 +39,18 @@ cdef class DayEngine:
 cdef class MinuteSimulationClock:
 
     cdef object trading_days
+    cdef object data_portal
     cdef np.int64_t[:] market_opens, market_closes
 
     def __init__(self,
                  trading_days,
                  market_opens,
-                 market_closes):
+                 market_closes,
+                 data_portal):
         self.market_opens = market_opens
         self.market_closes = market_closes
         self.trading_days = trading_days
+        self.data_portal = data_portal
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -61,12 +64,16 @@ cdef class MinuteSimulationClock:
                          minute_in_nano)
 
     def __iter__(self):
+        first_trading_day_idx = 0
+        data_portal = self.data_portal
         for day_idx, day in enumerate(self.trading_days):
+            day_offset = (day_idx + first_trading_day_idx) * 390
             yield day, ONCE_A_DAY
             minutes = pd.DatetimeIndex(self.
                                        market_minutes(day_idx),
                                        tz='UTC')
             for minute_idx, minute in enumerate(minutes):
+                data_portal.cur_data_offset = day_offset + minute_idx
                 yield minute, DATA_AVAILABLE
 
             yield day, UPDATE_BENCHMARK
