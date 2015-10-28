@@ -95,6 +95,11 @@ from zipline.utils.preprocess import preprocess
 import zipline.protocol
 from zipline.sources.requests_csv import PandasRequestsCSV
 
+from zipline.gens.sim_engine import (
+    MinuteSimulationClock,
+    DailySimulationClock
+)
+
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
 
@@ -167,6 +172,7 @@ class TradingAlgorithm(object):
                 equities_metadata, but will be traded by this TradingAlgorithm
         """
         self.sources = []
+        self.clock = None
 
         # List of trading controls to be used to validate orders.
         self.trading_controls = []
@@ -403,7 +409,8 @@ class TradingAlgorithm(object):
             self.initialized = True
 
         self.trading_client = AlgorithmSimulator(self, sim_params,
-                                                 self.data_portal)
+                                                 self.data_portal,
+                                                 self.clock)
 
         return self.trading_client.transform()
 
@@ -428,6 +435,23 @@ class TradingAlgorithm(object):
         """
         if self.data_portal is None:
             self.data_portal = data_portal
+
+        if self.clock is None:
+            if self.sim_params.data_frequency == 'minute':
+                env = self.trading_environment
+                trading_o_and_c = env.open_and_closes.ix[
+                    self.sim_params.trading_days]
+                market_opens = trading_o_and_c['market_open'].values.astype(
+                    'datetime64[ns]').astype(np.int64)
+                market_closes = trading_o_and_c['market_close'].values.astype(
+                    'datetime64[ns]').astype(np.int64)
+                self.clock = MinuteSimulationClock(
+                    self.sim_params.trading_days,
+                    market_opens,
+                    market_closes,
+                    data_portal)
+            elif self.sim_params.data_frequency == 'daily':
+                self.clock = DailySimulationClock(self.sim_params.trading_days)
 
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.

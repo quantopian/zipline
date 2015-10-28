@@ -24,11 +24,6 @@ from zipline.errors import (
 
 from zipline.protocol import BarData
 
-from zipline.gens.sim_engine import (
-    MinuteSimulationClock,
-    DailySimulationClock
-)
-
 DATA_AVAILABLE = 0
 ONCE_A_DAY = 1
 UPDATE_BENCHMARK = 2
@@ -47,7 +42,7 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params, data_portal):
+    def __init__(self, algo, sim_params, data_portal, clock):
 
         # ==============
         # Simulation
@@ -76,6 +71,8 @@ class AlgorithmSimulator(object):
         # receive a message.
         self.simulation_dt = None
 
+        self.clock = clock
+
         # =============
         # Logging Setup
         # =============
@@ -95,12 +92,6 @@ class AlgorithmSimulator(object):
         algo.data_portal = self.data_portal
         sim_params = algo.sim_params
         trading_days = sim_params.trading_days
-        env = self.env
-        trading_o_and_c = env.open_and_closes.ix[trading_days]
-        market_opens = trading_o_and_c['market_open'].values.astype(
-            'datetime64[ns]').astype(np.int64)
-        market_closes = trading_o_and_c['market_close'].values.astype(
-            'datetime64[ns]').astype(np.int64)
         handle_data = algo.event_manager.handle_data
         current_data = self.current_data
 
@@ -120,7 +111,7 @@ class AlgorithmSimulator(object):
             '2002-01-02')]
 
         benchmark_series = self._prepare_benchmark_series(
-            algo.benchmark_sid, env, trading_days, data_portal
+            algo.benchmark_sid, self.env, trading_days, data_portal
         )
 
         def inner_loop(dt_to_use):
@@ -172,14 +163,8 @@ class AlgorithmSimulator(object):
                     blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
 
-        if self.sim_params.data_frequency == 'minute':
-            clock = MinuteSimulationClock(
-                trading_days, market_opens, market_closes, data_portal)
-        elif self.sim_params.data_frequency == 'daily':
-            clock = DailySimulationClock(trading_days)
-
         with self.processor, ZiplineAPI(self.algo):
-            for dt, action in clock:
+            for dt, action in self.clock:
                 if action == DATA_AVAILABLE:
                     inner_loop(dt)
                 elif action == ONCE_A_DAY:
@@ -190,7 +175,7 @@ class AlgorithmSimulator(object):
                         benchmark_series.loc[dt]
                 elif action == CALC_PERFORMANCE:
                     yield self.get_message(dt, algo, perf_tracker)
-                    
+
         risk_message = perf_tracker.handle_simulation_end()
         yield risk_message
 
