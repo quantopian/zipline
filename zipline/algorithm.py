@@ -376,6 +376,27 @@ class TradingAlgorithm(object):
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
 
+    def ensure_clock(self):
+        """
+        If the clock property is not set, then create one based on frequency.
+        """
+        if self.clock is None:
+            if self.sim_params.data_frequency == 'minute':
+                env = self.trading_environment
+                trading_o_and_c = env.open_and_closes.ix[
+                    self.sim_params.trading_days]
+                market_opens = trading_o_and_c['market_open'].values.astype(
+                    'datetime64[ns]').astype(np.int64)
+                market_closes = trading_o_and_c['market_close'].values.astype(
+                    'datetime64[ns]').astype(np.int64)
+                self.clock = MinuteSimulationClock(
+                    self.sim_params.trading_days,
+                    market_opens,
+                    market_closes,
+                    self.data_portal)
+            elif self.sim_params.data_frequency == 'daily':
+                self.clock = DailySimulationClock(self.sim_params.trading_days)
+
     def _create_generator(self, sim_params, source_filter=None):
         """
         Create a basic generator setup using the sources to this algorithm.
@@ -436,22 +457,7 @@ class TradingAlgorithm(object):
         if self.data_portal is None:
             self.data_portal = data_portal
 
-        if self.clock is None:
-            if self.sim_params.data_frequency == 'minute':
-                env = self.trading_environment
-                trading_o_and_c = env.open_and_closes.ix[
-                    self.sim_params.trading_days]
-                market_opens = trading_o_and_c['market_open'].values.astype(
-                    'datetime64[ns]').astype(np.int64)
-                market_closes = trading_o_and_c['market_close'].values.astype(
-                    'datetime64[ns]').astype(np.int64)
-                self.clock = MinuteSimulationClock(
-                    self.sim_params.trading_days,
-                    market_opens,
-                    market_closes,
-                    data_portal)
-            elif self.sim_params.data_frequency == 'daily':
-                self.clock = DailySimulationClock(self.sim_params.trading_days)
+        self.ensure_clock()
 
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
