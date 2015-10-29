@@ -86,7 +86,6 @@ class AlgorithmSimulator(object):
         algo = self.algo
         algo.data_portal = self.data_portal
         sim_params = algo.sim_params
-        trading_days = sim_params.trading_days
         handle_data = algo.event_manager.handle_data
         current_data = self.current_data
 
@@ -161,12 +160,13 @@ class AlgorithmSimulator(object):
                     perf_tracker_benchmark_returns[dt] = \
                         self.benchmark_source.get_value(dt)
                 elif action == CALC_PERFORMANCE:
-                    yield self.get_daily_message(dt, algo, perf_tracker)
+                    yield self.get_daily_message(algo, perf_tracker)
 
         risk_message = perf_tracker.handle_simulation_end()
         yield risk_message
 
-    def get_daily_message(self, dt, algo, perf_tracker):
+    @staticmethod
+    def get_daily_message(algo, perf_tracker):
         """
         Get a perf message for the given datetime.
         """
@@ -176,7 +176,8 @@ class AlgorithmSimulator(object):
         perf_message['daily_perf']['recorded_vars'] = rvars
         return perf_message
 
-    def get_minute_message(self, dt, algo, perf_tracker):
+    @staticmethod
+    def get_minute_message(dt, algo, perf_tracker):
         """
         Get a perf message for the given datetime.
         """
