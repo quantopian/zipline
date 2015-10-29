@@ -21,11 +21,12 @@ from zipline.errors import (
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 
-# FIXME how to import this from sim_engine?
-DATA_AVAILABLE = 0
-ONCE_A_DAY = 1
-UPDATE_BENCHMARK = 2
-CALC_PERFORMANCE = 3
+from zipline.gens.sim_engine import (
+    DATA_AVAILABLE,
+    ONCE_A_DAY,
+    UPDATE_BENCHMARK,
+    CALC_PERFORMANCE,
+)
 
 
 log = Logger('Trade Simulation')

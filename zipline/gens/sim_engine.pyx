@@ -5,12 +5,11 @@ cimport cython
 
 cdef np.int64_t minute_in_nano = 60000000000
 
-# TODO: Should this be a struct?
-
-cdef np.int64_t DATA_AVAILABLE = 0
-cdef np.int64_t ONCE_A_DAY = 1
-cdef np.int64_t UPDATE_BENCHMARK = 2
-cdef np.int64_t CALC_PERFORMANCE = 3
+cpdef enum:
+    DATA_AVAILABLE = 0
+    ONCE_A_DAY = 1
+    UPDATE_BENCHMARK = 2
+    CALC_PERFORMANCE = 3
 
 
 cdef class MinuteSimulationClock:
