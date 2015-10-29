@@ -18,7 +18,11 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     SQLiteAdjustmentReader,
 )
-from zipline.utils.test_utils import make_simple_asset_info, str_to_seconds
+from zipline.utils.test_utils import (
+    make_simple_asset_info,
+    str_to_seconds,
+    MockDailyBarReader
+)
 from zipline.data.minute_writer import MinuteBarWriterFromCSVs
 from zipline.utils.tradingcalendar import trading_days
 from zipline.finance.trading import TradingEnvironment
@@ -36,12 +40,6 @@ TEST_DAILY_RESOURCE_PATH = join(
     'resources',
     'pipeline_inputs',
 )
-
-
-class MockDailyBarReader(object):
-
-    def spot_price(self, col, sid, dt):
-        return 100
 
 
 class HistoryTestCase(TestCase):

@@ -670,3 +670,8 @@ class tmp_asset_finder(tmp_assets_db):
     """
     def __enter__(self):
         return AssetFinder(super(tmp_asset_finder, self).__enter__())
+
+
+class MockDailyBarReader(object):
+    def spot_price(self, col, sid, dt):
+        return 100
