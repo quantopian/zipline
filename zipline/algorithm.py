@@ -99,6 +99,7 @@ from zipline.gens.sim_engine import (
     MinuteSimulationClock,
     DailySimulationClock
 )
+from zipline.sources.benchmark_source import BenchmarkSource
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -187,7 +188,7 @@ class TradingAlgorithm(object):
 
         self.logger = None
 
-        self.benchmark_return_source = None
+        self.benchmark_source = None
 
         self.instant_fill = kwargs.pop('instant_fill', False)
 
@@ -397,6 +398,14 @@ class TradingAlgorithm(object):
             elif self.sim_params.data_frequency == 'daily':
                 self.clock = DailySimulationClock(self.sim_params.trading_days)
 
+    def create_benchmark_source(self):
+        return BenchmarkSource(
+            self.benchmark_sid,
+            self.trading_environment,
+            self.sim_params.trading_days,
+            self.data_portal
+        )
+
     def _create_generator(self, sim_params, source_filter=None):
         """
         Create a basic generator setup using the sources to this algorithm.
@@ -429,9 +438,13 @@ class TradingAlgorithm(object):
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
 
-        self.trading_client = AlgorithmSimulator(self, sim_params,
-                                                 self.data_portal,
-                                                 self.clock)
+        self.trading_client = AlgorithmSimulator(
+            self,
+            sim_params,
+            self.data_portal,
+            self.clock,
+            self.create_benchmark_source()
+        )
 
         return self.trading_client.transform()
 

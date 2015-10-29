@@ -14,10 +14,6 @@
 # limitations under the License.
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
-from zipline.errors import (
-    BenchmarkAssetNotAvailableTooEarly,
-    BenchmarkAssetNotAvailableTooLate,
-    InvalidBenchmarkAsset)
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 
@@ -39,7 +35,7 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params, data_portal, clock):
+    def __init__(self, algo, sim_params, data_portal, clock, benchmark_source):
 
         # ==============
         # Simulation
@@ -69,6 +65,8 @@ class AlgorithmSimulator(object):
         self.simulation_dt = None
 
         self.clock = clock
+
+        self.benchmark_source = benchmark_source
 
         # =============
         # Logging Setup
@@ -102,10 +100,6 @@ class AlgorithmSimulator(object):
         perf_process_order = self.algo.perf_tracker.process_order
         perf_process_txn = self.algo.perf_tracker.process_transaction
         perf_tracker.position_tracker.data_portal = data_portal
-
-        benchmark_series = self._prepare_benchmark_series(
-            algo.benchmark_sid, self.env, trading_days, data_portal
-        )
 
         def inner_loop(dt_to_use):
             # called every tick (minute or day).
@@ -164,11 +158,8 @@ class AlgorithmSimulator(object):
                     once_a_day(dt)
                 elif action == UPDATE_BENCHMARK:
                     # Update benchmark before getting market close.
-                    try:
-                        perf_tracker_benchmark_returns[dt] = \
-                            benchmark_series.loc[dt]
-                    except KeyError:
-                        perf_tracker_benchmark_returns[dt] = 0.01
+                    perf_tracker_benchmark_returns[dt] = \
+                        self.benchmark_source.get_value(dt)
                 elif action == CALC_PERFORMANCE:
                     yield self.get_daily_message(dt, algo, perf_tracker)
 
@@ -195,109 +186,4 @@ class AlgorithmSimulator(object):
         perf_message['minute_perf']['recorded_vars'] = rvars
         return perf_message
 
-    @staticmethod
-    def _prepare_benchmark_series(sid, env, trading_days, data_portal):
-        """
-        Internal method that precalculates the benchmark return series for
-        use in the simulation.
 
-        Parameters
-        ----------
-        algo: TradingAlgorithm
-
-        env: TradingEnvironment
-
-        trading_days: pd.DateTimeIndex
-
-        data_portal: DataPortal
-
-        Notes
-        -----
-        If the benchmark asset started trading after the simulation start,
-        or finished trading before the simulation end, exceptions are raised.
-
-        If the benchmark asset started trading the same day as the simulation
-        start, the first available minute price on that day is used instead
-        of the previous close.
-
-        We use history to get an adjusted price history for each day's close,
-        as of the look-back date (the last day of the simulation).  Prices are
-        fully adjusted for dividends, splits, and mergers.
-
-        Returns
-        -------
-        A pd.Series, indexed by trading day, whose values represent the %
-        change from close to close.
-        """
-        if sid is None:
-            # get benchmark info from trading environment
-            return env.benchmark_returns[trading_days[0]:trading_days[-1]]
-        else:
-            # check if this security has a stock dividend.  if so, raise an
-            # error suggesting that the user pick a different asset to use
-            # as benchmark.
-            stock_dividends = \
-                data_portal.get_stock_dividends(sid, trading_days)
-
-            if len(stock_dividends) > 0:
-                raise InvalidBenchmarkAsset(
-                    sid=str(sid),
-                    dt=stock_dividends[0]["ex_date"]
-                )
-
-            benchmark_asset = env.asset_finder.retrieve_asset(sid)
-            if benchmark_asset.start_date > trading_days[0]:
-                # the asset started trading after the first simulation day
-                raise BenchmarkAssetNotAvailableTooEarly(
-                    sid=str(sid),
-                    dt=trading_days[0],
-                    start_dt=benchmark_asset.start_date
-                )
-
-            if benchmark_asset.end_date < trading_days[-1]:
-                # the asset stopped trading before the last simulation day
-                raise BenchmarkAssetNotAvailableTooLate(
-                    sid=str(sid),
-                    dt=trading_days[0],
-                    end_dt=benchmark_asset.end_date
-                )
-
-            # get the window of close prices for benchmark_sid from the last
-            # trading day of the simulation, going up to one day before the
-            # simulation start day (so that we can get the % change on day 1)
-            benchmark_series = data_portal.get_history_window(
-                [sid],
-                trading_days[-1],
-                bar_count=len(trading_days) + 1,
-                frequency="1d",
-                field="close"
-            )[sid]
-
-            # now, we need to check if we can safely go use the
-            # one-day-before-sim-start value, by seeing if the asset was
-            # trading that day.
-            trading_day_before_sim_start = \
-                env.previous_trading_day(trading_days[0])
-
-            if benchmark_asset.start_date > trading_day_before_sim_start:
-                # we can't go back one day before sim start, because the asset
-                # didn't start trading until the same day as the sim start.
-                # instead, we'll use the first available minute value of the
-                # first sim day.
-                minutes_in_first_day = \
-                    env.market_minutes_for_day(trading_days[0])
-
-                # get a minute history window of the first day
-                minute_window = data_portal.get_history_window(
-                    [sid],
-                    minutes_in_first_day[-1],
-                    bar_count=len(minutes_in_first_day),
-                    frequency="1m",
-                    field="close_price"
-                )[sid]
-
-                # find the first non-zero value
-                value_to_use = minute_window[minute_window != 0][0]
-                benchmark_series[0] = value_to_use
-
-            return benchmark_series.pct_change()[1:]
