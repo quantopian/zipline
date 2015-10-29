@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from zipline.utils.memoize import lazyval
+
 
 class ZiplineError(Exception):
     msg = None
 
-    def __init__(self, *args, **kwargs):
-        self.args = args
+    def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.message = str(self)
 
@@ -231,13 +232,17 @@ Root symbol '{root_symbol}' was not found.
 """.strip()
 
 
-class SidNotFound(ZiplineError):
+class SidsNotFound(ZiplineError):
     """
-    Raised when a retrieve_asset() call contains a non-existent sid.
+    Raised when a retrieve_asset() or retrieve_all() call contains a
+    non-existent sid.
     """
-    msg = """
-Asset with sid '{sid}' was not found.
-""".strip()
+    @lazyval
+    def msg(self):
+        sids = self.kwargs['sids']
+        if len(sids) == 1:
+            return "No asset found for sid: {sids[0]}."
+        return "No assets found for sids: {sids}."
 
 
 class ConsumeAssetMetaDataError(ZiplineError):
