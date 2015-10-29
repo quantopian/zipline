@@ -146,12 +146,9 @@ class AssetFinder(object):
             if asset is not None:
                 self._asset_cache[sid] = asset
 
-        if asset is not None:
+        if (asset is not None) or default_none:
             return asset
-        elif default_none:
-            return None
-        else:
-            raise SidNotFound(sid=sid)
+        raise SidNotFound(sid=sid)
 
     def retrieve_all(self, sids, default_none=False):
         return [self.retrieve_asset(sid, default_none) for sid in sids]
