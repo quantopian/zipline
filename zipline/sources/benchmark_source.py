@@ -98,7 +98,8 @@ class BenchmarkSource(object):
                 trading_days[-1],
                 bar_count=len(trading_days) + 1,
                 frequency="1d",
-                field="close"
+                field="price",
+                ffill=True
             )[sid]
 
             # now, we need to check if we can safely go use the
@@ -121,7 +122,8 @@ class BenchmarkSource(object):
                     minutes_in_first_day[-1],
                     bar_count=len(minutes_in_first_day),
                     frequency="1m",
-                    field="close_price"
+                    field="price",
+                    ffill=True
                 )[sid]
 
                 # find the first non-zero value
