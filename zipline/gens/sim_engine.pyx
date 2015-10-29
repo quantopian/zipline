@@ -11,7 +11,6 @@ cdef np.int64_t DATA_AVAILABLE = 0
 cdef np.int64_t ONCE_A_DAY = 1
 cdef np.int64_t UPDATE_BENCHMARK = 2
 cdef np.int64_t CALC_PERFORMANCE = 3
-cdef np.int64_t SYNC_BLOTTER = 4
 
 
 cdef class MinuteSimulationClock:

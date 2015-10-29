@@ -12,26 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import numpy as np
-import pandas as pd
-
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
 from zipline.errors import (
     BenchmarkAssetNotAvailableTooEarly,
     BenchmarkAssetNotAvailableTooLate,
     InvalidBenchmarkAsset)
-
 from zipline.protocol import BarData
+from zipline.utils.api_support import ZiplineAPI
 
+# FIXME how to import this from sim_engine?
 DATA_AVAILABLE = 0
 ONCE_A_DAY = 1
 UPDATE_BENCHMARK = 2
-DAILY_PERFORMANCE = 3
-MINUTE_PERFORMANCE = 4
+CALC_PERFORMANCE = 3
 
-
-from zipline.utils.api_support import ZiplineAPI
 
 log = Logger('Trade Simulation')
 
@@ -107,10 +102,6 @@ class AlgorithmSimulator(object):
         perf_process_txn = self.algo.perf_tracker.process_transaction
         perf_tracker.position_tracker.data_portal = data_portal
 
-        all_trading_days = self.env.trading_days
-        all_trading_days = all_trading_days[all_trading_days.slice_indexer(
-            '2002-01-02')]
-
         benchmark_series = self._prepare_benchmark_series(
             algo.benchmark_sid, self.env, trading_days, data_portal
         )
@@ -177,9 +168,7 @@ class AlgorithmSimulator(object):
                             benchmark_series.loc[dt]
                     except KeyError:
                         perf_tracker_benchmark_returns[dt] = 0.01
-                elif action == DAILY_PERFORMANCE:
-                    yield self.get_daily_message(dt, algo, perf_tracker)
-                elif action == MINUTE_PERFORMANCE:
+                elif action == CALC_PERFORMANCE:
                     yield self.get_daily_message(dt, algo, perf_tracker)
 
         risk_message = perf_tracker.handle_simulation_end()
