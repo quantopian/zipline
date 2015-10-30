@@ -27,6 +27,7 @@ from zipline.errors import (
 
 from zipline.finance.trading import TradingEnvironment
 from zipline.gens.tradesimulation import AlgorithmSimulator
+from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.utils import factory
 from zipline.utils.test_utils import create_data_portal, write_minute_data
 from .test_perf_tracking import MockDailyBarSpotReader
@@ -114,11 +115,9 @@ class TestBenchmark(TestCase):
     def test_normal(self):
         days_to_use = self.sim_params.trading_days[1:]
 
-        series = AlgorithmSimulator._prepare_benchmark_series(
+        source = BenchmarkSource(
             1, self.env, days_to_use, self.data_portal
         )
-
-        self.assertEqual(len(days_to_use), len(series))
 
         # should be the equivalent of getting the price history, then doing
         # a pct_change on it
@@ -128,13 +127,15 @@ class TestBenchmark(TestCase):
 
         # compare all the fields except the first one, for which we don't have
         # data in manually_calculated
-        np.testing.assert_array_equal(series[1:], manually_calculated[1:])
-
-        self.assertAlmostEqual(0.1, series[0])
+        for idx, day in enumerate(days_to_use[1:]):
+            self.assertEqual(
+                source.get_value(day),
+                manually_calculated[idx + 1]
+            )
 
     def test_asset_not_trading(self):
         with self.assertRaises(BenchmarkAssetNotAvailableTooEarly) as exc:
-            AlgorithmSimulator._prepare_benchmark_series(
+            BenchmarkSource(
                 3,
                 self.env,
                 self.sim_params.trading_days[1:],
@@ -148,7 +149,7 @@ class TestBenchmark(TestCase):
         )
 
         with self.assertRaises(BenchmarkAssetNotAvailableTooLate) as exc2:
-            AlgorithmSimulator._prepare_benchmark_series(
+            BenchmarkSource(
                 3,
                 self.env,
                 self.sim_params.trading_days[120:],
@@ -177,30 +178,34 @@ class TestBenchmark(TestCase):
 
         self.data_portal.minutes_equities_path = path
 
-        series = AlgorithmSimulator._prepare_benchmark_series(
+        source = BenchmarkSource(
             2,
             self.env,
             self.sim_params.trading_days,
             self.data_portal
         )
 
-        # first value should be 0.10, coming from daily data
-        self.assertAlmostEquals(0.10, series[0])
-
         days_to_use = self.sim_params.trading_days
+
+        # first value should be 0.10, coming from daily data
+        self.assertAlmostEquals(0.10, source.get_value(days_to_use[0]))
 
         manually_calculated = self.data_portal.get_history_window(
             [2], days_to_use[-1], len(days_to_use), "1d", "close_price"
         )[2].pct_change()
 
-        np.testing.assert_array_equal(series[1:], manually_calculated[1:])
+        for idx, day in enumerate(days_to_use[1:]):
+            self.assertEqual(
+                source.get_value(day),
+                manually_calculated[idx + 1]
+            )
 
     def test_no_stock_dividends_allowed(self):
         # try to use sid(4) as benchmark, should blow up due to the presence
         # of a stock dividend
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
-            AlgorithmSimulator._prepare_benchmark_series(
+            source = BenchmarkSource(
                 4, self.env, self.sim_params.trading_days, self.data_portal
             )
 
