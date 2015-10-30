@@ -296,6 +296,8 @@ class PerformanceTracker(object):
                 perf_period.handle_cash_payment(cash_adjustment)
 
     def process_transaction(self, event):
+        # Transaction events also count as trade events for the trackers
+        self.process_trade(event)
         self.txn_count += 1
         self.position_tracker.execute_transaction(event)
         for perf_period in self.perf_periods:

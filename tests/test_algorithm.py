@@ -1859,7 +1859,6 @@ class TestFutureFlip(TestCase):
 
     def test_flip_algo(self):
         metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'equity',
                         'end_date': self.days[3],
                         'contract_multiplier': 5}}
         self.env.write_data(futures_data=metadata)
