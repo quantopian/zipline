@@ -9,7 +9,8 @@ cpdef enum:
     DATA_AVAILABLE = 0
     ONCE_A_DAY = 1
     UPDATE_BENCHMARK = 2
-    CALC_PERFORMANCE = 3
+    CALC_DAILY_PERFORMANCE = 3
+    CALC_MINUTE_PERFORMANCE = 4
 
 
 cdef class MinuteSimulationClock:
@@ -52,7 +53,7 @@ cdef class MinuteSimulationClock:
                 yield minute, DATA_AVAILABLE
 
             yield day, UPDATE_BENCHMARK
-            yield day, CALC_PERFORMANCE
+            yield day, CALC_DAILY_PERFORMANCE
 
 
 cdef class DailySimulationClock:
@@ -67,4 +68,4 @@ cdef class DailySimulationClock:
             yield day, ONCE_A_DAY
             yield day, DATA_AVAILABLE
             yield day, UPDATE_BENCHMARK
-            yield day, CALC_PERFORMANCE
+            yield day, CALC_DAILY_PERFORMANCE

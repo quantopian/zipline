@@ -21,7 +21,8 @@ from zipline.gens.sim_engine import (
     DATA_AVAILABLE,
     ONCE_A_DAY,
     UPDATE_BENCHMARK,
-    CALC_PERFORMANCE,
+    CALC_DAILY_PERFORMANCE,
+    CALC_MINUTE_PERFORMANCE
 )
 
 
@@ -159,8 +160,13 @@ class AlgorithmSimulator(object):
                     # Update benchmark before getting market close.
                     perf_tracker_benchmark_returns[dt] = \
                         self.benchmark_source.get_value(dt)
-                elif action == CALC_PERFORMANCE:
-                    yield self.get_daily_message(algo, perf_tracker)
+                elif action == CALC_DAILY_PERFORMANCE:
+                    yield self.get_daily_message(dt, algo, perf_tracker)
+                elif action == CALC_MINUTE_PERFORMANCE:
+                    minute, daily = self.get_minute_message(
+                        dt, algo, perf_tracker)
+                    if daily:
+                        yield daily
 
         risk_message = perf_tracker.handle_simulation_end()
         yield risk_message
@@ -182,9 +188,8 @@ class AlgorithmSimulator(object):
         Get a perf message for the given datetime.
         """
         rvars = algo.recorded_vars
-        perf_tracker.handle_minute_close(dt)
-        perf_message = perf_tracker.to_dict()
-        perf_message['minute_perf']['recorded_vars'] = rvars
-        return perf_message
-
-
+        minute_message, daily_message = perf_tracker.handle_minute_close(dt)
+        minute_message['minute_perf']['recorded_vars'] = rvars
+        if daily_message:
+            daily_message['daily_perf']['recorded_vars'] = rvars
+        return minute_message, daily_message
