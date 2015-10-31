@@ -22,7 +22,7 @@ import numpy as np
 
 from datetime import datetime
 
-from itertools import groupby, chain
+from itertools import groupby, chain, repeat
 from six.moves import filter
 from six import (
     exec_,
@@ -1364,13 +1364,19 @@ class TradingAlgorithm(object):
     ##############
     @api_method
     @require_not_initialized(AttachPipelineAfterInitialize())
-    def attach_pipeline(self, pipeline, name):
+    def attach_pipeline(self, pipeline, name, chunksize=None):
         """
         Register a pipeline to be computed at the start of each day.
         """
         if self._pipelines:
             raise NotImplementedError("Multiple pipelines are not supported.")
-        self._pipelines[name] = pipeline
+        if chunksize is None:
+            # Make the first chunk smaller to get more immediate results:
+            # (one week, then every half year)
+            chunks = iter(chain([5], repeat(126)))
+        else:
+            chunks = iter(repeat(int(chunksize)))
+        self._pipelines[name] = pipeline, chunks
 
         # Return the pipeline to allow expressions like
         # p = attach_pipeline(Pipeline(), 'name')
@@ -1405,15 +1411,15 @@ class TradingAlgorithm(object):
         # NOTE: We don't currently support multiple pipelines, but we plan to
         # in the future.
         try:
-            p = self._pipelines[name]
+            p, chunks = self._pipelines[name]
         except KeyError:
             raise NoSuchPipeline(
                 name=name,
                 valid=list(self._pipelines.keys()),
             )
-        return self._pipeline_output(p)
+        return self._pipeline_output(p, chunks)
 
-    def _pipeline_output(self, pipeline):
+    def _pipeline_output(self, pipeline, chunks):
         """
         Internal implementation of `pipeline_output`.
         """
@@ -1421,7 +1427,9 @@ class TradingAlgorithm(object):
         try:
             data = self._pipeline_cache.unwrap(today)
         except Expired:
-            data, valid_until = self._run_pipeline(pipeline, today)
+            data, valid_until = self._run_pipeline(
+                pipeline, today, next(chunks),
+            )
             self._pipeline_cache = CachedObject(data, valid_until)
 
         # Now that we have a cached result, try to return the data for today.
@@ -1432,17 +1440,15 @@ class TradingAlgorithm(object):
             # day.
             return pd.DataFrame(index=[], columns=data.columns)
 
-    def _run_pipeline(self, pipeline, start_date):
+    def _run_pipeline(self, pipeline, start_date, chunksize):
         """
         Compute `pipeline`, providing values for at least `start_date`.
 
         Produces a DataFrame containing data for days between `start_date` and
         `end_date`, where `end_date` is defined by:
 
-            `end_date = min(start_date + 252 trading days, simulation_end)`
-
-        252 is a mostly-arbitrary number based on napkin math.  The window
-        length will likely become dynamic and/or configurable in the future.
+            `end_date = min(start_date + chunksize trading days,
+                            simulation_end)`
 
         Returns
         -------
@@ -1458,12 +1464,9 @@ class TradingAlgorithm(object):
         start_date_loc = days.get_loc(start_date)
 
         # ...continuing until either the day before the simulation end, or
-        # until 252 days of data have been loaded.  252 is a totally arbitrary
-        # choice that seemed reasonable based on napkin math.  In the future,
-        # this number will likely become dynamic and/or customizable, so don't
-        # rely on it being 252.
+        # until chunksize days of data have been loaded.
         sim_end = self.sim_params.last_close.normalize()
-        end_loc = min(start_date_loc + 252, days.get_loc(sim_end))
+        end_loc = min(start_date_loc + chunksize, days.get_loc(sim_end))
         end_date = days[end_loc]
 
         return \

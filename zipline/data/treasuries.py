@@ -12,131 +12,75 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from operator import itemgetter
 import re
 
 import numpy as np
 import pandas as pd
-import requests
-
-from collections import OrderedDict
-import xml.etree.ElementTree as ET
-
-from six import iteritems
-
-from . loader_utils import (
-    guarded_conversion,
-    safe_int,
-    Mapping,
-    date_conversion,
-    source_to_records
-)
 
 
-def get_treasury_date(dstring):
-    return date_conversion(dstring.split("T")[0], date_pattern='%Y-%m-%d',
-                           to_utc=False)
+get_unit_and_periods = itemgetter('unit', 'periods')
 
 
-def get_treasury_rate(string_val):
-    val = guarded_conversion(float, string_val)
-    if val is not None:
-        val = round(val / 100.0, 4)
-    return val
-
-_CURVE_MAPPINGS = {
-    'tid': (safe_int, "Id"),
-    'date': (get_treasury_date, "NEW_DATE"),
-    '1month': (get_treasury_rate, "BC_1MONTH"),
-    '3month': (get_treasury_rate, "BC_3MONTH"),
-    '6month': (get_treasury_rate, "BC_6MONTH"),
-    '1year': (get_treasury_rate, "BC_1YEAR"),
-    '2year': (get_treasury_rate, "BC_2YEAR"),
-    '3year': (get_treasury_rate, "BC_3YEAR"),
-    '5year': (get_treasury_rate, "BC_5YEAR"),
-    '7year': (get_treasury_rate, "BC_7YEAR"),
-    '10year': (get_treasury_rate, "BC_10YEAR"),
-    '20year': (get_treasury_rate, "BC_20YEAR"),
-    '30year': (get_treasury_rate, "BC_30YEAR"),
-}
-
-
-def treasury_mappings(mappings):
-    return {key: Mapping(*value)
-            for key, value
-            in iteritems(mappings)}
-
-
-class iter_to_stream(object):
+def parse_treasury_csv_column(column):
     """
-    Exposes an iterable as an i/o stream
+    Parse a treasury CSV column into a more human-readable format.
+
+    Columns start with 'RIFLGFC', followed by Y or M (year or month), followed
+    by a two-digit number signifying number of years/months, followed by _N.B.
+    We only care about the middle two entries, which we turn into a string like
+    3month or 30year.
     """
-    def __init__(self, iterable):
-        self.buffered = ""
-        self.iter = iter(iterable)
+    column_re = re.compile(
+        r"^(?P<prefix>RIFLGFC)"
+        "(?P<unit>[YM])"
+        "(?P<periods>[0-9]{2})"
+        "(?P<suffix>_N.B)$"
+    )
 
-    def read(self, size):
-        result = ""
-        while size > 0:
-            data = self.buffered or next(self.iter, None)
-            self.buffered = ""
-            if data is None:
-                break
-            size -= len(data)
-            if size < 0:
-                data, self.buffered = data[:size], data[size:]
-            result += data
-        return result
+    match = column_re.match(column)
+    if match is None:
+        raise ValueError("Couldn't parse CSV column %r." % column)
+    unit, periods = get_unit_and_periods(match.groupdict())
+
+    # Roundtrip through int to coerce '06' into '6'.
+    return str(int(periods)) + ('year' if unit == 'Y' else 'month')
 
 
-def get_localname(element):
-    qtag = ET.QName(element.tag).text
-    return re.match("(\{.*\})(.*)", qtag).group(2)
+def earliest_possible_date():
+    """
+    The earliest date for which we can load data from this module.
+    """
+    # The US Treasury actually has data going back further than this, but it's
+    # pretty rare to find pricing data going back that far, and there's no
+    # reason to make people download benchmarks back to 1950 that they'll never
+    # be able to use.
+    return pd.Timestamp('1980', tz='UTC')
 
 
-def get_treasury_source():
-    url = """\
-http://data.treasury.gov/feed.svc/DailyTreasuryYieldCurveRateData\
-"""
-    res = requests.get(url, stream=True)
-    stream = iter_to_stream(res.text.splitlines())
-
-    elements = ET.iterparse(stream, ('end', 'start-ns', 'end-ns'))
-
-    namespaces = OrderedDict()
-    properties_xpath = ['']
-
-    def updated_namespaces():
-        if '' in namespaces and 'm' in namespaces:
-            properties_xpath[0] = "{%s}content/{%s}properties" % (
-                namespaces[''], namespaces['m']
-            )
-        else:
-            properties_xpath[0] = ''
-
-    for event, element in elements:
-        if event == 'end':
-            tag = get_localname(element)
-            if tag == "entry":
-                properties = element.find(properties_xpath[0])
-                datum = {get_localname(node): node.text
-                         for node in properties if ET.iselement(node)}
-                # clear the element after we've dealt with it:
-                element.clear()
-                yield datum
-
-        elif event == 'start-ns':
-            namespaces[element[0]] = element[1]
-            updated_namespaces()
-
-        elif event == 'end-ns':
-            namespaces.popitem()
-            updated_namespaces()
-
-
-def get_treasury_data():
-    mappings = treasury_mappings(_CURVE_MAPPINGS)
-    source = get_treasury_source()
-    return source_to_records(mappings, source)
+def get_treasury_data(start_date, end_date):
+    return pd.read_csv(
+        "http://www.federalreserve.gov/datadownload/Output.aspx"
+        "?rel=H15"
+        "&series=bf17364827e38702b42a58cf8eaa3f78"
+        "&lastObs="
+        "&from="  # An unbounded query is ~2x faster than specifying dates.
+        "&to="
+        "&filetype=csv"
+        "&label=omit"
+        "&layout=seriescolumn"
+        "&type=package",
+        skiprows=1,  # First row is a useless header.
+        parse_dates=['Time Period'],
+        na_values=['ND'],  # Presumably this stands for "No Data".
+        index_col=0,
+    ).loc[
+        start_date:end_date
+    ].dropna(
+        how='all'
+    ).rename(
+        columns=parse_treasury_csv_column
+    ).tz_localize('UTC') * 0.01  # Convert from 2.57% to 0.0257.
 
 
 def dataconverter(s):
