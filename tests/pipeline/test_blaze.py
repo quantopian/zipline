@@ -399,7 +399,7 @@ class BlazeToPipelineTestCase(TestCase):
     @with_extra_sid
     def test_deltas(self, asset_info):
         expr = bz.Data(self.df, name='expr', dshape=self.dshape)
-        deltas = bz.Data(self.df.iloc[:-3], name='deltas', dshape=self.dshape)
+        deltas = bz.Data(self.df, name='deltas', dshape=self.dshape)
         deltas = bz.transform(
             deltas,
             value=deltas.value + 10,
@@ -411,6 +411,8 @@ class BlazeToPipelineTestCase(TestCase):
                                     [1.0, 2.0, 3.0]]),
             '2014-01-03': np.array([[11.0, 12.0, 13.0],
                                     [2.0, 3.0, 4.0]]),
+            '2014-01-04': np.array([[12.0, 13.0, 14.0],
+                                    [12.0, 13.0, 14.0]]),
         })
 
         nassets = len(asset_info)
@@ -422,7 +424,7 @@ class BlazeToPipelineTestCase(TestCase):
 
         with tmp_asset_finder(asset_info) as finder:
             expected_output = pd.DataFrame(
-                list(concatv([12] * nassets, [13] * nassets)),
+                list(concatv([12] * nassets, [13] * nassets, [14] * nassets)),
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
                     finder.retrieve_all(asset_info.index),
@@ -430,6 +432,7 @@ class BlazeToPipelineTestCase(TestCase):
                 columns=('value',),
             )
             dates = self.dates
+            dates = dates.insert(len(dates), dates[-1] + timedelta(days=1))
             self._run_pipeline(
                 expr,
                 deltas,
