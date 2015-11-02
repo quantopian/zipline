@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 cimport cython
 
-cdef np.int64_t minute_in_nano = 60000000000
+cdef np.int64_t _nanos_in_minute = 60000000000
+NANOS_IN_MINUTE = _nanos_in_minute
 
 cpdef enum:
     DATA_AVAILABLE = 0
@@ -37,8 +38,8 @@ cdef class MinuteSimulationClock:
         market_closes = self.market_closes
 
         return np.arange(market_opens[i],
-                         market_closes[i] + minute_in_nano,
-                         minute_in_nano)
+                         market_closes[i] + _nanos_in_minute,
+                         _nanos_in_minute)
 
     def __iter__(self):
         first_trading_day_idx = 0
