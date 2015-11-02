@@ -1845,23 +1845,26 @@ class TestClosePosAlgo(TestCase):
                 format(i, actual_position, expected_positions[i]))
 
 
-class TestFutureFlip(TestCase):
-    def setUp(self):
-        self.env = TradingEnvironment()
-        self.days = self.env.trading_days[:4]
-        self.trades_panel = pd.Panel({1: pd.DataFrame({
+class TestFutureExecution(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.days = cls.env.trading_days[:4]
+        cls.trades_panel = pd.Panel({1: pd.DataFrame({
             'price': [1, 2, 4], 'volume': [1e9, 1e9, 1e9],
             'type': [DATASOURCE_TYPE.TRADE,
                      DATASOURCE_TYPE.TRADE,
                      DATASOURCE_TYPE.TRADE]},
-            index=self.days[:3])
+            index=cls.days[:3])
         })
 
-    def test_flip_algo(self):
         metadata = {1: {'symbol': 'TEST',
-                        'end_date': self.days[3],
+                        'end_date': cls.days[3],
                         'contract_multiplier': 5}}
-        self.env.write_data(futures_data=metadata)
+        cls.env.write_data(futures_data=metadata)
+
+    def test_flip_algo(self):
 
         algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,
                               commission=PerShare(0),
@@ -1875,6 +1878,22 @@ class TestFutureFlip(TestCase):
         self.check_algo_positions(results, expected_positions)
 
         expected_pnl = [0, 5, -10]
+        self.check_algo_pnl(results, expected_pnl)
+
+    def test_algo_commission(self):
+
+        algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,
+                              commission=PerShare(1),
+                              order_count=0,  # not applicable but required
+                              instant_fill=True)
+        data = DataPanelSource(self.trades_panel)
+
+        results = algo.run(data)
+
+        expected_positions = [1, -1, 0]
+        self.check_algo_positions(results, expected_positions)
+
+        expected_pnl = [-1, 2, -14]
         self.check_algo_pnl(results, expected_pnl)
 
     def check_algo_pnl(self, results, expected_pnl):
