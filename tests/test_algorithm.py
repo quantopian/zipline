@@ -48,6 +48,7 @@ from zipline.test_algorithms import (
     EmptyPositionsAlgorithm,
     InvalidOrderAlgorithm,
     RecordAlgorithm,
+    FutureFlipAlgo,
     TestAlgorithm,
     TestOrderAlgorithm,
     TestOrderInstantAlgorithm,
@@ -1826,6 +1827,54 @@ class TestClosePosAlgo(TestCase):
         self.check_algo_positions(results, expected_positions)
 
         expected_pnl = [0, 0, 1, 2]
+        self.check_algo_pnl(results, expected_pnl)
+
+    def check_algo_pnl(self, results, expected_pnl):
+        np.testing.assert_array_almost_equal(results.pnl, expected_pnl)
+
+    def check_algo_positions(self, results, expected_positions):
+        for i, amount in enumerate(results.positions):
+            if amount:
+                actual_position = amount[0]['amount']
+            else:
+                actual_position = 0
+
+            self.assertEqual(
+                actual_position, expected_positions[i],
+                "position for day={0} not equal, actual={1}, expected={2}".
+                format(i, actual_position, expected_positions[i]))
+
+
+class TestFutureFlip(TestCase):
+    def setUp(self):
+        self.env = TradingEnvironment()
+        self.days = self.env.trading_days[:4]
+        self.trades_panel = pd.Panel({1: pd.DataFrame({
+            'price': [1, 2, 4], 'volume': [1e9, 1e9, 1e9],
+            'type': [DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE]},
+            index=self.days[:3])
+        })
+
+    def test_flip_algo(self):
+        metadata = {1: {'symbol': 'TEST',
+                        'end_date': self.days[3],
+                        'contract_multiplier': 5}}
+        self.env.write_data(futures_data=metadata)
+
+        algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,
+                              commission=PerShare(0),
+                              order_count=0,  # not applicable but required
+                              instant_fill=True)
+        data = DataPanelSource(self.trades_panel)
+
+        results = algo.run(data)
+
+        expected_positions = [1, -1, 0]
+        self.check_algo_positions(results, expected_positions)
+
+        expected_pnl = [0, 5, -10]
         self.check_algo_pnl(results, expected_pnl)
 
     def check_algo_pnl(self, results, expected_pnl):
