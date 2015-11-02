@@ -51,7 +51,6 @@ _equities_defaults = {
     'end_date': 2 ** 62 - 1,
     'first_traded': None,
     'exchange': None,
-    'fuzzy': None,
     'ccy': None,
     'price_format': None,
     'status': None
@@ -530,15 +529,16 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                          root_symbols=root_symbols_output,
                          currencies=currencies_output)
 
-    @staticmethod
-    def dt_to_epoch_ns(dt_series):
+    # @staticmethod
+    def dt_to_epoch_ns(self, dt_series):
         index = pd.to_datetime(dt_series.values)
+        # print('fuck:: {} - {}'.format(dt_series.shape, index))
         try:
             index = index.tz_localize('UTC')
         except TypeError:
             index = index.tz_convert('UTC')
 
-        return index.view(int)
+        return index  # .view(int)
 
     @abstractmethod
     def _load_data(self):
