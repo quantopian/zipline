@@ -25,7 +25,7 @@ cimport numpy as np
 # IMPORTANT NOTE: You must change this template if you change
 # Asset.__reduce__, or else we'll attempt to unpickle an old version of this
 # class
-CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v4.cache'
+CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v4.01.cache'
 
 cdef class Asset:
 
@@ -42,6 +42,10 @@ cdef class Asset:
 
     cdef readonly object exchange
 
+    cdef readonly object ccy
+    cdef readonly object price_format
+    cdef readonly object status
+
     def __cinit__(self,
                   int sid, # sid is required
                   object symbol="",
@@ -50,6 +54,9 @@ cdef class Asset:
                   object end_date=None,
                   object first_traded=None,
                   object exchange="",
+                  object ccy="",
+                  object price_format=0,
+                  object status="",
                   *args,
                   **kwargs):
 
@@ -61,6 +68,9 @@ cdef class Asset:
         self.start_date    = start_date
         self.end_date      = end_date
         self.first_traded  = first_traded
+        self.ccy           = ccy
+        self.price_format  = price_format
+        self.status        = status
 
     def __int__(self):
         return self.sid
@@ -127,7 +137,8 @@ cdef class Asset:
 
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded')
+                 'start_date', 'end_date', 'first_traded',
+                 'ccy', 'price_format', 'status')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -147,7 +158,10 @@ cdef class Asset:
                                  self.start_date,
                                  self.end_date,
                                  self.first_traded,
-                                 self.exchange,))
+                                 self.exchange,
+                                 self.ccy,
+                                 self.price_format,
+                                 self.status))
 
     cpdef to_dict(self):
         """
@@ -161,6 +175,9 @@ cdef class Asset:
             'end_date': self.end_date,
             'first_traded': self.first_traded,
             'exchange': self.exchange,
+            'ccy' : self.ccy,
+            'price_format': self.price_format,
+            'status': self.status
         }
 
     @classmethod
@@ -242,6 +259,9 @@ cdef class Future(Asset):
                   object auto_close_date=None,
                   object first_traded=None,
                   object exchange="",
+                  object ccy="",
+                  object price_format=0,
+                  object status="",
                   float contract_multiplier=1):
 
         self.root_symbol         = root_symbol
@@ -296,6 +316,82 @@ cdef class Future(Asset):
         super_dict['expiration_date'] = self.expiration_date
         super_dict['auto_close_date'] = self.auto_close_date
         super_dict['contract_multiplier'] = self.contract_multiplier
+        return super_dict
+
+"""
+TODO MB - rework this we need a Currency object and we need a FX pair
+
+ok we should use this a CurrencyPair, Currency could just be an enum?
+"""
+
+cdef class CurrencyPair(Asset):
+
+    cdef readonly object pair
+    cdef readonly object major
+    cdef readonly object minor
+    cdef readonly float cvf
+
+    def __cinit__(self,
+                  int sid, # sid is required
+                  object symbol="",
+                  object pair="",
+                  object major="",
+                  object minor="",
+                  object start_date=None,
+                  float cvf=1,
+                  object asset_name="",
+                  object end_date=None,
+                  object notice_date=None,
+                  object first_traded=None,
+                  object exchange="",
+                  object ccy=""
+                  ):
+
+        self.pair       = pair
+        self.major      = major
+        self.minor      = minor
+        self.start_date = start_date
+        self.cvf        = cvf
+
+    def __str__(self):
+        if self.symbol:
+            return 'Currency(%d [%s])' % (self.sid, self.symbol)
+        else:
+            return 'Currency(%d)' % self.sid
+
+    def __repr__(self):
+        attrs = ('symbol', 'pair', 'major', 'minor',
+                 'start_date', 'cvf')
+        tuples = ((attr, repr(getattr(self, attr, None)))
+                  for attr in attrs)
+        strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
+        params = ', '.join(strings)
+        return 'Currency(%d, %s)' % (self.sid, params)
+
+    cpdef __reduce__(self):
+        """
+        Function used by pickle to determine how to serialize/deserialize this
+        class.  Should return a tuple whose first element is self.__class__,
+        and whose second element is a tuple of all the attributes that should
+        be serialized/deserialized during pickling.
+        """
+        return (self.__class__, (self.sid,
+                                 self.symbol,
+                                 self.pair,
+                                 self.major,
+                                 self.minor,
+                                 self.start_date,
+                                 self.cvf,))
+    cpdef to_dict(self):
+        """
+        Convert to a python dict.
+        """
+        super_dict = super(CurrencyPair, self).to_dict()
+        super_dict['pair'] = self.pair
+        super_dict['major'] = self.major
+        super_dict['minor'] = self.minor
+        super_dict['start_date'] = self.start_date
+        super_dict['cvf'] = self.cvf
         return super_dict
 
 

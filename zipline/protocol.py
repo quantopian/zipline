@@ -21,6 +21,7 @@ import numpy as np
 
 from . utils.protocol_utils import Enum
 from . utils.math_utils import nanstd, nanmean, nansum
+from . data.currencies import CCY
 
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
@@ -199,6 +200,7 @@ class Account(object):
         self.leverage = 0.0
         self.net_leverage = 0.0
         self.net_liquidation = 0.0
+        self.currency = CCY.USD
 
     def __getitem__(self, key):
         return self.__dict__[key]
