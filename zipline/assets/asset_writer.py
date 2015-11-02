@@ -12,7 +12,17 @@ from zipline.errors import SidAssignmentError
 from zipline.assets._assets import Asset
 
 # Define a namedtuple for use with the load_data and _load_data methods
-AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
+AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols currencies')
+
+CURRENCY_TABLE_FIELDS = frozenset({
+    'sid',  # 2268
+    'symbol',  # QF4 for example
+    'pair',  # the currency rate designator GBPUSD
+    'major',  # GBP
+    'minor',  # USD
+    'start_date',  # 1971-01-04
+    'cvf'  # 4 i.e. multiply 10^4 for certain amounts (mostly for contracts)
+})
 
 # Expected fields for an Asset's metadata
 ASSET_TABLE_FIELDS = frozenset({
@@ -23,6 +33,9 @@ ASSET_TABLE_FIELDS = frozenset({
     'end_date',
     'first_traded',
     'exchange',
+    'ccy',
+    'price_format',
+    'status'
 })
 
 # Expected fields for a Future's metadata
@@ -48,6 +61,15 @@ ROOT_SYMBOL_TABLE_FIELDS = frozenset({
     'exchange',
 })
 
+_currencies_defaults = {
+    'symbol': None,
+    'pair': None,
+    'major': None,
+    'minor': None,
+    'start_date': 0,
+    'cvf': None
+}
+
 # Default values for the equities DataFrame
 _equities_defaults = {
     'symbol': None,
@@ -57,6 +79,9 @@ _equities_defaults = {
     'first_traded': None,
     'exchange': None,
     'fuzzy': None,
+    'ccy': None,
+    'price_format': None,
+    'status': None
 }
 
 # Default values for the futures DataFrame
@@ -194,6 +219,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self._write_root_symbols(data.root_symbols, txn)
             self._write_futures(data.futures, txn)
             self._write_equities(data.equities, fuzzy_char, txn)
+            self._write_currencies(data.currencies, txn)
 
     def _write_exchanges(self, exchanges, bind=None):
         recs = exchanges.reset_index().rename_axis(
@@ -237,6 +263,16 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             self.asset_router.insert().values((record['sid'], 'equity'))\
                 .execute(bind=bind)
 
+    def _write_currencies(self, currencies, bind=None):
+        recs = currencies.reset_index().rename_axis(
+            {'index': 'sid'},
+            1,
+        ).to_dict('records')
+        for record in recs:
+            self.currencies.insert().values([record]).execute(bind=bind)
+            self.asset_router.insert().values((record['sid'], 'currency')) \
+                .execute(bind=bind)
+
     def init_db(self, engine, constraints=True):
         """Connect to database and create tables.
 
@@ -265,6 +301,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('first_traded', sa.Integer),
             sa.Column('exchange', sa.Text),
             sa.Column('fuzzy', sa.Text),
+            sa.Column('ccy', sa.Text),
+            sa.Column('price_format', sa.Integer, default=0),
+            sa.Column('status', sa.Text)
         )
         self.futures_exchanges = sa.Table(
             'futures_exchanges',
@@ -328,6 +367,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('notice_date', sa.Integer),
             sa.Column('expiration_date', sa.Integer),
             sa.Column('contract_multiplier', sa.Float),
+            sa.Column('ccy', sa.Text),
+            sa.Column('price_format', sa.Integer, default=0),
+            sa.Column('status', sa.Text)
         )
         self.asset_router = sa.Table(
             'asset_router',
@@ -341,6 +383,23 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('asset_type', sa.Text),
         )
         # Create the SQL tables if they do not already exist.
+        self.currencies = sa.Table(
+            'currencies',
+            metadata,
+            sa.Column(
+                'sid',
+                sa.Integer,
+                unique=True,
+                nullable=False,
+                primary_key=constraints,
+            ),
+            sa.Column('symbol', sa.Text),
+            sa.Column('pair', sa.Text),
+            sa.Column('major', sa.Text),
+            sa.Column('minor', sa.Text),
+            sa.Column('start_date', sa.Integer, default=0),
+            sa.Column('cvf', sa.Integer),
+        )
         metadata.create_all(checkfirst=True)
         return metadata
 
@@ -417,10 +476,29 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             defaults=_root_symbols_defaults,
         )
 
+        ################################
+        # Generate currencies DataFrame #
+        ################################
+
+        currencies_output = _generate_output_dataframe(
+            data_subset=data.currencies,
+            defaults=_currencies_defaults,
+        )
+
+        currencies_output['start_date'] = \
+            currencies_output['start_date'].apply(self.convert_datetime)
+
+        # Convert symbols and root_symbols to upper case.
+        currencies_output['symbol'] = currencies_output.symbol.str.upper()
+        currencies_output['pair'] = currencies_output.pair.str.upper()
+        currencies_output['major'] = currencies_output.major.str.upper()
+        currencies_output['minor'] = currencies_output.minor.str.upper()
+
         return AssetData(equities=equities_output,
                          futures=futures_output,
                          exchanges=exchanges_output,
-                         root_symbols=root_symbols_output)
+                         root_symbols=root_symbols_output,
+                         currencies=currencies_output)
 
     def convert_datetime(self, dt):
         """Convert a datetime variable to integer of nanoseconds
@@ -494,7 +572,7 @@ class AssetDBWriterFromList(AssetDBWriter):
     """
 
     def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
+                 root_symbols=None, currencies=None):
 
         if equities is not None:
             self._equities = equities
@@ -516,10 +594,15 @@ class AssetDBWriterFromList(AssetDBWriter):
         else:
             self._root_symbols = []
 
+        if currencies is not None:
+            self._currencies = currencies
+        else:
+            self._currencies = []
+
     def _load_data(self):
 
         # 0) Instantiate empty dictionaries
-        _equities, _futures, _exchanges, _root_symbols = {}, {}, {}, {}
+        _equities, _futures, _exchanges, _root_symbols, _currencies = {}, {}, {}, {}, {}
 
         # 1) Populate dictionaries
         # Return the largest sid in our database, if one exists.
@@ -533,7 +616,8 @@ class AssetDBWriterFromList(AssetDBWriter):
         else:
             id_counter += 1
         for output, data in [(_equities, self._equities),
-                             (_futures, self._futures), ]:
+                             (_futures, self._futures),
+                             (_currencies, self._currencies)]:
             for identifier in data:
                 if isinstance(identifier, Asset):
                     sid = identifier.sid
@@ -571,12 +655,14 @@ class AssetDBWriterFromList(AssetDBWriter):
         _futures = pd.DataFrame.from_dict(_futures, orient='index')
         _exchanges = pd.DataFrame.from_dict(_exchanges, orient='index')
         _root_symbols = pd.DataFrame.from_dict(_root_symbols, orient='index')
+        _currencies = pd.DataFrame.from_dict(_currencies, orient='index')
 
         # 3) Return the data inside a named tuple.
         return AssetData(equities=_equities,
                          futures=_futures,
                          exchanges=_exchanges,
-                         root_symbols=_root_symbols)
+                         root_symbols=_root_symbols,
+                         currencies=_currencies)
 
 
 class AssetDBWriterFromDictionary(AssetDBWriter):
@@ -589,7 +675,7 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
     """
 
     def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
+                 root_symbols=None, currencies=None):
 
         if equities is not None:
             self._equities = equities
@@ -611,6 +697,11 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
         else:
             self._root_symbols = {}
 
+        if currencies is not None:
+            self._currencies = currencies
+        else:
+            self._currencies = {}
+
     def _load_data(self):
 
         _equities = pd.DataFrame.from_dict(self._equities, orient='index')
@@ -618,11 +709,13 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
         _exchanges = pd.DataFrame.from_dict(self._exchanges, orient='index')
         _root_symbols = pd.DataFrame.from_dict(self._root_symbols,
                                                orient='index')
+        _currencies = pd.DataFrame.from_dict(self._currencies, orient='index')
 
         return AssetData(equities=_equities,
                          futures=_futures,
                          exchanges=_exchanges,
-                         root_symbols=_root_symbols)
+                         root_symbols=_root_symbols,
+                         currencies=_currencies)
 
 
 class AssetDBWriterFromDataFrame(AssetDBWriter):
@@ -631,7 +724,7 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
     """
 
     def __init__(self, equities=None, futures=None, exchanges=None,
-                 root_symbols=None):
+                 root_symbols=None, currencies=None):
 
         if equities is not None:
             self._equities = equities
@@ -653,6 +746,11 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
         else:
             self._root_symbols = pd.DataFrame()
 
+        if currencies is not None:
+            self._currencies = currencies
+        else:
+            self._currencies = pd.DataFrame()
+
     def _load_data(self):
 
         # Check whether identifier columns have been provided.
@@ -666,8 +764,11 @@ class AssetDBWriterFromDataFrame(AssetDBWriter):
             self._exchanges.set_index(['exchange'], inplace=True)
         if 'root_symbol_id' in self._root_symbols.columns:
             self._root_symbols.set_index(['root_symbol'], inplace=True)
+        if 'sid' in self._currencies.columns:
+            self._currencies.set_index(['sid'], inplace=True)
 
         return AssetData(equities=self._equities,
                          futures=self._futures,
                          exchanges=self._exchanges,
-                         root_symbols=self._root_symbols)
+                         root_symbols=self._root_symbols,
+                         currencies=self._currencies)

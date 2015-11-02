@@ -34,11 +34,12 @@ from zipline.errors import (
     MapAssetIdentifierIndexError,
 )
 from zipline.assets import (
-    Asset, Equity, Future,
+    Asset, Equity, Future, CurrencyPair
 )
 from zipline.assets.asset_writer import (
     FUTURE_TABLE_FIELDS,
     EQUITY_TABLE_FIELDS,
+    CURRENCY_TABLE_FIELDS
 )
 
 log = Logger('assets.py')
@@ -106,6 +107,13 @@ class AssetFinder(object):
             autoload_with=engine,
         )
 
+        self.currencies = currencies = sa.Table(
+            'currencies',
+            metadata,
+            autoload=True,
+            autoload_with=engine,
+        )
+
         # Create the equity and future queries once.
         _equity_sid = equities.c.sid
         _equity_by_sid = sa.select(
@@ -129,8 +137,35 @@ class AssetFinder(object):
             return _future_by_sid.where(_future_sid == int(sid))
 
         self.select_future_by_sid = select_future_by_sid
-        # Cache for lookup of assets by sid, the objects in the asset lookp may
-        # be shared with the results from equity and future lookup caches.
+
+        # Create the equity and future queries once.
+        self._currency_sid = currencies.c.sid
+        self._currency_symbol = currencies.c.symbol
+        self._currency_major = currencies.c.major
+        self._currency_minor = currencies.c.minor
+        self._currency_pair = currencies.c.pair
+
+        self._currency_by_x = sa.select(
+            tuple(map(partial(getitem, currencies.c), CURRENCY_TABLE_FIELDS)),
+        )
+
+        def _select_currency_by_col(_col, _val):
+            return self._currency_by_x.where(_col == str(_val))
+
+        self._select_currency_by_col = _select_currency_by_col
+
+        def select_currency_by_sid(sid):
+            return _select_currency_by_col(self._currency_sid, sid)
+
+        self.select_currency_by_sid = select_currency_by_sid
+
+        def select_currency_by_symbol(symbol):
+            return _select_currency_by_col(self._currency_symbol, symbol)
+
+        self.select_currency_by_symbol = select_currency_by_symbol
+
+        # Cache for lookup of assets by sid, the objects in the asset lookup may
+        # be shared with the results from equity, currency and future lookup caches.
         #
         # The top level cache exists to minimize lookups on the asset type
         # routing.
@@ -141,6 +176,7 @@ class AssetFinder(object):
         self._asset_cache = {}
         self._equity_cache = {}
         self._future_cache = {}
+        self._currency_cache = {}
 
         self._asset_type_cache = {}
 
@@ -179,6 +215,8 @@ class AssetFinder(object):
                 asset = self._retrieve_equity(sid)
             elif asset_type == 'future':
                 asset = self._retrieve_futures_contract(sid)
+            elif asset_type == 'currency':
+                asset = self._retrieve_currency(sid)
             else:
                 asset = None
 
@@ -192,6 +230,45 @@ class AssetFinder(object):
             return None
         else:
             raise SidNotFound(sid=sid)
+
+    def retrieve_currencies(self, pair=None, symbol=None,
+                            major=None, minor=None,
+                            default_none=False):
+        """
+        Retrieve a currency from the AssetFinder from one of the fields below.
+
+        This only does a simple single field search so don't add more than one
+        param or you'll probably not get what you think you should as it will
+        use the first one it gets to in the select.
+
+        :param pair: The pair e.g. 'USDGBP'
+        :param symbol: Your symbol identifier 'AD3'
+        :param major: The major currency in the pair 'USD'
+        :param minor: The minor currency in the pair 'GBP'
+        :param default_none: set this True to return None otherwise it will
+        raise a SidNotFound exception.
+        :return: possibly a CurrencyPair a list of currency pairs, None or
+        a SidNotFound exception
+        """
+        ret = None
+
+        if pair is not None:
+            ret = self._select_currency_by_col(self._currency_pair, pair).execute().fetchone()
+        elif symbol is not None:
+            ret = self._select_currency_by_col(self._currency_symbol, symbol).execute().fetchone()
+        elif major is not None:
+            ret = self._select_currency_by_col(self._currency_major, major).execute().fetchone()
+        elif minor is not None:
+            ret = self._select_currency_by_col(self._currency_minor, minor).execute().fetchone()
+
+        if ret is not None:
+            currency = self._convert_row_proxy_to_currency_pair(ret)
+        elif default_none:
+            currency = None
+        else:
+            raise SymbolNotFound(symbol='Symbol not found from any of [{}]'.format(locals()))
+
+        return currency
 
     def retrieve_all(self, sids, default_none=False):
         return [self.retrieve_asset(sid) for sid in sids]
@@ -227,6 +304,33 @@ class AssetFinder(object):
 
         self._equity_cache[sid] = equity
         return equity
+
+    def _retrieve_currency(self, sid):
+        """
+        Retrieve the Currency object of a given sid.
+        """
+        try:
+            return self._currency_cache[sid]
+        except KeyError:
+            pass
+
+        data = self.select_currency_by_sid(sid).execute().fetchone()
+        currency = self._convert_row_proxy_to_currency_pair(data)
+
+        self._currency_cache[sid] = currency
+        return currency
+
+    def _convert_row_proxy_to_currency_pair(self, data):
+        # Convert 'data' from a RowProxy object to a dict, to allow assignment
+        data = dict(data.items())
+        if data:
+            if data['start_date']:
+                data['start_date'] = pd.Timestamp(data['start_date'], tz='UTC')
+
+            currency = CurrencyPair(**data)
+        else:
+            currency = None
+        return currency
 
     def _retrieve_futures_contract(self, sid):
         """
@@ -593,7 +697,7 @@ class AssetFinder(object):
 
         # Handle missing assets
         if len(missing) > 0:
-            warnings.warn("Missing assets for identifiers: " + missing)
+            warnings.warn("Missing assets for identifiers: " + str(missing))
 
         # Return a list of the sids of the found assets
         return [asset.sid for asset in matches]
