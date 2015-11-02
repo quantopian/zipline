@@ -360,6 +360,43 @@ class BlazeToPipelineTestCase(TestCase):
         ))
         assert_frame_equal(result, expected, check_dtype=False)
 
+    def test_id_multiple_columns(self):
+        df = self.df.copy()
+        df['other'] = df.value + 1
+        fields = OrderedDict(self.dshape.measure.fields)
+        fields['other'] = fields['value']
+        expr = bz.Data(df, name='expr', dshape=var * Record(fields))
+        loader = BlazeLoader()
+        ds = from_blaze(
+            expr,
+            loader=loader,
+            no_deltas_rule='ignore',
+        )
+        p = Pipeline()
+        p.add(ds.value.latest, 'value')
+        p.add(ds.other.latest, 'other')
+        dates = self.dates
+
+        with tmp_asset_finder() as finder:
+            result = SimplePipelineEngine(
+                loader,
+                dates,
+                finder,
+            ).run_pipeline(p, dates[0], dates[-1])
+
+        expected = df.drop('asof_date', axis=1).set_index(
+            ['timestamp', 'sid'],
+        ).sort_index(axis=1)
+        expected.index = pd.MultiIndex.from_product((
+            expected.index.levels[0],
+            finder.retrieve_all(expected.index.levels[1]),
+        ))
+        assert_frame_equal(
+            result,
+            expected.sort_index(axis=1),
+            check_dtype=False,
+        )
+
     def test_id_macro_dataset(self):
         expr = bz.Data(self.macro_df, name='expr', dshape=self.macro_dshape)
         loader = BlazeLoader()
@@ -390,6 +427,47 @@ class BlazeToPipelineTestCase(TestCase):
             columns=('value',),
         )
         assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_id_macro_dataset_multiple_columns(self):
+        df = self.macro_df.copy()
+        df['other'] = df.value + 1
+        fields = OrderedDict(self.macro_dshape.measure.fields)
+        fields['other'] = fields['value']
+        expr = bz.Data(df, name='expr', dshape=var * Record(fields))
+        loader = BlazeLoader()
+        ds = from_blaze(
+            expr,
+            loader=loader,
+            no_deltas_rule='ignore',
+        )
+        p = Pipeline()
+        p.add(ds.value.latest, 'value')
+        p.add(ds.other.latest, 'latest')
+        dates = self.dates
+
+        asset_info = asset_infos[0][0]
+        with tmp_asset_finder(asset_info) as finder:
+            result = SimplePipelineEngine(
+                loader,
+                dates,
+                finder,
+            ).run_pipeline(p, dates[0], dates[-1])
+
+        expected = pd.DataFrame(
+            np.array([[0, 1],
+                      [1, 2],
+                      [2, 3]]).repeat(3, axis=0),
+            index=pd.MultiIndex.from_product((
+                df.timestamp,
+                finder.retrieve_all(asset_info.index),
+            )),
+            columns=('value', 'latest'),
+        ).sort_index(axis=1)
+        assert_frame_equal(
+            result,
+            expected.sort_index(axis=1),
+            check_dtype=False,
+        )
 
     def _run_pipeline(self,
                       expr,
