@@ -328,8 +328,8 @@ class BlazeToPipelineTestCase(TestCase):
         df['timestamp'] = (
             pd.DatetimeIndex(df['timestamp'], tz='EST') +
             timedelta(hours=8, minutes=44)
-        ).tz_convert('utc')
-        df.ix[3:5, 'timestamp'] = pd.Timestamp('2014-01-01 13:45', tz='utc')
+        ).tz_convert('utc').tz_localize(None)
+        df.ix[3:5, 'timestamp'] = pd.Timestamp('2014-01-01 13:45')
         expr = bz.Data(df, name='expr', dshape=self.dshape)
         loader = BlazeLoader(data_query_time=time(8, 45), data_query_tz='EST')
         ds = from_blaze(
