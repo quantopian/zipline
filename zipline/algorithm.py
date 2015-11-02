@@ -266,6 +266,7 @@ class TradingAlgorithm(object):
         self.algoscript = kwargs.pop('script', None)
 
         self._initialize = None
+        self._analyze = kwargs.pop('analyze', None)
         self._before_trading_start = None
         self._analyze = None
 
