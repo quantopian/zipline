@@ -12,6 +12,9 @@ class BenchmarkSource(object):
         self.trading_days = trading_days
         self.data_portal = data_portal
 
+        if self.benchmark_sid:
+            self._validate_benchmark()
+
         self.precalculated_series = \
             self._initialize_precalculated_series(
                 self.benchmark_sid,
@@ -23,8 +26,39 @@ class BenchmarkSource(object):
     def get_value(self, dt):
         return self.precalculated_series.loc[dt]
 
-    @staticmethod
-    def _initialize_precalculated_series(sid, env, trading_days, data_portal):
+    def _validate_benchmark(self):
+        # check if this security has a stock dividend.  if so, raise an
+        # error suggesting that the user pick a different asset to use
+        # as benchmark.
+        stock_dividends = \
+            self.data_portal.get_stock_dividends(self.benchmark_sid,
+                                                 self.trading_days)
+
+        if len(stock_dividends) > 0:
+            raise InvalidBenchmarkAsset(
+                sid=str(self.benchmark_sid),
+                dt=stock_dividends[0]["ex_date"]
+            )
+
+        benchmark_asset = self.env.asset_finder.retrieve_asset(sid)
+        if benchmark_asset.start_date > self.trading_days[0]:
+            # the asset started trading after the first simulation day
+            raise BenchmarkAssetNotAvailableTooEarly(
+                sid=str(self.benchmark_sid),
+                dt=self.trading_days[0],
+                start_dt=benchmark_asset.start_date
+            )
+
+        if benchmark_asset.end_date < self.trading_days[-1]:
+            # the asset stopped trading before the last simulation day
+            raise BenchmarkAssetNotAvailableTooLate(
+                sid=str(self.benchmark_sid),
+                dt=self.trading_days[0],
+                end_dt=benchmark_asset.end_date
+            )
+
+    def _initialize_precalculated_series(self, sid, env, trading_days,
+                                         data_portal):
         """
         Internal method that precalculates the benchmark return series for
         use in the simulation.
@@ -61,35 +95,6 @@ class BenchmarkSource(object):
             # get benchmark info from trading environment
             return env.benchmark_returns[trading_days[0]:trading_days[-1]]
         else:
-            # check if this security has a stock dividend.  if so, raise an
-            # error suggesting that the user pick a different asset to use
-            # as benchmark.
-            stock_dividends = \
-                data_portal.get_stock_dividends(sid, trading_days)
-
-            if len(stock_dividends) > 0:
-                raise InvalidBenchmarkAsset(
-                    sid=str(sid),
-                    dt=stock_dividends[0]["ex_date"]
-                )
-
-            benchmark_asset = env.asset_finder.retrieve_asset(sid)
-            if benchmark_asset.start_date > trading_days[0]:
-                # the asset started trading after the first simulation day
-                raise BenchmarkAssetNotAvailableTooEarly(
-                    sid=str(sid),
-                    dt=trading_days[0],
-                    start_dt=benchmark_asset.start_date
-                )
-
-            if benchmark_asset.end_date < trading_days[-1]:
-                # the asset stopped trading before the last simulation day
-                raise BenchmarkAssetNotAvailableTooLate(
-                    sid=str(sid),
-                    dt=trading_days[0],
-                    end_dt=benchmark_asset.end_date
-                )
-
             # get the window of close prices for benchmark_sid from the last
             # trading day of the simulation, going up to one day before the
             # simulation start day (so that we can get the % change on day 1)
