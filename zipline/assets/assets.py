@@ -75,9 +75,7 @@ class AssetFinder(object):
     # reference to an AssetFinder
     PERSISTENT_TOKEN = "<AssetFinder>"
 
-    def __init__(self, engine, allow_sid_assignment=True):
-
-        self.allow_sid_assignment = allow_sid_assignment
+    def __init__(self, engine):
 
         self.engine = engine
         metadata = sa.MetaData(bind=engine)
