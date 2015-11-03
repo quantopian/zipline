@@ -99,11 +99,22 @@ class AssetFinder(object):
         #
         # The caches are read through, i.e. accessing an asset through
         # retrieve_asset will populate the cache on first retrieval.
-        self._asset_cache = {}
-        self._asset_type_cache = {}
+        self._caches = (self._asset_cache, self._asset_type_cache) = {}, {}
 
         # Populated on first call to `lifetimes`.
         self._asset_lifetimes = None
+
+    def _reset_caches(self):
+        """
+        Reset our asset caches.
+
+        You probably shouldn't call this method.
+        """
+        # This method exists as a workaround for the in-place mutating behavior
+        # of `TradingAlgorithm._write_and_map_id_index_to_sids`.  No one else
+        # should be calling this.
+        for cache in self._caches:
+            cache.clear()
 
     def lookup_asset_types(self, sids):
         """
