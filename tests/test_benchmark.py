@@ -26,7 +26,6 @@ from zipline.errors import (
     InvalidBenchmarkAsset)
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.utils import factory
 from zipline.utils.test_utils import create_data_portal, write_minute_data

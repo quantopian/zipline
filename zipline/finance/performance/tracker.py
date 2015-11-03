@@ -120,7 +120,6 @@ class PerformanceTracker(object):
                 index=self.trading_days)
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(self.sim_params, self.env)
-
         elif self.emission_rate == 'minute':
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
                 self.sim_params.first_open, self.sim_params.last_close,
@@ -169,6 +168,14 @@ class PerformanceTracker(object):
 
         self.account_needs_update = True
         self._account = None
+
+    @property
+    def perf_periods(self):
+        if self._perf_periods is None:
+            self._perf_periods = [self.cumulative_performance,
+                                  self.todays_performance]
+
+        return self._perf_periods
 
     def __repr__(self):
         return "%s(%r)" % (
@@ -370,12 +377,6 @@ class PerformanceTracker(object):
         # cumulative returns
         bench_since_open = (1. + bench_returns).prod() - 1
 
-        pos_stats = self.position_tracker.stats()
-        cumulative_stats = self.cumulative_performance.stats(
-            self.position_tracker.positions, pos_stats)
-        todays_stats = self.todays_performance.stats(
-            self.position_tracker.positions, pos_stats)
-
         self.position_tracker.sync_last_sale_prices(dt)
         pos_stats = self.position_tracker.stats()
         cumulative_stats = self.cumulative_performance.stats(
@@ -393,38 +394,42 @@ class PerformanceTracker(object):
                                       todays_stats,
                                       emission_type='minute')
 
-        # if this is the close, update dividends for the next day.
-        # Return the performance tuple
         if dt == self.market_close:
-            end_of_day_packet = self._handle_market_close(
-                todays_date, pos_stats, todays_stats)
-            return (minute_packet, end_of_day_packet)
+            # if this is the last minute of the day, we also want to
+            # emit a daily packet.
+            return minute_packet, self._handle_market_close(todays_date,
+                                                            pos_stats,
+                                                            todays_stats)
         else:
-            return (minute_packet, None)
+            return minute_packet, None
 
-    def handle_market_close_daily(self):
+    def handle_market_close_daily(self, dt):
         """
         Function called after handle_data when running with daily emission
         rate.
         """
-        completed_date = self.day
+        completed_date = normalize_date(dt)
 
-        self.position_tracker.sync_last_sale_prices(completed_date)
+        self.position_tracker.sync_last_sale_prices(dt)
+
         pos_stats = self.position_tracker.stats()
         todays_stats = self.todays_performance.stats(
             self.position_tracker.positions, pos_stats)
         account = self.get_account(completed_date)
 
         # update risk metrics for cumulative performance
+        benchmark_value = self.all_benchmark_returns[completed_date]
+
         self.cumulative_risk_metrics.update(
             completed_date,
             todays_stats.returns,
-            self.all_benchmark_returns[completed_date],
+            benchmark_value,
             account)
 
         daily_packet = self._handle_market_close(completed_date,
                                                  pos_stats,
                                                  todays_stats)
+
         return daily_packet
 
     def _handle_market_close(self, completed_date, pos_stats, todays_stats):

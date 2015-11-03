@@ -53,7 +53,7 @@ cdef class MinuteSimulationClock:
                 data_portal.cur_data_offset = day_offset + minute_idx
                 yield minute, DATA_AVAILABLE
 
-            yield day, UPDATE_BENCHMARK
+            #yield day, UPDATE_BENCHMARK
             yield day, CALC_DAILY_PERFORMANCE
 
 
@@ -68,5 +68,5 @@ cdef class DailySimulationClock:
         for i, day in enumerate(self.trading_days):
             yield day, ONCE_A_DAY
             yield day, DATA_AVAILABLE
-            yield day, UPDATE_BENCHMARK
+            #yield day, UPDATE_BENCHMARK
             yield day, CALC_DAILY_PERFORMANCE
