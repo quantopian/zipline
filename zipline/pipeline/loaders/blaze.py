@@ -761,19 +761,11 @@ class BlazeLoader(dict):
         raise KeyError(column)
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        return map(
-            op.getitem(
-                dict(concat(map(
-                    partial(
-                        self._load_dataset,
-                        dates,
-                        assets,
-                        mask
-                    ),
-                    itervalues(groupby(getdataset, columns))
-                ))),
-            ),
-            columns,
+        return dict(
+            concat(map(
+                partial(self._load_dataset, dates, assets, mask),
+                itervalues(groupby(getdataset, columns))
+            ))
         )
 
     def _load_dataset(self, dates, assets, mask, columns):

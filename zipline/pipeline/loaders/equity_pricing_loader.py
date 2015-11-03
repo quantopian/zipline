@@ -56,17 +56,17 @@ class USEquityPricingLoader(PipelineLoader):
             end_date,
             assets,
         )
-
         adjustments = self.adjustments_loader.load_adjustments(
             columns,
             dates,
             assets,
         )
-
-        return [
+        adjusted_arrays = [
             adjusted_array(raw_array, mask, col_adjustments)
             for raw_array, col_adjustments in zip(raw_arrays, adjustments)
         ]
+
+        return dict(zip(columns, adjusted_arrays))
 
 
 def _shift_dates(dates, start_date, end_date, shift):

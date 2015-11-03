@@ -177,10 +177,11 @@ class DataFrameLoader(PipelineLoader):
         good_dates = (date_indexer != -1)
         good_assets = (assets_indexer != -1)
 
-        return [adjusted_array(
+        arrays = [adjusted_array(
             # Pull out requested columns/rows from our baseline data.
             data=self.baseline[ix_(date_indexer, assets_indexer)],
             # Mask out requested columns/rows that didnt match.
             mask=(good_assets & good_dates[:, None]) & mask,
             adjustments=self.format_adjustments(dates, assets),
         )]
+        return dict(zip(columns, arrays))
