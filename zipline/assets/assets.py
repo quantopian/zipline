@@ -15,7 +15,6 @@
 from abc import ABCMeta
 from numbers import Integral
 from operator import itemgetter
-import warnings
 
 from logbook import Logger
 import numpy as np
@@ -720,9 +719,8 @@ class AssetFinder(object):
             self._lookup_generic_scalar(identifier, as_of_date,
                                         matches, missing)
 
-        # Handle missing assets
-        if len(missing) > 0:
-            warnings.warn("Missing assets for identifiers: %s" % missing)
+        if missing:
+            raise ValueError("Missing assets for identifiers: %s" % missing)
 
         # Return a list of the sids of the found assets
         return [asset.sid for asset in matches]
