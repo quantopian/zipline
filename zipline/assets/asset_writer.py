@@ -475,7 +475,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         except TypeError:
             index = index.tz_convert('UTC')
 
-        return index.view(int)
+        return index.view(np.int64)
 
     @abstractmethod
     def _load_data(self):
