@@ -35,6 +35,7 @@ from pandas import (
     Timestamp,
 )
 from testfixtures import TempDirectory
+from toolz.curried.operator import getitem
 
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
@@ -422,12 +423,13 @@ class USEquityPricingLoaderTestCase(TestCase):
             adjustment_reader,
         )
 
-        closes, volumes = pricing_loader.load_adjusted_array(
+        results = pricing_loader.load_adjusted_array(
             columns,
             dates=query_days,
             assets=self.assets,
             mask=ones((len(query_days), len(self.assets)), dtype=bool),
         )
+        closes, volumes = map(getitem(results), columns)
 
         expected_baseline_closes = self.bcolz_writer.expected_values_2d(
             shifted_query_days,
@@ -500,12 +502,13 @@ class USEquityPricingLoaderTestCase(TestCase):
             adjustment_reader,
         )
 
-        highs, volumes = pricing_loader.load_adjusted_array(
+        results = pricing_loader.load_adjusted_array(
             columns,
             dates=query_days,
             assets=Int64Index(arange(1, 7)),
             mask=ones((len(query_days), 6), dtype=bool),
         )
+        highs, volumes = map(getitem(results), columns)
 
         expected_baseline_highs = self.bcolz_writer.expected_values_2d(
             shifted_query_days,

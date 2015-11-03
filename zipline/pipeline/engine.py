@@ -11,7 +11,6 @@ from six import (
     iteritems,
     with_metaclass,
 )
-from six.moves import zip_longest
 from numpy import array
 from pandas import (
     DataFrame,
@@ -342,12 +341,10 @@ class SimplePipelineEngine(object):
                     key=lambda t: t.dataset
                 )
                 loader = get_loader(term)
-                loaded = tuple(loader.load_adjusted_array(
+                loaded = loader.load_adjusted_array(
                     to_load, mask_dates, assets, mask,
-                ))
-                assert len(to_load) == len(loaded)
-                for loaded_term, adj_array in zip_longest(to_load, loaded):
-                    workspace[loaded_term] = adj_array
+                )
+                workspace.update(loaded)
             else:
                 workspace[term] = term._compute(
                     self._inputs_for_term(term, workspace, graph),

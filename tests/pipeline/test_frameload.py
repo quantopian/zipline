@@ -80,7 +80,7 @@ class DataFrameLoaderTestCase(TestCase):
             self.dates[dates_slice],
             self.sids[sids_slice],
             self.mask[dates_slice, sids_slice],
-        )
+        ).values()
 
         for idx, window in enumerate(adj_array.traverse(window_length=3)):
             expected = baseline.values[dates_slice, sids_slice][idx:idx + 3]
