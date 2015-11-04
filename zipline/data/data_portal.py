@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from datetime import datetime
+from sqlite3 import OperationalError
 import bcolz
 from logbook import Logger
 
@@ -283,9 +284,38 @@ class DataPortal(object):
                     start_date) - INDEX_OF_FIRST_TRADING_DAY
                 start_day_offset = start_date_idx * 390
 
+                original_start = minute_offset_to_use
+
                 while result == 0 and minute_offset_to_use > start_day_offset:
                     minute_offset_to_use -= 1
                     result = carray[minute_offset_to_use]
+
+                # once we've found data, we need to check whether it needs
+                # to be adjusted.
+                if result != 0:
+                    minutes = self.env.market_minute_window(
+                        start=dt,
+                        count=(original_start - minute_offset_to_use + 1),
+                        step=-1
+                    ).order()
+
+                    # only need to check for adjustments if we've gone back
+                    # far enough to cross the day boundary.
+                    if minutes[0].date() != minutes[-1].date():
+                        # create a np array of size minutes, fill it all with
+                        # the same value.  and adjust the array.
+                        arr = np.array([result] * len(minutes),
+                                       dtype=np.float64)
+                        self._apply_all_adjustments(
+                            data=arr,
+                            sid=asset_int,
+                            dts=minutes,
+                            field=column
+                        )
+
+                        # The first value of the adjusted array is the value
+                        # we want.
+                        result = arr[0]
 
             if column_to_use != 'volume':
                 return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
