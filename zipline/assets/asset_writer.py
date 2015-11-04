@@ -18,20 +18,21 @@ from abc import (
     abstractmethod,
 )
 from collections import namedtuple
-
 import re
+
 import pandas as pd
 import numpy as np
 from six import with_metaclass
 import sqlalchemy as sa
+from zipline.assets._assets import Asset
 
 from zipline.errors import SidAssignmentError
-from zipline.assets._assets import Asset
 
 SQLITE_MAX_VARIABLE_NUMBER = 999
 
 # Define a namedtuple for use with the load_data and _load_data methods
-AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols currencies')
+AssetData = namedtuple('AssetData',
+                       'equities futures exchanges root_symbols currencies')
 
 # Default values for the currencies DataFrame
 _currencies_defaults = {
@@ -107,7 +108,7 @@ def split_delimited_symbol(symbol):
     """
     # return blank strings for any bad fuzzy symbols, like NaN or None
     if symbol in _delimited_symbol_default_triggers:
-        return ('', '', '')
+        return '', '', ''
 
     split_list = re.split(pattern=_delimited_symbol_delimiter_regex,
                           string=symbol,
@@ -213,7 +214,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         if root_symbols is None:
             root_symbols = self.defaultval()
         self._root_symbols = root_symbols
-        
+
         if currencies is None:
             currencies = self.defaultval()
         self._currencies = currencies
@@ -288,7 +289,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     def _write_currencies(self, currencies, bind):
         self._write_assets(currencies, self.currencies, 'currency', bind)
 
-
     def init_db(self, engine):
         """Connect to database and create tables.
 
@@ -320,9 +320,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('end_date', sa.Integer, nullable=False),
             sa.Column('first_traded', sa.Integer, nullable=False),
             sa.Column('exchange', sa.Text),
-            sa.Column('ccy', sa.Text),
+            sa.Column('ccy', sa.Text, nullable=True),
             sa.Column('price_format', sa.Integer, default=0),
-            sa.Column('status', sa.Text),
+            sa.Column('status', sa.Text, nullable=True)
         )
         self.futures_exchanges = sa.Table(
             'futures_exchanges',
@@ -385,9 +385,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             sa.Column('expiration_date', sa.Integer, nullable=False),
             sa.Column('auto_close_date', sa.Integer, nullable=False),
             sa.Column('contract_multiplier', sa.Float),
-            sa.Column('ccy', sa.Text, nullable=False),
+            sa.Column('ccy', sa.Text, nullable=True),
             sa.Column('price_format', sa.Integer, default=0),
-            sa.Column('status', sa.Text, nullable=False)
+            sa.Column('status', sa.Text, nullable=True)
         )
         self.asset_router = sa.Table(
             'asset_router',
@@ -435,7 +435,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
 
         # HACK: If company_name is provided, map it to asset_name
         if ('company_name' in data.equities.columns
-                and 'asset_name' not in data.equities.columns):
+            and 'asset_name' not in data.equities.columns):
             data.equities['asset_name'] = data.equities['company_name']
         if 'file_name' in data.equities.columns:
             data.equities['symbol'] = data.equities['file_name']
@@ -515,7 +515,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             defaults=_currencies_defaults,
         )
 
-        currencies_output['start_date'] = self.dt_to_epoch_ns(currencies_output['start_date'])
+        currencies_output['start_date'] = self.dt_to_epoch_ns(
+            currencies_output['start_date'])
 
         # Convert symbols and root_symbols to upper case.
         currencies_output['symbol'] = currencies_output.symbol.str.upper()
@@ -529,16 +530,15 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
                          root_symbols=root_symbols_output,
                          currencies=currencies_output)
 
-    # @staticmethod
-    def dt_to_epoch_ns(self, dt_series):
+    @staticmethod
+    def dt_to_epoch_ns(dt_series):
         index = pd.to_datetime(dt_series.values)
-        # print('fuck:: {} - {}'.format(dt_series.shape, index))
         try:
             index = index.tz_localize('UTC')
         except TypeError:
             index = index.tz_convert('UTC')
 
-        return index  # .view(int)
+        return index.view(np.int64)
 
     @abstractmethod
     def _load_data(self):
@@ -565,7 +565,8 @@ class AssetDBWriterFromList(AssetDBWriter):
     def _load_data(self):
 
         # 0) Instantiate empty dictionaries
-        _equities, _futures, _exchanges, _root_symbols, _currencies = {}, {}, {}, {}, {}
+        _equities, _futures, _exchanges, _root_symbols, _currencies \
+            = {}, {}, {}, {}, {}
 
         # 1) Populate dictionaries
         # Return the largest sid in our database, if one exists.
@@ -640,13 +641,12 @@ class AssetDBWriterFromDictionary(AssetDBWriter):
     defaultval = dict
 
     def _load_data(self):
-
         _equities = pd.DataFrame.from_dict(self._equities, orient='index')
         _futures = pd.DataFrame.from_dict(self._futures, orient='index')
         _exchanges = pd.DataFrame.from_dict(self._exchanges, orient='index')
         _root_symbols = pd.DataFrame.from_dict(self._root_symbols,
                                                orient='index')
-        _currencies = pd.DataFrame.from_dict(self._currencies, 
+        _currencies = pd.DataFrame.from_dict(self._currencies,
                                              orient='index')
 
         return AssetData(equities=_equities,

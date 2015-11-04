@@ -19,7 +19,6 @@ Tests for the zipline.assets package
 
 import sys
 from unittest import TestCase
-
 from datetime import datetime, timedelta
 import pickle
 import uuid
@@ -28,8 +27,8 @@ import warnings
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 from pandas.util.testing import assert_frame_equal
-
 from nose_parameterized import parameterized
+
 from numpy import full
 
 from zipline.assets import Asset, Equity, Future, AssetFinder, CurrencyPair
@@ -86,13 +85,13 @@ def build_lookup_generic_cases():
             },
         ],
         index='sid')
-    env = TradingEnvironment()
+    env = TradingEnvironment(load=noop_load)
     env.write_data(equities_df=frame)
     finder = env.asset_finder
     dupe_0, dupe_1, unique = assets = [
         finder.retrieve_asset(i)
         for i in range(3)
-    ]
+        ]
 
     dupe_0_start = dupe_0.start_date
     dupe_1_start = dupe_1.start_date
@@ -137,7 +136,6 @@ def build_lookup_generic_cases():
 
 
 class CurrencyPairTestCase(TestCase):
-
     # BTC all the way
     ccy = CurrencyPair(
         666,
@@ -172,7 +170,8 @@ class CurrencyPairTestCase(TestCase):
                           'symbol']
 
         for attr in attrs_to_check:
-            self.assertEqual(getattr(self.ccy, attr), getattr(s_unpickled, attr))
+            self.assertEqual(getattr(self.ccy, attr),
+                             getattr(s_unpickled, attr))
 
     def test_currencypair_comparisons(self):
 
@@ -207,7 +206,6 @@ class CurrencyPairTestCase(TestCase):
 
 
 class AssetTestCase(TestCase):
-
     def test_asset_object(self):
         self.assertEquals({5061: 'foo'}[Asset(5061)], 'foo')
         self.assertEquals(Asset(5061), 5061)
@@ -303,7 +301,6 @@ class AssetTestCase(TestCase):
 
 
 class TestFuture(TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.future = Future(
@@ -339,7 +336,7 @@ class TestFuture(TestCase):
         self.assertTrue("OMH15" in reprd)
         self.assertTrue("root_symbol='OM'" in reprd)
         self.assertTrue(("notice_date=Timestamp('2014-01-20 00:00:00+0000', "
-                        "tz='UTC')") in reprd)
+                         "tz='UTC')") in reprd)
         self.assertTrue("expiration_date=Timestamp('2014-02-20 00:00:00+0000'"
                         in reprd)
         self.assertTrue("auto_close_date=Timestamp('2014-01-18 00:00:00+0000'"
@@ -402,7 +399,6 @@ class TestFuture(TestCase):
 
 
 class AssetFinderTestCase(TestCase):
-
     def setUp(self):
         self.env = TradingEnvironment(load=noop_load)
 
@@ -412,14 +408,14 @@ class AssetFinderTestCase(TestCase):
             [
                 {
                     'sid': i,
-                    'symbol':  'TEST.%d' % i,
+                    'symbol': 'TEST.%d' % i,
                     'company_name': "company%d" % i,
                     'start_date': as_of.value,
                     'end_date': as_of.value,
                     'exchange': uuid.uuid4().hex
                 }
                 for i in range(3)
-            ]
+                ]
         )
         self.env.write_data(equities_df=frame)
         finder = AssetFinder(self.env.engine)
@@ -492,13 +488,14 @@ class AssetFinderTestCase(TestCase):
             [
                 {
                     'sid': i,
-                    'symbol':  'existing',
+                    'symbol': 'existing',
                     'start_date': date.value,
+                    'first_traded': date.value,
                     'end_date': (date + timedelta(days=1)).value,
                     'exchange': 'NYSE',
                 }
                 for i, date in enumerate(dates)
-            ]
+                ]
         )
         self.env.write_data(equities_df=df)
         finder = AssetFinder(self.env.engine)
@@ -631,11 +628,12 @@ class AssetFinderTestCase(TestCase):
         eq_end = pd.Timestamp('2012-01-01', tz='UTC')
         fut_end = pd.Timestamp('2008-01-01', tz='UTC')
         ccy_start = pd.Timestamp('1971-01-01', tz='UTC')
-        
+
         # Build some simple Assets
         equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end)
         future_asset = Future(200, symbol="TESTFUT", end_date=fut_end)
-        currency_asset = CurrencyPair(1000, symbol="TESTCCY", start_date=ccy_start)
+        currency_asset = CurrencyPair(1000, symbol="TESTCCY",
+                                      start_date=ccy_start)
 
         # Consume the Assets
         self.env.write_data(equities_identifiers=[equity_asset],
@@ -894,7 +892,8 @@ class AssetFinderTestCase(TestCase):
         currency = finder.retrieve_asset(2268)
         self.assertIsInstance(currency, CurrencyPair)
         self.assertEqual('QF4', currency.symbol)
-        self.assertEqual(pd.Timestamp('2014-01-01', tz='UTC'), currency.start_date)
+        self.assertEqual(pd.Timestamp('2014-01-01', tz='UTC'),
+                         currency.start_date)
         self.assertEqual(4, currency.cvf)
 
         # Test invalid field
@@ -916,10 +915,11 @@ class AssetFinderTestCase(TestCase):
         gbpaud_by_sid = finder.retrieve_asset(2)
         gbpaud_by_symbols = finder.retrieve_currencies(symbol='AD3')
         self.assertIsInstance(gbpaud_by_symbols, CurrencyPair)
-        self.assertEqual(gbpaud_by_sid,  gbpaud_by_symbols)
+        self.assertEqual(gbpaud_by_sid, gbpaud_by_symbols)
 
         # scenario 2 - check a missing one returns None when flag set
-        missing_by_symbol = finder.retrieve_currencies(symbol='ZZZAAA', default_none=True)
+        missing_by_symbol = finder.retrieve_currencies(symbol='ZZZAAA',
+                                                       default_none=True)
         self.assertIsNone(missing_by_symbol)
 
         # scenario 3 - again but throw an error
@@ -928,7 +928,7 @@ class AssetFinderTestCase(TestCase):
             finder.retrieve_currencies(symbol='ZZZAAA')  # default behaviour
 
     def test_lookup_currency_by_pair(self):
-        #given
+        # given
         self.setup_currency_test_data()
         finder = AssetFinder(self.env.engine)
         gbpaud_by_sid = finder.retrieve_asset(2)
@@ -939,7 +939,8 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(gbpaud_by_sid, gbpaud_by_pair)
 
         # scenario 2 - check a missing one returns None when flag set
-        missing_by_pair = finder.retrieve_currencies(pair='ZZZAAA', default_none=True)
+        missing_by_pair = finder.retrieve_currencies(pair='ZZZAAA',
+                                                     default_none=True)
         self.assertIsNone(missing_by_pair)
 
         # scenario 3 - again but throw an error
@@ -948,7 +949,7 @@ class AssetFinderTestCase(TestCase):
             finder.retrieve_currencies(pair='ZZZAAA')  # default behaviour
 
     def test_lookup_currency_by_major_minor(self):
-        #given
+        # given
         self.setup_currency_test_data()
         finder = AssetFinder(self.env.engine)
         gbpaud_by_sid = finder.retrieve_asset(2)
@@ -961,9 +962,11 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(gbpaud_by_sid, gbpaud_by_major, gbpaud_by_minor)
 
         # scenario 2 - check a missing one returns None when flag set
-        missing_by_major = finder.retrieve_currencies(major='ZZZ', default_none=True)
+        missing_by_major = finder.retrieve_currencies(major='ZZZ',
+                                                      default_none=True)
         self.assertIsNone(missing_by_major)
-        missing_by_minor = finder.retrieve_currencies(minor='AAA', default_none=True)
+        missing_by_minor = finder.retrieve_currencies(minor='AAA',
+                                                      default_none=True)
         self.assertIsNone(missing_by_minor)
 
         # scenario 3 - again but throw an error
@@ -1016,7 +1019,6 @@ class AssetFinderTestCase(TestCase):
 
 
 class TestFutureChain(TestCase):
-
     @classmethod
     def setUpClass(cls):
         metadata = {

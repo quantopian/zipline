@@ -21,8 +21,10 @@ from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas.tseries.tools import normalize_date
+
 from six import with_metaclass, string_types, viewkeys
 import sqlalchemy as sa
+
 from toolz import compose
 
 from zipline.errors import (
@@ -70,7 +72,6 @@ def _convert_asset_timestamp_fields(dict):
 
 
 class AssetFinder(object):
-
     # Token used as a substitute for pickling objects that contain a
     # reference to an AssetFinder
     PERSISTENT_TOKEN = "<AssetFinder>"
@@ -177,20 +178,28 @@ class AssetFinder(object):
         ret = None
 
         if pair is not None:
-            ret = self._select_currency_by_col(self._currency_pair, pair).execute().fetchone()
+            ret = self._select_asset_by_col(self.currencies,
+                                            self.currencies.c.pair,
+                                            pair).execute().fetchone()
         elif symbol is not None:
-            ret = self._select_currency_by_col(self._currency_symbol, symbol).execute().fetchone()
+            ret = self._select_asset_by_col(self.currencies,
+                                            self.currencies.c.symbol,
+                                            symbol).execute().fetchone()
         elif major is not None:
-            ret = self._select_currency_by_col(self._currency_major, major).execute().fetchone()
+            ret = self._select_asset_by_col(self.currencies,
+                                            self.currencies.c.major,
+                                            major).execute().fetchone()
         elif minor is not None:
-            ret = self._select_currency_by_col(self._currency_minor, minor).execute().fetchone()
-
+            ret = self._select_asset_by_col(self.currencies,
+                                            self.currencies.c.minor,
+                                            minor).execute().fetchone()
         if ret is not None:
-            currency = self._convert_row_proxy_to_currency_pair(ret)
+            currency = self._convert_to_asset(CurrencyPair, ret)
         elif default_none:
             currency = None
         else:
-            raise SymbolNotFound(symbol='Symbol not found from any of [{}]'.format(locals()))
+            raise SymbolNotFound(
+                symbol='Symbol not found from any of [{}]'.format(locals()))
 
         return currency
 
@@ -203,6 +212,14 @@ class AssetFinder(object):
         """
         return self._retrieve_asset(
             sid, self._equity_cache, self.equities, Equity,
+        )
+
+    def _retrieve_currency(self, sid):
+        """
+        Retrieve the CurrencyPair object of a given sid.
+        """
+        return self._retrieve_asset(
+            sid, self._currency_cache, self.currencies, CurrencyPair,
         )
 
     def _retrieve_futures_contract(self, sid):
@@ -218,6 +235,10 @@ class AssetFinder(object):
         return sa.select([asset_tbl]).where(asset_tbl.c.sid == int(sid))
 
     @staticmethod
+    def _select_asset_by_col(asset_tbl, col, val):
+        return sa.select([asset_tbl]).where(col == val)
+
+    @staticmethod
     def _select_asset_by_symbol(asset_tbl, symbol):
         return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
 
@@ -229,15 +250,19 @@ class AssetFinder(object):
 
         data = self._select_asset_by_sid(asset_tbl, sid).execute().fetchone()
         # Convert 'data' from a RowProxy object to a dict, to allow assignment
+        asset = self._convert_to_asset(asset_type, data)
+
+        cache[sid] = asset
+        return asset
+
+    @staticmethod
+    def _convert_to_asset(asset_type, data):
         data = dict(data.items())
         if data:
             _convert_asset_timestamp_fields(data)
-
             asset = asset_type(**data)
         else:
             asset = None
-
-        cache[sid] = asset
         return asset
 
     def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
@@ -362,8 +387,8 @@ class AssetFinder(object):
 
         """
 
-        data = self._select_asset_by_symbol(self.futures_contracts, symbol)\
-                   .execute().fetchone()
+        data = self._select_asset_by_symbol(self.futures_contracts, symbol) \
+            .execute().fetchone()
 
         # If no data found, raise an exception
         if not data:

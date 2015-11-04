@@ -16,9 +16,7 @@
 """
 Cythonized Asset object.
 """
-cimport cython
 
-import numpy as np
 import warnings
 cimport numpy as np
 
@@ -28,7 +26,6 @@ cimport numpy as np
 CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v4.01.cache'
 
 cdef class Asset:
-
     cdef readonly int sid
     # Cached hash of self.sid
     cdef int sid_hash
@@ -47,7 +44,7 @@ cdef class Asset:
     cdef readonly object status
 
     def __cinit__(self,
-                  int sid, # sid is required
+                  int sid,  # sid is required
                   object symbol="",
                   object asset_name="",
                   object start_date=None,
@@ -60,17 +57,17 @@ cdef class Asset:
                   *args,
                   **kwargs):
 
-        self.sid           = sid
-        self.sid_hash      = hash(sid)
-        self.symbol        = symbol
-        self.asset_name    = asset_name
-        self.exchange      = exchange
-        self.start_date    = start_date
-        self.end_date      = end_date
-        self.first_traded  = first_traded
-        self.ccy           = ccy
-        self.price_format  = price_format
-        self.status        = status
+        self.sid = sid
+        self.sid_hash = hash(sid)
+        self.symbol = symbol
+        self.asset_name = asset_name
+        self.exchange = exchange
+        self.start_date = start_date
+        self.end_date = end_date
+        self.first_traded = first_traded
+        self.ccy = ccy
+        self.price_format = price_format
+        self.status = status
 
     def __int__(self):
         return self.sid
@@ -175,7 +172,7 @@ cdef class Asset:
             'end_date': self.end_date,
             'first_traded': self.first_traded,
             'exchange': self.exchange,
-            'ccy' : self.ccy,
+            'ccy': self.ccy,
             'price_format': self.price_format,
             'status': self.status
         }
@@ -187,9 +184,7 @@ cdef class Asset:
         """
         return cls(**dict_)
 
-
 cdef class Equity(Asset):
-
     def __str__(self):
         if self.symbol:
             return 'Equity(%d [%s])' % (self.sid, self.symbol)
@@ -212,8 +207,9 @@ cdef class Equity(Asset):
         """
         def __get__(self):
             warnings.warn("The security_start_date property will soon be "
-            "retired. Please use the start_date property instead.",
-            DeprecationWarning)
+                          "retired. Please use the start_date property "
+                          "instead.",
+                          DeprecationWarning)
             return self.start_date
 
     property security_end_date:
@@ -223,8 +219,8 @@ cdef class Equity(Asset):
         """
         def __get__(self):
             warnings.warn("The security_end_date property will soon be "
-            "retired. Please use the end_date property instead.",
-            DeprecationWarning)
+                          "retired. Please use the end_date property instead.",
+                          DeprecationWarning)
             return self.end_date
 
     property security_name:
@@ -234,13 +230,12 @@ cdef class Equity(Asset):
         """
         def __get__(self):
             warnings.warn("The security_name property will soon be "
-            "retired. Please use the asset_name property instead.",
-            DeprecationWarning)
+                          "retired. Please use the asset_name property "
+                          "instead.",
+                          DeprecationWarning)
             return self.asset_name
 
-
 cdef class Future(Asset):
-
     cdef readonly object root_symbol
     cdef readonly object notice_date
     cdef readonly object expiration_date
@@ -248,7 +243,7 @@ cdef class Future(Asset):
     cdef readonly float contract_multiplier
 
     def __cinit__(self,
-                  int sid, # sid is required
+                  int sid,  # sid is required
                   object symbol="",
                   object root_symbol="",
                   object asset_name="",
@@ -264,10 +259,10 @@ cdef class Future(Asset):
                   object status="",
                   float contract_multiplier=1):
 
-        self.root_symbol         = root_symbol
-        self.notice_date         = notice_date
-        self.expiration_date     = expiration_date
-        self.auto_close_date     = auto_close_date
+        self.root_symbol = root_symbol
+        self.notice_date = notice_date
+        self.expiration_date = expiration_date
+        self.auto_close_date = auto_close_date
         self.contract_multiplier = contract_multiplier
 
     def __str__(self):
@@ -325,14 +320,13 @@ ok we should use this a CurrencyPair, Currency could just be an enum?
 """
 
 cdef class CurrencyPair(Asset):
-
     cdef readonly object pair
     cdef readonly object major
     cdef readonly object minor
     cdef readonly float cvf
 
     def __cinit__(self,
-                  int sid, # sid is required
+                  int sid,  # sid is required
                   object symbol="",
                   object pair="",
                   object major="",
@@ -347,11 +341,11 @@ cdef class CurrencyPair(Asset):
                   object ccy=""
                   ):
 
-        self.pair       = pair
-        self.major      = major
-        self.minor      = minor
+        self.pair = pair
+        self.major = major
+        self.minor = minor
         self.start_date = start_date
-        self.cvf        = cvf
+        self.cvf = cvf
 
     def __str__(self):
         if self.symbol:
@@ -393,7 +387,6 @@ cdef class CurrencyPair(Asset):
         super_dict['start_date'] = self.start_date
         super_dict['cvf'] = self.cvf
         return super_dict
-
 
 def make_asset_array(int size, Asset asset):
     cdef np.ndarray out = np.empty([size], dtype=object)
