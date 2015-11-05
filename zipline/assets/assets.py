@@ -256,9 +256,6 @@ class AssetFinder(object):
         """
         return self._retrieve_assets(sids, self.futures_contracts, Future)
 
-    def _retrieve_futures_contract(self, sid):
-        return self._retrieve_futures_contracts((sid,))[sid]
-
     @staticmethod
     def _select_assets_by_sid(asset_tbl, sids):
         return sa.select([asset_tbl]).where(
