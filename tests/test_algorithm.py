@@ -1909,10 +1909,10 @@ class TestTradingAlgorithm(TestCase):
     def test_analyze_called(self):
         results_ref = None
 
-        def initialize(self, context):
+        def initialize(context):
             pass
 
-        def handel_data(self, context, data):
+        def handel_data(context, data):
             pass
 
         def analyze(self, perf):
