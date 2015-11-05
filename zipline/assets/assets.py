@@ -166,7 +166,7 @@ class AssetFinder(object):
 
         Returns
         -------
-        types : defaultdict[str or None -> list[int]]
+        types : dict[str or None -> list[int]]
             A dict mapping unique asset types to lists of sids drawn from sids.
             If we fail to look up an asset, we assign it a key of None.
         """
