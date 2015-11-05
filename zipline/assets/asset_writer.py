@@ -521,7 +521,6 @@ class AssetDBWriterFromList(AssetDBWriter):
                 if isinstance(identifier, Asset):
                     sid = identifier.sid
                     metadata = identifier.to_dict()
-                    metadata['asset_type'] = identifier.__class__.__name__
                     output[sid] = metadata
                 elif hasattr(identifier, '__int__'):
                     output[identifier.__int__()] = {'symbol': None}

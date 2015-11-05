@@ -514,8 +514,7 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual(missing[1], 'REAL_BUT_IN_THE_FUTURE')
 
     def test_insert_metadata(self):
-        data = {0: {'asset_type': 'equity',
-                    'start_date': '2014-01-01',
+        data = {0: {'start_date': '2014-01-01',
                     'end_date': '2015-01-01',
                     'symbol': "PLAY",
                     'foo_data': "FOO"}}
@@ -630,7 +629,6 @@ class AssetFinderTestCase(TestCase):
             0: {
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
-                'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-06-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
@@ -638,7 +636,6 @@ class AssetFinderTestCase(TestCase):
             1: {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
-                'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-08-14', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
@@ -647,7 +644,6 @@ class AssetFinderTestCase(TestCase):
             2: {
                 'symbol': 'ADF16',
                 'root_symbol': 'AD',
-                'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-05-14', tz='UTC')
@@ -656,7 +652,6 @@ class AssetFinderTestCase(TestCase):
             3: {
                 'symbol': 'ADX16',
                 'root_symbol': 'AD',
-                'asset_type': 'future',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
@@ -665,7 +660,6 @@ class AssetFinderTestCase(TestCase):
             4: {
                 'symbol': 'ADZ16',
                 'root_symbol': 'AD',
-                'asset_type': 'future',
                 'notice_date': pd.Timestamp('2016-11-25', tz='UTC'),
                 'expiration_date': pd.Timestamp('2016-11-16', tz='UTC'),
                 'start_date': pd.Timestamp('2015-08-01', tz='UTC')
@@ -675,7 +669,6 @@ class AssetFinderTestCase(TestCase):
             5: {
                 'symbol': 'ADZ20',
                 'root_symbol': 'AD',
-                'asset_type': 'future',
                 'notice_date': pd.Timestamp('2020-11-25', tz='UTC'),
                 'expiration_date': pd.Timestamp('2020-11-16', tz='UTC')
             },
@@ -811,28 +804,24 @@ class TestFutureChain(TestCase):
             0: {
                 'symbol': 'CLG06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
             1: {
                 'root_symbol': 'CL',
                 'symbol': 'CLK06',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
             2: {
                 'symbol': 'CLQ06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
             3: {
                 'symbol': 'CLX06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
