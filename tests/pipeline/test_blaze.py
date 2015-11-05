@@ -29,18 +29,18 @@ from zipline.pipeline.loaders.blaze import (
     NonPipelineField,
 )
 from zipline.utils.numpy_utils import repeat_last_axis
-from zipline.utils.test_utils import tmp_asset_finder, make_simple_asset_info
+from zipline.utils.test_utils import tmp_asset_finder, make_simple_equity_info
 
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
 asset_infos = (
-    (make_simple_asset_info(
+    (make_simple_equity_info(
         tuple(map(ord, 'ABC')),
         pd.Timestamp(0),
         pd.Timestamp('2015'),
     ),),
-    (make_simple_asset_info(
+    (make_simple_equity_info(
         tuple(map(ord, 'ABCD')),
         pd.Timestamp(0),
         pd.Timestamp('2015'),

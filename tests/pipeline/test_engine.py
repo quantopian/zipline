@@ -51,7 +51,7 @@ from zipline.pipeline.factors import (
 from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
     make_rotating_asset_info,
-    make_simple_asset_info,
+    make_simple_equity_info,
     product_upper_triangle,
     check_arrays,
 )
@@ -151,7 +151,7 @@ class ConstantInputTestCase(TestCase):
             assets=self.assets,
         )
 
-        self.asset_info = make_simple_asset_info(
+        self.asset_info = make_simple_equity_info(
             self.assets,
             start_date=self.dates[0],
             end_date=self.dates[-1],
@@ -498,7 +498,7 @@ class FrameInputTestCase(TestCase):
             tz='UTC',
         )
 
-        asset_info = make_simple_asset_info(
+        asset_info = make_simple_equity_info(
             cls.assets,
             start_date=cls.dates[0],
             end_date=cls.dates[-1],

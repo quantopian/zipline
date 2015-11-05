@@ -281,7 +281,7 @@ def make_rotating_asset_info(num_assets,
     )
 
 
-def make_simple_asset_info(assets, start_date, end_date, symbols=None):
+def make_simple_equity_info(assets, start_date, end_date, symbols=None):
     """
     Create a DataFrame representing assets that exist for the full duration
     between `start_date` and `end_date`.
@@ -375,7 +375,7 @@ class tmp_assets_db(object):
     def __init__(self, data=None):
         self._eng = None
         self._data = AssetDBWriterFromDataFrame(
-            data if data is not None else make_simple_asset_info(
+            data if data is not None else make_simple_equity_info(
                 list(map(ord, 'ABC')),
                 pd.Timestamp(0),
                 pd.Timestamp('2015'),

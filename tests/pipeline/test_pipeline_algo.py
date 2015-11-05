@@ -57,7 +57,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
 from zipline.utils.test_utils import (
-    make_simple_asset_info,
+    make_simple_equity_info,
     str_to_seconds,
 )
 from zipline.utils.tradingcalendar import (
@@ -332,7 +332,7 @@ class PipelineAlgorithmTestCase(TestCase):
         cls.MSFT = 2
         cls.BRK_A = 3
         cls.assets = [cls.AAPL, cls.MSFT, cls.BRK_A]
-        asset_info = make_simple_asset_info(
+        asset_info = make_simple_equity_info(
             cls.assets,
             Timestamp('2014'),
             Timestamp('2015'),
