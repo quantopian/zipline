@@ -267,7 +267,6 @@ class TradingAlgorithm(object):
         self.algoscript = kwargs.pop('script', None)
 
         self._initialize = None
-        self._analyze = kwargs.pop('analyze', None)
         self._before_trading_start = None
         self._analyze = None
 
@@ -298,6 +297,7 @@ class TradingAlgorithm(object):
             self._handle_data = kwargs.pop('handle_data')
             self._before_trading_start = kwargs.pop('before_trading_start',
                                                     None)
+            self._analyze = kwargs.pop('analyze', None)
 
         self.event_manager.add_event(
             zipline.utils.events.Event(

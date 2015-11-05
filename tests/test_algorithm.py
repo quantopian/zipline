@@ -1891,3 +1891,34 @@ class TestFutureFlip(TestCase):
                 actual_position, expected_positions[i],
                 "position for day={0} not equal, actual={1}, expected={2}".
                 format(i, actual_position, expected_positions[i]))
+
+
+class TestTradingAlgorithm(TestCase):
+    def setUp(self):
+        self.env = TradingEnvironment()
+        self.days = self.env.trading_days[:4]
+        self.panel = pd.Panel({1: pd.DataFrame({
+            'price': [1, 1, 2, 4], 'volume': [1e9, 1e9, 1e9, 0],
+            'type': [DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.CLOSE_POSITION]},
+            index=self.days)
+        })
+
+    def test_analyze_called(self):
+        results_ref = None
+
+        def initialize(self, context):
+            pass
+
+        def handel_data(self, context, data):
+            pass
+
+        def analyze(self, perf):
+            self.perf_ref = perf
+
+        algo = TradingAlgorithm(initialize = initialize, handle_data=handel_data,
+                                analyze = analyze)
+        results = algo.run(self.panel)
+        self.assertEqual(results, results_ref)
