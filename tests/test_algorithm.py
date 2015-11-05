@@ -1871,5 +1871,6 @@ class TestTradingAlgorithm(TestCase):
 
         algo = TradingAlgorithm(initialize = initialize, handle_data=handel_data,
                                 analyze = analyze)
+
         results = algo.run(self.panel)
         self.assertEqual(results, results_ref)
