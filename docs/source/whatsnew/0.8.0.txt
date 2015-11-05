@@ -11,6 +11,10 @@ Highlights
   `zipline.io <http://www.zipline.io>`__
 * Major performance enhancements.
 * Dynamic history.
+* New user defined method: ``before_trading_start``.
+* New api function: ``schedule_function``.
+* Pipeline API.
+* Support for trading futures.
 
 Enhancements
 ~~~~~~~~~~~~
@@ -96,12 +100,51 @@ Enhancements
   (:issue:`477`).
 * Command line option to for printing algo to stdout (by Andrea D'Amore)
   (:issue:`545`).
+* New user defined function ``before_trading_start``. This function can be
+  overridden by the user to be called once before the market opens every
+  day (:issue:`389`).
+* New api function :func:`~zipline.api.schedule_function`. This function allows
+  the user to schedule a function to be called based on more complicated rules
+  about the date and time. For example, call the function 15 minutes before
+  market close respecting early closes (:issue:`411`).
+* Adds a list of leveraged ETFs and a waay to mark a 'do not trade' set of
+  assets (:issue:`478`).
+* Adds a class for representing securities. :func:`~zipline.api.order` and other
+  order functions now require an instance of ``Security``
+  instead of an int or string (:issue:`520`).
+* Generalize the ``Security`` class to :class:`~zipline.assets.Asset`. This is
+  in preperation of adding support for other asset types (:issue:`535`).
+
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+* Adds new Pipeline API. The pipeline AAPI is a high-level declarative API for
+  representing trailing window computaions on large datasets (:issue:`630`).
+* Adds support for futures trading (:issue:`637`).
+* Adds Pipeline loader for blaze expressions. This allows users to pull data
+  from any format blaze understands and use it in the Pipeline
+  API. (:issue:`775`).
 
 Bug Fixes
 ~~~~~~~~~
 
 * Fix a bug where the reported returns could sharply dip for random periods of
   time (:issue:`378`).
+* Fix a bug that prevented debuggers from resolving the algorithm file
+  (:issue:`431`).
+* Properly forward arguments to user defined ``initialize`` function
+  (:issue:`687`).
+* Fix a bug that would cause treasury data to be redownloaded every backtest
+  between midnight EST and the time when the treasury data was available
+  (:issue:`793`).
+* Fix a bug that would cause the user defined ``analyze`` function to not be
+  called if it was passed as a keyword argument to
+  :class:`~zipline.algorithm.TradingAlgorithm` (:issue:`819`).
 
 Performance
 ~~~~~~~~~~~
@@ -109,6 +152,9 @@ Performance
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Remove simple transform code. These are available as methods of
+  :class:`~zipline.protocol.SIDData` (:issue:`550`).
 
 Build
 ~~~~~
