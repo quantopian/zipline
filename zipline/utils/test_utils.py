@@ -51,8 +51,8 @@ from bcolz import ctable
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarWriter,
     OHLC,
-    UINT32_MAX
-)
+    UINT32_MAX,
+    SQLiteAdjustmentWriter)
 
 
 EPOCH = pd.Timestamp(0, tz='UTC')
@@ -675,3 +675,56 @@ class tmp_asset_finder(tmp_assets_db):
 class MockDailyBarReader(object):
     def spot_price(self, col, sid, dt):
         return 100
+
+
+def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
+                       mergers=None):
+    path = tempdir.getpath("test_adjustments.db")
+
+    # create a split for the last day
+    writer = SQLiteAdjustmentWriter(path, days, MockDailyBarReader())
+    if splits is None:
+        splits = pd.DataFrame({
+             # Hackery to make the dtypes correct on an empty frame.
+            'effective_date': np.array([], dtype=int),
+            'ratio': np.array([], dtype=float),
+            'sid': np.array([], dtype=int),
+        }, index=pd.DatetimeIndex([], tz='UTC'))
+    else:
+        splits = pd.DataFrame(splits)
+
+    if mergers is None:
+        mergers = pd.DataFrame({
+             # Hackery to make the dtypes correct on an empty frame.
+            'effective_date': np.array([], dtype=int),
+            'ratio': np.array([], dtype=float),
+            'sid': np.array([], dtype=int),
+        }, index=pd.DatetimeIndex([], tz='UTC'))
+    else:
+        mergers = pd.DataFrame(mergers)
+
+    if dividends is None:
+        dividends = pd.DataFrame({
+                # Hackery to make the dtypes correct on an empty frame.
+                'ex_date': np.array([], dtype='datetime64[ns]'),
+                'pay_date': np.array([], dtype='datetime64[ns]'),
+                'record_date': np.array([], dtype='datetime64[ns]'),
+                'declared_date': np.array([], dtype='datetime64[ns]'),
+                'amount': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            },
+            index=pd.DatetimeIndex([], tz='UTC'),
+            columns=['ex_date',
+                     'pay_date',
+                     'record_date',
+                     'declared_date',
+                     'amount',
+                     'sid']
+        )
+    else:
+        if not isinstance(dividends, pd.DataFrame):
+            dividends = pd.DataFrame(dividends)
+
+    writer.write(splits, mergers, dividends)
+
+    return path
