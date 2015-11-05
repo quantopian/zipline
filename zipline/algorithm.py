@@ -35,6 +35,7 @@ from operator import attrgetter
 
 from zipline.errors import (
     AttachPipelineAfterInitialize,
+    HistoryInInitialize,
     NoSuchPipeline,
     OrderDuringInitialize,
     OverrideCommissionPostInit,
@@ -1250,6 +1251,7 @@ class TradingAlgorithm(object):
         return self.history_specs[spec_key]
 
     @api_method
+    @require_initialized(HistoryInInitialize())
     def history(self, bar_count, frequency, field, ffill=True):
         history_spec = self.get_history_spec(
             bar_count,
