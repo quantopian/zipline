@@ -240,16 +240,6 @@ Asset with sid '{sid}' was not found.
 """.strip()
 
 
-class InvalidAssetType(ZiplineError):
-    """
-    Raised when an AssetFinder tries to build an Asset with an invalid
-    AssetType.
-    """
-    msg = """
-AssetMetaData contained an invalid Asset type: '{asset_type}'.
-""".strip()
-
-
 class ConsumeAssetMetaDataError(ZiplineError):
     """
     Raised when AssetFinder.consume() is called on an invalid object.

@@ -264,7 +264,6 @@ def make_rotating_asset_info(num_assets,
         {
             'sid': range(num_assets),
             'symbol': [chr(ord('A') + i) for i in range(num_assets)],
-            'asset_type': ['equity'] * num_assets,
             # Start a new asset every `periods_between_starts` days.
             'start_date': pd.date_range(
                 first_start,
@@ -308,7 +307,6 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
         {
             'sid': assets,
             'symbol': symbols,
-            'asset_type': ['equity'] * num_assets,
             'start_date': [start_date] * num_assets,
             'end_date': [end_date] * num_assets,
             'exchange': 'TEST',

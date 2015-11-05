@@ -97,7 +97,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 1,
                 'symbol': 'A',
-                'asset_type': 'equity',
                 'start_date': self.dates[10],
                 'end_date': self.dates[13],
                 'exchange': 'TEST',
@@ -105,7 +104,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 2,
                 'symbol': 'B',
-                'asset_type': 'equity',
                 'start_date': self.dates[11],
                 'end_date': self.dates[14],
                 'exchange': 'TEST',
@@ -113,7 +111,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 3,
                 'symbol': 'C',
-                'asset_type': 'equity',
                 'start_date': self.dates[12],
                 'end_date': self.dates[15],
                 'exchange': 'TEST',

@@ -156,11 +156,9 @@ class TestMiscellaneousAPI(TestCase):
         cls.env = TradingEnvironment()
 
         metadata = {3: {'symbol': 'PLAY',
-                        'asset_type': 'equity',
                         'start_date': '2002-01-01',
                         'end_date': '2004-01-01'},
                     4: {'symbol': 'PLAY',
-                        'asset_type': 'equity',
                         'start_date': '2005-01-01',
                         'end_date': '2006-01-01'}}
 
@@ -168,28 +166,24 @@ class TestMiscellaneousAPI(TestCase):
             5: {
                 'symbol': 'CLG06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
             6: {
                 'root_symbol': 'CL',
                 'symbol': 'CLK06',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
             7: {
                 'symbol': 'CLQ06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
             8: {
                 'symbol': 'CLX06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
@@ -595,8 +589,7 @@ class TestTransformAlgorithm(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        futures_metadata = {3: {'asset_type': 'future',
-                                'contract_multiplier': 10}}
+        futures_metadata = {3: {'contract_multiplier': 10}}
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0, 1, 133],
                            futures_data=futures_metadata)
@@ -923,8 +916,7 @@ class TestAlgoScript(TestCase):
     def test_api_get_environment(self):
         platform = 'zipline'
         # Use sid not already in test database.
-        metadata = {3: {'symbol': 'TEST',
-                        'asset_type': 'equity'}}
+        metadata = {3: {'symbol': 'TEST'}}
         algo = TradingAlgorithm(script=api_get_environment_algo,
                                 equities_metadata=metadata,
                                 platform=platform)
@@ -933,8 +925,7 @@ class TestAlgoScript(TestCase):
 
     def test_api_symbol(self):
         # Use sid not already in test database.
-        metadata = {3: {'symbol': 'TEST',
-                        'asset_type': 'equity'}}
+        metadata = {3: {'symbol': 'TEST'}}
         algo = TradingAlgorithm(script=api_symbol_algo,
                                 equities_metadata=metadata)
         algo.run(self.df)
@@ -1778,7 +1769,6 @@ class TestClosePosAlgo(TestCase):
 
     def test_close_position_equity(self):
         metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'equity',
                         'end_date': self.days[3]}}
         self.env.write_data(equities_data=metadata)
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
@@ -1794,9 +1784,7 @@ class TestClosePosAlgo(TestCase):
         self.check_algo_pnl(results, expected_pnl)
 
     def test_close_position_future(self):
-        metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'future',
-                        }}
+        metadata = {1: {'symbol': 'TEST'}}
         self.env.write_data(futures_data=metadata)
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
                              commission=PerShare(0),
@@ -1812,7 +1800,6 @@ class TestClosePosAlgo(TestCase):
 
     def test_auto_close_future(self):
         metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'future',
                         'auto_close_date': self.env.trading_days[4]}}
         self.env.write_data(futures_data=metadata)
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
