@@ -97,7 +97,6 @@ from zipline.utils.events import (
     TimeRuleFactory,
 )
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.functional import is_a
 from zipline.utils.math_utils import tolerant_equals
 from zipline.utils.preprocess import preprocess
 
