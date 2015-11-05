@@ -1907,7 +1907,7 @@ class TestTradingAlgorithm(TestCase):
         })
 
     def test_analyze_called(self):
-        results_ref = None
+        self.perf_ref = None
 
         def initialize(context):
             pass
@@ -1915,10 +1915,10 @@ class TestTradingAlgorithm(TestCase):
         def handle_data(context, data):
             pass
 
-        def analyze(self, perf):
+        def analyze(context, perf):
             self.perf_ref = perf
 
         algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data,
                                 analyze=analyze)
         results = algo.run(self.panel)
-        self.assertEqual(results, results_ref)
+        self.assertIs(results, self.perf_ref)
