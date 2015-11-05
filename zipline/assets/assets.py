@@ -152,10 +152,6 @@ class AssetFinder(object):
 
         return found
 
-    def lookup_single_asset_type(self, sid):
-        """Retrieve the asset type for a single asset."""
-        return self.lookup_asset_types([sid])[sid]
-
     def group_by_type(self, sids):
         """
         Group a list of sids by asset type.
