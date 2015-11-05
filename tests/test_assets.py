@@ -59,8 +59,8 @@ from zipline.errors import (
 from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
     all_subindices,
-    make_rotating_asset_info,
-    tmp_assets_db
+    tmp_assets_db,
+    make_rotating_equity_info,
 )
 
 
@@ -105,7 +105,7 @@ def build_lookup_generic_cases(asset_finder_type):
             },
         ],
         index='sid')
-    with tmp_assets_db(frame) as assets_db:
+    with tmp_assets_db(equities=frame) as assets_db:
         finder = asset_finder_type(assets_db)
         dupe_0, dupe_1, unique = assets = [
             finder.retrieve_asset(i)
@@ -774,7 +774,7 @@ class AssetFinderTestCase(TestCase):
         trading_day = self.env.trading_day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
-        frame = make_rotating_asset_info(
+        frame = make_rotating_equity_info(
             num_assets=num_assets,
             first_start=first_start,
             frequency=self.env.trading_day,

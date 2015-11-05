@@ -233,11 +233,11 @@ def all_subindices(index):
     )
 
 
-def make_rotating_asset_info(num_assets,
-                             first_start,
-                             frequency,
-                             periods_between_starts,
-                             asset_lifetime):
+def make_rotating_equity_info(num_assets,
+                              first_start,
+                              frequency,
+                              periods_between_starts,
+                              asset_lifetime):
     """
     Create a DataFrame representing lifetimes of assets that are constantly
     rotating in and out of existence.

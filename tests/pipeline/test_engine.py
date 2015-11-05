@@ -50,7 +50,7 @@ from zipline.pipeline.factors import (
 )
 from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
-    make_rotating_asset_info,
+    make_rotating_equity_info,
     make_simple_equity_info,
     product_upper_triangle,
     check_arrays,
@@ -608,7 +608,7 @@ class SyntheticBcolzTestCase(TestCase):
         cls.trading_day = day = cls.env.trading_day
         cls.calendar = date_range('2015', '2015-08', tz='UTC', freq=day)
 
-        cls.asset_info = make_rotating_asset_info(
+        cls.asset_info = make_rotating_equity_info(
             num_assets=6,
             first_start=cls.first_asset_start,
             frequency=day,
