@@ -33,7 +33,11 @@ from nose_parameterized import parameterized
 from numpy import full
 
 from zipline.assets import Asset, Equity, Future, AssetFinder
-from zipline.assets.futures import FutureChain
+from zipline.assets.futures import (
+    cme_code_to_month,
+    FutureChain,
+    month_to_cme_code,
+)
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
@@ -995,3 +999,39 @@ class TestFutureChain(TestCase):
         # ValueError.
         with self.assertRaises(ValueError):
             cl.offset("blah")
+
+    def test_cme_code_to_month(self):
+        codes = {
+            'F': 1,   # January
+            'G': 2,   # February
+            'H': 3,   # March
+            'J': 4,   # April
+            'K': 5,   # May
+            'M': 6,   # June
+            'N': 7,   # July
+            'Q': 8,   # August
+            'U': 9,   # September
+            'V': 10,  # October
+            'X': 11,  # November
+            'Z': 12   # December
+        }
+        for key in codes:
+            self.assertEqual(codes[key], cme_code_to_month(key))
+
+    def test_month_to_cme_code(self):
+        codes = {
+            1: 'F',   # January
+            2: 'G',   # February
+            3: 'H',   # March
+            4: 'J',   # April
+            5: 'K',   # May
+            6: 'M',   # June
+            7: 'N',   # July
+            8: 'Q',   # August
+            9: 'U',   # September
+            10: 'V',  # October
+            11: 'X',  # November
+            12: 'Z',  # December
+        }
+        for key in codes:
+            self.assertEqual(codes[key], month_to_cme_code(key))
