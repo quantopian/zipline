@@ -270,8 +270,8 @@ class AssetFinder(object):
         """
         Internal function for loading assets from a table.
 
-        This function does not do any caching.  It is assumed that this will be
-        called at most once with any given sid.
+        This should be the only method of `AssetFinder` that writes Assets into
+        self._asset_cache.
 
         Parameters
         ---------
