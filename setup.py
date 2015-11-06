@@ -208,6 +208,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
         'Topic :: Office/Business :: Financial',
@@ -216,5 +217,5 @@ setup(
     ],
     install_requires=install_requires(),
     extras_require=extras_requires(),
-    url="http://zipline.io"
+    url="http://zipline.io",
 )
