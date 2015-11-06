@@ -238,11 +238,40 @@ class SidsNotFound(ZiplineError):
     non-existent sid.
     """
     @lazyval
+    def plural(self):
+        return len(self.sids) > 1
+
+    @lazyval
+    def sids(self):
+        return self.kwargs['sids']
+
+    @lazyval
     def msg(self):
-        sids = self.kwargs['sids']
-        if len(sids) == 1:
-            return "No asset found for sid: {sids[0]}."
-        return "No assets found for sids: {sids}."
+        if self.plural:
+            return "No assets found for sids: {sids}."
+        return "No asset found for sid: {sids[0]}."
+
+
+class EquitiesNotFound(SidsNotFound):
+    """
+    Raised when a call to `retrieve_equities` fails to find an asset.
+    """
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No equities found for sids: {sids}."
+        return "No equity found for sid: {sids[0]}."
+
+
+class FutureContractsNotFound(SidsNotFound):
+    """
+    Raised when a call to `retrieve_futures_contracts` fails to find an asset.
+    """
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No future contracts found for sids: {sids}."
+        return "No future contract found for sid: {sids[0]}."
 
 
 class ConsumeAssetMetaDataError(ZiplineError):

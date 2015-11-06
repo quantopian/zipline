@@ -26,11 +26,13 @@ from six.moves import map as imap
 import sqlalchemy as sa
 
 from zipline.errors import (
+    EquitiesNotFound,
+    FutureContractsNotFound,
+    MapAssetIdentifierIndexError,
     MultipleSymbolsFound,
     RootSymbolNotFound,
     SidsNotFound,
     SymbolNotFound,
-    MapAssetIdentifierIndexError,
 )
 from zipline.assets import (
     Asset, Equity, Future,
@@ -227,10 +229,10 @@ class AssetFinder(object):
             raise SidsNotFound(sids=list(failures))
 
         # We don't update the asset cache here because it should already be
-        # updated by `self._retrieve_equities`.
-        update_hits(self._retrieve_equities(type_to_assets.pop('equity', ())))
+        # updated by `self.retrieve_equities`.
+        update_hits(self.retrieve_equities(type_to_assets.pop('equity', ())))
         update_hits(
-            self._retrieve_futures_contracts(type_to_assets.pop('future', ()))
+            self.retrieve_futures_contracts(type_to_assets.pop('future', ()))
         )
 
         # We shouldn't know about any other asset types.
@@ -241,18 +243,52 @@ class AssetFinder(object):
 
         return [hits[sid] for sid in sids]
 
-    def _retrieve_equities(self, sids):
+    def retrieve_equities(self, sids):
         """
-        Retrieve the Equity object of a given sid.
+        Retrieve Equity objects for a list of sids.
+
+        Users generally shouldn't need to this method (instead, they should
+        prefer the more general/friendly `retrieve_assets`), but it has a
+        documented interface and tests because it's used upstream.
+
+        Parameters
+        ----------
+        sids : iterable[int]
+
+        Returns
+        -------
+        equities : dict[int -> Equity]
+
+        Raises
+        ------
+        EquitiesNotFound
+            When any requested asset isn't found.
         """
         return self._retrieve_assets(sids, self.equities, Equity)
 
     def _retrieve_equity(self, sid):
-        return self._retrieve_equities((sid,))[sid]
+        return self.retrieve_equities((sid,))[sid]
 
-    def _retrieve_futures_contracts(self, sids):
+    def retrieve_futures_contracts(self, sids):
         """
-        Retrieve the Future object of a given sid.
+        Retrieve Future objects for an iterable of sids.
+
+        Users generally shouldn't need to this method (instead, they should
+        prefer the more general/friendly `retrieve_assets`), but it has a
+        documented interface and tests because it's used upstream.
+
+        Parameters
+        ----------
+        sids : iterable[int]
+
+        Returns
+        -------
+        equities : dict[int -> Equity]
+
+        Raises
+        ------
+        EquitiesNotFound
+            When any requested asset isn't found.
         """
         return self._retrieve_assets(sids, self.futures_contracts, Future)
 
@@ -307,12 +343,10 @@ class AssetFinder(object):
         # an error in our code, not a user-input error.
         misses = tuple(set(sids) - viewkeys(hits))
         if misses:
-            raise AssertionError(
-                "Couldn't resolve sids {sids} as instances of {type}.".format(
-                    sids=misses,
-                    type=asset_type,
-                )
-            )
+            if asset_type == Equity:
+                raise EquitiesNotFound(sids=misses)
+            else:
+                raise FutureContractsNotFound(sids=misses)
         return hits
 
     def _get_fuzzy_candidates(self, fuzzy_symbol):
@@ -589,7 +623,7 @@ class AssetFinder(object):
             if count == 0:
                 raise RootSymbolNotFound(root_symbol=root_symbol)
 
-        contracts = self._retrieve_futures_contracts(sids)
+        contracts = self.retrieve_futures_contracts(sids)
         return [contracts[sid] for sid in sids]
 
     @property

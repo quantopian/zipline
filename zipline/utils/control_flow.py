@@ -59,15 +59,15 @@ def ignore_nanwarnings():
 
 def invert(d):
     """
-    Invert a dictionary into a dictionary of lists.
+    Invert a dictionary into a dictionary of sets.
 
     >>> invert({'a': 1, 'b': 2, 'c': 1})
-    {1: ['a', 'c'], 2: ['b']}
+    {1: {'a', 'c'}, 2: {'b'}}
     """
     out = {}
     for k, v in iteritems(d):
         try:
-            out[v].append(k)
+            out[v].add(k)
         except KeyError:
-            out[v] = [k]
+            out[v] = {k}
     return out
