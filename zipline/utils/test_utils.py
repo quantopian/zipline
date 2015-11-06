@@ -14,12 +14,14 @@ from logbook import FileHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
-from six import itervalues
+from pandas.tseries.offsets import MonthBegin
+from six import iteritems, itervalues
 from six.moves import filter
 from sqlalchemy import create_engine
 
 from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
+from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
 
@@ -262,7 +264,6 @@ def make_rotating_equity_info(num_assets,
     """
     return pd.DataFrame(
         {
-            'sid': range(num_assets),
             'symbol': [chr(ord('A') + i) for i in range(num_assets)],
             # Start a new asset every `periods_between_starts` days.
             'start_date': pd.date_range(
@@ -277,7 +278,8 @@ def make_rotating_equity_info(num_assets,
                 periods=num_assets,
             ),
             'exchange': 'TEST',
-        }
+        },
+        index=range(num_assets),
     )
 
 
@@ -305,12 +307,122 @@ def make_simple_equity_info(assets, start_date, end_date, symbols=None):
         symbols = list(ascii_uppercase[:num_assets])
     return pd.DataFrame(
         {
-            'sid': assets,
             'symbol': symbols,
             'start_date': [start_date] * num_assets,
             'end_date': [end_date] * num_assets,
             'exchange': 'TEST',
-        }
+        },
+        index=assets,
+    )
+
+
+def make_future_info(first_sid,
+                     root_symbols,
+                     years,
+                     notice_date_func,
+                     expiration_date_func,
+                     start_date_func,
+                     month_codes=None):
+    """
+    Create a DataFrame representing futures for `root_symbols` during `year`.
+
+    Generates a contract per triple of (symbol, year, month) supplied to
+    `root_symbols`, `years`, and `month_codes`.
+
+    Parameters
+    ----------
+    first_sid : int
+        The first sid to use for assigning sids to the created contracts.
+    root_symbols : list[str]
+        A list of root symbols for which to create futures.
+    years : list[int or str]
+        Years (e.g. 2014), for which to produce individual contracts.
+    notice_date_func : (Timestamp) -> Timestamp
+        Function to generate notice dates from first of the month associated
+        with asset month code.  Return NaT to simulate futures with no notice
+        date.
+    expiration_date_func : (Timestamp) -> Timestamp
+        Function to generate expiration dates from first of the month
+        associated with asset month code.
+    start_date_func : (Timestamp) -> Timestamp, optional
+        Function to generate start dates from first of the month associated
+        with each asset month code.  Defaults to a start_date one year prior
+        to the month_code date.
+    month_codes : dict[str -> [1..12]], optional
+        Dictionary of month codes for which to create contracts.  Entries
+        should be strings mapped to values from 1 (January) to 12 (December).
+        Default is zipline.futures.CME_CODE_TO_MONTH
+
+    Returns
+    -------
+    futures_info : pd.DataFrame
+        DataFrame of futures data suitable for passing to an
+        AssetDBWriterFromDataFrame.
+    """
+    if month_codes is None:
+        month_codes = CME_CODE_TO_MONTH
+
+    year_strs = list(map(str, years))
+    years = [pd.Timestamp(s, tz='UTC') for s in year_strs]
+
+    # Pairs of string/date like ('K06', 2006-05-01)
+    contract_suffix_to_beginning_of_month = tuple(
+        (month_code + year_str[-2:], year + MonthBegin(month_num))
+        for ((year, year_str), (month_code, month_num))
+        in product(
+            zip(years, year_strs),
+            iteritems(month_codes),
+        )
+    )
+
+    contracts = []
+    parts = product(root_symbols, contract_suffix_to_beginning_of_month)
+    for sid, (root_sym, (suffix, month_begin)) in enumerate(parts, first_sid):
+        contracts.append({
+            'sid': sid,
+            'root_symbol': root_sym,
+            'symbol': root_sym + suffix,
+            'start_date': start_date_func(month_begin),
+            'notice_date': notice_date_func(month_begin),
+            'expiration_date': notice_date_func(month_begin),
+            'contract_multiplier': 500,
+        })
+    return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
+
+
+def make_commodity_future_info(first_sid,
+                               root_symbols,
+                               years,
+                               month_codes=None):
+    """
+    Make futures testing data that simulates the notice/expiration date
+    behavior of physical commodities like oil.
+
+    Parameters
+    ----------
+    first_sid : int
+    root_symbols : list[str]
+    years : list[int]
+    month_codes : dict[str -> int]
+
+    Expiration dates are on the 20th of the month prior to the month code.
+    Notice dates are are on the 20th two months prior to the month code.
+    Start dates are one year before the contract month.
+
+    See Also
+    --------
+    make_future_info
+    """
+    nineteen_days = pd.Timedelta(days=19)
+    one_year = pd.Timedelta(days=365)
+    return make_future_info(
+        first_sid=first_sid,
+        root_symbols=root_symbols,
+        years=years,
+        notice_date_func=lambda dt: dt - MonthBegin(2) + nineteen_days,
+        expiration_date_func=lambda dt: dt - MonthBegin(1) + nineteen_days,
+        start_date_func=lambda dt: dt - one_year,
+        month_codes=month_codes,
     )
 
 
@@ -372,15 +484,17 @@ class tmp_assets_db(object):
         The data to feed to the writer. By default this maps:
         ('A', 'B', 'C') -> map(ord, 'ABC')
     """
-    def __init__(self, data=None):
+    def __init__(self, **frames):
         self._eng = None
-        self._data = AssetDBWriterFromDataFrame(
-            data if data is not None else make_simple_equity_info(
-                list(map(ord, 'ABC')),
-                pd.Timestamp(0),
-                pd.Timestamp('2015'),
-            )
-        )
+        if not frames:
+            frames = {
+                'equities': make_simple_equity_info(
+                    list(map(ord, 'ABC')),
+                    pd.Timestamp(0),
+                    pd.Timestamp('2015'),
+                )
+            }
+        self._data = AssetDBWriterFromDataFrame(**frames)
 
     def __enter__(self):
         self._eng = eng = create_engine('sqlite://')

@@ -333,7 +333,7 @@ class BlazeToPipelineTestCase(TestCase):
         dates = self.dates
 
         asset_info = asset_infos[0][0]
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             result = SimplePipelineEngine(
                 loader,
                 dates,
@@ -422,7 +422,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expected_views,
             )
 
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 list(concatv([12] * nassets, [13] * nassets, [14] * nassets)),
                 index=pd.MultiIndex.from_product((
@@ -466,7 +466,7 @@ class BlazeToPipelineTestCase(TestCase):
             '2014-01-03': repeat_last_axis(np.array([11.0, 2.0]), nassets),
         })
 
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 list(concatv([10] * nassets, [11] * nassets)),
                 index=pd.MultiIndex.from_product((
@@ -534,7 +534,7 @@ class BlazeToPipelineTestCase(TestCase):
             pd.Timestamp('2014-01-06'),
         ])
 
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 expected_output_buffer,
                 index=pd.MultiIndex.from_product((
@@ -594,7 +594,7 @@ class BlazeToPipelineTestCase(TestCase):
             # omitting the 4th and 5th to simulate a weekend
             pd.Timestamp('2014-01-06'),
         ])
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 list(concatv([10] * nassets, [11] * nassets)),
                 index=pd.MultiIndex.from_product((
