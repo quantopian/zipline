@@ -12,14 +12,17 @@ Highlights
 * Major performance enhancements.
 * Dynamic history.
 * New user defined method: ``before_trading_start``.
-* New api function: ``schedule_function``.
+* New api function: :func:`~zipline.api.schedule_function`.
+* New api function: :func:`~zipline.api.get_environment`.
+* New api function: :func:`~zipline.api.set_max_leverage`.
+* New api function: :func:`~zipline.api.set_do_not_order_list`.
 * Pipeline API.
 * Support for trading futures.
 
 Enhancements
 ~~~~~~~~~~~~
 
-* Account object: Adds an account object to conext to track information about
+* Account object: Adds an account object to context to track information about
   the trading account.
   Example:
 
@@ -107,14 +110,35 @@ Enhancements
   the user to schedule a function to be called based on more complicated rules
   about the date and time. For example, call the function 15 minutes before
   market close respecting early closes (:issue:`411`).
-* Adds a list of leveraged ETFs and a waay to mark a 'do not trade' set of
-  assets (:issue:`478`).
+* New api function :func:`set_do_not_order_list`. This function accepts a list
+  of assets and adds a trading guard that prevents the algorithm from
+  trading them. Adds a list point in time list of leveraged ETFs that people may
+  want to mark as 'do not trade' (:issue:`478`).
 * Adds a class for representing securities. :func:`~zipline.api.order` and other
   order functions now require an instance of ``Security``
   instead of an int or string (:issue:`520`).
 * Generalize the ``Security`` class to :class:`~zipline.assets.Asset`. This is
   in preperation of adding support for other asset types (:issue:`535`).
+* New api function :func:`~zipline.api.get_environment`. This function by
+  default returns the string ``'zipline'``. This is used so that algorithms can
+  have different behavior on Quantopian and local zipline (:issue:`384`).
+* Extends :func:`~zipline.api.get_environment` to expose more of the environment
+  to the algorithm. The function now accepts an argument that is the field to
+  return. By default, this is ``'platform'`` which returns the old value of
+  ``'zipline'`` but the following new fields can be requested:
 
+  - ``''arena'``: Is this live trading or backtesting?
+  - ``'data_frequency'``: Is this minute mode or daily mode?
+  - ``'start'``: Simulation start date.
+  - ``'end'``: Simulation end date.
+  - ``'capital_base'``: The starting capital for the simulation.
+  - ``'platform'``: The platform that the algorithm is running on.
+  - ``'*'``: A dictionary containing all of these fields.
+
+  (:issue:`449`).
+* New api function :func:`~zipline.api.set_max_leveraged`. This method adds a
+  trading guard that prevents your algorithm from over leveraging itself
+  (:issue:`552`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -123,7 +147,7 @@ Experimental Features
 
    Experimental features are subject to change.
 
-* Adds new Pipeline API. The pipeline AAPI is a high-level declarative API for
+* Adds new Pipeline API. The pipeline API is a high-level declarative API for
   representing trailing window computaions on large datasets (:issue:`630`).
 * Adds support for futures trading (:issue:`637`).
 * Adds Pipeline loader for blaze expressions. This allows users to pull data
