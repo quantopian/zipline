@@ -20,11 +20,9 @@ from zipline.utils.api_support import ZiplineAPI
 from zipline.gens.sim_engine import (
     DATA_AVAILABLE,
     ONCE_A_DAY,
-    UPDATE_BENCHMARK,
     CALC_DAILY_PERFORMANCE,
     CALC_MINUTE_PERFORMANCE
 )
-
 
 log = Logger('Trade Simulation')
 
@@ -86,20 +84,20 @@ class AlgorithmSimulator(object):
         """
         algo = self.algo
         algo.data_portal = self.data_portal
-        sim_params = algo.sim_params
         handle_data = algo.event_manager.handle_data
         current_data = self.current_data
 
-        perf_tracker = self.algo.perf_tracker
-        perf_tracker_benchmark_returns = perf_tracker.all_benchmark_returns
         data_portal = self.data_portal
 
         blotter = self.algo.blotter
         blotter.data_portal = data_portal
 
+        # can't cache a pointer to algo.perf_tracker because we're not
+        # guaranteed that the algo doesn't swap out perf trackers during
+        # its lifetime.
         perf_process_order = self.algo.perf_tracker.process_order
         perf_process_txn = self.algo.perf_tracker.process_transaction
-        perf_tracker.position_tracker.data_portal = data_portal
+        algo.perf_tracker.position_tracker.data_portal = data_portal
 
         def inner_loop(dt_to_use):
             # called every tick (minute or day).
@@ -138,6 +136,8 @@ class AlgorithmSimulator(object):
             # call before trading start
             algo.before_trading_start(current_data)
 
+            perf_tracker = algo.perf_tracker
+
             # handle any splits that impact any positions or any open orders.
             sids_we_care_about = \
                 list(set(list(perf_tracker.position_tracker.positions.keys()) +
@@ -157,21 +157,21 @@ class AlgorithmSimulator(object):
                 elif action == ONCE_A_DAY:
                     once_a_day(dt)
                 elif action == CALC_DAILY_PERFORMANCE:
-                    perf_tracker_benchmark_returns[dt] = \
+                    algo.perf_tracker.all_benchmark_returns[dt] = \
                         self.benchmark_source.get_daily_value(dt)
-                    yield self._get_daily_message(dt, algo, perf_tracker)
+                    yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == CALC_MINUTE_PERFORMANCE:
-                    perf_tracker_benchmark_returns[dt] = \
+                    algo.perf_tracker.all_benchmark_returns[dt] = \
                         self.benchmark_source.get_minute_value(dt)
                     minute_msg, daily_msg = \
-                        self._get_minute_message(dt, algo, perf_tracker)
+                        self._get_minute_message(dt, algo, algo.perf_tracker)
 
                     yield minute_msg
 
                     if daily_msg:
                         yield daily_msg
 
-        risk_message = perf_tracker.handle_simulation_end()
+        risk_message = algo.perf_tracker.handle_simulation_end()
         yield risk_message
 
     @staticmethod
