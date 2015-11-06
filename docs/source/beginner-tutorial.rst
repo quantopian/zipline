@@ -117,7 +117,7 @@ on OSX):
                        [--capital_base CAPITAL_BASE] [--source {yahoo}] [--source_time_column SOURCE_TIME_COLUMN] [--symbols SYMBOLS]
                        [--output OUTPUT] [--metadata_path METADATA_PATH] [--metadata_index METADATA_INDEX] [--print-algo] [--no-print-algo]
 
-    Zipline version 0.8.0rc1.
+    Zipline version 0.8.0.
 
     optional arguments:
       -h, --help            show this help message and exit
