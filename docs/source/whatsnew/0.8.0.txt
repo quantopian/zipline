@@ -2,7 +2,7 @@ Release 0.8.0
 -------------
 
 :Release: 0.8.0
-:Date: TBD
+:Date: November 6, 2015
 
 Highlights
 ~~~~~~~~~~
@@ -148,7 +148,7 @@ Experimental Features
    Experimental features are subject to change.
 
 * Adds new Pipeline API. The pipeline API is a high-level declarative API for
-  representing trailing window computaions on large datasets (:issue:`630`).
+  representing trailing window computations on large datasets (:issue:`630`).
 * Adds support for futures trading (:issue:`637`).
 * Adds Pipeline loader for blaze expressions. This allows users to pull data
   from any format blaze understands and use it in the Pipeline
@@ -187,6 +187,3 @@ Documentation
 ~~~~~~~~~~~~~
 
 * Switched to sphinx for the documentation (:issue:`816`).
-
-Contributors
-~~~~~~~~~~~~

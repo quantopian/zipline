@@ -8,14 +8,13 @@ Zipline
 |Coverage Status|
 |Code quality|
 
-Zipline is a Pythonic algorithmic trading library. The system is
-fundamentally event-driven and a close approximation of how live-trading
-systems operate.
+Zipline is a Pythonic algorithmic trading library. It is an event-driven
+system that supports both backtesting and live-trading.
 
-Zipline is currently used in production as the backtesting engine
-powering `Quantopian Inc. <https://www.quantopian.com>`__ -- a free,
-community-centered platform that allows development and real-time
-backtesting of trading algorithms in the web browser.
+Zipline is currently used in production as the backtesting and live-trading
+engine powering `Quantopian <https://www.quantopian.com>`__ -- a free,
+community-centered, hosted platform for building and executing trading
+strategies.
 
 `Join our
 community! <https://groups.google.com/forum/#!forum/zipline>`__
@@ -29,29 +28,38 @@ below.
 Features
 ========
 
--  Ease of use: Zipline tries to get out of your way so that you can
-   focus on algorithm development. See below for a code example.
-
--  Zipline comes "batteries included" as many common statistics like
-   moving average and linear regression can be readily accessed from
-   within a user-written algorithm.
-
--  Input of historical data and output of performance statistics is
-   based on Pandas DataFrames to integrate nicely into the existing
-   Python eco-system.
-
--  Statistic and machine learning libraries like matplotlib, scipy,
-   statsmodels, and sklearn support development, analysis and
-   visualization of state-of-the-art trading systems.
+- Ease of use: Zipline tries to get out of your way so that you can
+  focus on algorithm development. See below for a code example.
+- Zipline comes "batteries included" as many common statistics like
+  moving average and linear regression can be readily accessed from
+  within a user-written algorithm.
+- Input of historical data and output of performance statistics are
+  based on Pandas DataFrames to integrate nicely into the existing
+  PyData eco-system.
+- Statistic and machine learning libraries like matplotlib, scipy,
+  statsmodels, and sklearn support development, analysis, and
+  visualization of state-of-the-art trading systems.
 
 Installation
 ============
 
-The easiest way to install Zipline is via ``conda`` which comes as part
+pip
+---
+
+You can install Zipline via the ``pip`` command:
+::
+
+    $ pip install zipline
+
+
+conda
+-----
+
+Another way to install Zipline is via ``conda`` which comes as part
 of `Anaconda <http://continuum.io/downloads>`__ or can be installed via
 ``pip install conda``.
 
-Once set up, you can install Zipline from our Quantopian channel:
+Once set up, you can install Zipline from our ``Quantopian`` channel:
 
 ::
 
@@ -59,44 +67,18 @@ Once set up, you can install Zipline from our Quantopian channel:
 
 Currently supported platforms include:
 
--  Windows 32-bit (can be 64-bit Windows but has to be 32-bit Anaconda)
-
+-  GNU/Linux 64-bit
 -  OSX 64-bit
 
--  Linux 64-bit
+.. note::
 
-PIP
----
-
-Alternatively you can install Zipline via the more traditional ``pip``
-command. Since zipline is pure-python code it should be very easy to
-install and set up:
-
-::
-
-    pip install numpy   # Pre-install numpy to handle dependency chain quirk
-    pip install zipline
-
-If there are problems installing the dependencies or zipline we
-recommend installing these packages via some other means. For Windows,
-the `Enthought Python
-Distribution <http://www.enthought.com/products/epd.php>`__ includes
-most of the necessary dependencies. On OSX, the `Scipy
-Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`__ works very
-well.
+   Windows may work; however, it is currently untested.
 
 Dependencies
 ------------
 
--  Python (2.7 or 3.3)
--  numpy (>= 1.6.0)
--  pandas (>= 0.9.0)
--  pytz
--  Logbook
--  requests
--  `python-dateutil <https://pypi.python.org/pypi/python-dateutil>`__
-   (>= 2.1)
--  ta-lib
+See our `requirements file
+<https://github.com/quantopian/zipline/blob/master/etc/requirements.txt>`__
 
 Quickstart
 ==========
@@ -108,7 +90,13 @@ The following code implements a simple dual moving average algorithm.
 
 .. code:: python
 
-    from zipline.api import order_target, record, symbol, history, add_history
+    from zipline.api import (
+        add_history,
+        history,
+        order_target,
+        record,
+        symbol,
+    )
 
 
     def initialize(context):
@@ -116,7 +104,6 @@ The following code implements a simple dual moving average algorithm.
         # one with a 100 window and one with a 300 day window
         add_history(100, '1d', 'price')
         add_history(300, '1d', 'price')
-
         context.i = 0
 
 
