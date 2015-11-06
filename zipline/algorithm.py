@@ -859,14 +859,14 @@ class TradingAlgorithm(object):
 
     @property
     def portfolio(self):
-        if self._portfolio is None:
+        if self._portfolio is None and self.perf_tracker is not None:
             self._portfolio = \
                 self.perf_tracker.get_portfolio(self.datetime)
         return self._portfolio
 
     @property
     def account(self):
-        if self._account is None:
+        if self._account is None and self.perf_tracker is not None:
             self._account = \
                 self.perf_tracker.get_account(self.datetime)
         return self._account
