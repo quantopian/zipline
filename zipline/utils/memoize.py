@@ -50,7 +50,7 @@ class lazyval(object):
             self._cache[instance] = val = self._get(instance)
             return val
 
-    def __set__(self, instance, owner):
+    def __set__(self, instance, value):
         raise AttributeError("Can't set read-only attribute.")
 
 
