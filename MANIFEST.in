@@ -1,5 +1,6 @@
 include README.md
 include LICENSE
 
-include etc/requirements_*.txt
+include etc/requirements*.txt
 recursive-include zipline/resources *.*
+recursive-include zipline *.pyx

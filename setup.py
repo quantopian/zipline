@@ -192,7 +192,7 @@ pre_setup()
 
 setup(
     name='zipline',
-    version='0.8.0',
+    version='0.8.2',
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
