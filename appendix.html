@@ -1,0 +1,528 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Zipline API &mdash; Zipline 0.8.3 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline 0.8.3 documentation" href="index.html"/>
+        <link rel="prev" title="Release Notes" href="releases.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline beginner tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Contributors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Zipline API</a></li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Zipline API</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/appendix.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="zipline-api">
+<h1>Zipline API<a class="headerlink" href="#zipline-api" title="Permalink to this headline">¶</a></h1>
+<p>For each of these api functions, the <code class="docutils literal"><span class="pre">self</span></code> argument is implicitly the current
+<code class="xref py py-class docutils literal"><span class="pre">TradingAlgorithm</span></code></p>
+<span class="target" id="module-zipline.api"></span><dl class="attribute">
+<dt id="zipline.api.batch_transform">
+<code class="descclassname">zipline.api.</code><code class="descname">batch_transform</code><a class="headerlink" href="#zipline.api.batch_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">BatchTransform</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.add_transform">
+<code class="descclassname">zipline.api.</code><code class="descname">add_transform</code><span class="sig-paren">(</span><em>self</em>, <em>transform</em>, <em>days=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.add_transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensures that the history container will have enough size to service
+a simple transform.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Arguments:</th><td class="field-body"><dl class="first last docutils">
+<dt>transform <span class="classifier-delimiter">:</span> <span class="classifier">string</span></dt>
+<dd><p class="first last">The transform to add. must be an element of:
+{&#8216;mavg&#8217;, &#8216;stddev&#8217;, &#8216;vwap&#8217;, &#8216;returns&#8217;}.</p>
+</dd>
+<dt>days <span class="classifier-delimiter">:</span> <span class="classifier">int &lt;default=None&gt;</span></dt>
+<dd><p class="first last">The maximum amount of days you will want for this transform.
+This is not needed for &#8216;returns&#8217;.</p>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.schedule_function">
+<code class="descclassname">zipline.api.</code><code class="descname">schedule_function</code><span class="sig-paren">(</span><em>self</em>, <em>func</em>, <em>date_rule=None</em>, <em>time_rule=None</em>, <em>half_days=True</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.schedule_function" title="Permalink to this definition">¶</a></dt>
+<dd><p>Schedules a function to be called with some timed rules.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.record">
+<code class="descclassname">zipline.api.</code><code class="descname">record</code><span class="sig-paren">(</span><em>self</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.record" title="Permalink to this definition">¶</a></dt>
+<dd><p>Track and record local variable (i.e. attributes) each day.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.symbol">
+<code class="descclassname">zipline.api.</code><code class="descname">symbol</code><span class="sig-paren">(</span><em>self</em>, <em>symbol_str</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.symbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default symbol lookup for any source that directly maps the
+symbol to the Asset (e.g. yahoo finance).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.symbols">
+<code class="descclassname">zipline.api.</code><code class="descname">symbols</code><span class="sig-paren">(</span><em>self</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.symbols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default symbols lookup for any source that directly maps the
+symbol to the Asset (e.g. yahoo finance).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.sid">
+<code class="descclassname">zipline.api.</code><code class="descname">sid</code><span class="sig-paren">(</span><em>self</em>, <em>a_sid</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.sid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default sid lookup for any source that directly maps the integer sid
+to the Asset.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.future_symbol">
+<code class="descclassname">zipline.api.</code><code class="descname">future_symbol</code><span class="sig-paren">(</span><em>self</em>, <em>symbol</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_symbol" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lookup a futures contract with a given symbol.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>symbol</strong> : str</p>
+<blockquote>
+<div><p>The symbol of the desired contract.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Future</p>
+<blockquote>
+<div><p>A Future object.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>SymbolNotFound</strong></p>
+<blockquote class="last">
+<div><p>Raised when no contract named &#8216;symbol&#8217; is found.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.future_chain">
+<code class="descclassname">zipline.api.</code><code class="descname">future_chain</code><span class="sig-paren">(</span><em>self</em>, <em>root_symbol</em>, <em>as_of_date=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look up a future chain with the specified parameters.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>root_symbol</strong> : str</p>
+<blockquote>
+<div><p>The root symbol of a future chain.</p>
+</div></blockquote>
+<p><strong>as_of_date</strong> : datetime.datetime or pandas.Timestamp or str, optional</p>
+<blockquote>
+<div><p>Date at which the chain determination is rooted. I.e. the
+existing contract whose notice date is first after this date is
+the primary contract, etc.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">FutureChain</p>
+<blockquote>
+<div><p>The future chain matching the specified parameters.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>RootSymbolNotFound</strong></p>
+<blockquote class="last">
+<div><p>If a future chain could not be found for the given root symbol.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.order">
+<code class="descclassname">zipline.api.</code><code class="descname">order</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>amount</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place an order using the specified parameters.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.order_value">
+<code class="descclassname">zipline.api.</code><code class="descname">order_value</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>value</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place an order by desired value rather than desired number of shares.
+If the requested sid is found in the universe, the requested value is
+divided by its price to imply the number of shares to transact.
+If the Asset being ordered is a Future, the &#8216;value&#8217; calculated
+is actually the exposure, as Futures have no &#8216;value&#8217;.</p>
+<p>value &gt; 0 :: Buy/Cover
+value &lt; 0 :: Sell/Short
+Market order:    order(sid, value)
+Limit order:     order(sid, value, limit_price)
+Stop order:      order(sid, value, None, stop_price)
+StopLimit order: order(sid, value, limit_price, stop_price)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.get_datetime">
+<code class="descclassname">zipline.api.</code><code class="descname">get_datetime</code><span class="sig-paren">(</span><em>self</em>, <em>tz=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.get_datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the simulation datetime.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.set_symbol_lookup_date">
+<code class="descclassname">zipline.api.</code><code class="descname">set_symbol_lookup_date</code><span class="sig-paren">(</span><em>self</em>, <em>dt</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_symbol_lookup_date" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the date for which symbols will be resolved to their sids
+(symbols may map to different firms or underlying assets at
+different times)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.order_percent">
+<code class="descclassname">zipline.api.</code><code class="descname">order_percent</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>percent</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_percent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place an order in the specified asset corresponding to the given
+percent of the current portfolio value.</p>
+<p>Note that percent must expressed as a decimal (0.50 means 50%).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.order_target">
+<code class="descclassname">zipline.api.</code><code class="descname">order_target</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>target</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place an order to adjust a position to a target number of shares. If
+the position doesn&#8217;t already exist, this is equivalent to placing a new
+order. If the position does exist, this is equivalent to placing an
+order for the difference between the target number of shares and the
+current number of shares.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.order_target_value">
+<code class="descclassname">zipline.api.</code><code class="descname">order_target_value</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>target</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place an order to adjust a position to a target value. If
+the position doesn&#8217;t already exist, this is equivalent to placing a new
+order. If the position does exist, this is equivalent to placing an
+order for the difference between the target value and the
+current value.
+If the Asset being ordered is a Future, the &#8216;target value&#8217; calculated
+is actually the target exposure, as Futures have no &#8216;value&#8217;.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.order_target_percent">
+<code class="descclassname">zipline.api.</code><code class="descname">order_target_percent</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>target</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target_percent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Place an order to adjust a position to a target percent of the
+current portfolio value. If the position doesn&#8217;t already exist, this is
+equivalent to placing a new order. If the position does exist, this is
+equivalent to placing an order for the difference between the target
+percent and the current percent.</p>
+<p>Note that target must expressed as a decimal (0.50 means 50%).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.set_max_leverage">
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_leverage</code><span class="sig-paren">(</span><em>self</em>, <em>max_leverage=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_leverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a limit on the maximum leverage of the algorithm.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.set_max_position_size">
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_position_size</code><span class="sig-paren">(</span><em>self</em>, <em>sid=None</em>, <em>max_shares=None</em>, <em>max_notional=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_position_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a limit on the number of shares and/or dollar value held for the
+given sid. Limits are treated as absolute values and are enforced at
+the time that the algo attempts to place an order for sid. This means
+that it&#8217;s possible to end up with more than the max number of shares
+due to splits/dividends, and more than the max notional due to price
+improvement.</p>
+<p>If an algorithm attempts to place an order that would result in
+increasing the absolute value of shares/dollar value exceeding one of
+these limits, raise a TradingControlException.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.set_max_order_size">
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_order_size</code><span class="sig-paren">(</span><em>self</em>, <em>sid=None</em>, <em>max_shares=None</em>, <em>max_notional=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_order_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a limit on the number of shares and/or dollar value of any single
+order placed for sid.  Limits are treated as absolute values and are
+enforced at the time that the algo attempts to place an order for sid.</p>
+<p>If an algorithm attempts to place an order that would result in
+exceeding one of these limits, raise a TradingControlException.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.set_max_order_count">
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_order_count</code><span class="sig-paren">(</span><em>self</em>, <em>max_count</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_order_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a limit on the number of orders that can be placed within the given
+time interval.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.set_do_not_order_list">
+<code class="descclassname">zipline.api.</code><code class="descname">set_do_not_order_list</code><span class="sig-paren">(</span><em>self</em>, <em>restricted_list</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_do_not_order_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a restriction on which sids can be ordered.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.set_long_only">
+<code class="descclassname">zipline.api.</code><code class="descname">set_long_only</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_long_only" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set a rule specifying that this algorithm cannot take short positions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.attach_pipeline">
+<code class="descclassname">zipline.api.</code><code class="descname">attach_pipeline</code><span class="sig-paren">(</span><em>self</em>, <em>pipeline</em>, <em>name</em>, <em>chunksize=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.attach_pipeline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a pipeline to be computed at the start of each day.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.api.pipeline_output">
+<code class="descclassname">zipline.api.</code><code class="descname">pipeline_output</code><span class="sig-paren">(</span><em>self</em>, <em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.pipeline_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the results of pipeline with name <cite>name</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong> : str</p>
+<blockquote>
+<div><p>Name of the pipeline for which results are requested.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>results</strong> : pd.DataFrame</p>
+<blockquote>
+<div><p>DataFrame containing the results of the requested pipeline for
+the current simulation date.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>NoSuchPipeline</strong></p>
+<blockquote class="last">
+<div><p>Raised when no pipeline with the name <cite>name</cite> has been registered.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.engine.PipelineEngine.run_pipeline()</span></code></p>
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="releases.html" class="btn btn-neutral" title="Release Notes" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Quantopian Inc..
+    </p>
+  </div>
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.8.3',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

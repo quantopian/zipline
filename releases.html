@@ -1,0 +1,990 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Release Notes &mdash; Zipline 0.8.3 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline 0.8.3 documentation" href="index.html"/>
+        <link rel="next" title="Zipline API" href="appendix.html"/>
+        <link rel="prev" title="Zipline beginner tutorial" href="beginner-tutorial.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline beginner tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#highlights">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#documentation">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id7">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">Contributors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="appendix.html">Zipline API</a></li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+    <li>Release Notes</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/releases.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <div class="section" id="release-notes">
+<h1>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="release-0-8-0">
+<h2>Release 0.8.0<a class="headerlink" href="#release-0-8-0" title="Permalink to this headline">¶</a></h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Release:</th><td class="field-body">0.8.0</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Date:</th><td class="field-body">November 6, 2015</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="highlights">
+<h3>Highlights<a class="headerlink" href="#highlights" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>New documentation system with a new website at
+<a class="reference external" href="http://www.zipline.io">zipline.io</a></li>
+<li>Major performance enhancements.</li>
+<li>Dynamic history.</li>
+<li>New user defined method: <code class="docutils literal"><span class="pre">before_trading_start</span></code>.</li>
+<li>New api function: <a class="reference internal" href="appendix.html#zipline.api.schedule_function" title="zipline.api.schedule_function"><code class="xref py py-func docutils literal"><span class="pre">schedule_function()</span></code></a>.</li>
+<li>New api function: <code class="xref py py-func docutils literal"><span class="pre">get_environment()</span></code>.</li>
+<li>New api function: <a class="reference internal" href="appendix.html#zipline.api.set_max_leverage" title="zipline.api.set_max_leverage"><code class="xref py py-func docutils literal"><span class="pre">set_max_leverage()</span></code></a>.</li>
+<li>New api function: <a class="reference internal" href="appendix.html#zipline.api.set_do_not_order_list" title="zipline.api.set_do_not_order_list"><code class="xref py py-func docutils literal"><span class="pre">set_do_not_order_list()</span></code></a>.</li>
+<li>Pipeline API.</li>
+<li>Support for trading futures.</li>
+</ul>
+</div>
+<div class="section" id="enhancements">
+<h3>Enhancements<a class="headerlink" href="#enhancements" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">Account object: Adds an account object to context to track information about
+the trading account.
+Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">context</span><span class="o">.</span><span class="n">account</span><span class="o">.</span><span class="n">settled_cash</span>
+</pre></div>
+</div>
+<p>Returns the settled cash value that is stored on the account object.
+This value is updated accordingly as the algorithm is run (<a class="reference external" href="https://github.com/quantopian/zipline/issues/396">#396</a>).</p>
+</li>
+<li><p class="first"><code class="xref py py-class docutils literal"><span class="pre">HistoryContainer</span></code> can now grow
+dynamically.  Calls to <code class="xref py py-func docutils literal"><span class="pre">history()</span></code> will now be able to increase
+the size or change the shape of the history container to be able to service the
+call. <code class="xref py py-func docutils literal"><span class="pre">add_history()</span></code> now acts as a preformance hint to
+pre-allocate sufficient space in the container. This change is backwards
+compatible with <code class="docutils literal"><span class="pre">history</span></code>, all existing algorithms should continue to work as
+intended (<a class="reference external" href="https://github.com/quantopian/zipline/issues/412">#412</a>).</p>
+</li>
+<li><p class="first">Simple transforms ported from quantopian and use history.
+<code class="xref py py-class docutils literal"><span class="pre">SIDData</span></code> now has methods for:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">stddev</span></code></li>
+<li><code class="docutils literal"><span class="pre">mavg</span></code></li>
+<li><code class="docutils literal"><span class="pre">vwap</span></code></li>
+<li><code class="docutils literal"><span class="pre">returns</span></code></li>
+</ul>
+<p>These methods, except for <code class="docutils literal"><span class="pre">returns</span></code>, accept a number of days. If
+you are running with minute data, then this will calculate the
+number of minutes in those days, accounting for early closes and the
+current time and apply the transform over the set of minutes.
+<code class="docutils literal"><span class="pre">returns</span></code> takes no parameters and will return the daily returns of
+the given asset.
+Example:</p>
+<div class="code python highlight-python"><div class="highlight"><pre><span class="n">data</span><span class="p">[</span><span class="n">security</span><span class="p">]</span><span class="o">.</span><span class="n">stddev</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="https://github.com/quantopian/zipline/issues/429">#429</a>).</p>
+</li>
+<li><p class="first">New fields in Performance Period.
+Performance Period has new fields accessible in return value of
+<code class="docutils literal"><span class="pre">to_dict</span></code>:
+-  gross leverage
+-  net leverage
+-  short exposure
+-  long exposure
+-  shorts count
+-  longs count
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/464">#464</a>).</p>
+</li>
+<li><p class="first">Allow <a class="reference internal" href="appendix.html#zipline.api.order_percent" title="zipline.api.order_percent"><code class="xref py py-func docutils literal"><span class="pre">order_percent()</span></code></a> to work with various market values
+(by Jeremiah Lowin).</p>
+<p>Currently, <a class="reference internal" href="appendix.html#zipline.api.order_percent" title="zipline.api.order_percent"><code class="xref py py-func docutils literal"><span class="pre">order_percent()</span></code></a> and
+<a class="reference internal" href="appendix.html#zipline.api.order_target_percent" title="zipline.api.order_target_percent"><code class="xref py py-func docutils literal"><span class="pre">order_target_percent()</span></code></a> both operate as a percentage of
+<code class="docutils literal"><span class="pre">self.portfolio.portfolio_value</span></code>. This PR lets them operate as percentages
+of other important MVs.
+Also adds <code class="docutils literal"><span class="pre">context.get_market_value()</span></code>, which enables this
+functionality.
+For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># this is how it works today (and this still works)</span>
+<span class="c"># put 50% of my portfolio in AAPL</span>
+<span class="n">order_percent</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="c"># note that if this were a fully invested portfolio, it would become 150% levered.</span>
+
+<span class="c"># take half of my available cash and buy AAPL</span>
+<span class="n">order_percent</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">percent_of</span><span class="o">=</span><span class="s">&#39;cash&#39;</span><span class="p">)</span>
+
+<span class="c"># rebalance my short position, as a percentage of my current short</span>
+<span class="n">book_target_percent</span><span class="p">(</span><span class="s">&#39;MSFT&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">percent_of</span><span class="o">=</span><span class="s">&#39;shorts&#39;</span><span class="p">)</span>
+
+<span class="c"># rebalance within a custom group of stocks</span>
+<span class="n">tech_stocks</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="s">&#39;MSFT&#39;</span><span class="p">,</span> <span class="s">&#39;GOOGL&#39;</span><span class="p">)</span>
+<span class="n">tech_filter</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">sid</span> <span class="ow">in</span> <span class="n">tech_stocks</span>
+<span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">tech_stocks</span><span class="p">:</span>
+    <span class="n">order_target_percent</span><span class="p">(</span><span class="n">stock</span><span class="p">,</span> <span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span> <span class="n">percent_of_fn</span><span class="o">=</span><span class="n">tech_filter</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="https://github.com/quantopian/zipline/issues/477">#477</a>).</p>
+</li>
+<li><p class="first">Command line option to for printing algo to stdout (by Andrea D&#8217;Amore)
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/545">#545</a>).</p>
+</li>
+<li><p class="first">New user defined function <code class="docutils literal"><span class="pre">before_trading_start</span></code>. This function can be
+overridden by the user to be called once before the market opens every
+day (<a class="reference external" href="https://github.com/quantopian/zipline/issues/389">#389</a>).</p>
+</li>
+<li><p class="first">New api function <a class="reference internal" href="appendix.html#zipline.api.schedule_function" title="zipline.api.schedule_function"><code class="xref py py-func docutils literal"><span class="pre">schedule_function()</span></code></a>. This function allows
+the user to schedule a function to be called based on more complicated rules
+about the date and time. For example, call the function 15 minutes before
+market close respecting early closes (<a class="reference external" href="https://github.com/quantopian/zipline/issues/411">#411</a>).</p>
+</li>
+<li><p class="first">New api function <code class="xref py py-func docutils literal"><span class="pre">set_do_not_order_list()</span></code>. This function accepts a list
+of assets and adds a trading guard that prevents the algorithm from
+trading them. Adds a list point in time list of leveraged ETFs that people may
+want to mark as &#8216;do not trade&#8217; (<a class="reference external" href="https://github.com/quantopian/zipline/issues/478">#478</a>).</p>
+</li>
+<li><p class="first">Adds a class for representing securities. <a class="reference internal" href="appendix.html#zipline.api.order" title="zipline.api.order"><code class="xref py py-func docutils literal"><span class="pre">order()</span></code></a> and other
+order functions now require an instance of <code class="docutils literal"><span class="pre">Security</span></code>
+instead of an int or string (<a class="reference external" href="https://github.com/quantopian/zipline/issues/520">#520</a>).</p>
+</li>
+<li><p class="first">Generalize the <code class="docutils literal"><span class="pre">Security</span></code> class to <code class="xref py py-class docutils literal"><span class="pre">Asset</span></code>. This is
+in preperation of adding support for other asset types (<a class="reference external" href="https://github.com/quantopian/zipline/issues/535">#535</a>).</p>
+</li>
+<li><p class="first">New api function <code class="xref py py-func docutils literal"><span class="pre">get_environment()</span></code>. This function by
+default returns the string <code class="docutils literal"><span class="pre">'zipline'</span></code>. This is used so that algorithms can
+have different behavior on Quantopian and local zipline (<a class="reference external" href="https://github.com/quantopian/zipline/issues/384">#384</a>).</p>
+</li>
+<li><p class="first">Extends <code class="xref py py-func docutils literal"><span class="pre">get_environment()</span></code> to expose more of the environment
+to the algorithm. The function now accepts an argument that is the field to
+return. By default, this is <code class="docutils literal"><span class="pre">'platform'</span></code> which returns the old value of
+<code class="docutils literal"><span class="pre">'zipline'</span></code> but the following new fields can be requested:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">''arena'</span></code>: Is this live trading or backtesting?</li>
+<li><code class="docutils literal"><span class="pre">'data_frequency'</span></code>: Is this minute mode or daily mode?</li>
+<li><code class="docutils literal"><span class="pre">'start'</span></code>: Simulation start date.</li>
+<li><code class="docutils literal"><span class="pre">'end'</span></code>: Simulation end date.</li>
+<li><code class="docutils literal"><span class="pre">'capital_base'</span></code>: The starting capital for the simulation.</li>
+<li><code class="docutils literal"><span class="pre">'platform'</span></code>: The platform that the algorithm is running on.</li>
+<li><code class="docutils literal"><span class="pre">'*'</span></code>: A dictionary containing all of these fields.</li>
+</ul>
+<p>(<a class="reference external" href="https://github.com/quantopian/zipline/issues/449">#449</a>).</p>
+</li>
+<li><p class="first">New api function <code class="xref py py-func docutils literal"><span class="pre">set_max_leveraged()</span></code>. This method adds a
+trading guard that prevents your algorithm from over leveraging itself
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/552">#552</a>).</p>
+</li>
+</ul>
+</div>
+<div class="section" id="experimental-features">
+<h3>Experimental Features<a class="headerlink" href="#experimental-features" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Experimental features are subject to change.</p>
+</div>
+<ul class="simple">
+<li>Adds new Pipeline API. The pipeline API is a high-level declarative API for
+representing trailing window computations on large datasets (<a class="reference external" href="https://github.com/quantopian/zipline/issues/630">#630</a>).</li>
+<li>Adds support for futures trading (<a class="reference external" href="https://github.com/quantopian/zipline/issues/637">#637</a>).</li>
+<li>Adds Pipeline loader for blaze expressions. This allows users to pull data
+from any format blaze understands and use it in the Pipeline
+API. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/775">#775</a>).</li>
+</ul>
+</div>
+<div class="section" id="bug-fixes">
+<h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Fix a bug where the reported returns could sharply dip for random periods of
+time (<a class="reference external" href="https://github.com/quantopian/zipline/issues/378">#378</a>).</li>
+<li>Fix a bug that prevented debuggers from resolving the algorithm file
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/431">#431</a>).</li>
+<li>Properly forward arguments to user defined <code class="docutils literal"><span class="pre">initialize</span></code> function
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/687">#687</a>).</li>
+<li>Fix a bug that would cause treasury data to be redownloaded every backtest
+between midnight EST and the time when the treasury data was available
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/793">#793</a>).</li>
+<li>Fix a bug that would cause the user defined <code class="docutils literal"><span class="pre">analyze</span></code> function to not be
+called if it was passed as a keyword argument to
+<code class="xref py py-class docutils literal"><span class="pre">TradingAlgorithm</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/819">#819</a>).</li>
+</ul>
+</div>
+<div class="section" id="performance">
+<h3>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Major performance enhancements to history (by Dale Jung) (<a class="reference external" href="https://github.com/quantopian/zipline/issues/488">#488</a>).</li>
+</ul>
+</div>
+<div class="section" id="maintenance-and-refactorings">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#maintenance-and-refactorings" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Remove simple transform code. These are available as methods of
+<code class="xref py py-class docutils literal"><span class="pre">SIDData</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/550">#550</a>).</li>
+</ul>
+</div>
+<div class="section" id="build">
+<h3>Build<a class="headerlink" href="#build" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Switched to sphinx for the documentation (<a class="reference external" href="https://github.com/quantopian/zipline/issues/816">#816</a>).</li>
+</ul>
+</div>
+</div>
+<div class="section" id="release-0-7-0">
+<h2>Release 0.7.0<a class="headerlink" href="#release-0-7-0" title="Permalink to this headline">¶</a></h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Release:</th><td class="field-body">0.7.0</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Date:</th><td class="field-body">July 25, 2014</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id1">
+<h3>Highlights<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Command line interface to run algorithms directly.</li>
+<li>IPython Magic <code class="docutils literal"><span class="pre">%%zipline</span></code> that runs algorithm defined in an IPython
+notebook cell.</li>
+<li>API methods for building safeguards against runaway ordering and
+undesired short positions.</li>
+<li>New history() function to get a moving DataFrame of past market data
+(replaces BatchTransform).</li>
+<li>A new <a class="reference external" href="http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb">beginner
+tutorial</a>.</li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>Enhancements<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">CLI: Adds a CLI and IPython magic for zipline.
+Example:</p>
+<div class="highlight-python"><div class="highlight"><pre>python run_algo.py -f dual_moving_avg.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+</pre></div>
+</div>
+<p>Grabs the data from yahoo finance, runs the file
+dual_moving_avg.py (and looks for <code class="docutils literal"><span class="pre">dual_moving_avg_analyze.py</span></code>
+which, if found, will be executed after the algorithm has been run),
+and outputs the perf <code class="docutils literal"><span class="pre">DataFrame</span></code> to <code class="docutils literal"><span class="pre">dma.pickle</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/325">#325</a>).</p>
+</li>
+</ul>
+<ul>
+<li><p class="first">IPython magic command (at the top of an IPython notebook cell).
+Example:</p>
+<div class="highlight-python"><div class="highlight"><pre>%%zipline --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o perf
+</pre></div>
+</div>
+<p>Does the same as above except instead of executing the file looks
+for the algorithm in the cell and instead of outputting the perf df
+to a file, creates a variable in the namespace called perf (<a class="reference external" href="https://github.com/quantopian/zipline/issues/325">#325</a>).</p>
+</li>
+</ul>
+<ul>
+<li><p class="first">Adds Trading Controls to the algorithm API.</p>
+<p>The following functions are now available on <code class="docutils literal"><span class="pre">TradingAlgorithm</span></code>
+and for algo scripts:</p>
+<p><code class="docutils literal"><span class="pre">set_max_order_size(self,</span> <span class="pre">sid=None,</span> <span class="pre">max_shares=None,</span> <span class="pre">max_notional=None)</span></code>
+Set a limit on the absolute magnitude, in shares and/or total
+dollar value, of any single order placed by this algorithm for a
+given sid. If <code class="docutils literal"><span class="pre">sid</span></code> is None, then the rule is applied to any order
+placed by the algorithm.
+Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c"># Algorithm will raise an exception if we attempt to place an</span>
+    <span class="c"># order which would cause us to hold more than 10 shares</span>
+    <span class="c"># or 1000 dollars worth of sid(24).</span>
+    <span class="n">set_max_order_size</span><span class="p">(</span><span class="n">sid</span><span class="p">(</span><span class="mi">24</span><span class="p">),</span> <span class="n">max_shares</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_notional</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">set_max_position_size(self,</span> <span class="pre">sid=None,</span> <span class="pre">max_shares=None,</span> <span class="pre">max_notional=None)</span></code>
+-Set a limit on the absolute magnitude, in either shares or
+dollar value, of any position held by the algorithm for a given
+sid. If <code class="docutils literal"><span class="pre">sid</span></code> is None, then the rule is applied to any position
+held by the algorithm.
+Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c"># Algorithm will raise an exception if we attempt to order more than</span>
+    <span class="c"># 10 shares or 1000 dollars worth of sid(24) in a single order.</span>
+    <span class="n">set_max_order_size</span><span class="p">(</span><span class="n">sid</span><span class="p">(</span><span class="mi">24</span><span class="p">),</span> <span class="n">max_shares</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_notional</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">)</span>
+
+<span class="sb">``</span><span class="n">set_max_order_count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_count</span><span class="p">)</span><span class="sb">``</span>
+<span class="n">Set</span> <span class="n">a</span> <span class="n">limit</span> <span class="n">on</span> <span class="n">the</span> <span class="n">number</span> <span class="n">of</span> <span class="n">orders</span> <span class="n">that</span> <span class="n">can</span> <span class="n">be</span> <span class="n">placed</span> <span class="n">by</span> <span class="n">the</span> <span class="n">algorithm</span> <span class="ow">in</span>
+<span class="n">a</span> <span class="n">single</span> <span class="n">trading</span> <span class="n">day</span><span class="o">.</span>
+<span class="n">Example</span><span class="p">:</span>
+</pre></div>
+</div>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c"># Algorithm will raise an exception if more than 50 orders are placed in a day.</span>
+    <span class="n">set_max_order_count</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">set_long_only(self)</span></code>
+Set a rule specifying that the
+algorithm may not hold short positions.
+Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c"># Algorithm will raise an exception if it attempts to place</span>
+    <span class="c"># an order that would cause it to hold a short position.</span>
+    <span class="n">set_long_only</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference external" href="https://github.com/quantopian/zipline/issues/329">#329</a>).</p>
+</li>
+<li><p class="first">Adds an <code class="docutils literal"><span class="pre">all_api_methods</span></code> classmethod on <code class="docutils literal"><span class="pre">TradingAlgorithm</span></code> that
+returns a list of all <code class="docutils literal"><span class="pre">TradingAlgorithm</span></code> API methods (<a class="reference external" href="https://github.com/quantopian/zipline/issues/333">#333</a>).</p>
+</li>
+<li><p class="first">Expanded record() functionality for dynamic naming.
+The record() function can now take positional args before the
+kwargs. All original usage and functionality is the same, but now
+these extra usages will work:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;Dynamically_Generated_String&#39;</span>
+<span class="n">record</span><span class="p">(</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">...</span> <span class="p">)</span>
+<span class="n">record</span><span class="p">(</span> <span class="n">name</span><span class="p">,</span> <span class="n">value1</span><span class="p">,</span> <span class="s">&#39;name2&#39;</span><span class="p">,</span> <span class="n">value2</span><span class="p">,</span> <span class="n">name3</span><span class="o">=</span><span class="n">value3</span><span class="p">,</span> <span class="n">name4</span><span class="o">=</span><span class="n">value4</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p>The requirements are simply that the poritional args occur only
+before the kwargs (<a class="reference external" href="https://github.com/quantopian/zipline/issues/355">#355</a>).</p>
+</li>
+<li><p class="first">history() has been ported from Quantopian to Zipline and provides
+moving window of market data.
+history() replaces BatchTransform. It is faster, works for minute level data
+and has a superior interface. To use it, call <code class="docutils literal"><span class="pre">add_history()</span></code> inside of
+<code class="docutils literal"><span class="pre">initialize()</span></code> and then receive a pandas <code class="docutils literal"><span class="pre">DataFrame</span></code> by calling history()
+from inside <code class="docutils literal"><span class="pre">handle_data()</span></code>. Check out the <a class="reference external" href="http://nbviewer.ipython.org/github/quantopian/zipline/blob/master/docs/tutorial.ipynb">tutorial</a>
+and an <a class="reference external" href="https://github.com/quantopian/zipline/blob/master/zipline/examples/dual_moving_average.py">example</a>.
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/345">#345</a> and <a class="reference external" href="https://github.com/quantopian/zipline/issues/357">#357</a>).</p>
+</li>
+<li><p class="first">history() now supports <code class="docutils literal"><span class="pre">1m</span></code> window lengths (<a class="reference external" href="https://github.com/quantopian/zipline/issues/345">#345</a>).</p>
+</li>
+</ul>
+</div>
+<div class="section" id="id3">
+<h3>Bug Fixes<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Fix alignment of trading days and open and closes in trading
+environment (<a class="reference external" href="https://github.com/quantopian/zipline/issues/331">#331</a>).</li>
+<li>RollingPanel fix when adding/dropping new fields (<a class="reference external" href="https://github.com/quantopian/zipline/issues/349">#349</a>).</li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h3>Performance<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+</div>
+<div class="section" id="id5">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Removed undocumented and untested HDF5 and CSV data sources (<a class="reference external" href="https://github.com/quantopian/zipline/issues/267">#267</a>).</li>
+<li>Refactor sim_params (<a class="reference external" href="https://github.com/quantopian/zipline/issues/352">#352</a>).</li>
+<li>Refactoring of history (<a class="reference external" href="https://github.com/quantopian/zipline/issues/340">#340</a>).</li>
+</ul>
+</div>
+<div class="section" id="id6">
+<h3>Build<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">The following dependencies have been updated (zipline might work with
+other versions too):</p>
+<div class="highlight-diff"><div class="highlight"><pre><span class="gd">-pytz==2013.9</span>
+<span class="gi">+pytz==2014.4</span>
+<span class="gi">+numpy==1.8.1</span>
+<span class="gd">-numpy==1.8.0</span>
+<span class="gi">+scipy==0.12.0</span>
+<span class="gi">+patsy==0.2.1</span>
+<span class="gi">+statsmodels==0.5.0</span>
+<span class="gd">-six==1.5.2</span>
+<span class="gi">+six==1.6.1</span>
+<span class="gd">-Cython==0.20</span>
+<span class="gi">+Cython==0.20.1</span>
+<span class="gd">-TA-Lib==0.4.8</span>
+<span class="gi">+--allow-external TA-Lib --allow-unverified TA-Lib TA-Lib==0.4.8</span>
+<span class="gd">-requests==2.2.0</span>
+<span class="gi">+requests==2.3.0</span>
+<span class="gd">-nose==1.3.0</span>
+<span class="gi">+nose==1.3.3</span>
+<span class="gd">-xlrd==0.9.2</span>
+<span class="gi">+xlrd==0.9.3</span>
+<span class="gd">-pep8==1.4.6</span>
+<span class="gi">+pep8==1.5.7</span>
+<span class="gd">-pyflakes==0.7.3</span>
+<span class="gd">-pip-tools==0.3.4</span>
+<span class="gi">+pyflakes==0.8.1`</span>
+<span class="gd">-scipy==0.13.2</span>
+<span class="gd">-tornado==3.2</span>
+<span class="gd">-pyparsing==2.0.1</span>
+<span class="gd">-patsy==0.2.1</span>
+<span class="gd">-statsmodels==0.4.3</span>
+<span class="gi">+tornado==3.2.1</span>
+<span class="gi">+pyparsing==2.0.2</span>
+<span class="gd">-Markdown==2.3.1</span>
+<span class="gi">+Markdown==2.4.1</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="contributors">
+<h3>Contributors<a class="headerlink" href="#contributors" title="Permalink to this headline">¶</a></h3>
+<p>The following people have contributed to this release, ordered by
+numbers of commit:</p>
+<div class="highlight-python"><div class="highlight"><pre>38  Scott Sanderson
+29  Thomas Wiecki
+26  Eddie Hebert
+ 6  Delaney Granizo-Mackenzie
+ 3  David Edwards
+ 3  Richard Frank
+ 2  Jonathan Kamens
+ 1  Pankaj Garg
+ 1  Tony Lambiris
+ 1  fawce
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="release-0-6-1">
+<h2>Release 0.6.1<a class="headerlink" href="#release-0-6-1" title="Permalink to this headline">¶</a></h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Release:</th><td class="field-body">0.6.1</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Date:</th><td class="field-body">April 23, 2014</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id7">
+<h3>Highlights<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Major fixes to risk calculations, see Bug Fixes section.</li>
+<li>Port of <code class="docutils literal"><span class="pre">history()</span></code> function, see Enhancements section</li>
+<li>Start of support for Quantopian algorithm script-syntax, see ENH
+section.</li>
+<li>conda package manager support, see Build section.</li>
+</ul>
+</div>
+<div class="section" id="id8">
+<h3>Enhancements<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">Always process new orders
+i.e. on bars where <code class="docutils literal"><span class="pre">handle_data</span></code> isn&#8217;t called, but there is &#8216;clock&#8217;
+data e.g. a consistent benchmark, process orders.</p>
+</li>
+<li><p class="first">Empty positions are now filtered from the portfolio container.
+To help prevent algorithms from operating on positions that are not in
+the existing universe of stocks.
+Formerly, iterating over positions would return positions for stocks
+which had zero shares held. (Where an explicit check in algorithm code
+for <code class="docutils literal"><span class="pre">pos.amount</span> <span class="pre">!=</span> <span class="pre">0</span></code> could prevent from using a non-existent
+position.)</p>
+</li>
+<li><p class="first">Add trading calendar for BMF&amp;Bovespa.</p>
+</li>
+<li><p class="first">Add beginning of algo script support.</p>
+</li>
+<li><p class="first">Starts on the path of parity with the script syntax in Quantopian&#8217;s IDE
+on <a class="reference external" href="https://quantopian.com">https://quantopian.com</a>
+Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="kn">import</span> <span class="nn">pytz</span>
+<span class="kn">from</span> <span class="nn">zipline</span> <span class="kn">import</span> <span class="n">TradingAlgorithm</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">load_from_yahoo</span>
+
+<span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order</span>
+
+<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">test</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="k">def</span> <span class="nf">handle_date</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">order</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">test</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pylab</span> <span class="kn">as</span> <span class="nn">pl</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2008</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2010</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">load_from_yahoo</span><span class="p">(</span>
+        <span class="n">stocks</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;AAPL&#39;</span><span class="p">],</span>
+        <span class="n">indexes</span><span class="o">=</span><span class="p">{},</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+    <span class="n">algo</span> <span class="o">=</span> <span class="n">TradingAlgorithm</span><span class="p">(</span>
+        <span class="n">initialize</span><span class="o">=</span><span class="n">initialize</span><span class="p">,</span>
+        <span class="n">handle_data</span><span class="o">=</span><span class="n">handle_date</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">algo</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">results</span><span class="o">.</span><span class="n">portfolio_value</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+    <span class="n">pl</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Add HDF5 and CSV sources.</p>
+</li>
+<li><p class="first">Limit <code class="docutils literal"><span class="pre">handle_data</span></code> to times with market data.
+To prevent cases where custom data types had unaligned timestamps, only
+call <code class="docutils literal"><span class="pre">handle_data</span></code> when market data passes through.
+Custom data that comes before market data will still update the data
+bar. But the handling of that data will only be done when there is
+actionable market data.</p>
+</li>
+<li><p class="first">Extended commission PerShare method to allow a minimum cost per trade.</p>
+</li>
+<li><p class="first">Add symbol api function
+A <code class="docutils literal"><span class="pre">symbol()</span></code> lookup feature was added to Quantopian. By adding the
+same API function to zipline we can make copy&amp;pasting of a Zipline algo
+to Quantopian easier.</p>
+</li>
+<li><p class="first">Add simulated random trade source.
+Added a new data source that emits events with certain user-specified
+frequency (minute or daily).
+This allows users to backtest and debug an algorithm in minute mode to
+provide a cleaner path towards Quantopian.</p>
+</li>
+<li><p class="first">Remove dependency on benchmark for trading day calendar.
+Instead of the benchmarks&#8217; index, the trading calendar is now used to
+populate the environment&#8217;s trading days.
+Remove <code class="docutils literal"><span class="pre">extra_date</span></code> field, since unlike the benchmarks list, the
+trading calendar can generate future dates, so dates for current day
+trading do not need to be appended.
+Motivations:</p>
+<ul class="simple">
+<li>The source for the open and close/early close calendar and the
+trading day calendar is now the same, which should help prevent
+potential issues due to misalignment.</li>
+<li>Allows configurations where the benchmark is provided as a generator
+based data source to need to supply a second benchmark list just to
+populate dates.</li>
+</ul>
+</li>
+<li><p class="first">Port <code class="docutils literal"><span class="pre">history()</span></code> API method from Quantopian.
+Opens the core of the <code class="docutils literal"><span class="pre">history()</span></code> function that was previously only
+available on the Quantopian platform.</p>
+<p>The history method is analoguous to the <code class="docutils literal"><span class="pre">batch_transform</span></code>
+function/decorator, but with a hopefully more precise specification of
+the frequency and period of the previous bar data that is captured.
+Example usage:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">history</span><span class="p">,</span> <span class="n">add_history</span>
+
+<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="n">add_history</span><span class="p">(</span><span class="n">bar_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s">&#39;price&#39;</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">prices</span> <span class="o">=</span> <span class="n">history</span><span class="p">(</span><span class="n">bar_count</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">frequency</span><span class="o">=</span><span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s">&#39;price&#39;</span><span class="p">)</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">last_prices</span> <span class="o">=</span> <span class="n">prices</span>
+</pre></div>
+</div>
+<p>N.B. this version of history lacks the backfilling capability that
+allows the return a full DataFrame on the first bar.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="id9">
+<h3>Bug Fixes<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">Adjust benchmark events to match market hours (:issue:<a href="#id10"><span class="problematic" id="id11">`</span></a>241).
+Previously benchmark events were emitted at 0:00 on the day the
+benchmark related to: in &#8216;minute&#8217; emission mode this meant that the
+benchmarks were emitted before any intra-day trades were processed.</p>
+</li>
+<li><p class="first">Ensure perf stats are generated for all days
+When running with minutely emissions the simulator would report to the
+user that it simulated &#8216;n - 1&#8217; days (where n is the number of days
+specified in the simulation params). Now the correct number of trading
+days are reported as being simulated.</p>
+</li>
+<li><p class="first">Fix repr for cumulative risk metrics.
+The <code class="docutils literal"><span class="pre">__repr__</span></code> for RiskMetricsCumulative was referring to an older
+structure of the class, causing an exception when printed.
+Also, now prints the last values in the metrics DataFrame.</p>
+</li>
+<li><p class="first">Prevent minute emission from crashing at end of available data.
+The next day calculation was causing an error when a minute emission
+algorithm reached the end of available data.
+Instead of a generic exception when available data is reached, raise and
+catch a named exception so that the tradesimulation loop can skip over,
+since the next market close is not needed at the end.</p>
+</li>
+<li><p class="first">Fix pandas indexing in trading calendar. This could alternatively be filed
+under Performance. Index using loc instead of the inefficient index-ing of
+day, then time.</p>
+</li>
+<li><p class="first">Prevent crash in vwap transform due to non-existent member.
+The WrongDataForTransform was referencing a <code class="docutils literal"><span class="pre">self.fields</span></code> member,
+which did not exist.
+Add a self.fields member set to <code class="docutils literal"><span class="pre">price</span></code> and <code class="docutils literal"><span class="pre">volume</span></code> and use it to
+iterate over during the check.</p>
+</li>
+<li><p class="first">Fix max drawdown calculation.
+The input into max drawdown was incorrect, causing the bad results. i.e.
+the <code class="docutils literal"><span class="pre">compounded_log_returns</span></code> were not values representative of the
+algorithms total return at a given time, though
+<code class="docutils literal"><span class="pre">calculate_max_drawdown</span></code> was treating the values as if they were.
+Instead, the <code class="docutils literal"><span class="pre">algorithm_period_returns</span></code> series is now used, which does
+provide the total return.</p>
+</li>
+<li><p class="first">Fix cost basis calculation.
+Cost basis calculation now takes direction of txn into account.
+Closing a long position or covering a short shouldn&#8217;t affect the cost
+basis.</p>
+</li>
+<li><p class="first">Fix floating point error in <code class="docutils literal"><span class="pre">order()</span></code>.
+Where order amounts that were near an integer could accidentally be
+floored or ceilinged (depending on being postive or negative) to the
+wrong integer.
+e.g. an amount stored internally as -27.99999 was converted to -27
+instead of -28.</p>
+</li>
+<li><p class="first">Update perf period state when positions are changed by splits.
+Otherwise, <code class="docutils literal"><span class="pre">self._position_amounts</span></code> will be out of sync with
+position.amount, etc.</p>
+</li>
+<li><p class="first">Fix misalignment of downside series calc when using exact dates.
+An oddity that was exposed while working on making the return series
+passed to the risk module more exact, the series comparison between the
+returns and mean returns was unbalanced, because the mean returns were
+not masked down to the downside data points; however, in most, if not
+all cases this was papered over by the call to <code class="docutils literal"><span class="pre">.valid()</span></code> which was
+removed in this change set.</p>
+</li>
+<li><p class="first">Check that self.logger exists before using it.
+<code class="docutils literal"><span class="pre">self.logger</span></code> is initialized as <code class="docutils literal"><span class="pre">None</span></code> and there is no guarantee
+that users have set it, so check that it exists before trying to pass
+messages to it.</p>
+</li>
+<li><p class="first">Prevent out of sync market closes in performance tracker.
+In situations where the performance tracker has been reset or patched to
+handle state juggling with warming up live data, the <code class="docutils literal"><span class="pre">market_close</span></code>
+member of the performance tracker could end up out of sync with the
+current algo time as determined by the performance tracker.
+The symptom was dividends never triggering, because the end of day
+checks would not match the current time.
+Fix by having the tradesimulation loop be responsible, in minute/minute
+mode, for advancing the market close and passing that value to the
+performance tracker, instead of having the market close advanced by the
+performance tracker as well.</p>
+</li>
+<li><p class="first">Fix numerous cumulative and period risk calculations.
+The calculations that are expected to change are:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">cumulative.beta</span></code></li>
+<li><code class="docutils literal"><span class="pre">cumulative.alpha</span></code></li>
+<li><code class="docutils literal"><span class="pre">cumulative.information</span></code></li>
+<li><code class="docutils literal"><span class="pre">cumulative.sharpe</span></code></li>
+<li><code class="docutils literal"><span class="pre">period.sortino</span></code></li>
+</ul>
+<p>How Risk Calculations Are Changing
+Risk Fixes for Both Period and Cumulative</p>
+<p>Downside Risk</p>
+<p>Use sample instead of population for standard deviation.</p>
+<p>Add a rounding factor, so that if the two values are close for a given
+dt, that they do not count as a downside value, which would throw off
+the denominator of the standard deviation of the downside diffs.</p>
+<p>Standard Deviation Type</p>
+<p>Across the board the standard deviation has been standardized to using a
+&#8216;sample&#8217; calculation, whereas before cumulative risk was mostly using
+&#8216;population&#8217;. Using <code class="docutils literal"><span class="pre">ddof=1</span></code> with <code class="docutils literal"><span class="pre">np.std</span></code> calculates as if the
+values are a sample.</p>
+<p>Cumulative Risk Fixes</p>
+<p>Beta</p>
+<p>Use the daily algorithm returns and benchmarks instead of annualized
+mean returns.</p>
+<p>Volatility</p>
+<p>Use sample instead of population with standard deviation.</p>
+<p>The volatility is an input to other calculations so this change affects
+Sharpe and Information ratio calculations.</p>
+<p>Information Ratio</p>
+<p>The benchmark returns input is changed from annualized benchmark returns
+to the annualized mean returns.</p>
+<p>Alpha</p>
+<p>The benchmark returns input is changed from annualized benchmark returns
+to the annualized mean returns.</p>
+<p>Period Risk Fixes</p>
+<p>Sortino</p>
+<p>Now uses the downside risk of the daily return vs. the mean algorithm
+returns for the minimum acceptable return instead of the treasury
+return.</p>
+<p>The above required adding the calculation of the mean algorithm returns
+for period risk.</p>
+<p>Also, uses <code class="docutils literal"><span class="pre">algorithm_period_returns</span></code> and <code class="docutils literal"><span class="pre">tresaury_period_return</span></code>
+as the cumulative Sortino does, instead of using algorithm returns for
+both inputs into the Sortino calculation.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="id12">
+<h3>Performance<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Removed <code class="docutils literal"><span class="pre">alias_dt</span></code> transform in favor of property on SIDData.
+Adding a copy of the Event&#8217;s dt field as datetime via the <code class="docutils literal"><span class="pre">alias_dt</span></code>
+generator, so that the API was forgiving and allowed both datetime and
+dt on a SIDData object, was creating noticeable overhead, even on an
+noop algorithms.
+Instead of incurring the cost of copying the datetime value and
+assigning it to the Event object on every event that is passed through
+the system, add a property to SIDData which acts as an alias
+<code class="docutils literal"><span class="pre">datetime</span></code> to <code class="docutils literal"><span class="pre">dt</span></code>.
+Eventually support for <code class="docutils literal"><span class="pre">data['foo'].datetime</span></code> may be removed, and
+could be considered deprecated.</li>
+<li>Remove the drop of &#8216;null return&#8217; from cumulative returns.
+The check of existence of the null return key, and the drop of said
+return on every single bar was adding unneeded CPU time when an
+algorithm was run with minute emissions.
+Instead, add the 0.0 return with an index of the trading day before the
+start date.
+The removal of the <code class="docutils literal"><span class="pre">null</span> <span class="pre">return</span></code> was mainly in place so that the
+period calculation was not crashing on a non-date index value; with the
+index as a date, the period return can also approximate volatility (even
+though the that volatility has high noise-to-signal strength because it
+uses only two values as an input.)</li>
+</ul>
+</div>
+<div class="section" id="id13">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">Allow <code class="docutils literal"><span class="pre">sim_params</span></code> to provide data frequency for the algorithm.
+In the case that <code class="docutils literal"><span class="pre">data_frequency</span></code> of the algorithm is None, allow the
+<code class="docutils literal"><span class="pre">sim_params</span></code> to provide the <code class="docutils literal"><span class="pre">data_frequency</span></code>.</p>
+<p>Also, defer to the algorithms data frequency, if provided.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="id14">
+<h3>Build<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p class="first">Added support for building and releasing via conda
+For those who prefer building with <a class="reference external" href="http://conda.pydata.org/">http://conda.pydata.org/</a> to compiling
+locally with pip.
+The following should install Zipline on many systems.</p>
+<div class="highlight-python"><div class="highlight"><pre>conda install -c quantopian zipline
+</pre></div>
+</div>
+</li>
+</ul>
+</div>
+<div class="section" id="id15">
+<h3>Contributors<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h3>
+<p>The following people have contributed to this release, ordered by
+numbers of commit:</p>
+<div class="highlight-python"><div class="highlight"><pre>49  Eddie Hebert
+28  Thomas Wiecki
+11  Richard Frank
+ 2  Jamie Kirkpatrick
+ 2  Jeremiah Lowin
+ 1  Colin Alexander
+ 1  Michael Schatzow
+ 1  Moises Trovo
+ 1  Suminda Dharmasena
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="appendix.html" class="btn btn-neutral float-right" title="Zipline API" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="beginner-tutorial.html" class="btn btn-neutral" title="Zipline beginner tutorial" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Quantopian Inc..
+    </p>
+  </div>
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.8.3',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
