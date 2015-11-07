@@ -1,11 +1,11 @@
 package:
   name: zipline
-  version: 0.8.0rc1
+  version: 0.8.3
 
 source:
-  fn: zipline-0.8.0rc1.tar.gz
-  url: https://pypi.python.org/packages/source/z/zipline/zipline-0.8.0rc1.tar.gz
-  md5: f23bdd0a8671b3b297072391fc817097
+  fn: zipline-0.8.3.tar.gz
+  url: https://pypi.python.org/packages/source/z/zipline/zipline-0.8.3.tar.gz
+  md5: 042ffcee614d2279add9a1bfd27a33cf
 
 requirements:
   build:
@@ -28,7 +28,7 @@ test:
     - zipline
 
 about:
-  home: https://github.com/quantopian/zipline
+  home: https://zipline.io
   license: Apache Software License
 
 # See
