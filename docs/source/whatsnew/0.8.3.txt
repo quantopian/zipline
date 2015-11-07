@@ -1,0 +1,11 @@
+Release 0.8.3
+-------------
+
+:Release: 0.8.3
+:Date: November 6, 2015
+
+
+.. note::
+
+   We advanced the version to ``0.8.3`` to fix a source distribution issue with
+   pypi. There are no code changes in this version.
