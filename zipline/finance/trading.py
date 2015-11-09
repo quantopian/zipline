@@ -281,8 +281,11 @@ class TradingEnvironment(object):
         return self.trading_days[idx]
 
     def days_in_range(self, start, end):
-        mask = ((self.trading_days >= start) &
-                (self.trading_days <= end))
+        start_date = self.normalize_date(start)
+        end_date = self.normalize_date(end)
+
+        mask = ((self.trading_days >= start_date) &
+                (self.trading_days <= end_date))
         return self.trading_days[mask]
 
     def opens_in_range(self, start, end):
