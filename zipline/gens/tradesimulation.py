@@ -24,6 +24,7 @@ from zipline.gens.sim_engine import (
     CALC_MINUTE_PERFORMANCE
 )
 
+
 log = Logger('Trade Simulation')
 
 
@@ -158,11 +159,11 @@ class AlgorithmSimulator(object):
                     once_a_day(dt)
                 elif action == CALC_DAILY_PERFORMANCE:
                     algo.perf_tracker.all_benchmark_returns[dt] = \
-                        self.benchmark_source.get_daily_value(dt)
+                        self.benchmark_source.get_value(dt)
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == CALC_MINUTE_PERFORMANCE:
                     algo.perf_tracker.all_benchmark_returns[dt] = \
-                        self.benchmark_source.get_minute_value(dt)
+                        self.benchmark_source.get_value(dt)
                     minute_msg, daily_msg = \
                         self._get_minute_message(dt, algo, algo.perf_tracker)
 

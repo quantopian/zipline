@@ -97,8 +97,8 @@ from zipline.sources.requests_csv import PandasRequestsCSV
 
 from zipline.gens.sim_engine import (
     MinuteSimulationClock,
-    DailySimulationClock
-)
+    DailySimulationClock,
+    MinuteEmissionClock)
 from zipline.sources.benchmark_source import BenchmarkSource
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
@@ -390,11 +390,21 @@ class TradingAlgorithm(object):
                     'datetime64[ns]').astype(np.int64)
                 market_closes = trading_o_and_c['market_close'].values.astype(
                     'datetime64[ns]').astype(np.int64)
-                self.clock = MinuteSimulationClock(
-                    self.sim_params.trading_days,
-                    market_opens,
-                    market_closes,
-                    self.data_portal)
+                if self.sim_params.emission_rate == "daily":
+                    self.clock = MinuteSimulationClock(
+                        self.sim_params.trading_days,
+                        market_opens,
+                        market_closes,
+                        self.data_portal
+                    )
+                else:
+                    self.clock = MinuteEmissionClock(
+                        self.sim_params.trading_days,
+                        market_opens,
+                        market_closes,
+                        self.data_portal
+                    )
+
             elif self.sim_params.data_frequency == 'daily':
                 self.clock = DailySimulationClock(self.sim_params.trading_days)
 
@@ -403,10 +413,11 @@ class TradingAlgorithm(object):
             self.benchmark_sid,
             self.trading_environment,
             self.sim_params.trading_days,
-            self.data_portal
+            self.data_portal,
+            emission_rate=self.sim_params.emission_rate,
         )
 
-    def _create_generator(self, sim_params, source_filter=None):
+    def _create_generator(self, sim_params):
         """
         Create a basic generator setup using the sources to this algorithm.
 
@@ -424,7 +435,7 @@ class TradingAlgorithm(object):
                 sim_params=self.sim_params,
                 env=self.trading_environment,
                 data_portal=self.data_portal)
-            # Set the dt initally to the period start by forcing it to change
+            # Set the dt initially to the period start by forcing it to change
             self.on_dt_changed(self.sim_params.period_start)
 
             # HACK: When running with the `run` method, we set perf_tracker to

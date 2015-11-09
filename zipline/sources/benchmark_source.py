@@ -6,10 +6,12 @@ from zipline.errors import (
 
 
 class BenchmarkSource(object):
-    def __init__(self, benchmark_sid, env, trading_days, data_portal):
+    def __init__(self, benchmark_sid, env, trading_days, data_portal,
+                 emission_rate="daily"):
         self.benchmark_sid = benchmark_sid
         self.env = env
         self.trading_days = trading_days
+        self.emission_rate = emission_rate
         self.data_portal = data_portal
 
         if self.benchmark_sid:
@@ -26,12 +28,11 @@ class BenchmarkSource(object):
                 self.data_portal
             )
 
-    def get_daily_value(self, dt):
+    def get_value(self, dt):
         return self.precalculated_series.loc[dt]
 
-    def get_minute_value(self, dt):
-        raise NotImplementedError("Default benchmark source doesn't handle"
-                                  "minutely benchmark.")
+    # def get_minute_value(self, dt):
+    #     return self.precalculated_series.loc[dt]
 
     def _validate_benchmark(self):
         # check if this security has a stock dividend.  if so, raise an
@@ -100,6 +101,19 @@ class BenchmarkSource(object):
         if sid is None:
             # get benchmark info from trading environment
             return env.benchmark_returns[trading_days[0]:trading_days[-1]]
+        elif self.emission_rate == "minute":
+            minutes = env.minutes_for_days_in_range(self.trading_days[0],
+                                                    self.trading_days[-1])
+            benchmark_series = data_portal.get_history_window(
+                [sid],
+                minutes[-1],
+                bar_count=len(minutes) + 1,
+                frequency="1m",
+                field="price",
+                ffill=True
+            )
+
+            return benchmark_series.pct_change()[1:]
         else:
             # get the window of close prices for benchmark_sid from the last
             # trading day of the simulation, going up to one day before the
