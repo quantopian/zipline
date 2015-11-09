@@ -687,7 +687,19 @@ class SQLiteAdjustmentWriter(object):
                     sid, prev_close_date, 'close')
                 if prev_close != 0.0:
                     ratio = 1.0 - amount / prev_close
-                    ratios[i] = ratio
+                    # Occasionally assets pay dividends greater than the last
+                    # traded value of the asset. Instead of allowing the
+                    # adjustment ratio to be negative, set a low adjustment
+                    # ratio. Example: http://finance.yahoo.com/q?s=VXUP
+                    if ratio < 0:
+                        logger.warn("Dividend adjustment ratio for sid {0} is "
+                                    "<0: amount={1}, prev_close={2}; "
+                                    "updating to 0.05".format(sid, amount,
+                                                              prev_close)
+                                    )
+                        ratios[i] = 0.05
+                    else:
+                        ratios[i] = ratio
                     # only assign effective_date when data is found
                     effective_dates[i] = ex_date
             except NoDataOnDate:
