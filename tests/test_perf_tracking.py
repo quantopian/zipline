@@ -220,7 +220,7 @@ def calculate_results(sim_params,
         except KeyError:
             pass
 
-        msg = perf_tracker.handle_market_close_daily()
+        msg = perf_tracker.handle_market_close_daily(date)
         msg['account'] = perf_tracker.get_account(date)
         results.append(msg)
     return results
@@ -2222,7 +2222,7 @@ class TestPerformanceTracker(unittest.TestCase):
                     perf_tracker.process_order(event)
                 elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
                     perf_tracker.process_transaction(event)
-            msg = perf_tracker.handle_market_close_daily()
+            msg = perf_tracker.handle_market_close_daily(date)
             perf_messages.append(msg)
 
         self.assertEqual(perf_tracker.txn_count, len(txns))
