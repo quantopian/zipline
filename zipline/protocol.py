@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from copy import copy
 
 from six import iteritems, iterkeys
@@ -377,7 +376,7 @@ class SIDData(object):
         else:
             return buffer_[self._sid][-bars:]
 
-    def _get_bars(self, days):
+    def _cache_daily_minutely(self, days, fn):
         """
         Gets the number of bars needed for the current number of days.
 
@@ -439,8 +438,20 @@ class SIDData(object):
             self._get_bars = minute_get_bars
             self._get_max_bars = minute_get_max_bars
 
+        # NOTE: This silently adds these two entries to the `__dict__`
+        # without affecting the `__len__` of the object. This is important
+        # because we use the `len` of the `SIDData` object to see if we have
+        # data for this asset.
+        self._initial_len += 2
+
         # Not actually recursive because we have already cached the new method.
-        return self._get_bars(days)
+        return getattr(self, fn)(days)
+
+    def _get_bars(self, bars):
+        return self._cache_daily_minutely(bars, fn='_get_bars')
+
+    def _get_max_bars(self, bars):
+        return self._cache_daily_minutely(bars, fn='_get_max_bars')
 
     def mavg(self, days):
         bars = self._get_bars(days)
