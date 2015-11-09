@@ -37,6 +37,8 @@ from zipline.assets import (
 )
 from zipline.assets.asset_writer import (
     split_delimited_symbol,
+    check_version_info,
+    ASSET_DB_VERSION,
 )
 
 log = Logger('assets.py')
@@ -80,14 +82,18 @@ class AssetFinder(object):
         self.engine = engine
         metadata = sa.MetaData(bind=engine)
 
-        table_names = ['equities', 'futures_exchanges', 'futures_root_symbols',
-                       'futures_contracts', 'asset_router']
+        table_names = ['version', 'equities', 'futures_exchanges',
+                       'futures_root_symbols', 'futures_contracts',
+                       'asset_router']
         metadata.reflect(only=table_names)
         for table_name in table_names:
             setattr(self, table_name, metadata.tables[table_name])
 
-        # Cache for lookup of assets by sid, the objects in the asset lookp may
-        # be shared with the results from equity and future lookup caches.
+        # Check the version info of the db for compatibility
+        check_version_info(self.version, ASSET_DB_VERSION)
+
+        # Cache for lookup of assets by sid, the objects in the asset lookup
+        # may be shared with the results from equity and future lookup caches.
         #
         # The top level cache exists to minimize lookups on the asset type
         # routing.
