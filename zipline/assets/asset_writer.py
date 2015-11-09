@@ -33,6 +33,9 @@ SQLITE_MAX_VARIABLE_NUMBER = 999
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
 
+# A list of the names of all tables in the assets db
+table_names = ['version', 'equities', 'futures_exchanges',
+               'futures_root_symbols', 'futures_contracts', 'asset_router']
 
 # Default values for the equities DataFrame
 _equities_defaults = {
@@ -182,12 +185,6 @@ def check_version_info(version_table, expected_version):
     expected_version : int
         The expected version of the asset database
 
-    Returns
-    -------
-    bool
-        True if the version information is present and correct.
-        False if the version information is missing.
-
     Raises
     ------
     AssetDBVersionError
@@ -197,19 +194,14 @@ def check_version_info(version_table, expected_version):
     # Read the version out of the table
     version_from_table = sa.select((version_table.c.version,)).scalar()
 
-    # If a version exists in the table...
-    if version_from_table is not None:
+    # A db without a version is considered v0
+    if version_from_table is None:
+        version_from_table = 0
 
-        # Raise an error if the versions do not match
-        if (version_from_table != expected_version):
-            raise AssetDBVersionError(db_version=version_from_table,
-                                      expected_version=expected_version)
-
-        # A matching version was found
-        return True
-
-    # No version info found
-    return False
+    # Raise an error if the versions do not match
+    if (version_from_table != expected_version):
+        raise AssetDBVersionError(db_version=version_from_table,
+                                  expected_version=expected_version)
 
 
 def write_version_info(version_table, version_value):
@@ -352,6 +344,21 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     def _write_equities(self, equities, bind):
         self._write_assets(equities, self.equities, 'equity', bind)
 
+    def check_for_tables(self, engine):
+        """
+        Checks if any tables are present in the current assets database.
+
+        Returns
+        -------
+        bool
+            True if any tables are present, otherwise False.
+        """
+        conn = engine.connect()
+        for table_name in table_names:
+            if engine.dialect.has_table(conn, table_name):
+                return True
+        return False
+
     def init_db(self, engine):
         """Connect to database and create tables.
 
@@ -363,6 +370,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             If True, create SQL ForeignKey and PrimaryKey constraints.
         """
         metadata = sa.MetaData(bind=engine)
+
+        tables_already_exist = self.check_for_tables(engine=engine)
 
         self.equities = sa.Table(
             'equities',
@@ -461,10 +470,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # Create the SQL tables if they do not already exist.
         metadata.create_all(checkfirst=True)
 
-        # Check if the version is mismatched or, if it is not present, add it
-        version_found = check_version_info(self.version_table,
-                                           ASSET_DB_VERSION)
-        if not version_found:
+        if tables_already_exist:
+            check_version_info(self.version_table, ASSET_DB_VERSION)
+        else:
             write_version_info(self.version_table, ASSET_DB_VERSION)
 
         return metadata

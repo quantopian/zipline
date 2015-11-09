@@ -1097,7 +1097,8 @@ class TestAssetDBVersioning(TestCase):
         env = TradingEnvironment(load=noop_load)
         version_table = env.asset_finder.version
 
-        self.assertTrue(check_version_info(version_table, ASSET_DB_VERSION))
+        # This should not raise an error
+        check_version_info(version_table, ASSET_DB_VERSION)
 
         # This should fail because the version is too low
         with self.assertRaises(AssetDBVersionError):
@@ -1116,12 +1117,14 @@ class TestAssetDBVersioning(TestCase):
         # Assert that the version is not present in the table
         self.assertIsNone(sa.select((version_table.c.version,)).scalar())
 
-        # This should return false because there is no version info in the db
-        self.assertFalse(check_version_info(version_table, -2))
+        # This should fail because the table has no version info and is,
+        # therefore, consdered v0
+        with self.assertRaises(AssetDBVersionError):
+            check_version_info(version_table, -2)
 
-        # This return true because the version has been written
+        # This should not raise an error because the version has been written
         write_version_info(version_table, -2)
-        self.assertTrue(check_version_info(version_table, -2))
+        check_version_info(version_table, -2)
 
         # Assert that the version is in the table and correct
         self.assertEqual(sa.select((version_table.c.version,)).scalar(), -2)
