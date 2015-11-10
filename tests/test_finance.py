@@ -262,7 +262,6 @@ class FinanceTestCase(TestCase):
                 }
             })
 
-            blotter.data_portal = data_portal
             start_date = sim_params.first_open
 
             if alternate:
@@ -300,7 +299,7 @@ class FinanceTestCase(TestCase):
                             order_date = order_date + timedelta(days=1)
                             order_date = order_date.replace(hour=14, minute=30)
                 else:
-                    txns = blotter.process_open_orders(tick)
+                    txns = blotter.process_open_orders(tick, data_portal)
                     for txn in txns:
                         tracker.process_transaction(txn)
                         transactions.append(txn)

@@ -48,8 +48,6 @@ class Blotter(object):
         self.slippage_func = slippage_func or VolumeShareSlippage()
         self.commission = commission or PerShare()
 
-        self.data_portal = None
-
     def __repr__(self):
         return """
 {class_name}(
@@ -195,7 +193,7 @@ class Blotter(object):
         return
         yield
 
-    def process_open_orders(self, current_dt):
+    def process_open_orders(self, current_dt, data_portal):
         """
         Creates a list of transactions based on the current open orders,
         slippage model, and commission model.
@@ -219,10 +217,10 @@ class Blotter(object):
         transactions = []
 
         for asset, asset_orders in iteritems(self.open_orders):
-            price = self.data_portal.get_spot_value(
+            price = data_portal.get_spot_value(
                 asset, 'close', current_dt)
 
-            volume = self.data_portal.get_spot_value(
+            volume = data_portal.get_spot_value(
                 asset, 'volume', current_dt)
 
             for order, txn in self.slippage_func(asset_orders, current_dt,

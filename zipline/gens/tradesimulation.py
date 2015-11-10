@@ -91,7 +91,6 @@ class AlgorithmSimulator(object):
         data_portal = self.data_portal
 
         blotter = self.algo.blotter
-        blotter.data_portal = data_portal
 
         # can't cache a pointer to algo.perf_tracker because we're not
         # guaranteed that the algo doesn't swap out perf trackers during
@@ -107,7 +106,8 @@ class AlgorithmSimulator(object):
             self.simulation_dt = dt_to_use
             algo.on_dt_changed(dt_to_use)
 
-            new_transactions = blotter.process_open_orders(dt_to_use)
+            new_transactions = blotter.process_open_orders(dt_to_use,
+                                                           data_portal)
             for transaction in new_transactions:
                 perf_process_txn(transaction)
 

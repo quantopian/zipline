@@ -157,11 +157,11 @@ class BlotterTestCase(TestCase):
 
         # You can't reject a filled order.
         blotter = Blotter()   # Reset for paranoia
-        blotter.data_portal = self.data_portal
         filled_id = blotter.order(24, 100, MarketOrder(), dt=dt1)
         filled_order = None
         for txn in blotter.process_open_orders(
-                self.sim_params.trading_days[-1]):
+                self.sim_params.trading_days[-1],
+                self.data_portal):
             filled_order = blotter.orders[txn.order_id]
 
         self.assertEqual(filled_order.id, filled_id)
@@ -221,8 +221,6 @@ class BlotterTestCase(TestCase):
                 ORDER_STATUS.FILLED
 
             blotter = Blotter()
-            blotter.data_portal = self.data_portal
-
             open_id = blotter.order(24, order_size, MarketOrder(), dt=dt1)
             open_order = blotter.open_orders[24][0]
             self.assertEqual(open_id, open_order.id)
@@ -230,7 +228,7 @@ class BlotterTestCase(TestCase):
             held_order = blotter.new_orders[0]
 
             filled_order = None
-            for txn in blotter.process_open_orders(dt):
+            for txn in blotter.process_open_orders(dt, self.data_portal):
                 filled_order = blotter.orders[txn.order_id]
 
             self.assertEqual(filled_order.id, held_order.id)
