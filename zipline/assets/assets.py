@@ -87,7 +87,7 @@ class AssetFinder(object):
             setattr(self, table_name, metadata.tables[table_name])
 
         # Check the version info of the db for compatibility
-        check_version_info(self.version, ASSET_DB_VERSION)
+        check_version_info(self.version_info, ASSET_DB_VERSION)
 
         # Cache for lookup of assets by sid, the objects in the asset lookup
         # may be shared with the results from equity and future lookup caches.

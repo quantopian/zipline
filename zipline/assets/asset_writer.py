@@ -34,7 +34,7 @@ SQLITE_MAX_VARIABLE_NUMBER = 999
 AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
 
 # A list of the names of all tables in the assets db
-table_names = ['version', 'equities', 'futures_exchanges',
+table_names = ['version_info', 'equities', 'futures_exchanges',
                'futures_root_symbols', 'futures_contracts', 'asset_router']
 
 # Default values for the equities DataFrame
@@ -221,7 +221,7 @@ def write_version_info(version_table, version_value):
 
 def _version_table_schema(metadata):
     return sa.Table(
-        'version',
+        'version_info',
         metadata,
         sa.Column(
             'id',

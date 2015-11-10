@@ -1095,7 +1095,7 @@ class TestAssetDBVersioning(TestCase):
 
     def test_check_version(self):
         env = TradingEnvironment(load=noop_load)
-        version_table = env.asset_finder.version
+        version_table = env.asset_finder.version_info
 
         # This should not raise an error
         check_version_info(version_table, ASSET_DB_VERSION)
