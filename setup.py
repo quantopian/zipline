@@ -118,7 +118,24 @@ def _filter_requirements(lines_iter):
             yield requirement
 
 
-def read_requirements(path, strict_bounds=False):
+REQ_UPPER_BOUNDS = {
+}
+
+
+def _with_bounds(req):
+    try:
+        req, lower = req.split('==')
+    except ValueError:
+        return req
+    else:
+        with_bounds = [req, '>=', lower]
+        upper = REQ_UPPER_BOUNDS.get(req)
+        if upper:
+            with_bounds.extend([',', upper])
+        return ''.join(with_bounds)
+
+
+def read_requirements(path, strict_bounds):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
 
@@ -132,11 +149,12 @@ def read_requirements(path, strict_bounds=False):
         if strict_bounds:
             return list(reqs)
         else:
-            return [req.replace('==', '>=') for req in reqs]
+            return list(map(_with_bounds, reqs))
 
 
-def install_requires():
-    return read_requirements('etc/requirements.txt')
+def install_requires(strict_bounds=False):
+    return read_requirements('etc/requirements.txt',
+                             strict_bounds=strict_bounds)
 
 
 def extras_requires():
@@ -155,7 +173,7 @@ def module_requirements(requirements_path, module_names):
     found = set()
     module_lines = []
     parser = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
-    for line in read_requirements(requirements_path):
+    for line in read_requirements(requirements_path, strict_bounds=False):
         match = parser.match(line)
         if match is None:
             raise AssertionError("Could not parse requirement: '%s'" % line)

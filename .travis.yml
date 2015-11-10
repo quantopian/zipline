@@ -20,8 +20,10 @@ install:
   - source activate testenv
   - conda install --yes -c https://conda.binstar.org/Quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy==$SCIPY_VERSION matplotlib Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
   - pip install --upgrade pip coverage
-  - pip install -e .[dev]
+  - pip install -r etc/requirements.txt
+  - pip install -r etc/requirements_dev.txt
   - pip install -r etc/requirements_blaze.txt
+  - python setup.py build_ext --inplace
 before_script:
   - pip freeze | sort
   - "flake8 zipline tests"
