@@ -270,7 +270,9 @@ class TradingAlgorithm(object):
         self._before_trading_start = None
         self._analyze = None
 
-        self.event_manager = EventManager()
+        self.event_manager = EventManager(
+            create_context=kwargs.pop('create_event_context', None),
+        )
 
         if self.algoscript is not None:
             filename = kwargs.pop('algo_filename', None)

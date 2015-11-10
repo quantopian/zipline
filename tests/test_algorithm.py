@@ -79,7 +79,7 @@ from zipline.test_algorithms import (
     record_float_magic,
     record_variables,
 )
-
+from zipline.utils.context_tricks import CallbackManager
 import zipline.utils.events
 from zipline.utils.test_utils import (
     assert_single_position,
@@ -96,7 +96,7 @@ from zipline.assets import Equity
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
-from zipline.utils.events import DateRuleFactory, TimeRuleFactory
+from zipline.utils.events import DateRuleFactory, TimeRuleFactory, Always
 from zipline.algorithm import TradingAlgorithm
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
@@ -346,6 +346,62 @@ class TestMiscellaneousAPI(TestCase):
         algo.run(self.source)
 
         self.assertEqual(algo.func_called, algo.days)
+
+    def test_event_context(self):
+        expected_data = []
+        collected_data_pre = []
+        collected_data_post = []
+        function_stack = []
+
+        def pre(data):
+            function_stack.append(pre)
+            collected_data_pre.append(data)
+
+        def post(data):
+            function_stack.append(post)
+            collected_data_post.append(data)
+
+        def initialize(context):
+            context.add_event(Always(), f)
+            context.add_event(Always(), g)
+
+        def handle_data(context, data):
+            function_stack.append(handle_data)
+            expected_data.append(data)
+
+        def f(context, data):
+            function_stack.append(f)
+
+        def g(context, data):
+            function_stack.append(g)
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            sim_params=self.sim_params,
+            create_event_context=CallbackManager(pre, post),
+            env=self.env,
+        )
+        algo.run(self.source)
+
+        self.assertEqual(len(expected_data), 779)
+        self.assertEqual(collected_data_pre, expected_data)
+        self.assertEqual(collected_data_post, expected_data)
+
+        self.assertEqual(
+            len(function_stack),
+            779 * 5,
+            'Incorrect number of functions called: %s != 779' %
+            len(function_stack),
+        )
+        expected_functions = [pre, handle_data, f, g, post] * 779
+        for n, (f, g) in enumerate(zip(function_stack, expected_functions)):
+            self.assertEqual(
+                f,
+                g,
+                'function at position %d was incorrect, expected %s but got %s'
+                % (n, g.__name__, f.__name__),
+            )
 
     @parameterized.expand([
         ('daily',),
