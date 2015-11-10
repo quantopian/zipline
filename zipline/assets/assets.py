@@ -39,7 +39,7 @@ from zipline.assets.asset_writer import (
     split_delimited_symbol,
     check_version_info,
     ASSET_DB_VERSION,
-    table_names,
+    asset_db_table_names,
 )
 
 log = Logger('assets.py')
@@ -82,8 +82,8 @@ class AssetFinder(object):
 
         self.engine = engine
         metadata = sa.MetaData(bind=engine)
-        metadata.reflect(only=table_names)
-        for table_name in table_names:
+        metadata.reflect(only=asset_db_table_names)
+        for table_name in asset_db_table_names:
             setattr(self, table_name, metadata.tables[table_name])
 
         # Check the version info of the db for compatibility
