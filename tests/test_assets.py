@@ -961,6 +961,14 @@ class TestFutureChain(TestCase):
             pd.Timestamp(feb_prev, tz='UTC')
         )
 
+        # Test that the as_of() method works with str args
+        feb_str = '2006-02-01'
+        cl_feb = cl.as_of(feb_str)
+        self.assertEqual(
+            cl_feb.as_of_date,
+            pd.Timestamp(feb, tz='UTC')
+        )
+
         # The chain as of the current dt should always be the same as
         # the defualt chain.
         self.assertEqual(cl[0], cl.as_of(pd.Timestamp('2005-12-01'))[0])
