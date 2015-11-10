@@ -74,10 +74,11 @@ def check_perf_period(pp,
                       long_exposure,
                       longs_count,
                       short_exposure,
-                      shorts_count):
+                      shorts_count,
+                      data_portal):
 
     pos_stats = pt.stats()
-    pp_stats = pp.stats(pt.positions, pos_stats)
+    pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
     perf_data = pp.to_dict(pos_stats, pp_stats, pt)
     np.testing.assert_allclose(
         gross_leverage, perf_data['gross_leverage'], rtol=1e-3)
@@ -1263,13 +1264,15 @@ class TestPositionPerformance(unittest.TestCase):
             long_exposure=1000.0,
             longs_count=1,
             short_exposure=-1000.0,
-            shorts_count=1)
+            shorts_count=1,
+            data_portal=data_portal
+        )
 
         dt = trades_1[-2].dt
         pt.sync_last_sale_prices(dt)
 
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
         # Validate that the account attributes were updated.
         account = pp.as_account(pos_stats, pp_stats)
         check_account(account,
@@ -1288,7 +1291,7 @@ class TestPositionPerformance(unittest.TestCase):
         dt = trades_1[-1].dt
         pt.sync_last_sale_prices(dt)
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
         account = pp.as_account(pos_stats, pp_stats)
 
         check_perf_period(
@@ -1299,7 +1302,9 @@ class TestPositionPerformance(unittest.TestCase):
             long_exposure=900.0,
             longs_count=1,
             short_exposure=-1100.0,
-            shorts_count=1)
+            shorts_count=1,
+            data_portal=data_portal
+        )
 
         check_account(account,
                       settled_cash=1000.0,
@@ -1352,12 +1357,14 @@ class TestPositionPerformance(unittest.TestCase):
             long_exposure=10000.0,
             longs_count=1,
             short_exposure=0.0,
-            shorts_count=0)
+            shorts_count=0,
+            data_portal=data_portal
+        )
 
         # Validate that the account attributes were updated.
         pt.sync_last_sale_prices(trades[-2].dt)
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
         account = pp.as_account(pos_stats, pp_stats)
         check_account(account,
                       settled_cash=-9000.0,
@@ -1382,11 +1389,13 @@ class TestPositionPerformance(unittest.TestCase):
             long_exposure=11000.0,
             longs_count=1,
             short_exposure=0.0,
-            shorts_count=0)
+            shorts_count=0,
+            data_portal=data_portal
+        )
 
         # Validate that the account attributes were updated.
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
         account = pp.as_account(pos_stats, pp_stats)
 
         check_account(account,
@@ -1427,7 +1436,6 @@ class TestPositionPerformance(unittest.TestCase):
         txn = create_txn(trades[1].sid, trades[1].dt, 10.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    data_portal,
                                     period_open=self.sim_params.period_start,
                                     period_close=self.sim_params.period_end)
         pt.execute_transaction(txn)
@@ -1484,7 +1492,7 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
 
         self.assertEqual(
             pos_stats.net_value,
@@ -1504,7 +1512,9 @@ class TestPositionPerformance(unittest.TestCase):
             long_exposure=1100.0,
             longs_count=1,
             short_exposure=0.0,
-            shorts_count=0)
+            shorts_count=0,
+            data_portal=data_portal
+        )
 
         # Validate that the account attributes were updated.
         account = pp.as_account(pos_stats, pp_stats)
@@ -1588,7 +1598,7 @@ single short-sale transaction"""
         )
 
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
 
         self.assertEqual(
             pos_stats.net_value,
@@ -1647,7 +1657,7 @@ single short-sale transaction"""
         )
 
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
 
         self.assertEqual(
             pos_stats.net_value,
@@ -1708,7 +1718,8 @@ cost of sole txn in test"
         )
 
         pos_total_stats = ptTotal.stats()
-        pp_total_stats = ppTotal.stats(ptTotal.positions, pos_total_stats)
+        pp_total_stats = ppTotal.stats(ptTotal.positions, pos_total_stats,
+                                       data_portal)
 
         self.assertEqual(
             pos_total_stats.net_value,
@@ -1730,7 +1741,9 @@ cost of sole txn in test"
             long_exposure=0.0,
             longs_count=0,
             short_exposure=-900.0,
-            shorts_count=1)
+            shorts_count=1,
+            data_portal=data_portal
+        )
 
         # Validate that the account attributes.
         account = ppTotal.as_account(pos_stats, pp_stats)
@@ -1825,7 +1838,7 @@ trade after cover"""
         )
 
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
 
         self.assertEqual(
             pos_stats.net_value,
@@ -1848,7 +1861,9 @@ shares in position"
             long_exposure=0.0,
             longs_count=0,
             short_exposure=0.0,
-            shorts_count=0)
+            shorts_count=0,
+            data_portal=data_portal
+        )
 
         account = pp.as_account(pos_stats, pp_stats)
         check_account(account,
@@ -1887,7 +1902,6 @@ shares in position"
         pp = perf.PerformancePeriod(
             1000.0,
             self.env.asset_finder,
-            data_portal,
             period_open=self.sim_params.period_start,
             period_close=self.sim_params.trading_days[-1]
         )
@@ -1915,7 +1929,7 @@ shares in position"
         pt.sync_last_sale_prices(dt)
 
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
 
         self.assertEqual(
             pp_stats.pnl,
@@ -1952,7 +1966,7 @@ shares in position"
         )
 
         pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats)
+        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
 
         self.assertEqual(pp_stats.pnl, -800,
                          "this period goes from +400 to -400")
@@ -1989,7 +2003,7 @@ shares in position"
 
         pt3.sync_last_sale_prices(dt)
         pt3_stats = pt3.stats()
-        pp3_stats = pp3.stats(pt3.positions, pt3_stats)
+        pp3_stats = pp3.stats(pt3.positions, pt3_stats, data_portal)
 
         self.assertEqual(
             pp3_stats.pnl,
@@ -2416,7 +2430,7 @@ class TestPerformancePeriod(unittest.TestCase):
 
     def test_serialization(self):
         env = TradingEnvironment()
-        pp = perf.PerformancePeriod(100, env.asset_finder, data_portal=None)
+        pp = perf.PerformancePeriod(100, env.asset_finder)
 
         p_string = dumps_with_persistent_ids(pp)
         test = loads_with_persistent_ids(p_string, env=env)

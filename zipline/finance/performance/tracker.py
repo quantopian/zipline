@@ -64,12 +64,9 @@ from datetime import datetime
 
 import pandas as pd
 from pandas.tseries.tools import normalize_date
+from zipline.finance.performance.period import PerformancePeriod
 
 import zipline.finance.risk as risk
-from . period import (
-    TodaysPerformance,
-    CumulativePerformance
-)
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -106,7 +103,7 @@ class PerformanceTracker(object):
 
         self.trading_days = all_trading_days[mask]
 
-        self.data_portal = data_portal
+        self._data_portal = data_portal
         if data_portal is not None:
             self._adjustment_reader = data_portal._adjustment_reader
         else:
@@ -131,7 +128,7 @@ class PerformanceTracker(object):
 
         # this performance period will span the entire simulation from
         # inception.
-        self.cumulative_performance = CumulativePerformance(
+        self.cumulative_performance = PerformancePeriod(
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             # the cumulative period will be calculated over the entire test.
@@ -141,14 +138,13 @@ class PerformanceTracker(object):
             # period
             keep_transactions=False,
             keep_orders=False,
-            # don't serialize positions for cumualtive period
+            # don't serialize positions for cumulative period
             serialize_positions=False,
-            asset_finder=self.env.asset_finder,
-            data_portal=data_portal,
+            asset_finder=self.env.asset_finder
         )
 
         # this performance period will span just the current market day
-        self.todays_performance = TodaysPerformance(
+        self.todays_performance = PerformancePeriod(
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             # the daily period will be calculated for the market day
@@ -157,8 +153,7 @@ class PerformanceTracker(object):
             keep_transactions=True,
             keep_orders=True,
             serialize_positions=True,
-            asset_finder=self.env.asset_finder,
-            data_portal=data_portal,
+            asset_finder=self.env.asset_finder
         )
 
         self.saved_dt = self.period_start
@@ -200,7 +195,7 @@ class PerformanceTracker(object):
         position_tracker.sync_last_sale_prices(dt)
         pos_stats = position_tracker.stats()
         period_stats = self.cumulative_performance.stats(
-            position_tracker.positions, pos_stats)
+            position_tracker.positions, pos_stats, self._data_portal)
         return self.cumulative_performance.as_portfolio(
             pos_stats,
             period_stats,
@@ -211,7 +206,7 @@ class PerformanceTracker(object):
         self.position_tracker.sync_last_sale_prices(dt)
         pos_stats = self.position_tracker.stats()
         period_stats = self.cumulative_performance.stats(
-            self.position_tracker.positions, pos_stats)
+            self.position_tracker.positions, pos_stats, self._data_portal)
         self._account = self.cumulative_performance.as_account(
             pos_stats, period_stats)
         return self._account
@@ -222,9 +217,9 @@ class PerformanceTracker(object):
         """
         pos_stats = self.position_tracker.stats()
         cumulative_stats = self.cumulative_performance.stats(
-            self.position_tracker.positions, pos_stats)
+            self.position_tracker.positions, pos_stats, self._data_portal)
         todays_stats = self.todays_performance.stats(
-            self.position_tracker.positions, pos_stats)
+            self.position_tracker.positions, pos_stats, self._data_portal)
 
         return self._to_dict(pos_stats,
                              cumulative_stats,
@@ -380,9 +375,10 @@ class PerformanceTracker(object):
         self.position_tracker.sync_last_sale_prices(dt)
         pos_stats = self.position_tracker.stats()
         cumulative_stats = self.cumulative_performance.stats(
-            self.position_tracker.positions, pos_stats)
+            self.position_tracker.positions, pos_stats, self._data_portal
+        )
         todays_stats = self.todays_performance.stats(
-            self.position_tracker.positions, pos_stats
+            self.position_tracker.positions, pos_stats, self._data_portal
         )
         self.cumulative_risk_metrics.update(todays_date,
                                             todays_stats.returns,
@@ -414,7 +410,8 @@ class PerformanceTracker(object):
 
         pos_stats = self.position_tracker.stats()
         todays_stats = self.todays_performance.stats(
-            self.position_tracker.positions, pos_stats)
+            self.position_tracker.positions, pos_stats, self._data_portal
+        )
         account = self.get_account(completed_date)
 
         # update risk metrics for cumulative performance
@@ -450,7 +447,7 @@ class PerformanceTracker(object):
         # browser.
         cumulative_stats = self.cumulative_performance.stats(
             self.position_tracker.positions,
-            pos_stats)
+            pos_stats, self._data_portal)
         daily_update = self._to_dict(pos_stats,
                                      cumulative_stats,
                                      todays_stats,

@@ -153,7 +153,6 @@ class PerformancePeriod(object):
             self,
             starting_cash,
             asset_finder,
-            data_portal,
             period_open=None,
             period_close=None,
             keep_transactions=True,
@@ -161,7 +160,6 @@ class PerformancePeriod(object):
             serialize_positions=True):
 
         self.asset_finder = asset_finder
-        self.data_portal = data_portal
 
         self.period_open = period_open
         self.period_close = period_close
@@ -261,7 +259,7 @@ class PerformancePeriod(object):
         # Calculate and return the cash flow given the multiplier
         return -1 * txn.price * txn.amount * multiplier
 
-    def stats(self, positions, pos_stats):
+    def stats(self, positions, pos_stats, data_portal):
         # TODO: passing positions here seems off, since we have already
         # calculated pos_stats.
         futures_payouts = []
@@ -272,11 +270,11 @@ class PerformancePeriod(object):
                                    self.period_open)
                 if old_price_dt == pos.last_sale_date:
                     continue
-                old_price = self.data_portal.get_previous_price(
+                old_price = data_portal.get_previous_price(
                     sid,
                     'close',
                     dt=old_price_dt)
-                price = self.data_portal.get_spot_value(
+                price = data_portal.get_spot_value(
                     sid, 'close', dt=self.period_close)
                 payout = (
                     (price - old_price)
@@ -480,10 +478,10 @@ class PerformancePeriod(object):
 
         self.__dict__.update(state)
 
-
-class TodaysPerformance(PerformancePeriod):
-    pass
-
-
-class CumulativePerformance(PerformancePeriod):
-    pass
+#
+# class TodaysPerformance(PerformancePeriod):
+#     pass
+#
+#
+# class CumulativePerformance(PerformancePeriod):
+#     pass
