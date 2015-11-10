@@ -118,17 +118,18 @@ def _filter_requirements(lines_iter):
             yield requirement
 
 
-def read_requirements(path, convert_eq_to_lte=True):
+def read_requirements(path, strict_bounds=False):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
 
-    Returns requirements with the pinned versions as lower bounds.
+    Returns requirements with the pinned versions as lower bounds
+    if `strict_bounds` is falsey.
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
         reqs = _filter_requirements(f.readlines())
 
-        if not convert_eq_to_lte:
+        if strict_bounds:
             return list(reqs)
         else:
             return [req.replace('==', '>=') for req in reqs]
@@ -139,7 +140,8 @@ def install_requires():
 
 
 def extras_requires():
-    dev_reqs = read_requirements('etc/requirements_dev.txt')
+    dev_reqs = read_requirements('etc/requirements_dev.txt',
+                                 strict_bounds=True)
     talib_reqs = ['TA-Lib==0.4.9']
     return {
         'dev': dev_reqs,
