@@ -12,7 +12,12 @@ None
 Enhancements
 ~~~~~~~~~~~~
 
-None
+* Adds a way for users to specify context manager to use when executing the
+  scheduled functions (including ``handle_data``). This context manager will be
+  passed the :class:`~zipline.protocol.BarData` object for the bar and will
+  be used for the duration of all of the functions scheduled to run. This can be
+  passed to :class:`~zipline.algorithm.TradingAlgorithm` by the keyword argument
+  ``create_event_context`` (:issue:`828`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
