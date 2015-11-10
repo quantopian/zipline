@@ -1,16 +1,54 @@
+from zipline.assets import AssetFinder
+
 from .classifier import Classifier
+from .engine import SimplePipelineEngine
 from .factors import Factor, CustomFactor
 from .filters import Filter
 from .term import Term
 from .graph import TermGraph
 from .pipeline import Pipeline
+from .loaders import USEquityPricingLoader
 
-__all__ = [
+
+def engine_from_files(daily_bar_path,
+                      adjustments_path,
+                      asset_db_path,
+                      calendar):
+    """
+    Construct a SimplePipelineEngine from local filesystem resources.
+
+    Parameters
+    ----------
+    daily_bar_path : str
+        Path to pass to `BcolzDailyBarReader`.
+    adjustments_path : str
+        Path to pass to SQLiteAdjustmentReader.
+    asset_db_path : str
+        Path to pass to `AssetFinder`.
+    calendar : pd.DatetimeIndex
+        Calendar to use for the loader.
+    """
+    loader = USEquityPricingLoader.from_files(daily_bar_path, adjustments_path)
+
+    if not asset_db_path.startswith("sqlite:"):
+        asset_db_path = "sqlite:///" + asset_db_path
+    asset_finder = AssetFinder(asset_db_path)
+
+    return SimplePipelineEngine(
+        lambda _: loader,
+        calendar,
+        asset_finder,
+    )
+
+
+__all__ = (
     'Classifier',
     'CustomFactor',
+    'engine_from_files',
     'Factor',
     'Filter',
     'Pipeline',
+    'SimplePipelineEngine',
     'Term',
     'TermGraph',
-]
+)
