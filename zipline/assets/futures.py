@@ -162,7 +162,7 @@ class FutureChain(object):
             asset_finder=self._asset_finder,
             get_datetime=self._algorithm_get_datetime,
             root_symbol=self.root_symbol,
-            as_of_date=dt
+            as_of_date=Timestamp(dt, tz='UTC'),
         )
 
     def offset(self, time_delta):
