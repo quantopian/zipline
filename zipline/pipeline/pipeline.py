@@ -1,6 +1,6 @@
 from zipline.utils.input_validation import expect_types, optional
 
-from .term import Term
+from .term import Term, AssetExists
 from .filters import Filter
 from .graph import TermGraph
 
@@ -145,3 +145,20 @@ class Pipeline(object):
         columns[screen_name] = screen
 
         return TermGraph(columns)
+
+    def show_graph(self, format='svg'):
+        """
+        Render this Pipeline as a DAG.
+
+        Parameters
+        ----------
+        format : str, optional
+            Image format to render with.  Default is 'svg'.
+        """
+        g = self.to_graph('', AssetExists())
+        if format == 'svg':
+            return g.svg
+        elif format == 'png':
+            return g.png
+        else:
+            return g.jpeg
