@@ -320,30 +320,30 @@ ok we should use this a CurrencyPair, Currency could just be an enum?
 """
 
 cdef class CurrencyPair(Asset):
-    cdef readonly object pair
-    cdef readonly object major
-    cdef readonly object minor
-    cdef readonly float cvf
+    cdef readonly object pair # 'USDGBP' for example
+    cdef readonly object base # 'USD'
+    cdef readonly object quote # 'GBP'
+    cdef readonly float cvf # Factor to multiply 10^cvf to get the actual
+    # amount traded so cvf=4 would mean multiply 10^4 = 10,000
 
     def __cinit__(self,
                   int sid,  # sid is required
                   object symbol="",
                   object pair="",
-                  object major="",
-                  object minor="",
+                  object base="",
+                  object quote="",
                   object start_date=None,
                   float cvf=1,
                   object asset_name="",
                   object end_date=None,
                   object notice_date=None,
                   object first_traded=None,
-                  object exchange="",
-                  object ccy=""
+                  object exchange=""
                   ):
 
         self.pair = pair
-        self.major = major
-        self.minor = minor
+        self.base = base
+        self.quote = quote
         self.start_date = start_date
         self.cvf = cvf
 
@@ -354,7 +354,7 @@ cdef class CurrencyPair(Asset):
             return 'Currency(%d)' % self.sid
 
     def __repr__(self):
-        attrs = ('symbol', 'pair', 'major', 'minor',
+        attrs = ('symbol', 'pair', 'base', 'quote',
                  'start_date', 'cvf')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
@@ -372,8 +372,8 @@ cdef class CurrencyPair(Asset):
         return (self.__class__, (self.sid,
                                  self.symbol,
                                  self.pair,
-                                 self.major,
-                                 self.minor,
+                                 self.base,
+                                 self.quote,
                                  self.start_date,
                                  self.cvf,))
     cpdef to_dict(self):
@@ -382,8 +382,8 @@ cdef class CurrencyPair(Asset):
         """
         super_dict = super(CurrencyPair, self).to_dict()
         super_dict['pair'] = self.pair
-        super_dict['major'] = self.major
-        super_dict['minor'] = self.minor
+        super_dict['base'] = self.base
+        super_dict['quote'] = self.quote
         super_dict['start_date'] = self.start_date
         super_dict['cvf'] = self.cvf
         return super_dict

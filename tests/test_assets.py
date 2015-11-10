@@ -141,10 +141,10 @@ class CurrencyPairTestCase(TestCase):
         666,
         symbol="BTCUSD",
         pair="BTCUSD",
-        major="BTC",
-        minor="USD",
+        base="BTC",
+        quote="USD",
         start_date=pd.Timestamp('2007-11-11 00:007AM', tz='UTC'),
-        cvf=100
+        cvf=4
     )
 
     def test_currencypair_object(self):
@@ -162,8 +162,8 @@ class CurrencyPairTestCase(TestCase):
         s_unpickled = pickle.loads(pickle.dumps(self.ccy))
 
         attrs_to_check = ['pair',
-                          'major',
-                          'minor',
+                          'base',
+                          'quote',
                           'start_date',
                           'cvf',
                           'sid',
@@ -883,8 +883,8 @@ class AssetFinderTestCase(TestCase):
                        'cvf': 4,
                        'symbol': "QF4",
                        'pair': 'USDGBP',
-                       'major': 'USD',
-                       'minor': 'GBP',
+                       'base': 'USD',
+                       'quote': 'GBP',
                        'foo_data': "FOO"}}
         self.env.write_data(currency_data=data)
         finder = AssetFinder(self.env.engine)
@@ -948,33 +948,33 @@ class AssetFinderTestCase(TestCase):
             finder.retrieve_currencies(pair='ZZZAAA', default_none=False)
             finder.retrieve_currencies(pair='ZZZAAA')  # default behaviour
 
-    def test_lookup_currency_by_major_minor(self):
+    def test_lookup_currency_by_base_quote(self):
         # given
         self.setup_currency_test_data()
         finder = AssetFinder(self.env.engine)
         gbpaud_by_sid = finder.retrieve_asset(2)
         # when
-        gbpaud_by_major = finder.retrieve_currencies(major='GBP')
-        gbpaud_by_minor = finder.retrieve_currencies(minor='AUD')
+        gbpaud_by_base = finder.retrieve_currencies(base='GBP')
+        gbpaud_by_quote = finder.retrieve_currencies(quote='AUD')
         # then
-        self.assertIsInstance(gbpaud_by_major, CurrencyPair)
-        self.assertIsInstance(gbpaud_by_minor, CurrencyPair)
-        self.assertEqual(gbpaud_by_sid, gbpaud_by_major, gbpaud_by_minor)
+        self.assertIsInstance(gbpaud_by_base, CurrencyPair)
+        self.assertIsInstance(gbpaud_by_quote, CurrencyPair)
+        self.assertEqual(gbpaud_by_sid, gbpaud_by_base, gbpaud_by_quote)
 
         # scenario 2 - check a missing one returns None when flag set
-        missing_by_major = finder.retrieve_currencies(major='ZZZ',
+        missing_by_base = finder.retrieve_currencies(base='ZZZ',
                                                       default_none=True)
-        self.assertIsNone(missing_by_major)
-        missing_by_minor = finder.retrieve_currencies(minor='AAA',
+        self.assertIsNone(missing_by_base)
+        missing_by_quote = finder.retrieve_currencies(quote='AAA',
                                                       default_none=True)
-        self.assertIsNone(missing_by_minor)
+        self.assertIsNone(missing_by_quote)
 
         # scenario 3 - again but throw an error
         with self.assertRaises(SymbolNotFound):
-            finder.retrieve_currencies(major='ZZZ', default_none=False)
-            finder.retrieve_currencies(minor='AAA', default_none=False)
-            finder.retrieve_currencies(minor='ZZZ')  # default behaviour
-            finder.retrieve_currencies(major='AAA')  # default behaviour
+            finder.retrieve_currencies(base='ZZZ', default_none=False)
+            finder.retrieve_currencies(quote='AAA', default_none=False)
+            finder.retrieve_currencies(quote='ZZZ')  # default behaviour
+            finder.retrieve_currencies(base='AAA')  # default behaviour
 
     def setup_currency_test_data(self):
         ccy_0_start = pd.Timestamp('2013-01-01', tz='UTC')
@@ -988,8 +988,8 @@ class AssetFinderTestCase(TestCase):
                     'symbol': 'QF4',
                     'pair': 'USDGBP',
                     'start_date': ccy_0_start.value,
-                    'major': 'USD',
-                    'minor': 'GBP',
+                    'base': 'USD',
+                    'quote': 'GBP',
                     'cvf': 4
                 },
                 {
@@ -998,8 +998,8 @@ class AssetFinderTestCase(TestCase):
                     'symbol': 'QF1',
                     'pair': 'USDSKK',
                     'start_date': ccy_1_start.value,
-                    'major': 'USD',
-                    'minor': 'SKK',
+                    'base': 'USD',
+                    'quote': 'SKK',
                     'cvf': 6
 
                 },
@@ -1009,8 +1009,8 @@ class AssetFinderTestCase(TestCase):
                     'symbol': 'AD3',
                     'pair': 'GBPAUD',
                     'start_date': ccy_2_start.value,
-                    'major': 'GBP',
-                    'minor': 'AUD',
+                    'base': 'GBP',
+                    'quote': 'AUD',
                     'cvf': 3
                 },
             ],

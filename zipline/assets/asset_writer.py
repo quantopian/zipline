@@ -38,8 +38,8 @@ AssetData = namedtuple('AssetData',
 _currencies_defaults = {
     'symbol': None,
     'pair': None,
-    'major': None,
-    'minor': None,
+    'base': None,
+    'quote': None,
     'start_date': 0,
     'cvf': None
 }
@@ -413,8 +413,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             ),
             sa.Column('symbol', sa.Text, nullable=False),
             sa.Column('pair', sa.Text, nullable=False),
-            sa.Column('major', sa.Text, nullable=False),
-            sa.Column('minor', sa.Text, nullable=False),
+            sa.Column('base', sa.Text, nullable=False),
+            sa.Column('quote', sa.Text, nullable=False),
             sa.Column('start_date', sa.Integer, default=0, nullable=False),
             sa.Column('cvf', sa.Integer, nullable=False),
         )
@@ -521,8 +521,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         # Convert symbols and root_symbols to upper case.
         currencies_output['symbol'] = currencies_output.symbol.str.upper()
         currencies_output['pair'] = currencies_output.pair.str.upper()
-        currencies_output['major'] = currencies_output.major.str.upper()
-        currencies_output['minor'] = currencies_output.minor.str.upper()
+        currencies_output['base'] = currencies_output.base.str.upper()
+        currencies_output['quote'] = currencies_output.quote.str.upper()
 
         return AssetData(equities=equities_output,
                          futures=futures_output,

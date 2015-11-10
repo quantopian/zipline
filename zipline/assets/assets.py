@@ -157,7 +157,7 @@ class AssetFinder(object):
             raise SidNotFound(sid=sid)
 
     def retrieve_currencies(self, pair=None, symbol=None,
-                            major=None, minor=None,
+                            base=None, quote=None,
                             default_none=False):
         """
         Retrieve a currency from the AssetFinder from one of the fields below.
@@ -168,8 +168,8 @@ class AssetFinder(object):
 
         :param pair: The pair e.g. 'USDGBP'
         :param symbol: Your symbol identifier 'AD3'
-        :param major: The major currency in the pair 'USD'
-        :param minor: The minor currency in the pair 'GBP'
+        :param base: The base currency in the pair 'USD'
+        :param quote: The quote currency in the pair 'GBP'
         :param default_none: set this True to return None otherwise it will
         raise a SidNotFound exception.
         :return: possibly a CurrencyPair a list of currency pairs, None or
@@ -185,14 +185,14 @@ class AssetFinder(object):
             ret = self._select_asset_by_col(self.currencies,
                                             self.currencies.c.symbol,
                                             symbol).execute().fetchone()
-        elif major is not None:
+        elif base is not None:
             ret = self._select_asset_by_col(self.currencies,
-                                            self.currencies.c.major,
-                                            major).execute().fetchone()
-        elif minor is not None:
+                                            self.currencies.c.base,
+                                            base).execute().fetchone()
+        elif quote is not None:
             ret = self._select_asset_by_col(self.currencies,
-                                            self.currencies.c.minor,
-                                            minor).execute().fetchone()
+                                            self.currencies.c.quote,
+                                            quote).execute().fetchone()
         if ret is not None:
             currency = self._convert_to_asset(CurrencyPair, ret)
         elif default_none:
