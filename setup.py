@@ -118,13 +118,20 @@ def _filter_requirements(lines_iter):
             yield requirement
 
 
-def read_requirements(path):
+def read_requirements(path, convert_eq_to_lte=True):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
+
+    Returns requirements with the pinned versions as lower bounds.
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        return list(_filter_requirements(f.readlines()))
+        reqs = _filter_requirements(f.readlines())
+
+        if not convert_eq_to_lte:
+            return list(reqs)
+        else:
+            return [req.replace('==', '>=') for req in reqs]
 
 
 def install_requires():
