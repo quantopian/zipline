@@ -1,0 +1,51 @@
+Release 0.8.4
+-------------
+
+:Release: 0.8.4
+:Date: TBD
+
+Highlights
+~~~~~~~~~~
+
+None
+
+Enhancements
+~~~~~~~~~~~~
+
+None
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+* Fixes an issue that would cause the daily/minutely method caching to change
+  the ``len`` of a :class:`~zipline.protocol.SIDData` object. This would cause
+  us to think that the object was not empty even when it was (:issue:`826`).
+
+Performance
+~~~~~~~~~~~
+
+None
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+None
+
+Build
+~~~~~
+
+None
+
+Documentation
+~~~~~~~~~~~~~
+
+None
