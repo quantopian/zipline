@@ -18,8 +18,6 @@ import logbook
 import math
 import numpy as np
 
-import zipline.utils.math_utils as zp_math
-
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
@@ -30,6 +28,7 @@ from . risk import (
     check_entry,
     choose_treasury,
     downside_risk,
+    information_ratio,
     sharpe_ratio,
     sortino_ratio,
 )
@@ -43,33 +42,6 @@ log = logbook.Logger('Risk Cumulative')
 
 choose_treasury = functools.partial(choose_treasury, lambda *args: '10year',
                                     compound=False)
-
-
-def information_ratio(algo_volatility, algorithm_return, benchmark_return):
-    """
-    http://en.wikipedia.org/wiki/Information_ratio
-
-    Args:
-        algorithm_returns (np.array-like):
-            All returns during algorithm lifetime.
-        benchmark_returns (np.array-like):
-            All benchmark returns during algo lifetime.
-
-    Returns:
-        float. Information ratio.
-    """
-    if zp_math.tolerant_equals(algo_volatility, 0):
-        return np.nan
-
-    # The square of the annualization factor is in the volatility,
-    # because the volatility is also annualized,
-    # i.e. the sqrt(annual factor) is in the volatility's numerator.
-    # So to have the the correct annualization factor for the
-    # Sharpe value's numerator, which should be the sqrt(annual factor).
-    # The square of the sqrt of the annual factor, i.e. the annual factor
-    # itself, is needed in the numerator to factor out the division by
-    # its square root.
-    return (algorithm_return - benchmark_return) / algo_volatility
 
 
 class RiskMetricsCumulative(object):
@@ -408,10 +380,11 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Information_ratio
         """
+        upper = self.latest_dt_loc + 1
         return information_ratio(
-            self.algorithm_volatility[self.latest_dt_loc],
-            self.annualized_mean_returns_cont[self.latest_dt_loc],
-            self.annualized_mean_benchmark_returns_cont[self.latest_dt_loc])
+            self.algorithm_returns[:upper],
+            self.benchmark_returns[:upper],
+        )
 
     def calculate_alpha(self):
         """

@@ -137,27 +137,32 @@ def sortino_ratio(algorithm_period_return, treasury_period_return, mar):
 
 
 def information_ratio(algorithm_returns, benchmark_returns):
-    """
+    """Compute the information ratio based on the algorithm's returns
+    versus the benchmark's returns.
+
+    Parameters
+    ----------
+    algorithm_returns : array-like
+        All returns during algorithm lifetime.
+    benchmark_returns : array-like
+        All benchmark returns during algo lifetime.
+
+    Returns
+    -------
+    ir : float
+        The information ratio
+
+    Notes
+    -----
     http://en.wikipedia.org/wiki/Information_ratio
-
-    Args:
-        algorithm_returns (np.array-like):
-            All returns during algorithm lifetime.
-        benchmark_returns (np.array-like):
-            All benchmark returns during algo lifetime.
-
-    Returns:
-        float. Information ratio.
     """
-    relative_returns = algorithm_returns - benchmark_returns
+    active_returns = algorithm_returns - benchmark_returns
+    tracking_error = active_returns.std(ddof=1)
 
-    relative_deviation = relative_returns.std(ddof=1)
+    if zp_math.tolerant_equals(tracking_error, 0) or np.isnan(tracking_error):
+        return np.nan
 
-    if zp_math.tolerant_equals(relative_deviation, 0) or \
-       np.isnan(relative_deviation):
-        return 0.0
-
-    return np.mean(relative_returns) / relative_deviation
+    return active_returns.mean() / tracking_error
 
 
 def alpha(algorithm_period_return, treasury_period_return,
