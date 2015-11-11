@@ -90,13 +90,13 @@ class AlgorithmSimulator(object):
 
         data_portal = self.data_portal
 
-        blotter = self.algo.blotter
-
         # can't cache a pointer to algo.perf_tracker because we're not
         # guaranteed that the algo doesn't swap out perf trackers during
         # its lifetime.
-        perf_process_order = self.algo.perf_tracker.process_order
-        perf_process_txn = self.algo.perf_tracker.process_transaction
+        # likewise, we can't cache a pointer to the blotter.
+
+        # perf_process_order = self.algo.perf_tracker.process_order
+        # perf_process_txn = self.algo.perf_tracker.process_transaction
         algo.perf_tracker.position_tracker.data_portal = data_portal
 
         def inner_loop(dt_to_use):
@@ -106,14 +106,17 @@ class AlgorithmSimulator(object):
             self.simulation_dt = dt_to_use
             algo.on_dt_changed(dt_to_use)
 
+            blotter = algo.blotter
+            perf_tracker = algo.perf_tracker
+
             new_transactions = blotter.process_open_orders(dt_to_use,
                                                            data_portal)
             for transaction in new_transactions:
-                perf_process_txn(transaction)
+                perf_tracker.process_transaction(transaction)
 
                 # since this order was modified, record it
                 order = blotter.orders[transaction.order_id]
-                perf_process_order(order)
+                perf_tracker.process_order(order)
 
             handle_data(algo, current_data, dt_to_use)
 
@@ -126,7 +129,7 @@ class AlgorithmSimulator(object):
             # in what perf period they were placed.
             if new_orders:
                 for new_order in new_orders:
-                    perf_process_order(new_order)
+                    perf_tracker.process_order(new_order)
 
         def once_a_day(midnight_dt):
             # set all the timestamps
@@ -142,13 +145,13 @@ class AlgorithmSimulator(object):
             # handle any splits that impact any positions or any open orders.
             sids_we_care_about = \
                 list(set(list(perf_tracker.position_tracker.positions.keys()) +
-                         list(blotter.open_orders.keys())))
+                         list(algo.blotter.open_orders.keys())))
 
             if len(sids_we_care_about) > 0:
                 splits = data_portal.get_splits(sids_we_care_about,
                                                 midnight_dt)
                 if len(splits) > 0:
-                    blotter.process_splits(splits)
+                    algo.blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
 
         with self.processor, ZiplineAPI(self.algo):
