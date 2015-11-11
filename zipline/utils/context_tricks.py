@@ -1,4 +1,12 @@
-from contextlib import contextmanager
+@object.__new__
+class nop_context(object):
+    """A nop context manager.
+    """
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *excinfo):
+        pass
 
 
 def _nop(*args, **kwargs):
@@ -44,17 +52,22 @@ class CallbackManager(object):
     exiting another block
     """
     def __init__(self, pre=None, post=None):
-        pre = pre if pre is not None else _nop
-        post = post if post is not None else _nop
-
-        @contextmanager
-        def _callback_manager_context(*args, **kwargs):
-            try:
-                yield pre(*args, **kwargs)
-            finally:
-                post(*args, **kwargs)
-
-        self._callback_manager_context = _callback_manager_context
+        self.pre = pre if pre is not None else _nop
+        self.post = post if post is not None else _nop
 
     def __call__(self, *args, **kwargs):
-        return self._callback_manager_context(*args, **kwargs)
+        return _ManagedCallbackContext(self.pre, self.post, args, kwargs)
+
+
+class _ManagedCallbackContext(object):
+    def __init__(self, pre, post, args, kwargs):
+        self._pre = pre
+        self._post = post
+        self._args = args
+        self._kwargs = kwargs
+
+    def __enter__(self):
+        return self._pre(*self._args, **self._kwargs)
+
+    def __exit__(self, *excinfo):
+        self._post(*self._args, **self._kwargs)

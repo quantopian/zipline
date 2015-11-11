@@ -20,6 +20,8 @@ import datetime
 import pandas as pd
 import pytz
 
+from .context_tricks import nop_context
+
 
 __all__ = [
     'EventManager',
@@ -169,17 +171,6 @@ def _build_time(time, kwargs):
         return datetime.time(**kwargs)
 
 
-@object.__new__
-class _nop_context(object):
-    """A nop context manager.
-    """
-    def __enter__(self):
-        pass
-
-    def __exit__(self, *excinfo):
-        pass
-
-
 class EventManager(object):
     """Manages a list of Event objects.
     This manages the logic for checking the rules and dispatching to the
@@ -196,7 +187,7 @@ class EventManager(object):
         self._create_context = (
             create_context
             if create_context is not None else
-            lambda *_: _nop_context
+            lambda *_: nop_context
         )
 
     def add_event(self, event, prepend=False):
