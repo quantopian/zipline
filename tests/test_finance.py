@@ -288,8 +288,7 @@ class FinanceTestCase(TestCase):
                     direction = alternator ** len(order_list)
                     order_id = blotter.order(sid,
                                              order_amount * direction,
-                                             MarketOrder(),
-                                             dt=order_date)
+                                             MarketOrder())
                     order_list.append(blotter.orders[order_id])
                     order_date = order_date + order_interval
                     # move after market orders to just after market next
@@ -339,8 +338,8 @@ class FinanceTestCase(TestCase):
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(1, 100, LimitOrder(10), dt=dt)
-        blotter.order(2, 100, LimitOrder(10), dt=dt)
+        blotter.order(1, 100, LimitOrder(10))
+        blotter.order(2, 100, LimitOrder(10))
 
         # send in a split for sid 2
         blotter.process_splits([(2, 0.3333)])

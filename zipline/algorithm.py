@@ -770,7 +770,7 @@ class TradingAlgorithm(object):
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(sid, amount, style, dt=self.datetime)
+        return self.blotter.order(sid, amount, style)
 
     def validate_order_params(self,
                               asset,
@@ -900,6 +900,7 @@ class TradingAlgorithm(object):
 
         self.datetime = dt
         self.perf_tracker.set_date(dt)
+        self.blotter.set_date(dt)
 
         self._portfolio = None
         self._account = None
@@ -1065,7 +1066,7 @@ class TradingAlgorithm(object):
         if isinstance(order_param, zipline.protocol.Order):
             order_id = order_param.id
 
-        self.blotter.cancel(order_id, self.datetime)
+        self.blotter.cancel(order_id)
 
     @api_method
     def history(self, sids, bar_count, frequency, field, ffill=True):

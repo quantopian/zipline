@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,6 +48,8 @@ class Blotter(object):
         self.slippage_func = slippage_func or VolumeShareSlippage()
         self.commission = commission or PerShare()
 
+        self.current_dt = None
+
     def __repr__(self):
         return """
 {class_name}(
@@ -55,15 +57,20 @@ class Blotter(object):
     commission={commission},
     open_orders={open_orders},
     orders={orders},
-    new_orders={new_orders})
+    new_orders={new_orders},
+    current_dt={current_dt})
 """.strip().format(class_name=self.__class__.__name__,
                    slippage_func=self.slippage_func,
                    commission=self.commission,
                    open_orders=self.open_orders,
                    orders=self.orders,
-                   new_orders=self.new_orders)
+                   new_orders=self.new_orders,
+                   current_dt=self.current_dt)
 
-    def order(self, sid, amount, style, order_id=None, dt=None):
+    def set_date(self, dt):
+        self.current_dt = dt
+
+    def order(self, sid, amount, style, order_id=None):
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
         # numeric == share count  AND  "$dollar.cents" == cost amount
@@ -77,9 +84,6 @@ class Blotter(object):
         StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price,
                                stop_price))
         """
-        if dt is None:
-            raise ValueError("dt cannot be None!")
-
         if amount == 0:
             # Don't bother placing orders for 0 shares.
             return
@@ -91,7 +95,7 @@ class Blotter(object):
 
         is_buy = (amount > 0)
         order = Order(
-            dt=dt,
+            dt=self.current_dt,
             sid=sid,
             amount=amount,
             stop=style.get_stop_price(is_buy),
@@ -105,7 +109,7 @@ class Blotter(object):
 
         return order.id
 
-    def cancel(self, order_id, dt):
+    def cancel(self, order_id):
         if order_id not in self.orders:
             return
 
@@ -119,12 +123,12 @@ class Blotter(object):
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
             cur_order.cancel()
-            cur_order.dt = dt
+            cur_order.dt = self.current_dt
             # we want this order's new status to be relayed out
             # along with newly placed orders.
             self.new_orders.append(cur_order)
 
-    def reject(self, order_id, dt, reason=''):
+    def reject(self, order_id, reason=''):
         """
         Mark the given order as 'rejected', which is functionally similar to
         cancelled. The distinction is that rejections are involuntary (and
@@ -143,12 +147,12 @@ class Blotter(object):
         if cur_order in self.new_orders:
             self.new_orders.remove(cur_order)
         cur_order.reject(reason=reason)
-        cur_order.dt = dt
+        cur_order.dt = self.current_dt
         # we want this order's new status to be relayed out
         # along with newly placed orders.
         self.new_orders.append(cur_order)
 
-    def hold(self, order_id, dt, reason=''):
+    def hold(self, order_id, reason=''):
         """
         Mark the order with order_id as 'held'. Held is functionally similar
         to 'open'. When a fill (full or partial) arrives, the status
@@ -162,7 +166,7 @@ class Blotter(object):
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
             cur_order.hold(reason=reason)
-            cur_order.dt = dt
+            cur_order.dt = self.current_dt
             # we want this order's new status to be relayed out
             # along with newly placed orders.
             self.new_orders.append(cur_order)
