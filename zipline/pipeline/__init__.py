@@ -1,3 +1,4 @@
+from __future__ import print_function
 from zipline.assets import AssetFinder
 
 from .classifier import Classifier
@@ -13,7 +14,8 @@ from .loaders import USEquityPricingLoader
 def engine_from_files(daily_bar_path,
                       adjustments_path,
                       asset_db_path,
-                      calendar):
+                      calendar,
+                      warmup_assets=False):
     """
     Construct a SimplePipelineEngine from local filesystem resources.
 
@@ -27,12 +29,19 @@ def engine_from_files(daily_bar_path,
         Path to pass to `AssetFinder`.
     calendar : pd.DatetimeIndex
         Calendar to use for the loader.
+    warmup_assets : bool
+        Whether or not to populate AssetFinder caches.  This can speed up
+        initial latency on subsequent pipeline runs, at the cost of extra
+        memory consumption.
     """
     loader = USEquityPricingLoader.from_files(daily_bar_path, adjustments_path)
 
     if not asset_db_path.startswith("sqlite:"):
         asset_db_path = "sqlite:///" + asset_db_path
     asset_finder = AssetFinder(asset_db_path)
+    if warmup_assets:
+        results = asset_finder.retrieve_all(asset_finder.sids)
+        print("Warmed up %d assets." % len(results))
 
     return SimplePipelineEngine(
         lambda _: loader,
