@@ -56,3 +56,10 @@ Documentation
 ~~~~~~~~~~~~~
 
 * Document the release process for developers (:issue:`835`).
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+* Adds :func:`~zipline.utils.test_utils.subtest` decorator for creating subtests
+  without ``nose_parameterized.expand`` which bloats the test output
+  (:issue:`833`).
