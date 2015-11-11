@@ -43,7 +43,7 @@ None
 Build
 ~~~~~
 
-None
+* Makes zipline install requirements more flexible (:issue:`825`).
 
 Documentation
 ~~~~~~~~~~~~~
