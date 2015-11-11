@@ -4,3 +4,5 @@ include LICENSE
 include etc/requirements*.txt
 recursive-include zipline/resources *.*
 recursive-include zipline *.pyx
+include versioneer.py
+include zipline/_version.py

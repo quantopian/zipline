@@ -30,6 +30,8 @@ from setuptools import (
     setup,
 )
 
+import versioneer
+
 
 class LazyCythonizingList(list):
     cythonized = False
@@ -219,7 +221,8 @@ pre_setup()
 
 setup(
     name='zipline',
-    version='0.8.3',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
