@@ -49,6 +49,8 @@ Build
 ~~~~~
 
 * Makes zipline install requirements more flexible (:issue:`825`).
+* Use ``versioneer`` to manage the project ``__version__`` and setup.py version
+  (:issue:`829`).
 
 Documentation
 ~~~~~~~~~~~~~
