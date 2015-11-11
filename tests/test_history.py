@@ -24,23 +24,22 @@ import pandas as pd
 from pandas.util.testing import assert_frame_equal
 from pandas.tseries.tools import normalize_date
 
-from zipline.history import history
-from zipline.history.history_container import HistoryContainer
-from zipline.protocol import BarData
-import zipline.utils.factory as factory
+from .history_cases import (
+    HISTORY_CONTAINER_TEST_CASES,
+)
 from zipline import TradingAlgorithm
+from zipline.errors import HistoryInInitialize, IncompatibleHistoryFrequency
 from zipline.finance import trading
 from zipline.finance.trading import (
     SimulationParameters,
     TradingEnvironment,
 )
-from zipline.errors import HistoryInInitialize, IncompatibleHistoryFrequency
-
+from zipline.history import history
+from zipline.history.history_container import HistoryContainer
+from zipline.protocol import BarData
 from zipline.sources import RandomWalkSource, DataFrameSource
-
-from .history_cases import (
-    HISTORY_CONTAINER_TEST_CASES,
-)
+import zipline.utils.factory as factory
+from zipline.utils.test_utils import subtest
 
 # Cases are over the July 4th holiday, to ensure use of trading calendar.
 
@@ -1475,13 +1474,17 @@ class TestHistoryContainerResize(TestCase):
     def tearDownClass(cls):
         del cls.env
 
-    @parameterized.expand(
-        (freq, field, data_frequency, construct_digest)
-        for freq in ('1m', '1d')
-        for field in HistoryContainer.VALID_FIELDS
-        for data_frequency in ('minute', 'daily')
-        for construct_digest in (True, False)
-        if not (freq == '1m' and data_frequency == 'daily')
+    @subtest(
+        ((freq, field, data_frequency, construct_digest)
+         for freq in ('1m', '1d')
+         for field in HistoryContainer.VALID_FIELDS
+         for data_frequency in ('minute', 'daily')
+         for construct_digest in (True, False)
+         if not (freq == '1m' and data_frequency == 'daily')),
+        'freq',
+        'field',
+        'data_frequency',
+        'construct_digest',
     )
     def test_history_grow_length(self,
                                  freq,
@@ -1547,13 +1550,17 @@ class TestHistoryContainerResize(TestCase):
 
             self.assert_history(container, spec, initial_dt)
 
-    @parameterized.expand(
-        (bar_count, freq, pair, data_frequency)
-        for bar_count in (1, 2)
-        for freq in ('1m', '1d')
-        for pair in product(HistoryContainer.VALID_FIELDS, repeat=2)
-        for data_frequency in ('minute', 'daily')
-        if not (freq == '1m' and data_frequency == 'daily')
+    @subtest(
+        ((bar_count, freq, pair, data_frequency)
+         for bar_count in (1, 2)
+         for freq in ('1m', '1d')
+         for pair in product(HistoryContainer.VALID_FIELDS, repeat=2)
+         for data_frequency in ('minute', 'daily')
+         if not (freq == '1m' and data_frequency == 'daily')),
+        'bar_count',
+        'freq',
+        'pair',
+        'data_frequency',
     )
     def test_history_add_field(self, bar_count, freq, pair, data_frequency):
         first, second = pair
@@ -1609,13 +1616,17 @@ class TestHistoryContainerResize(TestCase):
 
             self.assert_history(container, new_spec, initial_dt)
 
-    @parameterized.expand(
-        (bar_count, pair, field, data_frequency)
-        for bar_count in (1, 2)
-        for pair in product(('1m', '1d'), repeat=2)
-        for field in HistoryContainer.VALID_FIELDS
-        for data_frequency in ('minute', 'daily')
-        if not ('1m' in pair and data_frequency == 'daily')
+    @subtest(
+        ((bar_count, pair, field, data_frequency)
+         for bar_count in (1, 2)
+         for pair in product(('1m', '1d'), repeat=2)
+         for field in HistoryContainer.VALID_FIELDS
+         for data_frequency in ('minute', 'daily')
+         if not ('1m' in pair and data_frequency == 'daily')),
+        'bar_count',
+        'pair',
+        'field',
+        'data_frequency',
     )
     def test_history_add_freq(self, bar_count, pair, field, data_frequency):
         first, second = pair
