@@ -33,7 +33,10 @@ Bug Fixes
 Performance
 ~~~~~~~~~~~
 
-None
+* Speeds up `AssetFinder.lookup_symbol` by adding an extension, 
+`AssetFinderCachedEquities`, that loads equities into dictionaries and
+then directs `lookup_symbol` to these dictionaries to find matching equities
+ (:issue:`830`).
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

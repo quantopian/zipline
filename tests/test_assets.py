@@ -457,6 +457,31 @@ class AssetFinderTestCase(TestCase):
                 self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
+    def test_lookup_symbol_from_multiple_valid(self):
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 1,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2010-01-01'),
+                    'end_date': pd.Timestamp('2013-01-01'),
+                    'exchange': 'NYSE'
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2012-01-01'),
+                    'end_date': pd.Timestamp('2014-01-01'),
+                    'exchange': 'NYSE'
+                }
+            ]
+        )
+        self.env.write_data(equities_df=df)
+        finder = self.asset_finder_type(self.env.engine)
+        result = finder.lookup_symbol('MULTIPLE', pd.Timestamp('2012-05-05'))
+        self.assertEqual(result.symbol, 'MULTIPLE')
+        self.assertEqual(result.sid, 2)
+
     def test_lookup_generic(self):
         """
         Ensure that lookup_generic works with various permutations of inputs.

@@ -196,7 +196,7 @@ class AssetFinder(object):
         cache[sid] = asset
         return asset
 
-    def get_fuzzy_candidates(self, fuzzy_symbol):
+    def _get_fuzzy_candidates(self, fuzzy_symbol):
         candidates = sa.select(
             (self.equities.c.sid,)
         ).where(self.equities.c.fuzzy_symbol == fuzzy_symbol).order_by(
@@ -205,7 +205,7 @@ class AssetFinder(object):
         ).execute().fetchall()
         return candidates
 
-    def get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
+    def _get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
         candidates = sa.select(
             (self.equities.c.sid,)
         ).where(
@@ -220,10 +220,10 @@ class AssetFinder(object):
         ).execute().fetchall()
         return candidates
 
-    def get_split_candidates_in_range(self,
-                                      company_symbol,
-                                      share_class_symbol,
-                                      ad_value):
+    def _get_split_candidates_in_range(self,
+                                       company_symbol,
+                                       share_class_symbol,
+                                       ad_value):
         candidates = sa.select(
             (self.equities.c.sid,)
         ).where(
@@ -239,7 +239,7 @@ class AssetFinder(object):
         ).execute().fetchall()
         return candidates
 
-    def get_split_candidates(self, company_symbol, share_class_symbol):
+    def _get_split_candidates(self, company_symbol, share_class_symbol):
         candidates = sa.select(
             (self.equities.c.sid,)
         ).where(
@@ -253,10 +253,10 @@ class AssetFinder(object):
         ).execute().fetchall()
         return candidates
 
-    def resolve_no_matching_candidates(self,
-                                       company_symbol,
-                                       share_class_symbol,
-                                       ad_value):
+    def _resolve_no_matching_candidates(self,
+                                        company_symbol,
+                                        share_class_symbol,
+                                        ad_value):
         candidates = sa.select((self.equities.c.sid,)).where(
             sa.and_(
                 self.equities.c.company_symbol == company_symbol,
@@ -268,10 +268,10 @@ class AssetFinder(object):
             ).execute().fetchall()
         return candidates
 
-    def get_best_candidate(self, candidates):
+    def _get_best_candidate(self, candidates):
         return self._retrieve_equity(candidates[0]['sid'])
 
-    def get_equities_from_candidates(self, candidates):
+    def _get_equities_from_candidates(self, candidates):
         return list(map(
             compose(self._retrieve_equity, itemgetter('sid')),
             candidates,
@@ -296,35 +296,37 @@ class AssetFinder(object):
 
             if fuzzy:
                 # Search for a single exact match on the fuzzy column
-                candidates = self.get_fuzzy_candidates_in_range(fuzzy_symbol,
-                                                                ad_value)
+                candidates = self._get_fuzzy_candidates_in_range(fuzzy_symbol,
+                                                                 ad_value)
 
                 # If exactly one SID exists for fuzzy_symbol, return that sid
                 if len(candidates) == 1:
-                    return self.get_best_candidate(candidates)
+                    return self._get_best_candidate(candidates)
 
             # Search for exact matches of the split-up company_symbol and
             # share_class_symbol
-            candidates = self.get_split_candidates_in_range(company_symbol,
-                                                            share_class_symbol,
-                                                            ad_value)
+            candidates = self._get_split_candidates_in_range(
+                company_symbol,
+                share_class_symbol,
+                ad_value
+            )
 
             # If exactly one SID exists for symbol, return that symbol
             # If multiple SIDs exist for symbol, return latest start_date with
             # end_date as a tie-breaker
             if candidates:
-                return self.get_best_candidate(candidates)
+                return self._get_best_candidate(candidates)
 
             # If no SID exists for symbol, return SID with the
             # highest-but-not-over end_date
             elif not candidates:
-                candidates = self.resolve_no_matching_candidates(
+                candidates = self._resolve_no_matching_candidates(
                     company_symbol,
                     share_class_symbol,
                     ad_value
                 )
                 if candidates:
-                    return self.get_best_candidate(candidates)
+                    return self._get_best_candidate(candidates)
 
             raise SymbolNotFound(symbol=symbol)
 
@@ -332,20 +334,20 @@ class AssetFinder(object):
             # If this is a fuzzy look-up, check if there is exactly one match
             # for the fuzzy symbol
             if fuzzy:
-                candidates = self.get_fuzzy_candidates(fuzzy_symbol)
+                candidates = self._get_fuzzy_candidates(fuzzy_symbol)
                 if len(candidates) == 1:
-                    return self.get_best_candidate(candidates)
+                    return self._get_best_candidate(candidates)
 
-            candidates = self.get_split_candidates(company_symbol,
-                                                   share_class_symbol)
+            candidates = self._get_split_candidates(company_symbol,
+                                                    share_class_symbol)
             if len(candidates) == 1:
-                return self.get_best_candidate(candidates)
+                return self._get_best_candidate(candidates)
             elif not candidates:
                 raise SymbolNotFound(symbol=symbol)
             else:
                 raise MultipleSymbolsFound(
                     symbol=symbol,
-                    options=self.get_equities_from_candidates(candidates)
+                    options=self._get_equities_from_candidates(candidates)
                 )
 
     def lookup_future_symbol(self, symbol):
@@ -741,9 +743,9 @@ class AssetFinderCachedEquities(AssetFinder):
         self.fuzzy_symbol_hashed_equities = {}
         self.company_share_class_hashed_equities = {}
         self.hashed_equities = sa.select(self.equities.c).execute().fetchall()
-        self.load_hashed_equities()
+        self._load_hashed_equities()
 
-    def load_hashed_equities(self):
+    def _load_hashed_equities(self):
         """
         Populates two maps - fuzzy symbol to list of equities having that
         fuzzy symbol and company symbol/share class symbol to list of
@@ -753,7 +755,7 @@ class AssetFinderCachedEquities(AssetFinder):
             company_symbol = equity['company_symbol']
             share_class_symbol = equity['share_class_symbol']
             fuzzy_symbol = equity['fuzzy_symbol']
-            asset = self.convert_row_to_equity(equity)
+            asset = self._convert_row_to_equity(equity)
             self.company_share_class_hashed_equities.setdefault(
                 (company_symbol, share_class_symbol),
                 []
@@ -762,7 +764,7 @@ class AssetFinderCachedEquities(AssetFinder):
                 fuzzy_symbol, []
             ).append(asset)
 
-    def convert_row_to_equity(self, equity):
+    def _convert_row_to_equity(self, equity):
         """
         Converts a SQLAlchemy equity row to an Equity object.
         """
@@ -771,13 +773,13 @@ class AssetFinderCachedEquities(AssetFinder):
         asset = Equity(**data)
         return asset
 
-    def get_fuzzy_candidates(self, fuzzy_symbol):
+    def _get_fuzzy_candidates(self, fuzzy_symbol):
         if fuzzy_symbol in self.fuzzy_symbol_hashed_equities:
             return self.fuzzy_symbol_hashed_equities[fuzzy_symbol]
         return []
 
-    def get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
-        equities = self.get_fuzzy_candidates(fuzzy_symbol)
+    def _get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
+        equities = self._get_fuzzy_candidates(fuzzy_symbol)
         fuzzy_candidates = []
         for equity in equities:
             if (equity.start_date.value <=
@@ -786,18 +788,18 @@ class AssetFinderCachedEquities(AssetFinder):
                 fuzzy_candidates.append(equity)
         return fuzzy_candidates
 
-    def get_split_candidates(self, company_symbol, share_class_symbol):
+    def _get_split_candidates(self, company_symbol, share_class_symbol):
         if (company_symbol, share_class_symbol) in \
                 self.company_share_class_hashed_equities:
             return self.company_share_class_hashed_equities[(
                 company_symbol, share_class_symbol)]
         return []
 
-    def get_split_candidates_in_range(self,
-                                      company_symbol,
-                                      share_class_symbol,
-                                      ad_value):
-        equities = self.get_split_candidates(
+    def _get_split_candidates_in_range(self,
+                                       company_symbol,
+                                       share_class_symbol,
+                                       ad_value):
+        equities = self._get_split_candidates(
             company_symbol, share_class_symbol
         )
         best_candidates = []
@@ -814,11 +816,11 @@ class AssetFinderCachedEquities(AssetFinder):
             )
         return best_candidates
 
-    def resolve_no_matching_candidates(self,
-                                       company_symbol,
-                                       share_class_symbol,
-                                       ad_value):
-        equities = self.get_split_candidates(
+    def _resolve_no_matching_candidates(self,
+                                        company_symbol,
+                                        share_class_symbol,
+                                        ad_value):
+        equities = self._get_split_candidates(
             company_symbol, share_class_symbol
         )
         partial_candidates = []
@@ -833,8 +835,8 @@ class AssetFinderCachedEquities(AssetFinder):
             )
         return partial_candidates
 
-    def get_best_candidate(self, candidates):
+    def _get_best_candidate(self, candidates):
         return candidates[0]
 
-    def get_equities_from_candidates(self, candidates):
+    def _get_equities_from_candidates(self, candidates):
         return candidates
