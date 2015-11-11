@@ -245,6 +245,9 @@ class CustomTermMixin(object):
         out[~mask] = nan
         return out
 
+    def short_repr(self):
+        return type(self).__name__ + '(%d)' % self.window_length
+
 
 class CompositeTerm(Term):
     inputs = NotSpecified
