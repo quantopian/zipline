@@ -9,3 +9,4 @@ Index
    beginner-tutorial
    releases
    appendix
+   release-process
