@@ -909,14 +909,10 @@ class AssetFinderCachedEquities(AssetFinder):
         return self.fuzzy_symbol_hashed_equities.get(fuzzy_symbol, ())
 
     def _get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
-        equities = self._get_fuzzy_candidates(fuzzy_symbol)
-        fuzzy_candidates = []
-        for equity in equities:
-            if (equity.start_date.value <=
-                    ad_value <=
-                    equity.end_date.value):
-                fuzzy_candidates.append(equity)
-        return fuzzy_candidates
+        return only_active_assets(
+            ad_value,
+            self._get_fuzzy_candidates(fuzzy_symbol),
+        )
 
     def _get_split_candidates(self, company_symbol, share_class_symbol):
         return self.company_share_class_hashed_equities.get(
@@ -928,22 +924,14 @@ class AssetFinderCachedEquities(AssetFinder):
                                        company_symbol,
                                        share_class_symbol,
                                        ad_value):
-        equities = self._get_split_candidates(
-            company_symbol, share_class_symbol
+        return sorted(
+            only_active_assets(
+                ad_value,
+                self._get_split_candidates(company_symbol, share_class_symbol),
+            ),
+            key=lambda x: (x.start_date, x.end_date),
+            reverse=True,
         )
-        best_candidates = []
-        for equity in equities:
-            if (equity.start_date.value <=
-                    ad_value <=
-                    equity.end_date.value):
-                best_candidates.append(equity)
-        if best_candidates:
-            best_candidates = sorted(
-                best_candidates,
-                key=lambda x: (x.start_date, x.end_date),
-                reverse=True
-            )
-        return best_candidates
 
     def _resolve_no_matching_candidates(self,
                                         company_symbol,
@@ -969,3 +957,51 @@ class AssetFinderCachedEquities(AssetFinder):
 
     def _get_equities_from_candidates(self, candidates):
         return candidates
+
+
+def was_active(reference_date_value, asset):
+    """
+    Whether or not `asset` was active at the time corresponding to
+    `reference_date_value`.
+
+    Parameters
+    ----------
+    reference_date_value : int
+        Date, represented as nanoseconds since EPOCH, for which we want to know
+        if `asset` was alive.  This is generally the result of accessing the
+        `value` attribute of a pandas Timestamp.
+    asset : Asset
+        The asset object to check.
+
+    Returns
+    -------
+    was_active : bool
+        Whether or not the `asset` existed at the specified time.
+    """
+    return (
+        asset.start_date.value
+        <= reference_date_value
+        <= asset.end_date.value
+    )
+
+
+def only_active_assets(reference_date_value, assets):
+    """
+    Filter an iterable of Asset objects down to just assets that were alive at
+    the time corresponding to `reference_date_value`.
+
+    Parameters
+    ----------
+    reference_date_value : int
+        Date, represented as nanoseconds since EPOCH, for which we want to know
+        if `asset` was alive.  This is generally the result of accessing the
+        `value` attribute of a pandas Timestamp.
+    assets : iterable[Asset]
+        The assets to filter.
+
+    Returns
+    -------
+    active_assets : list
+        List of the active assets from `assets` on the requested date.
+    """
+    return [a for a in assets if was_active(reference_date_value, a)]
