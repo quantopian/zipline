@@ -55,4 +55,4 @@ Build
 Documentation
 ~~~~~~~~~~~~~
 
-None
+* Document the release process for developers (:issue:`835`).
