@@ -20,7 +20,6 @@ from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas import isnull
-from pandas.tseries.tools import normalize_date
 from six import with_metaclass, string_types, viewkeys
 from six.moves import map as imap
 import sqlalchemy as sa
@@ -442,7 +441,7 @@ class AssetFinder(object):
             split_delimited_symbol(symbol)
         if as_of_date:
             # Format inputs
-            as_of_date = pd.Timestamp(normalize_date(as_of_date))
+            as_of_date = pd.Timestamp(as_of_date).normalize()
             ad_value = as_of_date.value
 
             if fuzzy:
