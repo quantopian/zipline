@@ -906,9 +906,7 @@ class AssetFinderCachedEquities(AssetFinder):
         return Equity(**_convert_asset_timestamp_fields(dict(row)))
 
     def _get_fuzzy_candidates(self, fuzzy_symbol):
-        if fuzzy_symbol in self.fuzzy_symbol_hashed_equities:
-            return self.fuzzy_symbol_hashed_equities[fuzzy_symbol]
-        return []
+        return self.fuzzy_symbol_hashed_equities.get(fuzzy_symbol, ())
 
     def _get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
         equities = self._get_fuzzy_candidates(fuzzy_symbol)
@@ -921,11 +919,10 @@ class AssetFinderCachedEquities(AssetFinder):
         return fuzzy_candidates
 
     def _get_split_candidates(self, company_symbol, share_class_symbol):
-        if (company_symbol, share_class_symbol) in \
-                self.company_share_class_hashed_equities:
-            return self.company_share_class_hashed_equities[(
-                company_symbol, share_class_symbol)]
-        return []
+        return self.company_share_class_hashed_equities.get(
+            (company_symbol, share_class_symbol),
+            (),
+        )
 
     def _get_split_candidates_in_range(self,
                                        company_symbol,
