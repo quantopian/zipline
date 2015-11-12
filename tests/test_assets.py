@@ -16,12 +16,11 @@
 """
 Tests for the zipline.assets package
 """
-
-import sys
-from unittest import TestCase
-
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 import pickle
+import sys
+from unittest import TestCase
 import uuid
 import warnings
 
@@ -29,14 +28,20 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 from pandas.util.testing import assert_frame_equal
 
-from nose_parameterized import parameterized
 from numpy import full
 
-from zipline.assets import Asset, Equity, Future, AssetFinder
+from zipline.assets import (
+    Asset,
+    Equity,
+    Future,
+    AssetFinder,
+    AssetFinderCachedEquities
+)
+
 from zipline.assets.futures import (
     cme_code_to_month,
     FutureChain,
-    month_to_cme_code,
+    month_to_cme_code
 )
 from zipline.errors import (
     SymbolNotFound,
@@ -48,12 +53,15 @@ from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
     all_subindices,
     make_rotating_asset_info,
+    tmp_assets_db
 )
 
 
-def build_lookup_generic_cases():
+@contextmanager
+def build_lookup_generic_cases(asset_finder_type):
     """
-    Generate test cases for AssetFinder test_lookup_generic.
+    Generate test cases for the type of asset finder specific by
+    asset_finder_type for test_lookup_generic.
     """
 
     unique_start = pd.Timestamp('2013-01-01', tz='UTC')
@@ -90,54 +98,52 @@ def build_lookup_generic_cases():
             },
         ],
         index='sid')
-    env = TradingEnvironment()
-    env.write_data(equities_df=frame)
-    finder = env.asset_finder
-    dupe_0, dupe_1, unique = assets = [
-        finder.retrieve_asset(i)
-        for i in range(3)
-    ]
+    with tmp_assets_db(frame) as assets_db:
+        finder = asset_finder_type(assets_db)
+        dupe_0, dupe_1, unique = assets = [
+            finder.retrieve_asset(i)
+            for i in range(3)
+        ]
 
-    dupe_0_start = dupe_0.start_date
-    dupe_1_start = dupe_1.start_date
-    cases = [
-        ##
-        # Scalars
+        dupe_0_start = dupe_0.start_date
+        dupe_1_start = dupe_1.start_date
+        yield (
+            ##
+            # Scalars
 
-        # Asset object
-        (finder, assets[0], None, assets[0]),
-        (finder, assets[1], None, assets[1]),
-        (finder, assets[2], None, assets[2]),
-        # int
-        (finder, 0, None, assets[0]),
-        (finder, 1, None, assets[1]),
-        (finder, 2, None, assets[2]),
-        # Duplicated symbol with resolution date
-        (finder, 'DUPLICATED', dupe_0_start, dupe_0),
-        (finder, 'DUPLICATED', dupe_1_start, dupe_1),
-        # Unique symbol, with or without resolution date.
-        (finder, 'UNIQUE', unique_start, unique),
-        (finder, 'UNIQUE', None, unique),
+            # Asset object
+            (finder, assets[0], None, assets[0]),
+            (finder, assets[1], None, assets[1]),
+            (finder, assets[2], None, assets[2]),
+            # int
+            (finder, 0, None, assets[0]),
+            (finder, 1, None, assets[1]),
+            (finder, 2, None, assets[2]),
+            # Duplicated symbol with resolution date
+            (finder, 'DUPLICATED', dupe_0_start, dupe_0),
+            (finder, 'DUPLICATED', dupe_1_start, dupe_1),
+            # Unique symbol, with or without resolution date.
+            (finder, 'UNIQUE', unique_start, unique),
+            (finder, 'UNIQUE', None, unique),
 
-        ##
-        # Iterables
+            ##
+            # Iterables
 
-        # Iterables of Asset objects.
-        (finder, assets, None, assets),
-        (finder, iter(assets), None, assets),
-        # Iterables of ints
-        (finder, (0, 1), None, assets[:-1]),
-        (finder, iter((0, 1)), None, assets[:-1]),
-        # Iterables of symbols.
-        (finder, ('DUPLICATED', 'UNIQUE'), dupe_0_start, [dupe_0, unique]),
-        (finder, ('DUPLICATED', 'UNIQUE'), dupe_1_start, [dupe_1, unique]),
-        # Mixed types
-        (finder,
-         ('DUPLICATED', 2, 'UNIQUE', 1, dupe_1),
-         dupe_0_start,
-         [dupe_0, assets[2], unique, assets[1], dupe_1]),
-    ]
-    return cases
+            # Iterables of Asset objects.
+            (finder, assets, None, assets),
+            (finder, iter(assets), None, assets),
+            # Iterables of ints
+            (finder, (0, 1), None, assets[:-1]),
+            (finder, iter((0, 1)), None, assets[:-1]),
+            # Iterables of symbols.
+            (finder, ('DUPLICATED', 'UNIQUE'), dupe_0_start, [dupe_0, unique]),
+            (finder, ('DUPLICATED', 'UNIQUE'), dupe_1_start, [dupe_1, unique]),
+            # Mixed types
+            (finder,
+             ('DUPLICATED', 2, 'UNIQUE', 1, dupe_1),
+             dupe_0_start,
+             [dupe_0, assets[2], unique, assets[1], dupe_1]),
+        )
 
 
 class AssetTestCase(TestCase):
@@ -339,6 +345,7 @@ class AssetFinderTestCase(TestCase):
 
     def setUp(self):
         self.env = TradingEnvironment(load=noop_load)
+        self.asset_finder_type = AssetFinder
 
     def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
@@ -356,7 +363,7 @@ class AssetFinderTestCase(TestCase):
             ]
         )
         self.env.write_data(equities_df=frame)
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         asset_0, asset_1, asset_2 = (
             finder.retrieve_asset(i) for i in range(3)
         )
@@ -435,7 +442,7 @@ class AssetFinderTestCase(TestCase):
             ]
         )
         self.env.write_data(equities_df=df)
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         for _ in range(2):  # Run checks twice to test for caching bugs.
             with self.assertRaises(SymbolNotFound):
                 finder.lookup_symbol('NON_EXISTING', dates[0])
@@ -450,16 +457,41 @@ class AssetFinderTestCase(TestCase):
                 self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
-    @parameterized.expand(
-        build_lookup_generic_cases()
-    )
-    def test_lookup_generic(self, finder, symbols, reference_date, expected):
+    def test_lookup_symbol_from_multiple_valid(self):
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 1,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2010-01-01'),
+                    'end_date': pd.Timestamp('2013-01-01'),
+                    'exchange': 'NYSE'
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2012-01-01'),
+                    'end_date': pd.Timestamp('2014-01-01'),
+                    'exchange': 'NYSE'
+                }
+            ]
+        )
+        self.env.write_data(equities_df=df)
+        finder = self.asset_finder_type(self.env.engine)
+        result = finder.lookup_symbol('MULTIPLE', pd.Timestamp('2012-05-05'))
+        self.assertEqual(result.symbol, 'MULTIPLE')
+        self.assertEqual(result.sid, 2)
+
+    def test_lookup_generic(self):
         """
         Ensure that lookup_generic works with various permutations of inputs.
         """
-        results, missing = finder.lookup_generic(symbols, reference_date)
-        self.assertEqual(results, expected)
-        self.assertEqual(missing, [])
+        with build_lookup_generic_cases(self.asset_finder_type) as cases:
+            for finder, symbols, reference_date, expected in cases:
+                results, missing = finder.lookup_generic(symbols,
+                                                         reference_date)
+                self.assertEqual(results, expected)
+                self.assertEqual(missing, [])
 
     def test_lookup_generic_handle_missing(self):
         data = pd.DataFrame.from_records(
@@ -499,7 +531,7 @@ class AssetFinderTestCase(TestCase):
             ]
         )
         self.env.write_data(equities_df=data)
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         results, missing = finder.lookup_generic(
             ['REAL', 1, 'FAKE', 'REAL_BUT_OLD', 'REAL_BUT_IN_THE_FUTURE'],
             pd.Timestamp('2013-02-01', tz='UTC'),
@@ -523,7 +555,7 @@ class AssetFinderTestCase(TestCase):
                     'symbol': "PLAY",
                     'foo_data': "FOO"}}
         self.env.write_data(equities_data=data)
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         # Test proper insertion
         equity = finder.retrieve_asset(0)
         self.assertIsInstance(equity, Equity)
@@ -541,7 +573,7 @@ class AssetFinderTestCase(TestCase):
         dict_to_consume = {0: {'symbol': 'PLAY'},
                            1: {'symbol': 'MSFT'}}
         self.env.write_data(equities_data=dict_to_consume)
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
 
         equity = finder.retrieve_asset(0)
         self.assertIsInstance(equity, Equity)
@@ -555,7 +587,7 @@ class AssetFinderTestCase(TestCase):
         df['exchange'][1] = "NYSE"
         self.env = TradingEnvironment(load=noop_load)
         self.env.write_data(equities_df=df)
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         self.assertEqual('NASDAQ', finder.retrieve_asset(0).exchange)
         self.assertEqual('Microsoft', finder.retrieve_asset(1).asset_name)
 
@@ -571,7 +603,7 @@ class AssetFinderTestCase(TestCase):
         # Consume the Assets
         self.env.write_data(equities_identifiers=[equity_asset],
                             futures_identifiers=[future_asset])
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
 
         # Test equality with newly built Assets
         self.assertEqual(equity_asset, finder.retrieve_asset(1))
@@ -591,7 +623,7 @@ class AssetFinderTestCase(TestCase):
                             allow_sid_assignment=True)
 
         # Verify that Assets were built and different sids were assigned
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         play = finder.lookup_symbol('PLAY', today)
         msft = finder.lookup_symbol('MSFT', today)
         self.assertEqual('PLAY', play.symbol)
@@ -678,7 +710,7 @@ class AssetFinderTestCase(TestCase):
             },
         }
         self.env.write_data(futures_data=metadata)
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         dt = pd.Timestamp('2015-05-14', tz='UTC')
         dt_2 = pd.Timestamp('2015-10-14', tz='UTC')
         dt_3 = pd.Timestamp('2016-11-17', tz='UTC')
@@ -712,7 +744,7 @@ class AssetFinderTestCase(TestCase):
     def test_map_identifier_index_to_sids(self):
         # Build an empty finder and some Assets
         dt = pd.Timestamp('2014-01-01', tz='UTC')
-        finder = AssetFinder(self.env.engine)
+        finder = self.asset_finder_type(self.env.engine)
         asset1 = Equity(1, symbol="AAPL")
         asset2 = Equity(2, symbol="GOOG")
         asset200 = Future(200, symbol="CLK15")
@@ -798,6 +830,13 @@ class AssetFinderTestCase(TestCase):
         self.assertTrue(1 in sids)
         self.assertTrue(2 in sids)
         self.assertTrue(3 in sids)
+
+
+class AssetFinderCachedEquitiesTestCase(AssetFinderTestCase):
+
+    def setUp(self):
+        self.env = TradingEnvironment(load=noop_load)
+        self.asset_finder_type = AssetFinderCachedEquities
 
 
 class TestFutureChain(TestCase):
