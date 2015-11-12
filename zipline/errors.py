@@ -439,3 +439,15 @@ class PositionTrackerMissingAssetFinder(ZiplineError):
         "not have an AssetFinder. This may be caused by a failure to properly "
         "de-serialize a TradingAlgorithm."
     )
+
+
+class AssetDBVersionError(ZiplineError):
+    """
+    Raised by an AssetDBWriter or AssetFinder if the version number in the
+    versions table does not match the ASSET_DB_VERSION in asset_writer.py.
+    """
+    msg = (
+        "The existing Asset database has an incorrect version: {db_version}. "
+        "Expected version: {expected_version}. Try rebuilding your asset "
+        "database or updating your version of Zipline."
+    )

@@ -29,25 +29,32 @@ from pandas.tseries.tools import normalize_date
 from pandas.util.testing import assert_frame_equal
 
 from numpy import full
+import sqlalchemy as sa
 
 from zipline.assets import (
     Asset,
     Equity,
     Future,
     AssetFinder,
-    AssetFinderCachedEquities
+    AssetFinderCachedEquities,
 )
-
 from zipline.assets.futures import (
     cme_code_to_month,
     FutureChain,
     month_to_cme_code
+)
+from zipline.assets.asset_writer import (
+    check_version_info,
+    write_version_info,
+    ASSET_DB_VERSION,
+    _version_table_schema,
 )
 from zipline.errors import (
     SymbolNotFound,
     MultipleSymbolsFound,
     SidAssignmentError,
     RootSymbolNotFound,
+    AssetDBVersionError,
 )
 from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
@@ -1082,3 +1089,46 @@ class TestFutureChain(TestCase):
         }
         for key in codes:
             self.assertEqual(codes[key], month_to_cme_code(key))
+
+
+class TestAssetDBVersioning(TestCase):
+
+    def test_check_version(self):
+        env = TradingEnvironment(load=noop_load)
+        version_table = env.asset_finder.version_info
+
+        # This should not raise an error
+        check_version_info(version_table, ASSET_DB_VERSION)
+
+        # This should fail because the version is too low
+        with self.assertRaises(AssetDBVersionError):
+            check_version_info(version_table, ASSET_DB_VERSION - 1)
+
+        # This should fail because the version is too high
+        with self.assertRaises(AssetDBVersionError):
+            check_version_info(version_table, ASSET_DB_VERSION + 1)
+
+    def test_write_version(self):
+        env = TradingEnvironment(load=noop_load)
+        metadata = sa.MetaData(bind=env.engine)
+        version_table = _version_table_schema(metadata)
+        version_table.delete().execute()
+
+        # Assert that the version is not present in the table
+        self.assertIsNone(sa.select((version_table.c.version,)).scalar())
+
+        # This should fail because the table has no version info and is,
+        # therefore, consdered v0
+        with self.assertRaises(AssetDBVersionError):
+            check_version_info(version_table, -2)
+
+        # This should not raise an error because the version has been written
+        write_version_info(version_table, -2)
+        check_version_info(version_table, -2)
+
+        # Assert that the version is in the table and correct
+        self.assertEqual(sa.select((version_table.c.version,)).scalar(), -2)
+
+        # Assert that trying to overwrite the version fails
+        with self.assertRaises(sa.exc.IntegrityError):
+            write_version_info(version_table, -3)

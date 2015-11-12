@@ -46,7 +46,8 @@ then directs `lookup_symbol` to these dictionaries to find matching equities
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-None
+* Asset databases now contain version information to ensure compatibility
+  with current Zipline version (:issue:`815`).
 
 Build
 ~~~~~
