@@ -28,6 +28,6 @@ before_script:
   - pip freeze | sort
   - "flake8 zipline tests"
 script:
-  - nosetests --with-timer --exclude=^test_examples --with-coverage --cover-package=zipline
+  - nosetests --with-timer --exclude=^test_examples --with-coverage --cover-package=zipline --timer-top-n=15
 after_success:
   - coveralls
