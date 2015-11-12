@@ -366,7 +366,7 @@ class tmp_assets_db(object):
     """Create a temporary assets sqlite database.
     This is meant to be used as a context manager.
 
-    Paramaters
+    Parameters
     ----------
     data : pd.DataFrame, optional
         The data to feed to the writer. By default this maps:
@@ -395,7 +395,7 @@ class tmp_assets_db(object):
 class tmp_asset_finder(tmp_assets_db):
     """Create a temporary asset finder using an in memory sqlite db.
 
-    Paramaters
+    Parameters
     ----------
     data : dict, optional
         The data to feed to the writer
@@ -426,7 +426,7 @@ def subtest(iterator, *_names):
     the rest of the tests will be run. Finally, if any failed, all of the
     results will be dumped as one failure.
 
-    Paramaters
+    Parameters
     ----------
     iterator : iterable[iterable]
         The iterator of arguments to pass to the function.
@@ -445,13 +445,13 @@ def subtest(iterator, *_names):
                # Example usage inside another test.
                @subtest(([n] for n in range(100000)), 'n')
                def subtest(n):
-                   self.assertEqual(n % 2, 0, 'n what not even')
+                   self.assertEqual(n % 2, 0, 'n was not even')
                subtest()
 
            @subtest(([n] for n in range(100000)), 'n')
            def test_decorated_function(self, n):
-               # Example usage to paramaterize an entire function.
-               self.assertEqual(n % 2, 1, 'n what not odd')
+               # Example usage to parameterize an entire function.
+               self.assertEqual(n % 2, 1, 'n was not odd')
 
     Notes
     -----
@@ -461,7 +461,7 @@ def subtest(iterator, *_names):
     * Have a large parameter space we are testing
       (see tests/utils/test_events.py).
 
-    ``nose_paramaterized.expand`` will create a test for each parameter
+    ``nose_parameterized.expand`` will create a test for each parameter
     combination which bloats the test output and makes the travis pages slow.
 
     We cannot use ``unittest2.TestCase.subTest`` because nose, pytest, and
