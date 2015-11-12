@@ -900,14 +900,11 @@ class AssetFinderCachedEquities(AssetFinder):
                 fuzzy_symbol, []
             ).append(asset)
 
-    def _convert_row_to_equity(self, equity):
+    def _convert_row_to_equity(self, row):
         """
         Converts a SQLAlchemy equity row to an Equity object.
         """
-        data = dict(equity.items())
-        _convert_asset_timestamp_fields(data)
-        asset = Equity(**data)
-        return asset
+        return Equity(**_convert_asset_timestamp_fields(dict(row)))
 
     def _get_fuzzy_candidates(self, fuzzy_symbol):
         if fuzzy_symbol in self.fuzzy_symbol_hashed_equities:
