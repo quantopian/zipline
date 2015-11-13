@@ -144,7 +144,8 @@ def calc_period_stats(pos_stats, starting_cash, starting_value,
         ending_cash=ending_cash,
         pnl=pnl,
         returns=returns,
-        portfolio_value=portfolio_value)
+        portfolio_value=portfolio_value
+    )
 
 
 class PerformancePeriod(object):
@@ -157,7 +158,8 @@ class PerformancePeriod(object):
             period_close=None,
             keep_transactions=True,
             keep_orders=False,
-            serialize_positions=True):
+            serialize_positions=True,
+            name=None):
 
         self.asset_finder = asset_finder
 
@@ -176,6 +178,8 @@ class PerformancePeriod(object):
         self.processed_transactions = {}
         self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
+
+        self.name = None
 
         # An object to recycle via assigning new values
         # when returning portfolio information.
@@ -204,9 +208,9 @@ class PerformancePeriod(object):
     def handle_cash_payment(self, payment_amount):
         self.adjust_cash(payment_amount)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, cost):
         # Deduct from our total cash pool.
-        self.adjust_cash(-commission.cost)
+        self.adjust_cash(-cost)
 
     def adjust_cash(self, amount):
         self.period_cash_flow += amount

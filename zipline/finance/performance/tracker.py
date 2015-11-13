@@ -140,7 +140,8 @@ class PerformanceTracker(object):
             keep_orders=False,
             # don't serialize positions for cumulative period
             serialize_positions=False,
-            asset_finder=self.env.asset_finder
+            asset_finder=self.env.asset_finder,
+            name="Cumulative"
         )
 
         # this performance period will span just the current market day
@@ -153,7 +154,8 @@ class PerformanceTracker(object):
             keep_transactions=True,
             keep_orders=True,
             serialize_positions=True,
-            asset_finder=self.env.asset_finder
+            asset_finder=self.env.asset_finder,
+            name="Daily"
         )
 
         self.saved_dt = self.period_start
@@ -163,6 +165,8 @@ class PerformanceTracker(object):
 
         self.account_needs_update = True
         self._account = None
+
+        self._perf_periods = None
 
     @property
     def perf_periods(self):
@@ -273,11 +277,11 @@ class PerformanceTracker(object):
             self.cumulative_performance.handle_cash_payment(cash_adjustment)
             self.todays_performance.handle_cash_payment(cash_adjustment)
 
-    def process_transaction(self, event):
+    def process_transaction(self, transaction):
         self.txn_count += 1
-        self.position_tracker.execute_transaction(event)
-        self.cumulative_performance.handle_execution(event)
-        self.todays_performance.handle_execution(event)
+        self.position_tracker.execute_transaction(transaction)
+        self.cumulative_performance.handle_execution(transaction)
+        self.todays_performance.handle_execution(transaction)
 
     def handle_splits(self, splits):
         leftover_cash = self.position_tracker.handle_splits(splits)
@@ -289,10 +293,13 @@ class PerformanceTracker(object):
         self.cumulative_performance.record_order(event)
         self.todays_performance.record_order(event)
 
-    def process_commission(self, event):
-        self.position_tracker.handle_commission(event)
-        self.cumulative_performance.handle_commission(event)
-        self.todays_performance.handle_commission(event)
+    def process_commission(self, commission):
+        sid = commission["sid"]
+        cost = commission["cost"]
+
+        self.position_tracker.handle_commission(sid, cost)
+        self.cumulative_performance.handle_commission(cost)
+        self.todays_performance.handle_commission(cost)
 
     def process_close_position(self, event):
         txn = self.position_tracker.\

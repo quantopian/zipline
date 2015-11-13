@@ -298,7 +298,7 @@ class FinanceTestCase(TestCase):
                             order_date = order_date + timedelta(days=1)
                             order_date = order_date.replace(hour=14, minute=30)
                 else:
-                    txns = blotter.process_open_orders(tick, data_portal)
+                    txns = blotter.get_transactions(tick, data_portal)
                     for txn in txns:
                         tracker.process_transaction(txn)
                         transactions.append(txn)

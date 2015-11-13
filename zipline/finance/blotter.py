@@ -193,11 +193,7 @@ class Blotter(object):
             for order in orders_to_modify:
                 order.handle_split(split[1])
 
-    def process_benchmark(self, benchmark_event):
-        return
-        yield
-
-    def process_open_orders(self, current_dt, data_portal):
+    def get_transactions(self, data_portal):
         """
         Creates a list of transactions based on the current open orders,
         slippage model, and commission model.
@@ -222,12 +218,12 @@ class Blotter(object):
 
         for asset, asset_orders in iteritems(self.open_orders):
             price = data_portal.get_spot_value(
-                asset, 'close', current_dt)
+                asset, 'close', self.current_dt)
 
             volume = data_portal.get_spot_value(
-                asset, 'volume', current_dt)
+                asset, 'volume', self.current_dt)
 
-            for order, txn in self.slippage_func(asset_orders, current_dt,
+            for order, txn in self.slippage_func(asset_orders, self.current_dt,
                                                  price, volume):
                 direction = math.copysign(1, txn.amount)
                 per_share, total_commission = self.commission.calculate(txn)
@@ -262,7 +258,7 @@ class Blotter(object):
             if len(self.open_orders[sid]) == 0:
                 del self.open_orders[sid]
 
-        return transactions
+        return transactions, None
 
     def __getstate__(self):
 

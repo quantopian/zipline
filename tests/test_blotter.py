@@ -154,7 +154,7 @@ class BlotterTestCase(TestCase):
         blotter = Blotter()   # Reset for paranoia
         filled_id = blotter.order(24, 100, MarketOrder())
         filled_order = None
-        for txn in blotter.process_open_orders(
+        for txn in blotter.get_transactions(
                 self.sim_params.trading_days[-1],
                 self.data_portal):
             filled_order = blotter.orders[txn.order_id]
@@ -217,7 +217,7 @@ class BlotterTestCase(TestCase):
             held_order = blotter.new_orders[0]
 
             filled_order = None
-            for txn in blotter.process_open_orders(dt, self.data_portal):
+            for txn in blotter.get_transactions(dt, self.data_portal):
                 filled_order = blotter.orders[txn.order_id]
 
             self.assertEqual(filled_order.id, held_order.id)

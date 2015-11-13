@@ -109,14 +109,19 @@ class AlgorithmSimulator(object):
             blotter = algo.blotter
             perf_tracker = algo.perf_tracker
 
-            new_transactions = blotter.process_open_orders(dt_to_use,
-                                                           data_portal)
+            new_transactions, new_commissions = \
+                blotter.get_transactions(data_portal)
+
             for transaction in new_transactions:
                 perf_tracker.process_transaction(transaction)
 
                 # since this order was modified, record it
                 order = blotter.orders[transaction.order_id]
                 perf_tracker.process_order(order)
+
+            if new_commissions:
+                for commission in new_commissions:
+                    perf_tracker.process_commission(commission)
 
             handle_data(algo, current_data, dt_to_use)
 
