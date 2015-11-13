@@ -69,3 +69,6 @@ Miscellaneous
   without ``nose_parameterized.expand`` which bloats the test output
   (:issue:`833`).
 * Limits timer report in test output to 15 longest tests (:issue:`838`).
+* Treasury and benchmark downloads will now wait up to an hour to download
+  again if data returned from a remote source does not extend to the date
+  expected. (:issue:`841`).
