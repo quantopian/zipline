@@ -514,8 +514,12 @@ class tmp_asset_finder(tmp_assets_db):
     data : dict, optional
         The data to feed to the writer
     """
+    def __init__(self, finder_cls=AssetFinder, **frames):
+        self._finder_cls = finder_cls
+        super(tmp_asset_finder, self).__init__(**frames)
+
     def __enter__(self):
-        return AssetFinder(super(tmp_asset_finder, self).__enter__())
+        return self._finder_cls(super(tmp_asset_finder, self).__enter__())
 
 
 class SubTestFailures(AssertionError):

@@ -475,29 +475,72 @@ class AssetFinderTestCase(TestCase):
                 self.assertEqual(result.sid, i)
 
     def test_lookup_symbol_from_multiple_valid(self):
+        # This test asserts that we resolve conflicts in accordance with the
+        # following rules when we have multiple assets holding the same symbol
+        # at the same time:
+
+        # If multiple SIDs exist for symbol S at time T, return the candidate
+        # SID whose start_date is highest. (200 cases)
+
+        # If multiple SIDs exist for symbol S at time T, the best candidate
+        # SIDs share the highest start_date, return the SID with the highest
+        # end_date. (34 cases)
+
+        # It is the opinion of the author (ssanderson) that we should consider
+        # this malformed input and fail here.  But this is the current indended
+        # behavior of the code, and I accidentally broke it while refactoring.
+        # These will serve as regression tests until the time comes that we
+        # decide to enforce this as an error.
+
+        # See https://github.com/quantopian/zipline/issues/837 for more
+        # details.
+
         df = pd.DataFrame.from_records(
             [
                 {
                     'sid': 1,
                     'symbol': 'multiple',
                     'start_date': pd.Timestamp('2010-01-01'),
-                    'end_date': pd.Timestamp('2013-01-01'),
+                    'end_date': pd.Timestamp('2012-01-01'),
                     'exchange': 'NYSE'
                 },
+                # Same as asset 1, but with a later end date.
                 {
                     'sid': 2,
                     'symbol': 'multiple',
-                    'start_date': pd.Timestamp('2012-01-01'),
-                    'end_date': pd.Timestamp('2014-01-01'),
+                    'start_date': pd.Timestamp('2010-01-01'),
+                    'end_date': pd.Timestamp('2013-01-01'),
                     'exchange': 'NYSE'
-                }
+                },
+                # Same as asset 1, but with a later start_date
+                {
+                    'sid': 3,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2011-01-01'),
+                    'end_date': pd.Timestamp('2012-01-01'),
+                    'exchange': 'NYSE'
+                },
             ]
         )
-        self.env.write_data(equities_df=df)
-        finder = self.asset_finder_type(self.env.engine)
-        result = finder.lookup_symbol('MULTIPLE', pd.Timestamp('2012-05-05'))
-        self.assertEqual(result.symbol, 'MULTIPLE')
-        self.assertEqual(result.sid, 2)
+
+        def check(expected_sid, date):
+            result = finder.lookup_symbol(
+                'MULTIPLE', date,
+            )
+            self.assertEqual(result.symbol, 'MULTIPLE')
+            self.assertEqual(result.sid, expected_sid)
+
+        with tmp_asset_finder(finder_cls=self.asset_finder_type,
+                              equities=df) as finder:
+            self.assertIsInstance(finder, self.asset_finder_type)
+
+            # Sids 1 and 2 are eligible here.  We should get asset 2 because it
+            # has the later end_date.
+            check(2, pd.Timestamp('2010-12-31'))
+
+            # Sids 1, 2, and 3 are eligible here.  We should get sid 3 because
+            # it has a later start_date
+            check(3, pd.Timestamp('2011-01-01'))
 
     def test_lookup_generic(self):
         """
