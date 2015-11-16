@@ -862,14 +862,11 @@ class TradingAlgorithm(object):
     def recorded_vars(self):
         return copy(self._recorded_vars)
 
-    def updated_portfolio(self):
-        return self.portfolio
-
-    def updated_account(self):
-        return self.account
-
     @property
     def portfolio(self):
+        return self.updated_portfolio()
+
+    def updated_portfolio(self):
         if self._portfolio is None and self.perf_tracker is not None:
             self._portfolio = \
                 self.perf_tracker.get_portfolio(self.datetime)
@@ -877,6 +874,9 @@ class TradingAlgorithm(object):
 
     @property
     def account(self):
+        return self.updated_account()
+
+    def updated_account(self):
         if self._account is None and self.perf_tracker is not None:
             self._account = \
                 self.perf_tracker.get_account(self.datetime)
