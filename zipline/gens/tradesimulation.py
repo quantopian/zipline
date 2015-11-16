@@ -95,8 +95,6 @@ class AlgorithmSimulator(object):
         # its lifetime.
         # likewise, we can't cache a pointer to the blotter.
 
-        # perf_process_order = self.algo.perf_tracker.process_order
-        # perf_process_txn = self.algo.perf_tracker.process_transaction
         algo.perf_tracker.position_tracker.data_portal = data_portal
 
         def inner_loop(dt_to_use):
@@ -206,5 +204,3 @@ class AlgorithmSimulator(object):
             daily_message["daily_perf"]["recorded_vars"] = rvars
 
         return minute_message, daily_message
-
-

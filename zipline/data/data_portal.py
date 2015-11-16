@@ -1028,6 +1028,9 @@ class DataPortal(object):
         if self._adjustment_reader is None:
             return []
 
+        if len(trading_days) == 0:
+            return []
+
         start_dt = trading_days[0].value / 1e9
         end_dt = trading_days[-1].value / 1e9
 

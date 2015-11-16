@@ -200,8 +200,9 @@ class Blotter(object):
 
         Parameters
         ----------
-        current_dt: pd.Timestamp
-            The current simulation time.
+        data_portal: zipline.data.DataPortal
+            The data portal to use for getting price and volume information
+            when calculating slippage.
 
         Notes
         -----
@@ -210,8 +211,17 @@ class Blotter(object):
 
         Returns
         -------
-        A list of transactions resulting from the current open orders.  If
-        there were no open orders, an empty list is returned.
+        transactions_list: List
+            transactions_list: list of transactions resulting from the current
+            open orders.  If there were no open orders, an empty list is
+            returned.
+
+        commissions_list: List
+            commissions_list: list of commissions resulting from filling the
+            open orders.  A commission is an object with "sid" and "cost"
+            parameters.  If there are no commission events (because, for
+            example, Zipline models the commission cost into the fill price
+            of the transaction), then this is None.
         """
         closed_orders = []
         transactions = []
@@ -258,6 +268,7 @@ class Blotter(object):
             if len(self.open_orders[sid]) == 0:
                 del self.open_orders[sid]
 
+        # FIXME this API doesn't feel right (returning two things here)
         return transactions, None
 
     def __getstate__(self):

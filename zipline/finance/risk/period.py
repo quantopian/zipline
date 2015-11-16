@@ -256,7 +256,6 @@ class RiskMetricsPeriod(object):
         if len(self.algorithm_returns) < 2:
             return 0.0, 0.0, 0.0, 0.0, []
 
-        # FIXME NEED BENCHMARK FIX
         benchmark_returns = self.benchmark_returns.fillna(method='bfill')
 
         returns_matrix = np.vstack([self.algorithm_returns,

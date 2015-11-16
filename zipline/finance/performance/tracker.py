@@ -166,14 +166,11 @@ class PerformanceTracker(object):
         self.account_needs_update = True
         self._account = None
 
-        self._perf_periods = None
+        self._perf_periods = [self.cumulative_performance,
+                              self.todays_performance]
 
     @property
     def perf_periods(self):
-        if self._perf_periods is None:
-            self._perf_periods = [self.cumulative_performance,
-                                  self.todays_performance]
-
         return self._perf_periods
 
     def __repr__(self):
@@ -270,6 +267,17 @@ class PerformanceTracker(object):
 
         return _dict
 
+    def copy_state_from(self, other_perf_tracker):
+        self.all_benchmark_returns = other_perf_tracker.all_benchmark_returns
+
+        if other_perf_tracker.position_tracker:
+            self.position_tracker._unpaid_dividends = \
+                other_perf_tracker.position_tracker._unpaid_dividends
+
+            self.position_tracker._unpaid_stock_dividends = \
+                other_perf_tracker.position_tracker._unpaid_stock_dividends
+
+    # FIXME get rid of this!
     def process_trade(self, event):
         # update last sale, and pay out a cash adjustment
         cash_adjustment = self.position_tracker.update_last_sale(event)
@@ -320,7 +328,7 @@ class PerformanceTracker(object):
         if self._adjustment_reader is None:
             return
         position_tracker = self.position_tracker
-        held_sids = set(self.position_tracker.positions)
+        held_sids = set(position_tracker.positions)
         # Dividends whose ex_date is the next trading day.  We need to check if
         # we own any of these stocks so we know to pay them out when the pay
         # date comes.

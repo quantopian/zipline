@@ -397,9 +397,9 @@ class PositionTracker(object):
 
     def pay_dividends(self, next_trading_day):
         """
-        Given a frame of dividends whose pay_dates are all the next trading
-        day, grant the cash and/or stock payments that were calculated on the
-        given dividends' ex dates.
+        Returns a cash payment based on the dividends that should be paid out
+        according to the accumulated bookkeeping of earned, unpaid, and stock
+        dividends.
         """
         net_cash_payment = 0.0
 

@@ -481,11 +481,3 @@ class PerformancePeriod(object):
         self._execution_cash_flow_multipliers = {}
 
         self.__dict__.update(state)
-
-#
-# class TodaysPerformance(PerformancePeriod):
-#     pass
-#
-#
-# class CumulativePerformance(PerformancePeriod):
-#     pass

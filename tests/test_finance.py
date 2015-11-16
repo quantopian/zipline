@@ -283,6 +283,7 @@ class FinanceTestCase(TestCase):
             order_list = []
             order_date = start_date
             for tick in ticks:
+                blotter.current_dt = tick
                 if tick >= order_date and len(order_list) < order_count:
                     # place an order
                     direction = alternator ** len(order_list)
@@ -298,7 +299,7 @@ class FinanceTestCase(TestCase):
                             order_date = order_date + timedelta(days=1)
                             order_date = order_date.replace(hour=14, minute=30)
                 else:
-                    txns = blotter.get_transactions(tick, data_portal)
+                    txns, _ = blotter.get_transactions(data_portal)
                     for txn in txns:
                         tracker.process_transaction(txn)
                         transactions.append(txn)
