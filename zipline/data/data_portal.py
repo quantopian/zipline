@@ -14,6 +14,7 @@
 # limitations under the License.
 
 from datetime import datetime
+from sqlite3 import OperationalError
 import bcolz
 from logbook import Logger
 
@@ -143,10 +144,16 @@ class DataPortal(object):
         # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
         # holding that data.
 
-        backtest_days = tradingcalendar.get_trading_days(
-            self.sim_params.period_start,
-            self.sim_params.period_end
-        )
+        if self.sim_params.emission_rate == "daily":
+            fetcher_date_index = self.env.days_in_range(
+                start=self.sim_params.period_start,
+                end=self.sim_params.period_end
+            )
+        else:
+            fetcher_date_index = self.env.minutes_for_days_in_range(
+                start=self.sim_params.period_start,
+                end=self.sim_params.period_end
+            )
 
         # break the source_df up into one dataframe per sid.  this lets
         # us (more easily) calculate accurate start/end dates for each sid,
@@ -168,7 +175,7 @@ class DataPortal(object):
 
             # reindex the dataframe based on the backtest start/end date.
             # this makes reads easier during the backtest.
-            df = df.reindex(index=backtest_days, method='ffill')
+            df = df.reindex(index=fetcher_date_index, method='ffill')
 
             if not isinstance(identifier, Asset):
                 # for fake assets we need to store a start/end date
@@ -209,9 +216,7 @@ class DataPortal(object):
             prev_dt = self.env.previous_market_minute(dt)
         return self.get_spot_value(asset, column, prev_dt)
 
-    def get_spot_value(self, asset, column, dt=None):
-        day_to_use = dt or self.current_day
-
+    def _check_fetcher(self, asset, column, day):
         # if there is a fetcher column called "price", only look at it if
         # it's on something like palladium and not AAPL (since our own price
         # data always wins when dealing with assets)
@@ -222,7 +227,7 @@ class DataPortal(object):
             # we're being asked for a fetcher field
             try:
                 return self.augmented_sources_map[column][asset].\
-                    loc[day_to_use, column]
+                    loc[day, column]
             except:
                 log.error(
                     "Could not find value for asset={0}, current_day={1},"
@@ -233,6 +238,13 @@ class DataPortal(object):
 
                 raise KeyError
 
+    def get_spot_value(self, asset, column, dt=None):
+        fetcher_val = self._check_fetcher(asset, column,
+                                          (dt or self.current_dt))
+
+        if fetcher_val:
+            return fetcher_val
+
         if column not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(column))
 
@@ -242,6 +254,7 @@ class DataPortal(object):
         self._check_is_currently_alive(asset_int, dt)
 
         if self.data_frequency == "daily":
+            day_to_use = dt or self.current_day
             return self._get_daily_data(asset_int, column_to_use, day_to_use)
         else:
             # keeping minute data logic in-lined to avoid the cost of calling
@@ -283,9 +296,38 @@ class DataPortal(object):
                     start_date) - INDEX_OF_FIRST_TRADING_DAY
                 start_day_offset = start_date_idx * 390
 
+                original_start = minute_offset_to_use
+
                 while result == 0 and minute_offset_to_use > start_day_offset:
                     minute_offset_to_use -= 1
                     result = carray[minute_offset_to_use]
+
+                # once we've found data, we need to check whether it needs
+                # to be adjusted.
+                if result != 0:
+                    minutes = self.env.market_minute_window(
+                        start=dt,
+                        count=(original_start - minute_offset_to_use + 1),
+                        step=-1
+                    ).order()
+
+                    # only need to check for adjustments if we've gone back
+                    # far enough to cross the day boundary.
+                    if minutes[0].date() != minutes[-1].date():
+                        # create a np array of size minutes, fill it all with
+                        # the same value.  and adjust the array.
+                        arr = np.array([result] * len(minutes),
+                                       dtype=np.float64)
+                        self._apply_all_adjustments(
+                            data=arr,
+                            sid=asset_int,
+                            dts=minutes,
+                            field=column
+                        )
+
+                        # The first value of the adjusted array is the value
+                        # we want.
+                        result = arr[0]
 
             if column_to_use != 'volume':
                 return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
@@ -788,29 +830,31 @@ class DataPortal(object):
 
         start_index = max(asset_file_index, asset_file_index + window_offset)
 
+        if window_offset < 0 and (abs(window_offset) > bar_count):
+            # consumer is requesting a history window that starts AND ends
+            # before this equity started trading, so gtfo
+            return return_array
+
         # find the end index in the daily file. make sure it doesn't extend
         # past the end of this asset's data in the daily file.
         if window_offset < 0:
             # if the window_offset is negative, we need to decrease the
             # end_index accordingly.
             end_index = min(start_index + window_offset + bar_count,
-                            daily_attrs['last_row'][str(sid)])
+                            daily_attrs['last_row'][str(sid)] + 1)
+
+            # get data from bcolz file
+            data = daily_data[field][start_index:end_index]
+
+            # have to leave a bunch of empty slots at the beginning of
+            # return_array, since they represent days before this asset
+            # started trading.
+            return_array[abs(window_offset):bar_count] = data
         else:
             end_index = min(start_index + bar_count,
                             daily_attrs['last_row'][str(sid)])
+            data = daily_data[field][start_index:(end_index + 1)]
 
-        if window_offset < 0 and (abs(window_offset) > bar_count):
-            # consumer is requesting a history window that starts AND ends
-            # before this equity started trading, so gtfo
-            return return_array
-
-        # fetch the data from the daily bcolz file
-        data = daily_data[field][start_index:(end_index + 1)]
-
-        # put data into the right slot into return_data
-        if window_offset < 0:
-            return_array[abs(window_offset):(bar_count + 1)] = data
-        else:
             if len(data) > len(return_array):
                 return_array[:] = data[0:len(return_array)]
             else:
@@ -982,6 +1026,9 @@ class DataPortal(object):
         """
 
         if self._adjustment_reader is None:
+            return []
+
+        if len(trading_days) == 0:
             return []
 
         start_dt = trading_days[0].value / 1e9

@@ -144,7 +144,8 @@ def calc_period_stats(pos_stats, starting_cash, starting_value,
         ending_cash=ending_cash,
         pnl=pnl,
         returns=returns,
-        portfolio_value=portfolio_value)
+        portfolio_value=portfolio_value
+    )
 
 
 class PerformancePeriod(object):
@@ -153,15 +154,14 @@ class PerformancePeriod(object):
             self,
             starting_cash,
             asset_finder,
-            data_portal,
             period_open=None,
             period_close=None,
             keep_transactions=True,
             keep_orders=False,
-            serialize_positions=True):
+            serialize_positions=True,
+            name=None):
 
         self.asset_finder = asset_finder
-        self.data_portal = data_portal
 
         self.period_open = period_open
         self.period_close = period_close
@@ -178,6 +178,8 @@ class PerformancePeriod(object):
         self.processed_transactions = {}
         self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
+
+        self.name = None
 
         # An object to recycle via assigning new values
         # when returning portfolio information.
@@ -206,9 +208,9 @@ class PerformancePeriod(object):
     def handle_cash_payment(self, payment_amount):
         self.adjust_cash(payment_amount)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, cost):
         # Deduct from our total cash pool.
-        self.adjust_cash(-commission.cost)
+        self.adjust_cash(-cost)
 
     def adjust_cash(self, amount):
         self.period_cash_flow += amount
@@ -261,7 +263,7 @@ class PerformancePeriod(object):
         # Calculate and return the cash flow given the multiplier
         return -1 * txn.price * txn.amount * multiplier
 
-    def stats(self, positions, pos_stats):
+    def stats(self, positions, pos_stats, data_portal):
         # TODO: passing positions here seems off, since we have already
         # calculated pos_stats.
         futures_payouts = []
@@ -272,11 +274,11 @@ class PerformancePeriod(object):
                                    self.period_open)
                 if old_price_dt == pos.last_sale_date:
                     continue
-                old_price = self.data_portal.get_previous_price(
+                old_price = data_portal.get_previous_price(
                     sid,
                     'close',
                     dt=old_price_dt)
-                price = self.data_portal.get_spot_value(
+                price = data_portal.get_spot_value(
                     sid, 'close', dt=self.period_close)
                 payout = (
                     (price - old_price)
@@ -479,11 +481,3 @@ class PerformancePeriod(object):
         self._execution_cash_flow_multipliers = {}
 
         self.__dict__.update(state)
-
-
-class TodaysPerformance(PerformancePeriod):
-    pass
-
-
-class CumulativePerformance(PerformancePeriod):
-    pass

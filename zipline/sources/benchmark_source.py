@@ -6,13 +6,18 @@ from zipline.errors import (
 
 
 class BenchmarkSource(object):
-    def __init__(self, benchmark_sid, env, trading_days, data_portal):
+    def __init__(self, benchmark_sid, env, trading_days, data_portal,
+                 emission_rate="daily"):
         self.benchmark_sid = benchmark_sid
         self.env = env
         self.trading_days = trading_days
+        self.emission_rate = emission_rate
         self.data_portal = data_portal
 
         if self.benchmark_sid:
+            self.benchmark_asset = self.env.asset_finder.retrieve_asset(
+                self.benchmark_sid)
+
             self._validate_benchmark()
 
         self.precalculated_series = \
@@ -40,21 +45,20 @@ class BenchmarkSource(object):
                 dt=stock_dividends[0]["ex_date"]
             )
 
-        benchmark_asset = self.env.asset_finder.retrieve_asset(sid)
-        if benchmark_asset.start_date > self.trading_days[0]:
+        if self.benchmark_asset.start_date > self.trading_days[0]:
             # the asset started trading after the first simulation day
             raise BenchmarkAssetNotAvailableTooEarly(
                 sid=str(self.benchmark_sid),
                 dt=self.trading_days[0],
-                start_dt=benchmark_asset.start_date
+                start_dt=self.benchmark_asset.start_date
             )
 
-        if benchmark_asset.end_date < self.trading_days[-1]:
+        if self.benchmark_asset.end_date < self.trading_days[-1]:
             # the asset stopped trading before the last simulation day
             raise BenchmarkAssetNotAvailableTooLate(
                 sid=str(self.benchmark_sid),
                 dt=self.trading_days[0],
-                end_dt=benchmark_asset.end_date
+                end_dt=self.benchmark_asset.end_date
             )
 
     def _initialize_precalculated_series(self, sid, env, trading_days,
@@ -94,6 +98,19 @@ class BenchmarkSource(object):
         if sid is None:
             # get benchmark info from trading environment
             return env.benchmark_returns[trading_days[0]:trading_days[-1]]
+        elif self.emission_rate == "minute":
+            minutes = env.minutes_for_days_in_range(self.trading_days[0],
+                                                    self.trading_days[-1])
+            benchmark_series = data_portal.get_history_window(
+                [sid],
+                minutes[-1],
+                bar_count=len(minutes) + 1,
+                frequency="1m",
+                field="price",
+                ffill=True
+            )
+
+            return benchmark_series.pct_change()[1:]
         else:
             # get the window of close prices for benchmark_sid from the last
             # trading day of the simulation, going up to one day before the
@@ -113,7 +130,7 @@ class BenchmarkSource(object):
             trading_day_before_sim_start = \
                 env.previous_trading_day(trading_days[0])
 
-            if benchmark_asset.start_date > trading_day_before_sim_start:
+            if self.benchmark_asset.start_date > trading_day_before_sim_start:
                 # we can't go back one day before sim start, because the asset
                 # didn't start trading until the same day as the sim start.
                 # instead, we'll use the first available minute value of the

@@ -97,8 +97,8 @@ from zipline.sources.requests_csv import PandasRequestsCSV
 
 from zipline.gens.sim_engine import (
     MinuteSimulationClock,
-    DailySimulationClock
-)
+    DailySimulationClock,
+    MinuteEmissionClock)
 from zipline.sources.benchmark_source import BenchmarkSource
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
@@ -390,11 +390,21 @@ class TradingAlgorithm(object):
                     'datetime64[ns]').astype(np.int64)
                 market_closes = trading_o_and_c['market_close'].values.astype(
                     'datetime64[ns]').astype(np.int64)
-                self.clock = MinuteSimulationClock(
-                    self.sim_params.trading_days,
-                    market_opens,
-                    market_closes,
-                    self.data_portal)
+                if self.sim_params.emission_rate == "daily":
+                    self.clock = MinuteSimulationClock(
+                        self.sim_params.trading_days,
+                        market_opens,
+                        market_closes,
+                        self.data_portal
+                    )
+                else:
+                    self.clock = MinuteEmissionClock(
+                        self.sim_params.trading_days,
+                        market_opens,
+                        market_closes,
+                        self.data_portal
+                    )
+
             elif self.sim_params.data_frequency == 'daily':
                 self.clock = DailySimulationClock(self.sim_params.trading_days)
 
@@ -403,10 +413,11 @@ class TradingAlgorithm(object):
             self.benchmark_sid,
             self.trading_environment,
             self.sim_params.trading_days,
-            self.data_portal
+            self.data_portal,
+            emission_rate=self.sim_params.emission_rate,
         )
 
-    def _create_generator(self, sim_params, source_filter=None):
+    def _create_generator(self, sim_params):
         """
         Create a basic generator setup using the sources to this algorithm.
 
@@ -424,7 +435,7 @@ class TradingAlgorithm(object):
                 sim_params=self.sim_params,
                 env=self.trading_environment,
                 data_portal=self.data_portal)
-            # Set the dt initally to the period start by forcing it to change
+            # Set the dt initially to the period start by forcing it to change
             self.on_dt_changed(self.sim_params.period_start)
 
             # HACK: When running with the `run` method, we set perf_tracker to
@@ -759,7 +770,7 @@ class TradingAlgorithm(object):
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(sid, amount, style, dt=self.datetime)
+        return self.blotter.order(sid, amount, style)
 
     def validate_order_params(self,
                               asset,
@@ -851,22 +862,22 @@ class TradingAlgorithm(object):
     def recorded_vars(self):
         return copy(self._recorded_vars)
 
-    def updated_portfolio(self):
-        return self.portfolio
-
-    def updated_account(self):
-        return self.account
-
     @property
     def portfolio(self):
-        if self._portfolio is None:
+        return self.updated_portfolio()
+
+    def updated_portfolio(self):
+        if self._portfolio is None and self.perf_tracker is not None:
             self._portfolio = \
                 self.perf_tracker.get_portfolio(self.datetime)
         return self._portfolio
 
     @property
     def account(self):
-        if self._account is None:
+        return self.updated_account()
+
+    def updated_account(self):
+        if self._account is None and self.perf_tracker is not None:
             self._account = \
                 self.perf_tracker.get_account(self.datetime)
         return self._account
@@ -889,6 +900,7 @@ class TradingAlgorithm(object):
 
         self.datetime = dt
         self.perf_tracker.set_date(dt)
+        self.blotter.set_date(dt)
 
         self._portfolio = None
         self._account = None
@@ -1054,7 +1066,7 @@ class TradingAlgorithm(object):
         if isinstance(order_param, zipline.protocol.Order):
             order_id = order_param.id
 
-        self.blotter.cancel(order_id, self.datetime)
+        self.blotter.cancel(order_id)
 
     @api_method
     def history(self, sids, bar_count, frequency, field, ffill=True):

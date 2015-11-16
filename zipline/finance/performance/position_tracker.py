@@ -177,6 +177,7 @@ class PositionTracker(object):
 
         # sid => position object
         self.positions = positiondict()
+
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
@@ -298,17 +299,21 @@ class PositionTracker(object):
 
     def update_position(self, sid, amount=None, last_sale_price=None,
                         last_sale_date=None, cost_basis=None):
-        pos = self.positions[sid]
+        if sid not in self.positions:
+            position = Position(sid)
+            self.positions[sid] = position
+        else:
+            position = self.positions[sid]
 
         if amount is not None:
-            pos.amount = amount
+            position.amount = amount
             self._update_asset(sid=sid)
         if last_sale_price is not None:
-            pos.last_sale_price = last_sale_price
+            position.last_sale_price = last_sale_price
         if last_sale_date is not None:
-            pos.last_sale_date = last_sale_date
+            position.last_sale_date = last_sale_date
         if cost_basis is not None:
-            pos.cost_basis = cost_basis
+            position.cost_basis = cost_basis
 
     def execute_transaction(self, txn):
         # Update Position
@@ -324,11 +329,11 @@ class PositionTracker(object):
         position.update(txn)
         self._update_asset(sid)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, sid, cost):
         # Adjust the cost basis of the stock if we own it
-        if commission.sid in self.positions:
-            self.positions[commission.sid].\
-                adjust_commission_cost_basis(commission)
+        if sid in self.positions:
+            self.positions[sid].\
+                adjust_commission_cost_basis(sid, cost)
 
     def handle_splits(self, splits):
         """
@@ -392,9 +397,9 @@ class PositionTracker(object):
 
     def pay_dividends(self, next_trading_day):
         """
-        Given a frame of dividends whose pay_dates are all the next trading
-        day, grant the cash and/or stock payments that were calculated on the
-        given dividends' ex dates.
+        Returns a cash payment based on the dividends that should be paid out
+        according to the accumulated bookkeeping of earned, unpaid, and stock
+        dividends.
         """
         net_cash_payment = 0.0
 
@@ -451,7 +456,6 @@ class PositionTracker(object):
         return txn
 
     def get_positions(self, dt):
-
         positions = self._positions_store
 
         for sid, pos in iteritems(self.positions):

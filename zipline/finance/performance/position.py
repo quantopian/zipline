@@ -160,7 +160,7 @@ class Position(object):
 
         self.amount = total_shares
 
-    def adjust_commission_cost_basis(self, commission):
+    def adjust_commission_cost_basis(self, sid, cost):
         """
         A note about cost-basis in zipline: all positions are considered
         to share a cost basis, even if they were executed in different
@@ -171,9 +171,9 @@ class Position(object):
         all shares in a position.
         """
 
-        if commission.sid != self.sid:
+        if sid != self.sid:
             raise Exception('Updating a commission for a different sid?')
-        if commission.cost == 0.0:
+        if cost == 0.0:
             return
 
         # If we no longer hold this position, there is no cost basis to
@@ -182,7 +182,7 @@ class Position(object):
             return
 
         prev_cost = self.cost_basis * self.amount
-        new_cost = prev_cost + commission.cost
+        new_cost = prev_cost + cost
         self.cost_basis = new_cost / self.amount
 
     def __repr__(self):

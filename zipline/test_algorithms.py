@@ -158,13 +158,7 @@ class NoopAlgorithm(TradingAlgorithm):
     """
     Dolce fa niente.
     """
-    def get_sid_filter(self):
-        return []
-
     def initialize(self):
-        pass
-
-    def set_transact_setter(self, txn_sim_callable):
         pass
 
     def handle_data(self, data):

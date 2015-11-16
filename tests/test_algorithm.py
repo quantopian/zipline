@@ -197,7 +197,7 @@ class TestMiscellaneousAPI(TestCase):
         cls.sim_params = factory.create_simulation_parameters(
             num_days=2,
             data_frequency='minute',
-            emission_rate='minute',
+            emission_rate='daily',
             env=cls.env,
         )
 

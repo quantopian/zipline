@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ class Blotter(object):
         self.slippage_func = slippage_func or VolumeShareSlippage()
         self.commission = commission or PerShare()
 
-        self.data_portal = None
+        self.current_dt = None
 
     def __repr__(self):
         return """
@@ -57,15 +57,20 @@ class Blotter(object):
     commission={commission},
     open_orders={open_orders},
     orders={orders},
-    new_orders={new_orders})
+    new_orders={new_orders},
+    current_dt={current_dt})
 """.strip().format(class_name=self.__class__.__name__,
                    slippage_func=self.slippage_func,
                    commission=self.commission,
                    open_orders=self.open_orders,
                    orders=self.orders,
-                   new_orders=self.new_orders)
+                   new_orders=self.new_orders,
+                   current_dt=self.current_dt)
 
-    def order(self, sid, amount, style, order_id=None, dt=None):
+    def set_date(self, dt):
+        self.current_dt = dt
+
+    def order(self, sid, amount, style, order_id=None):
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
         # numeric == share count  AND  "$dollar.cents" == cost amount
@@ -79,9 +84,6 @@ class Blotter(object):
         StopLimit order: order(sid, amount, style=StopLimitOrder(limit_price,
                                stop_price))
         """
-        if dt is None:
-            raise ValueError("dt cannot be None!")
-
         if amount == 0:
             # Don't bother placing orders for 0 shares.
             return
@@ -93,7 +95,7 @@ class Blotter(object):
 
         is_buy = (amount > 0)
         order = Order(
-            dt=dt,
+            dt=self.current_dt,
             sid=sid,
             amount=amount,
             stop=style.get_stop_price(is_buy),
@@ -107,7 +109,7 @@ class Blotter(object):
 
         return order.id
 
-    def cancel(self, order_id, dt):
+    def cancel(self, order_id):
         if order_id not in self.orders:
             return
 
@@ -121,12 +123,12 @@ class Blotter(object):
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
             cur_order.cancel()
-            cur_order.dt = dt
+            cur_order.dt = self.current_dt
             # we want this order's new status to be relayed out
             # along with newly placed orders.
             self.new_orders.append(cur_order)
 
-    def reject(self, order_id, dt, reason=''):
+    def reject(self, order_id, reason=''):
         """
         Mark the given order as 'rejected', which is functionally similar to
         cancelled. The distinction is that rejections are involuntary (and
@@ -145,12 +147,12 @@ class Blotter(object):
         if cur_order in self.new_orders:
             self.new_orders.remove(cur_order)
         cur_order.reject(reason=reason)
-        cur_order.dt = dt
+        cur_order.dt = self.current_dt
         # we want this order's new status to be relayed out
         # along with newly placed orders.
         self.new_orders.append(cur_order)
 
-    def hold(self, order_id, dt, reason=''):
+    def hold(self, order_id, reason=''):
         """
         Mark the order with order_id as 'held'. Held is functionally similar
         to 'open'. When a fill (full or partial) arrives, the status
@@ -164,7 +166,7 @@ class Blotter(object):
             if cur_order in self.new_orders:
                 self.new_orders.remove(cur_order)
             cur_order.hold(reason=reason)
-            cur_order.dt = dt
+            cur_order.dt = self.current_dt
             # we want this order's new status to be relayed out
             # along with newly placed orders.
             self.new_orders.append(cur_order)
@@ -191,19 +193,16 @@ class Blotter(object):
             for order in orders_to_modify:
                 order.handle_split(split[1])
 
-    def process_benchmark(self, benchmark_event):
-        return
-        yield
-
-    def process_open_orders(self, current_dt):
+    def get_transactions(self, data_portal):
         """
         Creates a list of transactions based on the current open orders,
         slippage model, and commission model.
 
         Parameters
         ----------
-        current_dt: pd.Timestamp
-            The current simulation time.
+        data_portal: zipline.data.DataPortal
+            The data portal to use for getting price and volume information
+            when calculating slippage.
 
         Notes
         -----
@@ -212,20 +211,29 @@ class Blotter(object):
 
         Returns
         -------
-        A list of transactions resulting from the current open orders.  If
-        there were no open orders, an empty list is returned.
+        transactions_list: List
+            transactions_list: list of transactions resulting from the current
+            open orders.  If there were no open orders, an empty list is
+            returned.
+
+        commissions_list: List
+            commissions_list: list of commissions resulting from filling the
+            open orders.  A commission is an object with "sid" and "cost"
+            parameters.  If there are no commission events (because, for
+            example, Zipline models the commission cost into the fill price
+            of the transaction), then this is None.
         """
         closed_orders = []
         transactions = []
 
         for asset, asset_orders in iteritems(self.open_orders):
-            price = self.data_portal.get_spot_value(
-                asset, 'close', current_dt)
+            price = data_portal.get_spot_value(
+                asset, 'close', self.current_dt)
 
-            volume = self.data_portal.get_spot_value(
-                asset, 'volume', current_dt)
+            volume = data_portal.get_spot_value(
+                asset, 'volume', self.current_dt)
 
-            for order, txn in self.slippage_func(asset_orders, current_dt,
+            for order, txn in self.slippage_func(asset_orders, self.current_dt,
                                                  price, volume):
                 direction = math.copysign(1, txn.amount)
                 per_share, total_commission = self.commission.calculate(txn)
@@ -260,7 +268,8 @@ class Blotter(object):
             if len(self.open_orders[sid]) == 0:
                 del self.open_orders[sid]
 
-        return transactions
+        # FIXME this API doesn't feel right (returning two things here)
+        return transactions, None
 
     def __getstate__(self):
 

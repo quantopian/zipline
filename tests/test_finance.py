@@ -262,7 +262,6 @@ class FinanceTestCase(TestCase):
                 }
             })
 
-            blotter.data_portal = data_portal
             start_date = sim_params.first_open
 
             if alternate:
@@ -284,13 +283,13 @@ class FinanceTestCase(TestCase):
             order_list = []
             order_date = start_date
             for tick in ticks:
+                blotter.current_dt = tick
                 if tick >= order_date and len(order_list) < order_count:
                     # place an order
                     direction = alternator ** len(order_list)
                     order_id = blotter.order(sid,
                                              order_amount * direction,
-                                             MarketOrder(),
-                                             dt=order_date)
+                                             MarketOrder())
                     order_list.append(blotter.orders[order_id])
                     order_date = order_date + order_interval
                     # move after market orders to just after market next
@@ -300,7 +299,7 @@ class FinanceTestCase(TestCase):
                             order_date = order_date + timedelta(days=1)
                             order_date = order_date.replace(hour=14, minute=30)
                 else:
-                    txns = blotter.process_open_orders(tick)
+                    txns, _ = blotter.get_transactions(data_portal)
                     for txn in txns:
                         tracker.process_transaction(txn)
                         transactions.append(txn)
@@ -340,8 +339,8 @@ class FinanceTestCase(TestCase):
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(1, 100, LimitOrder(10), dt=dt)
-        blotter.order(2, 100, LimitOrder(10), dt=dt)
+        blotter.order(1, 100, LimitOrder(10))
+        blotter.order(2, 100, LimitOrder(10))
 
         # send in a split for sid 2
         blotter.process_splits([(2, 0.3333)])
