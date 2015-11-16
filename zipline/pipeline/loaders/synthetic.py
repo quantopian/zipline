@@ -149,10 +149,10 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
         )
 
         # Add 10,000 * column-index to OHLCV columns
-        data[:, :5] += arange(5) * (10 * 1000)
+        data[:, :5] += arange(5, dtype=uint32) * (10 * 1000)
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += (dates - self.PSEUDO_EPOCH).days[:, None]
+        data[:, :5] += (dates - self.PSEUDO_EPOCH).days[:, None].astype(uint32)
 
         frame = DataFrame(
             data,

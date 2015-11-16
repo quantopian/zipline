@@ -21,6 +21,7 @@ from unittest import TestCase
 
 from nose_parameterized import parameterized
 import numpy as np
+import pandas as pd
 from six import iteritems
 from six.moves import range, map
 
@@ -254,8 +255,8 @@ class TestStatelessRules(RuleTestCase):
         cls.class_ = StatelessRule
 
         cls.sept_days = cls.env.days_in_range(
-            np.datetime64(datetime.date(year=2014, month=9, day=1)),
-            np.datetime64(datetime.date(year=2014, month=9, day=30)),
+            pd.Timestamp('2014-09-01'),
+            pd.Timestamp('2014-09-30'),
         )
 
         cls.sept_week = cls.env.minutes_for_days_in_range(
