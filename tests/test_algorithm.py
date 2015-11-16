@@ -645,10 +645,12 @@ class TestTransformAlgorithm(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        futures_metadata = {3: {'contract_multiplier': 10}}
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[0, 1, 133],
-                           futures_data=futures_metadata)
+        cls.env.write_data(equities_identifiers=[0, 1, 133])
+
+        futures_metadata = {0: {'contract_multiplier': 10}}
+        cls.futures_env = TradingEnvironment()
+        cls.futures_env.write_data(futures_data=futures_metadata)
 
     @classmethod
     def tearDownClass(cls):
@@ -807,7 +809,7 @@ class TestTransformAlgorithm(TestCase):
     def test_order_methods_for_future(self, algo_class):
         algo = algo_class(
             sim_params=self.sim_params,
-            env=self.env,
+            env=self.futures_env,
         )
         algo.run(self.df)
 
