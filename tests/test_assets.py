@@ -28,6 +28,7 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 from pandas.util.testing import assert_frame_equal
 
+from nose_parameterized import parameterized
 from numpy import full
 import sqlalchemy as sa
 
@@ -38,6 +39,9 @@ from zipline.assets import (
     AssetFinder,
     AssetFinderCachedEquities,
 )
+from six import itervalues
+from toolz import valmap
+
 from zipline.assets.futures import (
     cme_code_to_month,
     FutureChain,
@@ -50,17 +54,23 @@ from zipline.assets.asset_writer import (
     _version_table_schema,
 )
 from zipline.errors import (
-    SymbolNotFound,
+    EquitiesNotFound,
+    FutureContractsNotFound,
     MultipleSymbolsFound,
-    SidAssignmentError,
     RootSymbolNotFound,
     AssetDBVersionError,
+    SidAssignmentError,
+    SidsNotFound,
+    SymbolNotFound,
 )
 from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
     all_subindices,
-    make_rotating_asset_info,
-    tmp_assets_db
+    make_commodity_future_info,
+    make_rotating_equity_info,
+    make_simple_equity_info,
+    tmp_assets_db,
+    tmp_asset_finder,
 )
 
 
@@ -105,7 +115,7 @@ def build_lookup_generic_cases(asset_finder_type):
             },
         ],
         index='sid')
-    with tmp_assets_db(frame) as assets_db:
+    with tmp_assets_db(equities=frame) as assets_db:
         finder = asset_finder_type(assets_db)
         dupe_0, dupe_1, unique = assets = [
             finder.retrieve_asset(i)
@@ -465,29 +475,72 @@ class AssetFinderTestCase(TestCase):
                 self.assertEqual(result.sid, i)
 
     def test_lookup_symbol_from_multiple_valid(self):
+        # This test asserts that we resolve conflicts in accordance with the
+        # following rules when we have multiple assets holding the same symbol
+        # at the same time:
+
+        # If multiple SIDs exist for symbol S at time T, return the candidate
+        # SID whose start_date is highest. (200 cases)
+
+        # If multiple SIDs exist for symbol S at time T, the best candidate
+        # SIDs share the highest start_date, return the SID with the highest
+        # end_date. (34 cases)
+
+        # It is the opinion of the author (ssanderson) that we should consider
+        # this malformed input and fail here.  But this is the current indended
+        # behavior of the code, and I accidentally broke it while refactoring.
+        # These will serve as regression tests until the time comes that we
+        # decide to enforce this as an error.
+
+        # See https://github.com/quantopian/zipline/issues/837 for more
+        # details.
+
         df = pd.DataFrame.from_records(
             [
                 {
                     'sid': 1,
                     'symbol': 'multiple',
                     'start_date': pd.Timestamp('2010-01-01'),
-                    'end_date': pd.Timestamp('2013-01-01'),
+                    'end_date': pd.Timestamp('2012-01-01'),
                     'exchange': 'NYSE'
                 },
+                # Same as asset 1, but with a later end date.
                 {
                     'sid': 2,
                     'symbol': 'multiple',
-                    'start_date': pd.Timestamp('2012-01-01'),
-                    'end_date': pd.Timestamp('2014-01-01'),
+                    'start_date': pd.Timestamp('2010-01-01'),
+                    'end_date': pd.Timestamp('2013-01-01'),
                     'exchange': 'NYSE'
-                }
+                },
+                # Same as asset 1, but with a later start_date
+                {
+                    'sid': 3,
+                    'symbol': 'multiple',
+                    'start_date': pd.Timestamp('2011-01-01'),
+                    'end_date': pd.Timestamp('2012-01-01'),
+                    'exchange': 'NYSE'
+                },
             ]
         )
-        self.env.write_data(equities_df=df)
-        finder = self.asset_finder_type(self.env.engine)
-        result = finder.lookup_symbol('MULTIPLE', pd.Timestamp('2012-05-05'))
-        self.assertEqual(result.symbol, 'MULTIPLE')
-        self.assertEqual(result.sid, 2)
+
+        def check(expected_sid, date):
+            result = finder.lookup_symbol(
+                'MULTIPLE', date,
+            )
+            self.assertEqual(result.symbol, 'MULTIPLE')
+            self.assertEqual(result.sid, expected_sid)
+
+        with tmp_asset_finder(finder_cls=self.asset_finder_type,
+                              equities=df) as finder:
+            self.assertIsInstance(finder, self.asset_finder_type)
+
+            # Sids 1 and 2 are eligible here.  We should get asset 2 because it
+            # has the later end_date.
+            check(2, pd.Timestamp('2010-12-31'))
+
+            # Sids 1, 2, and 3 are eligible here.  We should get sid 3 because
+            # it has a later start_date
+            check(3, pd.Timestamp('2011-01-01'))
 
     def test_lookup_generic(self):
         """
@@ -774,7 +827,7 @@ class AssetFinderTestCase(TestCase):
         trading_day = self.env.trading_day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
-        frame = make_rotating_asset_info(
+        frame = make_rotating_equity_info(
             num_assets=num_assets,
             first_start=first_start,
             frequency=self.env.trading_day,
@@ -837,6 +890,152 @@ class AssetFinderTestCase(TestCase):
         self.assertTrue(1 in sids)
         self.assertTrue(2 in sids)
         self.assertTrue(3 in sids)
+
+    def test_group_by_type(self):
+        equities = make_simple_equity_info(
+            range(5),
+            start_date=pd.Timestamp('2014-01-01'),
+            end_date=pd.Timestamp('2015-01-01'),
+        )
+        futures = make_commodity_future_info(
+            first_sid=6,
+            root_symbols=['CL'],
+            years=[2014],
+        )
+        # Intersecting sid queries, to exercise loading of partially-cached
+        # results.
+        queries = [
+            ([0, 1, 3], [6, 7]),
+            ([0, 2, 3], [7, 10]),
+            (list(equities.index), list(futures.index)),
+        ]
+        with tmp_asset_finder(equities=equities, futures=futures) as finder:
+            for equity_sids, future_sids in queries:
+                results = finder.group_by_type(equity_sids + future_sids)
+                self.assertEqual(
+                    results,
+                    {'equity': set(equity_sids), 'future': set(future_sids)},
+                )
+
+    @parameterized.expand([
+        (Equity, 'retrieve_equities', EquitiesNotFound),
+        (Future, 'retrieve_futures_contracts', FutureContractsNotFound),
+    ])
+    def test_retrieve_specific_type(self, type_, lookup_name, failure_type):
+        equities = make_simple_equity_info(
+            range(5),
+            start_date=pd.Timestamp('2014-01-01'),
+            end_date=pd.Timestamp('2015-01-01'),
+        )
+        max_equity = equities.index.max()
+        futures = make_commodity_future_info(
+            first_sid=max_equity + 1,
+            root_symbols=['CL'],
+            years=[2014],
+        )
+        equity_sids = [0, 1]
+        future_sids = [max_equity + 1, max_equity + 2, max_equity + 3]
+        if type_ == Equity:
+            success_sids = equity_sids
+            fail_sids = future_sids
+        else:
+            fail_sids = equity_sids
+            success_sids = future_sids
+
+        with tmp_asset_finder(equities=equities, futures=futures) as finder:
+            # Run twice to exercise caching.
+            lookup = getattr(finder, lookup_name)
+            for _ in range(2):
+                results = lookup(success_sids)
+                self.assertIsInstance(results, dict)
+                self.assertEqual(set(results.keys()), set(success_sids))
+                self.assertEqual(
+                    valmap(int, results),
+                    dict(zip(success_sids, success_sids)),
+                )
+                self.assertEqual(
+                    {type_},
+                    {type(asset) for asset in itervalues(results)},
+                )
+                with self.assertRaises(failure_type):
+                    lookup(fail_sids)
+                with self.assertRaises(failure_type):
+                    # Should fail if **any** of the assets are bad.
+                    lookup([success_sids[0], fail_sids[0]])
+
+    def test_retrieve_all(self):
+        equities = make_simple_equity_info(
+            range(5),
+            start_date=pd.Timestamp('2014-01-01'),
+            end_date=pd.Timestamp('2015-01-01'),
+        )
+        max_equity = equities.index.max()
+        futures = make_commodity_future_info(
+            first_sid=max_equity + 1,
+            root_symbols=['CL'],
+            years=[2014],
+        )
+
+        with tmp_asset_finder(equities=equities, futures=futures) as finder:
+            all_sids = finder.sids
+            self.assertEqual(len(all_sids), len(equities) + len(futures))
+            queries = [
+                # Empty Query.
+                (),
+                # Only Equities.
+                tuple(equities.index[:2]),
+                # Only Futures.
+                tuple(futures.index[:3]),
+                # Mixed, all cache misses.
+                tuple(equities.index[2:]) + tuple(futures.index[3:]),
+                # Mixed, all cache hits.
+                tuple(equities.index[2:]) + tuple(futures.index[3:]),
+                # Everything.
+                all_sids,
+                all_sids,
+            ]
+            for sids in queries:
+                equity_sids = [i for i in sids if i <= max_equity]
+                future_sids = [i for i in sids if i > max_equity]
+                results = finder.retrieve_all(sids)
+                self.assertEqual(sids, tuple(map(int, results)))
+
+                self.assertEqual(
+                    [Equity for _ in equity_sids] +
+                    [Future for _ in future_sids],
+                    list(map(type, results)),
+                )
+                self.assertEqual(
+                    (
+                        list(equities.symbol.loc[equity_sids]) +
+                        list(futures.symbol.loc[future_sids])
+                    ),
+                    list(asset.symbol for asset in results),
+                )
+
+    @parameterized.expand([
+        (EquitiesNotFound, 'equity', 'equities'),
+        (FutureContractsNotFound, 'future contract', 'future contracts'),
+        (SidsNotFound, 'asset', 'assets'),
+    ])
+    def test_error_message_plurality(self,
+                                     error_type,
+                                     singular,
+                                     plural):
+        try:
+            raise error_type(sids=[1])
+        except error_type as e:
+            self.assertEqual(
+                str(e),
+                "No {singular} found for sid: 1.".format(singular=singular)
+            )
+        try:
+            raise error_type(sids=[1, 2])
+        except error_type as e:
+            self.assertEqual(
+                str(e),
+                "No {plural} found for sids: [1, 2].".format(plural=plural)
+            )
 
 
 class AssetFinderCachedEquitiesTestCase(AssetFinderTestCase):

@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from zipline.utils.memoize import lazyval
+
 
 class ZiplineError(Exception):
     msg = None
 
-    def __init__(self, *args, **kwargs):
-        self.args = args
+    def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.message = str(self)
 
@@ -231,13 +232,46 @@ Root symbol '{root_symbol}' was not found.
 """.strip()
 
 
-class SidNotFound(ZiplineError):
+class SidsNotFound(ZiplineError):
     """
-    Raised when a retrieve_asset() call contains a non-existent sid.
+    Raised when a retrieve_asset() or retrieve_all() call contains a
+    non-existent sid.
     """
-    msg = """
-Asset with sid '{sid}' was not found.
-""".strip()
+    @lazyval
+    def plural(self):
+        return len(self.sids) > 1
+
+    @lazyval
+    def sids(self):
+        return self.kwargs['sids']
+
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No assets found for sids: {sids}."
+        return "No asset found for sid: {sids[0]}."
+
+
+class EquitiesNotFound(SidsNotFound):
+    """
+    Raised when a call to `retrieve_equities` fails to find an asset.
+    """
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No equities found for sids: {sids}."
+        return "No equity found for sid: {sids[0]}."
+
+
+class FutureContractsNotFound(SidsNotFound):
+    """
+    Raised when a call to `retrieve_futures_contracts` fails to find an asset.
+    """
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No future contracts found for sids: {sids}."
+        return "No future contract found for sid: {sids[0]}."
 
 
 class ConsumeAssetMetaDataError(ZiplineError):

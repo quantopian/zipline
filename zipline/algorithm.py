@@ -21,8 +21,10 @@ from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from datetime import datetime
-
 from itertools import groupby, chain, repeat
+from numbers import Integral
+from operator import attrgetter
+
 from six.moves import filter
 from six import (
     exec_,
@@ -30,7 +32,6 @@ from six import (
     itervalues,
     string_types,
 )
-from operator import attrgetter
 
 
 from zipline.errors import (
@@ -608,8 +609,7 @@ class TradingAlgorithm(object):
             if isinstance(identifier, Asset):
                 asset = self.asset_finder.retrieve_asset(sid=identifier.sid,
                                                          default_none=True)
-
-            elif hasattr(identifier, '__int__'):
+            elif isinstance(identifier, Integral):
                 asset = self.asset_finder.retrieve_asset(sid=identifier,
                                                          default_none=True)
             if asset is None:
@@ -617,6 +617,12 @@ class TradingAlgorithm(object):
 
         self.trading_environment.write_data(
             equities_identifiers=identifiers_to_build)
+
+        # We need to clear out any cache misses that were stored while trying
+        # to do lookups.  The real fix for this problem is to not construct an
+        # AssetFinder until we `run()` when we actually have all the data we
+        # need to so.
+        self.asset_finder._reset_caches()
 
         return self.asset_finder.map_identifier_index_to_sids(
             identifiers, as_of_date,

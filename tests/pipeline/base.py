@@ -12,7 +12,7 @@ from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.utils.pandas_utils import explode
-from zipline.utils.test_utils import make_simple_asset_info, ExplodingObject
+from zipline.utils.test_utils import make_simple_equity_info, ExplodingObject
 from zipline.utils.tradingcalendar import trading_day
 
 
@@ -52,7 +52,7 @@ class BasePipelineTestCase(TestCase):
         # Set up env for test
         env = TradingEnvironment()
         env.write_data(
-            equities_df=make_simple_asset_info(
+            equities_df=make_simple_equity_info(
                 assets,
                 self.__calendar[0],
                 self.__calendar[-1],
