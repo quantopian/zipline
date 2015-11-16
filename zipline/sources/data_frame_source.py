@@ -114,7 +114,6 @@ class DataPanelSource(DataSource):
         # TODO is ffilling correct/necessary?
         # forward fill with volumes of 0
         self.data = data.fillna(value={'volume': 0})
-        self.data = self.data.fillna(method='ffill')
         # Unpack config dictionary with default values.
         self.start = kwargs.get('start', self.data.major_axis[0])
         self.end = kwargs.get('end', self.data.major_axis[-1])
@@ -153,8 +152,7 @@ class DataPanelSource(DataSource):
             df = self.data.major_xs(dt)
             for sid, series in df.iteritems():
                 # Skip SIDs that can not be forward filled
-                if np.isnan(series['price']) and \
-                   sid not in self.started_sids:
+                if np.isnan(series['price']):
                     continue
                 self.started_sids.add(sid)
 

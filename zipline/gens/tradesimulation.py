@@ -26,6 +26,7 @@ from zipline.protocol import (
     SIDData,
     DATASOURCE_TYPE
 )
+from zipline.errors import SidNotFound
 
 log = Logger('Trade Simulation')
 
@@ -99,6 +100,16 @@ class AlgorithmSimulator(object):
 
                 self.simulation_dt = date
                 self.on_dt_changed(date)
+
+                # removing expired futures
+                for sid in self.current_data.keys():
+                    try:
+                        if self.env.asset_finder.retrieve_asset(sid).end_date \
+                                < self.simulation_dt:
+                            del self.current_data[sid]
+                    except (AttributeError, TypeError, ValueError,
+                            SidNotFound):
+                        continue
 
                 # If we're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,

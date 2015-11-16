@@ -59,6 +59,7 @@ from zipline.test_algorithms import (
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
     TestTargetValueAlgorithm,
+    TestRemoveDataAlgo,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -1965,3 +1966,42 @@ class TestTradingAlgorithm(TestCase):
                                 analyze=analyze)
         results = algo.run(self.panel)
         self.assertIs(results, self.perf_ref)
+
+
+class TestRemoveData(TestCase):
+    """
+    tests if futures data is removed after expiry
+    """
+    def setUp(self):
+        dt = pd.Timestamp('2015-01-01', tz='UTC')
+        metadata = {0: {'symbol': 'X',
+                        'expiration_date': dt + timedelta(days=5),
+                        'end_date': dt + timedelta(days=5)},
+                    1: {'symbol': 'Y',
+                        'expiration_date': dt + timedelta(days=7),
+                        'end_date': dt + timedelta(days=7)}}
+
+        env = TradingEnvironment()
+        env.write_data(futures_data=metadata)
+
+        index_x = pd.date_range(dt, periods=5)
+        data_x = pd.DataFrame([[1, 100], [2, 100], [3, 100], [4, 100],
+                               [5, 100]],
+                              index=index_x, columns=['price', 'volume'])
+        index_y = index_x.shift(2)
+        data_y = pd.DataFrame([[6, 100], [7, 100], [8, 100], [9, 100],
+                               [10, 100]],
+                              index=index_y, columns=['price', 'volume'])
+
+        pan = pd.Panel({0: data_x, 1: data_y})
+        self.source = DataPanelSource(pan)
+        self.algo = TestRemoveDataAlgo(env=env)
+
+    def test_remove_data(self):
+        self.algo.run(self.source)
+
+        expected_length = [1, 2, 2, 2, 2, 1]
+        # initially only data for X should be sent and on the last day only
+        # data for Y should be sent since X is expired
+        for i, length in enumerate(self.algo.data):
+            self.assertEqual(expected_length[i], length, i)
