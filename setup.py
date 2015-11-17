@@ -216,5 +216,5 @@ setup(
     ],
     install_requires=install_requires(),
     extras_require=extras_requires(),
-    url="http://zipline.io"
+    url="http://zipline.io", requires=['six', 'testfixtures']
 )

@@ -43,16 +43,17 @@ from pandas import (
     read_csv,
     Timestamp,
 )
+
 from six import (
     iteritems,
     string_types,
     with_metaclass,
 )
+import logbook
 
 from ._equities import _compute_row_slices, _read_bcolz_data
 from ._adjustments import load_adjustments_from_sqlite
 
-import logbook
 logger = logbook.Logger('UsEquityPricing')
 
 OHLC = frozenset(['open', 'high', 'low', 'close'])
@@ -207,7 +208,8 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
                     columns['id'].append(full((nrows,), asset_id))
                     continue
                 columns[column_name].append(
-                    self.to_uint32(table[column_name][:], column_name)
+                    table[column_name][:]
+                    # self.to_uint32(table[column_name][:], column_name)
                 )
 
             # Bcolz doesn't support ints as keys in `attrs`, so convert
@@ -228,7 +230,7 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
             # HACK: Index with a list so that we get back an array we can pass
             # to self.to_uint32.  We could try to extract this in the loop
             # above, but that makes the logic a lot messier.
-            asset_first_day = self.to_uint32(table['day'][[0]], 'day')[0]
+            asset_first_day = table['day'][[0]][0]
             calendar_offset[asset_key] = calendar.get_loc(
                 Timestamp(asset_first_day, unit='s', tz='UTC'),
             )
@@ -300,8 +302,9 @@ class DailyBarWriterFromCSVs(BcolzDailyBarWriter):
             return array.astype(uint32)
         elif colname == 'day':
             nanos_per_second = (1000 * 1000 * 1000)
-            self.check_uint_safe(arrmax.view(int) / nanos_per_second, colname)
-            return (array.view(int) / nanos_per_second).astype(uint32)
+            self.check_uint_safe(arrmax.view(integer) / nanos_per_second,
+                                 colname)
+            return (array.view(integer) / nanos_per_second).astype(uint32)
 
     @staticmethod
     def check_uint_safe(value, colname):

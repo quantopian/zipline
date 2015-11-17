@@ -948,7 +948,13 @@ class AssetFinderTestCase(TestCase):
             finder.retrieve_currencies(pair='ZZZAAA', default_none=False)
             finder.retrieve_currencies(pair='ZZZAAA')  # default behaviour
 
-    def test_lookup_currency_by_base_quote(self):
+    def test_lookup_currency_by_base_and_quote_single_assets_returned(self):
+        """
+        This seems to be ok but I'm not sure we actually need to retrieve
+        by base or quote?
+        We would most likely already know the CurrencyPair we wanted to find
+        'USDGBP' for example so we just find by this.
+        """
         # given
         self.setup_currency_test_data()
         finder = AssetFinder(self.env.engine)
@@ -963,7 +969,7 @@ class AssetFinderTestCase(TestCase):
 
         # scenario 2 - check a missing one returns None when flag set
         missing_by_base = finder.retrieve_currencies(base='ZZZ',
-                                                      default_none=True)
+                                                     default_none=True)
         self.assertIsNone(missing_by_base)
         missing_by_quote = finder.retrieve_currencies(quote='AAA',
                                                       default_none=True)
@@ -1012,6 +1018,16 @@ class AssetFinderTestCase(TestCase):
                     'base': 'GBP',
                     'quote': 'AUD',
                     'cvf': 3
+                },
+                {
+                    'sid': 3,
+                    'asset_type': 'currency',
+                    'symbol': 'AD9',
+                    'pair': 'USDAUD',
+                    'start_date': ccy_2_start.value,
+                    'base': 'USD',
+                    'quote': 'AUD',
+                    'cvf': 4
                 },
             ],
             index='sid')

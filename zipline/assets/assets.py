@@ -158,7 +158,7 @@ class AssetFinder(object):
 
     def retrieve_currencies(self, pair=None, symbol=None,
                             base=None, quote=None,
-                            default_none=False):
+                            default_none=False, return_multiple=False):
         """
         Retrieve a currency from the AssetFinder from one of the fields below.
 
@@ -172,7 +172,8 @@ class AssetFinder(object):
         :param quote: The quote currency in the pair 'GBP'
         :param default_none: set this True to return None otherwise it will
         raise a SidNotFound exception.
-        :return: possibly a CurrencyPair a list of currency pairs, None or
+        :return: possibly a CurrencyPair a list of currency pairs (not
+        completed), None or
         a SidNotFound exception
         """
         ret = None
