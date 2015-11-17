@@ -449,6 +449,8 @@ class TradingAlgorithm(object):
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
 
+        self.ensure_clock()
+
         self.trading_client = AlgorithmSimulator(
             self,
             sim_params,
