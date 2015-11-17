@@ -242,7 +242,7 @@ class DataPortal(object):
         fetcher_val = self._check_fetcher(asset, column,
                                           (dt or self.current_dt))
 
-        if fetcher_val:
+        if fetcher_val is not None:
             return fetcher_val
 
         if column not in BASE_FIELDS:
