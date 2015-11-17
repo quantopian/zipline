@@ -179,7 +179,7 @@ class PerformancePeriod(object):
         self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
 
-        self.name = None
+        self.name = name
 
         # An object to recycle via assigning new values
         # when returning portfolio information.
@@ -270,16 +270,19 @@ class PerformancePeriod(object):
         for sid, pos in iteritems(positions):
             asset = self.asset_finder.retrieve_asset(sid)
             if isinstance(asset, Future):
-                old_price_dt = max(pos.last_sale_date,
-                                   self.period_open)
+                old_price_dt = max(pos.last_sale_date, self.period_open)
+
                 if old_price_dt == pos.last_sale_date:
                     continue
+
                 old_price = data_portal.get_previous_price(
-                    sid,
-                    'close',
-                    dt=old_price_dt)
+                    sid, 'close', dt=old_price_dt
+                )
+
                 price = data_portal.get_spot_value(
-                    sid, 'close', dt=self.period_close)
+                    sid, 'close', dt=self.period_close
+                )
+
                 payout = (
                     (price - old_price)
                     *
@@ -288,13 +291,16 @@ class PerformancePeriod(object):
                     pos.amount
                 )
                 futures_payouts.append(payout)
+
         futures_payout = sum(futures_payouts)
 
-        return calc_period_stats(pos_stats,
-                                 self.starting_cash,
-                                 self.starting_value,
-                                 self.period_cash_flow,
-                                 futures_payout)
+        return calc_period_stats(
+            pos_stats,
+            self.starting_cash,
+            self.starting_value,
+            self.period_cash_flow,
+            futures_payout
+        )
 
     def __core_dict(self, pos_stats, period_stats):
         rval = {
