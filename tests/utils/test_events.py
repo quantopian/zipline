@@ -20,7 +20,6 @@ import random
 from unittest import TestCase
 
 from nose_parameterized import parameterized
-import numpy as np
 import pandas as pd
 from six import iteritems
 from six.moves import range, map
