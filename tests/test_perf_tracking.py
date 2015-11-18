@@ -1422,7 +1422,7 @@ class TestPositionPerformance(unittest.TestCase):
             1,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
-            onesec,
+            oneday,
             self.sim_params,
             env=self.env
         )
@@ -1448,8 +1448,7 @@ class TestPositionPerformance(unittest.TestCase):
         # stocks with a last sale price of 0.
         self.assertEqual(pt.positions[1].last_sale_price, 10.0)
 
-        for trade in trades:
-            pt.update_last_sale(trade)
+        pt.sync_last_sale_prices(trades[-1].dt)
 
         self.assertEqual(
             pp.period_cash_flow,
@@ -1458,10 +1457,7 @@ class TestPositionPerformance(unittest.TestCase):
             cost of sole txn in test"
         )
 
-        self.assertEqual(
-            len(pt.positions),
-            1,
-            "should be just one position")
+        self.assertEqual(len(pt.positions), 1, "should be just one position")
 
         self.assertEqual(
             pt.positions[1].sid,
@@ -1795,8 +1791,7 @@ trade after cover"""
         pt.execute_transaction(cover_txn)
         pp.handle_execution(cover_txn)
 
-        for trade in trades:
-            pt.update_last_sale(trade)
+        pt.sync_last_sale_prices(trades[-1].dt)
 
         short_txn_cost = short_txn.price * short_txn.amount
         cover_txn_cost = cover_txn.price * cover_txn.amount
@@ -1986,8 +1981,7 @@ shares in position"
         pp3.handle_execution(sale_txn)
 
         trades.append(down_tick)
-        for trade in trades:
-            pt3.update_last_sale(trade)
+        pt3.sync_last_sale_prices(trades[-1].dt)
 
         self.assertEqual(
             pt3.positions[1].last_sale_price,
@@ -2042,253 +2036,6 @@ shares in position"
             self.assertEqual(pt.positions[1].cost_basis, cb)
 
         self.assertEqual(pt.positions[1].cost_basis, cost_bases[-1])
-
-
-class TestPerformanceTracker(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[1, 2, 133, 134])
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
-    def setUp(self):
-        self.tempdir = TempDirectory()
-
-    def tearDown(self):
-        self.tempdir.cleanup()
-
-    NumDaysToDelete = collections.namedtuple(
-        'NumDaysToDelete', ('start', 'middle', 'end'))
-
-    @parameterized.expand([
-        ("Don't delete any events",
-         NumDaysToDelete(start=0, middle=0, end=0)),
-        ("Delete first day of events",
-         NumDaysToDelete(start=1, middle=0, end=0)),
-        ("Delete first two days of events",
-         NumDaysToDelete(start=2, middle=0, end=0)),
-        ("Delete one day of events from the middle",
-         NumDaysToDelete(start=0, middle=1, end=0)),
-        ("Delete two events from the middle",
-         NumDaysToDelete(start=0, middle=2, end=0)),
-        ("Delete last day of events",
-         NumDaysToDelete(start=0, middle=0, end=1)),
-        ("Delete last two days of events",
-         NumDaysToDelete(start=0, middle=0, end=2)),
-        ("Delete all but one event.",
-         NumDaysToDelete(start=2, middle=1, end=2)),
-    ])
-    def test_tracker(self, parameter_comment, days_to_delete):
-        """
-        @days_to_delete - configures which days in the data set we should
-        remove, used for ensuring that we still return performance messages
-        even when there is no data.
-        """
-        # This date range covers Columbus day,
-        # however Columbus day is not a market holiday
-        #
-        #     October 2008
-        # Su Mo Tu We Th Fr Sa
-        #           1  2  3  4
-        #  5  6  7  8  9 10 11
-        # 12 13 14 15 16 17 18
-        # 19 20 21 22 23 24 25
-        # 26 27 28 29 30 31
-        start_dt = datetime(year=2008,
-                            month=10,
-                            day=9,
-                            tzinfo=pytz.utc)
-        end_dt = datetime(year=2008,
-                          month=10,
-                          day=16,
-                          tzinfo=pytz.utc)
-
-        trade_count = 6
-        sid = 133
-        price = 10.1
-        price_list = [price] * trade_count
-        price2 = 12.12
-        price2_list = [price2] * trade_count
-        volume = [100] * trade_count
-        trade_time_increment = timedelta(days=1)
-
-        price_list1 = np.array(price_list)
-        price_list2 = np.array(price2_list)
-        volume1 = np.array(volume)
-        volume2 = np.array(volume)
-
-        # 'middle' start of 3 depends on number of days == 7
-        middle = 3
-
-        # First delete from middle
-        if days_to_delete.middle:
-            volume1[middle:(middle + days_to_delete.middle)] = 0
-            volume2[middle:(middle + days_to_delete.middle)] = 0
-            price_list1[middle:(middle + days_to_delete.middle)] = 0
-            price_list2[middle:(middle + days_to_delete.middle)] = 0
-
-        # Delete start
-        if days_to_delete.start:
-            volume1[:days_to_delete.start]
-            volume2[:days_to_delete.start] = 0
-            price_list1[:days_to_delete.start] = 0
-            price_list2[:days_to_delete.start] = 0
-
-        # Delete from end
-        if days_to_delete.end:
-            volume1[-days_to_delete.end:] = 0
-            volume2[-days_to_delete.end:] = 0
-            price_list1[-days_to_delete.end:] = 0
-            price_list2[-days_to_delete.end:] = 0
-
-        env = TradingEnvironment()
-
-        sim_params = SimulationParameters(
-            period_start=start_dt,
-            period_end=end_dt,
-            env=env,
-        )
-
-        env.write_data(equities_data={
-            133: {
-                "start_date": sim_params.trading_days[0],
-                "end_date": sim_params.trading_days[-1]
-            },
-            134: {
-                "start_date": sim_params.trading_days[0],
-                "end_date": sim_params.trading_days[-1]
-            },
-        })
-
-        benchmark_events = benchmark_events_in_range(sim_params, env)
-
-        trade_history = factory.create_trade_history(
-            sid,
-            price_list1,
-            volume1,
-            trade_time_increment,
-            sim_params,
-            source_id="factory1",
-            env=env
-        )
-
-        sid2 = 134
-        trade_history2 = factory.create_trade_history(
-            sid2,
-            price_list2,
-            volume2,
-            trade_time_increment,
-            sim_params,
-            source_id="factory2",
-            env=env
-        )
-
-        sim_params.capital_base = 1000.0
-        sim_params.frame_index = [
-            'sid',
-            'volume',
-            'dt',
-            'price',
-            'changed']
-
-        data_portal = create_data_portal_from_trade_history(
-            env,
-            self.tempdir,
-            sim_params,
-            {sid: trade_history,
-             sid2: trade_history2},
-        )
-        data_portal._adjustment_reader = NullAdjustmentReader()
-
-        perf_tracker = perf.PerformanceTracker(
-            sim_params, env, data_portal
-        )
-
-        events = date_sorted_sources(trade_history, trade_history2)
-
-        events = [event for event in
-                  self.trades_with_txns(events, trade_history[0].dt)]
-
-        # Extract events with transactions to use for verification.
-        txns = [event for event in
-                events if event.type == zp.DATASOURCE_TYPE.TRANSACTION]
-
-        orders = [event for event in
-                  events if event.type == zp.DATASOURCE_TYPE.ORDER]
-
-        all_events = date_sorted_sources(events, benchmark_events)
-
-        filtered_events = [filt_event for filt_event
-                           in all_events if filt_event.dt <= end_dt]
-        filtered_events.sort(key=lambda x: x.dt)
-        grouped_events = itertools.groupby(filtered_events, lambda x: x.dt)
-        perf_messages = []
-
-        for date, group in grouped_events:
-            for event in group:
-                if event.type == zp.DATASOURCE_TYPE.TRADE:
-                    perf_tracker.process_trade(event)
-                elif event.type == zp.DATASOURCE_TYPE.ORDER:
-                    perf_tracker.process_order(event)
-                elif event.type == zp.DATASOURCE_TYPE.TRANSACTION:
-                    perf_tracker.process_transaction(event)
-            msg = perf_tracker.handle_market_close_daily(date)
-            perf_messages.append(msg)
-
-        self.assertEqual(perf_tracker.txn_count, len(txns))
-        self.assertEqual(perf_tracker.txn_count, len(orders))
-
-        positions = perf_tracker.position_tracker.positions
-        if len(txns) == 0:
-            self.assertNotIn(sid, positions)
-        else:
-            expected_size = len(txns) / 2 * -25
-            cumulative_pos = positions[sid]
-            self.assertEqual(cumulative_pos.amount, expected_size)
-
-            self.assertEqual(len(perf_messages),
-                             sim_params.days_in_period)
-
-    def trades_with_txns(self, events, no_txn_dt):
-        for event in events:
-
-            # create a transaction for all but
-            # first trade in each sid, to simulate None transaction
-            if event.dt != no_txn_dt:
-                order = Order(
-                    sid=event.sid,
-                    amount=-25,
-                    dt=event.dt
-                )
-                order.source_id = 'MockOrderSource'
-                yield order
-                yield event
-                txn = Transaction(
-                    sid=event.sid,
-                    amount=-25,
-                    dt=event.dt,
-                    price=10.0,
-                    commission=0.50,
-                    order_id=order.id
-                )
-                txn.source_id = 'MockTransactionSource'
-                yield txn
-            else:
-                yield event
-
-    def write_equity_data(self, env, sim_params, sids):
-        data = {}
-        for sid in sids:
-            data[sid] = {
-                "start_date": sim_params.trading_days[0],
-                "end_date": sim_params.trading_days[-1]
-            }
-
-        env.write_data(equities_data=data)
 
 
 class TestPosition(unittest.TestCase):

@@ -380,17 +380,17 @@ class TestMiscellaneousAPI(TestCase):
         )
         algo.run(self.data_portal)
 
-        self.assertEqual(len(expected_data), 779)
+        self.assertEqual(len(expected_data), 780)
         self.assertEqual(collected_data_pre, expected_data)
         self.assertEqual(collected_data_post, expected_data)
 
         self.assertEqual(
             len(function_stack),
-            779 * 5,
-            'Incorrect number of functions called: %s != 779' %
+            780 * 5,
+            'Incorrect number of functions called: %s != 780' %
             len(function_stack),
         )
-        expected_functions = [pre, handle_data, f, g, post] * 779
+        expected_functions = [pre, handle_data, f, g, post] * 780
         for n, (f, g) in enumerate(zip(function_stack, expected_functions)):
             self.assertEqual(
                 f,
@@ -1723,7 +1723,8 @@ class TestClosePosAlgo(TestCase):
         cls.tempdir = TempDirectory()
 
         cls.env = TradingEnvironment()
-        cls.days = cls.env.trading_days[:4]
+        cls.days = pd.date_range(start=pd.Timestamp("2006-01-09", tz='UTC'),
+                                 end=pd.Timestamp("2006-01-12", tz='UTC'))
 
         cls.sid = 1
 
@@ -1761,13 +1762,15 @@ class TestClosePosAlgo(TestCase):
                     self.sim_params.trading_days[-1]),
                 'symbol': 'TEST',
                 'asset_type': 'future',
-                'auto_close_date': self.env.trading_days[4]
+                'auto_close_date': self.env.next_trading_day(
+                    self.sim_params.trading_days[-1])
             }
         })
 
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
                              commission=PerShare(0),
-                             env=self.env)
+                             env=self.env,
+                             sim_params=self.sim_params)
 
         # Check results
         results = algo.run(self.data_portal)
@@ -1810,31 +1813,19 @@ class TestFutureFlip(TestCase):
 
         cls.sim_params = factory.create_simulation_parameters(
             start=cls.days[0],
-            end=cls.days[-1]
-        )
-
-        # self.trades_panel = pd.Panel({1: pd.DataFrame({
-        #     'price': [1, 2, 4], 'volume': [1e9, 1e9, 1e9],
-        #     'type': [DATASOURCE_TYPE.TRADE,
-        #              DATASOURCE_TYPE.TRADE,
-        #              DATASOURCE_TYPE.TRADE]},
-        #     index=self.days[:3])
-        # })
-
-        cls.sim_params = factory.create_simulation_parameters(
-            start=cls.days[0],
             end=cls.days[-2]
         )
 
-        trades_by_sid = {}
-        trades_by_sid[cls.sid] = factory.create_trade_history(
-            cls.sid,
-            [1, 2, 4],
-            [1e9, 1e9, 1e9],
-            timedelta(days=1),
-            cls.sim_params,
-            cls.env
-        )
+        trades_by_sid = {
+            cls.sid: factory.create_trade_history(
+                        cls.sid,
+                        [1, 2, 4],
+                        [1e9, 1e9, 1e9],
+                        timedelta(days=1),
+                        cls.sim_params,
+                        cls.env
+            )
+        }
 
         cls.data_portal = create_data_portal_from_trade_history(
             cls.env,
@@ -1858,12 +1849,11 @@ class TestFutureFlip(TestCase):
         algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,
                               commission=PerShare(0),
                               order_count=0,  # not applicable but required
-                              instant_fill=True,
                               sim_params=self.sim_params)
 
         results = algo.run(self.data_portal)
 
-        expected_positions = [1, -1, 0]
+        expected_positions = [0, 1, -1]
         self.check_algo_positions(results, expected_positions)
 
         expected_pnl = [0, 5, -10]

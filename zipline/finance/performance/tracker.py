@@ -64,6 +64,7 @@ from datetime import datetime
 
 import pandas as pd
 from pandas.tseries.tools import normalize_date
+from zipline.assets import Future
 from zipline.finance.performance.period import PerformancePeriod
 
 import zipline.finance.risk as risk
@@ -277,20 +278,7 @@ class PerformanceTracker(object):
             self.position_tracker._unpaid_stock_dividends = \
                 other_perf_tracker.position_tracker._unpaid_stock_dividends
 
-    def _handle_event_price(self, event):
-        # updates last sale, and pays out a cash adjustment if applicable
-        cash_adjustment = self.position_tracker.update_last_sale(event)
-        if cash_adjustment != 0:
-            self.cumulative_performance.handle_cash_payment(cash_adjustment)
-            self.todays_performance.handle_cash_payment(cash_adjustment)
-
-     # FIXME get rid of this!
-    def process_trade(self, event):
-        # update last sale, and pay out a cash adjustment
-        self._handle_event_price(event)
-
     def process_transaction(self, transaction):
-        self._handle_event_price(transaction)
         self.txn_count += 1
         self.position_tracker.execute_transaction(transaction)
         self.cumulative_performance.handle_execution(transaction)

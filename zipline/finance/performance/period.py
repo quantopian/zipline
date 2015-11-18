@@ -396,7 +396,7 @@ class PerformancePeriod(object):
         portfolio.returns = period_stats.returns
         portfolio.cash = period_stats.ending_cash
         portfolio.start_date = self.period_open
-        portfolio.positions = position_tracker.get_positions(dt)
+        portfolio.positions = position_tracker.get_positions()
         portfolio.positions_value = pos_stats.net_value
         portfolio.positions_exposure = pos_stats.net_exposure
         return portfolio

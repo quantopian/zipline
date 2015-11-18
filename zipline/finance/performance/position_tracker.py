@@ -173,6 +173,9 @@ class PositionTracker(object):
     def __init__(self, asset_finder, data_portal):
         self.asset_finder = asset_finder
 
+        # FIXME really want to avoid storing a data portal here,
+        # but the path to get to maybe_create_close_position_transaction
+        # is long and tortuous
         self._data_portal = data_portal
 
         # sid => position object
@@ -271,27 +274,6 @@ class PositionTracker(object):
         while past_asset_end_dates:
             self._auto_close_position_sids.pop(past_asset_end_dates.pop())
 
-    # FIXME KILL THIS METHOD
-    def update_last_sale(self, event):
-        # NOTE, PerformanceTracker already vetted as TRADE type
-        sid = event.sid
-        if sid not in self.positions:
-            return 0
-
-        price = event.price
-
-        if checknull(price):
-            return 0
-
-        pos = self.positions[sid]
-        old_price = pos.last_sale_price
-        pos.last_sale_date = event.dt
-        pos.last_sale_price = price
-
-        # Calculate cash adjustment on assets with multipliers
-        return ((price - old_price) * self._position_payout_multipliers[sid]
-                * pos.amount)
-
     def update_positions(self, positions):
         # update positions in batch
         self.positions.update(positions)
@@ -358,17 +340,6 @@ class PositionTracker(object):
                 leftover_cash = position.handle_split(sid, split[1])
                 self._update_asset(split[0])
                 return leftover_cash
-
-    def _maybe_earn_dividend(self, dividend):
-        """
-        Take a historical dividend record and return a Series with fields in
-        zipline.protocol.DIVIDEND_FIELDS (plus an 'id' field) representing
-        the cash/stock amount we are owed when the dividend is paid.
-        """
-        if dividend['sid'] in self.positions:
-            return self.positions[dividend['sid']].earn_dividend(dividend)
-        else:
-            return zp.dividend_payment()
 
     def earn_dividends(self, dividends, stock_dividends):
         """
@@ -456,11 +427,10 @@ class PositionTracker(object):
         )
         return txn
 
-    def get_positions(self, dt):
+    def get_positions(self):
         positions = self._positions_store
 
         for sid, pos in iteritems(self.positions):
-
             if pos.amount == 0:
                 # Clear out the position if it has become empty since the last
                 # time get_positions was called.  Catching the KeyError is
@@ -477,9 +447,9 @@ class PositionTracker(object):
             position = positions[sid]
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
-            position.last_sale_price =\
-                self._data_portal.get_spot_value(sid, 'close', dt)
+            position.last_sale_price = pos.last_sale_price
             position.last_sale_date = pos.last_sale_date
+
         return positions
 
     def get_positions_list(self):

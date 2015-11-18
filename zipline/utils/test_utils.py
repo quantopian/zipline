@@ -437,6 +437,38 @@ def make_commodity_future_info(first_sid,
     )
 
 
+def make_simple_asset_info(assets, start_date, end_date, symbols=None):
+    """
+    Create a DataFrame representing assets that exist for the full duration
+    between `start_date` and `end_date`.
+    Parameters
+    ----------
+    assets : array-like
+    start_date : pd.Timestamp
+    end_date : pd.Timestamp
+    symbols : list, optional
+        Symbols to use for the assets.
+        If not provided, symbols are generated from the sequence 'A', 'B', ...
+    Returns
+    -------
+    info : pd.DataFrame
+        DataFrame representing newly-created assets.
+    """
+    num_assets = len(assets)
+    if symbols is None:
+        symbols = list(ascii_uppercase[:num_assets])
+    return pd.DataFrame(
+        {
+            'sid': assets,
+            'symbol': symbols,
+            'asset_type': ['equity'] * num_assets,
+            'start_date': [start_date] * num_assets,
+            'end_date': [end_date] * num_assets,
+            'exchange': 'TEST',
+        }
+    )
+
+
 def check_allclose(actual,
                    desired,
                    rtol=1e-07,

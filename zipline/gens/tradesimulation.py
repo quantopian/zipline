@@ -107,6 +107,8 @@ class AlgorithmSimulator(object):
             blotter = algo.blotter
             perf_tracker = algo.perf_tracker
 
+            # handle any transactions and commissions coming out new orders
+            # placed in the last bar
             new_transactions, new_commissions = \
                 blotter.get_transactions(data_portal)
 

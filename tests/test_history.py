@@ -28,7 +28,10 @@ from zipline.utils.test_utils import (
 )
 from zipline.data.minute_writer import MinuteBarWriterFromCSVs
 from zipline.utils.tradingcalendar import trading_days
-from zipline.finance.trading import TradingEnvironment, SimulationParameters
+from zipline.finance.trading import (
+    TradingEnvironment,
+    SimulationParameters
+)
 
 TEST_MINUTE_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
