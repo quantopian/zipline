@@ -226,7 +226,7 @@ class DataFrameLoaderTestCase(TestCase):
         self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
 
         mask = self.mask[dates_slice, sids_slice]
-        with patch('zipline.pipeline.loaders.frame.adjusted_array') as m:
+        with patch('zipline.pipeline.loaders.frame.AdjustedArray') as m:
             loader.load_adjusted_array(
                 columns=[USEquityPricing.close],
                 dates=self.dates[dates_slice],

@@ -62,8 +62,10 @@ class LazyCythonizingList(list):
 
 ext_modules = LazyCythonizingList([
     ('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
-    ('zipline.lib.adjusted_array', ['zipline/lib/adjusted_array.pyx']),
     ('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
+    ('zipline.lib._floatwindow', ['zipline/lib/_floatwindow.pyx']),
+    ('zipline.lib._datewindow', ['zipline/lib/_datewindow.pyx']),
+    ('zipline.lib._boolwindow', ['zipline/lib/_boolwindow.pyx']),
     ('zipline.lib.rank', ['zipline/lib/rank.pyx']),
     (
         'zipline.data._equities',

@@ -2,6 +2,7 @@
 PipelineLoader accepting a DataFrame as input.
 """
 from numpy import (
+    float64,
     ix_,
     zeros,
 )
@@ -11,7 +12,7 @@ from pandas import (
     Index,
     Int64Index,
 )
-from zipline.lib.adjusted_array import adjusted_array
+from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import (
     Float64Add,
     Float64Multiply,
@@ -23,9 +24,9 @@ from .base import PipelineLoader
 
 ADD, MULTIPLY, OVERWRITE = range(3)
 ADJUSTMENT_CONSTRUCTORS = {
-    ADD: Float64Add.from_assets_and_dates,
-    MULTIPLY: Float64Multiply.from_assets_and_dates,
-    OVERWRITE: Float64Overwrite.from_assets_and_dates,
+    (float64, ADD): Float64Add.from_assets_and_dates,
+    (float64, MULTIPLY): Float64Multiply.from_assets_and_dates,
+    (float64, OVERWRITE): Float64Overwrite.from_assets_and_dates,
 }
 ADJUSTMENT_COLUMNS = Index([
     'sid',
@@ -91,7 +92,7 @@ class DataFrameLoader(PipelineLoader):
     def format_adjustments(self, dates, assets):
         """
         Build a dict of Adjustment objects in the format expected by
-        adjusted_array.
+        AdjustedArray.
 
         Returns a dict of the form:
         {
@@ -148,7 +149,7 @@ class DataFrameLoader(PipelineLoader):
             # Look up the approprate Adjustment constructor based on the value
             # of `kind`.
             current_date_adjustments.append(
-                ADJUSTMENT_CONSTRUCTORS[kind](
+                ADJUSTMENT_CONSTRUCTORS[type(value), kind](
                     dates,
                     assets,
                     start_date,
@@ -177,7 +178,7 @@ class DataFrameLoader(PipelineLoader):
         good_dates = (date_indexer != -1)
         good_assets = (assets_indexer != -1)
 
-        arrays = [adjusted_array(
+        arrays = [AdjustedArray(
             # Pull out requested columns/rows from our baseline data.
             data=self.baseline[ix_(date_indexer, assets_indexer)],
             # Mask out requested columns/rows that didnt match.
