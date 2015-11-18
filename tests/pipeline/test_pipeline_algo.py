@@ -59,7 +59,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
 from zipline.utils.test_utils import (
-    make_simple_asset_info,
+    make_simple_equity_info,
     str_to_seconds,
     DailyBarWriterFromDataFrames, FakeDataPortal)
 from zipline.utils.tradingcalendar import (
@@ -107,7 +107,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 1,
                 'symbol': 'A',
-                'asset_type': 'equity',
                 'start_date': self.dates[10],
                 'end_date': self.dates[13],
                 'exchange': 'TEST',
@@ -115,7 +114,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 2,
                 'symbol': 'B',
-                'asset_type': 'equity',
                 'start_date': self.dates[11],
                 'end_date': self.dates[14],
                 'exchange': 'TEST',
@@ -123,7 +121,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 3,
                 'symbol': 'C',
-                'asset_type': 'equity',
                 'start_date': self.dates[12],
                 'end_date': self.dates[15],
                 'exchange': 'TEST',
@@ -307,13 +304,25 @@ class ClosesOnly(TestCase):
         with self.assertRaises(NoSuchPipeline):
             algo.run(data_portal=self.data_portal)
 
-    def test_assets_appear_on_correct_days(self):
+    @parameterized.expand([('default', None),
+                           ('day', 1),
+                           ('week', 5),
+                           ('year', 252),
+                           ('all_but_one_day', 'all_but_one_day')])
+    def test_assets_appear_on_correct_days(self, test_name, chunksize):
         """
         Assert that assets appear at correct times during a backtest, with
         correctly-adjusted close price values.
         """
+
+        if chunksize == 'all_but_one_day':
+            chunksize = (
+                self.dates.get_loc(self.last_asset_end) -
+                self.dates.get_loc(self.first_asset_start)
+            ) - 1
+
         def initialize(context):
-            p = attach_pipeline(Pipeline(), 'test')
+            p = attach_pipeline(Pipeline(), 'test', chunksize=chunksize)
             p.add(USEquityPricing.close.latest, 'close')
 
         def handle_data(context, data):
@@ -337,8 +346,8 @@ class ClosesOnly(TestCase):
             before_trading_start=before_trading_start,
             data_frequency='daily',
             get_pipeline_loader=lambda column: self.pipeline_loader,
-            start=self.first_asset_start - trading_day,
-            end=self.last_asset_end + trading_day,
+            start=self.first_asset_start,
+            end=self.last_asset_end,
             env=self.env,
         )
 
@@ -362,7 +371,7 @@ class PipelineAlgorithmTestCase(TestCase):
         cls.MSFT = 2
         cls.BRK_A = 3
         cls.assets = [cls.AAPL, cls.MSFT, cls.BRK_A]
-        asset_info = make_simple_asset_info(
+        asset_info = make_simple_equity_info(
             cls.assets,
             Timestamp('2014'),
             Timestamp('2015'),

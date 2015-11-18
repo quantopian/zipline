@@ -20,6 +20,8 @@ import datetime
 import pandas as pd
 import pytz
 
+from .context_tricks import nop_context
+
 
 __all__ = [
     'EventManager',
@@ -170,13 +172,23 @@ def _build_time(time, kwargs):
 
 
 class EventManager(object):
-    """
-    Manages a list of Event objects.
+    """Manages a list of Event objects.
     This manages the logic for checking the rules and dispatching to the
     handle_data function of the Events.
+
+    Parameters
+    ----------
+    create_context : (BarData) -> context manager, optional
+        An optional callback to produce a context manager to wrap the calls
+        to handle_data. This will be passed the current BarData.
     """
-    def __init__(self):
+    def __init__(self, create_context=None):
         self._events = []
+        self._create_context = (
+            create_context
+            if create_context is not None else
+            lambda *_: nop_context
+        )
 
     def add_event(self, event, prepend=False):
         """
@@ -188,8 +200,14 @@ class EventManager(object):
             self._events.append(event)
 
     def handle_data(self, context, data, dt):
-        for event in self._events:
-            event.handle_data(context, data, dt, context.trading_environment)
+        with self._create_context(data):
+            for event in self._events:
+                event.handle_data(
+                    context,
+                    data,
+                    dt,
+                    context.trading_environment,
+                )
 
 
 class Event(namedtuple('Event', ['rule', 'callback'])):

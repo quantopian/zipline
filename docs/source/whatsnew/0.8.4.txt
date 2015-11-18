@@ -1,0 +1,74 @@
+Release 0.8.4
+-------------
+
+:Release: 0.8.4
+:Date: TBD
+
+Highlights
+~~~~~~~~~~
+
+None
+
+Enhancements
+~~~~~~~~~~~~
+
+* Adds a way for users to specify context manager to use when executing the
+  scheduled functions (including ``handle_data``). This context manager will be
+  passed the :class:`~zipline.protocol.BarData` object for the bar and will
+  be used for the duration of all of the functions scheduled to run. This can be
+  passed to :class:`~zipline.algorithm.TradingAlgorithm` by the keyword argument
+  ``create_event_context`` (:issue:`828`).
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+* Fixes an issue that would cause the daily/minutely method caching to change
+  the ``len`` of a :class:`~zipline.protocol.SIDData` object. This would cause
+  us to think that the object was not empty even when it was (:issue:`826`).
+
+Performance
+~~~~~~~~~~~
+
+* Speeds up `AssetFinder.lookup_symbol` by adding an extension, 
+`AssetFinderCachedEquities`, that loads equities into dictionaries and
+then directs `lookup_symbol` to these dictionaries to find matching equities
+ (:issue:`830`).
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Asset databases now contain version information to ensure compatibility
+  with current Zipline version (:issue:`815`).
+
+Build
+~~~~~
+
+* Makes zipline install requirements more flexible (:issue:`825`).
+* Use ``versioneer`` to manage the project ``__version__`` and setup.py version
+  (:issue:`829`).
+* Fixed coveralls integration on travis build (:issue:`840`).
+
+Documentation
+~~~~~~~~~~~~~
+
+* Document the release process for developers (:issue:`835`).
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+* Adds :func:`~zipline.utils.test_utils.subtest` decorator for creating subtests
+  without ``nose_parameterized.expand`` which bloats the test output
+  (:issue:`833`).
+* Limits timer report in test output to 15 longest tests (:issue:`838`).
+* Treasury and benchmark downloads will now wait up to an hour to download
+  again if data returned from a remote source does not extend to the date
+  expected. (:issue:`841`).

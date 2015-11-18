@@ -30,6 +30,8 @@ from setuptools import (
     setup,
 )
 
+import versioneer
+
 
 class LazyCythonizingList(list):
     cythonized = False
@@ -119,21 +121,48 @@ def _filter_requirements(lines_iter):
             yield requirement
 
 
-def read_requirements(path):
+REQ_UPPER_BOUNDS = {
+}
+
+
+def _with_bounds(req):
+    try:
+        req, lower = req.split('==')
+    except ValueError:
+        return req
+    else:
+        with_bounds = [req, '>=', lower]
+        upper = REQ_UPPER_BOUNDS.get(req)
+        if upper:
+            with_bounds.extend([',', upper])
+        return ''.join(with_bounds)
+
+
+def read_requirements(path, strict_bounds):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
+
+    Returns requirements with the pinned versions as lower bounds
+    if `strict_bounds` is falsey.
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        return list(_filter_requirements(f.readlines()))
+        reqs = _filter_requirements(f.readlines())
+
+        if strict_bounds:
+            return list(reqs)
+        else:
+            return list(map(_with_bounds, reqs))
 
 
-def install_requires():
-    return read_requirements('etc/requirements.txt')
+def install_requires(strict_bounds=False):
+    return read_requirements('etc/requirements.txt',
+                             strict_bounds=strict_bounds)
 
 
 def extras_requires():
-    dev_reqs = read_requirements('etc/requirements_dev.txt')
+    dev_reqs = read_requirements('etc/requirements_dev.txt',
+                                 strict_bounds=True)
     talib_reqs = ['TA-Lib==0.4.9']
     return {
         'dev': dev_reqs,
@@ -147,7 +176,7 @@ def module_requirements(requirements_path, module_names):
     found = set()
     module_lines = []
     parser = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
-    for line in read_requirements(requirements_path):
+    for line in read_requirements(requirements_path, strict_bounds=False):
         match = parser.match(line)
         if match is None:
             raise AssertionError("Could not parse requirement: '%s'" % line)
@@ -193,7 +222,8 @@ pre_setup()
 
 setup(
     name='zipline',
-    version='0.8.0rc1',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     description='A backtester for financial algorithms.',
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
@@ -209,6 +239,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
         'Operating System :: OS Independent',
         'Intended Audience :: Science/Research',
         'Topic :: Office/Business :: Financial',
@@ -217,5 +248,5 @@ setup(
     ],
     install_requires=install_requires(),
     extras_require=extras_requires(),
-    url="http://zipline.io"
+    url="http://zipline.io",
 )

@@ -2311,14 +2311,9 @@ class TestPositionTracker(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-
-        equities_metadata = {1: {'asset_type': 'equity'},
-                             2: {'asset_type': 'equity'}}
-        futures_metadata = {3: {'asset_type': 'future',
-                                'contract_multiplier': 1000},
-                            4: {'asset_type': 'future',
-                                'contract_multiplier': 1000}}
-        cls.env.write_data(equities_data=equities_metadata,
+        futures_metadata = {3: {'contract_multiplier': 1000},
+                            4: {'contract_multiplier': 1000}}
+        cls.env.write_data(equities_identifiers=[1, 2],
                            futures_data=futures_metadata)
 
     @classmethod

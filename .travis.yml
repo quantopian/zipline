@@ -19,13 +19,15 @@ install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
   - conda install --yes -c https://conda.binstar.org/Quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy==$SCIPY_VERSION matplotlib Cython patsy statsmodels tornado pyparsing xlrd mock pytz requests six dateutil ta-lib logbook
-  - pip install --upgrade pip nose-timer coverage
-  - pip install -e .[dev]
+  - pip install --upgrade pip coverage coveralls
+  - pip install -r etc/requirements.txt
+  - pip install -r etc/requirements_dev.txt
   - pip install -r etc/requirements_blaze.txt
+  - python setup.py build_ext --inplace
 before_script:
   - pip freeze | sort
   - "flake8 zipline tests"
 script:
-  - nosetests --with-timer --exclude=^test_examples --with-coverage --cover-package=zipline
+  - nosetests --with-timer --exclude=^test_examples --with-coverage --cover-package=zipline --timer-top-n=15
 after_success:
   - coveralls

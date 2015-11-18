@@ -30,6 +30,12 @@ class lazyval(object):
     ('val', 1)
     >>> c.val, c.count
     ('val', 1)
+    >>> c.val = 'not_val'
+    Traceback (most recent call last):
+    ...
+    AttributeError: Can't set read-only attribute.
+    >>> c.val
+    'val'
     """
     def __init__(self, get):
         self._get = get
@@ -43,6 +49,9 @@ class lazyval(object):
         except KeyError:
             self._cache[instance] = val = self._get(instance)
             return val
+
+    def __set__(self, instance, value):
+        raise AttributeError("Can't set read-only attribute.")
 
 
 def remember_last(f):

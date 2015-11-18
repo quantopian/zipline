@@ -648,11 +648,30 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
     -------
     overwrite : Float64Overwrite
         The overwrite that will apply the new value to the data.
+
+    Notes
+    -----
+    This is forward-filling all dense dates that are between the asof_date date
+    and the next sparse date after the asof_date.
+
+    For example:
+    let ``asof = pd.Timestamp('2014-01-02')``,
+        ``dense_dates = pd.date_range('2014-01-01', '2014-01-05')``
+        ``sparse_dates = pd.to_datetime(['2014-01', '2014-02', '2014-04'])``
+
+    Then the overwrite will apply to indexes: 1, 2, 3, 4
     """
     first_row = dense_dates.searchsorted(asof)
-    last_row = dense_dates.searchsorted(
-        sparse_dates[sparse_dates.searchsorted(asof, 'right')],
-    ) - 1
+    next_idx = sparse_dates.searchsorted(asof, 'right')
+    if next_idx == len(sparse_dates):
+        # There is no next date in the sparse, this overwrite should apply
+        # through the end of the dense dates.
+        last_row = len(dense_dates) - 1
+    else:
+        # There is a next date in sparse dates. This means that the overwrite
+        # should only apply until the index of this date in the dense dates.
+        last_row = dense_dates.searchsorted(sparse_dates[next_idx]) - 1
+
     if first_row > last_row:
         return
 
@@ -761,19 +780,11 @@ class BlazeLoader(dict):
         raise KeyError(column)
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        return map(
-            op.getitem(
-                dict(concat(map(
-                    partial(
-                        self._load_dataset,
-                        dates,
-                        assets,
-                        mask
-                    ),
-                    itervalues(groupby(getdataset, columns))
-                ))),
-            ),
-            columns,
+        return dict(
+            concat(map(
+                partial(self._load_dataset, dates, assets, mask),
+                itervalues(groupby(getdataset, columns))
+            ))
         )
 
     def _load_dataset(self, dates, assets, mask, columns):

@@ -162,7 +162,7 @@ class FutureChain(object):
             asset_finder=self._asset_finder,
             get_datetime=self._algorithm_get_datetime,
             root_symbol=self.root_symbol,
-            as_of_date=dt
+            as_of_date=Timestamp(dt, tz='UTC'),
         )
 
     def offset(self, time_delta):
@@ -180,3 +180,84 @@ class FutureChain(object):
 
         """
         return self.as_of(self.as_of_date + Timedelta(time_delta))
+
+
+# http://www.cmegroup.com/product-codes-listing/month-codes.html
+CME_CODE_TO_MONTH = dict(zip('FGHJKMNQUVXZ', range(1, 13)))
+MONTH_TO_CME_CODE = dict(zip(range(1, 13), 'FGHJKMNQUVXZ'))
+
+
+def cme_code_to_month(code):
+    """
+    Convert a CME month code to a month index.
+
+    The month codes are as follows:
+
+    'F' -> 1  (January)
+    'G' -> 2  (February)
+    'H' -> 3  (March)
+    'J' -> 4  (April)
+    'K' -> 5  (May)
+    'M' -> 6  (June)
+    'N' -> 7  (July)
+    'Q' -> 8  (August)
+    'U' -> 9  (September)
+    'V' -> 10 (October)
+    'X' -> 11 (November)
+    'Z' -> 12 (December)
+
+    Parameters
+    ----------
+    code : str
+        The month code to look up.
+
+    Returns
+    -------
+    month : int
+       The month number (starting at 1 for January) corresponding to the
+       requested code.
+
+    See Also
+    --------
+    month_to_cme_code
+        Inverse of this function.
+    """
+    return CME_CODE_TO_MONTH[code]
+
+
+def month_to_cme_code(month):
+    """
+    Convert a month to a CME code.
+
+    The month codes are as follows:
+
+    1 (January)   -> 'F'
+    2 (February)  -> 'G'
+    3 (March)     -> 'H'
+    4 (April)     -> 'J'
+    5 (May)       -> 'K'
+    6 (June)      -> 'M'
+    7 (July)      -> 'N'
+    8 (August)    -> 'Q'
+    9 (September) -> 'U'
+    10 (October)  -> 'V'
+    11 (November) -> 'X'
+    12 (December) -> 'Z'
+
+    Parameters
+    ----------
+    month : int
+       The month number (starting at 1 for January) corresponding to the
+       requested code.
+
+    Returns
+    -------
+    code : str
+        The month code to look up.
+
+    See Also
+    --------
+    cme_code_to_month
+        Inverse of this function.
+    """
+    return MONTH_TO_CME_CODE[month]

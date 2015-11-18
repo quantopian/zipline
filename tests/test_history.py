@@ -1,4 +1,5 @@
 from os.path import dirname, join, realpath
+from textwrap import dedent
 from unittest import TestCase
 
 from testfixtures import TempDirectory
@@ -11,6 +12,7 @@ from pandas import (
     DataFrame, DatetimeIndex)
 
 from six import iteritems
+from zipline import TradingAlgorithm
 
 from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import (
@@ -18,6 +20,7 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     SQLiteAdjustmentReader,
 )
+from zipline.errors import HistoryInInitialize
 from zipline.utils.test_utils import (
     make_simple_asset_info,
     str_to_seconds,
@@ -25,7 +28,7 @@ from zipline.utils.test_utils import (
 )
 from zipline.data.minute_writer import MinuteBarWriterFromCSVs
 from zipline.utils.tradingcalendar import trading_days
-from zipline.finance.trading import TradingEnvironment
+from zipline.finance.trading import TradingEnvironment, SimulationParameters
 
 TEST_MINUTE_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
@@ -257,6 +260,41 @@ class HistoryTestCase(TestCase):
             daily_equities_path=join(temp_path, daily_equities_filename),
             adjustment_reader=adjustment_reader
         )
+
+    def test_history_in_initialize(self):
+        algo_text = dedent(
+            """\
+            from zipline.api import history
+
+            def initialize(context):
+                history([24], 10, '1d', 'price')
+
+            def handle_data(context, data):
+                pass
+            """
+        )
+
+        start = pd.Timestamp('2007-04-05', tz='UTC')
+        end = pd.Timestamp('2007-04-10', tz='UTC')
+
+        sim_params = SimulationParameters(
+            period_start=start,
+            period_end=end,
+            capital_base=float("1.0e5"),
+            data_frequency='minute',
+            emission_rate='daily',
+            env=self.env,
+        )
+
+        test_algo = TradingAlgorithm(
+            script=algo_text,
+            data_frequency='minute',
+            sim_params=sim_params,
+            env=self.env,
+        )
+
+        with self.assertRaises(HistoryInInitialize):
+            test_algo.initialize()
 
     def test_minute_basic_functionality(self):
         # get a 5-bar minute history from the very end of the available data

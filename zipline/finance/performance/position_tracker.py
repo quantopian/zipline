@@ -271,6 +271,7 @@ class PositionTracker(object):
         while past_asset_end_dates:
             self._auto_close_position_sids.pop(past_asset_end_dates.pop())
 
+    # FIXME KILL THIS METHOD
     def update_last_sale(self, event):
         # NOTE, PerformanceTracker already vetted as TRADE type
         sid = event.sid
