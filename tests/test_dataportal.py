@@ -167,15 +167,15 @@ class TestDataPortal(TestCase):
                 # 390 bars of real data, then 100 missing bars, then 290
                 # bars of data again
                 "open": np.array(list(range(0, 390)) + [0] * 100 +
-                                 range(390, 680)) * 1000,
+                                 list(range(390, 680))) * 1000,
                 "high": np.array(list(range(1000, 1390)) + [0] * 100 +
-                                 range(1390, 1680)) * 1000,
+                                 list(range(1390, 1680))) * 1000,
                 "low": np.array(list(range(2000, 2390)) + [0] * 100 +
-                                range(2390, 2680)) * 1000,
+                                list(range(2390, 2680))) * 1000,
                 "close": np.array(list(range(3000, 3390)) + [0] * 100 +
-                                  range(3390, 3680)) * 1000,
+                                  list(range(3390, 3680))) * 1000,
                 "volume": np.array(list(range(4000, 4390)) + [0] * 100 +
-                                   range(4390, 4680)),
+                                   list(range(4390, 4680))),
                 "minute": minutes
             })
 
