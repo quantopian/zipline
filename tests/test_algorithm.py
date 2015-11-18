@@ -1816,15 +1816,17 @@ class TestFutureFlip(TestCase):
             end=cls.days[-2]
         )
 
+        trades = factory.create_trade_history(
+            cls.sid,
+            [1, 2, 4],
+            [1e9, 1e9, 1e9],
+            timedelta(days=1),
+            cls.sim_params,
+            cls.env
+        )
+
         trades_by_sid = {
-            cls.sid: factory.create_trade_history(
-                        cls.sid,
-                        [1, 2, 4],
-                        [1e9, 1e9, 1e9],
-                        timedelta(days=1),
-                        cls.sim_params,
-                        cls.env
-            )
+            cls.sid: trades
         }
 
         cls.data_portal = create_data_portal_from_trade_history(

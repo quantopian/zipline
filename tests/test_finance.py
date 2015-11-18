@@ -335,8 +335,6 @@ class FinanceTestCase(TestCase):
     def test_blotter_processes_splits(self):
         blotter = Blotter(slippage_func=FixedSlippage())
 
-        dt = pd.Timestamp("2002-01-03", tz='UTC')
-
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
         blotter.order(1, 100, LimitOrder(10))

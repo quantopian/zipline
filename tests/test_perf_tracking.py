@@ -15,7 +15,6 @@
 
 from __future__ import division
 
-import collections
 from datetime import (
     datetime,
     timedelta,
@@ -24,10 +23,8 @@ import logging
 
 from testfixtures import TempDirectory
 import unittest
-from nose_parameterized import parameterized
 import nose.tools as nt
 import pytz
-import itertools
 
 import pandas as pd
 import numpy as np
@@ -39,11 +36,9 @@ from zipline.data.us_equity_pricing import (
 )
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-from zipline.finance.transaction import Transaction, create_transaction
+from zipline.finance.transaction import create_transaction
 import zipline.utils.math_utils as zp_math
 
-from zipline.gens.composites import date_sorted_sources
-from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment

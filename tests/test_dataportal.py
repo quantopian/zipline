@@ -200,15 +200,17 @@ class TestDataPortal(TestCase):
                 'sid': 0
             }])
 
-            dividends = pd.DataFrame({
-                    # Hackery to make the dtypes correct on an empty frame.
-                    'ex_date': np.array([], dtype='datetime64[ns]'),
-                    'pay_date': np.array([], dtype='datetime64[ns]'),
-                    'record_date': np.array([], dtype='datetime64[ns]'),
-                    'declared_date': np.array([], dtype='datetime64[ns]'),
-                    'amount': np.array([], dtype=float),
-                    'sid': np.array([], dtype=int),
-                },
+            dividend_data = {
+                # Hackery to make the dtypes correct on an empty frame.
+                'ex_date': np.array([], dtype='datetime64[ns]'),
+                'pay_date': np.array([], dtype='datetime64[ns]'),
+                'record_date': np.array([], dtype='datetime64[ns]'),
+                'declared_date': np.array([], dtype='datetime64[ns]'),
+                'amount': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            }
+            dividends = pd.DataFrame(
+                dividend_data,
                 index=pd.DatetimeIndex([], tz='UTC'),
                 columns=['ex_date',
                          'pay_date',
@@ -218,12 +220,14 @@ class TestDataPortal(TestCase):
                          'sid']
             )
 
-            mergers = pd.DataFrame({
-                    # Hackery to make the dtypes correct on an empty frame.
-                    'effective_date': np.array([], dtype=int),
-                    'ratio': np.array([], dtype=float),
-                    'sid': np.array([], dtype=int),
-                },
+            merger_data = {
+                # Hackery to make the dtypes correct on an empty frame.
+                'effective_date': np.array([], dtype=int),
+                'ratio': np.array([], dtype=float),
+                'sid': np.array([], dtype=int),
+            }
+            mergers = pd.DataFrame(
+                merger_data,
                 index=pd.DatetimeIndex([], tz='UTC')
             )
 
@@ -269,7 +273,5 @@ class TestDataPortal(TestCase):
                         dp.get_spot_value(0, field, dt=minute),
                         (390 + idx + (1000 * field_idx))
                     )
-
-
         finally:
             tempdir.cleanup()

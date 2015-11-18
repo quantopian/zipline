@@ -69,7 +69,7 @@ def object_serialization_cases(skip_daily=False):
         (Position, (8554,), {}, 'dict'),
         (PositionTracker, (cases_env.asset_finder, None), {}, 'dict'),
         # FIXME temporarily commenting out because of dataportal issues
-        #(PerformanceTracker, (sim_params_minute, cases_env, None), {},
+        # (PerformanceTracker, (sim_params_minute, cases_env, None), {},
         # 'to_dict'),
         (RiskMetricsCumulative, (sim_params_minute, cases_env), {}, 'to_dict'),
         (RiskMetricsPeriod,
@@ -89,7 +89,7 @@ def object_serialization_cases(skip_daily=False):
     if not skip_daily:
         cases.extend([
             # FIXME temporarily commenting out because of dataportal issues
-            #PerformanceTracker,
+            # PerformanceTracker,
             # (sim_params_daily, cases_env, None), {}, 'to_dict'),
             (RiskMetricsCumulative,
              (sim_params_daily, cases_env), {}, 'to_dict'),

@@ -204,7 +204,7 @@ class TestBenchmark(TestCase):
         # of a stock dividend
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
-            source = BenchmarkSource(
+            BenchmarkSource(
                 4, self.env, self.sim_params.trading_days, self.data_portal
             )
 
