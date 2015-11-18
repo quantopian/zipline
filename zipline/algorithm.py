@@ -21,8 +21,10 @@ from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from datetime import datetime
-
 from itertools import groupby, chain, repeat
+from numbers import Integral
+from operator import attrgetter
+
 from six.moves import filter
 from six import (
     exec_,
@@ -30,11 +32,11 @@ from six import (
     itervalues,
     string_types,
 )
-from operator import attrgetter
 
 
 from zipline.errors import (
     AttachPipelineAfterInitialize,
+    HistoryInInitialize,
     NoSuchPipeline,
     OrderDuringInitialize,
     OverrideCommissionPostInit,
@@ -269,7 +271,9 @@ class TradingAlgorithm(object):
         self._before_trading_start = None
         self._analyze = None
 
-        self.event_manager = EventManager()
+        self.event_manager = EventManager(
+            create_context=kwargs.pop('create_event_context', None),
+        )
 
         if self.algoscript is not None:
             filename = kwargs.pop('algo_filename', None)
@@ -296,6 +300,7 @@ class TradingAlgorithm(object):
             self._handle_data = kwargs.pop('handle_data')
             self._before_trading_start = kwargs.pop('before_trading_start',
                                                     None)
+            self._analyze = kwargs.pop('analyze', None)
 
         self.event_manager.add_event(
             zipline.utils.events.Event(
@@ -607,8 +612,7 @@ class TradingAlgorithm(object):
             if isinstance(identifier, Asset):
                 asset = self.asset_finder.retrieve_asset(sid=identifier.sid,
                                                          default_none=True)
-
-            elif hasattr(identifier, '__int__'):
+            elif isinstance(identifier, Integral):
                 asset = self.asset_finder.retrieve_asset(sid=identifier,
                                                          default_none=True)
             if asset is None:
@@ -616,6 +620,12 @@ class TradingAlgorithm(object):
 
         self.trading_environment.write_data(
             equities_identifiers=identifiers_to_build)
+
+        # We need to clear out any cache misses that were stored while trying
+        # to do lookups.  The real fix for this problem is to not construct an
+        # AssetFinder until we `run()` when we actually have all the data we
+        # need to so.
+        self.asset_finder._reset_caches()
 
         return self.asset_finder.map_identifier_index_to_sids(
             identifiers, as_of_date,
@@ -1253,6 +1263,7 @@ class TradingAlgorithm(object):
         return self.history_specs[spec_key]
 
     @api_method
+    @require_initialized(HistoryInInitialize())
     def history(self, bar_count, frequency, field, ffill=True):
         history_spec = self.get_history_spec(
             bar_count,

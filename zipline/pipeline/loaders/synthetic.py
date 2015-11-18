@@ -71,13 +71,15 @@ class ConstantLoader(PipelineLoader):
         """
         Load by delegating to sub-loaders.
         """
-        out = []
+        out = {}
         for col in columns:
             try:
                 loader = self._loaders[col]
             except KeyError:
                 raise ValueError("Couldn't find loader for %s" % col)
-            out.extend(loader.load_adjusted_array([col], dates, assets, mask))
+            out.update(
+                loader.load_adjusted_array([col], dates, assets, mask)
+            )
         return out
 
 
@@ -147,10 +149,10 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
         )
 
         # Add 10,000 * column-index to OHLCV columns
-        data[:, :5] += arange(5) * (10 * 1000)
+        data[:, :5] += arange(5, dtype=uint32) * (10 * 1000)
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += (dates - self.PSEUDO_EPOCH).days[:, None]
+        data[:, :5] += (dates - self.PSEUDO_EPOCH).days[:, None].astype(uint32)
 
         frame = DataFrame(
             data,

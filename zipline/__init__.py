@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,29 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Zipline
-"""
 
 # This is *not* a place to dump arbitrary classes/modules for convenience,
 # it is a place to expose the public interfaces.
-
-__version__ = "0.8.0rc1"
-
 from . import data
 from . import finance
 from . import gens
 from . import utils
 from . import transforms
+from ._version import get_versions
+# These need to happen after the other imports.
 from . algorithm import TradingAlgorithm
-
 from . import api
+
+__version__ = get_versions()['version']
+del get_versions
 
 try:
     ip = get_ipython()  # flake8: noqa
-    ip.register_magic_function(utils.parse_cell_magic, "line_cell", "zipline")
 except NameError:
     pass
+else:
+    ip.register_magic_function(utils.parse_cell_magic, "line_cell", "zipline")
+    del ip
 
 __all__ = [
     'data',

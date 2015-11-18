@@ -23,7 +23,8 @@ from ._assets import (
 )
 from .assets import (
     AssetFinder,
-    AssetConvertible
+    AssetConvertible,
+    AssetFinderCachedEquities
 )
 
 __all__ = [
@@ -31,6 +32,7 @@ __all__ = [
     'Equity',
     'Future',
     'AssetFinder',
+    'AssetFinderCachedEquities',
     'AssetConvertible',
     'make_asset_array',
     'CACHE_FILE_TEMPLATE',

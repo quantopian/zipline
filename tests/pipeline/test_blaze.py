@@ -29,18 +29,18 @@ from zipline.pipeline.loaders.blaze import (
     NonPipelineField,
 )
 from zipline.utils.numpy_utils import repeat_last_axis
-from zipline.utils.test_utils import tmp_asset_finder, make_simple_asset_info
+from zipline.utils.test_utils import tmp_asset_finder, make_simple_equity_info
 
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
 asset_infos = (
-    (make_simple_asset_info(
+    (make_simple_equity_info(
         tuple(map(ord, 'ABC')),
         pd.Timestamp(0),
         pd.Timestamp('2015'),
     ),),
-    (make_simple_asset_info(
+    (make_simple_equity_info(
         tuple(map(ord, 'ABCD')),
         pd.Timestamp(0),
         pd.Timestamp('2015'),
@@ -333,7 +333,7 @@ class BlazeToPipelineTestCase(TestCase):
         dates = self.dates
 
         asset_info = asset_infos[0][0]
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             result = SimplePipelineEngine(
                 loader,
                 dates,
@@ -399,7 +399,7 @@ class BlazeToPipelineTestCase(TestCase):
     @with_extra_sid
     def test_deltas(self, asset_info):
         expr = bz.Data(self.df, name='expr', dshape=self.dshape)
-        deltas = bz.Data(self.df.iloc[:-3], name='deltas', dshape=self.dshape)
+        deltas = bz.Data(self.df, name='deltas', dshape=self.dshape)
         deltas = bz.transform(
             deltas,
             value=deltas.value + 10,
@@ -411,6 +411,8 @@ class BlazeToPipelineTestCase(TestCase):
                                     [1.0, 2.0, 3.0]]),
             '2014-01-03': np.array([[11.0, 12.0, 13.0],
                                     [2.0, 3.0, 4.0]]),
+            '2014-01-04': np.array([[12.0, 13.0, 14.0],
+                                    [12.0, 13.0, 14.0]]),
         })
 
         nassets = len(asset_info)
@@ -420,9 +422,9 @@ class BlazeToPipelineTestCase(TestCase):
                 expected_views,
             )
 
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
-                list(concatv([12] * nassets, [13] * nassets)),
+                list(concatv([12] * nassets, [13] * nassets, [14] * nassets)),
                 index=pd.MultiIndex.from_product((
                     sorted(expected_views.keys()),
                     finder.retrieve_all(asset_info.index),
@@ -430,6 +432,7 @@ class BlazeToPipelineTestCase(TestCase):
                 columns=('value',),
             )
             dates = self.dates
+            dates = dates.insert(len(dates), dates[-1] + timedelta(days=1))
             self._run_pipeline(
                 expr,
                 deltas,
@@ -463,7 +466,7 @@ class BlazeToPipelineTestCase(TestCase):
             '2014-01-03': repeat_last_axis(np.array([11.0, 2.0]), nassets),
         })
 
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 list(concatv([10] * nassets, [11] * nassets)),
                 index=pd.MultiIndex.from_product((
@@ -531,7 +534,7 @@ class BlazeToPipelineTestCase(TestCase):
             pd.Timestamp('2014-01-06'),
         ])
 
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 expected_output_buffer,
                 index=pd.MultiIndex.from_product((
@@ -591,7 +594,7 @@ class BlazeToPipelineTestCase(TestCase):
             # omitting the 4th and 5th to simulate a weekend
             pd.Timestamp('2014-01-06'),
         ])
-        with tmp_asset_finder(asset_info) as finder:
+        with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 list(concatv([10] * nassets, [11] * nassets)),
                 index=pd.MultiIndex.from_product((

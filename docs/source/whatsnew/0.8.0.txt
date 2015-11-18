@@ -1,0 +1,191 @@
+Release 0.8.0
+-------------
+
+:Release: 0.8.0
+:Date: November 6, 2015
+
+Highlights
+~~~~~~~~~~
+
+* New documentation system with a new website at
+  `zipline.io <http://www.zipline.io>`__
+* Major performance enhancements.
+* Dynamic history.
+* New user defined method: ``before_trading_start``.
+* New api function: :func:`~zipline.api.schedule_function`.
+* New api function: :func:`~zipline.api.get_environment`.
+* New api function: :func:`~zipline.api.set_max_leverage`.
+* New api function: :func:`~zipline.api.set_do_not_order_list`.
+* Pipeline API.
+* Support for trading futures.
+
+Enhancements
+~~~~~~~~~~~~
+
+* Account object: Adds an account object to context to track information about
+  the trading account.
+  Example:
+
+  .. code-block:: python
+
+     context.account.settled_cash
+
+  Returns the settled cash value that is stored on the account object.
+  This value is updated accordingly as the algorithm is run (:issue:`396`).
+* :class:`~zipline.history.history_container.HistoryContainer` can now grow
+  dynamically.  Calls to :func:`~zipline.api.history` will now be able to increase
+  the size or change the shape of the history container to be able to service the
+  call. :func:`~zipline.api.add_history` now acts as a preformance hint to
+  pre-allocate sufficient space in the container. This change is backwards
+  compatible with ``history``, all existing algorithms should continue to work as
+  intended (:issue:`412`).
+* Simple transforms ported from quantopian and use history.
+  :class:`~zipline.protocol.SIDData` now has methods for:
+
+  -  ``stddev``
+  -  ``mavg``
+  -  ``vwap``
+  -  ``returns``
+
+  These methods, except for ``returns``, accept a number of days. If
+  you are running with minute data, then this will calculate the
+  number of minutes in those days, accounting for early closes and the
+  current time and apply the transform over the set of minutes.
+  ``returns`` takes no parameters and will return the daily returns of
+  the given asset.
+  Example:
+
+  .. code:: python
+
+     data[security].stddev(3)
+
+  (:issue:`429`).
+* New fields in Performance Period.
+  Performance Period has new fields accessible in return value of
+  ``to_dict``:
+  -  gross leverage
+  -  net leverage
+  -  short exposure
+  -  long exposure
+  -  shorts count
+  -  longs count
+  (:issue:`464`).
+* Allow :func:`~zipline.api.order_percent` to work with various market values
+  (by Jeremiah Lowin).
+
+  Currently, :func:`~zipline.api.order_percent` and
+  :func:`~zipline.api.order_target_percent` both operate as a percentage of
+  ``self.portfolio.portfolio_value``. This PR lets them operate as percentages
+  of other important MVs.
+  Also adds ``context.get_market_value()``, which enables this
+  functionality.
+  For example:
+
+  .. code-block:: python
+
+     # this is how it works today (and this still works)
+     # put 50% of my portfolio in AAPL
+     order_percent('AAPL', 0.5)
+     # note that if this were a fully invested portfolio, it would become 150% levered.
+
+     # take half of my available cash and buy AAPL
+     order_percent('AAPL', 0.5, percent_of='cash')
+
+     # rebalance my short position, as a percentage of my current short
+     book_target_percent('MSFT', 0.1, percent_of='shorts')
+
+     # rebalance within a custom group of stocks
+     tech_stocks = ('AAPL', 'MSFT', 'GOOGL')
+     tech_filter = lambda p: p.sid in tech_stocks
+     for stock in tech_stocks:
+         order_target_percent(stock, 1/3, percent_of_fn=tech_filter)
+
+  (:issue:`477`).
+* Command line option to for printing algo to stdout (by Andrea D'Amore)
+  (:issue:`545`).
+* New user defined function ``before_trading_start``. This function can be
+  overridden by the user to be called once before the market opens every
+  day (:issue:`389`).
+* New api function :func:`~zipline.api.schedule_function`. This function allows
+  the user to schedule a function to be called based on more complicated rules
+  about the date and time. For example, call the function 15 minutes before
+  market close respecting early closes (:issue:`411`).
+* New api function :func:`set_do_not_order_list`. This function accepts a list
+  of assets and adds a trading guard that prevents the algorithm from
+  trading them. Adds a list point in time list of leveraged ETFs that people may
+  want to mark as 'do not trade' (:issue:`478`).
+* Adds a class for representing securities. :func:`~zipline.api.order` and other
+  order functions now require an instance of ``Security``
+  instead of an int or string (:issue:`520`).
+* Generalize the ``Security`` class to :class:`~zipline.assets.Asset`. This is
+  in preperation of adding support for other asset types (:issue:`535`).
+* New api function :func:`~zipline.api.get_environment`. This function by
+  default returns the string ``'zipline'``. This is used so that algorithms can
+  have different behavior on Quantopian and local zipline (:issue:`384`).
+* Extends :func:`~zipline.api.get_environment` to expose more of the environment
+  to the algorithm. The function now accepts an argument that is the field to
+  return. By default, this is ``'platform'`` which returns the old value of
+  ``'zipline'`` but the following new fields can be requested:
+
+  - ``''arena'``: Is this live trading or backtesting?
+  - ``'data_frequency'``: Is this minute mode or daily mode?
+  - ``'start'``: Simulation start date.
+  - ``'end'``: Simulation end date.
+  - ``'capital_base'``: The starting capital for the simulation.
+  - ``'platform'``: The platform that the algorithm is running on.
+  - ``'*'``: A dictionary containing all of these fields.
+
+  (:issue:`449`).
+* New api function :func:`~zipline.api.set_max_leveraged`. This method adds a
+  trading guard that prevents your algorithm from over leveraging itself
+  (:issue:`552`).
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+* Adds new Pipeline API. The pipeline API is a high-level declarative API for
+  representing trailing window computations on large datasets (:issue:`630`).
+* Adds support for futures trading (:issue:`637`).
+* Adds Pipeline loader for blaze expressions. This allows users to pull data
+  from any format blaze understands and use it in the Pipeline
+  API. (:issue:`775`).
+
+Bug Fixes
+~~~~~~~~~
+
+* Fix a bug where the reported returns could sharply dip for random periods of
+  time (:issue:`378`).
+* Fix a bug that prevented debuggers from resolving the algorithm file
+  (:issue:`431`).
+* Properly forward arguments to user defined ``initialize`` function
+  (:issue:`687`).
+* Fix a bug that would cause treasury data to be redownloaded every backtest
+  between midnight EST and the time when the treasury data was available
+  (:issue:`793`).
+* Fix a bug that would cause the user defined ``analyze`` function to not be
+  called if it was passed as a keyword argument to
+  :class:`~zipline.algorithm.TradingAlgorithm` (:issue:`819`).
+
+Performance
+~~~~~~~~~~~
+* Major performance enhancements to history (by Dale Jung) (:issue:`488`).
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Remove simple transform code. These are available as methods of
+  :class:`~zipline.protocol.SIDData` (:issue:`550`).
+
+Build
+~~~~~
+
+None
+
+Documentation
+~~~~~~~~~~~~~
+
+* Switched to sphinx for the documentation (:issue:`816`).

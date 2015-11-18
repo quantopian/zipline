@@ -126,9 +126,9 @@ class SpecificEquityTrades(object):
             self.count = kwargs.get('count', len(self.event_list))
             self.start = kwargs.get('start', self.event_list[0].dt)
             self.end = kwargs.get('end', self.event_list[-1].dt)
-            self.delta = kwargs.get(
-                'delta',
-                self.event_list[1].dt - self.event_list[0].dt)
+            self.delta = delta = kwargs.get('delta')
+            if delta is None:
+                self.delta = self.event_list[1].dt - self.event_list[0].dt
             self.concurrent = kwargs.get('concurrent', False)
 
             self.identifiers = kwargs.get(

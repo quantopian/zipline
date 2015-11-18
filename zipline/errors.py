@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from zipline.utils.memoize import lazyval
+
 
 class ZiplineError(Exception):
     msg = None
 
-    def __init__(self, *args, **kwargs):
-        self.args = args
+    def __init__(self, **kwargs):
         self.kwargs = kwargs
         self.message = str(self)
 
@@ -191,6 +192,13 @@ at frequency '{data_frequency}'.
 """.strip()
 
 
+class HistoryInInitialize(ZiplineError):
+    """
+    Raised when an algorithm calls history() in initialize.
+    """
+    msg = "history() should only be called in handle_data()"
+
+
 class MultipleSymbolsFound(ZiplineError):
     """
     Raised when a symbol() call contains a symbol that changed over
@@ -224,23 +232,46 @@ Root symbol '{root_symbol}' was not found.
 """.strip()
 
 
-class SidNotFound(ZiplineError):
+class SidsNotFound(ZiplineError):
     """
-    Raised when a retrieve_asset() call contains a non-existent sid.
+    Raised when a retrieve_asset() or retrieve_all() call contains a
+    non-existent sid.
     """
-    msg = """
-Asset with sid '{sid}' was not found.
-""".strip()
+    @lazyval
+    def plural(self):
+        return len(self.sids) > 1
+
+    @lazyval
+    def sids(self):
+        return self.kwargs['sids']
+
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No assets found for sids: {sids}."
+        return "No asset found for sid: {sids[0]}."
 
 
-class InvalidAssetType(ZiplineError):
+class EquitiesNotFound(SidsNotFound):
     """
-    Raised when an AssetFinder tries to build an Asset with an invalid
-    AssetType.
+    Raised when a call to `retrieve_equities` fails to find an asset.
     """
-    msg = """
-AssetMetaData contained an invalid Asset type: '{asset_type}'.
-""".strip()
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No equities found for sids: {sids}."
+        return "No equity found for sid: {sids[0]}."
+
+
+class FutureContractsNotFound(SidsNotFound):
+    """
+    Raised when a call to `retrieve_futures_contracts` fails to find an asset.
+    """
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No future contracts found for sids: {sids}."
+        return "No future contract found for sid: {sids[0]}."
 
 
 class ConsumeAssetMetaDataError(ZiplineError):
@@ -441,4 +472,16 @@ class PositionTrackerMissingAssetFinder(ZiplineError):
         "PositionTracker attempted to update its Asset information but does "
         "not have an AssetFinder. This may be caused by a failure to properly "
         "de-serialize a TradingAlgorithm."
+    )
+
+
+class AssetDBVersionError(ZiplineError):
+    """
+    Raised by an AssetDBWriter or AssetFinder if the version number in the
+    versions table does not match the ASSET_DB_VERSION in asset_writer.py.
+    """
+    msg = (
+        "The existing Asset database has an incorrect version: {db_version}. "
+        "Expected version: {expected_version}. Try rebuilding your asset "
+        "database or updating your version of Zipline."
     )

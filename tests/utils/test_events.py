@@ -12,17 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import datetime
-from itertools import islice
-from six import iteritems
-import random
-from six.moves import range, map
-from nose_parameterized import parameterized
-from unittest import TestCase
-from functools import partial
 from collections import namedtuple
+import datetime
+from functools import partial
+from itertools import islice
+import random
+from unittest import TestCase
 
-import numpy as np
+from nose_parameterized import parameterized
+import pandas as pd
+from six import iteritems
+from six.moves import range, map
 
 from zipline.finance.trading import TradingEnvironment
 import zipline.utils.events
@@ -49,6 +49,7 @@ from zipline.utils.events import (
     MAX_MONTH_RANGE,
     MAX_WEEK_RANGE,
 )
+from zipline.utils.test_utils import subtest
 
 
 # A day known to be a half day.
@@ -253,8 +254,8 @@ class TestStatelessRules(RuleTestCase):
         cls.class_ = StatelessRule
 
         cls.sept_days = cls.env.days_in_range(
-            np.datetime64(datetime.date(year=2014, month=9, day=1)),
-            np.datetime64(datetime.date(year=2014, month=9, day=30)),
+            pd.Timestamp('2014-09-01'),
+            pd.Timestamp('2014-09-30'),
         )
 
         cls.sept_week = cls.env.minutes_for_days_in_range(
@@ -262,20 +263,22 @@ class TestStatelessRules(RuleTestCase):
             datetime.date(year=2014, month=9, day=26),
         )
 
-    @parameterized.expand(minutes_for_days())
+    @subtest(minutes_for_days(), 'ms')
     def test_Always(self, ms):
         should_trigger = partial(Always().should_trigger, env=self.env)
         self.assertTrue(all(map(partial(should_trigger, env=self.env), ms)))
 
-    @parameterized.expand(minutes_for_days())
+    @subtest(minutes_for_days(), 'ms')
     def test_Never(self, ms):
         should_trigger = partial(Never().should_trigger, env=self.env)
         self.assertFalse(any(map(should_trigger, ms)))
 
-    @parameterized.expand(minutes_for_days())
+    @subtest(minutes_for_days(), 'ms')
     def test_AfterOpen(self, ms):
-        should_trigger = partial(AfterOpen(minutes=5, hours=1).should_trigger,
-                                 env=self.env)
+        should_trigger = partial(
+            AfterOpen(minutes=5, hours=1).should_trigger,
+            env=self.env,
+        )
         for m in islice(ms, 64):
             # Check the first 64 minutes of data.
             # We use 64 because the offset is from market open
@@ -286,23 +289,25 @@ class TestStatelessRules(RuleTestCase):
             # Check the rest of the day.
             self.assertTrue(should_trigger(m))
 
-    @parameterized.expand(minutes_for_days())
+    @subtest(minutes_for_days(), 'ms')
     def test_BeforeClose(self, ms):
         ms = list(ms)
         should_trigger = partial(
-            BeforeClose(hours=1, minutes=5).should_trigger, env=self.env
+            BeforeClose(hours=1, minutes=5).should_trigger,
+            env=self.env
         )
         for m in ms[0:-66]:
             self.assertFalse(should_trigger(m))
         for m in ms[-66:]:
             self.assertTrue(should_trigger(m))
 
-    def test_NotHalfDay(self):
+    @subtest(minutes_for_days(), 'ms')
+    def test_NotHalfDay(self, ms):
         should_trigger = partial(NotHalfDay().should_trigger, env=self.env)
         self.assertTrue(should_trigger(FULL_DAY))
         self.assertFalse(should_trigger(HALF_DAY))
 
-    @parameterized.expand(param_range(MAX_WEEK_RANGE))
+    @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NthTradingDayOfWeek(self, n):
         should_trigger = partial(NthTradingDayOfWeek(n).should_trigger,
                                  env=self.env)
@@ -318,7 +323,7 @@ class TestStatelessRules(RuleTestCase):
             else:
                 self.assertNotEqual(n_tdays, n)
 
-    @parameterized.expand(param_range(MAX_WEEK_RANGE))
+    @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfWeek(self, n):
         should_trigger = partial(
             NDaysBeforeLastTradingDayOfWeek(n).should_trigger, env=self.env
@@ -335,7 +340,7 @@ class TestStatelessRules(RuleTestCase):
 
                 self.assertEqual(n_tdays, n)
 
-    @parameterized.expand(param_range(MAX_MONTH_RANGE))
+    @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NthTradingDayOfMonth(self, n):
         should_trigger = partial(NthTradingDayOfMonth(n).should_trigger,
                                  env=self.env)
@@ -346,7 +351,7 @@ class TestStatelessRules(RuleTestCase):
                 else:
                     self.assertNotEqual(n_tdays, n)
 
-    @parameterized.expand(param_range(MAX_MONTH_RANGE))
+    @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfMonth(self, n):
         should_trigger = partial(
             NDaysBeforeLastTradingDayOfMonth(n).should_trigger, env=self.env
@@ -358,7 +363,7 @@ class TestStatelessRules(RuleTestCase):
                 else:
                     self.assertNotEqual(n_days_before, n)
 
-    @parameterized.expand(minutes_for_days())
+    @subtest(minutes_for_days(), 'ms')
     def test_ComposedRule(self, ms):
         rule1 = Always()
         rule2 = Never()
@@ -378,7 +383,7 @@ class TestStatefulRules(RuleTestCase):
 
         cls.class_ = StatefulRule
 
-    @parameterized.expand(minutes_for_days())
+    @subtest(minutes_for_days(), 'ms')
     def test_OncePerDay(self, ms):
         class RuleCounter(StatefulRule):
             """

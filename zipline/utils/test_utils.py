@@ -1,5 +1,7 @@
 from contextlib import contextmanager
+from functools import wraps
 from itertools import (
+    count,
     product,
 )
 import operator
@@ -12,14 +14,14 @@ from logbook import FileHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
-from six import (
-    itervalues,
-)
+from pandas.tseries.offsets import MonthBegin
+from six import iteritems, itervalues
 from six.moves import filter
 from sqlalchemy import create_engine
 
 from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
+from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.finance.blotter import ORDER_STATUS
 from zipline.utils import security_list
 
@@ -233,11 +235,11 @@ def all_subindices(index):
     )
 
 
-def make_rotating_asset_info(num_assets,
-                             first_start,
-                             frequency,
-                             periods_between_starts,
-                             asset_lifetime):
+def make_rotating_equity_info(num_assets,
+                              first_start,
+                              frequency,
+                              periods_between_starts,
+                              asset_lifetime):
     """
     Create a DataFrame representing lifetimes of assets that are constantly
     rotating in and out of existence.
@@ -262,9 +264,7 @@ def make_rotating_asset_info(num_assets,
     """
     return pd.DataFrame(
         {
-            'sid': range(num_assets),
             'symbol': [chr(ord('A') + i) for i in range(num_assets)],
-            'asset_type': ['equity'] * num_assets,
             # Start a new asset every `periods_between_starts` days.
             'start_date': pd.date_range(
                 first_start,
@@ -278,11 +278,12 @@ def make_rotating_asset_info(num_assets,
                 periods=num_assets,
             ),
             'exchange': 'TEST',
-        }
+        },
+        index=range(num_assets),
     )
 
 
-def make_simple_asset_info(assets, start_date, end_date, symbols=None):
+def make_simple_equity_info(assets, start_date, end_date, symbols=None):
     """
     Create a DataFrame representing assets that exist for the full duration
     between `start_date` and `end_date`.
@@ -306,13 +307,122 @@ def make_simple_asset_info(assets, start_date, end_date, symbols=None):
         symbols = list(ascii_uppercase[:num_assets])
     return pd.DataFrame(
         {
-            'sid': assets,
             'symbol': symbols,
-            'asset_type': ['equity'] * num_assets,
             'start_date': [start_date] * num_assets,
             'end_date': [end_date] * num_assets,
             'exchange': 'TEST',
-        }
+        },
+        index=assets,
+    )
+
+
+def make_future_info(first_sid,
+                     root_symbols,
+                     years,
+                     notice_date_func,
+                     expiration_date_func,
+                     start_date_func,
+                     month_codes=None):
+    """
+    Create a DataFrame representing futures for `root_symbols` during `year`.
+
+    Generates a contract per triple of (symbol, year, month) supplied to
+    `root_symbols`, `years`, and `month_codes`.
+
+    Parameters
+    ----------
+    first_sid : int
+        The first sid to use for assigning sids to the created contracts.
+    root_symbols : list[str]
+        A list of root symbols for which to create futures.
+    years : list[int or str]
+        Years (e.g. 2014), for which to produce individual contracts.
+    notice_date_func : (Timestamp) -> Timestamp
+        Function to generate notice dates from first of the month associated
+        with asset month code.  Return NaT to simulate futures with no notice
+        date.
+    expiration_date_func : (Timestamp) -> Timestamp
+        Function to generate expiration dates from first of the month
+        associated with asset month code.
+    start_date_func : (Timestamp) -> Timestamp, optional
+        Function to generate start dates from first of the month associated
+        with each asset month code.  Defaults to a start_date one year prior
+        to the month_code date.
+    month_codes : dict[str -> [1..12]], optional
+        Dictionary of month codes for which to create contracts.  Entries
+        should be strings mapped to values from 1 (January) to 12 (December).
+        Default is zipline.futures.CME_CODE_TO_MONTH
+
+    Returns
+    -------
+    futures_info : pd.DataFrame
+        DataFrame of futures data suitable for passing to an
+        AssetDBWriterFromDataFrame.
+    """
+    if month_codes is None:
+        month_codes = CME_CODE_TO_MONTH
+
+    year_strs = list(map(str, years))
+    years = [pd.Timestamp(s, tz='UTC') for s in year_strs]
+
+    # Pairs of string/date like ('K06', 2006-05-01)
+    contract_suffix_to_beginning_of_month = tuple(
+        (month_code + year_str[-2:], year + MonthBegin(month_num))
+        for ((year, year_str), (month_code, month_num))
+        in product(
+            zip(years, year_strs),
+            iteritems(month_codes),
+        )
+    )
+
+    contracts = []
+    parts = product(root_symbols, contract_suffix_to_beginning_of_month)
+    for sid, (root_sym, (suffix, month_begin)) in enumerate(parts, first_sid):
+        contracts.append({
+            'sid': sid,
+            'root_symbol': root_sym,
+            'symbol': root_sym + suffix,
+            'start_date': start_date_func(month_begin),
+            'notice_date': notice_date_func(month_begin),
+            'expiration_date': notice_date_func(month_begin),
+            'contract_multiplier': 500,
+        })
+    return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
+
+
+def make_commodity_future_info(first_sid,
+                               root_symbols,
+                               years,
+                               month_codes=None):
+    """
+    Make futures testing data that simulates the notice/expiration date
+    behavior of physical commodities like oil.
+
+    Parameters
+    ----------
+    first_sid : int
+    root_symbols : list[str]
+    years : list[int]
+    month_codes : dict[str -> int]
+
+    Expiration dates are on the 20th of the month prior to the month code.
+    Notice dates are are on the 20th two months prior to the month code.
+    Start dates are one year before the contract month.
+
+    See Also
+    --------
+    make_future_info
+    """
+    nineteen_days = pd.Timedelta(days=19)
+    one_year = pd.Timedelta(days=365)
+    return make_future_info(
+        first_sid=first_sid,
+        root_symbols=root_symbols,
+        years=years,
+        notice_date_func=lambda dt: dt - MonthBegin(2) + nineteen_days,
+        expiration_date_func=lambda dt: dt - MonthBegin(1) + nineteen_days,
+        start_date_func=lambda dt: dt - one_year,
+        month_codes=month_codes,
     )
 
 
@@ -368,21 +478,23 @@ class tmp_assets_db(object):
     """Create a temporary assets sqlite database.
     This is meant to be used as a context manager.
 
-    Paramaters
+    Parameters
     ----------
     data : pd.DataFrame, optional
         The data to feed to the writer. By default this maps:
         ('A', 'B', 'C') -> map(ord, 'ABC')
     """
-    def __init__(self, data=None):
+    def __init__(self, **frames):
         self._eng = None
-        self._data = AssetDBWriterFromDataFrame(
-            data if data is not None else make_simple_asset_info(
-                list(map(ord, 'ABC')),
-                pd.Timestamp(0),
-                pd.Timestamp('2015'),
-            )
-        )
+        if not frames:
+            frames = {
+                'equities': make_simple_equity_info(
+                    list(map(ord, 'ABC')),
+                    pd.Timestamp(0),
+                    pd.Timestamp('2015'),
+                )
+            }
+        self._data = AssetDBWriterFromDataFrame(**frames)
 
     def __enter__(self):
         self._eng = eng = create_engine('sqlite://')
@@ -397,10 +509,97 @@ class tmp_assets_db(object):
 class tmp_asset_finder(tmp_assets_db):
     """Create a temporary asset finder using an in memory sqlite db.
 
-    Paramaters
+    Parameters
     ----------
     data : dict, optional
         The data to feed to the writer
     """
+    def __init__(self, finder_cls=AssetFinder, **frames):
+        self._finder_cls = finder_cls
+        super(tmp_asset_finder, self).__init__(**frames)
+
     def __enter__(self):
-        return AssetFinder(super(tmp_asset_finder, self).__enter__())
+        return self._finder_cls(super(tmp_asset_finder, self).__enter__())
+
+
+class SubTestFailures(AssertionError):
+    def __init__(self, *failures):
+        self.failures = failures
+
+    def __str__(self):
+        return 'failures:\n  %s' % '\n  '.join(
+            '\n    '.join((
+                ', '.join('%s=%r' % item for item in scope.items()),
+                '%s: %s' % (type(exc).__name__, exc),
+            )) for scope, exc in self.failures,
+        )
+
+
+def subtest(iterator, *_names):
+    """Construct a subtest in a unittest.
+
+    This works by decorating a function as a subtest. The test will be run
+    by iterating over the ``iterator`` and *unpacking the values into the
+    function. If any of the runs fail, the result will be put into a set and
+    the rest of the tests will be run. Finally, if any failed, all of the
+    results will be dumped as one failure.
+
+    Parameters
+    ----------
+    iterator : iterable[iterable]
+        The iterator of arguments to pass to the function.
+    *name : iterator[str]
+        The names to use for each element of ``iterator``. These will be used
+        to print the scope when a test fails. If not provided, it will use the
+        integer index of the value as the name.
+
+    Examples
+    --------
+
+    ::
+
+       class MyTest(TestCase):
+           def test_thing(self):
+               # Example usage inside another test.
+               @subtest(([n] for n in range(100000)), 'n')
+               def subtest(n):
+                   self.assertEqual(n % 2, 0, 'n was not even')
+               subtest()
+
+           @subtest(([n] for n in range(100000)), 'n')
+           def test_decorated_function(self, n):
+               # Example usage to parameterize an entire function.
+               self.assertEqual(n % 2, 1, 'n was not odd')
+
+    Notes
+    -----
+    We use this when we:
+
+    * Will never want to run each parameter individually.
+    * Have a large parameter space we are testing
+      (see tests/utils/test_events.py).
+
+    ``nose_parameterized.expand`` will create a test for each parameter
+    combination which bloats the test output and makes the travis pages slow.
+
+    We cannot use ``unittest2.TestCase.subTest`` because nose, pytest, and
+    nose2 do not support ``addSubTest``.
+    """
+    def dec(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            names = _names
+            failures = []
+            for scope in iterator:
+                scope = tuple(scope)
+                try:
+                    f(*args + scope, **kwargs)
+                except Exception as e:
+                    if not names:
+                        names = count()
+                    failures.append((dict(zip(names, scope)), e))
+            if failures:
+                raise SubTestFailures(*failures)
+
+        return wrapped
+    return dec

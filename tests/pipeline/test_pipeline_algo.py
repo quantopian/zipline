@@ -57,7 +57,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
 from zipline.utils.test_utils import (
-    make_simple_asset_info,
+    make_simple_equity_info,
     str_to_seconds,
 )
 from zipline.utils.tradingcalendar import (
@@ -97,7 +97,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 1,
                 'symbol': 'A',
-                'asset_type': 'equity',
                 'start_date': self.dates[10],
                 'end_date': self.dates[13],
                 'exchange': 'TEST',
@@ -105,7 +104,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 2,
                 'symbol': 'B',
-                'asset_type': 'equity',
                 'start_date': self.dates[11],
                 'end_date': self.dates[14],
                 'exchange': 'TEST',
@@ -113,7 +111,6 @@ class ClosesOnly(TestCase):
             {
                 'sid': 3,
                 'symbol': 'C',
-                'asset_type': 'equity',
                 'start_date': self.dates[12],
                 'end_date': self.dates[15],
                 'exchange': 'TEST',
@@ -335,7 +332,7 @@ class PipelineAlgorithmTestCase(TestCase):
         cls.MSFT = 2
         cls.BRK_A = 3
         cls.assets = [cls.AAPL, cls.MSFT, cls.BRK_A]
-        asset_info = make_simple_asset_info(
+        asset_info = make_simple_equity_info(
             cls.assets,
             Timestamp('2014'),
             Timestamp('2015'),

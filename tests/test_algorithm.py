@@ -48,6 +48,7 @@ from zipline.test_algorithms import (
     EmptyPositionsAlgorithm,
     InvalidOrderAlgorithm,
     RecordAlgorithm,
+    FutureFlipAlgo,
     TestAlgorithm,
     TestOrderAlgorithm,
     TestOrderInstantAlgorithm,
@@ -78,7 +79,7 @@ from zipline.test_algorithms import (
     record_float_magic,
     record_variables,
 )
-
+from zipline.utils.context_tricks import CallbackManager
 import zipline.utils.events
 from zipline.utils.test_utils import (
     assert_single_position,
@@ -95,7 +96,7 @@ from zipline.assets import Equity
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
 from zipline.utils.api_support import set_algo_instance
-from zipline.utils.events import DateRuleFactory, TimeRuleFactory
+from zipline.utils.events import DateRuleFactory, TimeRuleFactory, Always
 from zipline.algorithm import TradingAlgorithm
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.trading import TradingEnvironment
@@ -155,11 +156,9 @@ class TestMiscellaneousAPI(TestCase):
         cls.env = TradingEnvironment()
 
         metadata = {3: {'symbol': 'PLAY',
-                        'asset_type': 'equity',
                         'start_date': '2002-01-01',
                         'end_date': '2004-01-01'},
                     4: {'symbol': 'PLAY',
-                        'asset_type': 'equity',
                         'start_date': '2005-01-01',
                         'end_date': '2006-01-01'}}
 
@@ -167,28 +166,24 @@ class TestMiscellaneousAPI(TestCase):
             5: {
                 'symbol': 'CLG06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
             6: {
                 'root_symbol': 'CL',
                 'symbol': 'CLK06',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
             7: {
                 'symbol': 'CLQ06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
             8: {
                 'symbol': 'CLX06',
                 'root_symbol': 'CL',
-                'asset_type': 'future',
                 'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
@@ -351,6 +346,62 @@ class TestMiscellaneousAPI(TestCase):
         algo.run(self.source)
 
         self.assertEqual(algo.func_called, algo.days)
+
+    def test_event_context(self):
+        expected_data = []
+        collected_data_pre = []
+        collected_data_post = []
+        function_stack = []
+
+        def pre(data):
+            function_stack.append(pre)
+            collected_data_pre.append(data)
+
+        def post(data):
+            function_stack.append(post)
+            collected_data_post.append(data)
+
+        def initialize(context):
+            context.add_event(Always(), f)
+            context.add_event(Always(), g)
+
+        def handle_data(context, data):
+            function_stack.append(handle_data)
+            expected_data.append(data)
+
+        def f(context, data):
+            function_stack.append(f)
+
+        def g(context, data):
+            function_stack.append(g)
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            sim_params=self.sim_params,
+            create_event_context=CallbackManager(pre, post),
+            env=self.env,
+        )
+        algo.run(self.source)
+
+        self.assertEqual(len(expected_data), 779)
+        self.assertEqual(collected_data_pre, expected_data)
+        self.assertEqual(collected_data_post, expected_data)
+
+        self.assertEqual(
+            len(function_stack),
+            779 * 5,
+            'Incorrect number of functions called: %s != 779' %
+            len(function_stack),
+        )
+        expected_functions = [pre, handle_data, f, g, post] * 779
+        for n, (f, g) in enumerate(zip(function_stack, expected_functions)):
+            self.assertEqual(
+                f,
+                g,
+                'function at position %d was incorrect, expected %s but got %s'
+                % (n, g.__name__, f.__name__),
+            )
 
     @parameterized.expand([
         ('daily',),
@@ -594,8 +645,7 @@ class TestTransformAlgorithm(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        futures_metadata = {3: {'asset_type': 'future',
-                                'contract_multiplier': 10}}
+        futures_metadata = {3: {'contract_multiplier': 10}}
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0, 1, 133],
                            futures_data=futures_metadata)
@@ -922,8 +972,7 @@ class TestAlgoScript(TestCase):
     def test_api_get_environment(self):
         platform = 'zipline'
         # Use sid not already in test database.
-        metadata = {3: {'symbol': 'TEST',
-                        'asset_type': 'equity'}}
+        metadata = {3: {'symbol': 'TEST'}}
         algo = TradingAlgorithm(script=api_get_environment_algo,
                                 equities_metadata=metadata,
                                 platform=platform)
@@ -932,8 +981,7 @@ class TestAlgoScript(TestCase):
 
     def test_api_symbol(self):
         # Use sid not already in test database.
-        metadata = {3: {'symbol': 'TEST',
-                        'asset_type': 'equity'}}
+        metadata = {3: {'symbol': 'TEST'}}
         algo = TradingAlgorithm(script=api_symbol_algo,
                                 equities_metadata=metadata)
         algo.run(self.df)
@@ -1777,7 +1825,6 @@ class TestClosePosAlgo(TestCase):
 
     def test_close_position_equity(self):
         metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'equity',
                         'end_date': self.days[3]}}
         self.env.write_data(equities_data=metadata)
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
@@ -1793,9 +1840,7 @@ class TestClosePosAlgo(TestCase):
         self.check_algo_pnl(results, expected_pnl)
 
     def test_close_position_future(self):
-        metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'future',
-                        }}
+        metadata = {1: {'symbol': 'TEST'}}
         self.env.write_data(futures_data=metadata)
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
                              commission=PerShare(0),
@@ -1811,7 +1856,6 @@ class TestClosePosAlgo(TestCase):
 
     def test_auto_close_future(self):
         metadata = {1: {'symbol': 'TEST',
-                        'asset_type': 'future',
                         'auto_close_date': self.env.trading_days[4]}}
         self.env.write_data(futures_data=metadata)
         algo = TestAlgorithm(sid=1, amount=1, order_count=1,
@@ -1842,3 +1886,82 @@ class TestClosePosAlgo(TestCase):
                 actual_position, expected_positions[i],
                 "position for day={0} not equal, actual={1}, expected={2}".
                 format(i, actual_position, expected_positions[i]))
+
+
+class TestFutureFlip(TestCase):
+    def setUp(self):
+        self.env = TradingEnvironment()
+        self.days = self.env.trading_days[:4]
+        self.trades_panel = pd.Panel({1: pd.DataFrame({
+            'price': [1, 2, 4], 'volume': [1e9, 1e9, 1e9],
+            'type': [DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE]},
+            index=self.days[:3])
+        })
+
+    def test_flip_algo(self):
+        metadata = {1: {'symbol': 'TEST',
+                        'end_date': self.days[3],
+                        'contract_multiplier': 5}}
+        self.env.write_data(futures_data=metadata)
+
+        algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,
+                              commission=PerShare(0),
+                              order_count=0,  # not applicable but required
+                              instant_fill=True)
+        data = DataPanelSource(self.trades_panel)
+
+        results = algo.run(data)
+
+        expected_positions = [1, -1, 0]
+        self.check_algo_positions(results, expected_positions)
+
+        expected_pnl = [0, 5, -10]
+        self.check_algo_pnl(results, expected_pnl)
+
+    def check_algo_pnl(self, results, expected_pnl):
+        np.testing.assert_array_almost_equal(results.pnl, expected_pnl)
+
+    def check_algo_positions(self, results, expected_positions):
+        for i, amount in enumerate(results.positions):
+            if amount:
+                actual_position = amount[0]['amount']
+            else:
+                actual_position = 0
+
+            self.assertEqual(
+                actual_position, expected_positions[i],
+                "position for day={0} not equal, actual={1}, expected={2}".
+                format(i, actual_position, expected_positions[i]))
+
+
+class TestTradingAlgorithm(TestCase):
+    def setUp(self):
+        self.env = TradingEnvironment()
+        self.days = self.env.trading_days[:4]
+        self.panel = pd.Panel({1: pd.DataFrame({
+            'price': [1, 1, 2, 4], 'volume': [1e9, 1e9, 1e9, 0],
+            'type': [DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.TRADE,
+                     DATASOURCE_TYPE.CLOSE_POSITION]},
+            index=self.days)
+        })
+
+    def test_analyze_called(self):
+        self.perf_ref = None
+
+        def initialize(context):
+            pass
+
+        def handle_data(context, data):
+            pass
+
+        def analyze(context, perf):
+            self.perf_ref = perf
+
+        algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data,
+                                analyze=analyze)
+        results = algo.run(self.panel)
+        self.assertIs(results, self.perf_ref)
