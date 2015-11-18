@@ -49,10 +49,11 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentReader,
 )
 from zipline.finance import trading
+from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factors import VWAP
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
+from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )

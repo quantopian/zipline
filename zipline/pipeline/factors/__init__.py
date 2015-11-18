@@ -3,6 +3,10 @@ from .factor import (
     CustomFactor,
 )
 from .latest import Latest
+from .events import (
+    BusinessDaysSincePreviousEarnings,
+    BusinessDaysUntilNextEarnings,
+)
 from .technical import (
     MaxDrawdown,
     RSI,
@@ -14,6 +18,8 @@ from .technical import (
 
 __all__ = [
     'CustomFactor',
+    'BusinessDaysSincePreviousEarnings',
+    'BusinessDaysUntilNextEarnings',
     'Factor',
     'Latest',
     'MaxDrawdown',

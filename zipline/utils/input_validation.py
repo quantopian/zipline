@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from operator import attrgetter
 
-from six import iteritems, string_types
+from numpy import dtype
+from six import iteritems, string_types, PY3
 from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
@@ -28,6 +30,98 @@ def ensure_upper_case(func, argname, arg):
             " be a string, but got {2} instead.".format(
                 func.__name__, argname, arg,)
         )
+
+
+def ensure_dtype(func, argname, arg):
+    """
+    Argument preprocessor that converts the input into a numpy dtype.
+
+    Usage
+    -----
+    >>> import numpy as np
+    >>> from zipline.utils.preprocess import preprocess
+    >>> @preprocess(dtype=ensure_dtype)
+    ... def foo(dtype):
+    ...     return dtype
+    ...
+    >>> foo(float)
+    dtype('float64')
+    """
+    try:
+        return dtype(arg)
+    except TypeError:
+        raise TypeError(
+            "{func}() couldn't convert argument "
+            "{argname}={arg!r} to a numpy dtype.".format(
+                func=_qualified_name(func),
+                argname=argname,
+                arg=arg,
+            ),
+        )
+
+
+def expect_dtypes(*_pos, **named):
+    """
+    Preprocessing decorator that verifies inputs have expected numpy dtypes.
+
+    Usage
+    -----
+    >>> from numpy import dtype
+    >>> @expect_types(x=dtype(int))
+    ... def foo(x, y):
+    ...    return x, y
+    ...
+    >>> foo(arange(3), 'foo')
+    (2, '3')
+    >>> foo(arange(3, dtype=float), 'foo')
+    Traceback (most recent call last):
+       ...
+    TypeError: foo() expected an argument with dtype 'int64' for argument 'x', but got dtype 'float64' instead.  # noqa
+    """
+    if _pos:
+        raise TypeError("expect_dtypes() only takes keyword arguments.")
+
+    for name, type_ in iteritems(named):
+        if not isinstance(type_, (dtype, tuple)):
+            raise TypeError(
+                "expect_dtypes() expected a numpy dtype or tuple of dtypes"
+                " for argument {name!r}, but got {dtype} instead.".format(
+                    name=name, dtype=dtype,
+                )
+            )
+    return preprocess(**valmap(_expect_dtype, named))
+
+
+def _expect_dtype(_dtype_or_dtype_tuple):
+    """
+    Factory for dtype-checking functions that work the @preprocess decorator.
+    """
+    # Slightly different messages for dtype and tuple of dtypes.
+    if isinstance(_dtype_or_dtype_tuple, tuple):
+        allowed_dtypes = _dtype_or_dtype_tuple
+    else:
+        allowed_dtypes = (_dtype_or_dtype_tuple,)
+    template = (
+        "%(funcname)s() expected a value with dtype {dtype_str} "
+        "for argument '%(argname)s', but got %(actual)r instead."
+    ).format(dtype_str=' or '.join(repr(d.name) for d in allowed_dtypes))
+
+    def check_dtype(value):
+        return getattr(value, 'dtype', None) not in allowed_dtypes
+
+    def display_bad_value(value):
+        # If the bad value has a dtype, but it's wrong, show the dtype name.
+        if hasattr(value, 'dtype'):
+            return value.dtype.name
+        # Otherwise, show the value itself.
+        return value
+
+    return make_check(
+        exc_type=TypeError,
+        template=template,
+        pred=check_dtype,
+        actual=display_bad_value,
+    )
 
 
 def expect_types(*_pos, **named):
@@ -62,20 +156,43 @@ def expect_types(*_pos, **named):
     return preprocess(**valmap(_expect_type, named))
 
 
-def _qualified_name(obj):
-    """
-    Return the fully-qualified name (ignoring inner classes) of a type.
-    """
-    module = obj.__module__
-    if module in ('__builtin__', '__main__', 'builtins'):
-        return obj.__name__
-    return '.'.join([module, obj.__name__])
+if PY3:
+    _qualified_name = attrgetter('__qualname__')
+else:
+    def _qualified_name(obj):
+        """
+        Return the fully-qualified name (ignoring inner classes) of a type.
+        """
+        module = obj.__module__
+        if module in ('__builtin__', '__main__', 'builtins'):
+            return obj.__name__
+        return '.'.join([module, obj.__name__])
 
 
-def _mk_check(exc, template, pred, actual):
+def make_check(exc_type, template, pred, actual):
+    """
+    Factory for making preprocessing functions that check a predicate on the
+    input value.
+
+    Parameters
+    ----------
+    exc_type : Exception
+        The exception type to raise if the predicate fails.
+    template : str
+        A template string to use to create error messages.
+        Should have %-style named template parameters for 'funcname',
+        'argname', and 'actual'.
+    pred : function[object -> bool]
+        A function to call on the argument being preprocessed.  If the
+        predicate returns `True`, we raise an instance of `exc_type`.
+    actual : function[object -> object]
+        A function to call on bad values to produce the value to display in the
+        error message.
+    """
+
     def _check(func, argname, argvalue):
         if pred(argvalue):
-            raise exc(
+            raise exc_type(
                 template % {
                     'funcname': _qualified_name(func),
                     'argname': argname,
@@ -102,7 +219,7 @@ def _expect_type(type_):
     else:
         template = _template.format(type_or_types=_qualified_name(type_))
 
-    return _mk_check(
+    return make_check(
         TypeError,
         template,
         lambda v: not isinstance(v, type_),
@@ -171,7 +288,7 @@ def _expect_element(collection):
         "%(funcname)s() expected a value in {collection} "
         "for argument '%(argname)s', but got %(actual)s instead."
     ).format(collection=collection)
-    return _mk_check(
+    return make_check(
         ValueError,
         template,
         complement(op.contains(collection)),

@@ -3,11 +3,14 @@ Tests for zipline.utils.validate.
 """
 from types import FunctionType
 from unittest import TestCase
+
 from nose_parameterized import parameterized
+from numpy import arange, dtype
 
 from zipline.utils.preprocess import call, preprocess
 from zipline.utils.input_validation import (
     expect_element,
+    expect_dtypes,
     expect_types,
     optional,
 )
@@ -247,4 +250,61 @@ class PreprocessTestCase(TestCase):
             "{modname}.f() expected a value in {set_!r}"
             " for argument 'a', but got 'c' instead."
         ).format(set_=set_, modname=f.__module__)
+        self.assertEqual(e.exception.args[0], expected_message)
+
+    def test_expect_dtypes(self):
+
+        @expect_dtypes(a=dtype(float), b=dtype('datetime64[ns]'))
+        def foo(a, b, c):
+            return a, b, c
+
+        good_a = arange(3, dtype=float)
+        good_b = arange(3).astype('datetime64[ns]')
+        good_c = object()
+
+        a_ret, b_ret, c_ret = foo(good_a, good_b, good_c)
+        self.assertIs(a_ret, good_a)
+        self.assertIs(b_ret, good_b)
+        self.assertIs(c_ret, good_c)
+
+        with self.assertRaises(TypeError) as e:
+            foo(good_a, arange(3), good_c)
+
+        expected_message = (
+            "{modname}.foo() expected a value with dtype 'datetime64[ns]'"
+            " for argument 'b', but got 'int64' instead."
+        ).format(modname=foo.__module__)
+        self.assertEqual(e.exception.args[0], expected_message)
+
+        with self.assertRaises(TypeError) as e:
+            foo(arange(3, dtype='uint32'), good_c, good_c)
+
+        expected_message = (
+            "{modname}.foo() expected a value with dtype 'float64'"
+            " for argument 'a', but got 'uint32' instead."
+        ).format(modname=foo.__module__)
+        self.assertEqual(e.exception.args[0], expected_message)
+
+    def test_expect_dtypes_with_tuple(self):
+
+        allowed_dtypes = (dtype('datetime64[ns]'), dtype('float'))
+
+        @expect_dtypes(a=allowed_dtypes)
+        def foo(a, b):
+            return a, b
+
+        for d in allowed_dtypes:
+            good_a = arange(3).astype(d)
+            good_b = object()
+            ret_a, ret_b = foo(good_a, good_b)
+            self.assertIs(good_a, ret_a)
+            self.assertIs(good_b, ret_b)
+
+        with self.assertRaises(TypeError) as e:
+            foo(arange(3, dtype='uint32'), object())
+
+        expected_message = (
+            "{modname}.foo() expected a value with dtype 'datetime64[ns]' "
+            "or 'float64' for argument 'a', but got 'uint32' instead."
+        ).format(modname=foo.__module__)
         self.assertEqual(e.exception.args[0], expected_message)

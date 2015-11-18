@@ -29,16 +29,17 @@ from pandas.util.testing import assert_frame_equal
 from six import iteritems, itervalues
 from testfixtures import TempDirectory
 
+from zipline.data.us_equity_pricing import BcolzDailyBarReader
+from zipline.finance.trading import TradingEnvironment
+from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline.loaders.synthetic import (
     ConstantLoader,
     NullAdjustmentReader,
     SyntheticDailyBarWriter,
 )
-from zipline.data.us_equity_pricing import BcolzDailyBarReader
-from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data import USEquityPricing, DataSet, Column
-from zipline.pipeline.loaders.frame import DataFrameLoader, MULTIPLY
+from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
