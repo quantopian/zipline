@@ -64,7 +64,6 @@ from datetime import datetime
 
 import pandas as pd
 from pandas.tseries.tools import normalize_date
-from zipline.assets import Future
 from zipline.finance.performance.period import PerformancePeriod
 
 import zipline.finance.risk as risk

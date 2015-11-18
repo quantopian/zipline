@@ -17,7 +17,6 @@ from __future__ import division
 
 import logbook
 import numpy as np
-from pandas.lib import checknull
 from collections import namedtuple
 from zipline.finance.performance.position import Position
 from zipline.finance.transaction import Transaction

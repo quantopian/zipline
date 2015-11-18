@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from datetime import datetime
-from sqlite3 import OperationalError
 import bcolz
 from logbook import Logger
 

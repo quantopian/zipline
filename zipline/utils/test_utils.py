@@ -855,14 +855,14 @@ class MockDailyBarReader(object):
 
 
 def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
-                       mergers=None):
+                            mergers=None):
     path = tempdir.getpath("test_adjustments.db")
 
     # create a split for the last day
     writer = SQLiteAdjustmentWriter(path, days, MockDailyBarReader())
     if splits is None:
         splits = pd.DataFrame({
-             # Hackery to make the dtypes correct on an empty frame.
+            # Hackery to make the dtypes correct on an empty frame.
             'effective_date': np.array([], dtype=int),
             'ratio': np.array([], dtype=float),
             'sid': np.array([], dtype=int),
@@ -872,7 +872,7 @@ def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
 
     if mergers is None:
         mergers = pd.DataFrame({
-             # Hackery to make the dtypes correct on an empty frame.
+            # Hackery to make the dtypes correct on an empty frame.
             'effective_date': np.array([], dtype=int),
             'ratio': np.array([], dtype=float),
             'sid': np.array([], dtype=int),
@@ -881,15 +881,17 @@ def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
         mergers = pd.DataFrame(mergers)
 
     if dividends is None:
-        dividends = pd.DataFrame({
-                # Hackery to make the dtypes correct on an empty frame.
-                'ex_date': np.array([], dtype='datetime64[ns]'),
-                'pay_date': np.array([], dtype='datetime64[ns]'),
-                'record_date': np.array([], dtype='datetime64[ns]'),
-                'declared_date': np.array([], dtype='datetime64[ns]'),
-                'amount': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
+        data = {
+            # Hackery to make the dtypes correct on an empty frame.
+            'ex_date': np.array([], dtype='datetime64[ns]'),
+            'pay_date': np.array([], dtype='datetime64[ns]'),
+            'record_date': np.array([], dtype='datetime64[ns]'),
+            'declared_date': np.array([], dtype='datetime64[ns]'),
+            'amount': np.array([], dtype=float),
+            'sid': np.array([], dtype=int),
+        }
+        dividends = pd.DataFrame(
+            data,
             index=pd.DatetimeIndex([], tz='UTC'),
             columns=['ex_date',
                      'pay_date',

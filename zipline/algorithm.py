@@ -20,11 +20,9 @@ from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from datetime import datetime
-from itertools import groupby, chain, repeat
+from itertools import chain, repeat
 from numbers import Integral
-from operator import attrgetter
 
-from six.moves import filter
 from six import (
     exec_,
     iteritems,

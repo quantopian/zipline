@@ -153,4 +153,3 @@ class BenchmarkSource(object):
                 benchmark_series[0] = value_to_use
 
             return benchmark_series.pct_change()[1:]
-
