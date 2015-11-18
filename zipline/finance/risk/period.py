@@ -259,6 +259,10 @@ class RiskMetricsPeriod(object):
         returns_matrix = np.vstack([self.algorithm_returns,
                                     self.benchmark_returns])
         C = np.cov(returns_matrix, ddof=1)
+
+        if not np.isfinite(C).all():
+            return np.nan, np.nan, np.nan, np.nan, []
+
         eigen_values = la.eigvals(C)
         condition_number = max(eigen_values) / min(eigen_values)
         algorithm_covariance = C[0][1]
