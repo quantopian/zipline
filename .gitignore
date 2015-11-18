@@ -56,3 +56,5 @@ benchmarks.db
 
 # Vagrant temp folder
 .vagrant
+
+.iml
