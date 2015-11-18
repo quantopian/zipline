@@ -39,7 +39,7 @@ cdef class Asset:
 
     cdef readonly object exchange
 
-    cdef readonly object ccy
+    cdef readonly object currency
     cdef readonly object price_format
     cdef readonly object status
 
@@ -51,7 +51,7 @@ cdef class Asset:
                   object end_date=None,
                   object first_traded=None,
                   object exchange="",
-                  object ccy="",
+                  object currency="",
                   object price_format=0,
                   object status="",
                   *args,
@@ -65,7 +65,7 @@ cdef class Asset:
         self.start_date = start_date
         self.end_date = end_date
         self.first_traded = first_traded
-        self.ccy = ccy
+        self.currency = currency
         self.price_format = price_format
         self.status = status
 
@@ -135,7 +135,7 @@ cdef class Asset:
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
                  'start_date', 'end_date', 'first_traded',
-                 'ccy', 'price_format', 'status')
+                 'currency', 'price_format', 'status')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -156,7 +156,7 @@ cdef class Asset:
                                  self.end_date,
                                  self.first_traded,
                                  self.exchange,
-                                 self.ccy,
+                                 self.currency,
                                  self.price_format,
                                  self.status))
 
@@ -172,7 +172,7 @@ cdef class Asset:
             'end_date': self.end_date,
             'first_traded': self.first_traded,
             'exchange': self.exchange,
-            'ccy': self.ccy,
+            'currency': self.currency,
             'price_format': self.price_format,
             'status': self.status
         }
@@ -254,7 +254,7 @@ cdef class Future(Asset):
                   object auto_close_date=None,
                   object first_traded=None,
                   object exchange="",
-                  object ccy="",
+                  object currency="",
                   object price_format=0,
                   object status="",
                   float contract_multiplier=1):
@@ -323,7 +323,7 @@ cdef class CurrencyPair(Asset):
     cdef readonly object pair # 'USDGBP' for example
     cdef readonly object base # 'USD'
     cdef readonly object quote # 'GBP'
-    cdef readonly float cvf # Factor to multiply 10^cvf to get the actual
+    cdef readonly int multiplier # Factor to multiply 10^cvf to get the actual
     # amount traded so cvf=4 would mean multiply 10^4 = 10,000
 
     def __cinit__(self,
@@ -333,19 +333,14 @@ cdef class CurrencyPair(Asset):
                   object base="",
                   object quote="",
                   object start_date=None,
-                  float cvf=1,
-                  object asset_name="",
-                  object end_date=None,
-                  object notice_date=None,
-                  object first_traded=None,
-                  object exchange=""
+                  int multiplier=1
                   ):
 
         self.pair = pair
         self.base = base
         self.quote = quote
         self.start_date = start_date
-        self.cvf = cvf
+        self.multiplier = multiplier
 
     def __str__(self):
         if self.symbol:
@@ -355,7 +350,7 @@ cdef class CurrencyPair(Asset):
 
     def __repr__(self):
         attrs = ('symbol', 'pair', 'base', 'quote',
-                 'start_date', 'cvf')
+                 'start_date', 'multiplier')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -375,7 +370,7 @@ cdef class CurrencyPair(Asset):
                                  self.base,
                                  self.quote,
                                  self.start_date,
-                                 self.cvf,))
+                                 self.multiplier,))
     cpdef to_dict(self):
         """
         Convert to a python dict.
@@ -385,7 +380,7 @@ cdef class CurrencyPair(Asset):
         super_dict['base'] = self.base
         super_dict['quote'] = self.quote
         super_dict['start_date'] = self.start_date
-        super_dict['cvf'] = self.cvf
+        super_dict['multiplier'] = self.multiplier
         return super_dict
 
 def make_asset_array(int size, Asset asset):

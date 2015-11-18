@@ -41,7 +41,7 @@ _currencies_defaults = {
     'base': None,
     'quote': None,
     'start_date': 0,
-    'cvf': None
+    'multiplier': None
 }
 
 # Default values for the equities DataFrame
@@ -229,7 +229,7 @@ def write_version_info(version_table, version_value):
 # A list of the names of all tables in the assets db
 asset_db_table_names = ['version_info', 'equities', 'futures_exchanges',
                         'futures_root_symbols', 'futures_contracts',
-                        'asset_router']
+                        'asset_router', 'currencies']
 
 
 def _equities_table_schema(metadata):
@@ -252,6 +252,27 @@ def _equities_table_schema(metadata):
         sa.Column('end_date', sa.Integer, nullable=False),
         sa.Column('first_traded', sa.Integer, nullable=False),
         sa.Column('exchange', sa.Text),
+        sa.Column('currency', sa.Text),
+    )
+
+
+def _currencies_table_schema(metadata):
+    return sa.Table(
+        'currencies',
+        metadata,
+        sa.Column(
+            'sid',
+            sa.Integer,
+            unique=True,
+            nullable=False,
+            primary_key=True,
+        ),
+        sa.Column('symbol', sa.Text),
+        sa.Column('base', sa.Text, index=True),
+        sa.Column('quote', sa.Text, index=True),
+        sa.Column('pair', sa.Text),
+        sa.Column('start_date', sa.Integer, default=0, nullable=False),
+        sa.Column('multiplier', sa.Integer),
     )
 
 
@@ -471,6 +492,9 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
     def _write_equities(self, equities, bind):
         self._write_assets(equities, self.equities, 'equity', bind)
 
+    def _write_currencies(self, currencies, bind):
+        self._write_assets(currencies, self.currencies, 'currency', bind)
+
     def check_for_tables(self, engine):
         """
         Checks if any tables are present in the current assets database.
@@ -485,9 +509,6 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             if engine.dialect.has_table(conn, table_name):
                 return True
         return False
-
-    def _write_currencies(self, currencies, bind):
-        self._write_assets(currencies, self.currencies, 'currency', bind)
 
     def init_db(self, engine):
         """Connect to database and create tables.
@@ -504,6 +525,7 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         tables_already_exist = self.check_for_tables(engine=engine)
 
         self.equities = _equities_table_schema(metadata)
+        self.currencies = _currencies_table_schema(metadata)
         self.futures_exchanges = _futures_exchanges_schema(metadata)
         self.futures_root_symbols = _futures_root_symbols_schema(
             metadata=metadata,

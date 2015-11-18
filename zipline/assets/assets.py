@@ -27,6 +27,7 @@ import sqlalchemy as sa
 from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
+    CurrencyPairsNotFound,
     MapAssetIdentifierIndexError,
     MultipleSymbolsFound,
     RootSymbolNotFound,
@@ -175,53 +176,6 @@ class AssetFinder(object):
         """
         return self.retrieve_all((sid,), default_none=default_none)[0]
 
-    def retrieve_currencies(self, pair=None, symbol=None,
-                            base=None, quote=None,
-                            default_none=False, return_multiple=False):
-        """
-        Retrieve a currency from the AssetFinder from one of the fields below.
-
-        This only does a simple single field search so don't add more than one
-        param or you'll probably not get what you think you should as it will
-        use the first one it gets to in the select.
-
-        :param pair: The pair e.g. 'USDGBP'
-        :param symbol: Your symbol identifier 'AD3'
-        :param base: The base currency in the pair 'USD'
-        :param quote: The quote currency in the pair 'GBP'
-        :param default_none: set this True to return None otherwise it will
-        raise a SidNotFound exception.
-        :return: possibly a CurrencyPair a list of currency pairs (not
-        completed), None or
-        a SidNotFound exception
-        """
-        ret = None
-
-        if pair is not None:
-            ret = self._select_asset_by_col(self.currencies,
-                                            self.currencies.c.pair,
-                                            pair).execute().fetchone()
-        elif symbol is not None:
-            ret = self._select_asset_by_col(self.currencies,
-                                            self.currencies.c.symbol,
-                                            symbol).execute().fetchone()
-        elif base is not None:
-            ret = self._select_asset_by_col(self.currencies,
-                                            self.currencies.c.base,
-                                            base).execute().fetchone()
-        elif quote is not None:
-            ret = self._select_asset_by_col(self.currencies,
-                                            self.currencies.c.quote,
-                                            quote).execute().fetchone()
-        if ret is not None:
-            currency = self._convert_to_asset(CurrencyPair, ret)
-        elif default_none:
-            currency = None
-        else:
-            raise SymbolNotFound(
-                symbol='Symbol not found from any of [{}]'.format(locals()))
-
-        return currency
 
     def retrieve_all(self, sids, default_none=False):
         """
@@ -278,6 +232,7 @@ class AssetFinder(object):
         # We don't update the asset cache here because it should already be
         # updated by `self.retrieve_equities`.
         update_hits(self.retrieve_equities(type_to_assets.pop('equity', ())))
+        update_hits(self.retrieve_currencies(type_to_assets.pop('currency', ())))
         update_hits(
             self.retrieve_futures_contracts(type_to_assets.pop('future', ()))
         )
@@ -312,6 +267,33 @@ class AssetFinder(object):
             When any requested asset isn't found.
         """
         return self._retrieve_assets(sids, self.equities, Equity)
+
+    # def retrieve_currencies(self):
+    #     return None
+
+    def retrieve_currencies(self, sids, base=None, quote=None, pair=None, symbol=None):
+        """
+        Retrieve CurrencyPair objects for a list of sids.
+
+        Users generally shouldn't need to this method (instead, they should
+        prefer the more general/friendly `retrieve_assets`), but it has a
+        documented interface and tests because it's used upstream.
+
+        Parameters
+        ----------
+        sids : iterable[int]
+
+        Returns
+        -------
+        currencies : dict[int -> CurrencyPair]
+
+        Raises
+        ------
+        EquitiesNotFound
+            When any requested asset isn't found.
+        """
+        return self._retrieve_assets(sids, self. currencies, CurrencyPair)
+
 
     def _retrieve_equity(self, sid):
         return self.retrieve_equities((sid,))[sid]
@@ -396,6 +378,8 @@ class AssetFinder(object):
         if misses:
             if asset_type == Equity:
                 raise EquitiesNotFound(sids=misses)
+            elif asset_type == CurrencyPair:
+                raise CurrencyPairsNotFound(sid=misses)
             else:
                 raise FutureContractsNotFound(sids=misses)
         return hits
@@ -467,9 +451,9 @@ class AssetFinder(object):
                 self.equities.c.share_class_symbol ==
                 share_class_symbol,
                 self.equities.c.start_date <= ad_value),
-            ).order_by(
-                self.equities.c.end_date.desc(),
-            ).execute().fetchall()
+        ).order_by(
+            self.equities.c.end_date.desc(),
+        ).execute().fetchall()
         return candidates
 
     def _get_best_candidate(self, candidates):
@@ -572,8 +556,8 @@ class AssetFinder(object):
 
         """
 
-        data = self._select_asset_by_symbol(self.futures_contracts, symbol)\
-                   .execute().fetchone()
+        data = self._select_asset_by_symbol(self.futures_contracts, symbol) \
+            .execute().fetchone()
 
         # If no data found, raise an exception
         if not data:
@@ -670,7 +654,7 @@ class AssetFinder(object):
             # Check if root symbol exists.
             count = sa.select((sa.func.count(fc_cols.sid),)).where(
                 fc_cols.root_symbol == root_symbol,
-            ).scalar()
+                ).scalar()
             if count == 0:
                 raise RootSymbolNotFound(root_symbol=root_symbol)
 

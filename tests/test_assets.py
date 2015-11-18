@@ -38,6 +38,7 @@ from zipline.assets import (
     Future,
     AssetFinder,
     AssetFinderCachedEquities,
+    CurrencyPair
 )
 from six import itervalues
 from toolz import valmap
@@ -172,7 +173,7 @@ class CurrencyPairTestCase(TestCase):
         base="BTC",
         quote="USD",
         start_date=pd.Timestamp('2007-11-11 00:007AM', tz='UTC'),
-        cvf=4
+        multiplier=4
     )
 
     def test_currencypair_object(self):
@@ -193,7 +194,7 @@ class CurrencyPairTestCase(TestCase):
                           'base',
                           'quote',
                           'start_date',
-                          'cvf',
+                          'multiplier',
                           'sid',
                           'symbol']
 
@@ -729,12 +730,11 @@ class AssetFinderTestCase(TestCase):
         # Build some simple Assets
         equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end)
         future_asset = Future(200, symbol="TESTFUT", end_date=fut_end)
-        currency_asset = CurrencyPair(1000, symbol="TESTCCY",
-                                      start_date=ccy_start)
+        currency_asset = CurrencyPair(1000, base="TEST", quote="CCY", symbol="TESTCCY", start_date=ccy_start)
 
         # Consume the Assets
         self.env.write_data(equities_identifiers=[equity_asset],
-                            futures_identifiers=[future_asset]),
+                            futures_identifiers=[future_asset],
                             currency_identifiers=[currency_asset])
         finder = AssetFinder(self.env.engine)
 
@@ -996,7 +996,7 @@ class AssetFinderTestCase(TestCase):
     def test_insert_currency_pair_metadata(self):
         data = {2268: {'asset_type': 'currency',
                        'start_date': '2014-01-01',
-                       'cvf': 4,
+                       'multiplier': 4,
                        'symbol': "QF4",
                        'pair': 'USDGBP',
                        'base': 'USD',
@@ -1010,7 +1010,7 @@ class AssetFinderTestCase(TestCase):
         self.assertEqual('QF4', currency.symbol)
         self.assertEqual(pd.Timestamp('2014-01-01', tz='UTC'),
                          currency.start_date)
-        self.assertEqual(4, currency.cvf)
+        self.assertEqual(4, currency.multiplier)
         
         # Test invalid field
         with self.assertRaises(AttributeError):
@@ -1029,7 +1029,7 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
     
         gbpaud_by_sid = finder.retrieve_asset(2)
-        gbpaud_by_symbols = finder.retrieve_currencies(symbol='AD3')
+        gbpaud_by_symbols = finder.retrieve_currencies(None, symbol='AD3')
         self.assertIsInstance(gbpaud_by_symbols, CurrencyPair)
         self.assertEqual(gbpaud_by_sid, gbpaud_by_symbols)
     
@@ -1040,8 +1040,8 @@ class AssetFinderTestCase(TestCase):
     
         # scenario 3 - again but throw an error
         with self.assertRaises(SymbolNotFound):
-            finder.retrieve_currencies(symbol='ZZZAAA', default_none=False)
-            finder.retrieve_currencies(symbol='ZZZAAA')  # default behaviour
+            finder.retrieve_currencies(None, pair='ZZZAAA')
+            finder.retrieve_currencies(None, pair='ZZZAAA')  # default behaviour
         
     def test_lookup_currency_by_pair(self):
         # given
@@ -1049,20 +1049,18 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
         gbpaud_by_sid = finder.retrieve_asset(2)
         # when
-        gbpaud_by_pair = finder.retrieve_currencies(pair='GBPAUD')
+        gbpaud_by_pair = finder.retrieve_currencies(None, pair='GBPAUD')
         # then
         self.assertIsInstance(gbpaud_by_pair, CurrencyPair)
         self.assertEqual(gbpaud_by_sid, gbpaud_by_pair)
     
         # scenario 2 - check a missing one returns None when flag set
-        missing_by_pair = finder.retrieve_currencies(pair='ZZZAAA',
-                                                     default_none=True)
+        missing_by_pair = finder.retrieve_currencies(None, pair='ZZZAAA')
         self.assertIsNone(missing_by_pair)
     
         # scenario 3 - again but throw an error
         with self.assertRaises(SymbolNotFound):
-            finder.retrieve_currencies(pair='ZZZAAA', default_none=False)
-            finder.retrieve_currencies(pair='ZZZAAA')  # default behaviour
+            finder.retrieve_currencies(None, pair='ZZZAAA')  # default behaviour
         
     def test_lookup_currency_by_base_and_quote_single_assets_returned(self):
         """
@@ -1076,27 +1074,23 @@ class AssetFinderTestCase(TestCase):
         finder = AssetFinder(self.env.engine)
         gbpaud_by_sid = finder.retrieve_asset(2)
         # when
-        gbpaud_by_base = finder.retrieve_currencies(base='GBP')
-        gbpaud_by_quote = finder.retrieve_currencies(quote='AUD')
+        gbpaud_by_base = finder.retrieve_currencies(None, base='GBP')
+        gbpaud_by_quote = finder.retrieve_currencies(None, quote='AUD')
         # then
         self.assertIsInstance(gbpaud_by_base, CurrencyPair)
         self.assertIsInstance(gbpaud_by_quote, CurrencyPair)
         self.assertEqual(gbpaud_by_sid, gbpaud_by_base, gbpaud_by_quote)
     
         # scenario 2 - check a missing one returns None when flag set
-        missing_by_base = finder.retrieve_currencies(base='ZZZ',
-                                                     default_none=True)
+        missing_by_base = finder.retrieve_currencies(None, base='ZZZ')
         self.assertIsNone(missing_by_base)
-        missing_by_quote = finder.retrieve_currencies(quote='AAA',
-                                                      default_none=True)
+        missing_by_quote = finder.retrieve_currencies(None, quote='AAA')
         self.assertIsNone(missing_by_quote)
     
         # scenario 3 - again but throw an error
         with self.assertRaises(SymbolNotFound):
-            finder.retrieve_currencies(base='ZZZ', default_none=False)
-            finder.retrieve_currencies(quote='AAA', default_none=False)
-            finder.retrieve_currencies(quote='ZZZ')  # default behaviour
-            finder.retrieve_currencies(base='AAA')  # default behaviour
+            finder.retrieve_currencies(None, base='ZZZ')
+            finder.retrieve_currencies(None, quote='AAA')
 
     def setup_currency_test_data(self):
         ccy_0_start = pd.Timestamp('2013-01-01', tz='UTC')
@@ -1112,7 +1106,7 @@ class AssetFinderTestCase(TestCase):
                     'start_date': ccy_0_start.value,
                     'base': 'USD',
                     'quote': 'GBP',
-                    'cvf': 4
+                    'multiplier': 4
                 },
                 {
                     'sid': 1,
@@ -1122,7 +1116,7 @@ class AssetFinderTestCase(TestCase):
                     'start_date': ccy_1_start.value,
                     'base': 'USD',
                     'quote': 'SKK',
-                    'cvf': 6
+                    'multiplier': 6
     
                 },
                 {
@@ -1133,7 +1127,7 @@ class AssetFinderTestCase(TestCase):
                     'start_date': ccy_2_start.value,
                     'base': 'GBP',
                     'quote': 'AUD',
-                    'cvf': 3
+                    'multiplier': 3
                 },
                 {
                     'sid': 3,
@@ -1143,7 +1137,7 @@ class AssetFinderTestCase(TestCase):
                     'start_date': ccy_2_start.value,
                     'base': 'USD',
                     'quote': 'AUD',
-                    'cvf': 4
+                    'multiplier': 4
                 },
             ],
             index='sid')
