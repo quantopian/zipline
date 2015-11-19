@@ -68,6 +68,8 @@ Documentation
 ~~~~~~~~~~~~~
 
 * Document the release process for developers (:issue:`835`).
+* Added reference docs for the Pipeline API. (:issue:`864`).
+* Added reference docs for Asset Metadata APIs. (:issue:`864`).
 
 Miscellaneous
 ~~~~~~~~~~~~~
