@@ -16,7 +16,7 @@ None
 Enhancements
 ~~~~~~~~~~~~
 
-* Adds a way for users to specify context manager to use when executing the
+* Adds a way for users to provide a context manager to use when executing the
   scheduled functions (including ``handle_data``). This context manager will be
   passed the :class:`~zipline.protocol.BarData` object for the bar and will
   be used for the duration of all of the functions scheduled to run. This can be
