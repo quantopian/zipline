@@ -73,6 +73,8 @@ Documentation
 * Document the release process for developers (:issue:`835`).
 * Added reference docs for the Pipeline API. (:issue:`864`).
 * Added reference docs for Asset Metadata APIs. (:issue:`864`).
+* Generated documentation now includes links to source code for many classes
+  and functions. (:issue:`864`).
 
 Miscellaneous
 ~~~~~~~~~~~~~
