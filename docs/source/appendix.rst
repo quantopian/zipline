@@ -5,7 +5,7 @@ Algorithm API
 ~~~~~~~~~~~~~
 
 The following methods are available for use in the ``initialize``,
-``handle_data`` and ``before_trading_start`` API functions.
+``handle_data``, and ``before_trading_start`` API functions.
 
 In all listed functions, the ``self`` argument is implicitly the
 currently-executing :class:`~zipline.algorithm.TradingAlgorithm` instance.
