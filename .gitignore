@@ -1,3 +1,12 @@
 _build
 notebooks/test.nc
 log
+*.pyc
+.eggs
+zipline
+cover
+build
+zipline.egg-info
+tests
+etc
+docs
