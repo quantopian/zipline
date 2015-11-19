@@ -41,6 +41,7 @@ from zipline.assets.asset_writer import (
     check_version_info,
     ASSET_DB_VERSION,
     asset_db_table_names,
+    SQLITE_MAX_VARIABLE_NUMBER
 )
 from zipline.utils.control_flow import invert
 
@@ -130,7 +131,9 @@ class AssetFinder(object):
         types : dict[sid -> str or None]
             Asset types for the provided sids.
         """
-        found, missing = {}, set()
+        found = {}
+        missing = set()
+
         for sid in sids:
             try:
                 found[sid] = self._asset_type_cache[sid]
@@ -140,18 +143,24 @@ class AssetFinder(object):
         if not missing:
             return found
 
-        router_cols = self.asset_router.c
-        query = sa.select((router_cols.sid, router_cols.asset_type)).where(
-            self.asset_router.c.sid.in_(map(int, missing))
-        )
-        for sid, type_ in query.execute().fetchall():
-            missing.remove(sid)
-            found[sid] = self._asset_type_cache[sid] = type_
+        for chunk in self._group_into_chunks(list(missing)):
+            router_cols = self.asset_router.c
+            query = sa.select((router_cols.sid, router_cols.asset_type)).where(
+                self.asset_router.c.sid.in_(map(int, chunk))
+            )
+            for sid, type_ in query.execute().fetchall():
+                missing.remove(sid)
+                found[sid] = self._asset_type_cache[sid] = type_
 
-        for sid in missing:
-            found[sid] = self._asset_type_cache[sid] = None
+            for sid in missing:
+                found[sid] = self._asset_type_cache[sid] = None
 
         return found
+    
+    @staticmethod
+    def _group_into_chunks(items):
+        return [items[x:x+SQLITE_MAX_VARIABLE_NUMBER]
+                for x in xrange(0, len(items), SQLITE_MAX_VARIABLE_NUMBER)]
 
     def group_by_type(self, sids):
         """
@@ -327,14 +336,16 @@ class AssetFinder(object):
             return {}
 
         cache = self._asset_cache
-
         hits = {}
-        # Load misses from the db.
-        query = self._select_assets_by_sid(asset_tbl, sids)
-        for row in imap(dict, query.execute().fetchall()):
-            asset = asset_type(**_convert_asset_timestamp_fields(row))
-            sid = asset.sid
-            hits[sid] = cache[sid] = asset
+
+        for chunk in self._group_into_chunks(list(sids)):
+            # Load misses from the db.
+            query = self._select_assets_by_sid(asset_tbl, chunk)
+
+            for row in imap(dict, query.execute().fetchall()):
+                asset = asset_type(**_convert_asset_timestamp_fields(row))
+                sid = asset.sid
+                hits[sid] = cache[sid] = asset
 
         # If we get here, it means something in our code thought that a
         # particular sid was an equity/future and called this function with a
