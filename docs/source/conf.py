@@ -15,6 +15,7 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.extlinks',
     'sphinx.ext.autosummary',
+    'sphinx.ext.viewcode',
 ]
 
 

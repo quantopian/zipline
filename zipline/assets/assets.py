@@ -76,9 +76,25 @@ def _convert_asset_timestamp_fields(dict_):
 
 
 class AssetFinder(object):
+    """
+    An AssetFinder is an interface to a database of Asset metadata written by
+    an ``AssetDBWriter``.
 
+    This class provides methods for looking up assets by unique integer id or
+    by symbol.  For historical reasons, we refer to these unique ids as 'sids'.
+
+    Parameters
+    ----------
+    engine : str or SQLAlchemy.engine
+        An engine with a connection to the asset database to use, or a string
+        that can be parsed by SQLAlchemy as a URI.
+
+    See Also
+    --------
+    :class:`zipline.assets.asset_writer.AssetDBWriter`
+    """
     # Token used as a substitute for pickling objects that contain a
-    # reference to an AssetFinder
+    # reference to an AssetFinder.
     PERSISTENT_TOKEN = "<AssetFinder>"
 
     def __init__(self, engine):
