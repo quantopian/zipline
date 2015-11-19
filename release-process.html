@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline Release Process &mdash; Zipline v0.8.3+77.g85a95ea documentation</title>
+  <title>Zipline Release Process &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+77.g85a95ea documentation" href="index.html"/>
+    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="index.html"/>
         <link rel="prev" title="API Reference" href="appendix.html"/> 
 
   
@@ -321,21 +321,19 @@ Once you have tested the package, it can be uploaded to PyPI with:</p>
 </div>
 <div class="section" id="documentation">
 <h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h2>
-<p>To update <a class="reference external" href="http://www.zipline.io/index.html">zipline.io</a>, run:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="nb">cd</span> &lt;zipline_root&gt;/docs
-<span class="nv">$ </span>make html
-<span class="nv">$ </span>cp -r build/html /tmp/zipline-doc
-<span class="nv">$ </span>git checkout gh-pages
-<span class="nv">$ </span>mv /tmp/zipline-doc/* .
-<span class="nv">$ </span>rm /tmp/zipline-doc
+<p>To update <a class="reference external" href="http://www.zipline.io/index.html">zipline.io</a>, checkout the
+latest master and run:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">python</span> <span class="o">&lt;</span><span class="n">zipline_root</span><span class="o">&gt;/</span><span class="n">docs</span><span class="o">/</span><span class="n">deploy</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
 </div>
+<p>This will build the documentation, checkout a fresh copy of the <code class="docutils literal"><span class="pre">gh-pages</span></code>
+git branch, and copy the built docs into the zipline root.</p>
 <p>Now, using our browser of choice, view the <code class="docutils literal"><span class="pre">index.html</span></code> page and verify that
 the docs look correct.</p>
-<p>Once we are happy, run:</p>
+<p>Once we are happy, push the updated docs to the GitHub <code class="docutils literal"><span class="pre">gh-pages</span></code> branch.</p>
 <div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>git add .
 <span class="nv">$ </span>git commit -m <span class="s2">&quot;DOC: update zipline.io&quot;</span>
-<span class="nv">$ </span>git push
+<span class="nv">$ </span>git push origin gh-pages
 </pre></div>
 </div>
 <p><a class="reference external" href="http://www.zipline.io/index.html">zipline.io</a> will update in a few moments.</p>
@@ -378,7 +376,7 @@ the docs look correct.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+77.g85a95ea',
+            VERSION:'v0.8.3+79.ga9c91a7',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
