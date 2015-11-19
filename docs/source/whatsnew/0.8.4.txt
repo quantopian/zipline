@@ -1,8 +1,12 @@
-Release 0.8.4
--------------
+Development
+-----------
 
 :Release: 0.8.4
 :Date: TBD
+
+.. warning::
+   This release is still under active development.  All changes listed are
+   subject to change at any time.
 
 Highlights
 ~~~~~~~~~~
