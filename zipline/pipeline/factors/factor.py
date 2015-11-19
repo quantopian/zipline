@@ -8,6 +8,7 @@ from numpy import (
     apply_along_axis,
     float64,
     nan,
+    inf,
 )
 from scipy.stats import rankdata
 
@@ -342,6 +343,29 @@ class Factor(CompositeTerm):
             max_percentile=max_percentile,
             mask=mask,
         )
+
+    def isnan(self):
+        """
+        A Filter producing True for all values where this Factor is NaN.
+        """
+        return self != self
+
+    def notnan(self):
+        """
+        A Filter producing True for values where this Factor is not NaN.
+
+        Returns
+        -------
+        nanfilter : zipline.pipeline.filters.Filter
+        """
+        return ~self.isnan()
+
+    def isfinite(self):
+        """
+        A Filter producing True for values where this Factor is anything but
+        NaN, inf, or -inf.
+        """
+        return (-inf < self) & (self < inf)
 
 
 class NumExprFactor(NumericalExpression, Factor):
