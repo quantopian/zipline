@@ -19,7 +19,10 @@ Enhancements
   passed to :class:`~zipline.algorithm.TradingAlgorithm` by the keyword argument
   ``create_event_context`` (:issue:`828`).
 
-* Added `isnan`, `notnan`, and `isfinite` methods to `Factor` (:issue:`861`).
+.. py:currentmodule:: zipline.pipeline.factors
+
+* Added :meth:`~Factor.isnan`, :meth:`~Factor.notnan` and
+  :meth:`~Factor.isfinite` methods to :class:`Factor` (:issue:`861`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -40,10 +43,12 @@ Bug Fixes
 Performance
 ~~~~~~~~~~~
 
-* Speeds up `AssetFinder.lookup_symbol` by adding an extension, 
-`AssetFinderCachedEquities`, that loads equities into dictionaries and
-then directs `lookup_symbol` to these dictionaries to find matching equities
- (:issue:`830`).
+.. py:currentmodule:: zipline.assets.assets
+
+* Speeds up :meth:`AssetFinder.lookup_symbol` by adding an extension,
+  :class:`AssetFinderCachedEquities`, that loads equities into dictionaries and
+  then directs :meth:`AssetFinder.lookup_symbol` to these dictionaries to find
+  matching equities (:issue:`830`).
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
