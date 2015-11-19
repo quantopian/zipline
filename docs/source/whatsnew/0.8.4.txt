@@ -19,6 +19,8 @@ Enhancements
   passed to :class:`~zipline.algorithm.TradingAlgorithm` by the keyword argument
   ``create_event_context`` (:issue:`828`).
 
+* Added `isnan`, `notnan`, and `isfinite` methods to `Factor` (:issue:`861`).
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
