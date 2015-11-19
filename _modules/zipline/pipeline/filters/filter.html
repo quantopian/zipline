@@ -1,0 +1,466 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>zipline.pipeline.filters.filter &mdash; Zipline v0.8.3+77.g85a95ea documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline v0.8.3+77.g85a95ea documentation" href="../../../../index.html"/>
+        <link rel="up" title="Module code" href="../../../index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="../../../../index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#development">Development</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id1">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Contributors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../appendix.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../../index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      
+    <li>zipline.pipeline.filters.filter</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <h1>Source code for zipline.pipeline.filters.filter</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">filter.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">bool_</span><span class="p">,</span>
+    <span class="n">float64</span><span class="p">,</span>
+    <span class="n">nan</span><span class="p">,</span>
+    <span class="n">nanpercentile</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
+
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BadPercentileBounds</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SingleInputMixin</span><span class="p">,</span>
+    <span class="n">CompositeTerm</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.expression</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BadBinaryOperator</span><span class="p">,</span>
+    <span class="n">FILTER_BINOPS</span><span class="p">,</span>
+    <span class="n">method_name_for_op</span><span class="p">,</span>
+    <span class="n">NumericalExpression</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">concat_tuples</span><span class="p">(</span><span class="o">*</span><span class="n">tuples</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Concatenate a sequence of tuples into one tuple.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="n">tuples</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for making binary operator methods on a Filter subclass.</span>
+
+<span class="sd">    Returns a function &quot;binary_operator&quot; suitable for implementing functions</span>
+<span class="sd">    like __and__ or __or__.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># When combining a Filter with a NumericalExpression, we use this</span>
+    <span class="c"># attrgetter instance to defer to the commuted interpretation of the</span>
+    <span class="c"># NumericalExpression operator.</span>
+    <span class="n">commuted_method_getter</span> <span class="o">=</span> <span class="n">attrgetter</span><span class="p">(</span><span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">commute</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">binary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
+            <span class="n">self_expr</span><span class="p">,</span> <span class="n">other_expr</span><span class="p">,</span> <span class="n">new_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_binary_op</span><span class="p">(</span>
+                <span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+                <span class="s">&quot;({left}) {op} ({right})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">left</span><span class="o">=</span><span class="n">self_expr</span><span class="p">,</span>
+                    <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
+                    <span class="n">right</span><span class="o">=</span><span class="n">other_expr</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">new_inputs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
+            <span class="c"># NumericalExpression overrides numerical ops to correctly handle</span>
+            <span class="c"># merging of inputs.  Look up and call the appropriate</span>
+            <span class="c"># right-binding operator with ourself as the input.</span>
+            <span class="k">return</span> <span class="n">commuted_method_getter</span><span class="p">(</span><span class="n">other</span><span class="p">)(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+                    <span class="s">&quot;x_0 {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+                <span class="s">&quot;x_0 {op} x_1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
+                <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>  <span class="c"># Note that this is true for bool as well</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+                <span class="s">&quot;x_0 {op} ({constant})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)),</span>
+                <span class="n">binds</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+            <span class="p">)</span>
+        <span class="k">raise</span> <span class="n">BadBinaryOperator</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="n">binary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Binary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
+    <span class="k">return</span> <span class="n">binary_operator</span>
+
+
+<span class="k">def</span> <span class="nf">unary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for making unary operator methods for Filters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">valid_ops</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;~&#39;</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ops</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid unary operator </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># This can&#39;t be hoisted up a scope because the types returned by</span>
+        <span class="c"># unary_op_return_type aren&#39;t defined when the top-level function is</span>
+        <span class="c"># invoked.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+                <span class="s">&quot;{op}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span><span class="s">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+
+    <span class="n">unary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Unary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
+    <span class="k">return</span> <span class="n">unary_operator</span>
+
+
+<div class="viewcode-block" id="Filter"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.filters.Filter">[docs]</a><span class="k">class</span> <span class="nc">Filter</span><span class="p">(</span><span class="n">CompositeTerm</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pipeline API expression producing boolean-valued outputs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">bool_</span>
+
+    <span class="n">clsdict</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+    <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">):</span> <span class="n">binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">FILTER_BINOPS</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">__invert__</span> <span class="o">=</span> <span class="n">unary_operator</span><span class="p">(</span><span class="s">&#39;~&#39;</span><span class="p">)</span>
+
+</div>
+<span class="k">class</span> <span class="nc">NumExprFilter</span><span class="p">(</span><span class="n">NumericalExpression</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Filter computed from a numexpr expression.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute our result with numexpr, then re-apply `mask`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NumExprFilter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_compute</span><span class="p">(</span>
+            <span class="n">arrays</span><span class="p">,</span>
+            <span class="n">dates</span><span class="p">,</span>
+            <span class="n">assets</span><span class="p">,</span>
+            <span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span> <span class="o">&amp;</span> <span class="n">mask</span>
+
+
+<span class="k">class</span> <span class="nc">PercentileFilter</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Filter representing assets falling between percentile bounds of a Factor.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    factor : zipline.pipeline.factor.Factor</span>
+<span class="sd">        The factor over which to compute percentile bounds.</span>
+<span class="sd">    min_percentile : float [0.0, 1.0]</span>
+<span class="sd">        The minimum percentile rank of an asset that will pass the filter.</span>
+<span class="sd">    max_percentile : float [0.0, 1.0]</span>
+<span class="sd">        The maxiumum percentile rank of an asset that will pass the filter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">factor</span><span class="p">,),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+            <span class="n">min_percentile</span><span class="o">=</span><span class="n">min_percentile</span><span class="p">,</span>
+            <span class="n">max_percentile</span><span class="o">=</span><span class="n">max_percentile</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_min_percentile</span> <span class="o">=</span> <span class="n">min_percentile</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_percentile</span> <span class="o">=</span> <span class="n">max_percentile</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">min_percentile</span><span class="p">,</span> <span class="n">max_percentile</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="n">min_percentile</span><span class="p">,</span>
+            <span class="n">max_percentile</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ensure that our percentile bounds are well-formed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_min_percentile</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_percentile</span> <span class="o">&lt;=</span> <span class="mf">100.0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">BadPercentileBounds</span><span class="p">(</span>
+                <span class="n">min_percentile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_min_percentile</span><span class="p">,</span>
+                <span class="n">max_percentile</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_percentile</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">PercentileFilter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each row in the input, compute a mask of all values falling between</span>
+<span class="sd">        the given percentiles.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO: Review whether there&#39;s a better way of handling small numbers</span>
+        <span class="c"># of columns.</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">float64</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
+
+        <span class="c"># FIXME: np.nanpercentile **should** support computing multiple bounds</span>
+        <span class="c"># at once, but there&#39;s a bug in the logic for multiple bounds in numpy</span>
+        <span class="c"># 1.9.2.  It will be fixed in 1.10.</span>
+        <span class="c"># c.f. https://github.com/numpy/numpy/pull/5981</span>
+        <span class="n">lower_bounds</span> <span class="o">=</span> <span class="n">nanpercentile</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_min_percentile</span><span class="p">,</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">upper_bounds</span> <span class="o">=</span> <span class="n">nanpercentile</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_percentile</span><span class="p">,</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">lower_bounds</span> <span class="o">&lt;=</span> <span class="n">data</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span> <span class="o">&lt;=</span> <span class="n">upper_bounds</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Quantopian Inc..
+    </p>
+  </div>
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'v0.8.3+77.g85a95ea',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

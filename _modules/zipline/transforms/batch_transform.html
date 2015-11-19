@@ -1,0 +1,749 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>zipline.transforms.batch_transform &mdash; Zipline v0.8.3+77.g85a95ea documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline v0.8.3+77.g85a95ea documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="../../../index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#development">Development</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Contributors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../appendix.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release-process.html">Zipline Release Process</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#documentation">Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      
+    <li>zipline.transforms.batch_transform</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <h1>Source code for zipline.transforms.batch_transform</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2013 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Generator versions of transforms.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">logbook</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Integral</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">string_types</span><span class="p">,</span>
+    <span class="n">itervalues</span><span class="p">,</span>
+    <span class="n">iteritems</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">zipline.utils.algo_instance</span> <span class="kn">import</span> <span class="n">get_algo_instance</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.data</span> <span class="kn">import</span> <span class="n">MutableIndexRollingPanel</span>
+<span class="kn">from</span> <span class="nn">zipline.protocol</span> <span class="kn">import</span> <span class="n">Event</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logbook</span><span class="o">.</span><span class="n">Logger</span><span class="p">(</span><span class="s">&#39;BatchTransform&#39;</span><span class="p">)</span>
+<span class="n">func_map</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;open_price&#39;</span><span class="p">:</span> <span class="s">&#39;first&#39;</span><span class="p">,</span>
+            <span class="s">&#39;close_price&#39;</span><span class="p">:</span> <span class="s">&#39;last&#39;</span><span class="p">,</span>
+            <span class="s">&#39;low&#39;</span><span class="p">:</span> <span class="s">&#39;min&#39;</span><span class="p">,</span>
+            <span class="s">&#39;high&#39;</span><span class="p">:</span> <span class="s">&#39;max&#39;</span><span class="p">,</span>
+            <span class="s">&#39;volume&#39;</span><span class="p">:</span> <span class="s">&#39;sum&#39;</span>
+            <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">get_sample_func</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">func_map</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">func_map</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s">&#39;last&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">downsample_panel</span><span class="p">(</span><span class="n">minute_rp</span><span class="p">,</span> <span class="n">daily_rp</span><span class="p">,</span> <span class="n">mkt_close</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    @minute_rp is a rolling panel, which should have minutely rows</span>
+<span class="sd">    @daily_rp is a rolling panel, which should have daily rows</span>
+<span class="sd">    @dt is the timestamp to use when adding a frame to daily_rp</span>
+
+<span class="sd">    Using the history in minute_rp, a new daily bar is created by</span>
+<span class="sd">    downsampling. The data from the daily bar is then added to the</span>
+<span class="sd">    daily rolling panel using add_frame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cur_panel</span> <span class="o">=</span> <span class="n">minute_rp</span><span class="o">.</span><span class="n">get_current</span><span class="p">()</span>
+    <span class="n">sids</span> <span class="o">=</span> <span class="n">minute_rp</span><span class="o">.</span><span class="n">minor_axis</span>
+    <span class="n">day_frame</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">sids</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">cur_panel</span><span class="o">.</span><span class="n">items</span><span class="p">)</span>
+    <span class="n">env</span> <span class="o">=</span> <span class="n">get_algo_instance</span><span class="p">()</span><span class="o">.</span><span class="n">trading_environment</span>
+    <span class="n">dt1</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">normalize_date</span><span class="p">(</span><span class="n">mkt_close</span><span class="p">)</span>
+    <span class="n">dt2</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">next_trading_day</span><span class="p">(</span><span class="n">mkt_close</span><span class="p">)</span>
+    <span class="n">by_close</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">get_date</span><span class="p">,</span> <span class="n">mkt_close</span><span class="p">,</span> <span class="n">dt1</span><span class="p">,</span> <span class="n">dt2</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">minute_rp</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">cur_panel</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+        <span class="n">func</span> <span class="o">=</span> <span class="n">get_sample_func</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+        <span class="c"># group by trading day, using the market close of the current</span>
+        <span class="c"># day. If events occurred after the last close (yesterday) but</span>
+        <span class="c"># before today&#39;s close, group them into today.</span>
+        <span class="n">dframe</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">by_close</span><span class="p">(</span><span class="n">d</span><span class="p">))</span><span class="o">.</span><span class="n">agg</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">:</span>
+            <span class="n">day_frame</span><span class="p">[</span><span class="n">stock</span><span class="p">][</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">dframe</span><span class="p">[</span><span class="n">stock</span><span class="p">]</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">dt1</span><span class="p">]</span>
+    <span class="c"># store the frame at midnight instead of the close</span>
+    <span class="n">daily_rp</span><span class="o">.</span><span class="n">add_frame</span><span class="p">(</span><span class="n">dt1</span><span class="p">,</span> <span class="n">day_frame</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_date</span><span class="p">(</span><span class="n">mkt_close</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="n">mkt_close</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">d2</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">d1</span>
+
+
+<span class="k">class</span> <span class="nc">InvalidWindowLength</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Error raised when the window length is unusable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">def</span> <span class="nf">check_window_length</span><span class="p">(</span><span class="n">window_length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensure the window length provided to a transform is valid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">window_length</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span><span class="s">&quot;window_length must be provided&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">window_length</span><span class="p">,</span> <span class="n">Integral</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span>
+            <span class="s">&quot;window_length must be an integer-like number&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">window_length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span><span class="s">&quot;window_length must be non-zero&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">window_length</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">InvalidWindowLength</span><span class="p">(</span><span class="s">&quot;window_length must be positive&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">BatchTransform</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class for batch transforms with a trailing window of</span>
+<span class="sd">    variable length. As opposed to pure EventWindows that get a stream</span>
+<span class="sd">    of events and are bound to a single SID, this class creates stream</span>
+<span class="sd">    of pandas DataFrames with each colum representing a sid.</span>
+
+<span class="sd">    There are two ways to create a new batch window:</span>
+<span class="sd">    (i) Inherit from BatchTransform and overload get_value(data).</span>
+<span class="sd">        E.g.:</span>
+<span class="sd">        ```</span>
+<span class="sd">        class MyBatchTransform(BatchTransform):</span>
+<span class="sd">            def get_value(self, data):</span>
+<span class="sd">               # compute difference between the means of sid 0 and sid 1</span>
+<span class="sd">               return data[0].mean() - data[1].mean()</span>
+<span class="sd">        ```</span>
+
+<span class="sd">    (ii) Use the batch_transform decorator.</span>
+<span class="sd">        E.g.:</span>
+<span class="sd">        ```</span>
+<span class="sd">        @batch_transform</span>
+<span class="sd">        def my_batch_transform(data):</span>
+<span class="sd">            return data[0].mean() - data[1].mean()</span>
+
+<span class="sd">        ```</span>
+
+<span class="sd">    In your algorithm you would then have to instantiate</span>
+<span class="sd">    this in the initialize() method:</span>
+<span class="sd">    ```</span>
+<span class="sd">    self.my_batch_transform = MyBatchTransform()</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    To then use it, inside of the algorithm handle_data(), call the</span>
+<span class="sd">    handle_data() of the BatchTransform and pass it the current event:</span>
+<span class="sd">    ```</span>
+<span class="sd">    result = self.my_batch_transform(data)</span>
+<span class="sd">    ```</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">func</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">refresh_period</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                 <span class="n">window_length</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">clean_nans</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                 <span class="n">sids</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">fields</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">compute_only_full</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                 <span class="n">bars</span><span class="o">=</span><span class="s">&#39;daily&#39;</span><span class="p">,</span>
+                 <span class="n">downsample</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;Instantiate new batch_transform object.</span>
+
+<span class="sd">        :Arguments:</span>
+<span class="sd">            func : python function &lt;optional&gt;</span>
+<span class="sd">                If supplied will be called after each refresh_period</span>
+<span class="sd">                with the data panel and all args and kwargs supplied</span>
+<span class="sd">                to the handle_data() call.</span>
+<span class="sd">            refresh_period : int</span>
+<span class="sd">                Interval to wait between advances in the window.</span>
+<span class="sd">            window_length : int</span>
+<span class="sd">                How many days the trailing window should have.</span>
+<span class="sd">            clean_nans : bool &lt;default=True&gt;</span>
+<span class="sd">                Whether to (forward) fill in nans.</span>
+<span class="sd">            sids : list &lt;optional&gt;</span>
+<span class="sd">                Which sids to include in the moving window.  If not</span>
+<span class="sd">                supplied sids will be extracted from incoming</span>
+<span class="sd">                events.</span>
+<span class="sd">            fields : list &lt;optional&gt;</span>
+<span class="sd">                Which fields to include in the moving window</span>
+<span class="sd">                (e.g. &#39;price&#39;). If not supplied, fields will be</span>
+<span class="sd">                extracted from incoming events.</span>
+<span class="sd">            compute_only_full : bool &lt;default=True&gt;</span>
+<span class="sd">                Only call the user-defined function once the window is</span>
+<span class="sd">                full. Returns None if window is not full yet.</span>
+<span class="sd">            downsample : bool &lt;default=False&gt;</span>
+<span class="sd">                If true, downsample bars to daily bars. Otherwise, do nothing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">compute_transform_value</span> <span class="o">=</span> <span class="n">func</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">compute_transform_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_value</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clean_nans</span> <span class="o">=</span> <span class="n">clean_nans</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_only_full</span> <span class="o">=</span> <span class="n">compute_only_full</span>
+        <span class="c"># no need to down sample if the bars are already daily</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span> <span class="o">=</span> <span class="n">downsample</span> <span class="ow">and</span> <span class="p">(</span><span class="n">bars</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">)</span>
+
+        <span class="c"># How many bars are in a day</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bars</span> <span class="o">=</span> <span class="n">bars</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bars</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bars_in_day</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">bars</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bars_in_day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">6.5</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> bars not understood.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">bars</span><span class="p">)</span>
+
+        <span class="c"># The following logic is to allow pre-specified sid filters</span>
+        <span class="c"># to operate on the data, but to also allow new symbols to</span>
+        <span class="c"># enter the batch transform&#39;s window IFF a sid filter is not</span>
+        <span class="c"># specified.</span>
+        <span class="k">if</span> <span class="n">sids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sids</span><span class="p">,</span> <span class="p">(</span><span class="n">string_types</span><span class="p">,</span> <span class="n">Integral</span><span class="p">)):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">static_sids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">sids</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">static_sids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">static_sids</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_field_names</span> <span class="o">=</span> <span class="n">fields</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_field_names</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initial_field_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">initial_field_names</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">refresh_period</span> <span class="o">=</span> <span class="n">refresh_period</span>
+
+        <span class="n">check_window_length</span><span class="p">(</span><span class="n">window_length</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">=</span> <span class="n">window_length</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_days_total</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">full</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="c"># Set to -inf essentially to cause update on first attempt.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_dt</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s">&#39;1900-1-1&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">updated</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cached</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_args</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_kwargs</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c"># Data panel that provides bar information to fill in the window,</span>
+        <span class="c"># when no bar ticks are available from the data source generator</span>
+        <span class="c"># Used in universes that &#39;rollover&#39;, e.g. one that has a different</span>
+        <span class="c"># set of stocks per quarter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">supplemental_data</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rolling_panel</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">daily_rolling_panel</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Point of entry. Process an event frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># extract dates</span>
+        <span class="n">dts</span> <span class="o">=</span> <span class="p">[</span><span class="n">event</span><span class="o">.</span><span class="n">dt</span> <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">itervalues</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">_data</span><span class="p">)]</span>
+        <span class="c"># we have to provide the event with a dt. This is only for</span>
+        <span class="c"># checking if the event is outside the window or not so a</span>
+        <span class="c"># couple of seconds shouldn&#39;t matter. We don&#39;t add it to</span>
+        <span class="c"># the data parameter, because it would mix dt with the</span>
+        <span class="c"># sid keys.</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">Event</span><span class="p">()</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">dts</span><span class="p">)</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">__dict__</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+                      <span class="c"># Need to check if data has a &#39;length&#39; to filter</span>
+                      <span class="c"># out sids without trade data available.</span>
+                      <span class="c"># TODO: expose more of &#39;no trade available&#39;</span>
+                      <span class="c"># functionality to zipline</span>
+                      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)}</span>
+
+        <span class="c"># only modify the trailing window if this is</span>
+        <span class="c"># a new event. This is intended to make handle_data</span>
+        <span class="c"># idempotent.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_dt</span> <span class="o">&lt;</span> <span class="n">event</span><span class="o">.</span><span class="n">dt</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">updated</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_append_to_window</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">updated</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="c"># return newly computed or cached value</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_transform_value</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_panels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rolling_panel</span> <span class="o">=</span> <span class="n">MutableIndexRollingPanel</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">bars_in_day</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">field_names</span><span class="p">,</span>
+                <span class="n">sids</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">daily_rolling_panel</span> <span class="o">=</span> <span class="n">MutableIndexRollingPanel</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">field_names</span><span class="p">,</span>
+                <span class="n">sids</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rolling_panel</span> <span class="o">=</span> <span class="n">MutableIndexRollingPanel</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">bars_in_day</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">field_names</span><span class="p">,</span>
+                <span class="n">sids</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_append_to_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_field_names</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_sids</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">sids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_sids</span>
+
+        <span class="c"># the panel sent to the transform code will have</span>
+        <span class="c"># columns masked with this set of sids. This is how</span>
+        <span class="c"># we guarantee that all (and only) the sids sent to the</span>
+        <span class="c"># algorithm&#39;s handle_data and passed to the batch</span>
+        <span class="c"># transform. See the get_data method to see it applied.</span>
+        <span class="c"># N.B. that the underlying panel grows monotonically</span>
+        <span class="c"># if the set of sids changes over time.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latest_sids</span> <span class="o">=</span> <span class="n">sids</span>
+        <span class="c"># Create rolling panel if not existant</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rolling_panel</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_init_panels</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
+
+        <span class="c"># Store event in rolling frame</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rolling_panel</span><span class="o">.</span><span class="n">add_frame</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
+                                     <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                                                  <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">field_names</span><span class="p">,</span>
+                                                  <span class="n">columns</span><span class="o">=</span><span class="n">sids</span><span class="p">))</span>
+
+        <span class="c"># update trading day counters</span>
+        <span class="c"># we may get events from non-trading sources which occurr on</span>
+        <span class="c"># non-trading days. The book-keeping for market close and</span>
+        <span class="c"># trading day counting should only consider trading days.</span>
+        <span class="n">env</span> <span class="o">=</span> <span class="n">get_algo_instance</span><span class="p">()</span><span class="o">.</span><span class="n">trading_environment</span>
+        <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">is_trading_day</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dt</span><span class="p">):</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">mkt_close</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_open_and_close</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bars</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
+                <span class="c"># Daily bars have their dt set to midnight.</span>
+                <span class="n">mkt_close</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">normalize_date</span><span class="p">(</span><span class="n">mkt_close</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">event</span><span class="o">.</span><span class="n">dt</span> <span class="o">==</span> <span class="n">mkt_close</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">:</span>
+                    <span class="n">downsample_panel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rolling_panel</span><span class="p">,</span>
+                                     <span class="bp">self</span><span class="o">.</span><span class="n">daily_rolling_panel</span><span class="p">,</span>
+                                     <span class="n">mkt_close</span>
+                                     <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trading_days_total</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mkt_close</span> <span class="o">=</span> <span class="n">mkt_close</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_dt</span> <span class="o">=</span> <span class="n">event</span><span class="o">.</span><span class="n">dt</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_days_total</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">full</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">get_transform_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Call user-defined batch-transform function passing all</span>
+<span class="sd">        arguments.</span>
+
+<span class="sd">        Note that this will only call the transform if the datapanel</span>
+<span class="sd">        has actually been updated. Otherwise, the previously, cached</span>
+<span class="sd">        value will be returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_only_full</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">full</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+        <span class="c">#################################################</span>
+        <span class="c"># Determine whether we should call the transform</span>
+        <span class="c"># 0. Support historical/legacy usage of &#39;0&#39; signaling,</span>
+        <span class="c">#    &#39;update on every bar&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">refresh_period</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">period_signals_update</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># 1. Is the refresh period over?</span>
+            <span class="n">period_signals_update</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trading_days_total</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">refresh_period</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c"># 2. Have the args or kwargs been changed since last time?</span>
+        <span class="n">args_updated</span> <span class="o">=</span> <span class="n">args</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_args</span> <span class="ow">or</span> <span class="n">kwargs</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_kwargs</span>
+        <span class="c"># 3. Is this a downsampled batch, and is the last event mkt close?</span>
+        <span class="n">downsample_ready</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span> <span class="ow">or</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_dt</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">mkt_close</span>
+
+        <span class="n">recalculate_needed</span> <span class="o">=</span> <span class="n">downsample_ready</span> <span class="ow">and</span> \
+            <span class="p">(</span><span class="n">args_updated</span> <span class="ow">or</span> <span class="p">(</span><span class="n">period_signals_update</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">updated</span><span class="p">))</span>
+        <span class="c">###################################################</span>
+
+        <span class="k">if</span> <span class="n">recalculate_needed</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_transform_value</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">(),</span>
+                <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_args</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_kwargs</span> <span class="o">=</span> <span class="n">kwargs</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached</span>
+
+    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a pandas.Panel (i.e. 3d DataFrame) from the</span>
+<span class="sd">        events in the current window.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        The resulting panel looks like this:</span>
+<span class="sd">        index : field_name (e.g. price)</span>
+<span class="sd">        major axis/rows : dt</span>
+<span class="sd">        minor axis/colums : sid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">downsample</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">daily_rolling_panel</span><span class="o">.</span><span class="n">get_current</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rolling_panel</span><span class="o">.</span><span class="n">get_current</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">supplemental_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">supplemental_data</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">supplemental_for_dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">supplemental_data</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span>
+                            <span class="n">item</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="p">:]</span>
+                    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                        <span class="c"># Only filling in data available in supplemental data.</span>
+                        <span class="n">supplemental_for_dt</span> <span class="o">=</span> <span class="bp">None</span>
+
+                    <span class="k">if</span> <span class="n">supplemental_for_dt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="n">data</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">dt</span><span class="p">]</span> <span class="o">=</span> \
+                            <span class="n">supplemental_for_dt</span><span class="o">.</span><span class="n">combine_first</span><span class="p">(</span>
+                                <span class="n">data</span><span class="p">[</span><span class="n">item</span><span class="p">]</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">dt</span><span class="p">])</span>
+
+        <span class="c"># screen out sids no longer in the multiverse</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">ix</span><span class="p">[:,</span> <span class="p">:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">latest_sids</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">clean_nans</span><span class="p">:</span>
+            <span class="c"># Fills in gaps of missing data during transform</span>
+            <span class="c"># of multiple stocks. E.g. we may be missing</span>
+            <span class="c"># minute data because of illiquidity of one stock</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s">&#39;ffill&#39;</span><span class="p">)</span>
+
+        <span class="c"># Hold on to a reference to the data,</span>
+        <span class="c"># so that it&#39;s easier to find the current data when stepping</span>
+        <span class="c"># through with a debugger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_curr_data</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s">&quot;Either overwrite get_value or provide a func argument.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_transform_value</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_data</span>
+
+    <span class="k">def</span> <span class="nf">_extract_field_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="c"># extract field names from sids (price, volume etc), make sure</span>
+        <span class="c"># every sid has the same fields.</span>
+        <span class="n">sid_keys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">itervalues</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">data</span><span class="p">):</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">sid</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span>
+                                      <span class="p">(</span><span class="nb">int</span><span class="p">,</span>
+                                       <span class="nb">float</span><span class="p">,</span>
+                                       <span class="n">numpy</span><span class="o">.</span><span class="n">integer</span><span class="p">,</span>
+                                       <span class="n">numpy</span><span class="o">.</span><span class="n">float</span><span class="p">,</span>
+                                       <span class="n">numpy</span><span class="o">.</span><span class="n">long</span><span class="p">))</span>
+                        <span class="p">])</span>
+            <span class="n">sid_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+
+        <span class="c"># with CUSTOM data events, there may be different fields</span>
+        <span class="c"># per sid. So the allowable keys are the union of all events.</span>
+        <span class="n">union</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="o">*</span><span class="n">sid_keys</span><span class="p">)</span>
+        <span class="n">unwanted_fields</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">&#39;portfolio&#39;</span><span class="p">,</span>
+            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="s">&#39;dt&#39;</span><span class="p">,</span>
+            <span class="s">&#39;type&#39;</span><span class="p">,</span>
+            <span class="s">&#39;source_id&#39;</span><span class="p">,</span>
+            <span class="s">&#39;_initial_len&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">return</span> <span class="n">union</span> <span class="o">-</span> <span class="n">unwanted_fields</span>
+
+    <span class="k">def</span> <span class="nf">_get_field_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_field_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_field_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">latest_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_field_names</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">latest_names</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="batch_transform"><a class="viewcode-back" href="../../../appendix.html#zipline.api.batch_transform">[docs]</a><span class="k">def</span> <span class="nf">batch_transform</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decorator function to use instead of inheriting from BatchTransform.</span>
+<span class="sd">    For an example on how to use this, see the doc string of BatchTransform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@functools.wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">create_window</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c"># passes the user defined function to BatchTransform which it</span>
+        <span class="c"># will call instead of self.get_value()</span>
+        <span class="k">return</span> <span class="n">BatchTransform</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">create_window</span></div>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Quantopian Inc..
+    </p>
+  </div>
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'v0.8.3+77.g85a95ea',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

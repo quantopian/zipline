@@ -1,0 +1,832 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>zipline.pipeline.factors.factor &mdash; Zipline v0.8.3+77.g85a95ea documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline v0.8.3+77.g85a95ea documentation" href="../../../../index.html"/>
+        <link rel="up" title="Module code" href="../../../index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="../../../../index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#development">Development</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id1">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Contributors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../appendix.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../../index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      
+    <li>zipline.pipeline.factors.factor</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <h1>Source code for zipline.pipeline.factors.factor</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">factor.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
+
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">apply_along_axis</span><span class="p">,</span>
+    <span class="n">float64</span><span class="p">,</span>
+    <span class="n">nan</span><span class="p">,</span>
+    <span class="n">inf</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">rankdata</span>
+
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">UnknownRankMethod</span><span class="p">,</span>
+    <span class="n">UnsupportedDataType</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">rankdata_2d_ordinal</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CustomTermMixin</span><span class="p">,</span>
+    <span class="n">NotSpecified</span><span class="p">,</span>
+    <span class="n">RequiredWindowLengthMixin</span><span class="p">,</span>
+    <span class="n">SingleInputMixin</span><span class="p">,</span>
+    <span class="n">CompositeTerm</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.expression</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BadBinaryOperator</span><span class="p">,</span>
+    <span class="n">COMPARISONS</span><span class="p">,</span>
+    <span class="n">is_comparison</span><span class="p">,</span>
+    <span class="n">MATH_BINOPS</span><span class="p">,</span>
+    <span class="n">method_name_for_op</span><span class="p">,</span>
+    <span class="n">NumericalExpression</span><span class="p">,</span>
+    <span class="n">NUMEXPR_MATH_FUNCS</span><span class="p">,</span>
+    <span class="n">UNARY_OPS</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">NumExprFilter</span><span class="p">,</span>
+    <span class="n">PercentileFilter</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">nullctx</span>
+
+
+<span class="n">_RANK_METHODS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s">&#39;average&#39;</span><span class="p">,</span> <span class="s">&#39;min&#39;</span><span class="p">,</span> <span class="s">&#39;max&#39;</span><span class="p">,</span> <span class="s">&#39;dense&#39;</span><span class="p">,</span> <span class="s">&#39;ordinal&#39;</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">binop_return_type</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">is_comparison</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">NumExprFilter</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">NumExprFactor</span>
+
+
+<span class="k">def</span> <span class="nf">binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for making binary operator methods on a Factor subclass.</span>
+
+<span class="sd">    Returns a function, &quot;binary_operator&quot; suitable for implementing functions</span>
+<span class="sd">    like __add__.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># When combining a Factor with a NumericalExpression, we use this</span>
+    <span class="c"># attrgetter instance to defer to the commuted implementation of the</span>
+    <span class="c"># NumericalExpression operator.</span>
+    <span class="n">commuted_method_getter</span> <span class="o">=</span> <span class="n">attrgetter</span><span class="p">(</span><span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">commute</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">binary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="c"># This can&#39;t be hoisted up a scope because the types returned by</span>
+        <span class="c"># binop_return_type aren&#39;t defined when the top-level function is</span>
+        <span class="c"># invoked in the class body of Factor.</span>
+        <span class="n">return_type</span> <span class="o">=</span> <span class="n">binop_return_type</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumExprFactor</span><span class="p">):</span>
+            <span class="n">self_expr</span><span class="p">,</span> <span class="n">other_expr</span><span class="p">,</span> <span class="n">new_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_binary_op</span><span class="p">(</span>
+                <span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">return_type</span><span class="p">(</span>
+                <span class="s">&quot;({left}) {op} ({right})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">left</span><span class="o">=</span><span class="n">self_expr</span><span class="p">,</span>
+                    <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
+                    <span class="n">right</span><span class="o">=</span><span class="n">other_expr</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">new_inputs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NumExprFactor</span><span class="p">):</span>
+            <span class="c"># NumericalExpression overrides ops to correctly handle merging of</span>
+            <span class="c"># inputs.  Look up and call the appropriate reflected operator with</span>
+            <span class="c"># ourself as the input.</span>
+            <span class="k">return</span> <span class="n">commuted_method_getter</span><span class="p">(</span><span class="n">other</span><span class="p">)(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">return_type</span><span class="p">(</span>
+                    <span class="s">&quot;x_0 {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="n">return_type</span><span class="p">(</span>
+                <span class="s">&quot;x_0 {op} x_1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
+                <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Number</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">return_type</span><span class="p">(</span>
+                <span class="s">&quot;x_0 {op} ({constant})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="n">other</span><span class="p">),</span>
+                <span class="n">binds</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+            <span class="p">)</span>
+        <span class="k">raise</span> <span class="n">BadBinaryOperator</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+
+    <span class="n">binary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Binary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
+    <span class="k">return</span> <span class="n">binary_operator</span>
+
+
+<span class="k">def</span> <span class="nf">reflected_binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for making binary operator methods on a Factor.</span>
+
+<span class="sd">    Returns a function, &quot;reflected_binary_operator&quot; suitable for implementing</span>
+<span class="sd">    functions like __radd__.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">is_comparison</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reflected_binary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
+            <span class="n">self_expr</span><span class="p">,</span> <span class="n">other_expr</span><span class="p">,</span> <span class="n">new_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_binary_op</span><span class="p">(</span>
+                <span class="n">op</span><span class="p">,</span> <span class="n">other</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
+                <span class="s">&quot;({left}) {op} ({right})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">left</span><span class="o">=</span><span class="n">other_expr</span><span class="p">,</span>
+                    <span class="n">right</span><span class="o">=</span><span class="n">self_expr</span><span class="p">,</span>
+                    <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">new_inputs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c"># Only have to handle the numeric case because in all other valid cases</span>
+        <span class="c"># the corresponding left-binding method will be called.</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Number</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
+                <span class="s">&quot;{constant} {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="n">other</span><span class="p">),</span>
+                <span class="n">binds</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+            <span class="p">)</span>
+        <span class="k">raise</span> <span class="n">BadBinaryOperator</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reflected_binary_operator</span>
+
+
+<span class="k">def</span> <span class="nf">unary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for making unary operator methods for Factors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Only negate is currently supported for all our possible input types.</span>
+    <span class="n">valid_ops</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;-&#39;</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ops</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid unary operator </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># This can&#39;t be hoisted up a scope because the types returned by</span>
+        <span class="c"># unary_op_return_type aren&#39;t defined when the top-level function is</span>
+        <span class="c"># invoked.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
+                <span class="s">&quot;{op}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span><span class="s">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+
+    <span class="n">unary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Unary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
+    <span class="k">return</span> <span class="n">unary_operator</span>
+
+
+<span class="k">def</span> <span class="nf">function_application</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factory function for producing function application methods for Factor</span>
+<span class="sd">    subclasses.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">func</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NUMEXPR_MATH_FUNCS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Unsupported mathematical function &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">func</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">mathfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
+                <span class="s">&quot;{func}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span><span class="s">&quot;{func}(x_0)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+    <span class="k">return</span> <span class="n">mathfunc</span>
+
+
+<div class="viewcode-block" id="Factor"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor">[docs]</a><span class="k">class</span> <span class="nc">Factor</span><span class="p">(</span><span class="n">CompositeTerm</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Pipeline API expression producing numerically-valued outputs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64</span>
+
+    <span class="c"># Dynamically add functions for creating NumExprFactor/NumExprFilter</span>
+    <span class="c"># instances.</span>
+    <span class="n">clsdict</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+    <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">):</span> <span class="n">binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="c"># Don&#39;t override __eq__ because it breaks comparisons on tuples of</span>
+            <span class="c"># Factors.</span>
+            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">MATH_BINOPS</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">COMPARISONS</span> <span class="o">-</span> <span class="p">{</span><span class="s">&#39;==&#39;</span><span class="p">})</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">commute</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span> <span class="n">reflected_binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">MATH_BINOPS</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s">&#39;__neg__&#39;</span><span class="p">:</span> <span class="n">unary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">UNARY_OPS</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">funcname</span><span class="p">:</span> <span class="n">function_application</span><span class="p">(</span><span class="n">funcname</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">funcname</span> <span class="ow">in</span> <span class="n">NUMEXPR_MATH_FUNCS</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="n">__truediv__</span> <span class="o">=</span> <span class="n">clsdict</span><span class="p">[</span><span class="s">&#39;__div__&#39;</span><span class="p">]</span>
+    <span class="n">__rtruediv__</span> <span class="o">=</span> <span class="n">clsdict</span><span class="p">[</span><span class="s">&#39;__rdiv__&#39;</span><span class="p">]</span>
+
+    <span class="n">eq</span> <span class="o">=</span> <span class="n">binary_operator</span><span class="p">(</span><span class="s">&#39;==&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Factor.rank"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.rank">[docs]</a>    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;ordinal&#39;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a new Factor representing the sorted rank of each column</span>
+<span class="sd">        within each row.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        method : str, {&#39;ordinal&#39;, &#39;min&#39;, &#39;max&#39;, &#39;dense&#39;, &#39;average&#39;}</span>
+<span class="sd">            The method used to assign ranks to tied elements. See</span>
+<span class="sd">            `scipy.stats.rankdata` for a full description of the semantics for</span>
+<span class="sd">            each ranking method. Default is &#39;ordinal&#39;.</span>
+<span class="sd">        ascending : bool, optional</span>
+<span class="sd">            Whether to return sorted rank in ascending or descending order.</span>
+<span class="sd">            Default is True.</span>
+<span class="sd">        mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">            A Filter representing assets to consider when computing ranks.</span>
+<span class="sd">            If mask is supplied, ranks are computed ignoring any asset/date</span>
+<span class="sd">            pairs for which `mask` produces a value of False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ranks : zipline.pipeline.factors.Rank</span>
+<span class="sd">            A new factor that will compute the ranking of the data produced by</span>
+<span class="sd">            `self`.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The default value for `method` is different from the default for</span>
+<span class="sd">        `scipy.stats.rankdata`.  See that function&#39;s documentation for a full</span>
+<span class="sd">        description of the valid inputs to `method`.</span>
+
+<span class="sd">        Missing or non-existent data on a given day will cause an asset to be</span>
+<span class="sd">        given a rank of NaN for that day.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        scipy.stats.rankdata</span>
+<span class="sd">        zipline.lib.rank</span>
+<span class="sd">        zipline.pipeline.factors.Rank</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Rank</span><span class="p">(</span><span class="bp">self</span> <span class="k">if</span> <span class="n">ascending</span> <span class="k">else</span> <span class="o">-</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Factor.top"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.top">[docs]</a>    <span class="k">def</span> <span class="nf">top</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a Filter matching the top N asset values of self each day.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of assets passing the returned filter each day.</span>
+<span class="sd">        mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">            A Filter representing assets to consider when computing ranks.</span>
+<span class="sd">            If mask is supplied, top values are computed ignoring any</span>
+<span class="sd">            asset/date pairs for which `mask` produces a value of False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        filter : zipline.pipeline.filters.Filter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span>
+</div>
+<div class="viewcode-block" id="Factor.bottom"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.bottom">[docs]</a>    <span class="k">def</span> <span class="nf">bottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a Filter matching the bottom N asset values of self each day.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        N : int</span>
+<span class="sd">            Number of assets passing the returned filter each day.</span>
+<span class="sd">        mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">            A Filter representing assets to consider when computing ranks.</span>
+<span class="sd">            If mask is supplied, bottom values are computed ignoring any</span>
+<span class="sd">            asset/date pairs for which `mask` produces a value of False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        filter : zipline.pipeline.Filter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span>
+</div>
+<div class="viewcode-block" id="Factor.percentile_between"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.percentile_between">[docs]</a>    <span class="k">def</span> <span class="nf">percentile_between</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">min_percentile</span><span class="p">,</span>
+                           <span class="n">max_percentile</span><span class="p">,</span>
+                           <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a new Filter representing entries from the output of this</span>
+<span class="sd">        Factor that fall within the percentile range defined by min_percentile</span>
+<span class="sd">        and max_percentile.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        min_percentile : float [0.0, 100.0]</span>
+<span class="sd">            Return True for assets falling above this percentile in the data.</span>
+<span class="sd">        max_percentile : float [0.0, 100.0]</span>
+<span class="sd">            Return True for assets falling below this percentile in the data.</span>
+<span class="sd">        mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">            A Filter representing assets to consider when percentile</span>
+<span class="sd">            thresholds.  If mask is supplied, percentile cutoffs are computed</span>
+<span class="sd">            each day using only assets for which `mask` returns True, and</span>
+<span class="sd">            assets not passing `mask` will produce False in the output of this</span>
+<span class="sd">            filter as well.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        out : zipline.pipeline.filters.PercentileFilter</span>
+<span class="sd">            A new filter that will compute the specified percentile-range mask.</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        zipline.pipeline.filters.PercentileFilter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">PercentileFilter</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">min_percentile</span><span class="o">=</span><span class="n">min_percentile</span><span class="p">,</span>
+            <span class="n">max_percentile</span><span class="o">=</span><span class="n">max_percentile</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Factor.isnan"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.isnan">[docs]</a>    <span class="k">def</span> <span class="nf">isnan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A Filter producing True for all values where this Factor is NaN.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span> <span class="o">!=</span> <span class="bp">self</span>
+</div>
+<div class="viewcode-block" id="Factor.notnan"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.notnan">[docs]</a>    <span class="k">def</span> <span class="nf">notnan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A Filter producing True for values where this Factor is not NaN.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nanfilter : zipline.pipeline.filters.Filter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">isnan</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="Factor.isfinite"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.isfinite">[docs]</a>    <span class="k">def</span> <span class="nf">isfinite</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A Filter producing True for values where this Factor is anything but</span>
+<span class="sd">        NaN, inf, or -inf.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="n">inf</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span> <span class="o">&lt;</span> <span class="n">inf</span><span class="p">)</span>
+
+</div></div>
+<span class="k">class</span> <span class="nc">NumExprFactor</span><span class="p">(</span><span class="n">NumericalExpression</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Factor computed from a numexpr expression.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    expr : string</span>
+<span class="sd">       A string suitable for passing to numexpr.  All variables in &#39;expr&#39;</span>
+<span class="sd">       should be of the form &quot;x_i&quot;, where i is the index of the corresponding</span>
+<span class="sd">       factor input in &#39;binds&#39;.</span>
+<span class="sd">    binds : tuple</span>
+<span class="sd">       A tuple of factors to use as inputs.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    NumExprFactors are constructed by numerical operators like `+` and `-`.</span>
+<span class="sd">    Users should rarely need to construct a NumExprFactor directly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">Rank</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Factor representing the row-wise rank data of another Factor.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    factor : zipline.pipeline.factors.Factor</span>
+<span class="sd">        The factor on which to compute ranks.</span>
+<span class="sd">    method : str, {&#39;average&#39;, &#39;min&#39;, &#39;max&#39;, &#39;dense&#39;, &#39;ordinal&#39;}</span>
+<span class="sd">        The method used to assign ranks to tied elements.  See</span>
+<span class="sd">        `scipy.stats.rankdata` for a full description of the semantics for each</span>
+<span class="sd">        ranking method.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    scipy.stats.rankdata : Underlying ranking algorithm.</span>
+<span class="sd">    zipline.factors.Factor.rank : Method-style interface to same functionality.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Most users should call Factor.rank rather than directly construct an</span>
+<span class="sd">    instance of this class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Rank</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">factor</span><span class="p">,),</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Rank</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">Rank</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="n">method</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Verify that the stored rank method is valid.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_RANK_METHODS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnknownRankMethod</span><span class="p">(</span>
+                <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">,</span>
+                <span class="n">choices</span><span class="o">=</span><span class="nb">set</span><span class="p">(</span><span class="n">_RANK_METHODS</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Rank</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each row in the input, compute a like-shaped array of per-row</span>
+<span class="sd">        ranks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">inv_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">mask</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">inv_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
+        <span class="c"># OPTIMIZATION: Fast path the default case with our own specialized</span>
+        <span class="c"># Cython implementation.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_method</span> <span class="o">==</span> <span class="s">&#39;ordinal&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">rankdata_2d_ordinal</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># FUTURE OPTIMIZATION:</span>
+            <span class="c"># Write a less general &quot;apply to rows&quot; method that doesn&#39;t do all</span>
+            <span class="c"># the extra work that apply_along_axis does.</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">apply_along_axis</span><span class="p">(</span><span class="n">rankdata</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">)</span>
+
+        <span class="c"># rankdata will sort nan values into last place, but we want our</span>
+        <span class="c"># nans to propagate, so explicitly re-apply.</span>
+        <span class="n">result</span><span class="p">[</span><span class="n">inv_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;{type}({input_}, method=&#39;{method}&#39;, mask={mask})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+            <span class="n">input_</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="CustomFactor"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.CustomFactor">[docs]</a><span class="k">class</span> <span class="nc">CustomFactor</span><span class="p">(</span><span class="n">RequiredWindowLengthMixin</span><span class="p">,</span> <span class="n">CustomTermMixin</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Base class for user-defined Factors.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : iterable, optional</span>
+<span class="sd">        An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),</span>
+<span class="sd">        describing the data to load and pass to `self.compute`.  If this</span>
+<span class="sd">        argument is passed to the CustomFactor constructor, we look for a</span>
+<span class="sd">        class-level attribute named `inputs`.</span>
+<span class="sd">    window_length : int, optional</span>
+<span class="sd">        Number of rows of rows to pass for each input.  If this</span>
+<span class="sd">        argument is not passed to the CustomFactor constructor, we look for a</span>
+<span class="sd">        class-level attribute named `window_length`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Users implementing their own Factors should subclass CustomFactor and</span>
+<span class="sd">    implement a method named `compute` with the following signature::</span>
+
+<span class="sd">        def compute(self, today, assets, out, *inputs):</span>
+<span class="sd">           ...</span>
+
+<span class="sd">    On each simulation date, ``compute`` will be called with the current date,</span>
+<span class="sd">    an array of sids, an output array, and an input array for each expression</span>
+<span class="sd">    passed as inputs to the CustomFactor constructor.</span>
+
+<span class="sd">    The specific types of the values passed to `compute` are as follows::</span>
+
+<span class="sd">        today : np.datetime64[ns]</span>
+<span class="sd">            Row label for the last row of all arrays passed as `inputs`.</span>
+<span class="sd">        assets : np.array[int64, ndim=1]</span>
+<span class="sd">            Column labels for `out` and`inputs`.</span>
+<span class="sd">        out : np.array[float64, ndim=1]</span>
+<span class="sd">            Output array of the same shape as `assets`.  `compute` should write</span>
+<span class="sd">            its desired return values into `out`.</span>
+<span class="sd">        *inputs : tuple of np.array</span>
+<span class="sd">            Raw data arrays corresponding to the values of `self.inputs`.</span>
+
+<span class="sd">    ``compute`` functions should expect to be passed NaN values for dates on</span>
+<span class="sd">    which no data was available for an asset.  This may include dates on which</span>
+<span class="sd">    an asset did not yet exist.</span>
+
+<span class="sd">    For example, if a CustomFactor requires 10 rows of close price data, and</span>
+<span class="sd">    asset A started trading on Monday June 2nd, 2014, then on Tuesday, June</span>
+<span class="sd">    3rd, 2014, the column of input data for asset A will have 9 leading NaNs</span>
+<span class="sd">    for the preceding days on which data was not yet available.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    A CustomFactor with pre-declared defaults::</span>
+
+<span class="sd">        class TenDayRange(CustomFactor):</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+<span class="sd">            Computes the difference between the highest high in the last 10</span>
+<span class="sd">            days and the lowest low.</span>
+
+<span class="sd">            Pre-declares high and low as default inputs and `window_length` as</span>
+<span class="sd">            10.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+<span class="sd">            inputs = [USEquityPricing.high, USEquityPricing.low]</span>
+<span class="sd">            window_length = 10</span>
+
+<span class="sd">            def compute(self, today, assets, out, highs, lows):</span>
+<span class="sd">                from numpy import nanmin, nanmax</span>
+
+<span class="sd">                highest_highs = nanmax(axis=0)</span>
+<span class="sd">                lowest_lows = nanmin(axis=0)</span>
+<span class="sd">                out[:] = highest_highs - lowest_lows</span>
+
+
+<span class="sd">        # Doesn&#39;t require passing inputs or window_length because they&#39;re</span>
+<span class="sd">        # pre-declared as defaults for the TenDayRange class.</span>
+<span class="sd">        ten_day_range = TenDayRange()</span>
+
+<span class="sd">    A CustomFactor without defaults::</span>
+
+<span class="sd">        class MedianValue(CustomFactor):</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+<span class="sd">            Computes the median value of an arbitrary single input over an</span>
+<span class="sd">            arbitrary window..</span>
+
+<span class="sd">            Does not declare any defaults, so values for `window_length` and</span>
+<span class="sd">            `inputs` must be passed explicitly on every construction.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+
+<span class="sd">            def compute(self, today, assets, out, data):</span>
+<span class="sd">                from numpy import nanmedian</span>
+<span class="sd">                out[:] = data.nanmedian(axis=0)</span>
+
+<span class="sd">        # Values for `inputs` and `window_length` must be passed explicitly to</span>
+<span class="sd">        # MedianValue.</span>
+<span class="sd">        median_close10 = MedianValue([USEquityPricing.close], window_length=10)</span>
+<span class="sd">        median_low15 = MedianValue([USEquityPricing.low], window_length=15)</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">nullctx</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">float64</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2015, Quantopian Inc..
+    </p>
+  </div>
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'v0.8.3+77.g85a95ea',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
