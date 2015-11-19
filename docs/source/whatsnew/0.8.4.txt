@@ -44,6 +44,9 @@ Bug Fixes
   the ``len`` of a :class:`~zipline.protocol.SIDData` object. This would cause
   us to think that the object was not empty even when it was (:issue:`826`).
 
+* Fixes an error raised in calculating beta when benchmark data were sparse.
+  Instead `numpy.nan` is returned (:issue:`859`).
+
 Performance
 ~~~~~~~~~~~
 
