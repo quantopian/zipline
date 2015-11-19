@@ -3,7 +3,7 @@ notebooks/test.nc
 log
 *.pyc
 .eggs
-zipline
+zipline/*
 cover
 build
 zipline.egg-info
