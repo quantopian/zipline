@@ -87,6 +87,33 @@ def drain_zipline(test, zipline):
     return output, transaction_count
 
 
+def check_algo_results(test,
+                       results,
+                       expected_transactions_count=None,
+                       expected_order_count=None,
+                       expected_positions_count=None,
+                       sid=None):
+
+    if expected_transactions_count is not None:
+        txns = flatten_list(results["transactions"])
+        test.assertEqual(expected_transactions_count, len(txns))
+
+    if expected_positions_count is not None:
+        raise NotImplementedError
+
+    if expected_order_count is not None:
+        # de-dup orders on id, because orders are put back into perf packets
+        # whenever they a txn is filled
+        orders = set([order['id'] for order in
+                      flatten_list(results["orders"])])
+
+        test.assertEqual(expected_order_count, len(orders))
+
+
+def flatten_list(list):
+    return [item for sublist in list for item in sublist]
+
+
 def assert_single_position(test, zipline):
 
     output, transaction_count = drain_zipline(test, zipline)
