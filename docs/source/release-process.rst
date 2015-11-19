@@ -171,27 +171,25 @@ Once you have tested the package, it can be uploaded to PyPI with:
 Documentation
 ~~~~~~~~~~~~~
 
-To update `zipline.io <http://www.zipline.io/index.html>`__, run:
+To update `zipline.io <http://www.zipline.io/index.html>`__, checkout the
+latest master and run:
 
-.. code-block:: bash
+.. code-block:: python
 
-   $ cd <zipline_root>/docs
-   $ make html
-   $ cp -r build/html /tmp/zipline-doc
-   $ git checkout gh-pages
-   $ mv /tmp/zipline-doc/* .
-   $ rm /tmp/zipline-doc
+    python <zipline_root>/docs/deploy.py
 
+This will build the documentation, checkout a fresh copy of the ``gh-pages``
+git branch, and copy the built docs into the zipline root.
 
 Now, using our browser of choice, view the ``index.html`` page and verify that
 the docs look correct.
 
-Once we are happy, run:
+Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
 
 .. code-block:: bash
 
    $ git add .
    $ git commit -m "DOC: update zipline.io"
-   $ git push
+   $ git push origin gh-pages
 
 `zipline.io <http://www.zipline.io/index.html>`__ will update in a few moments.
