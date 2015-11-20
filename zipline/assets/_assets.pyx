@@ -1,3 +1,4 @@
+# cython: embedsignature=True
 #
 # Copyright 2015 Quantopian, Inc.
 #

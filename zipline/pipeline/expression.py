@@ -10,6 +10,7 @@ from numexpr.necompiler import getExprNames
 from numpy import (
     empty,
     find_common_type,
+    inf,
 )
 
 from zipline.pipeline.term import Term, NotSpecified, CompositeTerm
@@ -212,6 +213,8 @@ class NumericalExpression(CompositeTerm):
         variable_names, _unused = getExprNames(self._expr, {})
         expr_indices = []
         for name in variable_names:
+            if name == 'inf':
+                continue
             match = _VARIABLE_NAME_RE.match(name)
             if not match:
                 raise ValueError("%r is not a valid variable name" % name)
@@ -239,7 +242,7 @@ class NumericalExpression(CompositeTerm):
                 "x_%d" % idx: array
                 for idx, array in enumerate(arrays)
             },
-            global_dict={},
+            global_dict={'inf': inf},
             out=out,
         )
         return out

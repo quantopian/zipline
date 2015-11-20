@@ -1,8 +1,12 @@
-Release 0.8.4
--------------
+Development
+-----------
 
 :Release: 0.8.4
 :Date: TBD
+
+.. warning::
+   This release is still under active development.  All changes listed are
+   subject to change at any time.
 
 Highlights
 ~~~~~~~~~~
@@ -12,12 +16,17 @@ None
 Enhancements
 ~~~~~~~~~~~~
 
-* Adds a way for users to specify context manager to use when executing the
+* Adds a way for users to provide a context manager to use when executing the
   scheduled functions (including ``handle_data``). This context manager will be
   passed the :class:`~zipline.protocol.BarData` object for the bar and will
   be used for the duration of all of the functions scheduled to run. This can be
   passed to :class:`~zipline.algorithm.TradingAlgorithm` by the keyword argument
   ``create_event_context`` (:issue:`828`).
+
+* Added :meth:`~zipline.pipeline.factors.Factor.isnan`,
+  :meth:`~zipline.pipeline.factors.Factor.notnan` and
+  :meth:`~zipline.pipeline.factors.Factor.isfinite` methods to
+  :class:`zipline.pipeline.factors.Factor` (:issue:`861`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -35,13 +44,17 @@ Bug Fixes
   the ``len`` of a :class:`~zipline.protocol.SIDData` object. This would cause
   us to think that the object was not empty even when it was (:issue:`826`).
 
+* Fixes an error raised in calculating beta when benchmark data were sparse.
+  Instead `numpy.nan` is returned (:issue:`859`).
+
 Performance
 ~~~~~~~~~~~
 
-* Speeds up `AssetFinder.lookup_symbol` by adding an extension, 
-`AssetFinderCachedEquities`, that loads equities into dictionaries and
-then directs `lookup_symbol` to these dictionaries to find matching equities
- (:issue:`830`).
+* Speeds up :meth:`~zipline.assets.assets.AssetFinder.lookup_symbol` by adding
+  an extension, :class:`~zipline.assets.assets.AssetFinderCachedEquities`, that
+  loads equities into dictionaries and then directs
+  :meth:`~zipline.assets.assets.AssetFinder.lookup_symbol` to these dictionaries
+  to find matching equities (:issue:`830`).
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,6 +74,10 @@ Documentation
 ~~~~~~~~~~~~~
 
 * Document the release process for developers (:issue:`835`).
+* Added reference docs for the Pipeline API. (:issue:`864`).
+* Added reference docs for Asset Metadata APIs. (:issue:`864`).
+* Generated documentation now includes links to source code for many classes
+  and functions. (:issue:`864`).
 
 Miscellaneous
 ~~~~~~~~~~~~~

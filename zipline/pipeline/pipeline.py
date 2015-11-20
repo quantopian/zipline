@@ -17,7 +17,7 @@ class Pipeline(object):
     To compute a pipeline in the context of a TradingAlgorithm, users must call
     ``attach_pipeline`` in their ``initialize`` function to register that the
     pipeline should be computed each trading day.  The outputs of a pipeline on
-    a given day can be accessed by calling ``pipeline_outputs`` in
+    a given day can be accessed by calling ``pipeline_output`` in
     ``handle_data`` or ``before_trading_start``.
 
     Parameters

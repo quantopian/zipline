@@ -83,6 +83,30 @@ def binary_operator(op):
     return binary_operator
 
 
+def unary_operator(op):
+    """
+    Factory function for making unary operator methods for Filters.
+    """
+    valid_ops = {'~'}
+    if op not in valid_ops:
+        raise ValueError("Invalid unary operator %s." % op)
+
+    def unary_operator(self):
+        # This can't be hoisted up a scope because the types returned by
+        # unary_op_return_type aren't defined when the top-level function is
+        # invoked.
+        if isinstance(self, NumericalExpression):
+            return NumExprFilter(
+                "{op}({expr})".format(op=op, expr=self._expr),
+                self.inputs,
+            )
+        else:
+            return NumExprFilter("{op}x_0".format(op=op), (self,))
+
+    unary_operator.__doc__ = "Unary Operator: '%s'" % op
+    return unary_operator
+
+
 class Filter(CompositeTerm):
     """
     Pipeline API expression producing boolean-valued outputs.
@@ -96,6 +120,7 @@ class Filter(CompositeTerm):
             for op in FILTER_BINOPS
         }
     )
+    __invert__ = unary_operator('~')
 
 
 class NumExprFilter(NumericalExpression, Filter):
