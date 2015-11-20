@@ -292,7 +292,29 @@ class AssetFinder(object):
         EquitiesNotFound
             When any requested asset isn't found.
         """
-        return self._retrieve_assets(sids, self. currencies, CurrencyPair)
+        paramBasedSearch = base is not None or quote is not None or pair is not None or symbol is not None
+        sidBasedSearch = sids is not None
+        if paramBasedSearch:
+            if base:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.base, base)
+            elif quote:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.quote, quote)
+            elif pair:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.pair, pair)
+            elif symbol:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.symbol, symbol)
+            else:
+                log.info('params based search')
+                raise NotImplementedError()
+
+            ret = self._process_query_to_asset(query, CurrencyPair)
+            if ret is None or len(ret) == 0:
+                raise CurrencyPairsNotFound(plural=True, sids='Cannot find CurrencyPair with passed in params[{}]'.format(locals()))
+            else:
+                return ret
+
+        else:
+            return self._retrieve_assets(sids, self.currencies, CurrencyPair)
 
 
     def _retrieve_equity(self, sid):
@@ -360,15 +382,8 @@ class AssetFinder(object):
         if not sids:
             return {}
 
-        cache = self._asset_cache
-
-        hits = {}
-        # Load misses from the db.
         query = self._select_assets_by_sid(asset_tbl, sids)
-        for row in imap(dict, query.execute().fetchall()):
-            asset = asset_type(**_convert_asset_timestamp_fields(row))
-            sid = asset.sid
-            hits[sid] = cache[sid] = asset
+        hits = self._process_query_to_asset(query, asset_type)
 
         # If we get here, it means something in our code thought that a
         # particular sid was an equity/future and called this function with a
@@ -382,6 +397,17 @@ class AssetFinder(object):
                 raise CurrencyPairsNotFound(sid=misses)
             else:
                 raise FutureContractsNotFound(sids=misses)
+        return hits
+
+    def _process_query_to_asset(self, query, asset_type):
+        cache = self._asset_cache
+        hits = {}
+        # Load misses from the db.
+        for row in imap(dict, query.execute().fetchall()):
+            asset = asset_type(**_convert_asset_timestamp_fields(row))
+            sid = asset.sid
+            hits[sid] = cache[sid] = asset
+
         return hits
 
     def _get_fuzzy_candidates(self, fuzzy_symbol):
