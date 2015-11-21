@@ -29,10 +29,10 @@ def engine_from_files(daily_bar_path,
         Path to pass to `AssetFinder`.
     calendar : pd.DatetimeIndex
         Calendar to use for the loader.
-    warmup_assets : bool
+    warmup_assets : bool, optional
         Whether or not to populate AssetFinder caches.  This can speed up
         initial latency on subsequent pipeline runs, at the cost of extra
-        memory consumption.
+        memory consumption.  Default is False
     """
     loader = USEquityPricingLoader.from_files(daily_bar_path, adjustments_path)
 
