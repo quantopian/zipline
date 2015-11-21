@@ -51,7 +51,7 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         result : pd.DataFrame
             A frame of computed results.
 
-            The columns `result` correspond wil be the computed results of
+            The columns `result` correspond will be the computed results of
             `pipeline.columns`, which should be a dictionary mapping strings to
             instances of `zipline.pipeline.term.Term`.
 
