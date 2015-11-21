@@ -152,7 +152,7 @@ class Pipeline(object):
 
         Parameters
         ----------
-        format : str, optional
+        format : {'svg', 'png', 'jpeg'}
             Image format to render with.  Default is 'svg'.
         """
         g = self.to_graph('', AssetExists())
@@ -160,5 +160,7 @@ class Pipeline(object):
             return g.svg
         elif format == 'png':
             return g.png
-        else:
+        elif format == 'jpeg':
             return g.jpeg
+        else:
+            raise ValueError("Unknown graph format %r." % format)
