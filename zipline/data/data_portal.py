@@ -75,8 +75,8 @@ class DataPortal(object):
         #
         # The clock that heartbeats the simulation has all the necessary
         # information to do this calculation very quickly.  This value is
-        # calculated there, and then set here.
-        segilf.cur_data_offset = 0
+        # calculated there, and then set here
+        self.cur_data_offset = 0
 
         self.views = {}
 
@@ -84,11 +84,11 @@ class DataPortal(object):
             raise ValueError("Must provide at least one of minute or "
                              "daily data path!")
 
-        self.minutes_equities_path = minutes_equities_path
-        self.daily_equities_path = daily_equities_path
-        self.asset_finder = env.asset_finder
+        self._minutes_equities_path = minutes_equities_path
+        self._daily_equities_path = daily_equities_path
+        self._asset_finder = env.asset_finder
 
-        self.carrays = {
+        self._carrays = {
             'open': {},
             'high': {},
             'low': {},
@@ -101,26 +101,27 @@ class DataPortal(object):
         self._adjustment_reader = adjustment_reader
 
         # caches of sid -> adjustment list
-        self.splits_dict = {}
-        self.mergers_dict = {}
-        self.dividends_dict = {}
+        self._splits_dict = {}
+        self._mergers_dict = {}
+        self._dividends_dict = {}
 
         # Pointer to the daily bcolz file.
-        self.daily_equities_data = None
+        self._daily_equities_data = None
 
-        # Cache of int -> the first trading day of an asset, even if that day
+        # Cache of sid -> the first trading day of an asset, even if that day
         # is before 1/2/2002.
-        self.asset_start_dates = {}
-        self.asset_end_dates = {}
+        self._asset_start_dates = {}
+        self._asset_end_dates = {}
 
-        self.augmented_sources_map = {}
-        self.fetcher_df = None
+        # Fetcher state
+        self._augmented_sources_map = {}
+        self._fetcher_df = None
 
-        self.sim_params = sim_params
-        if self.sim_params is not None:
-            self.data_frequency = self.sim_params.data_frequency
+        self._sim_params = sim_params
+        if self._sim_params is not None:
+            self._data_frequency = self._sim_params.data_frequency
 
-        self.sid_path_func = sid_path_func
+        self._sid_path_func = sid_path_func
 
         self.DAILY_PRICE_ADJUSTMENT_FACTOR = 0.001
         self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
@@ -135,7 +136,7 @@ class DataPortal(object):
         if source_df is None:
             return
 
-        self.fetcher_df = source_df
+        self._fetcher_df = source_df
 
         # source_df's sid column can either consist of assets we know about
         # (such as sid(24)) or of assets we don't know about (such as
@@ -156,15 +157,15 @@ class DataPortal(object):
         # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
         # holding that data.
 
-        if self.sim_params.emission_rate == "daily":
+        if self._sim_params.emission_rate == "daily":
             fetcher_date_index = self.env.days_in_range(
-                start=self.sim_params.period_start,
-                end=self.sim_params.period_end
+                start=self._sim_params.period_start,
+                end=self._sim_params.period_end
             )
         else:
             fetcher_date_index = self.env.minutes_for_days_in_range(
-                start=self.sim_params.period_start,
-                end=self.sim_params.period_end
+                start=self._sim_params.period_start,
+                end=self._sim_params.period_end
             )
 
         # break the source_df up into one dataframe per sid.  this lets
@@ -191,54 +192,78 @@ class DataPortal(object):
 
             if not isinstance(identifier, Asset):
                 # for fake assets we need to store a start/end date
-                self.asset_start_dates[identifier] = earliest_date
-                self.asset_end_dates[identifier] = latest_date
+                self._asset_start_dates[identifier] = earliest_date
+                self._asset_end_dates[identifier] = latest_date
 
             for col_name in df.columns.difference(['sid']):
-                if col_name not in self.augmented_sources_map:
-                    self.augmented_sources_map[col_name] = {}
+                if col_name not in self._augmented_sources_map:
+                    self._augmented_sources_map[col_name] = {}
 
-                self.augmented_sources_map[col_name][identifier] = df
+                self._augmented_sources_map[col_name][identifier] = df
 
     def _open_daily_file(self):
-        if self.daily_equities_data is None:
-            self.daily_equities_data = bcolz.open(self.daily_equities_path)
-            self.daily_equities_attrs = self.daily_equities_data.attrs
+        if self._daily_equities_data is None:
+            self._daily_equities_data = bcolz.open(self._daily_equities_path)
+            self.daily_equities_attrs = self._daily_equities_data.attrs
 
-        return self.daily_equities_data, self.daily_equities_attrs
+        return self._daily_equities_data, self.daily_equities_attrs
 
     def _open_minute_file(self, field, sid):
-        if self.sid_path_func is None:
-            path = "{0}/{1}.bcolz".format(self.minutes_equities_path, sid)
+        if self._sid_path_func is None:
+            path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
         else:
-            path = self.sid_path_func(self.minutes_equities_path, sid)
+            path = self._sid_path_func(self._minutes_equities_path, sid)
 
         try:
-            carray = self.carrays[field][path]
+            carray = self._carrays[field][path]
         except KeyError:
-            carray = self.carrays[field][path] = bcolz.carray(
+            carray = self._carrays[field][path] = bcolz.carray(
                 rootdir=path + "/" + field, mode='r')
 
         return carray
 
-    def get_previous_price(self, asset, column, dt):
-        if self.data_frequency == 'daily':
+    def get_previous_value(self, asset, field, dt):
+        """
+        Given an asset and a column and a dt, returns the previous value for
+        the same asset/column pair.  If this data portal is in minute mode,
+        it's the previous minute value, otherwise it's the previous day's
+        value.
+
+        Parameters
+        ---------
+        asset : Asset
+            The asset whose data is desired.
+
+        field: string
+            The desired field of the asset.  Valid values are "open",
+            "open_price", "high", "low", "close", "close_price", "volume", and
+            "price".
+
+        dt: pd.Timestamp
+            The timestamp from which to go back in time one slot.
+
+        Returns
+        -------
+        The value of the desired field at the desired time.
+        """
+        if self._data_frequency == 'daily':
             prev_dt = self.env.previous_trading_day(dt)
-        elif self.data_frequency == 'minute':
+        elif self._data_frequency == 'minute':
             prev_dt = self.env.previous_market_minute(dt)
-        return self.get_spot_value(asset, column, prev_dt)
+
+        return self.get_spot_value(asset, field, prev_dt)
 
     def _check_fetcher(self, asset, column, day):
         # if there is a fetcher column called "price", only look at it if
         # it's on something like palladium and not AAPL (since our own price
         # data always wins when dealing with assets)
-        look_in_augmented_sources = column in self.augmented_sources_map and \
+        look_in_augmented_sources = column in self._augmented_sources_map and \
             not (column in BASE_FIELDS and isinstance(asset, Asset))
 
         if look_in_augmented_sources:
             # we're being asked for a fetcher field
             try:
-                return self.augmented_sources_map[column][asset].\
+                return self._augmented_sources_map[column][asset].\
                     loc[day, column]
             except:
                 log.error(
@@ -287,40 +312,39 @@ class DataPortal(object):
 
         self._check_is_currently_alive(asset_int, dt)
 
-        if self.data_frequency == "daily":
+        if self._data_frequency == "daily":
             day_to_use = dt or self.current_day
             return self._get_daily_data(asset_int, column_to_use, day_to_use)
         else:
             # keeping minute data logic in-lined to avoid the cost of calling
             # another method.
+
+            # all our minute bcolz files are written starting on 1/2/2002,
+            # with 390 minutes per day, regarding of when the security started
+            # trading. This lets us avoid doing an offset calculation related
+            # to the asset start date.  Hard-coding 390 minutes per day lets us
+            # ignore half days.
             carray = self._open_minute_file(column_to_use, asset_int)
 
-            if dt is None:
-                # hope cur_data_offset is set correctly, since we weren't
-                # given a dt to use.
+            if dt is None or dt == self.current_dt:
                 minute_offset_to_use = self.cur_data_offset
             else:
-                if dt == self.current_dt:
-                    minute_offset_to_use = self.cur_data_offset
-                else:
-                    # this is the slow path.
-                    # dt was passed in, so calculate the offset.
-                    # = (390 * number of trading days since 1/2/2002) +
-                    #   (index of minute in day)
-                    given_day = pd.Timestamp(dt.date(), tz='utc')
-                    day_index = tradingcalendar.trading_days.searchsorted(
-                        given_day) - INDEX_OF_FIRST_TRADING_DAY
+                # this is the slow path.
+                # dt was passed in, so calculate the offset.
+                # = (390 * number of trading days since 1/2/2002) +
+                #   (index of minute in day)
+                given_day = pd.Timestamp(dt.date(), tz='utc')
+                day_index = tradingcalendar.trading_days.searchsorted(
+                    given_day) - INDEX_OF_FIRST_TRADING_DAY
 
-                    # if dt is before the first market minute, minute_index
-                    # will be 0.  if it's after the last market minute, it'll
-                    # be len(minutes_for_day)
-                    minute_index = self.env.market_minutes_for_day(given_day).\
-                        searchsorted(dt)
+                # if dt is before the first market minute, minute_index
+                # will be 0.  if it's after the last market minute, it'll
+                # be len(minutes_for_day)
+                minute_index = self.env.market_minutes_for_day(given_day).\
+                    searchsorted(dt)
 
-                    minute_offset_to_use = (day_index * 390) + minute_index
+                minute_offset_to_use = (day_index * 390) + minute_index
 
-            # FIXME bug: the offset is calculated from 1/2/2002, not the first
-            # trading day of this asset!!  Need to fix.
             result = carray[minute_offset_to_use]
             if result == 0:
                 # if the given minute doesn't have data, we need to seek
@@ -432,13 +456,13 @@ class DataPortal(object):
             sid = int(sid)
 
             # get the start and end dates for this sid
-            if sid not in self.asset_start_dates:
-                asset = self.asset_finder.retrieve_asset(sid)
-                self.asset_start_dates[sid] = asset.start_date
-                self.asset_end_dates[sid] = asset.end_date
+            if sid not in self._asset_start_dates:
+                asset = self._asset_finder.retrieve_asset(sid)
+                self._asset_start_dates[sid] = asset.start_date
+                self._asset_end_dates[sid] = asset.end_date
 
             if ends_at_midnight or \
-                    (days_for_window[-1] > self.asset_end_dates[sid]):
+                    (days_for_window[-1] > self._asset_end_dates[sid]):
                 # two cases where we use daily data for the whole range:
                 # 1) the history window ends at midnight utc.
                 # 2) the last desired day of the window is after the
@@ -726,7 +750,7 @@ class DataPortal(object):
         """
         self._apply_adjustments_to_window(
             self._get_adjustment_list(
-                sid, self.splits_dict, "SPLITS"
+                sid, self._splits_dict, "SPLITS"
             ),
             data,
             dts,
@@ -736,7 +760,7 @@ class DataPortal(object):
         if field != 'volume':
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
-                    sid, self.mergers_dict, "MERGERS"
+                    sid, self._mergers_dict, "MERGERS"
                 ),
                 data,
                 dts,
@@ -745,7 +769,7 @@ class DataPortal(object):
 
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
-                    sid, self.dividends_dict, "DIVIDENDS"
+                    sid, self._dividends_dict, "DIVIDENDS"
                 ),
                 data,
                 dts,
@@ -858,7 +882,7 @@ class DataPortal(object):
         # Calculate the starting day to use (either the asset's first trading
         # day, or 1/1/2002 (which is the 3028th day in the trading calendar).
         first_trading_day_to_use = max(trading_days.searchsorted(
-            self.asset_start_dates[sid]), INDEX_OF_FIRST_TRADING_DAY)
+            self._asset_start_dates[sid]), INDEX_OF_FIRST_TRADING_DAY)
 
         # find the # of trading days between max(asset's first trade date,
         # 2002-01-02) and start_dt
@@ -972,6 +996,19 @@ class DataPortal(object):
         return adjustments_dict[sid]
 
     def get_equity_price_view(self, asset):
+        """
+        Returns a DataPortalSidView for the given asset.  Used to support the
+        data[sid(N)] public API.  Not needed if DataPortal is used standalone.
+
+        Parameters
+        ----------
+        asset : Asset
+            Asset that is being queried.
+
+        Returns
+        -------
+        DataPortalSidView: Accessor into the given asset's data.
+        """
         try:
             view = self.views[asset]
         except KeyError:
@@ -983,19 +1020,19 @@ class DataPortal(object):
         if dt is None:
             dt = self.current_day
 
-        if name not in self.asset_start_dates:
+        if name not in self._asset_start_dates:
             self._get_asset_start_date(name)
 
-        start_date = self.asset_start_dates[name]
-        if self.asset_start_dates[name] > dt:
+        start_date = self._asset_start_dates[name]
+        if self._asset_start_dates[name] > dt:
             raise NoTradeDataAvailableTooEarly(
                 sid=name,
                 dt=dt,
                 start_dt=start_date
             )
 
-        end_date = self.asset_end_dates[name]
-        if self.asset_end_dates[name] < dt:
+        end_date = self._asset_end_dates[name]
+        if self._asset_end_dates[name] < dt:
             raise NoTradeDataAvailableTooLate(
                 sid=name,
                 dt=dt,
@@ -1003,12 +1040,12 @@ class DataPortal(object):
             )
 
     def _get_asset_start_date(self, sid):
-        if sid not in self.asset_start_dates:
-            asset = self.asset_finder.retrieve_asset(sid)
-            self.asset_start_dates[sid] = asset.start_date
-            self.asset_end_dates[sid] = asset.end_date
+        if sid not in self._asset_start_dates:
+            asset = self._asset_finder.retrieve_asset(sid)
+            self._asset_start_dates[sid] = asset.start_date
+            self._asset_end_dates[sid] = asset.end_date
 
-        return self.asset_start_dates[sid]
+        return self._asset_start_dates[sid]
 
     def get_splits(self, sids, dt):
         """
@@ -1092,8 +1129,8 @@ class DataPortal(object):
 
     def contains(self, asset, field):
         return field in BASE_FIELDS or \
-            (field in self.augmented_sources_map and
-             asset in self.augmented_sources_map[field])
+            (field in self._augmented_sources_map and
+             asset in self._augmented_sources_map[field])
 
     def get_fetcher_assets(self):
         """
@@ -1111,21 +1148,21 @@ class DataPortal(object):
         """
         # return a list of assets for the current date, as defined by the
         # fetcher source
-        if self.fetcher_df is None:
+        if self._fetcher_df is None:
             return []
 
-        if self.current_day in self.fetcher_df.index:
+        if self.current_day in self._fetcher_df.index:
             date_to_use = self.current_day
         else:
             # current day isn't in the fetcher df, go back the last
             # available day
-            idx = self.fetcher_df.index.searchsorted(self.current_day)
+            idx = self._fetcher_df.index.searchsorted(self.current_day)
             if idx == 0:
                 return []
 
-            date_to_use = self.fetcher_df.index[idx - 1]
+            date_to_use = self._fetcher_df.index[idx - 1]
 
-        asset_list = self.fetcher_df.loc[date_to_use]["sid"]
+        asset_list = self._fetcher_df.loc[date_to_use]["sid"]
 
         # make sure they're actually assets
         asset_list = [asset for asset in asset_list

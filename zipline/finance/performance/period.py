@@ -275,7 +275,7 @@ class PerformancePeriod(object):
                 if old_price_dt == pos.last_sale_date:
                     continue
 
-                old_price = data_portal.get_previous_price(
+                old_price = data_portal.get_previous_value(
                     sid, 'close', dt=old_price_dt
                 )
 

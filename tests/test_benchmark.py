@@ -175,7 +175,7 @@ class TestBenchmark(TestCase):
             [2]
         )
 
-        self.data_portal.minutes_equities_path = path
+        self.data_portal._minutes_equities_path = path
 
         source = BenchmarkSource(
             2,

@@ -66,6 +66,7 @@ cdef class MinuteSimulationClock:
 
 cdef class MinuteEmissionClock:
     cdef object trading_days
+    cdef object all_trading_days
     cdef object data_portal
     cdef np.int64_t[:] market_opens, market_closes
 
@@ -73,11 +74,13 @@ cdef class MinuteEmissionClock:
                  trading_days,
                  market_opens,
                  market_closes,
-                 data_portal):
+                 data_portal,
+                 all_trading_days):
         self.market_opens = market_opens
         self.market_closes = market_closes
         self.trading_days = trading_days
         self.data_portal = data_portal
+        self.all_trading_days = all_trading_days
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
