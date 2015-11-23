@@ -176,11 +176,11 @@ class HistoryTestCase(TestCase):
             cls.DELL: join(TEST_DAILY_RESOURCE_PATH, 'MSFT.csv'),  # unused
             cls.TSLA: join(TEST_DAILY_RESOURCE_PATH, 'MSFT.csv'),  # unused
             cls.BRKA: join(TEST_DAILY_RESOURCE_PATH, 'BRK-A.csv'),
-            cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, 'IBM_daily.csv'),
-            cls.GS: join(TEST_MINUTE_RESOURCE_PATH, 'GS_daily.csv'),
-            cls.C: join(TEST_MINUTE_RESOURCE_PATH, 'C_daily.csv'),
+            cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, 'IBM_daily.csv.gz'),
+            cls.GS: join(TEST_MINUTE_RESOURCE_PATH, 'GS_daily.csv.gz'),
+            cls.C: join(TEST_MINUTE_RESOURCE_PATH, 'C_daily.csv.gz'),
             cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
-                                   'DIVIDEND_daily.csv')
+                                   'DIVIDEND_daily.csv.gz')
         }
         raw_data = {
             asset: read_csv(path, parse_dates=['day']).set_index('day')
