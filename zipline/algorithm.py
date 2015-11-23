@@ -400,14 +400,16 @@ class TradingAlgorithm(object):
                         self.sim_params.trading_days,
                         market_opens,
                         market_closes,
-                        self.data_portal
+                        self.data_portal,
+                        env.trading_days
                     )
                 else:
                     self.clock = MinuteEmissionClock(
                         self.sim_params.trading_days,
                         market_opens,
                         market_closes,
-                        self.data_portal
+                        self.data_portal,
+                        env.trading_days
                     )
 
             elif self.sim_params.data_frequency == 'daily':

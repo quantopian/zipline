@@ -16,6 +16,7 @@ cpdef enum:
 cdef class MinuteSimulationClock:
 
     cdef object trading_days
+    cdef object all_trading_days
     cdef object data_portal
     cdef np.int64_t[:] market_opens, market_closes
 
@@ -23,11 +24,13 @@ cdef class MinuteSimulationClock:
                  trading_days,
                  market_opens,
                  market_closes,
-                 data_portal):
+                 data_portal,
+                 all_trading_days):
         self.market_opens = market_opens
         self.market_closes = market_closes
         self.trading_days = trading_days
         self.data_portal = data_portal
+        self.all_trading_days = all_trading_days
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -41,8 +44,14 @@ cdef class MinuteSimulationClock:
                          _nanos_in_minute)
 
     def __iter__(self):
-        first_trading_day_idx = 0
+        # FIXME
+        # 3028 is the index of 2002-01-02 in self.all_trading_days, which
+        # starts on 1990-01-02
+        first_trading_day_idx = \
+            self.all_trading_days.searchsorted(self.trading_days[0]) - 3028
+
         data_portal = self.data_portal
+
         for day_idx, day in enumerate(self.trading_days):
             day_offset = (day_idx + first_trading_day_idx) * 390
             yield day, ONCE_A_DAY
@@ -82,7 +91,12 @@ cdef class MinuteEmissionClock:
                          _nanos_in_minute)
 
     def __iter__(self):
-        first_trading_day_idx = 0
+        # FIXME
+        # 3028 is the index of 2002-01-02 in self.all_trading_days, which
+        # starts on 1990-01-02
+        first_trading_day_idx = \
+            self.all_trading_days.searchsorted(self.trading_days[0]) - 3028
+
         data_portal = self.data_portal
         for day_idx, day in enumerate(self.trading_days):
             day_offset = (day_idx + first_trading_day_idx) * 390
