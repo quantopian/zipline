@@ -546,8 +546,8 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
             def compute(self, today, assets, out, highs, lows):
                 from numpy import nanmin, nanmax
 
-                highest_highs = nanmax(axis=0)
-                lowest_lows = nanmin(axis=0)
+                highest_highs = nanmax(highs, axis=0)
+                lowest_lows = nanmin(lows, axis=0)
                 out[:] = highest_highs - lowest_lows
 
 
