@@ -59,8 +59,7 @@ class TestDataPortal(TestCase):
             dp = DataPortal(
                 env,
                 minutes_equities_path=tempdir.path,
-                sim_params=sim_params,
-                asset_finder=env.asset_finder
+                sim_params=sim_params
             )
 
             for minute_idx, minute in enumerate(minutes):
@@ -125,8 +124,7 @@ class TestDataPortal(TestCase):
             dp = DataPortal(
                 env,
                 daily_equities_path=path,
-                sim_params=sim_params,
-                asset_finder=env.asset_finder
+                sim_params=sim_params
             )
 
             for day_idx, day in enumerate(days):
@@ -237,7 +235,6 @@ class TestDataPortal(TestCase):
                 env,
                 minutes_equities_path=tempdir.path,
                 sim_params=sim_params,
-                asset_finder=env.asset_finder,
                 adjustment_reader=SQLiteAdjustmentReader(adjustments_path)
             )
 

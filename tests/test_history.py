@@ -245,10 +245,10 @@ class HistoryTestCase(TestCase):
     def get_portal(self,
                    daily_equities_filename="test_daily_data.bcolz",
                    adjustments_filename="adjustments.sqlite",
-                   asset_finder=None):
+                   env=None):
 
-        if asset_finder is None:
-            asset_finder = self.env.asset_finder
+        if env is None:
+            env = self.env
 
         temp_path = self.tempdir.path
 
@@ -256,9 +256,7 @@ class HistoryTestCase(TestCase):
             join(temp_path, adjustments_filename))
 
         return DataPortal(
-            self.env,
-            asset_finder=asset_finder,
-            # TODO: Change this to a subdir.
+            env,
             minutes_equities_path=temp_path,
             daily_equities_path=join(temp_path, daily_equities_filename),
             adjustment_reader=adjustment_reader
@@ -821,8 +819,7 @@ class HistoryTestCase(TestCase):
             ['GS']
         )
         env.write_data(equities_df=asset_info)
-        asset_finder = env.asset_finder
-        portal = self.get_portal(asset_finder=asset_finder)
+        portal = self.get_portal(env=env)
 
         window = portal.get_history_window(
             [self.GS],

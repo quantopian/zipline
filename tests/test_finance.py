@@ -223,8 +223,7 @@ class FinanceTestCase(TestCase):
                 data_portal = DataPortal(
                     env,
                     minutes_equities_path=tempdir.path,
-                    sim_params=sim_params,
-                    asset_finder=env.asset_finder
+                    sim_params=sim_params
                 )
             else:
                 sim_params = factory.create_simulation_parameters(
@@ -251,8 +250,7 @@ class FinanceTestCase(TestCase):
                 data_portal = DataPortal(
                     env,
                     daily_equities_path=path,
-                    sim_params=sim_params,
-                    asset_finder=env.asset_finder
+                    sim_params=sim_params
                 )
 
             env.write_data(equities_data={

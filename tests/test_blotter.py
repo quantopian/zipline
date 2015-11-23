@@ -82,8 +82,7 @@ class BlotterTestCase(TestCase):
         cls.data_portal = DataPortal(
             cls.env,
             daily_equities_path=path,
-            sim_params=cls.sim_params,
-            asset_finder=cls.env.asset_finder
+            sim_params=cls.sim_params
         )
 
     @classmethod

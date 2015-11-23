@@ -167,8 +167,8 @@ class ClosesOnly(TestCase):
             sim_params=SimulationParameters(
                 period_start=self.dates[0],
                 period_end=self.dates[-1],
-                env=self.env),
-            asset_finder=self.asset_finder
+                env=self.env
+            )
         )
 
         # Add a split for 'A' on its second date.

@@ -85,8 +85,7 @@ class SlippageTestCase(TestCase):
         cls.data_portal = DataPortal(
             cls.env,
             minutes_equities_path=cls.tempdir.path,
-            sim_params=cls.sim_params,
-            asset_finder=cls.env.asset_finder
+            sim_params=cls.sim_params
         )
 
     @classmethod
@@ -114,8 +113,7 @@ class SlippageTestCase(TestCase):
             data_portal = DataPortal(
                 self.env,
                 minutes_equities_path=tempdir.path,
-                sim_params=self.sim_params,
-                asset_finder=self.env.asset_finder
+                sim_params=self.sim_params
             )
 
             slippage_model = VolumeShareSlippage()
@@ -455,8 +453,7 @@ class SlippageTestCase(TestCase):
             data_portal = DataPortal(
                 self.env,
                 minutes_equities_path=tempdir.path,
-                sim_params=self.sim_params,
-                asset_finder=self.env.asset_finder
+                sim_params=self.sim_params
             )
 
             slippage_model = VolumeShareSlippage()

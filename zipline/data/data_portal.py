@@ -58,12 +58,25 @@ class DataPortal(object):
                  minutes_equities_path=None,
                  daily_equities_path=None,
                  adjustment_reader=None,
-                 asset_finder=None,
                  sid_path_func=None):
         self.env = env
+
+        # Internal pointers to the current dt (can be minute) and current day.
+        # In daily mode, they point to the same thing. In minute mode, it's
+        # useful to have separate pointers to the current day and to the
+        # current minute.  These pointers are updated by the
+        # AlgorithmSimulator's transform loop.
         self.current_dt = None
         self.current_day = None
-        self.cur_data_offset = 0
+
+        # This is a bit ugly, but is here for performance reasons.  In minute
+        # simulations, we need to very quickly go from dt -> (# of minutes
+        # since Jan 1 2002 9:30 Eastern).
+        #
+        # The clock that heartbeats the simulation has all the necessary
+        # information to do this calculation very quickly.  This value is
+        # calculated there, and then set here.
+        segilf.cur_data_offset = 0
 
         self.views = {}
 
@@ -73,7 +86,7 @@ class DataPortal(object):
 
         self.minutes_equities_path = minutes_equities_path
         self.daily_equities_path = daily_equities_path
-        self.asset_finder = asset_finder
+        self.asset_finder = env.asset_finder
 
         self.carrays = {
             'open': {},
@@ -237,18 +250,40 @@ class DataPortal(object):
 
                 raise KeyError
 
-    def get_spot_value(self, asset, column, dt=None):
-        fetcher_val = self._check_fetcher(asset, column,
+    def get_spot_value(self, asset, field, dt=None):
+        """
+        Public API method that returns a scalar value representing the value
+        of the desired asset's field at either the given dt, or this data
+        portal's current_dt.
+
+        Parameters
+        ---------
+        asset : Asset
+            The asset whose data is desired.
+
+        field: string
+            The desired field of the asset.  Valid values are "open",
+            "open_price", "high", "low", "close", "close_price", "volume", and
+            "price".
+
+        dt: pd.Timestamp
+            (Optional) The timestamp for the desired value.
+
+        Returns
+        -------
+        The value of the desired field at the desired time.
+        """
+        fetcher_val = self._check_fetcher(asset, field,
                                           (dt or self.current_dt))
 
         if fetcher_val is not None:
             return fetcher_val
 
-        if column not in BASE_FIELDS:
-            raise KeyError("Invalid column: " + str(column))
+        if field not in BASE_FIELDS:
+            raise KeyError("Invalid column: " + str(field))
 
         asset_int = int(asset)
-        column_to_use = BASE_FIELDS[column]
+        column_to_use = BASE_FIELDS[field]
 
         self._check_is_currently_alive(asset_int, dt)
 
@@ -268,6 +303,7 @@ class DataPortal(object):
                 if dt == self.current_dt:
                     minute_offset_to_use = self.cur_data_offset
                 else:
+                    # this is the slow path.
                     # dt was passed in, so calculate the offset.
                     # = (390 * number of trading days since 1/2/2002) +
                     #   (index of minute in day)
@@ -283,6 +319,8 @@ class DataPortal(object):
 
                     minute_offset_to_use = (day_index * 390) + minute_index
 
+            # FIXME bug: the offset is calculated from 1/2/2002, not the first
+            # trading day of this asset!!  Need to fix.
             result = carray[minute_offset_to_use]
             if result == 0:
                 # if the given minute doesn't have data, we need to seek
@@ -305,7 +343,7 @@ class DataPortal(object):
                 # to be adjusted.
                 if result != 0:
                     minutes = self.env.market_minute_window(
-                        start=dt,
+                        start=(dt or self.current_dt),
                         count=(original_start - minute_offset_to_use + 1),
                         step=-1
                     ).order()
@@ -321,7 +359,7 @@ class DataPortal(object):
                             data=arr,
                             sid=asset_int,
                             dts=minutes,
-                            field=column
+                            field=column_to_use
                         )
 
                         # The first value of the adjusted array is the value

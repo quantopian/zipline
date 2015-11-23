@@ -634,7 +634,6 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
             env,
             daily_equities_path=daily_path,
             sim_params=sim_params,
-            asset_finder=env.asset_finder,
             adjustment_reader=adjustment_reader
         )
     else:
@@ -650,7 +649,6 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
             env,
             minutes_equities_path=minute_path,
             sim_params=sim_params,
-            asset_finder=env.asset_finder,
             adjustment_reader=adjustment_reader
         )
 
@@ -692,7 +690,6 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
             env,
             daily_equities_path=path,
             sim_params=sim_params,
-            asset_finder=env.asset_finder
         )
     else:
         minutes = env.minutes_for_days_in_range(
@@ -734,8 +731,7 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
         return DataPortal(
             env,
             minutes_equities_path=tempdir.path,
-            sim_params=sim_params,
-            asset_finder=env.asset_finder
+            sim_params=sim_params
         )
 
 
