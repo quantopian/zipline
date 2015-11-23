@@ -496,7 +496,9 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     Notes
     -----
     Users implementing their own Factors should subclass CustomFactor and
-    implement a method named `compute` with the following signature::
+    implement a method named `compute` with the following signature:
+
+    .. code-block:: python
 
         def compute(self, today, assets, out, *inputs):
            ...
@@ -529,7 +531,9 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
     Examples
     --------
 
-    A CustomFactor with pre-declared defaults::
+    A CustomFactor with pre-declared defaults:
+
+    .. code-block:: python
 
         class TenDayRange(CustomFactor):
             """
@@ -546,8 +550,8 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
             def compute(self, today, assets, out, highs, lows):
                 from numpy import nanmin, nanmax
 
-                highest_highs = nanmax(axis=0)
-                lowest_lows = nanmin(axis=0)
+                highest_highs = nanmax(highs, axis=0)
+                lowest_lows = nanmin(lows, axis=0)
                 out[:] = highest_highs - lowest_lows
 
 
@@ -555,7 +559,9 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         # pre-declared as defaults for the TenDayRange class.
         ten_day_range = TenDayRange()
 
-    A CustomFactor without defaults::
+    A CustomFactor without defaults:
+
+    .. code-block:: python
 
         class MedianValue(CustomFactor):
             """
@@ -568,7 +574,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
 
             def compute(self, today, assets, out, data):
                 from numpy import nanmedian
-                out[:] = data.nanmedian(axis=0)
+                out[:] = data.nanmedian(data, axis=0)
 
         # Values for `inputs` and `window_length` must be passed explicitly to
         # MedianValue.
