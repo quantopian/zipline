@@ -153,17 +153,17 @@ class HistoryTestCase(TestCase):
     @classmethod
     def create_fake_minute_data(cls, tempdir):
         resources = {
-            cls.AAPL: join(TEST_MINUTE_RESOURCE_PATH, 'AAPL_minute.csv'),
-            cls.MSFT: join(TEST_MINUTE_RESOURCE_PATH, 'MSFT_minute.csv'),
-            cls.DELL: join(TEST_MINUTE_RESOURCE_PATH, 'DELL_minute.csv'),
-            cls.TSLA: join(TEST_MINUTE_RESOURCE_PATH, "TSLA_minute.csv"),
-            cls.BRKA: join(TEST_MINUTE_RESOURCE_PATH, "BRKA_minute.csv"),
-            cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv"),
+            cls.AAPL: join(TEST_MINUTE_RESOURCE_PATH, 'AAPL_minute.csv.gz'),
+            cls.MSFT: join(TEST_MINUTE_RESOURCE_PATH, 'MSFT_minute.csv.gz'),
+            cls.DELL: join(TEST_MINUTE_RESOURCE_PATH, 'DELL_minute.csv.gz'),
+            cls.TSLA: join(TEST_MINUTE_RESOURCE_PATH, "TSLA_minute.csv.gz"),
+            cls.BRKA: join(TEST_MINUTE_RESOURCE_PATH, "BRKA_minute.csv.gz"),
+            cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv.gz"),
             cls.GS:
-            join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv"),  # unused
-            cls.C: join(TEST_MINUTE_RESOURCE_PATH, "C_minute.csv"),
+            join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv.gz"),  # unused
+            cls.C: join(TEST_MINUTE_RESOURCE_PATH, "C_minute.csv.gz"),
             cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
-                                   "DIVIDEND_minute.csv")
+                                   "DIVIDEND_minute.csv.gz")
         }
 
         MinuteBarWriterFromCSVs(resources).write(tempdir.path, cls.assets)
