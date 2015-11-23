@@ -5,6 +5,8 @@ from cpython cimport (
     Py_EQ,
     PyObject_RichCompare,
 )
+from pprint import pformat
+
 from numpy import (
     asarray,
     bool_,
@@ -128,6 +130,15 @@ cdef class Float64AdjustedArray(AdjustedArray):
         self._data = data
         self.adjustments = adjustments
 
+    def inspect(self):
+        return (
+            "Adjusted Array:\n\nData:\n"
+            "{data}\n\nAdjustments:\n{adjustments}\n".format(
+                data=repr(asarray(self._data)),
+                adjustments=pformat(self.adjustments),
+            )
+        )
+
     property dtype:
         def __get__(self):
             return float64
@@ -216,10 +227,17 @@ cdef class _Float64AdjustedArrayWindow:
         self.anchor += 1
         return out
 
-    def __repr__(self):
-        return "%s(window_length=%d, anchor=%d, max_anchor=%d)" % (
-            type(self).__name__,
-            self.window_length,
-            self.anchor,
-            self.max_anchor,
+    def inspect(self):
+        return (
+            "{type_}\n"
+            "Window Length: {window_length}\n"
+            "Current Buffer:\n"
+            "{data}\n"
+            "Remaining Adjustments:\n"
+            "{adjustments}\n"
+        ).format(
+            type_=type(self).__name__,
+            window_length=self.window_length,
+            data=asarray(self.data[self.anchor - self.window_length:self.anchor]),
+            adjustments=pformat(self.adjustments),
         )

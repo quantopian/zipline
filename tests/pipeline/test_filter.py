@@ -11,6 +11,8 @@ from numpy import (
     eye,
     float64,
     full_like,
+    inf,
+    isfinite,
     nan,
     nanpercentile,
     ones,
@@ -333,3 +335,37 @@ class FilterTestCase(BasePipelineTestCase):
             dtype=bool,
         )
         check_arrays(results['with'], expected_with)
+
+    def test_isnan(self):
+        data = self.randn_data(seed=10)
+        diag = eye(*data.shape, dtype=bool)
+        data[diag] = nan
+
+        results = self.run_graph(
+            TermGraph({'isnan': self.f.isnan()}),
+            initial_workspace={self.f: data},
+        )
+        check_arrays(results['isnan'], diag)
+
+    def test_notnan(self):
+        data = self.randn_data(seed=10)
+        diag = eye(*data.shape, dtype=bool)
+        data[diag] = nan
+
+        results = self.run_graph(
+            TermGraph({'notnan': self.f.notnan()}),
+            initial_workspace={self.f: data},
+        )
+        check_arrays(results['notnan'], ~diag)
+
+    def test_isfinite(self):
+        data = self.randn_data(seed=10)
+        data[:, 0] = nan
+        data[:, 2] = inf
+        data[:, 4] = -inf
+
+        results = self.run_graph(
+            TermGraph({'isfinite': self.f.isfinite()}),
+            initial_workspace={self.f: data},
+        )
+        check_arrays(results['isfinite'], isfinite(data))

@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from pandas import isnull
 from six import with_metaclass, string_types, viewkeys
-from six.moves import map as imap
+from six.moves import map as imap, range
 import sqlalchemy as sa
 
 from zipline.errors import (
@@ -77,9 +77,25 @@ def _convert_asset_timestamp_fields(dict_):
 
 
 class AssetFinder(object):
+    """
+    An AssetFinder is an interface to a database of Asset metadata written by
+    an ``AssetDBWriter``.
 
+    This class provides methods for looking up assets by unique integer id or
+    by symbol.  For historical reasons, we refer to these unique ids as 'sids'.
+
+    Parameters
+    ----------
+    engine : str or SQLAlchemy.engine
+        An engine with a connection to the asset database to use, or a string
+        that can be parsed by SQLAlchemy as a URI.
+
+    See Also
+    --------
+    :class:`zipline.assets.asset_writer.AssetDBWriter`
+    """
     # Token used as a substitute for pickling objects that contain a
-    # reference to an AssetFinder
+    # reference to an AssetFinder.
     PERSISTENT_TOKEN = "<AssetFinder>"
 
     def __init__(self, engine):
@@ -143,10 +159,11 @@ class AssetFinder(object):
         if not missing:
             return found
 
-        for chunk in self._group_into_chunks(list(missing)):
-            router_cols = self.asset_router.c
+        router_cols = self.asset_router.c
+
+        for assets in self._group_into_chunks(missing):
             query = sa.select((router_cols.sid, router_cols.asset_type)).where(
-                self.asset_router.c.sid.in_(map(int, chunk))
+                self.asset_router.c.sid.in_(map(int, assets))
             )
             for sid, type_ in query.execute().fetchall():
                 missing.remove(sid)
@@ -156,11 +173,12 @@ class AssetFinder(object):
                 found[sid] = self._asset_type_cache[sid] = None
 
         return found
-    
+
     @staticmethod
-    def _group_into_chunks(items):
-        return [items[x:x+SQLITE_MAX_VARIABLE_NUMBER]
-                for x in xrange(0, len(items), SQLITE_MAX_VARIABLE_NUMBER)]
+    def _group_into_chunks(items, chunk_size=SQLITE_MAX_VARIABLE_NUMBER):
+        items = list(items)
+        return [items[x:x+chunk_size]
+                for x in range(0, len(items), chunk_size)]
 
     def group_by_type(self, sids):
         """
@@ -338,9 +356,9 @@ class AssetFinder(object):
         cache = self._asset_cache
         hits = {}
 
-        for chunk in self._group_into_chunks(list(sids)):
+        for assets in self._group_into_chunks(sids):
             # Load misses from the db.
-            query = self._select_assets_by_sid(asset_tbl, chunk)
+            query = self._select_assets_by_sid(asset_tbl, assets)
 
             for row in imap(dict, query.execute().fetchall()):
                 asset = asset_type(**_convert_asset_timestamp_fields(row))

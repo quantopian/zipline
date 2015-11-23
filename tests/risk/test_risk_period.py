@@ -18,6 +18,10 @@ import datetime
 import calendar
 import numpy as np
 import pytz
+
+from itertools import chain
+from six import itervalues
+
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
@@ -622,3 +626,17 @@ class TestRisk(unittest.TestCase):
             )
             self.assert_month(start_date.month, col[-1].end_date.month)
             self.assert_last_day(col[-1].end_date)
+
+    def test_sparse_benchmark(self):
+        benchmark_returns = self.benchmark_returns_06.copy()
+        # Set every other day to nan.
+        benchmark_returns.iloc[::2] = np.nan
+
+        report = risk.RiskReport(
+            self.algo_returns_06,
+            self.sim_params,
+            benchmark_returns=benchmark_returns,
+            env=self.env,
+        )
+        for risk_period in chain.from_iterable(itervalues(report.to_dict())):
+            self.assertIsNone(risk_period['beta'])

@@ -1,6 +1,7 @@
 """
 Tests for chunked adjustments.
 """
+from textwrap import dedent
 from unittest import TestCase
 
 from nose_parameterized import parameterized
@@ -323,3 +324,29 @@ class AdjustedArrayTestCase(TestCase):
 
         with self.assertRaisesRegexp(ValueError, msg):
             adjusted_array(data, bad_mask, {})
+
+    def test_inspect(self):
+        data = arange(15, dtype=float).reshape(5, 3)
+        adj_array = adjusted_array(
+            data,
+            NOMASK,
+            {4: [Float64Multiply(2, 3, 0, 0, 4.0)]},
+        )
+
+        expected = dedent(
+            """\
+            Adjusted Array:
+
+            Data:
+            array([[  0.,   1.,   2.],
+                   [  3.,   4.,   5.],
+                   [  6.,   7.,   8.],
+                   [  9.,  10.,  11.],
+                   [ 12.,  13.,  14.]])
+
+            Adjustments:
+            {4: [Float64Multiply(first_row=2, last_row=3, first_col=0, \
+last_col=0, value=4.000000)]}
+            """
+        )
+        self.assertEqual(expected, adj_array.inspect())
