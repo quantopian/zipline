@@ -1,9 +1,11 @@
 import os
 from datetime import timedelta
+import bcolz
 import numpy as np
 import pandas as pd
 
 from unittest import TestCase
+from pandas.tslib import normalize_date
 from testfixtures import TempDirectory
 from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, \
@@ -270,5 +272,65 @@ class TestDataPortal(TestCase):
                         dp.get_spot_value(0, field, dt=minute),
                         (390 + idx + (1000 * field_idx))
                     )
+        finally:
+            tempdir.cleanup()
+
+    def test_spot_value_futures(self):
+        tempdir = TempDirectory()
+        try:
+            start_dt = pd.Timestamp("2015-11-20 20:11", tz='UTC')
+            end_dt = pd.Timestamp(start_dt + timedelta(minutes=10000))
+
+            zeroes_buffer = \
+                [0] * int((start_dt -
+                           normalize_date(start_dt)).total_seconds() / 60)
+
+            df = pd.DataFrame({
+                "open": np.array(zeroes_buffer + list(range(0, 10000))) * 1000,
+                "high": np.array(
+                    zeroes_buffer + list(range(10000, 20000))) * 1000,
+                "low": np.array(
+                    zeroes_buffer + list(range(20000, 30000))) * 1000,
+                "close": np.array(
+                    zeroes_buffer + list(range(30000, 40000))) * 1000,
+                "volume": np.array(zeroes_buffer + list(range(40000, 50000)))
+            })
+
+            path = os.path.join(tempdir.path, "123.bcolz")
+            ctable = bcolz.ctable.fromdataframe(df, rootdir=path)
+            ctable.attrs["start_dt"] = start_dt.value / 1e9
+            ctable.attrs["last_dt"] = end_dt.value / 1e9
+
+            env = TradingEnvironment()
+            env.write_data(futures_data={
+                123: {
+                    "start_date": normalize_date(start_dt),
+                    "end_date": env.next_trading_day(normalize_date(end_dt)),
+                    'symbol': 'TEST_FUTURE',
+                    'asset_type': 'future',
+                }
+            })
+
+            dp = DataPortal(
+                env,
+                minutes_equities_path=tempdir.path
+            )
+
+            future123 = env.asset_finder.retrieve_asset(123)
+
+            for i in range(0, 10000):
+                dt = pd.Timestamp(start_dt + timedelta(minutes=i))
+
+                self.assertEqual(i,
+                                 dp.get_spot_value(future123, "open", dt))
+                self.assertEqual(i + 10000,
+                                 dp.get_spot_value(future123, "high", dt))
+                self.assertEqual(i + 20000,
+                                 dp.get_spot_value(future123, "low", dt))
+                self.assertEqual(i + 30000,
+                                 dp.get_spot_value(future123, "close", dt))
+                self.assertEqual(i + 40000,
+                                 dp.get_spot_value(future123, "volume", dt))
+
         finally:
             tempdir.cleanup()
