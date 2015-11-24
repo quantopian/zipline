@@ -33,7 +33,7 @@ def sentinel(name, doc=None):
         __name__ = name
 
         def __new__(cls):
-            raise TypeError("Can't construct new instances of %r" % name)
+            raise TypeError('cannot create %r instances' % name)
 
         def __repr__(self):
             return 'sentinel(%r)' % name
