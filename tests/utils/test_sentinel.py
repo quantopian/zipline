@@ -17,7 +17,13 @@ class SentinelTestCase(TestCase):
         self.assertEqual(sentinel('a', 'b').__doc__, 'b')
 
     def test_doc_differentiates(self):
-        self.assertIsNot(sentinel('a', 'b'), sentinel('a', 'c'))
+        a = sentinel('sentinel-name', 'original-doc')
+        with self.assertRaises(ValueError) as e:
+            sentinel(a.__name__, 'new-doc')
+
+        msg = str(e.exception)
+        self.assertIn(a.__name__, msg)
+        self.assertIn(a.__doc__, msg)
 
     def test_memo(self):
         self.assertIs(sentinel('a'), sentinel('a'))

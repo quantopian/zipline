@@ -8,9 +8,17 @@ import sys
 
 def sentinel(name, doc=None):
     try:
-        return sentinel._cache[name, doc]  # memoized
+        value = sentinel._cache[name]  # memoized
     except KeyError:
         pass
+    else:
+        if doc == value.__doc__:
+            return value
+
+        raise ValueError(
+            'attempted to create sentinel with a used name and a different'
+            ' docstring: %r\noriginal docstring:\n%s' % (name, value.__doc__),
+        )
 
     @object.__new__   # bind a single instance to the name 'Sentinel'
     class Sentinel(object):
@@ -41,6 +49,6 @@ def sentinel(name, doc=None):
         # Couldn't get the name from the calling scope, just use None.
         cls.__module__ = None
 
-    sentinel._cache[name, doc] = Sentinel  # cache result
+    sentinel._cache[name] = Sentinel  # cache result
     return Sentinel
 sentinel._cache = {}
