@@ -1,7 +1,10 @@
 from os.path import dirname, join, realpath
 from textwrap import dedent
 from unittest import TestCase
-
+import bcolz
+from datetime import timedelta
+from nose_parameterized import parameterized
+from pandas.tslib import normalize_date
 from testfixtures import TempDirectory
 import numpy as np
 from numpy import array
@@ -60,6 +63,8 @@ class HistoryTestCase(TestCase):
         cls.GS = 7
         cls.C = 8
         cls.DIVIDEND_SID = 9
+        cls.FUTURE_ASSET = 10
+        cls.FUTURE_ASSET2 = 11
         cls.assets = [cls.AAPL, cls.MSFT, cls.DELL, cls.TSLA, cls.BRKA,
                       cls.IBM, cls.GS, cls.C, cls.DIVIDEND_SID]
 
@@ -71,13 +76,54 @@ class HistoryTestCase(TestCase):
              'DIVIDEND_SID']
         )
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_df=asset_info)
+
+        cls.env.write_data(
+            equities_df=asset_info,
+            futures_data={
+                cls.FUTURE_ASSET: {
+                    "start_date": pd.Timestamp('2015-11-23', tz='UTC'),
+                    "end_date": pd.Timestamp('2014-12-01', tz='UTC'),
+                    'symbol': 'TEST_FUTURE',
+                    'asset_type': 'future',
+                },
+                cls.FUTURE_ASSET2: {
+                    "start_date": pd.Timestamp('2014-03-19', tz='UTC'),
+                    "end_date": pd.Timestamp('2014-03-22', tz='UTC'),
+                    'symbol': 'TEST_FUTURE2',
+                    'asset_type': 'future',
+                }
+            }
+        )
 
         cls.tempdir = TempDirectory()
         cls.tempdir.create()
 
         try:
             cls.create_fake_minute_data(cls.tempdir)
+
+            cls.futures_start_dates = {
+                cls.FUTURE_ASSET: pd.Timestamp("2015-11-23 20:11", tz='UTC'),
+                cls.FUTURE_ASSET2: pd.Timestamp("2014-03-19 13:31", tz='UTC')
+            }
+
+            cls.create_fake_futures_minute_data(
+                cls.tempdir,
+                cls.env.asset_finder.retrieve_asset(cls.FUTURE_ASSET),
+                cls.futures_start_dates[cls.FUTURE_ASSET],
+                cls.futures_start_dates[cls.FUTURE_ASSET] +
+                timedelta(minutes=10000)
+            )
+
+            # build data for FUTURE_ASSET2 from 2014-03-19 13:31 to
+            # 2014-03-21 20:00
+            cls.create_fake_futures_minute_data(
+                cls.tempdir,
+                cls.env.asset_finder.retrieve_asset(cls.FUTURE_ASSET2),
+                cls.futures_start_dates[cls.FUTURE_ASSET2],
+                cls.futures_start_dates[cls.FUTURE_ASSET2] +
+                timedelta(minutes=3270)
+            )
+
             cls.create_fake_daily_data(cls.tempdir)
 
             splits = DataFrame([
@@ -151,6 +197,35 @@ class HistoryTestCase(TestCase):
         cls.tempdir.cleanup()
 
     @classmethod
+    def create_fake_futures_minute_data(cls, tempdir, asset, start_dt, end_dt):
+        num_minutes = int((end_dt - start_dt).total_seconds() / 60)
+
+        # need to prepend one 0 per minute between normalize_date(start_dt)
+        # and start_dt
+        zeroes_buffer = \
+            [0] * int((start_dt -
+                       normalize_date(start_dt)).total_seconds() / 60)
+
+        future_df = pd.DataFrame({
+            "open": np.array(zeroes_buffer +
+                             list(range(0, num_minutes))) * 1000,
+            "high": np.array(zeroes_buffer +
+                             list(range(10000, 10000 + num_minutes))) * 1000,
+            "low": np.array(zeroes_buffer +
+                            list(range(20000, 20000 + num_minutes))) * 1000,
+            "close": np.array(zeroes_buffer +
+                              list(range(30000, 30000 + num_minutes))) * 1000,
+            "volume": np.array(zeroes_buffer +
+                               list(range(40000, 40000 + num_minutes)))
+        })
+
+        path = join(tempdir.path, "{0}.bcolz".format(asset.sid))
+        ctable = bcolz.ctable.fromdataframe(future_df, rootdir=path)
+
+        ctable.attrs["start_dt"] = start_dt.value / 1e9
+        ctable.attrs["last_dt"] = end_dt.value / 1e9
+
+    @classmethod
     def create_fake_minute_data(cls, tempdir):
         resources = {
             cls.AAPL: join(TEST_MINUTE_RESOURCE_PATH, 'AAPL_minute.csv.gz'),
@@ -163,7 +238,7 @@ class HistoryTestCase(TestCase):
             join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv.gz"),  # unused
             cls.C: join(TEST_MINUTE_RESOURCE_PATH, "C_minute.csv.gz"),
             cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
-                                   "DIVIDEND_minute.csv.gz")
+                                   "DIVIDEND_minute.csv.gz"),
         }
 
         MinuteBarWriterFromCSVs(resources).write(tempdir.path, cls.assets)
@@ -1115,3 +1190,89 @@ class HistoryTestCase(TestCase):
         check("close_price", close_ref)
         check("price", close_ref)
         check("volume", volume_ref)
+
+    @parameterized.expand([('open', 0),
+                           ('high', 10000),
+                           ('low', 20000),
+                           ('close', 30000),
+                           ('price', 30000),
+                           ('volume', 40000)])
+    def test_futures_history_minutes(self, field, offset):
+        # our history data, for self.FUTURE_ASSET, is 10,000 bars starting at
+        # self.futures_start_dt.  Those 10k bars are 24/7.
+
+        # = 2015-11-30 18:50 UTC, 13:50 Eastern = during market hours
+        futures_end_dt = \
+            self.futures_start_dates[self.FUTURE_ASSET] + \
+            timedelta(minutes=9999)
+
+        window = self.get_portal().get_history_window(
+            [self.FUTURE_ASSET],
+            futures_end_dt,
+            1000,
+            "1m",
+            field
+        )
+
+        # check the minutes are right
+        reference_minutes = self.env.market_minute_window(
+            futures_end_dt, 1000, step=-1
+        )[::-1]
+
+        np.testing.assert_array_equal(window.index, reference_minutes)
+
+        # check the values
+
+        # 2015-11-24 18:41
+        # ...
+        # 2015-11-24 21:00
+        # 2015-11-25 14:31
+        # ...
+        # 2015-11-25 21:00
+        # 2015-11-27 14:31
+        # ...
+        # 2015-11-27 18:00  # early close
+        # 2015-11-30 14:31
+        # ...
+        # 2015-11-30 18:50
+
+        reference_values = pd.date_range(
+            start=self.futures_start_dates[self.FUTURE_ASSET],
+            end=futures_end_dt,
+            freq="T"
+        )
+
+        for idx, dt in enumerate(window.index):
+            date_val = reference_values.searchsorted(dt)
+            self.assertEqual(offset + date_val,
+                             window.iloc[idx][self.FUTURE_ASSET])
+
+    def test_history_minute_blended(self):
+        window = self.get_portal().get_history_window(
+            [self.FUTURE_ASSET2, self.AAPL],
+            pd.Timestamp("2014-03-21 20:00", tz='UTC'),
+            200,
+            "1m",
+            "price"
+        )
+
+        # just a sanity check
+        self.assertEqual(200, len(window[self.AAPL]))
+        self.assertEqual(200, len(window[self.FUTURE_ASSET2]))
+
+    def test_futures_history_daily(self):
+        # get 3 days ending 11/30 10:00 am Eastern
+        # = 11/25, 11/27 (half day), 11/30 (partial)
+
+        window = self.get_portal().get_history_window(
+            [self.env.asset_finder.retrieve_asset(self.FUTURE_ASSET)],
+            pd.Timestamp("2015-11-30 15:00", tz='UTC'),
+            3,
+            "1d",
+            "high"
+        )
+
+        self.assertEqual(3, len(window[self.FUTURE_ASSET]))
+
+        np.testing.assert_array_equal([12929.0, 15629.0, 19769.0],
+                                      window.values.T[0])

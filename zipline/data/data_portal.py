@@ -20,7 +20,7 @@ from logbook import Logger
 import numpy as np
 import pandas as pd
 
-from zipline.assets import Asset
+from zipline.assets import Asset, Future, Equity
 
 from zipline.utils import tradingcalendar
 from zipline.errors import (
@@ -58,7 +58,8 @@ class DataPortal(object):
                  minutes_equities_path=None,
                  daily_equities_path=None,
                  adjustment_reader=None,
-                 sid_path_func=None):
+                 equity_sid_path_func=None,
+                 futures_sid_path_func=None):
         self.env = env
 
         # Internal pointers to the current dt (can be minute) and current day.
@@ -120,8 +121,11 @@ class DataPortal(object):
         self._sim_params = sim_params
         if self._sim_params is not None:
             self._data_frequency = self._sim_params.data_frequency
+        else:
+            self._data_frequency = "minute"
 
-        self._sid_path_func = sid_path_func
+        self._equity_sid_path_func = equity_sid_path_func
+        self._futures_sid_path_func = futures_sid_path_func
 
         self.DAILY_PRICE_ADJUSTMENT_FACTOR = 0.001
         self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
@@ -208,19 +212,34 @@ class DataPortal(object):
 
         return self._daily_equities_data, self.daily_equities_attrs
 
-    def _open_minute_file(self, field, sid):
-        if self._sid_path_func is None:
-            path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
-        else:
-            path = self._sid_path_func(self._minutes_equities_path, sid)
+    def _open_minute_file(self, field, asset):
+        sid_str = str(int(asset))
 
         try:
-            carray = self._carrays[field][path]
+            carray = self._carrays[field][sid_str]
         except KeyError:
-            carray = self._carrays[field][path] = bcolz.carray(
-                rootdir=path + "/" + field, mode='r')
+            carray = self._carrays[field][sid_str] = \
+                self._get_ctable(asset)[field]
 
         return carray
+
+    def _get_ctable(self, asset):
+        sid = int(asset)
+
+        if isinstance(asset, Future) and \
+                self._futures_sid_path_func is not None:
+            path = self._futures_sid_path_func(
+                self._minutes_equities_path, sid
+            )
+        elif isinstance(asset, Equity) and \
+                self._equity_sid_path_func is not None:
+            path = self._equity_sid_path_func(
+                self._minutes_equities_path, sid
+            )
+        else:
+            path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
+
+        return bcolz.open(path, mode='r')
 
     def get_previous_value(self, asset, field, dt):
         """
@@ -307,103 +326,145 @@ class DataPortal(object):
         if field not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(field))
 
-        asset_int = int(asset)
         column_to_use = BASE_FIELDS[field]
 
-        self._check_is_currently_alive(asset_int, dt)
+        if isinstance(asset, int):
+            asset = self._asset_finder.retrieve_asset(asset)
+
+        self._check_is_currently_alive(asset, dt)
 
         if self._data_frequency == "daily":
             day_to_use = dt or self.current_day
-            return self._get_daily_data(asset_int, column_to_use, day_to_use)
+            return self._get_daily_data(asset, column_to_use, day_to_use)
         else:
-            # keeping minute data logic in-lined to avoid the cost of calling
-            # another method.
+            dt_to_use = dt or self.current_dt
 
-            # all our minute bcolz files are written starting on 1/2/2002,
-            # with 390 minutes per day, regarding of when the security started
-            # trading. This lets us avoid doing an offset calculation related
-            # to the asset start date.  Hard-coding 390 minutes per day lets us
-            # ignore half days.
-            carray = self._open_minute_file(column_to_use, asset_int)
-
-            if dt is None or dt == self.current_dt:
-                minute_offset_to_use = self.cur_data_offset
+            if isinstance(asset, Future):
+                return self._get_minute_spot_value_future(
+                    asset, column_to_use, dt_to_use)
             else:
-                # this is the slow path.
-                # dt was passed in, so calculate the offset.
-                # = (390 * number of trading days since 1/2/2002) +
-                #   (index of minute in day)
-                given_day = pd.Timestamp(dt.date(), tz='utc')
-                day_index = tradingcalendar.trading_days.searchsorted(
-                    given_day) - INDEX_OF_FIRST_TRADING_DAY
+                return self._get_minute_spot_value(
+                    asset, column_to_use, dt_to_use)
 
-                # if dt is before the first market minute, minute_index
-                # will be 0.  if it's after the last market minute, it'll
-                # be len(minutes_for_day)
-                minute_index = self.env.market_minutes_for_day(given_day).\
-                    searchsorted(dt)
+    def _get_minute_spot_value_future(self, asset, column, dt):
+        # Futures bcolz files have 1440 bars per day (24 hours), 7 days a week.
+        # The file attributes contain the "start_dt" and "last_dt" fields,
+        # which represent the time period for this bcolz file.
 
-                minute_offset_to_use = (day_index * 390) + minute_index
+        # The start_dt is midnight of the first day that this future started
+        # trading.
 
-            result = carray[minute_offset_to_use]
-            if result == 0:
-                # if the given minute doesn't have data, we need to seek
-                # backwards until we find data. This makes the data
-                # forward-filled.
+        # figure out the # of minutes between dt and this asset's start_dt
+        start_date = self._get_asset_start_date(asset)
+        minute_offset = int((dt - start_date).total_seconds() / 60)
 
-                # get this asset's start date, so that we don't look before it.
-                start_date = self._get_asset_start_date(asset_int)
-                start_date_idx = tradingcalendar.trading_days.searchsorted(
-                    start_date) - INDEX_OF_FIRST_TRADING_DAY
-                start_day_offset = start_date_idx * 390
+        if minute_offset < 0:
+            # asking for a date that is before the asset's start date, no dice
+            return 0.0
 
-                original_start = minute_offset_to_use
+        # then just index into the bcolz carray at that offset
+        carray = self._open_minute_file(column, asset)
+        result = carray[minute_offset]
 
-                while result == 0 and minute_offset_to_use > start_day_offset:
-                    minute_offset_to_use -= 1
-                    result = carray[minute_offset_to_use]
+        # if there's missing data, go backwards until we run out of file
+        while result == 0 and minute_offset > 0:
+            minute_offset -= 1
+            result = carray[minute_offset]
 
-                # once we've found data, we need to check whether it needs
-                # to be adjusted.
-                if result != 0:
-                    minutes = self.env.market_minute_window(
-                        start=(dt or self.current_dt),
-                        count=(original_start - minute_offset_to_use + 1),
-                        step=-1
-                    ).order()
+        if column != 'volume':
+            return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
+        else:
+            return result
 
-                    # only need to check for adjustments if we've gone back
-                    # far enough to cross the day boundary.
-                    if minutes[0].date() != minutes[-1].date():
-                        # create a np array of size minutes, fill it all with
-                        # the same value.  and adjust the array.
-                        arr = np.array([result] * len(minutes),
-                                       dtype=np.float64)
-                        self._apply_all_adjustments(
-                            data=arr,
-                            sid=asset_int,
-                            dts=minutes,
-                            field=column_to_use
-                        )
+    def _get_minute_spot_value(self, asset, column, dt):
+        # All our minute bcolz files are written starting on 1/2/2002,
+        # with 390 minutes per day, regarding of when the security started
+        # trading. This lets us avoid doing an offset calculation related
+        # to the asset start date.  Hard-coding 390 minutes per day lets us
+        # ignore half days.
 
-                        # The first value of the adjusted array is the value
-                        # we want.
-                        result = arr[0]
+        if dt == self.current_dt:
+            minute_offset_to_use = self.cur_data_offset
+        else:
+            # this is the slow path.
+            # dt was passed in, so calculate the offset.
+            # = (390 * number of trading days since 1/2/2002) +
+            #   (index of minute in day)
+            given_day = pd.Timestamp(dt.date(), tz='utc')
+            day_index = tradingcalendar.trading_days.searchsorted(
+                given_day) - INDEX_OF_FIRST_TRADING_DAY
 
-            if column_to_use != 'volume':
-                return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
-            else:
-                return result
+            # if dt is before the first market minute, minute_index
+            # will be 0.  if it's after the last market minute, it'll
+            # be len(minutes_for_day)
+            minute_index = self.env.market_minutes_for_day(given_day).\
+                searchsorted(dt)
 
-    def _get_daily_data(self, asset_int, column, dt):
+            minute_offset_to_use = (day_index * 390) + minute_index
+
+        carray = self._open_minute_file(column, asset)
+        result = carray[minute_offset_to_use]
+
+        if result == 0:
+            # if the given minute doesn't have data, we need to seek
+            # backwards until we find data. This makes the data
+            # forward-filled.
+
+            # get this asset's start date, so that we don't look before it.
+            start_date = self._get_asset_start_date(asset)
+            start_date_idx = tradingcalendar.trading_days.searchsorted(
+                start_date) - INDEX_OF_FIRST_TRADING_DAY
+            start_day_offset = start_date_idx * 390
+
+            original_start = minute_offset_to_use
+
+            while result == 0 and minute_offset_to_use > start_day_offset:
+                minute_offset_to_use -= 1
+                result = carray[minute_offset_to_use]
+
+            # once we've found data, we need to check whether it needs
+            # to be adjusted.
+            if result != 0:
+                minutes = self.env.market_minute_window(
+                    start=(dt or self.current_dt),
+                    count=(original_start - minute_offset_to_use + 1),
+                    step=-1
+                ).order()
+
+                # only need to check for adjustments if we've gone back
+                # far enough to cross the day boundary.
+                if minutes[0].date() != minutes[-1].date():
+                    # create a np array of size minutes, fill it all with
+                    # the same value.  and adjust the array.
+                    arr = np.array([result] * len(minutes),
+                                   dtype=np.float64)
+                    self._apply_all_adjustments(
+                        data=arr,
+                        asset=asset,
+                        dts=minutes,
+                        field=column
+                    )
+
+                    # The first value of the adjusted array is the value
+                    # we want.
+                    result = arr[0]
+
+        if column != 'volume':
+            return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
+        else:
+            return result
+
+    def _get_daily_data(self, asset, column, dt):
         dt = pd.Timestamp(dt.date(), tz='utc')
         daily_data, daily_attrs = self._open_daily_file()
 
+        sid = int(asset)
+
         # find the start index in the daily file for this asset
-        asset_file_index = daily_attrs['first_row'][str(asset_int)]
+        asset_file_index = daily_attrs['first_row'][str(sid)]
 
         # find when the asset started trading
-        asset_data_start_date = max(self._get_asset_start_date(asset_int),
+        asset_data_start_date = max(self._get_asset_start_date(asset),
                                     FIRST_TRADING_DAY)
 
         tradingdays = tradingcalendar.trading_days
@@ -419,7 +480,7 @@ class DataPortal(object):
 
         # sanity check
         assert lookup_idx >= asset_file_index
-        assert lookup_idx <= daily_attrs['last_row'][str(asset_int)] + 1
+        assert lookup_idx <= daily_attrs['last_row'][str(sid)] + 1
 
         ctable = daily_data[column]
         raw_value = ctable[lookup_idx]
@@ -433,91 +494,156 @@ class DataPortal(object):
         else:
             return raw_value
 
-    def _get_history_daily_window(self, sids, end_dt, bar_count, field_to_use):
+    def _get_history_daily_window(self, assets, end_dt, bar_count,
+                                  field_to_use):
         """
         Internal method that returns a dataframe containing history bars
         of daily frequency for the given sids.
         """
-        data = []
-
-        day = end_dt.date()
-        day_idx = tradingcalendar.trading_days.searchsorted(day)
+        day_idx = tradingcalendar.trading_days.searchsorted(end_dt.date())
         days_for_window = tradingcalendar.trading_days[
             (day_idx - bar_count + 1):(day_idx + 1)]
 
-        ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
-
-        if len(sids) == 0:
+        if len(assets) == 0:
             return pd.DataFrame(None,
                                 index=days_for_window,
                                 columns=None)
 
-        for sid in sids:
-            sid = int(sid)
+        data = []
 
-            # get the start and end dates for this sid
-            if sid not in self._asset_start_dates:
-                asset = self._asset_finder.retrieve_asset(sid)
-                self._asset_start_dates[sid] = asset.start_date
-                self._asset_end_dates[sid] = asset.end_date
-
-            if ends_at_midnight or \
-                    (days_for_window[-1] > self._asset_end_dates[sid]):
-                # two cases where we use daily data for the whole range:
-                # 1) the history window ends at midnight utc.
-                # 2) the last desired day of the window is after the
-                # last trading day, use daily data for the whole range.
-                data.append(self._get_daily_window_for_sid(
-                    sid,
-                    field_to_use,
-                    days_for_window,
-                    extra_slot=False
+        for asset in assets:
+            if isinstance(asset, Future):
+                data.append(self._get_history_daily_window_future(
+                    asset, days_for_window, end_dt, field_to_use
                 ))
             else:
-                # for the last day of the desired window, use minute
-                # data and aggregate it.
-                all_minutes_for_day = self.env.market_minutes_for_day(
-                    pd.Timestamp(day))
+                data.append(self._get_history_daily_window_equity(
+                    asset, days_for_window, end_dt, field_to_use
+                ))
 
-                last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
+        return pd.DataFrame(
+            np.array(data).T,
+            index=days_for_window,
+            columns=assets
+        )
 
-                # these are the minutes for the partial day
-                minutes_for_partial_day =\
-                    all_minutes_for_day[0:(last_minute_idx + 1)]
+    def _get_history_daily_window_future(self, asset, days_for_window,
+                                         end_dt, column):
+        # Since we don't have daily bcolz files for futures (yet), use minute
+        # bars to calculate the daily values.
+        data = []
+        data_groups = []
 
-                daily_data = self._get_daily_window_for_sid(
-                    sid,
-                    field_to_use,
-                    days_for_window[0:-1]
+        # get all the minutes for the days NOT including today
+        for day in days_for_window[:-1]:
+            minutes = self.env.market_minutes_for_day(day)
+
+            values_for_day = np.zeros(len(minutes), dtype=np.float64)
+
+            for idx, minute in enumerate(minutes):
+                minute_val = self._get_minute_spot_value_future(
+                    asset, column, minute
                 )
 
-                minute_data = self._get_minute_window_for_sid(
-                    sid,
-                    field_to_use,
-                    minutes_for_partial_day
-                )
+                values_for_day[idx] = minute_val
 
-                if field_to_use == 'volume':
-                    minute_value = np.sum(minute_data)
-                elif field_to_use == 'open':
-                    minute_value = minute_data[0]
-                elif field_to_use == 'close':
-                    minute_value = minute_data[-1]
-                elif field_to_use == 'high':
-                    minute_value = np.amax(minute_data)
-                elif field_to_use == 'low':
-                    minute_value = np.amin(minute_data)
+            data_groups.append(values_for_day)
 
-                # append the partial day.
-                daily_data[-1] = minute_value
+        # get the minutes for today
+        last_day_minutes = pd.date_range(
+            start=self.env.get_open_and_close(end_dt)[0],
+            end=end_dt,
+            freq="T"
+        )
 
-                data.append(daily_data)
+        values_for_last_day = np.zeros(len(last_day_minutes), dtype=np.float64)
 
-        return pd.DataFrame(np.array(data).T,
-                            index=days_for_window,
-                            columns=sids)
+        for idx, minute in enumerate(last_day_minutes):
+            minute_val = self._get_minute_spot_value_future(
+                asset, column, minute
+            )
 
-    def _get_history_minute_window(self, sids, end_dt, bar_count,
+            values_for_last_day[idx] = minute_val
+
+        data_groups.append(values_for_last_day)
+
+        for group in data_groups:
+            if len(group) == 0:
+                continue
+
+            if column == 'volume':
+                data.append(np.sum(group))
+            elif column == 'open':
+                data.append(group[0])
+            elif column == 'close':
+                data.append(group[-1])
+            elif column == 'high':
+                data.append(np.amax(group))
+            elif column == 'low':
+                data.append(np.amin(group))
+
+        return data
+
+    def _get_history_daily_window_equity(self, asset, days_for_window,
+                                         end_dt, field_to_use):
+        sid = int(asset)
+        ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
+
+        # get the start and end dates for this sid
+        end_date = self._get_asset_end_date(asset)
+
+        if ends_at_midnight or (days_for_window[-1] > end_date):
+            # two cases where we use daily data for the whole range:
+            # 1) the history window ends at midnight utc.
+            # 2) the last desired day of the window is after the
+            # last trading day, use daily data for the whole range.
+            return self._get_daily_window_for_sid(
+                asset,
+                field_to_use,
+                days_for_window,
+                extra_slot=False
+            )
+        else:
+            # for the last day of the desired window, use minute
+            # data and aggregate it.
+            all_minutes_for_day = self.env.market_minutes_for_day(
+                pd.Timestamp(end_dt.date()))
+
+            last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
+
+            # these are the minutes for the partial day
+            minutes_for_partial_day =\
+                all_minutes_for_day[0:(last_minute_idx + 1)]
+
+            daily_data = self._get_daily_window_for_sid(
+                sid,
+                field_to_use,
+                days_for_window[0:-1]
+            )
+
+            minute_data = self._get_minute_window_for_equity(
+                sid,
+                field_to_use,
+                minutes_for_partial_day
+            )
+
+            if field_to_use == 'volume':
+                minute_value = np.sum(minute_data)
+            elif field_to_use == 'open':
+                minute_value = minute_data[0]
+            elif field_to_use == 'close':
+                minute_value = minute_data[-1]
+            elif field_to_use == 'high':
+                minute_value = np.amax(minute_data)
+            elif field_to_use == 'low':
+                minute_value = np.amin(minute_data)
+
+            # append the partial day.
+            daily_data[-1] = minute_value
+
+            return daily_data
+
+    def _get_history_minute_window(self, assets, end_dt, bar_count,
                                    field_to_use):
         """
         Internal method that returns a dataframe containing history bars
@@ -549,31 +675,33 @@ class DataPortal(object):
             bars_to_prepend = bar_count - modified_minutes_length
             nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
 
-        if len(sids) == 0:
+        if len(assets) == 0:
             return pd.DataFrame(
                 None,
                 index=modified_minutes_for_window,
                 columns=None
             )
 
-        for sid in sids:
-            sid_minute_data = self._get_minute_window_for_sid(
-                int(sid),
+        for asset in assets:
+            asset_minute_data = self._get_minute_window_for_asset(
+                asset,
                 field_to_use,
                 modified_minutes_for_window
             )
 
             if bars_to_prepend != 0:
-                sid_minute_data = np.insert(sid_minute_data, 0,
-                                            nans_to_prepend)
+                asset_minute_data = np.insert(asset_minute_data, 0,
+                                              nans_to_prepend)
 
-            data.append(sid_minute_data)
+            data.append(asset_minute_data)
 
-        return pd.DataFrame(np.array(data).T,
-                            index=minutes_for_window,
-                            columns=sids)
+        return pd.DataFrame(
+            np.array(data).T,
+            index=minutes_for_window,
+            columns=map(int, assets)
+        )
 
-    def get_history_window(self, sids, end_dt, bar_count, frequency, field,
+    def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            ffill=True):
         """
         Public API method that returns a dataframe containing the requested
@@ -581,8 +709,8 @@ class DataPortal(object):
 
         Parameters
         ---------
-        sids : list
-            The sids whose data is desired.
+        assets : list of zipline.data.Asset objects
+            The assets whose data is desired.
 
         bar_count: int
             The number of bars desired.
@@ -606,11 +734,15 @@ class DataPortal(object):
         except KeyError:
             raise ValueError("Invalid history field: " + str(field))
 
+        # sanity check in case sids were passed in
+        assets = [(self.env.asset_finder.retrieve_asset(asset) if
+                   isinstance(asset, int) else asset) for asset in assets]
+
         if frequency == "1d":
-            df = self._get_history_daily_window(sids, end_dt, bar_count,
+            df = self._get_history_daily_window(assets, end_dt, bar_count,
                                                 field_to_use)
         elif frequency == "1m":
-            df = self._get_history_minute_window(sids, end_dt, bar_count,
+            df = self._get_history_minute_window(assets, end_dt, bar_count,
                                                  field_to_use)
         else:
             raise ValueError("Invalid frequency: {0}".format(frequency))
@@ -621,9 +753,9 @@ class DataPortal(object):
 
         return df
 
-    def _get_minute_window_for_sid(self, sid, field, minutes_for_window):
+    def _get_minute_window_for_asset(self, asset, field, minutes_for_window):
         """
-        Internal method that gets a window of adjusted minute data for a sid
+        Internal method that gets a window of adjusted minute data for an asset
         and specified date range.  Used to support the history API method for
         minute bars.
 
@@ -631,8 +763,8 @@ class DataPortal(object):
 
         Parameters
         ----------
-        sid : int
-            The sid whose data is desired.
+        asset : Asset
+            The asset whose data is desired.
 
         field: string
             The specific field to return.  "open", "high", "close_price", etc.
@@ -645,6 +777,36 @@ class DataPortal(object):
         -------
         A numpy array with requested values.
         """
+        if isinstance(asset, int):
+            asset = self.env.asset_finder.retrieve_asset(asset)
+
+        if isinstance(asset, Future):
+            return self._get_minute_window_for_future(asset, field,
+                                                      minutes_for_window)
+        else:
+            return self._get_minute_window_for_equity(asset, field,
+                                                      minutes_for_window)
+
+    def _get_minute_window_for_future(self, asset, field, minutes_for_window):
+        # THIS IS TEMPORARY.  For now, we are only exposing futures within
+        # equity trading hours (9:30 am to 4pm, Eastern).  The easiest way to
+        # do this is to simply do a spot lookup for each desired minute.
+        return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
+        for idx, minute in enumerate(minutes_for_window):
+            return_data[idx] = \
+                self._get_minute_spot_value_future(asset, field, minute)
+
+        # Note: an improvement could be to find the consecutive runs within
+        # minutes_for_window, and use them to read the underlying ctable
+        # more efficiently.
+
+        # Once futures are on 24-hour clock, then we can just grab all the
+        # requested minutes in one shot from the ctable.
+
+        # no adjustments for futures, yay.
+        return return_data
+
+    def _get_minute_window_for_equity(self, asset, field, minutes_for_window):
         # each sid's minutes are stored in a bcolz file
         # the bcolz file has 390 bars per day, starting at 1/2/2002, regardless
         # of when the asset started trading and regardless of half days.
@@ -652,7 +814,7 @@ class DataPortal(object):
 
         # find the position of start_dt in the entire timeline, go back
         # bar_count bars, and that's the unadjusted data
-        raw_data = self._open_minute_file(field, sid)
+        raw_data = self._open_minute_file(field, asset)
 
         start_idx = max(self._find_position_of_minute(minutes_for_window[0]),
                         0)
@@ -705,7 +867,7 @@ class DataPortal(object):
 
         self._apply_all_adjustments(
             return_data,
-            sid,
+            asset,
             minutes_for_window,
             field,
             self.MINUTE_PRICE_ADJUSTMENT_FACTOR
@@ -713,7 +875,7 @@ class DataPortal(object):
 
         return return_data
 
-    def _apply_all_adjustments(self, data, sid, dts, field,
+    def _apply_all_adjustments(self, data, asset, dts, field,
                                price_adj_factor=1.0):
         """
         Internal method that applies all the necessary adjustments on the
@@ -733,8 +895,8 @@ class DataPortal(object):
         data : np.array
             The data to be adjusted.
 
-        sid: integer
-            The sid whose data is being adjusted.
+        asset: Asset
+            The asset whose data is being adjusted.
 
         dts: pd.DateTimeIndex
             The list of minutes or days representing the desired window.
@@ -750,7 +912,7 @@ class DataPortal(object):
         """
         self._apply_adjustments_to_window(
             self._get_adjustment_list(
-                sid, self._splits_dict, "SPLITS"
+                asset, self._splits_dict, "SPLITS"
             ),
             data,
             dts,
@@ -760,7 +922,7 @@ class DataPortal(object):
         if field != 'volume':
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
-                    sid, self._mergers_dict, "MERGERS"
+                    asset, self._mergers_dict, "MERGERS"
                 ),
                 data,
                 dts,
@@ -769,7 +931,7 @@ class DataPortal(object):
 
             self._apply_adjustments_to_window(
                 self._get_adjustment_list(
-                    sid, self._dividends_dict, "DIVIDENDS"
+                    asset, self._dividends_dict, "DIVIDENDS"
                 ),
                 data,
                 dts,
@@ -824,7 +986,7 @@ class DataPortal(object):
 
         return int((390 * day_idx) + minutes_offset)
 
-    def _get_daily_window_for_sid(self, sid, field, days_in_window,
+    def _get_daily_window_for_sid(self, asset, field, days_in_window,
                                   extra_slot=True):
         """
         Internal method that gets a window of adjusted daily data for a sid
@@ -833,8 +995,8 @@ class DataPortal(object):
 
         Parameters
         ----------
-        sid : int
-            The sid whose data is desired.
+        asset : Asset
+            The asset whose data is desired.
 
         start_dt: pandas.Timestamp
             The start of the desired window of data.
@@ -873,6 +1035,7 @@ class DataPortal(object):
             return_array = np.zeros((bar_count,))
 
         return_array[:] = np.NAN
+        sid = int(asset)
 
         # find the start index in the daily file for this asset
         asset_file_index = daily_attrs['first_row'][str(sid)]
@@ -882,7 +1045,7 @@ class DataPortal(object):
         # Calculate the starting day to use (either the asset's first trading
         # day, or 1/1/2002 (which is the 3028th day in the trading calendar).
         first_trading_day_to_use = max(trading_days.searchsorted(
-            self._asset_start_dates[sid]), INDEX_OF_FIRST_TRADING_DAY)
+            self._asset_start_dates[asset]), INDEX_OF_FIRST_TRADING_DAY)
 
         # find the # of trading days between max(asset's first trade date,
         # 2002-01-02) and start_dt
@@ -964,13 +1127,13 @@ class DataPortal(object):
 
             idx += 1
 
-    def _get_adjustment_list(self, sid, adjustments_dict, table_name):
+    def _get_adjustment_list(self, asset, adjustments_dict, table_name):
         """
         Internal method that returns a list of adjustments for the given sid.
 
         Parameters
         ----------
-        sid : int
+        asset : Asset
             The asset for which to return adjustments.
 
         adjustments_dict: dict
@@ -988,12 +1151,15 @@ class DataPortal(object):
         if self._adjustment_reader is None:
             return []
 
-        if sid not in adjustments_dict:
-            adjustments_for_sid = self._adjustment_reader.\
-                get_adjustments_for_sid(table_name, sid)
-            adjustments_dict[sid] = adjustments_for_sid
+        sid = int(asset)
 
-        return adjustments_dict[sid]
+        try:
+            adjustments = adjustments_dict[sid]
+        except KeyError:
+            adjustments = adjustments_dict[sid] = self._adjustment_reader.\
+                get_adjustments_for_sid(table_name, sid)
+
+        return adjustments
 
     def get_equity_price_view(self, asset):
         """
@@ -1016,36 +1182,45 @@ class DataPortal(object):
 
         return view
 
-    def _check_is_currently_alive(self, name, dt):
+    def _check_is_currently_alive(self, asset, dt):
         if dt is None:
             dt = self.current_day
 
-        if name not in self._asset_start_dates:
-            self._get_asset_start_date(name)
+        sid = int(asset)
 
-        start_date = self._asset_start_dates[name]
-        if self._asset_start_dates[name] > dt:
+        if sid not in self._asset_start_dates:
+            self._get_asset_start_date(asset)
+
+        start_date = self._asset_start_dates[sid]
+        if self._asset_start_dates[sid] > dt:
             raise NoTradeDataAvailableTooEarly(
-                sid=name,
+                sid=sid,
                 dt=dt,
                 start_dt=start_date
             )
 
-        end_date = self._asset_end_dates[name]
-        if self._asset_end_dates[name] < dt:
+        end_date = self._asset_end_dates[sid]
+        if self._asset_end_dates[sid] < dt:
             raise NoTradeDataAvailableTooLate(
-                sid=name,
+                sid=sid,
                 dt=dt,
                 end_dt=end_date
             )
 
-    def _get_asset_start_date(self, sid):
+    def _get_asset_start_date(self, asset):
+        self._ensure_asset_dates(asset)
+        return self._asset_start_dates[asset]
+
+    def _get_asset_end_date(self, asset):
+        self._ensure_asset_dates(asset)
+        return self._asset_end_dates[asset]
+
+    def _ensure_asset_dates(self, asset):
+        sid = int(asset)
+
         if sid not in self._asset_start_dates:
-            asset = self._asset_finder.retrieve_asset(sid)
             self._asset_start_dates[sid] = asset.start_date
             self._asset_end_dates[sid] = asset.end_date
-
-        return self._asset_start_dates[sid]
 
     def get_splits(self, sids, dt):
         """
