@@ -4,6 +4,7 @@ Construction of sentinel objects.
 Sentinel objects are used when you only care to check for object identity.
 """
 import sys
+from textwrap import dedent
 
 
 def sentinel(name, doc=None):
@@ -15,10 +16,15 @@ def sentinel(name, doc=None):
         if doc == value.__doc__:
             return value
 
-        raise ValueError(
-            'attempted to create sentinel with a used name and a different'
-            ' docstring: %r\noriginal docstring:\n%s' % (name, value.__doc__),
-        )
+        raise ValueError(dedent(
+            """\
+            New sentinel value %r conflicts with an existing sentinel of the
+            same name.
+            Old sentinel docstring: %r
+            New sentinel docstring: %r
+            Resolve this conflict by changing the name of one of the sentinels.
+            """,
+        ) % (name, value.__doc__, doc))
 
     @object.__new__   # bind a single instance to the name 'Sentinel'
     class Sentinel(object):
@@ -45,7 +51,7 @@ def sentinel(name, doc=None):
     try:
         # traverse up one frame to find the module where this is defined
         cls.__module__ = sys._getframe(1).f_globals['__name__']
-    except (AttributeError, ValueError, KeyError):
+    except (ValueError, KeyError):
         # Couldn't get the name from the calling scope, just use None.
         cls.__module__ = None
 
