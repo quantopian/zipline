@@ -7,19 +7,25 @@ import sys
 
 
 def sentinel(name, doc=None):
-    @object.__new__   # bind a single instance to the name 'NotSpecified'
-    class result(object):
+    try:
+        return sentinel._cache[name, doc]  # memoized
+    except KeyError:
+        pass
+
+    @object.__new__   # bind a single instance to the name 'Sentinel'
+    class Sentinel(object):
         __doc__ = doc
         __slots__ = ('__weakref__',)
+        __name__ = name
 
         def __new__(cls):
-            raise TypeError("Can't construct new instances of %s" % name)
+            raise TypeError("Can't construct new instances of %r" % name)
 
         def __repr__(self):
-            return name
+            return 'sentinel(%r)' % name
 
         def __reduce__(self):
-            return name
+            return sentinel, (name, doc)
 
         def __deepcopy__(self, _memo):
             return self
@@ -27,14 +33,14 @@ def sentinel(name, doc=None):
         def __copy__(self):
             return self
 
-    cls = type(result)
-    cls.__name__ = name
+    cls = type(Sentinel)
     try:
         # traverse up one frame to find the module where this is defined
-        cls.__module__ = sys._getframe(1).f_globals.get(
-            '__name__',
-            '__main__',
-        )
-    except (AttributeError, ValueError):
-        pass
-    return result
+        cls.__module__ = sys._getframe(1).f_globals['__name__']
+    except (AttributeError, ValueError, KeyError):
+        # Couldn't get the name from the calling scope, just use None.
+        cls.__module__ = None
+
+    sentinel._cache[name, doc] = Sentinel  # cache result
+    return Sentinel
+sentinel._cache = {}
