@@ -46,6 +46,8 @@ Bug Fixes
 
 * Fixes an error raised in calculating beta when benchmark data were sparse.
   Instead `numpy.nan` is returned (:issue:`859`).
+* Fixed an issue pickling :func:`~zipline.utils.sentinel.sentinel` objects
+  (:issue:`872`).
 
 Performance
 ~~~~~~~~~~~
