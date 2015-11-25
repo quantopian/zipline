@@ -469,23 +469,21 @@ class BcolzDailyBarReader(object):
             col = self._spot_cols[colname] = self._table[colname][:]
         return col
 
-    def spot_price(self, sid, day, colname):
+    def sid_day_index(self, sid, day):
         """
         Parameters
         ----------
         sid : int
             The asset identifier.
-        day : datetime64
+        day : datetime64-like
             Midnight of the day for which data is requested.
-        colname : string
-            The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
 
         Returns
         -------
-        float
-            The spot price for colname of the given sid on the given day.
-            Raises a NoDataOnDate exception if there is no data available
-            for the given day and sid.
+        int
+            Index into the data tape for the given sid and day.
+            Raises a NoDataOnDate exception if the given day and sid is before
+            or after the date range of the equity.
         """
         day_loc = self._calendar.get_loc(day)
         offset = day_loc - self._calendar_offsets[sid]
@@ -498,7 +496,36 @@ class BcolzDailyBarReader(object):
             raise NoDataOnDate(
                 "No data on or after day={0} for sid={1}".format(
                     day, sid))
-        return self._spot_col(colname)[ix] * 0.001
+        return ix
+
+    def spot_price(self, sid, day, colname):
+        """
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        day : datetime64-like
+            Midnight of the day for which data is requested.
+        colname : string
+            The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
+
+        Returns
+        -------
+        float
+            The spot price for colname of the given sid on the given day.
+            Raises a NoDataOnDate exception if the given day and sid is before
+            or after the date range of the equity.
+            Returns -1 if the day is within the date range, but the price is
+            0.
+        """
+        ix = self.sid_day_index(sid, day)
+        price = self._spot_col(colname)[ix]
+        if price == 0:
+            return -1
+        if colname != 'volume':
+            return price * 0.001
+        else:
+            return price
 
 
 class SQLiteAdjustmentWriter(object):
