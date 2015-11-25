@@ -35,7 +35,7 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         """
         Compute values for `pipeline` between `start_date` and `end_date`.
 
-        Returns a DataFrame with a MultiIndex of (date, asset) pairs
+        Returns a DataFrame with a MultiIndex of (date, asset) pairs.
 
         Parameters
         ----------
