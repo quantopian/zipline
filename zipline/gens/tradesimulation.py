@@ -159,13 +159,9 @@ class AlgorithmSimulator(object):
                     algo.blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
 
-        if self.benchmark_source is not None:
-            def handle_benchmark(date):
-                algo.perf_tracker.all_benchmark_returns[date] = \
-                    self.benchmark_source.get_value(date)
-        else:
-            def handle_benchmark(date):
-                pass
+        def handle_benchmark(date):
+            algo.perf_tracker.all_benchmark_returns[date] = \
+                self.benchmark_source.get_value(date)
 
         with self.processor, ZiplineAPI(self.algo):
             for dt, action in self.clock:
