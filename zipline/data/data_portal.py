@@ -19,8 +19,13 @@ from logbook import Logger
 
 import numpy as np
 import pandas as pd
+from pandas.tslib import normalize_date
 
 from zipline.assets import Asset, Future, Equity
+from zipline.data.us_equity_pricing import (
+    BcolzDailyBarReader,
+    NoDataOnDate
+)
 
 from zipline.utils import tradingcalendar
 from zipline.errors import (
@@ -129,6 +134,11 @@ class DataPortal(object):
 
         self.DAILY_PRICE_ADJUSTMENT_FACTOR = 0.001
         self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
+
+        if daily_equities_path is not None:
+            self._daily_bar_reader = BcolzDailyBarReader(daily_equities_path)
+        else:
+            self._daily_bar_reader = None
 
     def handle_extra_source(self, source_df):
         """
@@ -335,6 +345,7 @@ class DataPortal(object):
 
         if self._data_frequency == "daily":
             day_to_use = dt or self.current_day
+            day_to_use = normalize_date(day_to_use)
             return self._get_daily_data(asset, column_to_use, day_to_use)
         else:
             dt_to_use = dt or self.current_dt
@@ -455,44 +466,15 @@ class DataPortal(object):
             return result
 
     def _get_daily_data(self, asset, column, dt):
-        dt = pd.Timestamp(dt.date(), tz='utc')
-        daily_data, daily_attrs = self._open_daily_file()
-
-        sid = int(asset)
-
-        # find the start index in the daily file for this asset
-        asset_file_index = daily_attrs['first_row'][str(sid)]
-
-        # find when the asset started trading
-        asset_data_start_date = max(self._get_asset_start_date(asset),
-                                    FIRST_TRADING_DAY)
-
-        tradingdays = tradingcalendar.trading_days
-
-        # figure out how many days it's been between now and when this
-        # asset starting trading
-        # FIXME can cache tradingdays.searchsorted(asset_data_start_date)
-        window_offset = tradingdays.searchsorted(dt) - \
-            tradingdays.searchsorted(asset_data_start_date)
-
-        # and use that offset to find our lookup index
-        lookup_idx = asset_file_index + window_offset
-
-        # sanity check
-        assert lookup_idx >= asset_file_index
-        assert lookup_idx <= daily_attrs['last_row'][str(sid)] + 1
-
-        ctable = daily_data[column]
-        raw_value = ctable[lookup_idx]
-
-        while raw_value == 0 and lookup_idx > asset_file_index:
-            lookup_idx -= 1
-            raw_value = ctable[lookup_idx]
-
-        if column != 'volume':
-            return raw_value * self.DAILY_PRICE_ADJUSTMENT_FACTOR
-        else:
-            return raw_value
+        while True:
+            try:
+                value = self._daily_bar_reader.spot_price(asset, dt, column)
+                if value != -1:
+                    return value
+                else:
+                    dt -= tradingcalendar.trading_day
+            except NoDataOnDate:
+                return 0
 
     def _get_history_daily_window(self, assets, end_dt, bar_count,
                                   field_to_use):

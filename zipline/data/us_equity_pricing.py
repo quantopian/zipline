@@ -486,7 +486,11 @@ class BcolzDailyBarReader(object):
             Raises a NoDataOnDate exception if the given day and sid is before
             or after the date range of the equity.
         """
-        day_loc = self._calendar.get_loc(day)
+        try:
+            day_loc = self._calendar.get_loc(day)
+        except:
+            raise NoDataOnDate("day={0} is outside of calendar={1}".format(
+                day, self._calendar))
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
             raise NoDataOnDate(
