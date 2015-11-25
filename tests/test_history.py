@@ -884,12 +884,12 @@ class HistoryTestCase(TestCase):
                 for i in range(0, 6):
                     self.assertEqual(len(window.iloc[i]), 0)
 
-    def test_daily_window_starts_before_1_2_2002(self):
+    def test_daily_window_starts_before_minute_data(self):
 
         env = TradingEnvironment()
         asset_info = make_simple_asset_info(
             [self.GS],
-            Timestamp('1999-05-04'),
+            Timestamp('1999-04-05'),
             Timestamp('2004-08-30'),
             ['GS']
         )
@@ -898,7 +898,8 @@ class HistoryTestCase(TestCase):
 
         window = portal.get_history_window(
             [self.GS],
-            pd.Timestamp("2002-01-04 14:35:00", tz='UTC'),
+            # 3rd day of daily data for GS, minute data starts in 2002.
+            pd.Timestamp("1999-04-07 14:35:00", tz='UTC'),
             10,
             "1d",
             "low"

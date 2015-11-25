@@ -186,8 +186,8 @@ class TestBenchmark(TestCase):
 
         days_to_use = self.sim_params.trading_days
 
-        # first value should be 0.10, coming from daily data
-        self.assertAlmostEquals(0.10, source.get_value(days_to_use[0]))
+        # first value should be 0.0, coming from daily data
+        self.assertAlmostEquals(0.0, source.get_value(days_to_use[0]))
 
         manually_calculated = self.data_portal.get_history_window(
             [2], days_to_use[-1], len(days_to_use), "1d", "close_price"

@@ -3,6 +3,7 @@ from zipline.errors import (
     BenchmarkAssetNotAvailableTooEarly,
     BenchmarkAssetNotAvailableTooLate
 )
+from zipline.data.us_equity_pricing import NoDataOnDate
 
 
 class BenchmarkSource(object):
@@ -112,44 +113,40 @@ class BenchmarkSource(object):
 
             return benchmark_series.pct_change()[1:]
         else:
-            # get the window of close prices for benchmark_sid from the last
-            # trading day of the simulation, going up to one day before the
-            # simulation start day (so that we can get the % change on day 1)
-            benchmark_series = data_portal.get_history_window(
-                [sid],
-                trading_days[-1],
-                bar_count=len(trading_days) + 1,
-                frequency="1d",
-                field="price",
-                ffill=True
-            )[sid]
-
-            # now, we need to check if we can safely go use the
-            # one-day-before-sim-start value, by seeing if the asset was
-            # trading that day.
-            trading_day_before_sim_start = \
-                env.previous_trading_day(trading_days[0])
-
-            if self.benchmark_asset.start_date > trading_day_before_sim_start:
-                # we can't go back one day before sim start, because the asset
-                # didn't start trading until the same day as the sim start.
-                # instead, we'll use the first available minute value of the
-                # first sim day.
-                minutes_in_first_day = \
-                    env.market_minutes_for_day(trading_days[0])
-
-                # get a minute history window of the first day
-                minute_window = data_portal.get_history_window(
+            try:
+                # get the window of close prices for benchmark_sid from the
+                # last trading day of the simulation, going up to one day
+                # before the simulation start day (so that we can get the %
+                # change on day 1)
+                benchmark_series = data_portal.get_history_window(
                     [sid],
-                    minutes_in_first_day[-1],
-                    bar_count=len(minutes_in_first_day),
-                    frequency="1m",
+                    trading_days[-1],
+                    bar_count=len(trading_days) + 1,
+                    frequency="1d",
+                    field="price",
+                    ffill=True
+                )[sid]
+                return benchmark_series.pct_change()[1:]
+            except NoDataOnDate:
+                # Attempt to handle case where stock data starts on first
+                # day, in this case use the open to close return.
+                benchmark_series = data_portal.get_history_window(
+                    [sid],
+                    trading_days[-1],
+                    bar_count=len(trading_days),
+                    frequency="1d",
                     field="price",
                     ffill=True
                 )[sid]
 
-                # find the first non-zero value
-                value_to_use = minute_window[minute_window != 0][0]
-                benchmark_series[0] = value_to_use
+                # get a minute history window of the first day
+                first_open = data_portal.get_spot_value(
+                    sid, 'open', trading_days[0])
+                first_close = data_portal.get_spot_value(
+                    sid, 'close', trading_days[0])
 
-            return benchmark_series.pct_change()[1:]
+                first_day_return = (first_close - first_open) / first_open
+
+                returns = benchmark_series.pct_change()[:]
+                returns[0] = first_day_return
+                return returns
