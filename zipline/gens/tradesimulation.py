@@ -159,6 +159,14 @@ class AlgorithmSimulator(object):
                     algo.blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
 
+        if self.benchmark_source is not None:
+            def handle_benchmark(date):
+                algo.perf_tracker.all_benchmark_returns[date] = \
+                    self.benchmark_source.get_value(date)
+        else:
+            def handle_benchmark(date):
+                pass
+
         with self.processor, ZiplineAPI(self.algo):
             for dt, action in self.clock:
                 if action == DATA_AVAILABLE:
@@ -166,12 +174,10 @@ class AlgorithmSimulator(object):
                 elif action == ONCE_A_DAY:
                     once_a_day(dt)
                 elif action == CALC_DAILY_PERFORMANCE:
-                    algo.perf_tracker.all_benchmark_returns[dt] = \
-                        self.benchmark_source.get_value(dt)
+                    handle_benchmark(dt)
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == CALC_MINUTE_PERFORMANCE:
-                    algo.perf_tracker.all_benchmark_returns[dt] = \
-                        self.benchmark_source.get_value(dt)
+                    handle_benchmark(dt)
                     minute_msg, daily_msg = \
                         self._get_minute_message(dt, algo, algo.perf_tracker)
 

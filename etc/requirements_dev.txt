@@ -57,3 +57,6 @@ Markdown==2.6.2
 futures==3.0.3
 requests-futures==0.9.5
 piprot==0.9.1
+
+# For mocking out requests fetches
+responses==0.4.0

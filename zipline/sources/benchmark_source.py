@@ -95,7 +95,7 @@ class BenchmarkSource(object):
         A pd.Series, indexed by trading day, whose values represent the %
         change from close to close.
         """
-        if sid is None:
+        if sid is None and self.emission_rate == "daily":
             # get benchmark info from trading environment
             return env.benchmark_returns[trading_days[0]:trading_days[-1]]
         elif self.emission_rate == "minute":

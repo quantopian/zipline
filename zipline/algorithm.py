@@ -416,13 +416,16 @@ class TradingAlgorithm(object):
                 self.clock = DailySimulationClock(self.sim_params.trading_days)
 
     def create_benchmark_source(self):
-        return BenchmarkSource(
-            self.benchmark_sid,
-            self.trading_environment,
-            self.sim_params.trading_days,
-            self.data_portal,
-            emission_rate=self.sim_params.emission_rate,
-        )
+        if self.benchmark_sid is not None:
+            return BenchmarkSource(
+                self.benchmark_sid,
+                self.trading_environment,
+                self.sim_params.trading_days,
+                self.data_portal,
+                emission_rate=self.sim_params.emission_rate,
+            )
+
+        return None
 
     def _create_generator(self, sim_params):
         """
