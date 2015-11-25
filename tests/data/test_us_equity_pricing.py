@@ -291,6 +291,11 @@ class BcolzDailyBarTestCase(TestCase):
                                   'close')
         self.assertEqual(235651.0, price)
 
+        # Ensure that volume does not have float adjustment applied.
+        volume = reader.spot_price(1, Timestamp('2015-06-02', tz='UTC'),
+                                   'volume')
+        self.assertEqual(145631, volume)
+
     def test_unadjusted_spot_price_no_data(self):
         table = self.writer.write(self.dest, self.trading_days, self.assets)
         reader = BcolzDailyBarReader(table)
