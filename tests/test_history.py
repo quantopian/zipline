@@ -924,7 +924,7 @@ class HistoryTestCase(TestCase):
                 [self.GS],
                 pd.Timestamp("2001-12-31 14:35:00", tz='UTC'),
                 50,
-                "1d",
+                "1m",
                 "close_price"
             )
 
