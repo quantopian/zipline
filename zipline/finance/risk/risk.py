@@ -93,8 +93,8 @@ def sharpe_ratio(algorithm_return, treasury_return):
     http://en.wikipedia.org/wiki/Sharpe_ratio
 
     Args:
-        algorithm_return (float): Daily algorithm return percentage.
-        treasury_return (float): Annual treasury return percentage.
+        algorithm_return (array-like): Daily algorithm return percentage.
+        treasury_return (array-like): Daily treasury return percentage.
 
     Returns:
         float. The Sharpe ratio.
@@ -102,15 +102,14 @@ def sharpe_ratio(algorithm_return, treasury_return):
     if len(algorithm_return) < 2:
         return np.nan
 
+    if len(algorithm_return) != len(treasury_return):
+        raise ValueError("the length of algorithm_return must be the same as treasury_return's")
     # compute daily returns from provided annual treasury yields
-    if treasury_return != 0:
-        treasury_return_daily = (1 + treasury_return)**(1/252) - 1
 
-    return_risk_adj = algorithm_return - treasury_return_daily
+    return_risk_adj = algorithm_return - treasury_return
 
     return np.mean(return_risk_adj) / \
-        np.std(return_risk_adj) * \
-        np.sqrt(252)
+        np.std(return_risk_adj)
 
 
 def downside_risk(algorithm_returns, mean_returns, normalization_factor):
