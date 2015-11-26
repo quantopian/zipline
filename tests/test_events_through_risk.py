@@ -15,6 +15,7 @@
 
 import unittest
 import datetime
+import pandas as pd
 import pytz
 
 import numpy as np
@@ -77,9 +78,9 @@ class TestEventsThroughRisk(unittest.TestCase):
 
         algo = BuyAndHoldAlgorithm(sim_params=sim_params, env=self.env)
 
-        first_date = datetime.datetime(2006, 1, 3, tzinfo=pytz.utc)
-        second_date = datetime.datetime(2006, 1, 4, tzinfo=pytz.utc)
-        third_date = datetime.datetime(2006, 1, 5, tzinfo=pytz.utc)
+        first_date = pd.Timestamp('2006-01-03', tz='UTC')
+        second_date = pd.Timestamp('2006-01-04', tz='UTC')
+        third_date = pd.Timestamp('2006-01-05', tz='UTC')
 
         trade_bar_data = [
             Event({

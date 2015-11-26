@@ -1973,22 +1973,24 @@ class TestRemoveData(TestCase):
     tests if futures data is removed after expiry
     """
     def setUp(self):
-        dt = pd.Timestamp('2015-01-01', tz='UTC')
-        metadata = {0: {'symbol': 'X',
-                        'expiration_date': dt + timedelta(days=5),
-                        'end_date': dt + timedelta(days=5)},
-                    1: {'symbol': 'Y',
-                        'expiration_date': dt + timedelta(days=7),
-                        'end_date': dt + timedelta(days=7)}}
-
+        dt = pd.Timestamp('2015-01-02', tz='UTC')
         env = TradingEnvironment()
+        ix = env.trading_days.get_loc(dt)
+
+        metadata = {0: {'symbol': 'X',
+                        'expiration_date': env.trading_days[ix + 5],
+                        'end_date': env.trading_days[ix + 6]},
+                    1: {'symbol': 'Y',
+                        'expiration_date': env.trading_days[ix + 7],
+                        'end_date': env.trading_days[ix + 8]}}
+
         env.write_data(futures_data=metadata)
 
-        index_x = pd.date_range(dt, periods=5)
+        index_x = env.trading_days[ix:ix + 5]
         data_x = pd.DataFrame([[1, 100], [2, 100], [3, 100], [4, 100],
                                [5, 100]],
                               index=index_x, columns=['price', 'volume'])
-        index_y = index_x.shift(2)
+        index_y = env.trading_days[ix:ix + 5].shift(2)
         data_y = pd.DataFrame([[6, 100], [7, 100], [8, 100], [9, 100],
                                [10, 100]],
                               index=index_y, columns=['price', 'volume'])
@@ -2000,8 +2002,7 @@ class TestRemoveData(TestCase):
     def test_remove_data(self):
         self.algo.run(self.source)
 
-        expected_length = [1, 2, 2, 2, 2, 1]
+        expected_lengths = [1, 1, 2, 2, 2, 2, 1]
         # initially only data for X should be sent and on the last day only
         # data for Y should be sent since X is expired
-        for i, length in enumerate(self.algo.data):
-            self.assertEqual(expected_length[i], length, i)
+        np.testing.assert_array_equal(self.algo.data, expected_lengths)

@@ -939,7 +939,7 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
 
 class TestRemoveDataAlgo(TradingAlgorithm):
     def initialize(self, *args, **kwargs):
-        self.data = np.zeros(6)
+        self.data = np.zeros(7)
         self.i = 0
 
     def handle_data(self, data):

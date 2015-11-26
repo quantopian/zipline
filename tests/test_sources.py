@@ -123,12 +123,7 @@ class TestDataFrameSource(TestCase):
         self.assertEqual(5, event.sid)
         event = next(source)
         self.assertEqual(4, event.sid)
-        try:
-            x = False
-            event = next(source)
-        except StopIteration:
-            x = True
-        self.assertTrue(x)
+        self.assertRaises(StopIteration, next, source)
 
 
 class TestRandomWalkSource(TestCase):
