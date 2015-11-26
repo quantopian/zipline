@@ -41,7 +41,7 @@ from zipline.utils.serialization_utils import (
 log = logbook.Logger('Risk Cumulative')
 
 
-choose_treasury = functools.partial(choose_treasury, lambda *args: '10year',
+choose_treasury = functools.partial(choose_treasury, lambda *args: '3month',
                                     compound=False)
 
 
@@ -390,10 +390,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        return sharpe_ratio(
-            self.algorithm_volatility[self.latest_dt_loc],
-            self.annualized_mean_returns_cont[self.latest_dt_loc],
-            self.daily_treasury[self.latest_dt.date()])
+        return sharpe_ratio(self.algorithm_returns,
+                            self.daily_treasury[:self.latest_dt.date()])
 
     def calculate_sortino(self):
         """
