@@ -88,22 +88,28 @@ def check_entry(key, value):
 ############################
 
 
-def sharpe_ratio(algorithm_volatility, algorithm_return, treasury_return):
+def sharpe_ratio(algorithm_return, treasury_return):
     """
     http://en.wikipedia.org/wiki/Sharpe_ratio
 
     Args:
-        algorithm_volatility (float): Algorithm volatility.
-        algorithm_return (float): Algorithm return percentage.
-        treasury_return (float): Treasury return percentage.
+        algorithm_return (array-like): Daily algorithm return percentage.
+        treasury_return (array-like): Daily treasury return percentage.
 
     Returns:
         float. The Sharpe ratio.
     """
-    if zp_math.tolerant_equals(algorithm_volatility, 0):
+    if len(algorithm_return) < 2:
         return np.nan
 
-    return (algorithm_return - treasury_return) / algorithm_volatility
+    if len(algorithm_return) != len(treasury_return):
+        raise ValueError("the length of algorithm_return must be the same as treasury_return's")
+    # compute daily returns from provided annual treasury yields
+
+    return_risk_adj = algorithm_return - treasury_return
+
+    return np.mean(return_risk_adj) / \
+        np.std(return_risk_adj)
 
 
 def downside_risk(algorithm_returns, mean_returns, normalization_factor):
