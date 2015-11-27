@@ -20,6 +20,7 @@ from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas.tslib import normalize_date
+from six import iteritems
 
 from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import (
@@ -187,7 +188,7 @@ class DataPortal(object):
         for group_name in group_names:
             group_dict[group_name] = grouped_by_sid.get_group(group_name)
 
-        for identifier, df in group_dict.iteritems():
+        for identifier, df in iteritems(group_dict):
             # before reindexing, save the earliest and latest dates
             earliest_date = df.index[0]
             latest_date = df.index[-1]

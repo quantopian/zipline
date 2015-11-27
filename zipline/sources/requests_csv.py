@@ -1,4 +1,4 @@
-from six import StringIO
+from six import StringIO, iteritems
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import hashlib
@@ -14,7 +14,8 @@ import requests
 from zipline.errors import (
     MultipleSymbolsFound,
     SymbolNotFound,
-    ZiplineError)
+    ZiplineError
+)
 from zipline.protocol import (
     DATASOURCE_TYPE,
     Event
@@ -113,7 +114,7 @@ SHARED_REQUESTS_KWARGS = {
 
 
 def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
-    requests_kwargs = {key: val for (key, val) in kwargs.iteritems()
+    requests_kwargs = {key: val for (key, val) in iteritems(kwargs)
                        if key in ALLOWED_REQUESTS_KWARGS}
     if params_checker is not None:
         url, s_params = params_checker(url)
@@ -233,7 +234,7 @@ class PandasCSV(object):
         return parsed
 
     def mask_pandas_args(self, kwargs):
-        pandas_kwargs = {key: val for (key, val) in kwargs.iteritems()
+        pandas_kwargs = {key: val for (key, val) in iteritems(kwargs)
                          if key in ALLOWED_READ_CSV_KWARGS}
         if 'usecols' in pandas_kwargs:
             usecols = pandas_kwargs['usecols']
@@ -475,7 +476,7 @@ class PandasRequestsCSV(PandasCSV):
                                **kwargs)
 
         remaining_kwargs = {
-            k: v for k, v in kwargs.iteritems()
+            k: v for k, v in iteritems(kwargs)
             if k not in self.requests_kwargs
         }
 
@@ -499,6 +500,7 @@ class PandasRequestsCSV(PandasCSV):
 
         self.fetch_size = None
         self.fetch_hash = None
+
         self.df = self.load_df()
 
         self.special_params_checker = special_params_checker
@@ -536,7 +538,11 @@ class PandasRequestsCSV(PandasCSV):
         content_length = 0
         logger.info('{} connection established in {:.1f} seconds'.format(
             url, response.elapsed.total_seconds()))
-        for chunk in response.iter_content(self.CONTENT_CHUNK_SIZE):
+
+        # use the decode_unicode flag to ensure that the output of this is
+        # a string, and not bytes.
+        for chunk in response.iter_content(self.CONTENT_CHUNK_SIZE,
+                                           decode_unicode=True):
             if content_length > self.MAX_DOCUMENT_SIZE:
                 raise Exception('Document size too big.')
             if chunk:
@@ -551,8 +557,12 @@ class PandasRequestsCSV(PandasCSV):
         data = self.fetch_url(self.url)
         fd = StringIO()
 
-        for chunk in data:
-            fd.write(chunk)
+        if isinstance(data, str):
+            fd.write(data)
+        else:
+            for chunk in data:
+                fd.write(chunk)
+
         self.fetch_size = fd.tell()
 
         fd.seek(0)
@@ -560,7 +570,8 @@ class PandasRequestsCSV(PandasCSV):
         try:
             # see if pandas can parse csv data
             frames = read_csv(fd, **self.pandas_kwargs)
-            frames_hash = hashlib.md5(fd.getvalue())
+
+            frames_hash = hashlib.md5(str(fd.getvalue()).encode('utf-8'))
             self.fetch_hash = frames_hash.hexdigest()
         except pd.parser.CParserError:
             # could not parse the data, raise exception
