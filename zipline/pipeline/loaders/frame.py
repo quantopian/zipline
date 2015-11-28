@@ -1,8 +1,9 @@
 """
 PipelineLoader accepting a DataFrame as input.
 """
+from functools import partial
+
 from numpy import (
-    float64,
     ix_,
     zeros,
 )
@@ -13,21 +14,9 @@ from pandas import (
     Int64Index,
 )
 from zipline.lib.adjusted_array import AdjustedArray
-from zipline.lib.adjustment import (
-    Float64Add,
-    Float64Multiply,
-    Float64Overwrite,
-)
-
+from zipline.lib.adjustment import make_adjustment_from_labels
 from .base import PipelineLoader
 
-
-ADD, MULTIPLY, OVERWRITE = range(3)
-ADJUSTMENT_CONSTRUCTORS = {
-    (float64, ADD): Float64Add.from_assets_and_dates,
-    (float64, MULTIPLY): Float64Multiply.from_assets_and_dates,
-    (float64, OVERWRITE): Float64Overwrite.from_assets_and_dates,
-}
 ADJUSTMENT_COLUMNS = Index([
     'sid',
     'value',
@@ -106,6 +95,8 @@ class DataFrameLoader(PipelineLoader):
             ...
         }
         """
+        make_adjustment = partial(make_adjustment_from_labels, dates, assets)
+
         min_date, max_date = dates[[0, -1]]
         # TODO: Consider porting this to Cython.
         if len(self.adjustments) == 0:
@@ -149,14 +140,7 @@ class DataFrameLoader(PipelineLoader):
             # Look up the approprate Adjustment constructor based on the value
             # of `kind`.
             current_date_adjustments.append(
-                ADJUSTMENT_CONSTRUCTORS[type(value), kind](
-                    dates,
-                    assets,
-                    start_date,
-                    end_date,
-                    sid,
-                    value,
-                ),
+                make_adjustment(start_date, end_date, sid, kind, value)
             )
         return out
 

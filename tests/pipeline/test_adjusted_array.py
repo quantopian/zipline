@@ -1,6 +1,7 @@
 """
 Tests for chunked adjustments.
 """
+from itertools import chain
 from textwrap import dedent
 from unittest import TestCase
 
@@ -13,9 +14,18 @@ from numpy import (
 from numpy.testing import assert_array_equal
 from six.moves import zip_longest
 
-from zipline.lib.adjustment import Float64Multiply, Float64Overwrite
-from zipline.lib.adjusted_array import AdjustedArray, NOMASK
 from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
+from zipline.lib.adjustment import (
+    Datetime64Overwrite,
+    Float64Multiply,
+    Float64Overwrite,
+)
+from zipline.lib.adjusted_array import AdjustedArray, NOMASK
+from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
+    float64_dtype,
+    make_datetime64ns,
+)
 
 
 def num_windows_of_length_M_on_buffers_of_length_N(M, N):
@@ -39,11 +49,23 @@ def valid_window_lengths(underlying_buffer_length):
     return iter(range(1, underlying_buffer_length + 1))
 
 
+def value_with_dtype(dtype, value):
+    """
+    Make a value with the specified numpy dtype.
+    """
+    name = dtype.name
+    if name.startswith('datetime64'):
+        if name != 'datetime64[ns]':
+            raise TypeError("Expected datetime64[ns], but got %s." % name)
+        return make_datetime64ns(value)
+    return dtype.type(value)
+
+
 def _gen_unadjusted_cases(dtype):
 
     nrows = 6
     ncols = 3
-    data = arange(nrows * ncols, dtype=dtype).reshape(nrows, ncols)
+    data = arange(nrows * ncols).astype(dtype).reshape(nrows, ncols)
 
     for windowlen in valid_window_lengths(nrows):
 
@@ -52,7 +74,7 @@ def _gen_unadjusted_cases(dtype):
         )
 
         yield (
-            "length_%d" % windowlen,
+            "dtype_%s_length_%d" % (dtype, windowlen),
             data,
             windowlen,
             {},
@@ -77,7 +99,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
     We then build all legal windows over these buffers.
     """
     adjustment_type = {
-        float: Float64Multiply,
+        float64_dtype: Float64Multiply,
     }[dtype]
 
     nrows, ncols = 6, 3
@@ -87,7 +109,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
 
     # Note that row indices are inclusive!
     adjustments[1] = [
-        adjustment_type(0, 0, 0, 0, dtype(2)),
+        adjustment_type(0, 0, 0, 0, value_with_dtype(dtype, 2)),
     ]
     buffer_as_of[1] = array([[2, 1, 1],
                              [1, 1, 1],
@@ -100,8 +122,8 @@ def _gen_multiplicative_adjustment_cases(dtype):
     buffer_as_of[2] = buffer_as_of[1]
 
     adjustments[3] = [
-        adjustment_type(1, 2, 1, 1, dtype(3)),
-        adjustment_type(0, 1, 0, 0, dtype(4)),
+        adjustment_type(1, 2, 1, 1, value_with_dtype(dtype, 3)),
+        adjustment_type(0, 1, 0, 0, value_with_dtype(dtype, 4)),
     ]
     buffer_as_of[3] = array([[8, 1, 1],
                              [4, 3, 1],
@@ -111,7 +133,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
                              [1, 1, 1]], dtype=dtype)
 
     adjustments[4] = [
-        adjustment_type(0, 3, 2, 2, dtype(5))
+        adjustment_type(0, 3, 2, 2, value_with_dtype(dtype, 5))
     ]
     buffer_as_of[4] = array([[8, 1, 5],
                              [4, 3, 5],
@@ -121,8 +143,8 @@ def _gen_multiplicative_adjustment_cases(dtype):
                              [1, 1, 1]], dtype=dtype)
 
     adjustments[5] = [
-        adjustment_type(0, 4, 1, 1, dtype(6)),
-        adjustment_type(2, 2, 2, 2, dtype(7)),
+        adjustment_type(0, 4, 1, 1, value_with_dtype(dtype, 6)),
+        adjustment_type(2, 2, 2, 2, value_with_dtype(dtype, 7)),
     ]
     buffer_as_of[5] = array([[8,  6,  5],
                              [4, 18,  5],
@@ -142,9 +164,9 @@ def _gen_overwrite_adjustment_cases(dtype):
     multiplicative adjustments.  The only difference is the semantics of how
     the adjustments are expected to modify the arrays.
     """
-
     adjustment_type = {
-        float: Float64Overwrite,
+        float64_dtype: Float64Overwrite,
+        datetime64ns_dtype: Datetime64Overwrite,
     }[dtype]
 
     nrows, ncols = 6, 3
@@ -154,7 +176,7 @@ def _gen_overwrite_adjustment_cases(dtype):
 
     # Note that row indices are inclusive!
     adjustments[1] = [
-        adjustment_type(0, 0, 0, 0, dtype(1)),
+        adjustment_type(0, 0, 0, 0, value_with_dtype(dtype, 1)),
     ]
     buffer_as_of[1] = array([[1, 2, 2],
                              [2, 2, 2],
@@ -167,8 +189,8 @@ def _gen_overwrite_adjustment_cases(dtype):
     buffer_as_of[2] = buffer_as_of[1]
 
     adjustments[3] = [
-        adjustment_type(1, 2, 1, 1, dtype(3)),
-        adjustment_type(0, 1, 0, 0, dtype(4)),
+        adjustment_type(1, 2, 1, 1, value_with_dtype(dtype, 3)),
+        adjustment_type(0, 1, 0, 0, value_with_dtype(dtype, 4)),
     ]
     buffer_as_of[3] = array([[4, 2, 2],
                              [4, 3, 2],
@@ -178,7 +200,7 @@ def _gen_overwrite_adjustment_cases(dtype):
                              [2, 2, 2]], dtype=dtype)
 
     adjustments[4] = [
-        adjustment_type(0, 3, 2, 2, dtype(5))
+        adjustment_type(0, 3, 2, 2, value_with_dtype(dtype, 5))
     ]
     buffer_as_of[4] = array([[4, 2, 5],
                              [4, 3, 5],
@@ -188,8 +210,8 @@ def _gen_overwrite_adjustment_cases(dtype):
                              [2, 2, 2]], dtype=dtype)
 
     adjustments[5] = [
-        adjustment_type(0, 4, 1, 1, dtype(6)),
-        adjustment_type(2, 2, 2, 2, dtype(7)),
+        adjustment_type(0, 4, 1, 1, value_with_dtype(dtype, 6)),
+        adjustment_type(2, 2, 2, 2, value_with_dtype(dtype, 7)),
     ]
     buffer_as_of[5] = array([[4,  6,  5],
                              [4,  6,  5],
@@ -215,7 +237,7 @@ def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
         )
 
         yield (
-            "length_%d" % windowlen,
+            "dtype_%s_length_%d" % (baseline.dtype, windowlen),
             baseline,
             windowlen,
             adjustments,
@@ -234,20 +256,27 @@ def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
 
 class AdjustedArrayTestCase(TestCase):
 
-    @parameterized.expand(_gen_unadjusted_cases(float))
+    @parameterized.expand(
+        chain(
+            _gen_unadjusted_cases(float64_dtype),
+            _gen_unadjusted_cases(datetime64ns_dtype),
+        )
+    )
     def test_no_adjustments(self,
                             name,
                             data,
                             lookback,
                             adjustments,
                             expected):
+
         array = AdjustedArray(data, NOMASK, adjustments)
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(lookback)
             for yielded, expected_yield in zip_longest(window_iter, expected):
+                self.assertEqual(yielded.dtype, data.dtype)
                 assert_array_equal(yielded, expected_yield)
 
-    @parameterized.expand(_gen_multiplicative_adjustment_cases(float))
+    @parameterized.expand(_gen_multiplicative_adjustment_cases(float64_dtype))
     def test_multiplicative_adjustments(self,
                                         name,
                                         data,
@@ -261,7 +290,12 @@ class AdjustedArrayTestCase(TestCase):
             for yielded, expected_yield in zip_longest(window_iter, expected):
                 assert_array_equal(yielded, expected_yield)
 
-    @parameterized.expand(_gen_overwrite_adjustment_cases(float))
+    @parameterized.expand(
+        chain(
+            _gen_overwrite_adjustment_cases(float64_dtype),
+            _gen_overwrite_adjustment_cases(datetime64ns_dtype),
+        )
+    )
     def test_overwrite_adjustment_cases(self,
                                         name,
                                         data,
@@ -272,6 +306,7 @@ class AdjustedArrayTestCase(TestCase):
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(lookback)
             for yielded, expected_yield in zip_longest(window_iter, expected):
+                self.assertEqual(yielded.dtype, data.dtype)
                 assert_array_equal(yielded, expected_yield)
 
     def test_invalid_lookback(self):
@@ -315,7 +350,7 @@ class AdjustedArrayTestCase(TestCase):
 
         expected = dedent(
             """\
-            Adjusted Array:
+            Adjusted Array (float64):
 
             Data:
             array([[  0.,   1.,   2.],
@@ -329,4 +364,5 @@ class AdjustedArrayTestCase(TestCase):
 last_col=0, value=4.000000)]}
             """
         )
-        self.assertEqual(expected, adj_array.inspect())
+        got = adj_array.inspect()
+        self.assertEqual(expected, got)

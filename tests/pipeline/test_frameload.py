@@ -13,16 +13,16 @@ from pandas import (
 )
 
 from zipline.lib.adjustment import (
+    ADD,
     Float64Add,
     Float64Multiply,
     Float64Overwrite,
+    MULTIPLY,
+    OVERWRITE,
 )
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import (
-    ADD,
     DataFrameLoader,
-    MULTIPLY,
-    OVERWRITE,
 )
 from zipline.utils.tradingcalendar import trading_day
 

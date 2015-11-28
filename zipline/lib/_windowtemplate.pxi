@@ -14,6 +14,8 @@ zipline.lib._datewindow
 from numpy cimport ndarray
 from numpy import asarray
 
+ctypedef ctype[:, :] databuffer
+
 
 cdef class AdjustedArrayWindow:
     """
@@ -29,20 +31,24 @@ cdef class AdjustedArrayWindow:
     The arrays yielded by this iterator are always views over the underlying
     data.
     """
-    cdef readonly Py_ssize_t window_length
-    cdef Py_ssize_t anchor, max_anchor, next_adj
-    cdef dict adjustments
-    cdef list adjustment_indices
-    # ctype must be defined by the file into which this is being copied.
-    cdef ctype[:, :] data
+    cdef:
+        # ctype must be defined by the file into which this is being copied.
+        databuffer data
+        object viewtype
+        readonly Py_ssize_t window_length
+        Py_ssize_t anchor, max_anchor, next_adj
+        dict adjustments
+        list adjustment_indices
 
     def __cinit__(self,
-                  ctype[:, :] data not None,
-                  dict adjustments,
+                  databuffer data not None,
+                  object viewtype not None,
+                  dict adjustments not None,
                   Py_ssize_t offset,
                   Py_ssize_t window_length):
 
         self.data = data
+        self.viewtype = viewtype
         self.adjustments = adjustments
         self.adjustment_indices = sorted(adjustments, reverse=True)
         self.window_length = window_length
@@ -59,7 +65,7 @@ cdef class AdjustedArrayWindow:
 
     def __next__(self):
         cdef:
-            ndarray[ctype, ndim=2] out
+            ndarray out
             object adjustment
             Py_ssize_t start, anchor
 
@@ -81,8 +87,7 @@ cdef class AdjustedArrayWindow:
                 self.next_adj = self.max_anchor
 
         start = anchor - self.window_length
-        # dtype must be defined by the file into which this is being copied.
-        out = asarray(self.data[start:self.anchor], dtype=dtype)
+        out = asarray(self.data[start:self.anchor]).view(self.viewtype)
         out.setflags(write=False)
 
         self.anchor += 1
@@ -94,5 +99,5 @@ cdef class AdjustedArrayWindow:
             self.window_length,
             self.anchor,
             self.max_anchor,
-            dtype,
+            self.viewtype,
         )

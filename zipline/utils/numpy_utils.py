@@ -1,7 +1,20 @@
 """
 Utilities for working with numpy arrays.
 """
+from numpy import dtype, datetime64
 from numpy.lib.stride_tricks import as_strided
+
+float64_dtype = dtype('float64')
+datetime64ns_dtype = dtype('datetime64[ns]')
+
+
+def make_datetime64ns(value):
+    """
+    Wrapper around the datetime64 constructor that uses 'ns' as a unit.
+    """
+    # This can't just be a partial because datetime64 is a C function and
+    # doesn't accept kwargs.
+    return datetime64(value, 'ns')
 
 
 def repeat_first_axis(array, count):

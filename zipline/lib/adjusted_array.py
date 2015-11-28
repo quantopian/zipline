@@ -1,34 +1,49 @@
-from numpy import bool_, datetime64, nan, ndarray
+from textwrap import dedent
+
+from numpy import (
+    bool_,
+    dtype,
+    float32,
+    float64,
+    int32,
+    int64,
+    nan,
+    ndarray,
+    uint32,
+    uint8,
+)
 from zipline.errors import (
     WindowLengthNotPositive,
     WindowLengthTooLong,
+)
+from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
+    make_datetime64ns,
 )
 from zipline.utils.memoize import lazyval
 from zipline.utils.sentinel import sentinel
 
 # These class names are all the same because of our bootleg templating system.
-from ._floatwindow import AdjustedArrayWindow as FloatWindow
-from ._datewindow import AdjustedArrayWindow as DateWindow
-from ._boolwindow import AdjustedArrayWindow as BoolWindow
+from ._float64window import AdjustedArrayWindow as Float64Window
+from ._int64window import AdjustedArrayWindow as Int64Window
+from ._uint8window import AdjustedArrayWindow as UInt8Window
 
 Infer = sentinel(
     'Infer',
     "Sentinel used to say 'infer missing_value from data type.'"
 )
 NOMASK = None
-NUMERIC_DTYPES = frozenset(
-    ['float32', 'float64', 'int32', 'int64', 'uint32', 'uint64'],
+SUPPORTED_NUMERIC_DTYPES = frozenset(
+    map(dtype, [float32, float64, int32, int64, uint32])
 )
-WINDOW_TYPES = {
-    'float64': FloatWindow,
-    'float32': FloatWindow,  # Cast float32 up to float64.
-    'int64': FloatWindow,
-    'datetime64': DateWindow,
-    'bool': BoolWindow,
+CONCRETE_WINDOW_TYPES = {
+    dtype(float64): Float64Window,
+    dtype(int64): Int64Window,
+    dtype(uint8): UInt8Window,
 }
 _FILLVALUE_DEFAULTS = {
-    'float64': nan,
-    'datetime64': datetime64('NaT'),
+    dtype(float64): nan,
+    dtype('datetime64[ns]'): make_datetime64ns('NaT'),
 }
 
 
@@ -36,42 +51,80 @@ def default_fillvalue_for_dtype(dtype):
     """
     Get the default fill value for dtype `type_`.
     """
-    return _FILLVALUE_DEFAULTS[dtype.name]
+    return _FILLVALUE_DEFAULTS[dtype]
 
 
-def _normalize_numeric(data):
+def _normalize_array(data):
     """
-    Coerce numeric data into float64 so that we can represent missing values.
+    Coerce buffer data for an AdjustedArray into a standard scalar
+    representation, returning the coerced array and a numpy dtype object to use
+    as a view type when providing public view into the data.
 
-    If the input is of integral type or is a float32, we return the data after
-    converting to float64.  Otherwise we return the data unchanged.
+    Semantically numerical data (float*, int*, uint*) is coerced to float64 and
+    viewed as float64.  We coerce integral data to float so that we can use NaN
+    as a missing value.
+
+    datetime[*] data is coerced to int64 with a viewtype of ``datetime64[ns]``.
+
+    ``bool_`` data is coerced to uint8 with a viewtype of ``bool_``
 
     Parameters
     ----------
-    data : ndarray
+    data : np.ndarray
 
     Returns
     -------
-    coerced : ndarray
+    coerced, viewtype : (np.ndarray, np.dtype)
     """
-    if data.dtype.name in NUMERIC_DTYPES:
-        return data.astype('float64')
-    return data
+    data_dtype = data.dtype
+    if data_dtype == bool_:
+        return data.astype(uint8), dtype(bool_)
+    elif data_dtype in SUPPORTED_NUMERIC_DTYPES:
+        return data.astype(float64), dtype(float64)
+    elif data_dtype.name.startswith('datetime'):
+        try:
+            outarray = data.astype('datetime64[ns]').view('int64')
+            return outarray, datetime64ns_dtype
+        except OverflowError:
+            raise ValueError(
+                "AdjustedArray received a datetime array "
+                "not representable as datetime64[ns].\n"
+                "Min Date: %s\n"
+                "Max Date: %s\n"
+            ) % (data.min(), data.max())
+    else:
+        raise TypeError(
+            "Don't know how to construct AdjustedArray "
+            "on data of type %s." % dtype
+        )
 
 
 class AdjustedArray(object):
     """
     An array that can be iterated with a variable-length window, and which can
     provide different views on data from different perspectives.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        The baseline data values.
+    mask : np.ndarray[bool]
+        A mask indicating the locations of missing data.
+    adjustments : dict[int -> list[Adjustment]]
+        A dict mapping row indices to lists of adjustments to apply when we
+        reach that row.
+    fillvalue : object, optional
+        A value to use to fill missing data in yielded windows.
+        Default behavior is to infer a value based on the dtype of `data`.
+        `NaN` is used for numeric data, and `NaT` is used for datetime data.
     """
-    __slots__ = ('_data', '_mask', '_fillvalue', '_adjustments', '__weakref__')
+    __slots__ = ('_data', '_viewtype', '_mask', 'adjustments', '__weakref__')
 
     def __init__(self, data, mask, adjustments, fillvalue=Infer):
-        self._data = _normalize_numeric(data)
-        self._adjustments = adjustments
+        self._data, self._viewtype = _normalize_array(data)
+        self.adjustments = adjustments
         if fillvalue is Infer:
             fillvalue = default_fillvalue_for_dtype(self.data.dtype)
-        self._fillvalue = fillvalue
 
         if mask is not NOMASK:
             if mask.dtype != bool_:
@@ -82,29 +135,27 @@ class AdjustedArray(object):
                     (mask.shape, data.shape),
                 )
             self._mask = mask
-            self._data[~self._mask] = self._fillvalue
-        self._data.setflags(write=False)
 
     @lazyval
     def data(self):
         """
-        The data stored by this Array.
+        The data stored in this array.
         """
-        return self._data
+        return self._data.view(self._viewtype)
 
     @lazyval
     def dtype(self):
         """
-        The dtype of this array.
+        The dtype of the data stored in this array.
         """
-        return self._data.dtype
+        return self._viewtype
 
     @lazyval
     def _iterator_type(self):
         """
-        The iterator type to produce when `traverse` is called on this Array.
+        The iterator produced when `traverse` is called on this Array.
         """
-        return WINDOW_TYPES[self.dtype.name]
+        return CONCRETE_WINDOW_TYPES[self._data.dtype]
 
     def traverse(self, window_length, offset=0):
         """
@@ -122,11 +173,30 @@ class AdjustedArray(object):
         _check_window_params(data, window_length)
         return self._iterator_type(
             data,
-            # Subtract offset from adjustment indices so that they're aligned
-            # with the buffer we actually pass in.
-            self._adjustments,
+            self._viewtype,
+            self.adjustments,
             offset,
             window_length,
+        )
+
+    def inspect(self):
+        """
+        Return a string representation of the data stored in this array.
+        """
+        return dedent(
+            """\
+            Adjusted Array ({dtype}):
+
+            Data:
+            {data!r}
+
+            Adjustments:
+            {adjustments}
+            """
+        ).format(
+            dtype=self.dtype.name,
+            data=self.data,
+            adjustments=self.adjustments,
         )
 
 
