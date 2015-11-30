@@ -25,6 +25,18 @@ from zipline.utils.control_flow import ignore_nanwarnings
 from .factor import CustomFactor
 
 
+class Returns(CustomFactor):
+    """
+    Calculates the percent change in close price over the given window_length.
+
+    **Default Inputs**: [USEquityPricing.close]
+    """
+    inputs = [USEquityPricing.close]
+
+    def compute(self, today, assets, out, close):
+        out[:] = (close[-1] - close[0]) / close[0]
+
+
 class RSI(CustomFactor, SingleInputMixin):
     """
     Relative Strength Index
