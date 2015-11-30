@@ -24,7 +24,7 @@ from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.data.data_portal import DataPortal
-from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, OHLC, \
     UINT32_MAX, BcolzDailyBarWriter
 from zipline.finance.order import ORDER_STATUS

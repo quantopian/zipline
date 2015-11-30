@@ -29,7 +29,7 @@ from zipline.utils.test_utils import (
     str_to_seconds,
     MockDailyBarReader
 )
-from zipline.data.minute_writer import MinuteBarWriterFromCSVs
+from zipline.data.us_equity_minutes import MinuteBarWriterFromCSVs
 from zipline.utils.tradingcalendar import trading_days
 from zipline.finance.trading import (
     TradingEnvironment,

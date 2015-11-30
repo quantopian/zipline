@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.data.minute_writer import BcolzMinuteBarWriter
+from zipline.data.us_equity_minutes import BcolzMinuteBarWriter
 
 
 def generate_daily_test_data(first_day,

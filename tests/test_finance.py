@@ -42,7 +42,7 @@ from zipline.utils.test_utils import(
     setup_logger,
     teardown_logger
 )
-from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
 from zipline.data.data_portal import DataPortal
 from zipline.finance.slippage import FixedSlippage
 

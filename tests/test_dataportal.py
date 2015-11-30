@@ -11,7 +11,7 @@ from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, \
     SQLiteAdjustmentReader
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
-from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 
 

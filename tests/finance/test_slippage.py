@@ -34,7 +34,7 @@ from zipline.finance.trading import TradingEnvironment, SimulationParameters
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
-from zipline.data.minute_writer import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
 from zipline.data.data_portal import DataPortal
 
 
