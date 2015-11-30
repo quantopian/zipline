@@ -366,7 +366,7 @@ class DataPortal(object):
         # trading.
 
         # figure out the # of minutes between dt and this asset's start_dt
-        start_date = self._get_asset_start_date(asset)
+        start_date = asset.start_date
         minute_offset = int((dt - start_date).total_seconds() / 60)
 
         if minute_offset < 0:
@@ -422,7 +422,7 @@ class DataPortal(object):
             # forward-filled.
 
             # get this asset's start date, so that we don't look before it.
-            start_date = self._get_asset_start_date(asset)
+            start_date = asset.start_date
             start_date_idx = tradingcalendar.trading_days.searchsorted(
                 start_date) - INDEX_OF_FIRST_TRADING_DAY
             start_day_offset = start_date_idx * 390
@@ -572,7 +572,7 @@ class DataPortal(object):
         ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
 
         # get the start and end dates for this sid
-        end_date = self._get_asset_end_date(asset)
+        end_date = asset.end_date
 
         if ends_at_midnight or (days_for_window[-1] > end_date):
             # two cases where we use daily data for the whole range:
@@ -1130,39 +1130,21 @@ class DataPortal(object):
 
         sid = int(asset)
 
-        if sid not in self._asset_start_dates:
-            self._get_asset_start_date(asset)
-
-        start_date = self._asset_start_dates[sid]
-        if self._asset_start_dates[sid] > dt:
+        start_date = asset.start_date
+        if start_date > dt:
             raise NoTradeDataAvailableTooEarly(
                 sid=sid,
                 dt=dt,
                 start_dt=start_date
             )
 
-        end_date = self._asset_end_dates[sid]
-        if self._asset_end_dates[sid] < dt:
+        end_date = asset.end_date
+        if end_date < dt:
             raise NoTradeDataAvailableTooLate(
                 sid=sid,
                 dt=dt,
                 end_dt=end_date
             )
-
-    def _get_asset_start_date(self, asset):
-        self._ensure_asset_dates(asset)
-        return self._asset_start_dates[asset]
-
-    def _get_asset_end_date(self, asset):
-        self._ensure_asset_dates(asset)
-        return self._asset_end_dates[asset]
-
-    def _ensure_asset_dates(self, asset):
-        sid = int(asset)
-
-        if sid not in self._asset_start_dates:
-            self._asset_start_dates[sid] = asset.start_date
-            self._asset_end_dates[sid] = asset.end_date
 
     def get_splits(self, sids, dt):
         """
