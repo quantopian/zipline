@@ -218,7 +218,9 @@ class FinanceTestCase(TestCase):
                     }, index=minutes)
                 }
 
-                MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+                MinuteBarWriterFromDataFrames(
+                    pd.Timestamp('2002-01-02', tz='UTC')
+                ).write(tempdir.path, assets)
 
                 data_portal = DataPortal(
                     env,

@@ -73,7 +73,9 @@ class SlippageTestCase(TestCase):
             })
         }
 
-        MinuteBarWriterFromDataFrames().write(cls.tempdir.path, assets)
+        MinuteBarWriterFromDataFrames(
+            pd.Timestamp('2002-01-02', tz='UTC')
+        ).write(cls.tempdir.path, assets)
 
         cls.env.write_data(equities_data={
             133: {
@@ -108,7 +110,9 @@ class SlippageTestCase(TestCase):
                 })
             }
 
-            MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+            MinuteBarWriterFromDataFrames(
+                pd.Timestamp('2002-01-02', tz='UTC')
+            ).write(tempdir.path, assets)
 
             data_portal = DataPortal(
                 self.env,
@@ -448,7 +452,9 @@ class SlippageTestCase(TestCase):
                 })
             }
 
-            MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+            MinuteBarWriterFromDataFrames(
+                pd.Timestamp('2002-01-02', tz='UTC')
+            ).write(tempdir.path, assets)
 
             data_portal = DataPortal(
                 self.env,

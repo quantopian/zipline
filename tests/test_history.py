@@ -248,7 +248,9 @@ class HistoryTestCase(TestCase):
         path = os.path.join(tempdir.path, 'equity', 'minutes')
         os.makedirs(path)
 
-        MinuteBarWriterFromCSVs(resources).write(path, cls.assets)
+        MinuteBarWriterFromCSVs(resources,
+                                pd.Timestamp('2002-01-02', tz='UTC')).write(
+                                    path, cls.assets)
 
     @classmethod
     def create_fake_daily_data(cls, tempdir):

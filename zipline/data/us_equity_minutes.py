@@ -2,6 +2,7 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
+import json
 import os
 from bcolz import ctable
 from datetime import datetime
@@ -13,16 +14,23 @@ from pandas import read_csv
 from six import with_metaclass
 
 from zipline.finance.trading import TradingEnvironment
+from zipline.utils import tradingcalendar
 
 MINUTES_PER_DAY = 390
 
 _writer_env = TradingEnvironment()
+
+METADATA_FILENAME = 'metadata.json'
 
 
 class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
     """
     Class capable of writing minute OHLCV data to disk into bcolz format.
     """
+    @property
+    def first_trading_day(self):
+        return self._first_trading_day
+
     @abstractmethod
     def gen_frames(self, assets):
         """
@@ -65,11 +73,22 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
         )
 
     def _write_internal(self, directory, iterator, sid_path_func=None):
+        first_trading_day = self.first_trading_day
+
+        metadata_path = os.path.join(directory, METADATA_FILENAME)
+
+        metadata = {
+            'first_trading_day': str(first_trading_day.date())
+        }
+
+        with open(metadata_path, 'w') as fp:
+            json.dump(metadata, fp)
+
         first_open = pd.Timestamp(
             datetime(
-                year=2002,
-                month=1,
-                day=2,
+                year=first_trading_day.year,
+                month=first_trading_day.month,
+                day=first_trading_day.day,
                 hour=9,
                 minute=31
             ), tz='US/Eastern').tz_convert('UTC')
@@ -135,6 +154,9 @@ class MinuteBarWriterFromDataFrames(BcolzMinuteBarWriter):
         'volume': float64,
     }
 
+    def __init__(self, first_trading_day):
+        self._first_trading_day = first_trading_day
+
     def gen_frames(self, assets):
         for asset in assets:
             df = assets[asset]
@@ -166,8 +188,9 @@ class MinuteBarWriterFromCSVs(BcolzMinuteBarWriter):
         'volume': float64,
     }
 
-    def __init__(self, asset_map):
+    def __init__(self, asset_map, first_trading_day):
         self._asset_map = asset_map
+        self._first_trading_day = first_trading_day
 
     def gen_frames(self, assets):
         """
@@ -183,3 +206,21 @@ class MinuteBarWriterFromCSVs(BcolzMinuteBarWriter):
             df = df.set_index("minute").tz_localize("UTC")
 
             yield asset, df
+
+
+class BcolzMinuteBarReader(object):
+
+    def __init__(self, rootdir):
+        self.rootdir = rootdir
+
+        metadata = self._get_metadata()
+
+        self.first_trading_day = pd.Timestamp(
+            metadata['first_trading_day'], tz='UTC')
+        mask = tradingcalendar.trading_days.slice_indexer(
+            self.first_trading_day)
+        self.trading_days = tradingcalendar.trading_days[mask]
+
+    def _get_metadata(self):
+        with open(os.path.join(self.rootdir, METADATA_FILENAME)) as fp:
+            return json.load(fp)
