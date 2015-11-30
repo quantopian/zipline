@@ -96,8 +96,27 @@ class BenchmarkSource(object):
         change from close to close.
         """
         if sid is None:
-            # get benchmark info from trading environment
-            return env.benchmark_returns[trading_days[0]:trading_days[-1]]
+            # get benchmark info from trading environment, which defaults to
+            # downloading data from Yahoo.
+            daily_series = \
+                env.benchmark_returns[trading_days[0]:trading_days[-1]]
+
+            if self.emission_rate == "minute":
+                # we need to take the env's benchmark returns, which are daily,
+                # and resample them to minute
+                minutes = env.minutes_for_days_in_range(
+                    start=trading_days[0],
+                    end=trading_days[-1]
+                )
+
+                minute_series = daily_series.reindex(
+                    index=minutes,
+                    method="ffill"
+                )
+
+                return minute_series
+            else:
+                return daily_series
         elif self.emission_rate == "minute":
             minutes = env.minutes_for_days_in_range(self.trading_days[0],
                                                     self.trading_days[-1])
