@@ -802,11 +802,11 @@ class DataPortal(object):
                         0)
         end_idx = self._find_position_of_minute(minutes_for_window[-1]) + 1
 
-        return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
-
         if end_idx == 0:
             # No data to return for minute window.
-            return return_data
+            return np.full(len(minutes_for_window), np.nan)
+
+        return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
 
         data_to_copy = raw_data[start_idx:end_idx]
 
