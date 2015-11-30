@@ -119,9 +119,6 @@ class DataPortal(object):
         self._mergers_dict = {}
         self._dividends_dict = {}
 
-        # Pointer to the daily bcolz file.
-        self._daily_equities_data = None
-
         # Cache of sid -> the first trading day of an asset, even if that day
         # is before 1/2/2002.
         self._asset_start_dates = {}
