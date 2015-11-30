@@ -158,7 +158,7 @@ from six import with_metaclass, PY2, itervalues
 
 
 from ..data.dataset import DataSet, Column
-from zipline.lib.adjusted_array import adjusted_array
+from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.input_validation import expect_element
 from zipline.utils.numpy_utils import repeat_last_axis
@@ -886,7 +886,7 @@ class BlazeLoader(dict):
 
         for column_idx, column in enumerate(columns):
             column_name = column.name
-            yield column, adjusted_array(
+            yield column, AdjustedArray(
                 column_view(
                     dense_output[column_name].values.astype(column.dtype),
                 ),

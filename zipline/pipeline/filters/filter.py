@@ -12,10 +12,13 @@ from operator import attrgetter
 
 from zipline.errors import (
     BadPercentileBounds,
+    UnsupportedDataType,
 )
 from zipline.pipeline.term import (
-    SingleInputMixin,
     CompositeTerm,
+    CustomTermMixin,
+    RequiredWindowLengthMixin,
+    SingleInputMixin,
 )
 from zipline.pipeline.expression import (
     BadBinaryOperator,
@@ -23,6 +26,7 @@ from zipline.pipeline.expression import (
     method_name_for_op,
     NumericalExpression,
 )
+from zipline.utils.control_flow import nullctx
 
 
 def concat_tuples(*tuples):
@@ -215,3 +219,15 @@ class PercentileFilter(SingleInputMixin, Filter):
             keepdims=True,
         )
         return (lower_bounds <= data) & (data <= upper_bounds)
+
+
+class CustomFilter(RequiredWindowLengthMixin, CustomTermMixin, Filter):
+    """
+    Filter analog to ``CustomFactor``.
+    """
+    ctx = nullctx()
+
+    def _validate(self):
+        if self.dtype != bool_:
+            raise UnsupportedDataType(dtype=self.dtype)
+        return super(CustomFilter, self)._validate()
