@@ -315,7 +315,7 @@ class TestDataPortal(TestCase):
 
             dp = DataPortal(
                 env,
-                minutes_equities_path=tempdir.path
+                minutes_futures_path=tempdir.path
             )
 
             future123 = env.asset_finder.retrieve_asset(123)

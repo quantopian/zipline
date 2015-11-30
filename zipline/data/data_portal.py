@@ -73,6 +73,7 @@ class DataPortal(object):
                  env,
                  sim_params=None,
                  minutes_equities_path=None,
+                 minutes_futures_path=None,
                  daily_equities_path=None,
                  adjustment_reader=None,
                  equity_sid_path_func=None,
@@ -98,8 +99,10 @@ class DataPortal(object):
 
         self.views = {}
 
-        self._minutes_equities_path = minutes_equities_path
         self._daily_equities_path = daily_equities_path
+        self._minutes_equities_path = minutes_equities_path
+        self._minutes_futures_path = minutes_futures_path
+
         self._asset_finder = env.asset_finder
 
         self._carrays = {
@@ -246,16 +249,21 @@ class DataPortal(object):
     def _get_ctable(self, asset):
         sid = int(asset)
 
-        if isinstance(asset, Future) and \
-                self._futures_sid_path_func is not None:
-            path = self._futures_sid_path_func(
-                self._minutes_equities_path, sid
-            )
-        elif isinstance(asset, Equity) and \
-                self._equity_sid_path_func is not None:
-            path = self._equity_sid_path_func(
-                self._minutes_equities_path, sid
-            )
+        if isinstance(asset, Future):
+            if self._futures_sid_path_func is not None:
+                path = self._futures_sid_path_func(
+                    self._minutes_futures_path, sid
+                )
+            else:
+                path = "{0}/{1}.bcolz".format(self._minutes_futures_path, sid)
+        elif isinstance(asset, Equity):
+            if self._equity_sid_path_func is not None:
+                path = self._equity_sid_path_func(
+                    self._minutes_equities_path, sid
+                )
+            else:
+                path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
+
         else:
             path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
 
