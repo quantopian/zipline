@@ -432,7 +432,11 @@ class BcolzDailyBarReader(object):
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         # Assumes that the given dates are actually in calendar.
-        start_idx = self._calendar.get_loc(start_date)
+        try:
+            start_idx = self._calendar.get_loc(start_date)
+        except KeyError:
+            raise NoDataOnDate("day={0} is before calendar={1}".format(
+                start_date, self._calendar))
         end_idx = self._calendar.get_loc(end_date)
         first_rows, last_rows, offsets = self._compute_slices(
             start_idx,
