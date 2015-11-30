@@ -292,7 +292,6 @@ class BlazeToPipelineTestCase(TestCase):
                 loader=self.garbage_loader,
             )
 
-    @skip
     def test_id(self):
         expr = bz.Data(self.df, name='expr', dshape=self.dshape)
         loader = BlazeLoader()
