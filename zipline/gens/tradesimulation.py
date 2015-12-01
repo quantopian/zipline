@@ -97,7 +97,7 @@ class AlgorithmSimulator(object):
 
         algo.perf_tracker.position_tracker.data_portal = data_portal
 
-        def inner_loop(dt_to_use):
+        def every_bar(dt_to_use):
             # called every tick (minute or day).
 
             data_portal.current_dt = dt_to_use
@@ -166,13 +166,20 @@ class AlgorithmSimulator(object):
         with self.processor, ZiplineAPI(self.algo):
             for dt, action in self.clock:
                 if action == DATA_AVAILABLE:
-                    inner_loop(dt)
+                    # Either once a minute or once a day, depending on
+                    # the simulation's data frequency
+                    every_bar(dt)
                 elif action == ONCE_A_DAY:
+                    # once at the beginning of each day.  dt is midnight UTC
+                    # of that day.
                     once_a_day(dt)
                 elif action == CALC_DAILY_PERFORMANCE:
+                    # End of the day.
                     handle_benchmark(dt)
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == CALC_MINUTE_PERFORMANCE:
+                    # End of the minute.  Only used in minutely emission
+                    # simulations.
                     handle_benchmark(dt)
                     minute_msg, daily_msg = \
                         self._get_minute_message(dt, algo, algo.perf_tracker)
