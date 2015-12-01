@@ -147,6 +147,19 @@ class DataPortal(object):
         else:
             self._daily_bar_reader = None
 
+        # The following values are used by _minute_offset to calculate the
+        # index into the minute bcolz date.
+
+        # A lookup of table every minute to the corresponding day, to avoid
+        # calling `.date()` on every lookup.
+        self._minutes_to_day = {}
+        # A map of days (keyed by midnight) to a DatetimeIndex of market
+        # minutes for that day.
+        self._minutes_by_day = {}
+        # A dict of day to the offset into the minute bcolz on which that
+        # days data starts.
+        self._day_offsets = None
+
     def handle_extra_source(self, source_df):
         """
         Extra sources always have a sid column.
@@ -390,20 +403,41 @@ class DataPortal(object):
         else:
             return result
 
-    def _get_minute_spot_value(self, asset, column, dt):
+    def setup_offset_cache(self, minutes_by_day, minutes_to_day):
         # All our minute bcolz files are written starting on 1/2/2002,
         # with 390 minutes per day, regarding of when the security started
         # trading. This lets us avoid doing an offset calculation related
         # to the asset start date.  Hard-coding 390 minutes per day lets us
         # ignore half days.
+        td = tradingcalendar.trading_days
 
-        if dt == self.current_dt:
-            minute_offset_to_use = self.cur_data_offset
-        else:
-            # this is the slow path.
-            # dt was passed in, so calculate the offset.
-            # = (390 * number of trading days since 1/2/2002) +
-            #   (index of minute in day)
+        self._minutes_to_day = minutes_to_day
+        self._minutes_by_day = minutes_by_day
+        if self._sim_params is not None:
+            start = self._sim_params.trading_days[0]
+            first_trading_day_idx = td.searchsorted(start) - \
+                INDEX_OF_FIRST_TRADING_DAY
+            self._day_offsets = {
+                day: (i + first_trading_day_idx) * 390
+                for i, day in enumerate(
+                    self._sim_params.trading_days)}
+
+    def _minute_offset(self, dt):
+        if self._day_offsets is not None:
+            try:
+                day = self._minutes_to_day[dt]
+                minutes = self._minutes_by_day[day]
+                return self._day_offsets[day] + minutes.get_loc(dt)
+            except KeyError:
+                return None
+
+    def _get_minute_spot_value(self, asset, column, dt):
+        # if dt is before the first market minute, minute_index
+        # will be 0.  if it's after the last market minute, it'll
+        # be len(minutes_for_day)
+        minute_offset_to_use = self._minute_offset(dt)
+
+        if minute_offset_to_use is None:
             given_day = pd.Timestamp(dt.date(), tz='utc')
             day_index = tradingcalendar.trading_days.searchsorted(
                 given_day) - INDEX_OF_FIRST_TRADING_DAY

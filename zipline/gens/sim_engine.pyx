@@ -31,23 +31,22 @@ cpdef enum:
 cdef class MinuteSimulationClock:
     cdef object trading_days
     cdef object all_trading_days
-    cdef object data_portal
     cdef bool minute_emission
     cdef np.int64_t[:] market_opens, market_closes
+    cdef public dict minutes_by_day, minutes_to_day
 
     def __init__(self,
                  trading_days,
                  market_opens,
                  market_closes,
-                 data_portal,
                  all_trading_days,
                  minute_emission=False):
         self.minute_emission = minute_emission
         self.market_opens = market_opens
         self.market_closes = market_closes
         self.trading_days = trading_days
-        self.data_portal = data_portal
         self.all_trading_days = all_trading_days
+        self.minutes_by_day, self.minutes_to_day = self.calc_minutes_by_day()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -60,24 +59,28 @@ cdef class MinuteSimulationClock:
                          market_closes[i] + _nanos_in_minute,
                          _nanos_in_minute)
 
-    def __iter__(self):
-        # FIXME
-        # 3028 is the index of 2002-01-02 in self.all_trading_days, which
-        # starts on 1990-01-02
-        first_trading_day_idx = \
-            self.all_trading_days.searchsorted(self.trading_days[0]) - 3028
+    cpdef calc_minutes_by_day(self):
+        minutes_by_day = {}
+        minutes_to_day = {}
+        for day_idx, day in enumerate(self.trading_days):
+            minutes = pd.to_datetime(
+                self.market_minutes(day_idx), utc=True, box=True)
+            minutes_by_day[day] = minutes
+            for minute in minutes:
+                minutes_to_day[minute] = day
+        return minutes_by_day, minutes_to_day
 
-        data_portal = self.data_portal
+    def __iter__(self):
 
         minute_emission = self.minute_emission
-
-        for day_idx, day in enumerate(self.trading_days):
-            day_offset = (day_idx + first_trading_day_idx) * 390
+        
+        for day in self.trading_days:
             yield day, DAY_START
 
-            minutes = pd.DatetimeIndex(self.market_minutes(day_idx), tz='UTC')
-            for minute_idx, minute in enumerate(minutes):
-                data_portal.cur_data_offset = day_offset + minute_idx
+            minutes = pd.to_datetime(
+                self.minutes_by_day[day], utc=True, box=True)
+
+            for minute in minutes:
                 yield minute, BAR
                 if minute_emission:
                     yield minute, MINUTE_END

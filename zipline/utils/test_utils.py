@@ -740,6 +740,9 @@ class FakeDataPortal(object):
     def __init__(self):
         self._adjustment_reader = None
 
+    def setup_offset_cache(self, minutes_by_day, minutes_to_day):
+        pass
+
 
 class FetcherDataPortal(DataPortal):
     """
