@@ -109,9 +109,11 @@ def sharpe_ratio(algorithm_return, treasury_return):
 
     return_risk_adj = algorithm_return - treasury_return
 
-    return np.mean(return_risk_adj) / \
-        np.std(return_risk_adj) * \
-        np.sqrt(252)
+    algo_vol = np.std(return_risk_adj, ddof=1)
+    if np.isnan(algo_vol) or algo_vol == 0:
+        return np.nan
+
+    return np.mean(return_risk_adj) / algo_vol * np.sqrt(252)
 
 
 def downside_risk(algorithm_returns, mean_returns, normalization_factor):
