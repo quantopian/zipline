@@ -23,6 +23,17 @@ _writer_env = TradingEnvironment()
 METADATA_FILENAME = 'metadata.json'
 
 
+def write_metadata(directory, first_trading_day):
+    metadata_path = os.path.join(directory, METADATA_FILENAME)
+
+    metadata = {
+        'first_trading_day': str(first_trading_day.date())
+    }
+
+    with open(metadata_path, 'w') as fp:
+        json.dump(metadata, fp)
+
+
 class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
     """
     Class capable of writing minute OHLCV data to disk into bcolz format.
@@ -75,14 +86,7 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
     def _write_internal(self, directory, iterator, sid_path_func=None):
         first_trading_day = self.first_trading_day
 
-        metadata_path = os.path.join(directory, METADATA_FILENAME)
-
-        metadata = {
-            'first_trading_day': str(first_trading_day.date())
-        }
-
-        with open(metadata_path, 'w') as fp:
-            json.dump(metadata, fp)
+        write_metadata(directory, first_trading_day)
 
         first_open = pd.Timestamp(
             datetime(
