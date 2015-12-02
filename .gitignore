@@ -58,3 +58,7 @@ benchmarks.db
 
 # Vagrant temp folder
 .vagrant
+
+# Intellij IDE temp project files
+.project
+zipline.iml
