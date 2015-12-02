@@ -55,7 +55,8 @@ class TestDataPortal(TestCase):
             sim_params = SimulationParameters(
                 period_start=minutes[0],
                 period_end=minutes[-1],
-                data_frequency="minute"
+                data_frequency="minute",
+                env=env,
             )
 
             dp = DataPortal(
@@ -184,7 +185,8 @@ class TestDataPortal(TestCase):
             sim_params = SimulationParameters(
                 period_start=minutes[0],
                 period_end=minutes[-1],
-                data_frequency="minute"
+                data_frequency="minute",
+                env=env
             )
 
             # create a split for 6/24

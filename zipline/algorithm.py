@@ -396,14 +396,17 @@ class TradingAlgorithm(object):
 
             minutely_emission = self.sim_params.emission_rate == "minute"
 
-            return MinuteSimulationClock(
+            clock = MinuteSimulationClock(
                 self.sim_params.trading_days,
                 market_opens,
                 market_closes,
-                self.data_portal,
                 env.trading_days,
                 minutely_emission
             )
+            self.data_portal.setup_offset_cache(
+                clock.minutes_by_day,
+                clock.minutes_to_day)
+            return clock
         else:
             return DailySimulationClock(self.sim_params.trading_days)
 
