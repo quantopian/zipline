@@ -199,6 +199,7 @@ class TradingAlgorithm(object):
         self.commission = PerShare()
 
         self.instant_fill = kwargs.pop('instant_fill', False)
+        self.amount_type = kwargs.pop('amount_type', int)
 
         # If an env has been provided, pop it
         self.trading_environment = kwargs.pop('env', None)
@@ -887,7 +888,7 @@ class TradingAlgorithm(object):
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
-        amount = int(round_if_near_integer(amount))
+        amount = self.amount_type(round_if_near_integer(amount))
 
         # Raises a ZiplineError if invalid parameters are detected.
         self.validate_order_params(sid,
