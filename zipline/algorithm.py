@@ -106,7 +106,7 @@ from zipline.sources.requests_csv import PandasRequestsCSV
 from zipline.gens.sim_engine import (
     MinuteSimulationClock,
     DailySimulationClock,
-    MinuteEmissionClock)
+)
 from zipline.sources.benchmark_source import BenchmarkSource
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
@@ -394,22 +394,16 @@ class TradingAlgorithm(object):
             market_closes = trading_o_and_c['market_close'].values.astype(
                 'datetime64[ns]').astype(np.int64)
 
-            if self.sim_params.emission_rate == "daily":
-                return MinuteSimulationClock(
-                    self.sim_params.trading_days,
-                    market_opens,
-                    market_closes,
-                    self.data_portal,
-                    env.trading_days
-                )
-            else:
-                return MinuteEmissionClock(
-                    self.sim_params.trading_days,
-                    market_opens,
-                    market_closes,
-                    self.data_portal,
-                    env.trading_days
-                )
+            minutely_emission = self.sim_params.emission_rate == "minute"
+
+            return MinuteSimulationClock(
+                self.sim_params.trading_days,
+                market_opens,
+                market_closes,
+                self.data_portal,
+                env.trading_days,
+                minutely_emission
+            )
         else:
             return DailySimulationClock(self.sim_params.trading_days)
 

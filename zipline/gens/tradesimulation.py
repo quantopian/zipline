@@ -18,12 +18,11 @@ from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 
 from zipline.gens.sim_engine import (
-    DATA_AVAILABLE,
-    ONCE_A_DAY,
-    CALC_DAILY_PERFORMANCE,
-    CALC_MINUTE_PERFORMANCE
+    BAR,
+    DAY_START,
+    DAY_END,
+    MINUTE_END
 )
-
 
 log = Logger('Trade Simulation')
 
@@ -165,21 +164,15 @@ class AlgorithmSimulator(object):
 
         with self.processor, ZiplineAPI(self.algo):
             for dt, action in self.clock:
-                if action == DATA_AVAILABLE:
-                    # Either once a minute or once a day, depending on
-                    # the simulation's data frequency
+                if action == BAR:
                     every_bar(dt)
-                elif action == ONCE_A_DAY:
-                    # once at the beginning of each day.  dt is midnight UTC
-                    # of that day.
+                elif action == DAY_START:
                     once_a_day(dt)
-                elif action == CALC_DAILY_PERFORMANCE:
+                elif action == DAY_END:
                     # End of the day.
                     handle_benchmark(dt)
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
-                elif action == CALC_MINUTE_PERFORMANCE:
-                    # End of the minute.  Only used in minutely emission
-                    # simulations.
+                elif action == MINUTE_END:
                     handle_benchmark(dt)
                     minute_msg, daily_msg = \
                         self._get_minute_message(dt, algo, algo.perf_tracker)
