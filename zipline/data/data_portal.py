@@ -127,9 +127,9 @@ class DataPortal(object):
         self._asset_start_dates = {}
         self._asset_end_dates = {}
 
-        # Fetcher state
+        # Handle extra sources, like Fetcher.
         self._augmented_sources_map = {}
-        self._fetcher_df = None
+        self._extra_source_df = None
 
         self._sim_params = sim_params
         if self._sim_params is not None:
@@ -157,7 +157,7 @@ class DataPortal(object):
         if source_df is None:
             return
 
-        self._fetcher_df = source_df
+        self._extra_source_df = source_df
 
         # source_df's sid column can either consist of assets we know about
         # (such as sid(24)) or of assets we don't know about (such as
@@ -172,24 +172,24 @@ class DataPortal(object):
         # We then take each child df and reindex it to the simulation's date
         # range by forward-filling missing values. this makes reads simpler.
         #
-        # Finally, we store the data. For each fetcher column, we store a
-        # mapping in self.augmented_sources_map from it to a dictionary of
+        # Finally, we store the data. For each column, we store a mapping in
+        # self.augmented_sources_map from the column to a dictionary of
         # asset -> df.  In other words,
         # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
         # holding that data.
 
         if self._sim_params.emission_rate == "daily":
-            fetcher_date_index = self.env.days_in_range(
+            source_date_index = self.env.days_in_range(
                 start=self._sim_params.period_start,
                 end=self._sim_params.period_end
             )
         else:
-            fetcher_date_index = self.env.minutes_for_days_in_range(
+            source_date_index = self.env.minutes_for_days_in_range(
                 start=self._sim_params.period_start,
                 end=self._sim_params.period_end
             )
 
-        # break the source_df up into one dataframe per sid.  this lets
+        # Break the source_df up into one dataframe per sid.  This lets
         # us (more easily) calculate accurate start/end dates for each sid,
         # de-dup data, and expand the data to fit the backtest start/end date.
         grouped_by_sid = source_df.groupby(["sid"])
@@ -199,17 +199,17 @@ class DataPortal(object):
             group_dict[group_name] = grouped_by_sid.get_group(group_name)
 
         for identifier, df in iteritems(group_dict):
-            # before reindexing, save the earliest and latest dates
+            # Before reindexing, save the earliest and latest dates
             earliest_date = df.index[0]
             latest_date = df.index[-1]
 
-            # since we know this df only contains a single sid, we can safely
+            # Since we know this df only contains a single sid, we can safely
             # de-dupe by the index (dt)
             df = df.groupby(level=0).last()
 
-            # reindex the dataframe based on the backtest start/end date.
-            # this makes reads easier during the backtest.
-            df = df.reindex(index=fetcher_date_index, method='ffill')
+            # Reindex the dataframe based on the backtest start/end date.
+            # This makes reads easier during the backtest.
+            df = df.reindex(index=source_date_index, method='ffill')
 
             if not isinstance(identifier, Asset):
                 # for fake assets we need to store a start/end date
@@ -282,15 +282,15 @@ class DataPortal(object):
 
         return self.get_spot_value(asset, field, prev_dt)
 
-    def _check_fetcher(self, asset, column, day):
-        # if there is a fetcher column called "price", only look at it if
-        # it's on something like palladium and not AAPL (since our own price
-        # data always wins when dealing with assets)
+    def _check_extra_sources(self, asset, column, day):
+        # If we have an extra source with a column called "price", only look
+        # at it if it's on something like palladium and not AAPL (since our
+        # own price data always wins when dealing with assets).
         look_in_augmented_sources = column in self._augmented_sources_map and \
             not (column in BASE_FIELDS and isinstance(asset, Asset))
 
         if look_in_augmented_sources:
-            # we're being asked for a fetcher field
+            # we're being asked for a field in an extra source
             try:
                 return self._augmented_sources_map[column][asset].\
                     loc[day, column]
@@ -313,7 +313,7 @@ class DataPortal(object):
         Parameters
         ---------
         asset : Asset
-            The asset whose data is desired.
+            The asset whose data is desired.gith
 
         field: string
             The desired field of the asset.  Valid values are "open",
@@ -327,11 +327,14 @@ class DataPortal(object):
         -------
         The value of the desired field at the desired time.
         """
-        fetcher_val = self._check_fetcher(asset, field,
-                                          (dt or self.current_dt))
+        extra_source_val = self._check_extra_sources(
+            asset,
+            field,
+            (dt or self.current_dt)
+        )
 
-        if fetcher_val is not None:
-            return fetcher_val
+        if extra_source_val is not None:
+            return extra_source_val
 
         if field not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(field))
@@ -1265,21 +1268,21 @@ class DataPortal(object):
         """
         # return a list of assets for the current date, as defined by the
         # fetcher source
-        if self._fetcher_df is None:
+        if self._extra_source_df is None:
             return []
 
-        if self.current_day in self._fetcher_df.index:
+        if self.current_day in self._extra_source_df.index:
             date_to_use = self.current_day
         else:
             # current day isn't in the fetcher df, go back the last
             # available day
-            idx = self._fetcher_df.index.searchsorted(self.current_day)
+            idx = self._extra_source_df.index.searchsorted(self.current_day)
             if idx == 0:
                 return []
 
-            date_to_use = self._fetcher_df.index[idx - 1]
+            date_to_use = self._extra_source_df.index[idx - 1]
 
-        asset_list = self._fetcher_df.loc[date_to_use]["sid"]
+        asset_list = self._extra_source_df.loc[date_to_use]["sid"]
 
         # make sure they're actually assets
         asset_list = [asset for asset in asset_list

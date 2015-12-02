@@ -777,7 +777,6 @@ class TestTransformAlgorithm(TestCase):
     def test_order_method_style_forwarding(self, order_style):
         algo = TestOrderStyleForwardingAlgorithm(
             sim_params=self.sim_params,
-            instant_fill=False,
             method_name=order_style,
             env=self.env
         )

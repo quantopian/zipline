@@ -5,7 +5,7 @@ from __future__ import division
 
 from collections import OrderedDict
 from datetime import timedelta
-from unittest import TestCase, skip
+from unittest import TestCase
 import warnings
 
 import blaze as bz

@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -82,7 +82,10 @@ from zipline.utils.api_support import (
     ZiplineAPI,
 )
 from zipline.utils.input_validation import ensure_upper_case
-from zipline.utils.cache import CachedObject, Expired
+from zipline.utils.cache import (
+    CachedObject,
+    Expired
+)
 import zipline.utils.events
 from zipline.utils.events import (
     EventManager,
@@ -91,7 +94,10 @@ from zipline.utils.events import (
     TimeRuleFactory,
 )
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.math_utils import tolerant_equals, round_if_near_integer
+from zipline.utils.math_utils import (
+    tolerant_equals,
+    round_if_near_integer
+)
 from zipline.utils.preprocess import preprocess
 
 import zipline.protocol
@@ -100,7 +106,7 @@ from zipline.sources.requests_csv import PandasRequestsCSV
 from zipline.gens.sim_engine import (
     MinuteSimulationClock,
     DailySimulationClock,
-    MinuteEmissionClock)
+)
 from zipline.sources.benchmark_source import BenchmarkSource
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
@@ -150,8 +156,6 @@ class TradingAlgorithm(object):
                The duration of the bars.
             capital_base : float <default: 1.0e5>
                How much capital to start with.
-            instant_fill : bool <default: False>
-               Whether to fill orders immediately or on next bar.
             asset_finder : An AssetFinder object
                 A new AssetFinder object to be used in this TradingEnvironment
             equities_metadata : can be either:
@@ -175,7 +179,6 @@ class TradingAlgorithm(object):
                 equities_metadata, but will be traded by this TradingAlgorithm
         """
         self.sources = []
-        self.clock = None
 
         # List of trading controls to be used to validate orders.
         self.trading_controls = []
@@ -190,17 +193,13 @@ class TradingAlgorithm(object):
 
         self.logger = None
 
-        self.benchmark_source = None
-
-        self.instant_fill = kwargs.pop('instant_fill', False)
+        self.data_portal = None
 
         # If an env has been provided, pop it
         self.trading_environment = kwargs.pop('env', None)
 
         if self.trading_environment is None:
             self.trading_environment = TradingEnvironment()
-
-        self.data_portal = None
 
         # Update the TradingEnvironment with the provided asset metadata
         self.trading_environment.write_data(
@@ -382,40 +381,33 @@ class TradingAlgorithm(object):
                    blotter=repr(self.blotter),
                    recorded_vars=repr(self.recorded_vars))
 
-    def ensure_clock(self):
+    def _create_clock(self):
         """
         If the clock property is not set, then create one based on frequency.
         """
-        if self.clock is None:
-            if self.sim_params.data_frequency == 'minute':
-                env = self.trading_environment
-                trading_o_and_c = env.open_and_closes.ix[
-                    self.sim_params.trading_days]
-                market_opens = trading_o_and_c['market_open'].values.astype(
-                    'datetime64[ns]').astype(np.int64)
-                market_closes = trading_o_and_c['market_close'].values.astype(
-                    'datetime64[ns]').astype(np.int64)
-                if self.sim_params.emission_rate == "daily":
-                    self.clock = MinuteSimulationClock(
-                        self.sim_params.trading_days,
-                        market_opens,
-                        market_closes,
-                        self.data_portal,
-                        env.trading_days
-                    )
-                else:
-                    self.clock = MinuteEmissionClock(
-                        self.sim_params.trading_days,
-                        market_opens,
-                        market_closes,
-                        self.data_portal,
-                        env.trading_days
-                    )
+        if self.sim_params.data_frequency == 'minute':
+            env = self.trading_environment
+            trading_o_and_c = env.open_and_closes.ix[
+                self.sim_params.trading_days]
+            market_opens = trading_o_and_c['market_open'].values.astype(
+                'datetime64[ns]').astype(np.int64)
+            market_closes = trading_o_and_c['market_close'].values.astype(
+                'datetime64[ns]').astype(np.int64)
 
-            elif self.sim_params.data_frequency == 'daily':
-                self.clock = DailySimulationClock(self.sim_params.trading_days)
+            minutely_emission = self.sim_params.emission_rate == "minute"
 
-    def create_benchmark_source(self):
+            return MinuteSimulationClock(
+                self.sim_params.trading_days,
+                market_opens,
+                market_closes,
+                self.data_portal,
+                env.trading_days,
+                minutely_emission
+            )
+        else:
+            return DailySimulationClock(self.sim_params.trading_days)
+
+    def _create_benchmark_source(self):
         return BenchmarkSource(
             self.benchmark_sid,
             self.trading_environment,
@@ -425,45 +417,31 @@ class TradingAlgorithm(object):
         )
 
     def _create_generator(self, sim_params):
-        """
-        Create a basic generator setup using the sources to this algorithm.
-
-        ::source_filter:: is a method that receives events in date
-        sorted order, and returns True for those events that should be
-        processed by the zipline, and False for those that should be
-        skipped.
-        """
         if sim_params is not None:
             self.sim_params = sim_params
 
         if self.perf_tracker is None:
-            # Build a perf_tracker
-            self.perf_tracker = PerformanceTracker(
-                sim_params=self.sim_params,
-                env=self.trading_environment,
-                data_portal=self.data_portal)
-            # Set the dt initially to the period start by forcing it to change
-            self.on_dt_changed(self.sim_params.period_start)
-
             # HACK: When running with the `run` method, we set perf_tracker to
             # None so that it will be overwritten here.
             self.perf_tracker = PerformanceTracker(
-                sim_params=sim_params, env=self.trading_environment,
+                sim_params=self.sim_params,
+                env=self.trading_environment,
                 data_portal=self.data_portal
             )
+
+            # Set the dt initially to the period start by forcing it to change.
+            self.on_dt_changed(self.sim_params.period_start)
 
         if not self.initialized:
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
 
-        self.ensure_clock()
-
         self.trading_client = AlgorithmSimulator(
             self,
             sim_params,
             self.data_portal,
-            self.clock,
-            self.create_benchmark_source()
+            self._create_clock(),
+            self._create_benchmark_source()
         )
 
         return self.trading_client.transform()
@@ -487,22 +465,16 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        if self.data_portal is None:
-            self.data_portal = data_portal
+        self.data_portal = data_portal
 
-        self.ensure_clock()
-
-        # force a reset of the performance tracker, in case
+        # Force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
         self.perf_tracker = None
 
-        # create zipline
-        self.gen = self.get_generator()
-
-        # loop through simulated_trading, each iteration returns a
-        # perf dictionary
+        # Create zipline and loop through simulated_trading.
+        # Each iteration returns a perf dictionary
         perfs = []
-        for perf in self.gen:
+        for perf in self.get_generator():
             perfs.append(perf)
 
         # convert perf dict to pandas dataframe
@@ -1114,12 +1086,13 @@ class TradingAlgorithm(object):
 
         return self.data_portal.get_history_window(
             sids,
-            self.get_datetime(),
+            self.datetime,
             bar_count,
             frequency,
             field,
-            ffill
+            ffill,
         )
+
     ####################
     # Account Controls #
     ####################
