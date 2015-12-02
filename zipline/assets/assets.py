@@ -629,16 +629,26 @@ class AssetFinder(object):
                         )
                     )
                 ).order_by(
-                    # Sort using expiration_date if valid. If it's NaT,
-                    # use notice_date instead.
+                    # If both dates exist sort using minimum of
+                    # expiration_date and notice_date
+                    # else if one is NaT use the other.
                     sa.case(
                         [
                             (
                                 fc_cols.expiration_date == pd.NaT.value,
                                 fc_cols.notice_date
+                            ),
+                            (
+                                fc_cols.notice_date == pd.NaT.value,
+                                fc_cols.expiration_date
                             )
                         ],
-                        else_=fc_cols.expiration_date
+                        else_=(
+                            sa.func.min(
+                                fc_cols.notice_date,
+                                fc_cols.expiration_date
+                            )
+                        )
                     ).asc()
                 ).execute().fetchall()
             ))
