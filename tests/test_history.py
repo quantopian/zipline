@@ -245,12 +245,12 @@ class HistoryTestCase(TestCase):
                                    "DIVIDEND_minute.csv.gz"),
         }
 
-        path = os.path.join(tempdir.path, 'equity', 'minutes')
-        os.makedirs(path)
+        equities_tempdir = os.path.join(tempdir.path, 'equity', 'minutes')
+        os.makedirs(equities_tempdir)
 
         MinuteBarWriterFromCSVs(resources,
                                 pd.Timestamp('2002-01-02', tz='UTC')).write(
-                                    path, cls.assets)
+                                    equities_tempdir, cls.assets)
 
     @classmethod
     def create_fake_daily_data(cls, tempdir):
