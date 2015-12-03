@@ -27,6 +27,7 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
     NoDataOnDate
 )
+from zipline.data.us_equity_minutes import BcolzMinuteBarReader
 from zipline.pipeline.data.equity_pricing import USEquityPricing
 
 from zipline.utils import tradingcalendar
@@ -34,11 +35,6 @@ from zipline.errors import (
     NoTradeDataAvailableTooEarly,
     NoTradeDataAvailableTooLate
 )
-
-FIRST_TRADING_MINUTE = pd.Timestamp("2002-01-02 14:31:00", tz='UTC')
-
-# FIXME should this be passed in (is this qexec specific?)?
-INDEX_OF_FIRST_TRADING_DAY = 3028
 
 log = Logger('DataPortal')
 
@@ -73,6 +69,7 @@ class DataPortal(object):
                  env,
                  sim_params=None,
                  minutes_equities_path=None,
+                 minutes_futures_path=None,
                  daily_equities_path=None,
                  adjustment_reader=None,
                  equity_sid_path_func=None,
@@ -98,8 +95,10 @@ class DataPortal(object):
 
         self.views = {}
 
-        self._minutes_equities_path = minutes_equities_path
         self._daily_equities_path = daily_equities_path
+        self._minutes_equities_path = minutes_equities_path
+        self._minutes_futures_path = minutes_futures_path
+
         self._asset_finder = env.asset_finder
 
         self._carrays = {
@@ -144,6 +143,8 @@ class DataPortal(object):
         else:
             self._daily_bar_reader = None
 
+        self._minute_bar_reader = None
+
         # The following values are used by _minute_offset to calculate the
         # index into the minute bcolz date.
 
@@ -156,6 +157,13 @@ class DataPortal(object):
         # A dict of day to the offset into the minute bcolz on which that
         # days data starts.
         self._day_offsets = None
+
+    @property
+    def minute_bar_reader(self):
+        if self._minute_bar_reader is None:
+            self._minute_bar_reader = BcolzMinuteBarReader(
+                self._minutes_equities_path)
+        return self._minute_bar_reader
 
     def handle_extra_source(self, source_df):
         """
@@ -246,16 +254,21 @@ class DataPortal(object):
     def _get_ctable(self, asset):
         sid = int(asset)
 
-        if isinstance(asset, Future) and \
-                self._futures_sid_path_func is not None:
-            path = self._futures_sid_path_func(
-                self._minutes_equities_path, sid
-            )
-        elif isinstance(asset, Equity) and \
-                self._equity_sid_path_func is not None:
-            path = self._equity_sid_path_func(
-                self._minutes_equities_path, sid
-            )
+        if isinstance(asset, Future):
+            if self._futures_sid_path_func is not None:
+                path = self._futures_sid_path_func(
+                    self._minutes_futures_path, sid
+                )
+            else:
+                path = "{0}/{1}.bcolz".format(self._minutes_futures_path, sid)
+        elif isinstance(asset, Equity):
+            if self._equity_sid_path_func is not None:
+                path = self._equity_sid_path_func(
+                    self._minutes_equities_path, sid
+                )
+            else:
+                path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
+
         else:
             path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
 
@@ -406,14 +419,12 @@ class DataPortal(object):
         # trading. This lets us avoid doing an offset calculation related
         # to the asset start date.  Hard-coding 390 minutes per day lets us
         # ignore half days.
-        td = tradingcalendar.trading_days
-
         self._minutes_to_day = minutes_to_day
         self._minutes_by_day = minutes_by_day
         if self._sim_params is not None:
             start = self._sim_params.trading_days[0]
-            first_trading_day_idx = td.searchsorted(start) - \
-                INDEX_OF_FIRST_TRADING_DAY
+            first_trading_day_idx = self.minute_bar_reader.trading_days.\
+                searchsorted(start)
             self._day_offsets = {
                 day: (i + first_trading_day_idx) * 390
                 for i, day in enumerate(
@@ -436,8 +447,8 @@ class DataPortal(object):
 
         if minute_offset_to_use is None:
             given_day = pd.Timestamp(dt.date(), tz='utc')
-            day_index = tradingcalendar.trading_days.searchsorted(
-                given_day) - INDEX_OF_FIRST_TRADING_DAY
+            day_index = self.minute_bar_reader.trading_days.searchsorted(
+                given_day)
 
             # if dt is before the first market minute, minute_index
             # will be 0.  if it's after the last market minute, it'll
@@ -457,8 +468,8 @@ class DataPortal(object):
 
             # get this asset's start date, so that we don't look before it.
             start_date = self._get_asset_start_date(asset)
-            start_date_idx = tradingcalendar.trading_days.searchsorted(
-                start_date) - INDEX_OF_FIRST_TRADING_DAY
+            start_date_idx = self.minute_bar_reader.trading_days.searchsorted(
+                start_date)
             start_day_offset = start_date_idx * 390
 
             original_start = minute_offset_to_use
@@ -669,10 +680,12 @@ class DataPortal(object):
         minutes_for_window = self.env.market_minute_window(
             end_dt, bar_count, step=-1)[::-1]
 
+        first_trading_day = self.minute_bar_reader.first_trading_day
+
         # but then cut it down to only the minutes after
-        # FIRST_TRADING_MINUTE
+        # the first trading day.
         modified_minutes_for_window = minutes_for_window[
-            minutes_for_window.slice_indexer(FIRST_TRADING_MINUTE)]
+            minutes_for_window.slice_indexer(first_trading_day)]
 
         modified_minutes_length = len(modified_minutes_for_window)
 
@@ -684,12 +697,13 @@ class DataPortal(object):
         bars_to_prepend = 0
         nans_to_prepend = None
 
-        if modified_minutes_length < bar_count and \
-           (modified_minutes_for_window[0] == FIRST_TRADING_MINUTE):
-            # the beginning of the window goes before our global trading
-            # start date
-            bars_to_prepend = bar_count - modified_minutes_length
-            nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
+        if modified_minutes_length < bar_count:
+            first_trading_date = first_trading_day.date()
+            if modified_minutes_for_window[0].date() == first_trading_date:
+                # the beginning of the window goes before our global trading
+                # start date
+                bars_to_prepend = bar_count - modified_minutes_length
+                nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
 
         if len(assets) == 0:
             return pd.DataFrame(
@@ -968,8 +982,7 @@ class DataPortal(object):
 
         np.around(data, 3, out=data)
 
-    @staticmethod
-    def _find_position_of_minute(minute_dt):
+    def _find_position_of_minute(self, minute_dt):
         """
         Internal method that returns the position of the given minute in the
         list of every trading minute since market open on 1/2/2002.
@@ -991,8 +1004,7 @@ class DataPortal(object):
         since market open on 1/2/2002.
         """
         day = minute_dt.date()
-        day_idx = tradingcalendar.trading_days.searchsorted(day) -\
-            INDEX_OF_FIRST_TRADING_DAY
+        day_idx = self.minute_bar_reader.trading_days.searchsorted(day)
         if day_idx < 0:
             return -1
 

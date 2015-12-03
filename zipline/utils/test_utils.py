@@ -596,8 +596,8 @@ def write_minute_data(tempdir, minutes, sids, sid_path_func=None):
             "minute": minutes
         }, index=minutes)
 
-    MinuteBarWriterFromDataFrames().write(tempdir.path, assets,
-                                          sid_path_func=sid_path_func)
+    MinuteBarWriterFromDataFrames(pd.Timestamp('2002-01-02', tz='UTC')).write(
+        tempdir.path, assets, sid_path_func=sid_path_func)
 
     return tempdir.path
 
@@ -726,7 +726,8 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
                 "minute": minutes
             }, index=minutes)
 
-        MinuteBarWriterFromDataFrames().write(tempdir.path, assets)
+        MinuteBarWriterFromDataFrames(pd.Timestamp('2002-01-02', tz='UTC')).\
+            write(tempdir.path, assets)
 
         return DataPortal(
             env,
@@ -763,6 +764,9 @@ class FetcherDataPortal(DataPortal):
 
         # otherwise just return a fixed value
         return int(asset)
+
+    def setup_offset_cache(self, minutes_by_day, minutes_to_day):
+        pass
 
     def _get_daily_window_for_sid(self, asset, field, days_in_window,
                                   extra_slot=True):

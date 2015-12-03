@@ -2,6 +2,7 @@ from os.path import dirname, join, realpath
 from textwrap import dedent
 from unittest import TestCase
 import bcolz
+import os
 from datetime import timedelta
 from nose_parameterized import parameterized
 from pandas.tslib import normalize_date
@@ -106,8 +107,11 @@ class HistoryTestCase(TestCase):
                 cls.FUTURE_ASSET2: pd.Timestamp("2014-03-19 13:31", tz='UTC')
             }
 
+            futures_tempdir = os.path.join(cls.tempdir.path,
+                                           'futures', 'minutes')
+            os.makedirs(futures_tempdir)
             cls.create_fake_futures_minute_data(
-                cls.tempdir,
+                futures_tempdir,
                 cls.env.asset_finder.retrieve_asset(cls.FUTURE_ASSET),
                 cls.futures_start_dates[cls.FUTURE_ASSET],
                 cls.futures_start_dates[cls.FUTURE_ASSET] +
@@ -117,7 +121,7 @@ class HistoryTestCase(TestCase):
             # build data for FUTURE_ASSET2 from 2014-03-19 13:31 to
             # 2014-03-21 20:00
             cls.create_fake_futures_minute_data(
-                cls.tempdir,
+                futures_tempdir,
                 cls.env.asset_finder.retrieve_asset(cls.FUTURE_ASSET2),
                 cls.futures_start_dates[cls.FUTURE_ASSET2],
                 cls.futures_start_dates[cls.FUTURE_ASSET2] +
@@ -219,7 +223,7 @@ class HistoryTestCase(TestCase):
                                list(range(40000, 40000 + num_minutes)))
         })
 
-        path = join(tempdir.path, "{0}.bcolz".format(asset.sid))
+        path = join(tempdir, "{0}.bcolz".format(asset.sid))
         ctable = bcolz.ctable.fromdataframe(future_df, rootdir=path)
 
         ctable.attrs["start_dt"] = start_dt.value / 1e9
@@ -241,7 +245,12 @@ class HistoryTestCase(TestCase):
                                    "DIVIDEND_minute.csv.gz"),
         }
 
-        MinuteBarWriterFromCSVs(resources).write(tempdir.path, cls.assets)
+        equities_tempdir = os.path.join(tempdir.path, 'equity', 'minutes')
+        os.makedirs(equities_tempdir)
+
+        MinuteBarWriterFromCSVs(resources,
+                                pd.Timestamp('2002-01-02', tz='UTC')).write(
+                                    equities_tempdir, cls.assets)
 
     @classmethod
     def create_fake_daily_data(cls, tempdir):
@@ -327,12 +336,16 @@ class HistoryTestCase(TestCase):
 
         temp_path = self.tempdir.path
 
+        minutes_path = os.path.join(temp_path, 'equity', 'minutes')
+        futures_path = os.path.join(temp_path, 'futures', 'minutes')
+
         adjustment_reader = SQLiteAdjustmentReader(
             join(temp_path, adjustments_filename))
 
         return DataPortal(
             env,
-            minutes_equities_path=temp_path,
+            minutes_equities_path=minutes_path,
+            minutes_futures_path=futures_path,
             daily_equities_path=join(temp_path, daily_equities_filename),
             adjustment_reader=adjustment_reader
         )

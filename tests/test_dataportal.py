@@ -50,7 +50,9 @@ class TestDataPortal(TestCase):
                 "minute": minutes
             })
 
-            MinuteBarWriterFromDataFrames().write(tempdir.path, {0: df})
+            MinuteBarWriterFromDataFrames(
+                pd.Timestamp('2002-01-02', tz='UTC')).write(
+                    tempdir.path, {0: df})
 
             sim_params = SimulationParameters(
                 period_start=minutes[0],
@@ -180,7 +182,9 @@ class TestDataPortal(TestCase):
                 "minute": minutes
             })
 
-            MinuteBarWriterFromDataFrames().write(tempdir.path, {0: df})
+            MinuteBarWriterFromDataFrames(
+                pd.Timestamp('2002-01-02', tz='UTC')).write(
+                    tempdir.path, {0: df})
 
             sim_params = SimulationParameters(
                 period_start=minutes[0],
@@ -315,7 +319,7 @@ class TestDataPortal(TestCase):
 
             dp = DataPortal(
                 env,
-                minutes_equities_path=tempdir.path
+                minutes_futures_path=tempdir.path
             )
 
             future123 = env.asset_finder.retrieve_asset(123)
