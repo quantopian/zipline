@@ -33,6 +33,27 @@ Pipeline API
    :exclude-members: dtype
    :member-order: bysource
 
+.. autoclass:: zipline.pipeline.factors.Latest
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.MaxDrawdown
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.Returns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RSI
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.SimpleMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.VWAP
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.WeightedAverageValue
+   :members:
+
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
    :exclude-members: dtype

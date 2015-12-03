@@ -8,7 +8,7 @@ from numpy.random import randn, seed
 
 from zipline.errors import UnknownRankMethod
 from zipline.pipeline import Factor, Filter, TermGraph
-from zipline.pipeline.factors import RSI
+from zipline.pipeline.factors import RSI, Returns
 from zipline.utils.test_utils import check_allclose, check_arrays
 
 from .base import BasePipelineTestCase
@@ -220,5 +220,29 @@ class FactorTestCase(BasePipelineTestCase):
 
         out = empty((3,), dtype=float)
         rsi.compute(today, assets, out, test_data)
+
+        check_allclose(expected, out)
+
+    @parameterized.expand([
+        (100, 15),
+        (101, 4),
+        (102, 100),
+        ])
+    def test_returns(self, seed_value, window_length):
+
+        returns = Returns(window_length=window_length)
+
+        today = datetime64(1, 'ns')
+        assets = arange(3)
+        out = empty((3,), dtype=float)
+
+        seed(seed_value)  # Seed so we get deterministic results.
+        test_data = abs(randn(window_length, 3))
+
+        # Calculate the expected returns
+        expected = (test_data[-1] - test_data[0]) / test_data[0]
+
+        out = empty((3,), dtype=float)
+        returns.compute(today, assets, out, test_data)
 
         check_allclose(expected, out)

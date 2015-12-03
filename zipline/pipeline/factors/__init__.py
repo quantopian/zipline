@@ -6,6 +6,7 @@ from .latest import Latest
 from .technical import (
     MaxDrawdown,
     RSI,
+    Returns,
     SimpleMovingAverage,
     VWAP,
     WeightedAverageValue,
@@ -17,6 +18,7 @@ __all__ = [
     'Latest',
     'MaxDrawdown',
     'RSI',
+    'Returns',
     'SimpleMovingAverage',
     'VWAP',
     'WeightedAverageValue',

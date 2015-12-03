@@ -24,6 +24,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
+from zipline.assets import Equity, Future
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (
@@ -80,8 +81,13 @@ from zipline.test_algorithms import (
 )
 from zipline.utils.context_tricks import CallbackManager
 import zipline.utils.events
-from zipline.utils.test_utils import to_utc
 from zipline.assets import Equity
+from zipline.utils.test_utils import (
+    assert_single_position,
+    drain_zipline,
+    to_utc,
+)
+
 
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
@@ -642,13 +648,13 @@ class TestTransformAlgorithm(TestCase):
     @classmethod
     def setUpClass(cls):
         setup_logger(cls)
-        futures_metadata = {3: {'contract_multiplier': 10}}
         cls.env = TradingEnvironment()
         cls.sim_params = factory.create_simulation_parameters(num_days=4,
                                                               env=cls.env)
         cls.sids = [0, 1, 133]
         cls.tempdir = TempDirectory()
 
+        futures_metadata = {3: {'contract_multiplier': 10}}
         equities_metadata = {}
 
         for sid in cls.sids:
@@ -750,6 +756,10 @@ class TestTransformAlgorithm(TestCase):
             sim_params=self.sim_params,
             env=self.env,
         )
+        # Ensure that the environment's asset 0 is an Equity
+        asset_to_test = algo.sid(0)
+        self.assertIsInstance(asset_to_test, Equity)
+
         algo.run(self.data_portal)
 
     @parameterized.expand([
@@ -764,6 +774,10 @@ class TestTransformAlgorithm(TestCase):
             sim_params=self.sim_params,
             env=self.env,
         )
+        # Ensure that the environment's asset 0 is a Future
+        asset_to_test = algo.sid(3)
+        self.assertIsInstance(asset_to_test, Future)
+
         algo.run(self.data_portal)
 
     @parameterized.expand([
