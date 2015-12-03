@@ -414,11 +414,11 @@ class DataPortal(object):
             return result
 
     def setup_offset_cache(self, minutes_by_day, minutes_to_day):
-        # All our minute bcolz files are written starting on 1/2/2002,
-        # with 390 minutes per day, regarding of when the security started
-        # trading. This lets us avoid doing an offset calculation related
-        # to the asset start date.  Hard-coding 390 minutes per day lets us
-        # ignore half days.
+        # TODO: This case should not be hit, but is when tests are setup
+        # with data_frequency of daily, but run with minutely.
+        if self._minutes_equities_path is None:
+            return
+
         self._minutes_to_day = minutes_to_day
         self._minutes_by_day = minutes_by_day
         if self._sim_params is not None:
