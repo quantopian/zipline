@@ -24,7 +24,10 @@ from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.data.data_portal import DataPortal
-from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import (
+    MinuteBarWriterFromDataFrames,
+    BcolzMinuteBarReader
+)
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, OHLC, \
     UINT32_MAX, BcolzDailyBarWriter
 from zipline.finance.order import ORDER_STATUS
@@ -645,9 +648,11 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
         minute_path = write_minute_data(tempdir, minutes, sids,
                                         sid_path_func)
 
+        equity_minute_reader = BcolzMinuteBarReader(minute_path)
+
         return DataPortal(
             env,
-            minutes_equities_path=minute_path,
+            equity_minute_reader=equity_minute_reader,
             sim_params=sim_params,
             adjustment_reader=adjustment_reader
         )
@@ -729,9 +734,11 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
         MinuteBarWriterFromDataFrames(pd.Timestamp('2002-01-02', tz='UTC')).\
             write(tempdir.path, assets)
 
+        equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+
         return DataPortal(
             env,
-            minutes_equities_path=tempdir.path,
+            equity_minute_reader=equity_minute_reader,
             sim_params=sim_params
         )
 
