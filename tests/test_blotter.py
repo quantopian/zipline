@@ -35,6 +35,8 @@ from zipline.utils.test_utils import(
     setup_logger,
     teardown_logger,
 )
+from zipline.finance.slippage import DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT, \
+    FixedSlippage
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 from zipline.data.data_portal import DataPortal
 
@@ -107,6 +109,7 @@ class BlotterTestCase(TestCase):
 
     def test_order_rejection(self):
         blotter = Blotter()
+
         # Reject a nonexistent order -> no order appears in new_order,
         # no exceptions raised out
         blotter.reject(56)
@@ -151,6 +154,7 @@ class BlotterTestCase(TestCase):
 
         # You can't reject a filled order.
         blotter = Blotter()   # Reset for paranoia
+        blotter.slippage_func = FixedSlippage()
         filled_id = blotter.order(24, 100, MarketOrder())
         filled_order = None
         blotter.current_dt = self.sim_params.trading_days[-1]
@@ -203,7 +207,8 @@ class BlotterTestCase(TestCase):
             dt = data[1]
 
             order_size = 100
-            expected_filled = trade_amt * 0.25
+            expected_filled = int(trade_amt *
+                                  DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT)
             expected_open = order_size - expected_filled
             expected_status = ORDER_STATUS.OPEN if expected_open else \
                 ORDER_STATUS.FILLED

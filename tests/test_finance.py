@@ -89,11 +89,13 @@ class FinanceTestCase(TestCase):
             'order_count': 2,
             'order_amount': 100,
             'order_interval': timedelta(minutes=1),
-            # because we placed an order for 100 shares, and the volume
-            # of each trade is 100, the simulator should spread the order
-            # into 4 trades of 25 shares per order.
-            'expected_txn_count': 8,
-            'expected_txn_volume': 2 * 100
+            # because we placed two orders for 100 shares each, and the volume
+            # of each trade is 100, and by default you can take up 2.5% of the
+            # bar's volume, the simulator should spread the order into 100
+            # trades of 2 shares per order.
+            'expected_txn_count': 100,
+            'expected_txn_volume': 2 * 100,
+            'default_slippage': True
         }
 
         self.transaction_sim(**params)
@@ -105,8 +107,9 @@ class FinanceTestCase(TestCase):
             'order_count': 2,
             'order_amount': -100,
             'order_interval': timedelta(minutes=1),
-            'expected_txn_count': 8,
-            'expected_txn_volume': 2 * -100
+            'expected_txn_count': 100,
+            'expected_txn_volume': 2 * -100,
+            'default_slippage': True
         }
 
         self.transaction_sim(**params2)
@@ -194,6 +197,11 @@ class FinanceTestCase(TestCase):
 
             env = TradingEnvironment()
             blotter = Blotter()
+
+            if "default_slippage" not in params or \
+                    not params["default_slippage"]:
+                blotter.slippage_func = FixedSlippage()
+
             sid = 1
 
             if trade_interval < timedelta(days=1):
@@ -321,6 +329,7 @@ class FinanceTestCase(TestCase):
                     self.assertEqual(order.amount, txn.amount)
 
             self.assertEqual(total_volume, expected_txn_volume)
+
             self.assertEqual(len(transactions), expected_txn_count)
 
             cumulative_pos = tracker.position_tracker.positions[sid]

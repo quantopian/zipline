@@ -344,6 +344,7 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
 
 class TestTargetAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
@@ -361,6 +362,7 @@ class TestTargetAlgorithm(TradingAlgorithm):
 
 class TestOrderPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
@@ -396,8 +398,8 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
         self.sale_price = None
 
         # this makes the math easier to check
-        self.commission = PerShare(0)
-        self.slippage = FixedSlippage(spread=0.0)
+        self.set_slippage(FixedSlippage())
+        self.set_commission(PerShare(0))
 
     def handle_data(self, data):
         if not self.ordered:
@@ -424,6 +426,7 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
 
 class TestTargetValueAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
@@ -476,6 +479,7 @@ class SetMaxLeverageAlgorithm(TradingAlgorithm):
 
 class SetMaxPositionSizeAlgorithm(TradingAlgorithm):
     def initialize(self, sid=None, max_shares=None, max_notional=None):
+        self.set_slippage(FixedSlippage())
         self.order_count = 0
         self.set_max_position_size(sid=sid,
                                    max_shares=max_shares,
