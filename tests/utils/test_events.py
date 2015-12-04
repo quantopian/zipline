@@ -209,7 +209,7 @@ def minutes_for_days():
     """
     env = TradingEnvironment()
     random.seed('deterministic')
-    return ((env.market_minutes_for_day(random.choice(env.trading_days)),)
+    return ((env.market_minutes_for_day(random.choice(env.trading_days[:-1])),)
             for _ in range(500))
 
 
@@ -287,6 +287,7 @@ class TestStatelessRules(RuleTestCase):
             # at 13:30 UTC, meaning the first minute of data has an
             # offset of 1.
             self.assertFalse(should_trigger(m))
+
         for m in islice(ms, 64, None):
             # Check the rest of the day.
             self.assertTrue(should_trigger(m))

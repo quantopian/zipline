@@ -28,6 +28,9 @@ class LiquidityExceeded(Exception):
     pass
 
 
+DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
+
+
 class SlippageModel(with_metaclass(abc.ABCMeta)):
     def __init__(self):
         self._volume_for_bar = 0
@@ -66,9 +69,12 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
 
 class VolumeShareSlippage(SlippageModel):
 
-    def __init__(self, volume_limit=0.25, price_impact=0.1):
+    def __init__(self, volume_limit=DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
+                 price_impact=0.1):
         self.volume_limit = volume_limit
         self.price_impact = price_impact
+
+        super(VolumeShareSlippage, self).__init__()
 
     def __repr__(self):
         return """

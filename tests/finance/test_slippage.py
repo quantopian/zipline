@@ -142,10 +142,10 @@ class SlippageTestCase(TestCase):
             _, txn = orders_txns[0]
 
             expected_txn = {
-                'price': float(3.01875),
+                'price': float(3.0001875),
                 'dt': datetime.datetime(
                     2006, 1, 5, 14, 31, tzinfo=pytz.utc),
-                'amount': int(50),
+                'amount': int(5),
                 'sid': int(133),
                 'commission': None,
                 'type': DATASOURCE_TYPE.TRANSACTION,
@@ -222,10 +222,12 @@ class SlippageTestCase(TestCase):
         txn = orders_txns[0][1]
 
         expected_txn = {
-            'price': float(3.500875),
+            'price': float(3.50021875),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 34, tzinfo=pytz.utc),
-            'amount': int(100),
+            # we ordered 100 shares, but default volume slippage only allows
+            # for 2.5% of the volume.  2.5% * 2000 = 50 shares
+            'amount': int(50),
             'sid': int(133),
             'order_id': open_orders[0].id
         }
@@ -294,10 +296,10 @@ class SlippageTestCase(TestCase):
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price': float(3.499125),
+            'price': float(3.49978125),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 32, tzinfo=pytz.utc),
-            'amount': int(-100),
+            'amount': int(-50),
             'sid': int(133)
         }
 
@@ -352,9 +354,9 @@ class SlippageTestCase(TestCase):
             },
             'expected': {
                 'transaction': {
-                    'price': 4.001,
+                    'price': 4.00025,
                     'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                    'amount': 100,
+                    'amount': 50,
                     'sid': 133,
                 }
             }
@@ -423,9 +425,9 @@ class SlippageTestCase(TestCase):
             },
             'expected': {
                 'transaction': {
-                    'price': 2.99925,
+                    'price': 2.9998125,
                     'dt': pd.Timestamp('2006-01-05 14:31', tz='UTC'),
-                    'amount': -100,
+                    'amount': -50,
                     'sid': 133,
                 }
             }
@@ -578,10 +580,10 @@ class SlippageTestCase(TestCase):
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price': float(3.500875),
+            'price': float(3.50021875),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 34, tzinfo=pytz.utc),
-            'amount': int(100),
+            'amount': int(50),
             'sid': int(133)
         }
 
@@ -678,10 +680,10 @@ class SlippageTestCase(TestCase):
         _, txn = orders_txns[0]
 
         expected_txn = {
-            'price': float(3.499125),
+            'price': float(3.49978125),
             'dt': datetime.datetime(
                 2006, 1, 5, 14, 32, tzinfo=pytz.utc),
-            'amount': int(-100),
+            'amount': int(-50),
             'sid': int(133)
         }
 

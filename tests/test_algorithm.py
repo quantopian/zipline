@@ -81,13 +81,7 @@ from zipline.test_algorithms import (
 )
 from zipline.utils.context_tricks import CallbackManager
 import zipline.utils.events
-from zipline.assets import Equity
-from zipline.utils.test_utils import (
-    assert_single_position,
-    drain_zipline,
-    to_utc,
-)
-
+from zipline.utils.test_utils import to_utc
 
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
@@ -1038,9 +1032,23 @@ def handle_data(context, data):
 
         self.assertEqual(expected_price, txn['price'])
 
-    def test_volshare_slippage(self):
+    @parameterized.expand(
+        [
+            ('no_minimum_commission', 0,),
+            ('default_minimum_commission', 1,),
+            ('alternate_minimum_commission', 2,),
+        ]
+    )
+    def test_volshare_slippage(self, name, minimum_commission):
         tempdir = TempDirectory()
         try:
+            if name == "default_minimum_commission":
+                commission_line = "set_commission(commission.PerShare(0.02))"
+            else:
+                commission_line = \
+                    "set_commission(commission.PerShare(0.02, " \
+                    "min_trade_cost={0}))".format(minimum_commission)
+
             # verify order -> transaction -> portfolio position.
             # --------------
             test_algo = TradingAlgorithm(
@@ -1053,7 +1061,8 @@ def initialize(context):
                             price_impact=0.05
                        )
     set_slippage(model)
-    set_commission(commission.PerShare(0.02))
+    {0}
+
     context.count = 2
     context.incr = 0
 
@@ -1066,7 +1075,7 @@ def handle_data(context, data):
     record(volume=data[0].volume)
     record(incr=context.incr)
     context.incr += 1
-    """,
+    """.format(commission_line),
                 sim_params=self.sim_params,
                 env=self.env,
             )
@@ -1082,12 +1091,18 @@ def handle_data(context, data):
                 for val in sublist]
 
             self.assertEqual(len(all_txns), 67)
-
-            per_share_commish = 0.02
             first_txn = all_txns[0]
-            commish = first_txn["amount"] * per_share_commish
-            self.assertEqual(commish, first_txn["commission"])
-            self.assertEqual(2.029, first_txn["price"])
+
+            if minimum_commission == 0:
+                commish = first_txn["amount"] * 0.02
+                self.assertEqual(commish, first_txn["commission"])
+            else:
+                self.assertEqual(minimum_commission, first_txn["commission"])
+
+            # import pdb; pdb.set_trace()
+            # commish = first_txn["amount"] * per_share_commish
+            # self.assertEqual(commish, first_txn["commission"])
+            # self.assertEqual(2.029, first_txn["price"])
         finally:
             tempdir.cleanup()
 
