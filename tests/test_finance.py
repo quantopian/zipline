@@ -42,7 +42,10 @@ from zipline.utils.test_utils import(
     setup_logger,
     teardown_logger
 )
-from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import (
+    MinuteBarWriterFromDataFrames,
+    BcolzMinuteBarReader
+)
 from zipline.data.data_portal import DataPortal
 from zipline.finance.slippage import FixedSlippage
 
@@ -230,9 +233,11 @@ class FinanceTestCase(TestCase):
                     pd.Timestamp('2002-01-02', tz='UTC')
                 ).write(tempdir.path, assets)
 
+                equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+
                 data_portal = DataPortal(
                     env,
-                    minutes_equities_path=tempdir.path,
+                    equity_minute_reader=equity_minute_reader,
                     sim_params=sim_params
                 )
             else:

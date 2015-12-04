@@ -35,6 +35,7 @@ from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
 from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import BcolzMinuteBarReader
 from zipline.data.data_portal import DataPortal
 
 
@@ -86,7 +87,7 @@ class SlippageTestCase(TestCase):
 
         cls.data_portal = DataPortal(
             cls.env,
-            minutes_equities_path=cls.tempdir.path,
+            equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
             sim_params=cls.sim_params
         )
 
@@ -114,9 +115,11 @@ class SlippageTestCase(TestCase):
                 pd.Timestamp('2002-01-02', tz='UTC')
             ).write(tempdir.path, assets)
 
+            equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+
             data_portal = DataPortal(
                 self.env,
-                minutes_equities_path=tempdir.path,
+                equity_minute_reader=equity_minute_reader,
                 sim_params=self.sim_params
             )
 
@@ -458,9 +461,11 @@ class SlippageTestCase(TestCase):
                 pd.Timestamp('2002-01-02', tz='UTC')
             ).write(tempdir.path, assets)
 
+            equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+
             data_portal = DataPortal(
                 self.env,
-                minutes_equities_path=tempdir.path,
+                equity_minute_reader=equity_minute_reader,
                 sim_params=self.sim_params
             )
 

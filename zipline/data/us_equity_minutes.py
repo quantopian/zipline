@@ -214,7 +214,7 @@ class MinuteBarWriterFromCSVs(BcolzMinuteBarWriter):
 
 class BcolzMinuteBarReader(object):
 
-    def __init__(self, rootdir):
+    def __init__(self, rootdir, sid_path_func=None):
         self.rootdir = rootdir
 
         metadata = self._get_metadata()
@@ -224,6 +224,7 @@ class BcolzMinuteBarReader(object):
         mask = tradingcalendar.trading_days.slice_indexer(
             self.first_trading_day)
         self.trading_days = tradingcalendar.trading_days[mask]
+        self.sid_path_func = sid_path_func
 
     def _get_metadata(self):
         with open(os.path.join(self.rootdir, METADATA_FILENAME)) as fp:

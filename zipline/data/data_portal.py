@@ -27,7 +27,6 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
     NoDataOnDate
 )
-from zipline.data.us_equity_minutes import BcolzMinuteBarReader
 from zipline.pipeline.data.equity_pricing import USEquityPricing
 
 from zipline.utils import tradingcalendar
@@ -68,11 +67,10 @@ class DataPortal(object):
     def __init__(self,
                  env,
                  sim_params=None,
-                 minutes_equities_path=None,
+                 equity_minute_reader=None,
                  minutes_futures_path=None,
                  daily_equities_path=None,
                  adjustment_reader=None,
-                 equity_sid_path_func=None,
                  futures_sid_path_func=None):
         self.env = env
 
@@ -96,7 +94,6 @@ class DataPortal(object):
         self.views = {}
 
         self._daily_equities_path = daily_equities_path
-        self._minutes_equities_path = minutes_equities_path
         self._minutes_futures_path = minutes_futures_path
 
         self._asset_finder = env.asset_finder
@@ -133,7 +130,6 @@ class DataPortal(object):
         else:
             self._data_frequency = "minute"
 
-        self._equity_sid_path_func = equity_sid_path_func
         self._futures_sid_path_func = futures_sid_path_func
 
         self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
@@ -143,7 +139,7 @@ class DataPortal(object):
         else:
             self._daily_bar_reader = None
 
-        self._minute_bar_reader = None
+        self._equity_minute_reader = equity_minute_reader
 
         # The following values are used by _minute_offset to calculate the
         # index into the minute bcolz date.
@@ -157,13 +153,6 @@ class DataPortal(object):
         # A dict of day to the offset into the minute bcolz on which that
         # days data starts.
         self._day_offsets = None
-
-    @property
-    def minute_bar_reader(self):
-        if self._minute_bar_reader is None:
-            self._minute_bar_reader = BcolzMinuteBarReader(
-                self._minutes_equities_path)
-        return self._minute_bar_reader
 
     def handle_extra_source(self, source_df):
         """
@@ -262,15 +251,17 @@ class DataPortal(object):
             else:
                 path = "{0}/{1}.bcolz".format(self._minutes_futures_path, sid)
         elif isinstance(asset, Equity):
-            if self._equity_sid_path_func is not None:
-                path = self._equity_sid_path_func(
-                    self._minutes_equities_path, sid
+            if self._equity_minute_reader.sid_path_func is not None:
+                path = self._equity_minute_reader.sid_path_func(
+                    self._equity_minute_reader.rootdir, sid
                 )
             else:
-                path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
+                path = "{0}/{1}.bcolz".format(
+                    self._equity_minute_reader.rootdir, sid)
 
         else:
-            path = "{0}/{1}.bcolz".format(self._minutes_equities_path, sid)
+            path = "{0}/{1}.bcolz".format(
+                self._equity_minute_reader.rootdir, sid)
 
         return bcolz.open(path, mode='r')
 
@@ -416,14 +407,14 @@ class DataPortal(object):
     def setup_offset_cache(self, minutes_by_day, minutes_to_day):
         # TODO: This case should not be hit, but is when tests are setup
         # with data_frequency of daily, but run with minutely.
-        if self._minutes_equities_path is None:
+        if self._equity_minute_reader is None:
             return
 
         self._minutes_to_day = minutes_to_day
         self._minutes_by_day = minutes_by_day
         if self._sim_params is not None:
             start = self._sim_params.trading_days[0]
-            first_trading_day_idx = self.minute_bar_reader.trading_days.\
+            first_trading_day_idx = self._equity_minute_reader.trading_days.\
                 searchsorted(start)
             self._day_offsets = {
                 day: (i + first_trading_day_idx) * 390
@@ -447,7 +438,7 @@ class DataPortal(object):
 
         if minute_offset_to_use is None:
             given_day = pd.Timestamp(dt.date(), tz='utc')
-            day_index = self.minute_bar_reader.trading_days.searchsorted(
+            day_index = self._equity_minute_reader.trading_days.searchsorted(
                 given_day)
 
             # if dt is before the first market minute, minute_index
@@ -468,8 +459,8 @@ class DataPortal(object):
 
             # get this asset's start date, so that we don't look before it.
             start_date = self._get_asset_start_date(asset)
-            start_date_idx = self.minute_bar_reader.trading_days.searchsorted(
-                start_date)
+            start_date_idx = self._equity_minute_reader.trading_days.\
+                searchsorted(start_date)
             start_day_offset = start_date_idx * 390
 
             original_start = minute_offset_to_use
@@ -680,7 +671,7 @@ class DataPortal(object):
         minutes_for_window = self.env.market_minute_window(
             end_dt, bar_count, step=-1)[::-1]
 
-        first_trading_day = self.minute_bar_reader.first_trading_day
+        first_trading_day = self._equity_minute_reader.first_trading_day
 
         # but then cut it down to only the minutes after
         # the first trading day.
@@ -1004,7 +995,7 @@ class DataPortal(object):
         since market open on 1/2/2002.
         """
         day = minute_dt.date()
-        day_idx = self.minute_bar_reader.trading_days.searchsorted(day)
+        day_idx = self._equity_minute_reader.trading_days.searchsorted(day)
         if day_idx < 0:
             return -1
 

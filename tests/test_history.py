@@ -30,7 +30,10 @@ from zipline.utils.test_utils import (
     str_to_seconds,
     MockDailyBarReader
 )
-from zipline.data.us_equity_minutes import MinuteBarWriterFromCSVs
+from zipline.data.us_equity_minutes import (
+    MinuteBarWriterFromCSVs,
+    BcolzMinuteBarReader
+)
 from zipline.utils.tradingcalendar import trading_days
 from zipline.finance.trading import (
     TradingEnvironment,
@@ -342,9 +345,11 @@ class HistoryTestCase(TestCase):
         adjustment_reader = SQLiteAdjustmentReader(
             join(temp_path, adjustments_filename))
 
+        equity_minute_reader = BcolzMinuteBarReader(minutes_path)
+
         return DataPortal(
             env,
-            minutes_equities_path=minutes_path,
+            equity_minute_reader=equity_minute_reader,
             minutes_futures_path=futures_path,
             daily_equities_path=join(temp_path, daily_equities_filename),
             adjustment_reader=adjustment_reader

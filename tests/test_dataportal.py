@@ -11,7 +11,10 @@ from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, \
     SQLiteAdjustmentReader
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
-from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
+from zipline.data.us_equity_minutes import (
+    MinuteBarWriterFromDataFrames,
+    BcolzMinuteBarReader
+)
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 
 
@@ -61,9 +64,11 @@ class TestDataPortal(TestCase):
                 env=env,
             )
 
+            equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+
             dp = DataPortal(
                 env,
-                minutes_equities_path=tempdir.path,
+                equity_minute_reader=equity_minute_reader,
                 sim_params=sim_params
             )
 
@@ -239,9 +244,11 @@ class TestDataPortal(TestCase):
 
             writer.write(splits, mergers, dividends)
 
+            equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+
             dp = DataPortal(
                 env,
-                minutes_equities_path=tempdir.path,
+                equity_minute_reader=equity_minute_reader,
                 sim_params=sim_params,
                 adjustment_reader=SQLiteAdjustmentReader(adjustments_path)
             )
