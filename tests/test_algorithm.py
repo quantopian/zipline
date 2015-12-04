@@ -81,13 +81,7 @@ from zipline.test_algorithms import (
 )
 from zipline.utils.context_tricks import CallbackManager
 import zipline.utils.events
-from zipline.assets import Equity
-from zipline.utils.test_utils import (
-    assert_single_position,
-    drain_zipline,
-    to_utc,
-)
-
+from zipline.utils.test_utils import to_utc
 
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
