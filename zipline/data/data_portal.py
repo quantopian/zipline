@@ -260,8 +260,15 @@ class DataPortal(object):
                     self._equity_minute_reader.rootdir, sid)
 
         else:
-            path = "{0}/{1}.bcolz".format(
-                self._equity_minute_reader.rootdir, sid)
+            # TODO: Figure out if assets should be allowed if neither, and
+            # why this code path is being hit.
+            if self._equity_minute_reader.sid_path_func is not None:
+                path = self._equity_minute_reader.sid_path_func(
+                    self._equity_minute_reader.rootdir, sid
+                )
+            else:
+                path = "{0}/{1}.bcolz".format(
+                    self._equity_minute_reader.rootdir, sid)
 
         return bcolz.open(path, mode='r')
 
