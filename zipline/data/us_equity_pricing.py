@@ -471,7 +471,7 @@ class BcolzDailyBarReader(object):
         try:
             col = self._spot_cols[colname]
         except KeyError:
-            col = self._spot_cols[colname] = self._table[colname][:]
+            col = self._spot_cols[colname] = self._table[colname]
         return col
 
     def sid_day_index(self, sid, day):
