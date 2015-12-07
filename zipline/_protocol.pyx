@@ -15,17 +15,13 @@
 
 from pandas.tslib import normalize_date
 
+
 cdef class BarData:
     """
     Holds the event data for all sids for a given dt.
 
     This is what is passed as `data` to the `handle_data` function.
     """
-    cdef object data_portal
-    cdef object simulator
-    cdef object data_frequency
-    cdef dict _views
-
     def __init__(self, data_portal, simulator):
         self.data_portal = data_portal
         self.simulator = simulator
@@ -49,11 +45,17 @@ cdef class BarData:
         try:
             view = self._views[asset]
         except KeyError:
-            view = self._views[asset] = \
-                SidView(asset, self.data_portal,
-                        self.simulator, self.data_frequency)
+            view = self._views[asset] = self._create_sid_view(asset)
 
         return view
+
+    def _create_sid_view(self, asset):
+        return SidView(
+            asset,
+            self.data_portal,
+            self.simulator,
+            self.data_frequency
+        )
 
     def __iter__(self):
         raise ValueError("'BarData' object is not iterable")
@@ -71,12 +73,6 @@ cdef class BarData:
         )
 
 cdef class SidView:
-
-    cdef object asset
-    cdef object data_portal
-    cdef object simulator
-    cdef object data_frequency
-    
     def __init__(self, asset, data_portal, simulator, data_frequency):
         self.asset = asset
         self.data_portal = data_portal
