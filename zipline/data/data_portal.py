@@ -1052,14 +1052,7 @@ class DataPortal(object):
         nan.
 
         """
-        column = US_EQUITY_COLUMNS[field]
-        data = self._daily_bar_reader.load_raw_arrays([column],
-                                                      days_in_window[0],
-                                                      days_in_window[-1],
-                                                      [asset])
-
         bar_count = len(days_in_window)
-
         # create an np.array of size bar_count
         if extra_slot:
             return_array = np.zeros((bar_count + 1,))
@@ -1067,16 +1060,24 @@ class DataPortal(object):
             return_array = np.zeros((bar_count,))
 
         return_array[:] = np.NAN
-        sid = int(asset)
 
-        return_array[0:bar_count] = data[0].T[0]
+        start_date = self._get_asset_start_date(asset)
+        end_date = self._get_asset_end_date(asset)
+        day_slice = days_in_window.slice_indexer(start_date, end_date)
+        active_days = days_in_window[day_slice]
 
-        self._apply_all_adjustments(
-            return_array,
-            sid,
-            days_in_window,
-            field,
-        )
+        if active_days.shape[0]:
+            data = self._daily_bar_reader.history_window(field,
+                                                         active_days[0],
+                                                         active_days[-1],
+                                                         asset)
+            return_array[day_slice] = data
+            self._apply_all_adjustments(
+                return_array,
+                asset,
+                active_days,
+                field,
+            )
 
         return return_array
 
