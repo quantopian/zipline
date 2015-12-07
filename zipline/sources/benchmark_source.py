@@ -147,7 +147,8 @@ class BenchmarkSource(object):
 
             return benchmark_series.pct_change()[1:]
         else:
-            try:
+            start_date = env.asset_finder.retrieve_asset(sid).start_date
+            if start_date < trading_days[0]:
                 # get the window of close prices for benchmark_sid from the
                 # last trading day of the simulation, going up to one day
                 # before the simulation start day (so that we can get the %
@@ -161,7 +162,7 @@ class BenchmarkSource(object):
                     ffill=True
                 )[sid]
                 return benchmark_series.pct_change()[1:]
-            except NoDataOnDate:
+            elif start_date == trading_days[0]:
                 # Attempt to handle case where stock data starts on first
                 # day, in this case use the open to close return.
                 benchmark_series = data_portal.get_history_window(
