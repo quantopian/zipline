@@ -388,6 +388,8 @@ class BcolzDailyBarReader(object):
         # process first.
         self._spot_cols = {}
 
+        self.PRICE_ADJUSTMENT_FACTOR = 0.001
+
     def _compute_slices(self, start_idx, end_idx, assets):
         """
         Compute the raw row indices to load for each asset on a query for the
@@ -432,11 +434,7 @@ class BcolzDailyBarReader(object):
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         # Assumes that the given dates are actually in calendar.
-        try:
-            start_idx = self._calendar.get_loc(start_date)
-        except KeyError:
-            raise NoDataOnDate("day={0} is before calendar={1}".format(
-                start_date, self._calendar))
+        start_idx = self._calendar.get_loc(start_date)
         end_idx = self._calendar.get_loc(end_date)
         first_rows, last_rows, offsets = self._compute_slices(
             start_idx,
@@ -451,6 +449,15 @@ class BcolzDailyBarReader(object):
             last_rows,
             offsets,
         )
+
+    def history_window(self, column, start_date, end_date, asset):
+        start_idx = self.sid_day_index(asset, start_date)
+        end_idx = self.sid_day_index(asset, end_date) + 1
+        col = self._spot_col(column)
+        window = col[start_idx:end_idx]
+        if column != 'volume':
+            window = window.astype(float64) * self.PRICE_ADJUSTMENT_FACTOR
+        return window
 
     def _spot_col(self, colname):
         """
@@ -471,7 +478,7 @@ class BcolzDailyBarReader(object):
         try:
             col = self._spot_cols[colname]
         except KeyError:
-            col = self._spot_cols[colname] = self._table[colname][:]
+            col = self._spot_cols[colname] = self._table[colname]
         return col
 
     def sid_day_index(self, sid, day):
