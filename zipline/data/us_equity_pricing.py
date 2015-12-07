@@ -24,6 +24,7 @@ from bcolz import (
     carray,
     ctable,
 )
+from collections import namedtuple
 from click import progressbar
 from numpy import (
     array,
@@ -387,6 +388,8 @@ class BcolzDailyBarReader(object):
         # process first.
         self._spot_cols = {}
 
+        self.PRICE_ADJUSTMENT_FACTOR = 0.001
+
     def _compute_slices(self, start_idx, end_idx, assets):
         """
         Compute the raw row indices to load for each asset on a query for the
@@ -447,6 +450,15 @@ class BcolzDailyBarReader(object):
             offsets,
         )
 
+    def history_window(self, column, start_date, end_date, asset):
+        start_idx = self.sid_day_index(asset, start_date)
+        end_idx = self.sid_day_index(asset, end_date) + 1
+        col = self._spot_col(column)
+        window = col[start_idx:end_idx]
+        if column != 'volume':
+            window = window.astype(float64) * self.PRICE_ADJUSTMENT_FACTOR
+        return window
+
     def _spot_col(self, colname):
         """
         Get the colname from daily_bar_table and read all of it into memory,
@@ -466,7 +478,7 @@ class BcolzDailyBarReader(object):
         try:
             col = self._spot_cols[colname]
         except KeyError:
-            col = self._spot_cols[colname] = self._table[colname][:]
+            col = self._spot_cols[colname] = self._table[colname]
         return col
 
     def sid_day_index(self, sid, day):
@@ -485,7 +497,11 @@ class BcolzDailyBarReader(object):
             Raises a NoDataOnDate exception if the given day and sid is before
             or after the date range of the equity.
         """
-        day_loc = self._calendar.get_loc(day)
+        try:
+            day_loc = self._calendar.get_loc(day)
+        except:
+            raise NoDataOnDate("day={0} is outside of calendar={1}".format(
+                day, self._calendar))
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
             raise NoDataOnDate(
@@ -898,6 +914,23 @@ class SQLiteAdjustmentWriter(object):
         self.conn.close()
 
 
+UNPAID_QUERY_TEMPLATE = """
+SELECT sid, amount, pay_date from dividend_payouts
+WHERE ex_date=? AND sid IN ({0})
+"""
+
+Dividend = namedtuple('Dividend', ['sid', 'amount', 'pay_date'])
+
+UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE = """
+SELECT sid, payment_sid, ratio, pay_date from stock_dividend_payouts
+WHERE ex_date=? AND sid IN ({0})
+"""
+
+StockDividend = namedtuple(
+    'StockDividend',
+    ['sid', 'payment_sid', 'ratio', 'pay_date'])
+
+
 class SQLiteAdjustmentReader(object):
     """
     Loads adjustments based on corporate actions from a SQLite database.
@@ -922,3 +955,53 @@ class SQLiteAdjustmentReader(object):
             dates,
             assets,
         )
+
+    def get_adjustments_for_sid(self, table_name, sid):
+        t = (sid,)
+        c = self.conn.cursor()
+        adjustments_for_sid = c.execute(
+            "SELECT effective_date, ratio FROM %s WHERE sid = ?" %
+            table_name, t).fetchall()
+        c.close()
+
+        return [[Timestamp(adjustment[0], unit='s', tz='UTC'), adjustment[1]]
+                for adjustment in
+                adjustments_for_sid]
+
+    def get_dividends_with_ex_date(self, assets, date):
+        seconds = date.value / int(1e9)
+        c = self.conn.cursor()
+
+        query = UNPAID_QUERY_TEMPLATE.format(",".join(['?' for _ in assets]))
+        t = (seconds,) + tuple(map(lambda x: int(x), assets))
+
+        c.execute(query, t)
+
+        rows = c.fetchall()
+        c.close()
+        divs = []
+        for row in rows:
+            div = Dividend(
+                row[0], row[1], Timestamp(row[2], unit='s', tz='UTC'))
+            divs.append(div)
+        return divs
+
+    def get_stock_dividends_with_ex_date(self, assets, date):
+        seconds = date.value / int(1e9)
+        c = self.conn.cursor()
+
+        query = UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE.format(
+            ",".join(['?' for _ in assets]))
+        t = (seconds,) + tuple(map(lambda x: int(x), assets))
+
+        c.execute(query, t)
+
+        rows = c.fetchall()
+        c.close()
+
+        stock_divs = []
+        for row in rows:
+            stock_div = StockDividend(
+                row[0], row[1], row[2], Timestamp(row[3], unit='s', tz='UTC'))
+            stock_divs.append(stock_div)
+        return stock_divs

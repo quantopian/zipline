@@ -90,9 +90,7 @@ class RiskMetricsCumulative(object):
         'information',
     )
 
-    def __init__(self, sim_params, env,
-                 create_first_day_stats=False,
-                 account=None):
+    def __init__(self, sim_params, env, create_first_day_stats=False):
         self.treasury_curves = env.treasury_curves
         self.start_date = sim_params.period_start.replace(
             hour=0, minute=0, second=0, microsecond=0

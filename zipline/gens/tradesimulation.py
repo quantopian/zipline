@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from contextlib2 import ExitStack
-
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
-
+from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 
-from zipline.finance.trading import NoFurtherDataError
-from zipline.protocol import (
-    BarData,
-    SIDData,
-    DATASOURCE_TYPE
+from zipline.gens.sim_engine import (
+    BAR,
+    DAY_START,
+    DAY_END,
+    MINUTE_END
 )
 
 log = Logger('Trade Simulation')
@@ -37,20 +34,21 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params):
+    def __init__(self, algo, sim_params, data_portal, clock, benchmark_source):
 
         # ==============
         # Simulation
         # Param Setup
         # ==============
         self.sim_params = sim_params
+        self.env = algo.trading_environment
+        self.data_portal = data_portal
 
         # ==============
         # Algo Setup
         # ==============
         self.algo = algo
         self.algo_start = normalize_date(self.sim_params.first_open)
-        self.env = algo.trading_environment
 
         # ==============
         # Snapshot Setup
@@ -59,11 +57,15 @@ class AlgorithmSimulator(object):
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        self.current_data = BarData()
+        self.current_data = BarData(data_portal=self.data_portal)
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
+
+        self.clock = clock
+
+        self.benchmark_source = benchmark_source
 
         # =============
         # Logging Setup
@@ -76,312 +78,133 @@ class AlgorithmSimulator(object):
                 record.extra['algo_dt'] = self.simulation_dt
         self.processor = Processor(inject_algo_dt)
 
-    def transform(self, stream_in):
+    def transform(self):
         """
         Main generator work loop.
         """
-        # Initialize the mkt_close
-        mkt_open = self.algo.perf_tracker.market_open
-        mkt_close = self.algo.perf_tracker.market_close
+        algo = self.algo
+        algo.data_portal = self.data_portal
+        handle_data = algo.event_manager.handle_data
+        current_data = self.current_data
 
-        # inject the current algo
-        # snapshot time to any log record generated.
+        data_portal = self.data_portal
 
-        with ExitStack() as stack:
-            stack.enter_context(self.processor)
-            stack.enter_context(ZiplineAPI(self.algo))
+        # can't cache a pointer to algo.perf_tracker because we're not
+        # guaranteed that the algo doesn't swap out perf trackers during
+        # its lifetime.
+        # likewise, we can't cache a pointer to the blotter.
 
-            data_frequency = self.sim_params.data_frequency
+        algo.perf_tracker.position_tracker.data_portal = data_portal
 
-            self._call_before_trading_start(mkt_open)
+        def every_bar(dt_to_use):
+            # called every tick (minute or day).
 
-            for date, snapshot in stream_in:
+            data_portal.current_dt = dt_to_use
+            self.simulation_dt = dt_to_use
+            algo.on_dt_changed(dt_to_use)
 
-                self.simulation_dt = date
-                self.on_dt_changed(date)
+            blotter = algo.blotter
+            perf_tracker = algo.perf_tracker
 
-                # If we're still in the warmup period.  Use the event to
-                # update our universe, but don't yield any perf messages,
-                # and don't send a snapshot to handle_data.
-                if date < self.algo_start:
-                    for event in snapshot:
-                        if event.type == DATASOURCE_TYPE.SPLIT:
-                            self.algo.blotter.process_split(event)
+            # handle any transactions and commissions coming out new orders
+            # placed in the last bar
+            new_transactions, new_commissions = \
+                blotter.get_transactions(data_portal)
 
-                        elif event.type == DATASOURCE_TYPE.TRADE:
-                            self.update_universe(event)
-                            self.algo.perf_tracker.process_trade(event)
-                        elif event.type == DATASOURCE_TYPE.CUSTOM:
-                            self.update_universe(event)
+            for transaction in new_transactions:
+                perf_tracker.process_transaction(transaction)
 
-                else:
-                    messages = self._process_snapshot(
-                        date,
-                        snapshot,
-                        self.algo.instant_fill,
-                    )
-                    # Perf messages are only emitted if the snapshot contained
-                    # a benchmark event.
-                    for message in messages:
-                        yield message
+                # since this order was modified, record it
+                order = blotter.orders[transaction.order_id]
+                perf_tracker.process_order(order)
 
-                    # When emitting minutely, we need to call
-                    # before_trading_start before the next trading day begins
-                    if date == mkt_close:
-                        if mkt_close <= self.algo.perf_tracker.last_close:
-                            before_last_close = \
-                                mkt_close < self.algo.perf_tracker.last_close
-                            try:
-                                mkt_open, mkt_close = \
-                                    self.env.next_open_and_close(mkt_close)
+            if new_commissions:
+                for commission in new_commissions:
+                    perf_tracker.process_commission(commission)
 
-                            except NoFurtherDataError:
-                                # If at the end of backtest history,
-                                # skip advancing market close.
-                                pass
+            handle_data(algo, current_data, dt_to_use)
 
-                            if before_last_close:
-                                self._call_before_trading_start(mkt_open)
+            # grab any new orders from the blotter, then clear the list.
+            # this includes cancelled orders.
+            new_orders = blotter.new_orders
+            blotter.new_orders = []
 
-                    elif data_frequency == 'daily':
-                        next_day = self.env.next_trading_day(date)
+            # if we have any new orders, record them so that we know
+            # in what perf period they were placed.
+            if new_orders:
+                for new_order in new_orders:
+                    perf_tracker.process_order(new_order)
 
-                        if next_day is not None and \
-                           next_day < self.algo.perf_tracker.last_close:
-                            self._call_before_trading_start(next_day)
+        def once_a_day(midnight_dt):
+            # set all the timestamps
+            self.simulation_dt = midnight_dt
+            algo.on_dt_changed(midnight_dt)
+            data_portal.current_day = midnight_dt
 
-                    self.algo.portfolio_needs_update = True
-                    self.algo.account_needs_update = True
-                    self.algo.performance_needs_update = True
+            # call before trading start
+            algo.before_trading_start(current_data)
 
-            risk_message = self.algo.perf_tracker.handle_simulation_end()
-            yield risk_message
+            perf_tracker = algo.perf_tracker
 
-    def _process_snapshot(self, dt, snapshot, instant_fill):
+            # handle any splits that impact any positions or any open orders.
+            sids_we_care_about = \
+                list(set(list(perf_tracker.position_tracker.positions.keys()) +
+                         list(algo.blotter.open_orders.keys())))
+
+            if len(sids_we_care_about) > 0:
+                splits = data_portal.get_splits(sids_we_care_about,
+                                                midnight_dt)
+                if len(splits) > 0:
+                    algo.blotter.process_splits(splits)
+                    perf_tracker.position_tracker.handle_splits(splits)
+
+        def handle_benchmark(date):
+            algo.perf_tracker.all_benchmark_returns[date] = \
+                self.benchmark_source.get_value(date)
+
+        with self.processor, ZiplineAPI(self.algo):
+            for dt, action in self.clock:
+                if action == BAR:
+                    every_bar(dt)
+                elif action == DAY_START:
+                    once_a_day(dt)
+                elif action == DAY_END:
+                    # End of the day.
+                    handle_benchmark(dt)
+                    yield self._get_daily_message(dt, algo, algo.perf_tracker)
+                elif action == MINUTE_END:
+                    handle_benchmark(dt)
+                    minute_msg, daily_msg = \
+                        self._get_minute_message(dt, algo, algo.perf_tracker)
+
+                    yield minute_msg
+
+                    if daily_msg:
+                        yield daily_msg
+
+        risk_message = algo.perf_tracker.handle_simulation_end()
+        yield risk_message
+
+    @staticmethod
+    def _get_daily_message(dt, algo, perf_tracker):
         """
-        Process a stream of events corresponding to a single datetime, possibly
-        returning a perf message to be yielded.
-
-        If @instant_fill = True, we delay processing of events until after the
-        user's call to handle_data, and we process the user's placed orders
-        before the snapshot's events.  Note that this introduces a lookahead
-        bias, since the user effectively is effectively placing orders that are
-        filled based on trades that happened prior to the call the handle_data.
-
-        If @instant_fill = False, we process Trade events before calling
-        handle_data.  This means that orders are filled based on trades
-        occurring in the next snapshot.  This is the more conservative model,
-        and as such it is the default behavior in TradingAlgorithm.
+        Get a perf message for the given datetime.
         """
+        perf_message = perf_tracker.handle_market_close_daily(dt)
+        perf_message['daily_perf']['recorded_vars'] = algo.recorded_vars
+        return perf_message
 
-        # Flags indicating whether we saw any events of type TRADE and type
-        # BENCHMARK.  Respectively, these control whether or not handle_data is
-        # called for this snapshot and whether we emit a perf message for this
-        # snapshot.
-        any_trade_occurred = False
-        benchmark_event_occurred = False
-
-        if instant_fill:
-            events_to_be_processed = []
-
-        # Assign process events to variables to avoid attribute access in
-        # innermost loops.
-        #
-        # Done here, to allow for perf_tracker or blotter to be swapped out
-        # or changed in between snapshots.
-        perf_process_trade = self.algo.perf_tracker.process_trade
-        perf_process_transaction = self.algo.perf_tracker.process_transaction
-        perf_process_order = self.algo.perf_tracker.process_order
-        perf_process_benchmark = self.algo.perf_tracker.process_benchmark
-        perf_process_split = self.algo.perf_tracker.process_split
-        perf_process_dividend = self.algo.perf_tracker.process_dividend
-        perf_process_commission = self.algo.perf_tracker.process_commission
-        perf_process_close_position = \
-            self.algo.perf_tracker.process_close_position
-        blotter_process_trade = self.algo.blotter.process_trade
-        blotter_process_benchmark = self.algo.blotter.process_benchmark
-
-        # Containers for the snapshotted events, so that the events are
-        # processed in a predictable order, without relying on the sorted order
-        # of the individual sources.
-
-        # There is only one benchmark per snapshot, will be set to the current
-        # benchmark iff it occurs.
-        benchmark = None
-        # trades and customs are initialized as a list since process_snapshot
-        # is most often called on market bars, which could contain trades or
-        # custom events.
-        trades = []
-        customs = []
-        closes = []
-
-        # splits and dividends are processed once a day.
-        #
-        # The avoidance of creating the list every time this is called is more
-        # to attempt to show that this is the infrequent case of the method,
-        # since the performance benefit from deferring the list allocation is
-        # marginal.  splits list will be allocated when a split occurs in the
-        # snapshot.
-        splits = None
-        # dividends list will be allocated when a dividend occurs in the
-        # snapshot.
-        dividends = None
-
-        for event in snapshot:
-            if event.type == DATASOURCE_TYPE.TRADE:
-                trades.append(event)
-            elif event.type == DATASOURCE_TYPE.BENCHMARK:
-                benchmark = event
-            elif event.type == DATASOURCE_TYPE.SPLIT:
-                if splits is None:
-                    splits = []
-                splits.append(event)
-            elif event.type == DATASOURCE_TYPE.CUSTOM:
-                customs.append(event)
-            elif event.type == DATASOURCE_TYPE.DIVIDEND:
-                if dividends is None:
-                    dividends = []
-                dividends.append(event)
-            elif event.type == DATASOURCE_TYPE.CLOSE_POSITION:
-                closes.append(event)
-            else:
-                raise log.warn("Unrecognized event=%s".format(event))
-
-        # Handle benchmark first.
-        #
-        # Internal broker implementation depends on the benchmark being
-        # processed first so that transactions and commissions reported from
-        # the broker can be injected.
-        if benchmark is not None:
-            benchmark_event_occurred = True
-            perf_process_benchmark(benchmark)
-            for txn, order in blotter_process_benchmark(benchmark):
-                if txn.type == DATASOURCE_TYPE.TRANSACTION:
-                    perf_process_transaction(txn)
-                elif txn.type == DATASOURCE_TYPE.COMMISSION:
-                    perf_process_commission(txn)
-                perf_process_order(order)
-
-        for trade in trades:
-            self.update_universe(trade)
-            any_trade_occurred = True
-            if instant_fill:
-                events_to_be_processed.append(trade)
-            else:
-                for txn, order in blotter_process_trade(trade):
-                    if txn.type == DATASOURCE_TYPE.TRANSACTION:
-                        perf_process_transaction(txn)
-                    elif txn.type == DATASOURCE_TYPE.COMMISSION:
-                        perf_process_commission(txn)
-                    perf_process_order(order)
-                perf_process_trade(trade)
-
-        for custom in customs:
-            self.update_universe(custom)
-
-        for close in closes:
-            self.update_universe(close)
-            perf_process_close_position(close)
-
-        if splits is not None:
-            for split in splits:
-                # process_split is not assigned to a variable since it is
-                # called rarely compared to the other event processors.
-                self.algo.blotter.process_split(split)
-                perf_process_split(split)
-
-        if dividends is not None:
-            for dividend in dividends:
-                perf_process_dividend(dividend)
-
-        if any_trade_occurred:
-            new_orders = self._call_handle_data()
-            for order in new_orders:
-                perf_process_order(order)
-
-        if instant_fill:
-            # Now that handle_data has been called and orders have been placed,
-            # process the event stream to fill user orders based on the events
-            # from this snapshot.
-            for trade in events_to_be_processed:
-                for txn, order in blotter_process_trade(trade):
-                    if txn is not None:
-                        perf_process_transaction(txn)
-                    if order is not None:
-                        perf_process_order(order)
-                perf_process_trade(trade)
-
-        if benchmark_event_occurred:
-            return self.generate_messages(dt)
-        else:
-            return ()
-
-    def _call_handle_data(self):
+    @staticmethod
+    def _get_minute_message(dt, algo, perf_tracker):
         """
-        Call the user's handle_data, returning any orders placed by the algo
-        during the call.
+        Get a perf message for the given datetime.
         """
-        self.algo.event_manager.handle_data(
-            self.algo,
-            self.current_data,
-            self.simulation_dt,
-        )
-        orders = self.algo.blotter.new_orders
-        self.algo.blotter.new_orders = []
-        return orders
+        rvars = algo.recorded_vars
 
-    def _call_before_trading_start(self, dt):
-        dt = normalize_date(dt)
-        self.simulation_dt = dt
-        self.on_dt_changed(dt)
-        self.algo.before_trading_start(self.current_data)
+        minute_message, daily_message = perf_tracker.handle_minute_close(dt)
+        minute_message['minute_perf']['recorded_vars'] = rvars
 
-    def on_dt_changed(self, dt):
-        if self.algo.datetime != dt:
-            self.algo.on_dt_changed(dt)
+        if daily_message:
+            daily_message["daily_perf"]["recorded_vars"] = rvars
 
-    def generate_messages(self, dt):
-        """
-        Generator that yields perf messages for the given datetime.
-        """
-        # Ensure that updated_portfolio has been called at least once for this
-        # dt before we emit a perf message.  This is a no-op if
-        # updated_portfolio has already been called this dt.
-        self.algo.updated_portfolio()
-        self.algo.updated_account()
-
-        rvars = self.algo.recorded_vars
-        if self.algo.perf_tracker.emission_rate == 'daily':
-            perf_message = \
-                self.algo.perf_tracker.handle_market_close_daily()
-            perf_message['daily_perf']['recorded_vars'] = rvars
-            yield perf_message
-
-        elif self.algo.perf_tracker.emission_rate == 'minute':
-            # close the minute in the tracker, and collect the daily message if
-            # the minute is the close of the trading day
-            minute_message, daily_message = \
-                self.algo.perf_tracker.handle_minute_close(dt)
-
-            # collect and yield the minute's perf message
-            minute_message['minute_perf']['recorded_vars'] = rvars
-            yield minute_message
-
-            # if there was a daily perf message, collect and yield it
-            if daily_message:
-                daily_message['daily_perf']['recorded_vars'] = rvars
-                yield daily_message
-
-    def update_universe(self, event):
-        """
-        Update the universe with new event information.
-        """
-        # Update our knowledge of this event's sid
-        # rather than use if event.sid in ..., just trying
-        # and handling the exception is significantly faster
-        try:
-            sid_data = self.current_data[event.sid]
-        except KeyError:
-            sid_data = self.current_data[event.sid] = SIDData(event.sid)
-
-        sid_data.__dict__.update(event.__dict__)
+        return minute_message, daily_message

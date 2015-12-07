@@ -19,6 +19,9 @@ from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
 
+DEFAULT_PER_SHARE_COST = 0.0075         # 0.75 cents per share
+DEFAULT_MINIMUM_COST_PER_TRADE = 1.0    # $1 per trade
+
 
 class PerShare(object):
     """
@@ -26,7 +29,9 @@ class PerShare(object):
     share cost with an optional minimum cost per trade.
     """
 
-    def __init__(self, cost=0.03, min_trade_cost=None):
+    def __init__(self,
+                 cost=DEFAULT_PER_SHARE_COST,
+                 min_trade_cost=DEFAULT_MINIMUM_COST_PER_TRADE):
         """
         Cost parameter is the cost of a trade per-share. $0.03
         means three cents per share, which is a very conservative
@@ -84,7 +89,7 @@ class PerTrade(object):
     trade cost.
     """
 
-    def __init__(self, cost=5.0):
+    def __init__(self, cost=DEFAULT_MINIMUM_COST_PER_TRADE):
         """
         Cost parameter is the cost of a trade, regardless of
         share count. $5.00 per trade is fairly typical of

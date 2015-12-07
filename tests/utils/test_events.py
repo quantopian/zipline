@@ -15,6 +15,7 @@
 from collections import namedtuple
 import datetime
 from functools import partial
+from inspect import isabstract
 from itertools import islice
 import random
 from unittest import TestCase
@@ -208,7 +209,7 @@ def minutes_for_days():
     """
     env = TradingEnvironment()
     random.seed('deterministic')
-    return ((env.market_minutes_for_day(random.choice(env.trading_days)),)
+    return ((env.market_minutes_for_day(random.choice(env.trading_days[:-1])),)
             for _ in range(500))
 
 
@@ -233,7 +234,8 @@ class RuleTestCase(TestCase):
             k for k, v in iteritems(vars(zipline.utils.events))
             if isinstance(v, type) and
             issubclass(v, self.class_) and
-            v is not self.class_
+            v is not self.class_ and
+            not isabstract(v)
         }
         ds = {
             k[5:] for k in dir(self)
@@ -285,6 +287,7 @@ class TestStatelessRules(RuleTestCase):
             # at 13:30 UTC, meaning the first minute of data has an
             # offset of 1.
             self.assertFalse(should_trigger(m))
+
         for m in islice(ms, 64, None):
             # Check the rest of the day.
             self.assertTrue(should_trigger(m))

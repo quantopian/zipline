@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -280,8 +280,11 @@ class TradingEnvironment(object):
         return self.trading_days[idx]
 
     def days_in_range(self, start, end):
-        mask = ((self.trading_days >= start) &
-                (self.trading_days <= end))
+        start_date = self.normalize_date(start)
+        end_date = self.normalize_date(end)
+
+        mask = ((self.trading_days >= start_date) &
+                (self.trading_days <= end_date))
         return self.trading_days[mask]
 
     def opens_in_range(self, start, end):

@@ -17,7 +17,6 @@
 # methods (e.g. order). These are added to this namespace via the
 # decorator `api_methods` inside of algorithm.py.
 
-import zipline
 from .finance import (commission, slippage)
 from .utils import math_utils, events
 
@@ -31,15 +30,11 @@ from zipline.utils.events import (
     time_rules
 )
 
-batch_transform = zipline.transforms.BatchTransform
-
-
 __all__ = [
     'slippage',
     'commission',
     'events',
     'math_utils',
-    'batch_transform',
     'FixedSlippage',
     'VolumeShareSlippage',
     'date_rules',

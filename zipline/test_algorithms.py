@@ -71,7 +71,6 @@ The algorithm must expose methods:
     and trade events.
 
 """
-from copy import deepcopy
 import numpy as np
 
 from nose.tools import assert_raises
@@ -89,6 +88,7 @@ from zipline.api import (
 )
 from zipline.errors import UnsupportedOrderParameters
 from zipline.assets import Future, Equity
+from zipline.finance.commission import PerShare
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -96,7 +96,7 @@ from zipline.finance.execution import (
     StopOrder,
 )
 from zipline.finance.controls import AssetDateBounds
-from zipline.transforms import BatchTransform, batch_transform
+from zipline.utils.math_utils import round_if_near_integer
 
 
 class TestAlgorithm(TradingAlgorithm):
@@ -158,13 +158,7 @@ class NoopAlgorithm(TradingAlgorithm):
     """
     Dolce fa niente.
     """
-    def get_sid_filter(self):
-        return []
-
     def initialize(self):
-        pass
-
-    def set_transact_setter(self, txn_sim_callable):
         pass
 
     def handle_data(self, data):
@@ -217,7 +211,7 @@ class DivByZeroAlgorithm(TradingAlgorithm):
 
     def handle_data(self, data):
         self.incr += 1
-        if self.incr > 4:
+        if self.incr > 1:
             5 / 0
         pass
 
@@ -288,8 +282,8 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
                 self.incr, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 self.last_price, "Orders was not filled at last price."
-        self.incr += 2
-        self.order_value(self.sid(0), data[0].price * 2.)
+        self.incr += 1
+        self.order_value(self.sid(0), data[0].price)
         self.last_price = data[0].price
 
 
@@ -314,12 +308,12 @@ class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
             assert len(self.portfolio.positions.keys()) == 0
 
             method_to_check = getattr(self, self.method_name)
-            method_to_check(self.sid(0),
+            method_to_check(self.sid(133),
                             data[0].price,
                             style=StopLimitOrder(10, 10))
 
-            assert len(self.blotter.open_orders[0]) == 1
-            result = self.blotter.open_orders[0][0]
+            assert len(self.blotter.open_orders[self.sid(133)]) == 1
+            result = self.blotter.open_orders[self.sid(133)][0]
             assert result.limit == 10
             assert result.stop == 10
 
@@ -350,6 +344,7 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
 
 class TestTargetAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
@@ -361,12 +356,13 @@ class TestTargetAlgorithm(TradingAlgorithm):
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
-        self.target_shares = np.random.randint(1, 30)
+        self.target_shares = 10
         self.order_target(self.sid(0), self.target_shares)
 
 
 class TestOrderPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
@@ -377,6 +373,7 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
             self.target_shares = 10
             return
         else:
+
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
@@ -385,37 +382,51 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
         self.order_percent(self.sid(0), .001)
 
         if isinstance(self.sid(0), Equity):
-            self.target_shares += np.floor(
-                (.001 * self.portfolio.portfolio_value) / data[0].price
-            )
-        if isinstance(self.sid(0), Future):
-            self.target_shares += np.floor(
-                (.001 * self.portfolio.portfolio_value) /
+            price = data[0].price
+            new_shares = (.001 * self.portfolio.portfolio_value) / price
+        elif isinstance(self.sid(0), Future):
+            new_shares = (.001 * self.portfolio.portfolio_value) / \
                 (data[0].price * self.sid(0).contract_multiplier)
-            )
+
+        new_shares = int(round_if_near_integer(new_shares))
+        self.target_shares += new_shares
 
 
 class TestTargetPercentAlgorithm(TradingAlgorithm):
     def initialize(self):
-        self.target_shares = 0
+        self.ordered = False
         self.sale_price = None
 
+        # this makes the math easier to check
+        self.set_slippage(FixedSlippage())
+        self.set_commission(PerShare(0))
+
     def handle_data(self, data):
-        if self.target_shares == 0:
+        if not self.ordered:
             assert 0 not in self.portfolio.positions
-            self.target_shares = 1
         else:
-            assert np.round(self.portfolio.portfolio_value * 0.002) == \
-                self.portfolio.positions[0]['amount'] * self.sale_price, \
-                "Orders not filled correctly."
+            # Since you can't own fractional shares (at least in this
+            # example), we want to make sure that our target amount is
+            # no more than a share's value away from our current
+            # holdings.
+            target_value = self.portfolio.portfolio_value * 0.002
+            position_value = self.portfolio.positions[0]['amount'] * \
+                self.sale_price
+
+            assert abs(target_value - position_value) <= self.sale_price, \
+                "Orders not filled correctly"
+
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 data[0].price, "Orders not filled at current price."
+
         self.sale_price = data[0].price
         self.order_target_percent(self.sid(0), .002)
+        self.ordered = True
 
 
 class TestTargetValueAlgorithm(TradingAlgorithm):
     def initialize(self):
+        self.set_slippage(FixedSlippage())
         self.target_shares = 0
         self.sale_price = None
 
@@ -426,7 +437,6 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
             self.target_shares = 10
             return
         else:
-            print(self.portfolio)
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
@@ -469,6 +479,7 @@ class SetMaxLeverageAlgorithm(TradingAlgorithm):
 
 class SetMaxPositionSizeAlgorithm(TradingAlgorithm):
     def initialize(self, sid=None, max_shares=None, max_notional=None):
+        self.set_slippage(FixedSlippage())
         self.order_count = 0
         self.set_max_position_size(sid=sid,
                                    max_shares=max_shares,
@@ -493,6 +504,7 @@ class SetMaxOrderCountAlgorithm(TradingAlgorithm):
     def initialize(self, count):
         self.order_count = 0
         self.set_max_order_count(count)
+        self.minute_count = 0
 
 
 class SetLongOnlyAlgorithm(TradingAlgorithm):
@@ -576,227 +588,6 @@ class AmbitiousStopLimitAlgorithm(TradingAlgorithm):
         self.order(self.asset, -100, stop_price=.00000001)
 
 
-##########################################
-# Algorithm using simple batch transforms
-
-class ReturnPriceBatchTransform(BatchTransform):
-    def get_value(self, data):
-        assert data.shape[1] == self.window_length, \
-            "data shape={0} does not equal window_length={1} for data={2}".\
-            format(data.shape[1], self.window_length, data)
-        return data.price
-
-
-@batch_transform
-def return_price_batch_decorator(data):
-    return data.price
-
-
-@batch_transform
-def return_args_batch_decorator(data, *args, **kwargs):
-    return args, kwargs
-
-
-@batch_transform
-def return_data(data, *args, **kwargs):
-    return data
-
-
-@batch_transform
-def uses_ufunc(data, *args, **kwargs):
-    # ufuncs like np.log should not crash
-    return np.log(data)
-
-
-@batch_transform
-def price_multiple(data, multiplier, extra_arg=1):
-    return data.price * multiplier * extra_arg
-
-
-class BatchTransformAlgorithm(TradingAlgorithm):
-    def initialize(self, *args, **kwargs):
-        self.refresh_period = kwargs.pop('refresh_period', 1)
-        self.window_length = kwargs.pop('window_length', 3)
-
-        self.args = args
-        self.kwargs = kwargs
-
-        self.history_return_price_class = []
-        self.history_return_price_decorator = []
-        self.history_return_args = []
-        self.history_return_arbitrary_fields = []
-        self.history_return_nan = []
-        self.history_return_sid_filter = []
-        self.history_return_field_filter = []
-        self.history_return_field_no_filter = []
-        self.history_return_ticks = []
-        self.history_return_not_full = []
-
-        self.return_price_class = ReturnPriceBatchTransform(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_price_decorator = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_args_batch = return_args_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_arbitrary_fields = return_data(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.return_nan = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True
-        )
-
-        self.return_sid_filter = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True,
-            sids=[0]
-        )
-
-        self.return_field_filter = return_data(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True,
-            fields=['price']
-        )
-
-        self.return_field_no_filter = return_data(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=True
-        )
-
-        self.return_not_full = return_data(
-            refresh_period=1,
-            window_length=self.window_length,
-            compute_only_full=False
-        )
-
-        self.uses_ufunc = uses_ufunc(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.price_multiple = price_multiple(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False
-        )
-
-        self.iter = 0
-
-        self.set_slippage(FixedSlippage())
-
-    def handle_data(self, data):
-        self.history_return_price_class.append(
-            self.return_price_class.handle_data(data))
-        self.history_return_price_decorator.append(
-            self.return_price_decorator.handle_data(data))
-        self.history_return_args.append(
-            self.return_args_batch.handle_data(
-                data, *self.args, **self.kwargs))
-        self.history_return_not_full.append(
-            self.return_not_full.handle_data(data))
-        self.uses_ufunc.handle_data(data)
-
-        # check that calling transforms with the same arguments
-        # is idempotent
-        self.price_multiple.handle_data(data, 1, extra_arg=1)
-
-        if self.price_multiple.full:
-            pre = self.price_multiple.rolling_panel.get_current().shape[0]
-            result1 = self.price_multiple.handle_data(data, 1, extra_arg=1)
-            post = self.price_multiple.rolling_panel.get_current().shape[0]
-            assert pre == post, "batch transform is appending redundant events"
-            result2 = self.price_multiple.handle_data(data, 1, extra_arg=1)
-            assert result1 is result2, "batch transform is not idempotent"
-
-            # check that calling transform with the same data, but
-            # different supplemental arguments results in new
-            # results.
-            result3 = self.price_multiple.handle_data(data, 2, extra_arg=1)
-            assert result1 is not result3, \
-                "batch transform is not updating for new args"
-
-            result4 = self.price_multiple.handle_data(data, 1, extra_arg=2)
-            assert result1 is not result4,\
-                "batch transform is not updating for new kwargs"
-
-        new_data = deepcopy(data)
-        for sidint in new_data:
-            new_data[sidint]['arbitrary'] = 123
-
-        self.history_return_arbitrary_fields.append(
-            self.return_arbitrary_fields.handle_data(new_data))
-
-        # nan every second event price
-        if self.iter % 2 == 0:
-            self.history_return_nan.append(
-                self.return_nan.handle_data(data))
-        else:
-            nan_data = deepcopy(data)
-            nan_data.price = np.nan
-            self.history_return_nan.append(
-                self.return_nan.handle_data(nan_data))
-
-        self.iter += 1
-
-        # Add a new sid to check that it does not get included
-        extra_sid_data = deepcopy(data)
-        extra_sid_data[1] = extra_sid_data[0]
-        self.history_return_sid_filter.append(
-            self.return_sid_filter.handle_data(extra_sid_data)
-        )
-
-        # Add a field to check that it does not get included
-        extra_field_data = deepcopy(data)
-        extra_field_data[0]['ignore'] = extra_sid_data[0]['price']
-        self.history_return_field_filter.append(
-            self.return_field_filter.handle_data(extra_field_data)
-        )
-        self.history_return_field_no_filter.append(
-            self.return_field_no_filter.handle_data(extra_field_data)
-        )
-
-
-class BatchTransformAlgorithmMinute(TradingAlgorithm):
-    def initialize(self, *args, **kwargs):
-        self.refresh_period = kwargs.pop('refresh_period', 1)
-        self.window_length = kwargs.pop('window_length', 3)
-
-        self.args = args
-        self.kwargs = kwargs
-
-        self.history = []
-
-        self.batch_transform = return_price_batch_decorator(
-            refresh_period=self.refresh_period,
-            window_length=self.window_length,
-            clean_nans=False,
-            bars='minute'
-        )
-
-    def handle_data(self, data):
-        self.history.append(self.batch_transform.handle_data(data))
-
-
 class SetPortfolioAlgorithm(TradingAlgorithm):
     """
     An algorithm that tries to set the portfolio directly.
@@ -843,29 +634,31 @@ class TALIBAlgorithm(TradingAlgorithm):
 
 class EmptyPositionsAlgorithm(TradingAlgorithm):
     """
-    An algorithm that ensures that 'phantom' positions do not appear
+    An algorithm that ensures that 'phantom' positions do not appear in
     portfolio.positions in the case that a position has been entered
     and fully exited.
     """
-    def initialize(self, *args, **kwargs):
+    def initialize(self, sids, *args, **kwargs):
         self.ordered = False
         self.exited = False
+        self.sids = sids
 
     def handle_data(self, data):
         if not self.ordered:
-            for s in data:
-                self.order(self.sid(s), 100)
+            for s in self.sids:
+                self.order(self.sid(s), 1)
             self.ordered = True
 
         if not self.exited:
             amounts = [pos.amount for pos
                        in itervalues(self.portfolio.positions)]
+
             if (
-                all([(amount == 100) for amount in amounts]) and
-                (len(amounts) == len(data.keys()))
+                len(amounts) > 0 and
+                all([(amount == 1) for amount in amounts])
             ):
                 for stock in self.portfolio.positions:
-                    self.order(self.sid(stock), -100)
+                    self.order(self.sid(stock), -1)
                 self.exited = True
 
         # Should be 0 when all positions are exited.
@@ -1013,7 +806,8 @@ from zipline.api import get_environment, order, symbol
 def initialize(context):
     context.environment = get_environment()
 
-handle_data = lambda context, data: order(symbol('TEST'), 1)
+def handle_data(context, data):
+    pass
 """
 
 api_symbol_algo = """
