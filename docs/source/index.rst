@@ -1,11 +1,9 @@
 .. include:: ../../README.rst
 
-Index
------
-
 .. toctree::
    :maxdepth: 1
 
+   install
    beginner-tutorial
    releases
    appendix

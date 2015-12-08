@@ -12,17 +12,19 @@ Zipline is a Pythonic algorithmic trading library. It is an event-driven
 system that supports both backtesting and live-trading.
 
 Zipline is currently used in production as the backtesting and live-trading
-engine powering `Quantopian <https://www.quantopian.com>`__ -- a free,
+engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
 community-centered, hosted platform for building and executing trading
 strategies.
 
 `Join our
-community! <https://groups.google.com/forum/#!forum/zipline>`__
+community! <https://groups.google.com/forum/#!forum/zipline>`_
+
+`Documentation <http://www.zipline.io>`_
 
 Want to contribute? See our `open
-requests <https://github.com/quantopian/zipline/wiki/Contribution-Requests>`__
+requests <https://github.com/quantopian/zipline/wiki/Contribution-Requests>`_
 and our `general
-guidelines <https://github.com/quantopian/zipline#contributions>`__
+guidelines <https://github.com/quantopian/zipline#contributions>`_
 below.
 
 Features
@@ -43,25 +45,49 @@ Features
 Installation
 ============
 
-pip
----
+Installing With ``pip``
+-----------------------
 
-You can install Zipline via the ``pip`` command:
-::
+Assuming you have all required (see note below) non-Python dependencies, you
+can install Zipline with ``pip`` via:
+
+.. code-block:: bash
 
     $ pip install zipline
 
+**Note:** Installing Zipline via ``pip`` is slightly more involved than the
+average Python package.  Simply running ``pip install zipline`` will likely
+fail if you've never installed any scientific Python packages before.
+
+There are two reasons for the additional complexity:
+
+1. Zipline ships several C extensions that require access to the CPython C API.
+   In order to build the C extensions, ``pip`` needs access to the CPython
+   header files for your Python installation.
+
+2. Zipline depends on `numpy <http://www.numpy.org/>`_, the core library for
+   numerical array computing in Python.  Numpy depends on having the `LAPACK
+   <http://www.netlib.org/lapack>`_ linear algebra routines available.
+
+Because LAPACK and the CPython headers are binary dependencies, the correct way
+to install them varies from platform to platform.  On Linux, users generally
+acquire these dependencies via a package manager like ``apt``, ``yum``, or
+``pacman``.  On OSX, `Homebrew <http://www.brew.sh>`_ is a popular choice
+providing similar functionality.
+
+See the full `Zipline Install Documentation`_ for more information on acquiring
+binary dependencies for your specific platform.
 
 conda
 -----
 
-Another way to install Zipline is via ``conda`` which comes as part
-of `Anaconda <http://continuum.io/downloads>`__ or can be installed via
-``pip install conda``.
+Another way to install Zipline is via the ``conda`` package manager, which
+comes as part of `Anaconda <http://continuum.io/downloads>`_ or can be
+installed via ``pip install conda``.
 
 Once set up, you can install Zipline from our ``Quantopian`` channel:
 
-::
+.. code-block:: bash
 
     conda install -c Quantopian zipline
 
@@ -74,17 +100,11 @@ Currently supported platforms include:
 
    Windows may work; however, it is currently untested.
 
-Dependencies
-------------
-
-See our `requirements file
-<https://github.com/quantopian/zipline/blob/master/etc/requirements.txt>`__
-
 Quickstart
 ==========
 
 See our `getting started
-tutorial <http://www.zipline.io/#quickstart>`__.
+tutorial <http://www.zipline.io/#quickstart>`_.
 
 The following code implements a simple dual moving average algorithm.
 
@@ -166,3 +186,5 @@ https://github.com/quantopian/zipline/wiki/Contribution-Requests
    :target: https://coveralls.io/r/quantopian/zipline
 .. |Code quality| image:: https://scrutinizer-ci.com/g/quantopian/zipline/badges/quality-score.png?b=master
    :target: https://scrutinizer-ci.com/g/quantopian/zipline/
+
+.. _`Zipline Install Documentation` : http://www.zipline.io/install.html
