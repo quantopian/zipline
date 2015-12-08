@@ -2,6 +2,7 @@ from abc import (
     ABCMeta,
     abstractmethod,
 )
+import bcolz
 import json
 import os
 from bcolz import ctable
@@ -224,8 +225,38 @@ class BcolzMinuteBarReader(object):
         mask = tradingcalendar.trading_days.slice_indexer(
             self.first_trading_day)
         self.trading_days = tradingcalendar.trading_days[mask]
-        self.sid_path_func = sid_path_func
+        self._sid_path_func = sid_path_func
+
+        self._carrays = {
+            'open': {},
+            'high': {},
+            'low': {},
+            'close': {},
+            'volume': {},
+            'sid': {},
+            'dt': {},
+        }
 
     def _get_metadata(self):
         with open(os.path.join(self.rootdir, METADATA_FILENAME)) as fp:
             return json.load(fp)
+
+    def _get_ctable(self, asset):
+        sid = int(asset)
+        if self._sid_path_func is not None:
+            path = self._sid_path_func(self.rootdir, sid)
+        else:
+            path = "{0}/{1}.bcolz".format(self.rootdir, sid)
+
+        return bcolz.open(path, mode='r')
+
+    def _open_minute_file(self, field, asset):
+        sid_str = str(int(asset))
+
+        try:
+            carray = self._carrays[field][sid_str]
+        except KeyError:
+            carray = self._carrays[field][sid_str] = \
+                self._get_ctable(asset)[field]
+
+        return carray

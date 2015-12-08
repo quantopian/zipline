@@ -456,7 +456,7 @@ class DataPortal(object):
 
             minute_offset_to_use = (day_index * 390) + minute_index
 
-        carray = self._open_minute_file(column, asset)
+        carray = self._equity_minute_reader._open_minute_file(column, asset)
         result = carray[minute_offset_to_use]
 
         if result == 0:
@@ -842,7 +842,7 @@ class DataPortal(object):
 
         # find the position of start_dt in the entire timeline, go back
         # bar_count bars, and that's the unadjusted data
-        raw_data = self._open_minute_file(field, asset)
+        raw_data = self._equity_minute_reader._open_minute_file(field, asset)
 
         start_idx = max(self._find_position_of_minute(minutes_for_window[0]),
                         0)
