@@ -78,8 +78,7 @@ has a number of quirks because it's used directly by the operating system.  For
 these reasons, many developers choose to install and use a separate Python
 installation. The `Hitchhiker's Guide to Python`_ provides an excellent guide
 to `Installing Python on OSX <http://docs.python-guide.org/en/latest/>`_, which
-explains how to install Python with the [Homebrew](http://brew.sh/) package
-manager.
+explains how to install Python with the `Homebrew`_ manager.
 
 Assuming you've installed Python with Homebrew, you'll also likely need the
 following brew packages:
@@ -128,3 +127,4 @@ channel:
 .. _`RHEL-derived`: https://en.wikipedia.org/wiki/Red_Hat_Enterprise_Linux_derivatives
 .. _`Arch Linux` : https://www.archlinux.org/
 .. _`Hitchhiker's Guide to Python` : http://docs.python-guide.org/en/latest/
+.. _`Homebrew` : http://brew.sh
