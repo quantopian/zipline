@@ -844,9 +844,12 @@ class DataPortal(object):
         # bar_count bars, and that's the unadjusted data
         raw_data = self._equity_minute_reader._open_minute_file(field, asset)
 
-        start_idx = max(self._find_position_of_minute(minutes_for_window[0]),
-                        0)
-        end_idx = self._find_position_of_minute(minutes_for_window[-1]) + 1
+        start_idx = max(
+            self._equity_minute_reader._find_position_of_minute(
+                minutes_for_window[0]),
+            0)
+        end_idx = self._equity_minute_reader._find_position_of_minute(
+            minutes_for_window[-1]) + 1
 
         if end_idx == 0:
             # No data to return for minute window.
@@ -979,45 +982,6 @@ class DataPortal(object):
             data[data == 0] = np.NaN
 
         np.around(data, 3, out=data)
-
-    def _find_position_of_minute(self, minute_dt):
-        """
-        Internal method that returns the position of the given minute in the
-        list of every trading minute since market open on 1/2/2002.
-
-        IMPORTANT: This method assumes every day is 390 minutes long, even
-        early closes.  Our minute bcolz files are generated like this to
-        support fast lookup.
-
-        ex. this method would return 2 for 1/2/2002 9:32 AM Eastern.
-
-        Parameters
-        ----------
-        minute_dt: pd.Timestamp
-            The minute whose position should be calculated.
-
-        Returns
-        -------
-        The position of the given minute in the list of all trading minutes
-        since market open on 1/2/2002.
-        """
-        day = minute_dt.date()
-        day_idx = self._equity_minute_reader.trading_days.searchsorted(day)
-        if day_idx < 0:
-            return -1
-
-        day_open = pd.Timestamp(
-            datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                hour=9,
-                minute=31),
-            tz='US/Eastern').tz_convert('UTC')
-
-        minutes_offset = int((minute_dt - day_open).total_seconds()) / 60
-
-        return int((390 * day_idx) + minutes_offset)
 
     def _get_daily_window_for_sid(self, asset, field, days_in_window,
                                   extra_slot=True):
