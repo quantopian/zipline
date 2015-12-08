@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
+  <title>API Reference &mdash; Zipline v0.8.3+124.g060c176 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="index.html"/>
+    <link rel="top" title="Zipline v0.8.3+124.g060c176 documentation" href="index.html"/>
         <link rel="next" title="Zipline Release Process" href="release-process.html"/>
         <link rel="prev" title="Release Notes" href="releases.html"/> 
 
@@ -72,6 +72,16 @@
           
           
               <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline beginner tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
@@ -633,6 +643,24 @@ and self.screen is not None, we raise an error.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="zipline.pipeline.Pipeline.show_graph">
+<code class="descname">show_graph</code><span class="sig-paren">(</span><em>format='svg'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/pipeline.html#Pipeline.show_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.Pipeline.show_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render this Pipeline as a DAG.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>format</strong> : {&#8216;svg&#8217;, &#8216;png&#8217;, &#8216;jpeg&#8217;}</p>
+<blockquote class="last">
+<div><p>Image format to render with.  Default is &#8216;svg&#8217;.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="zipline.pipeline.Pipeline.to_graph">
 <code class="descname">to_graph</code><span class="sig-paren">(</span><em>screen_name</em>, <em>default_screen</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/pipeline.html#Pipeline.to_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.Pipeline.to_graph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compile into a TermGraph.</p>
@@ -670,7 +698,7 @@ and self.screen is not None, we raise an error.</p>
 
 <dl class="class">
 <dt id="zipline.pipeline.CustomFactor">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.</code><code class="descname">CustomFactor</code><span class="sig-paren">(</span><em>inputs=NotSpecified</em>, <em>window_length=NotSpecified</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#CustomFactor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.CustomFactor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.</code><code class="descname">CustomFactor</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#CustomFactor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.CustomFactor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Base class for user-defined Factors.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -739,8 +767,8 @@ for the preceding days on which data was not yet available.</p>
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">highs</span><span class="p">,</span> <span class="n">lows</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">nanmin</span><span class="p">,</span> <span class="n">nanmax</span>
 
-        <span class="n">highest_highs</span> <span class="o">=</span> <span class="n">nanmax</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">lowest_lows</span> <span class="o">=</span> <span class="n">nanmin</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">highest_highs</span> <span class="o">=</span> <span class="n">nanmax</span><span class="p">(</span><span class="n">highs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">lowest_lows</span> <span class="o">=</span> <span class="n">nanmin</span><span class="p">(</span><span class="n">lows</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">highest_highs</span> <span class="o">-</span> <span class="n">lowest_lows</span>
 
 <span class="c"># Doesn&#39;t require passing inputs or window_length because they&#39;re</span>
@@ -760,7 +788,7 @@ for the preceding days on which data was not yet available.</p>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">nanmedian</span>
-        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 <span class="c"># Values for `inputs` and `window_length` must be passed explicitly to</span>
 <span class="c"># MedianValue.</span>
@@ -782,7 +810,7 @@ for the preceding days on which data was not yet available.</p>
 
 <dl class="method">
 <dt id="zipline.pipeline.factors.Factor.rank">
-<code class="descname">rank</code><span class="sig-paren">(</span><em>method='ordinal'</em>, <em>ascending=True</em>, <em>mask=NotSpecified</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.rank" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rank</code><span class="sig-paren">(</span><em>method='ordinal'</em>, <em>ascending=True</em>, <em>mask=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.rank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a new Factor representing the sorted rank of each column
 within each row.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -831,7 +859,7 @@ given a rank of NaN for that day.</p>
 
 <dl class="method">
 <dt id="zipline.pipeline.factors.Factor.top">
-<code class="descname">top</code><span class="sig-paren">(</span><em>N</em>, <em>mask=NotSpecified</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.top" title="Permalink to this definition">¶</a></dt>
+<code class="descname">top</code><span class="sig-paren">(</span><em>N</em>, <em>mask=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.top" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a Filter matching the top N asset values of self each day.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -858,7 +886,7 @@ asset/date pairs for which <cite>mask</cite> produces a value of False.</p>
 
 <dl class="method">
 <dt id="zipline.pipeline.factors.Factor.bottom">
-<code class="descname">bottom</code><span class="sig-paren">(</span><em>N</em>, <em>mask=NotSpecified</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.bottom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.bottom" title="Permalink to this definition">¶</a></dt>
+<code class="descname">bottom</code><span class="sig-paren">(</span><em>N</em>, <em>mask=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.bottom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.bottom" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a Filter matching the bottom N asset values of self each day.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -885,7 +913,7 @@ asset/date pairs for which <cite>mask</cite> produces a value of False.</p>
 
 <dl class="method">
 <dt id="zipline.pipeline.factors.Factor.percentile_between">
-<code class="descname">percentile_between</code><span class="sig-paren">(</span><em>min_percentile</em>, <em>max_percentile</em>, <em>mask=NotSpecified</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.percentile_between"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.percentile_between" title="Permalink to this definition">¶</a></dt>
+<code class="descname">percentile_between</code><span class="sig-paren">(</span><em>min_percentile</em>, <em>max_percentile</em>, <em>mask=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.percentile_between"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.percentile_between" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a new Filter representing entries from the output of this
 Factor that fall within the percentile range defined by min_percentile
 and max_percentile.</p>
@@ -1018,6 +1046,59 @@ NaN, inf, or -inf.</p>
 <dd><p>Binary Operator: &#8216;-&#8216;</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.Latest">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">Latest</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/latest.html#Latest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Latest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factor producing the most recently-known value of <cite>inputs[0]</cite> on each day.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.MaxDrawdown">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">MaxDrawdown</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#MaxDrawdown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.MaxDrawdown" title="Permalink to this definition">¶</a></dt>
+<dd><p>Max Drawdown</p>
+<p><strong>Default Inputs:</strong> None</p>
+<p><strong>Default Window Length:</strong> None</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.Returns">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">Returns</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#Returns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Returns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the percent change in close price over the given window_length.</p>
+<p><strong>Default Inputs</strong>: [USEquityPricing.close]</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.RSI">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RSI</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#RSI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RSI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Relative Strength Index</p>
+<p><strong>Default Inputs</strong>: [USEquityPricing.close]</p>
+<p><strong>Default Window Length</strong>: 15</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.SimpleMovingAverage">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">SimpleMovingAverage</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#SimpleMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.SimpleMovingAverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Average Value of an arbitrary column</p>
+<p><strong>Default Inputs</strong>: None</p>
+<p><strong>Default Window Length</strong>: None</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.VWAP">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">VWAP</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#VWAP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.VWAP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Volume Weighted Average Price</p>
+<p><strong>Default Inputs:</strong> [USEquityPricing.close, USEquityPricing.volume]</p>
+<p><strong>Default Window Length:</strong> None</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.WeightedAverageValue">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">WeightedAverageValue</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#WeightedAverageValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.WeightedAverageValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper for VWAP-like computations.</p>
+<p><strong>Default Inputs:</strong> None</p>
+<p><strong>Default Window Length:</strong> None</p>
 </dd></dl>
 
 <dl class="class">
@@ -1589,7 +1670,7 @@ Assets.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+79.ga9c91a7',
+            VERSION:'v0.8.3+124.g060c176',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

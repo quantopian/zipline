@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Release Notes &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
+  <title>Release Notes &mdash; Zipline v0.8.3+124.g060c176 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="index.html"/>
+    <link rel="top" title="Zipline v0.8.3+124.g060c176 documentation" href="index.html"/>
         <link rel="next" title="API Reference" href="appendix.html"/>
         <link rel="prev" title="Zipline beginner tutorial" href="beginner-tutorial.html"/> 
 
@@ -72,6 +72,16 @@
           
           
               <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline beginner tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
@@ -225,6 +235,8 @@ passed to <a class="reference internal" href="appendix.html#zipline.algorithm.Tr
 <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.notnan" title="zipline.pipeline.factors.Factor.notnan"><code class="xref py py-meth docutils literal"><span class="pre">notnan()</span></code></a> and
 <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.isfinite" title="zipline.pipeline.factors.Factor.isfinite"><code class="xref py py-meth docutils literal"><span class="pre">isfinite()</span></code></a> methods to
 <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor" title="zipline.pipeline.factors.Factor"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Factor</span></code></a> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/861">#861</a>).</li>
+<li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Returns" title="zipline.pipeline.factors.Returns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Returns</span></code></a>, a built-in factor which
+calculates the percent change in close price over the given window_length.</li>
 </ul>
 </div>
 <div class="section" id="experimental-features">
@@ -241,6 +253,10 @@ passed to <a class="reference internal" href="appendix.html#zipline.algorithm.Tr
 <li>Fixes an issue that would cause the daily/minutely method caching to change
 the <code class="docutils literal"><span class="pre">len</span></code> of a <code class="xref py py-class docutils literal"><span class="pre">SIDData</span></code> object. This would cause
 us to think that the object was not empty even when it was (<a class="reference external" href="https://github.com/quantopian/zipline/issues/826">#826</a>).</li>
+<li>Fixes an error raised in calculating beta when benchmark data were sparse.
+Instead <cite>numpy.nan</cite> is returned (<a class="reference external" href="https://github.com/quantopian/zipline/issues/859">#859</a>).</li>
+<li>Fixed an issue pickling <code class="xref py py-func docutils literal"><span class="pre">sentinel()</span></code> objects
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/872">#872</a>).</li>
 </ul>
 </div>
 <div class="section" id="performance">
@@ -277,11 +293,15 @@ with current Zipline version (<a class="reference external" href="https://github
 <li>Added reference docs for Asset Metadata APIs. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/864">#864</a>).</li>
 <li>Generated documentation now includes links to source code for many classes
 and functions. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/864">#864</a>).</li>
+<li>Added platform-specific documentation describing how to find binary
+dependencies. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/883">#883</a>).</li>
 </ul>
 </div>
 <div class="section" id="miscellaneous">
 <h3>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
+<li>Added a <code class="xref py py-meth docutils literal"><span class="pre">show_graph()</span></code> method to render
+a Pipeline as an image (<a class="reference external" href="https://github.com/quantopian/zipline/issues/836">#836</a>).</li>
 <li>Adds <code class="xref py py-func docutils literal"><span class="pre">subtest()</span></code> decorator for creating subtests
 without <code class="docutils literal"><span class="pre">nose_parameterized.expand</span></code> which bloats the test output
 (<a class="reference external" href="https://github.com/quantopian/zipline/issues/833">#833</a>).</li>
@@ -1110,7 +1130,7 @@ numbers of commit:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+79.ga9c91a7',
+            VERSION:'v0.8.3+124.g060c176',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

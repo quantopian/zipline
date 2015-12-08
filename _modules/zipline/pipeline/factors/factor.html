@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.factor &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
+  <title>zipline.pipeline.factors.factor &mdash; Zipline v0.8.3+124.g060c176 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+124.g060c176 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -71,6 +71,16 @@
           
           
               <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
@@ -687,7 +697,9 @@
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    Users implementing their own Factors should subclass CustomFactor and</span>
-<span class="sd">    implement a method named `compute` with the following signature::</span>
+<span class="sd">    implement a method named `compute` with the following signature:</span>
+
+<span class="sd">    .. code-block:: python</span>
 
 <span class="sd">        def compute(self, today, assets, out, *inputs):</span>
 <span class="sd">           ...</span>
@@ -720,7 +732,9 @@
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 
-<span class="sd">    A CustomFactor with pre-declared defaults::</span>
+<span class="sd">    A CustomFactor with pre-declared defaults:</span>
+
+<span class="sd">    .. code-block:: python</span>
 
 <span class="sd">        class TenDayRange(CustomFactor):</span>
 <span class="sd">            &quot;&quot;&quot;</span>
@@ -737,8 +751,8 @@
 <span class="sd">            def compute(self, today, assets, out, highs, lows):</span>
 <span class="sd">                from numpy import nanmin, nanmax</span>
 
-<span class="sd">                highest_highs = nanmax(axis=0)</span>
-<span class="sd">                lowest_lows = nanmin(axis=0)</span>
+<span class="sd">                highest_highs = nanmax(highs, axis=0)</span>
+<span class="sd">                lowest_lows = nanmin(lows, axis=0)</span>
 <span class="sd">                out[:] = highest_highs - lowest_lows</span>
 
 
@@ -746,7 +760,9 @@
 <span class="sd">        # pre-declared as defaults for the TenDayRange class.</span>
 <span class="sd">        ten_day_range = TenDayRange()</span>
 
-<span class="sd">    A CustomFactor without defaults::</span>
+<span class="sd">    A CustomFactor without defaults:</span>
+
+<span class="sd">    .. code-block:: python</span>
 
 <span class="sd">        class MedianValue(CustomFactor):</span>
 <span class="sd">            &quot;&quot;&quot;</span>
@@ -759,7 +775,7 @@
 
 <span class="sd">            def compute(self, today, assets, out, data):</span>
 <span class="sd">                from numpy import nanmedian</span>
-<span class="sd">                out[:] = data.nanmedian(axis=0)</span>
+<span class="sd">                out[:] = data.nanmedian(data, axis=0)</span>
 
 <span class="sd">        # Values for `inputs` and `window_length` must be passed explicitly to</span>
 <span class="sd">        # MedianValue.</span>
@@ -802,7 +818,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+79.ga9c91a7',
+            VERSION:'v0.8.3+124.g060c176',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

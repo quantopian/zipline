@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.pipeline &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
+  <title>zipline.pipeline.pipeline &mdash; Zipline v0.8.3+124.g060c176 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+124.g060c176 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -71,6 +71,16 @@
           
           
               <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
@@ -191,7 +201,7 @@
   <h1>Source code for zipline.pipeline.pipeline</h1><div class="highlight"><pre>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span><span class="p">,</span> <span class="n">optional</span>
 
-<span class="kn">from</span> <span class="nn">.term</span> <span class="kn">import</span> <span class="n">Term</span>
+<span class="kn">from</span> <span class="nn">.term</span> <span class="kn">import</span> <span class="n">Term</span><span class="p">,</span> <span class="n">AssetExists</span>
 <span class="kn">from</span> <span class="nn">.filters</span> <span class="kn">import</span> <span class="n">Filter</span>
 <span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">TermGraph</span>
 
@@ -335,7 +345,26 @@
             <span class="n">screen</span> <span class="o">=</span> <span class="n">default_screen</span>
         <span class="n">columns</span><span class="p">[</span><span class="n">screen_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">screen</span>
 
-        <span class="k">return</span> <span class="n">TermGraph</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">TermGraph</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Pipeline.show_graph"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.show_graph">[docs]</a>    <span class="k">def</span> <span class="nf">show_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&#39;svg&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Render this Pipeline as a DAG.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        format : {&#39;svg&#39;, &#39;png&#39;, &#39;jpeg&#39;}</span>
+<span class="sd">            Image format to render with.  Default is &#39;svg&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_graph</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">AssetExists</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;svg&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">svg</span>
+        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;png&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">png</span>
+        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;jpeg&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">jpeg</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Unknown graph format </span><span class="si">%r</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">format</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
@@ -366,7 +395,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'v0.8.3+79.ga9c91a7',
+            VERSION:'v0.8.3+124.g060c176',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

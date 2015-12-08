@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
+  <title>Zipline &mdash; Zipline v0.8.3+124.g060c176 documentation</title>
   
 
   
@@ -30,8 +30,8 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="#"/>
-        <link rel="next" title="Zipline beginner tutorial" href="beginner-tutorial.html"/> 
+    <link rel="top" title="Zipline v0.8.3+124.g060c176 documentation" href="#"/>
+        <link rel="next" title="Install" href="install.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -71,6 +71,16 @@
           
           
               <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline beginner tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
@@ -204,6 +214,7 @@ community-centered, hosted platform for building and executing trading
 strategies.</p>
 <p><a class="reference external" href="https://groups.google.com/forum/#!forum/zipline">Join our
 community!</a></p>
+<p><a class="reference external" href="http://www.zipline.io">Documentation</a></p>
 <p>Want to contribute? See our <a class="reference external" href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">open
 requests</a>
 and our <a class="reference external" href="https://github.com/quantopian/zipline#contributions">general
@@ -228,20 +239,39 @@ visualization of state-of-the-art trading systems.</li>
 </div>
 <div class="section" id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="pip">
-<h2>pip<a class="headerlink" href="#pip" title="Permalink to this headline">¶</a></h2>
-<p>You can install Zipline via the <code class="docutils literal"><span class="pre">pip</span></code> command:</p>
-<div class="highlight-python"><div class="highlight"><pre>$ pip install zipline
+<div class="section" id="installing-with-pip">
+<h2>Installing With <code class="docutils literal"><span class="pre">pip</span></code><a class="headerlink" href="#installing-with-pip" title="Permalink to this headline">¶</a></h2>
+<p>Assuming you have all required (see note below) non-Python dependencies, you
+can install Zipline with <code class="docutils literal"><span class="pre">pip</span></code> via:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install zipline
 </pre></div>
 </div>
+<p><strong>Note:</strong> Installing Zipline via <code class="docutils literal"><span class="pre">pip</span></code> is slightly more involved than the
+average Python package.  Simply running <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">zipline</span></code> will likely
+fail if you&#8217;ve never installed any scientific Python packages before.</p>
+<p>There are two reasons for the additional complexity:</p>
+<ol class="arabic simple">
+<li>Zipline ships several C extensions that require access to the CPython C API.
+In order to build the C extensions, <code class="docutils literal"><span class="pre">pip</span></code> needs access to the CPython
+header files for your Python installation.</li>
+<li>Zipline depends on <a class="reference external" href="http://www.numpy.org/">numpy</a>, the core library for
+numerical array computing in Python.  Numpy depends on having the <a class="reference external" href="http://www.netlib.org/lapack">LAPACK</a> linear algebra routines available.</li>
+</ol>
+<p>Because LAPACK and the CPython headers are binary dependencies, the correct way
+to install them varies from platform to platform.  On Linux, users generally
+acquire these dependencies via a package manager like <code class="docutils literal"><span class="pre">apt</span></code>, <code class="docutils literal"><span class="pre">yum</span></code>, or
+<code class="docutils literal"><span class="pre">pacman</span></code>.  On OSX, <a class="reference external" href="http://www.brew.sh">Homebrew</a> is a popular choice
+providing similar functionality.</p>
+<p>See the full <a class="reference external" href="http://www.zipline.io/install.html">Zipline Install Documentation</a> for more information on acquiring
+binary dependencies for your specific platform.</p>
 </div>
 <div class="section" id="conda">
 <h2>conda<a class="headerlink" href="#conda" title="Permalink to this headline">¶</a></h2>
-<p>Another way to install Zipline is via <code class="docutils literal"><span class="pre">conda</span></code> which comes as part
-of <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> or can be installed via
-<code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">conda</span></code>.</p>
+<p>Another way to install Zipline is via the <code class="docutils literal"><span class="pre">conda</span></code> package manager, which
+comes as part of <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> or can be
+installed via <code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">conda</span></code>.</p>
 <p>Once set up, you can install Zipline from our <code class="docutils literal"><span class="pre">Quantopian</span></code> channel:</p>
-<div class="highlight-python"><div class="highlight"><pre>conda install -c Quantopian zipline
+<div class="highlight-bash"><div class="highlight"><pre>conda install -c Quantopian zipline
 </pre></div>
 </div>
 <p>Currently supported platforms include:</p>
@@ -253,10 +283,6 @@ of <a class="reference external" href="http://continuum.io/downloads">Anaconda</
 <p class="first admonition-title">Note</p>
 <p class="last">Windows may work; however, it is currently untested.</p>
 </div>
-</div>
-<div class="section" id="dependencies">
-<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
-<p>See our <a class="reference external" href="https://github.com/quantopian/zipline/blob/master/etc/requirements.txt">requirements file</a></p>
 </div>
 </div>
 <div class="section" id="quickstart">
@@ -324,16 +350,14 @@ and analyze from within python.</p>
 <h1>Contributions<a class="headerlink" href="#contributions" title="Permalink to this headline">¶</a></h1>
 <p>If you would like to contribute, please see our Contribution Requests:
 <a class="reference external" href="https://github.com/quantopian/zipline/wiki/Contribution-Requests">https://github.com/quantopian/zipline/wiki/Contribution-Requests</a></p>
-<div class="section" id="index">
-<h2>Index<a class="headerlink" href="#index" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a></li>
 <li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline beginner tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Zipline Release Process</a></li>
 </ul>
-</div>
 </div>
 </div>
 
@@ -343,7 +367,7 @@ and analyze from within python.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="beginner-tutorial.html" class="btn btn-neutral float-right" title="Zipline beginner tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="install.html" class="btn btn-neutral float-right" title="Install" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
     </div>
@@ -373,7 +397,7 @@ and analyze from within python.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+79.ga9c91a7',
+            VERSION:'v0.8.3+124.g060c176',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

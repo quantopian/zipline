@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.assets.assets &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
+  <title>zipline.assets.assets &mdash; Zipline v0.8.3+124.g060c176 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+124.g060c176 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -71,6 +71,16 @@
           
           
               <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
@@ -212,7 +222,7 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">isnull</span>
 <span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span><span class="p">,</span> <span class="n">string_types</span><span class="p">,</span> <span class="n">viewkeys</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">map</span> <span class="k">as</span> <span class="n">imap</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">map</span> <span class="k">as</span> <span class="n">imap</span><span class="p">,</span> <span class="nb">range</span>
 <span class="kn">import</span> <span class="nn">sqlalchemy</span> <span class="kn">as</span> <span class="nn">sa</span>
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
@@ -232,6 +242,7 @@
     <span class="n">check_version_info</span><span class="p">,</span>
     <span class="n">ASSET_DB_VERSION</span><span class="p">,</span>
     <span class="n">asset_db_table_names</span><span class="p">,</span>
+    <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">invert</span>
 
@@ -337,7 +348,9 @@
 <span class="sd">        types : dict[sid -&gt; str or None]</span>
 <span class="sd">            Asset types for the provided sids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">found</span><span class="p">,</span> <span class="n">missing</span> <span class="o">=</span> <span class="p">{},</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
         <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">found</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span>
@@ -348,18 +361,26 @@
             <span class="k">return</span> <span class="n">found</span>
 
         <span class="n">router_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset_router</span><span class="o">.</span><span class="n">c</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="n">router_cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">router_cols</span><span class="o">.</span><span class="n">asset_type</span><span class="p">))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">asset_router</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">missing</span><span class="p">))</span>
-        <span class="p">)</span>
-        <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">type_</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
-            <span class="n">missing</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
-            <span class="n">found</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">type_</span>
 
-        <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">missing</span><span class="p">:</span>
-            <span class="n">found</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">assets</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_into_chunks</span><span class="p">(</span><span class="n">missing</span><span class="p">):</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="n">router_cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">router_cols</span><span class="o">.</span><span class="n">asset_type</span><span class="p">))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">asset_router</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">assets</span><span class="p">))</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">sid</span><span class="p">,</span> <span class="n">type_</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+                <span class="n">missing</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+                <span class="n">found</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">type_</span>
+
+            <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">missing</span><span class="p">:</span>
+                <span class="n">found</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="k">return</span> <span class="n">found</span>
 </div>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_group_into_chunks</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="n">SQLITE_MAX_VARIABLE_NUMBER</span><span class="p">):</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="o">+</span><span class="n">chunk_size</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">),</span> <span class="n">chunk_size</span><span class="p">)]</span>
+
 <div class="viewcode-block" id="AssetFinder.group_by_type"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.group_by_type">[docs]</a>    <span class="k">def</span> <span class="nf">group_by_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Group a list of sids by asset type.</span>
@@ -534,14 +555,16 @@
             <span class="k">return</span> <span class="p">{}</span>
 
         <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span>
-
         <span class="n">hits</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="c"># Load misses from the db.</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_assets_by_sid</span><span class="p">(</span><span class="n">asset_tbl</span><span class="p">,</span> <span class="n">sids</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">imap</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()):</span>
-            <span class="n">asset</span> <span class="o">=</span> <span class="n">asset_type</span><span class="p">(</span><span class="o">**</span><span class="n">_convert_asset_timestamp_fields</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
-            <span class="n">sid</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">sid</span>
-            <span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">asset</span>
+
+        <span class="k">for</span> <span class="n">assets</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_into_chunks</span><span class="p">(</span><span class="n">sids</span><span class="p">):</span>
+            <span class="c"># Load misses from the db.</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_assets_by_sid</span><span class="p">(</span><span class="n">asset_tbl</span><span class="p">,</span> <span class="n">assets</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">imap</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">query</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()):</span>
+                <span class="n">asset</span> <span class="o">=</span> <span class="n">asset_type</span><span class="p">(</span><span class="o">**</span><span class="n">_convert_asset_timestamp_fields</span><span class="p">(</span><span class="n">row</span><span class="p">))</span>
+                <span class="n">sid</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">sid</span>
+                <span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">asset</span>
 
         <span class="c"># If we get here, it means something in our code thought that a</span>
         <span class="c"># particular sid was an equity/future and called this function with a</span>
@@ -1242,7 +1265,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'v0.8.3+79.ga9c91a7',
+            VERSION:'v0.8.3+124.g060c176',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

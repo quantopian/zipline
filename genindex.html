@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; Zipline v0.8.3+79.ga9c91a7 documentation</title>
+  <title>Index &mdash; Zipline v0.8.3+124.g060c176 documentation</title>
   
 
   
@@ -31,7 +31,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+79.ga9c91a7 documentation" href="index.html"/> 
+    <link rel="top" title="Zipline v0.8.3+124.g060c176 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -71,6 +71,16 @@
           
           
               <ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="beginner-tutorial.html">Zipline beginner tutorial</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
@@ -206,6 +216,7 @@
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  | <a href="#Z"><strong>Z</strong></a>
  
@@ -438,6 +449,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="appendix.html#zipline.pipeline.factors.Latest">Latest (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lifetimes">lifetimes() (zipline.assets.assets.AssetFinder method)</a>
   </dt>
 
@@ -449,12 +464,12 @@
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_asset_types">lookup_asset_types() (zipline.assets.assets.AssetFinder method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_future_chain">lookup_future_chain() (zipline.assets.assets.AssetFinder method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_future_symbol">lookup_future_symbol() (zipline.assets.assets.AssetFinder method)</a>
   </dt>
@@ -475,6 +490,12 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.map_identifier_index_to_sids">map_identifier_index_to_sids() (zipline.assets.assets.AssetFinder method)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.MaxDrawdown">MaxDrawdown (class in zipline.pipeline.factors)</a>
   </dt>
 
   </dl></td>
@@ -561,18 +582,26 @@
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_all">retrieve_all() (zipline.assets.assets.AssetFinder method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_asset">retrieve_asset() (zipline.assets.assets.AssetFinder method)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_equities">retrieve_equities() (zipline.assets.assets.AssetFinder method)</a>
   </dt>
 
       
   <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_futures_contracts">retrieve_futures_contracts() (zipline.assets.assets.AssetFinder method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.Returns">Returns (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.RSI">RSI (class in zipline.pipeline.factors)</a>
   </dt>
 
   </dl></td>
@@ -613,12 +642,12 @@
   <dt><a href="appendix.html#zipline.api.set_max_leverage">set_max_leverage() (in module zipline.api)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.api.set_max_order_count">set_max_order_count() (in module zipline.api)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.api.set_max_order_size">set_max_order_size() (in module zipline.api)</a>
   </dt>
@@ -636,7 +665,15 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.pipeline.Pipeline.show_graph">show_graph() (zipline.pipeline.Pipeline method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.api.sid">sid() (in module zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.SimpleMovingAverage">SimpleMovingAverage (class in zipline.pipeline.factors)</a>
   </dt>
 
       
@@ -680,8 +717,24 @@
   </dl></td>
 </tr></table>
 
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.VWAP">VWAP (class in zipline.pipeline.factors)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
 <h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.WeightedAverageValue">WeightedAverageValue (class in zipline.pipeline.factors)</a>
+  </dt>
+
+  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.assets.asset_writer.AssetDBWriter.write_all">write_all() (zipline.assets.asset_writer.AssetDBWriter method)</a>
@@ -730,7 +783,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+79.ga9c91a7',
+            VERSION:'v0.8.3+124.g060c176',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
