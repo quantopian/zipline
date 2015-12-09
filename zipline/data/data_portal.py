@@ -47,9 +47,9 @@ class DataPortal(object):
     def __init__(self,
                  env,
                  sim_params=None,
+                 equity_daily_reader=None,
                  equity_minute_reader=None,
                  minutes_futures_path=None,
-                 daily_equities_path=None,
                  adjustment_reader=None,
                  futures_sid_path_func=None):
         self.env = env
@@ -64,7 +64,6 @@ class DataPortal(object):
 
         self.views = {}
 
-        self._daily_equities_path = daily_equities_path
         self._minutes_futures_path = minutes_futures_path
 
         self._asset_finder = env.asset_finder
@@ -104,11 +103,7 @@ class DataPortal(object):
 
         self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
 
-        if daily_equities_path is not None:
-            self._daily_bar_reader = BcolzDailyBarReader(daily_equities_path)
-        else:
-            self._daily_bar_reader = None
-
+        self._equity_daily_reader = equity_daily_reader
         self._equity_minute_reader = equity_minute_reader
 
     def _open_minute_file(self, field, asset):
@@ -291,7 +286,8 @@ class DataPortal(object):
     def _get_daily_data(self, asset, column, dt):
         while True:
             try:
-                value = self._daily_bar_reader.spot_price(asset, dt, column)
+                value = self._equity_daily_reader.spot_price(
+                    asset, dt, column)
                 if value != -1:
                     return value
                 else:

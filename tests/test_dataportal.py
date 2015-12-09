@@ -22,8 +22,11 @@ from unittest import TestCase
 from pandas.tslib import normalize_date
 from testfixtures import TempDirectory
 from zipline.data.data_portal import DataPortal
-from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, \
-    SQLiteAdjustmentReader
+from zipline.data.us_equity_pricing import (
+    SQLiteAdjustmentWriter,
+    SQLiteAdjustmentReader,
+    BcolzDailyBarReader
+)
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
 from zipline.data.us_equity_minutes import (
     MinuteBarWriterFromDataFrames,
@@ -145,9 +148,11 @@ class TestDataPortal(TestCase):
                 data_frequency="daily"
             )
 
+            equity_daily_reader = BcolzDailyBarReader(path)
+
             dp = DataPortal(
                 env,
-                daily_equities_path=path,
+                equity_daily_reader=equity_daily_reader,
                 sim_params=sim_params
             )
 
