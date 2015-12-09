@@ -1,11 +1,13 @@
 """
 Tests for zipline.utils.validate.
 """
+from operator import attrgetter
 from types import FunctionType
 from unittest import TestCase
 
 from nose_parameterized import parameterized
 from numpy import arange, dtype
+from six import PY3
 
 from zipline.utils.preprocess import call, preprocess
 from zipline.utils.input_validation import (
@@ -20,6 +22,13 @@ def noop(func, argname, argvalue):
     assert isinstance(func, FunctionType)
     assert isinstance(argname, str)
     return argvalue
+
+
+if PY3:
+    qualname = attrgetter('__qualname__')
+else:
+    def qualname(ob):
+        return '.'.join((__name__, ob.__name__))
 
 
 class PreprocessTestCase(TestCase):
@@ -183,9 +192,9 @@ class PreprocessTestCase(TestCase):
                 foo(not_int(1), 2, 3)
             self.assertEqual(
                 e.exception.args[0],
-                "{modname}.foo() expected a value of type "
+                "{qualname}() expected a value of type "
                 "int for argument 'a', but got {t} instead.".format(
-                    modname=foo.__module__,
+                    qualname=qualname(foo),
                     t=not_int.__name__,
                 )
             )
@@ -206,9 +215,9 @@ class PreprocessTestCase(TestCase):
             foo('1')
 
         expected_message = (
-            "{modname}.foo() expected a value of "
+            "{qualname}() expected a value of "
             "type int or float for argument 'a', but got str instead."
-        ).format(modname=foo.__module__)
+        ).format(qualname=qualname(foo))
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_optional_types(self):
@@ -228,9 +237,9 @@ class PreprocessTestCase(TestCase):
             foo('1')
 
         expected_message = (
-            "{modname}.foo() expected a value of "
+            "{qualname}() expected a value of "
             "type int or NoneType for argument 'a', but got str instead."
-        ).format(modname=foo.__module__)
+        ).format(qualname=qualname(foo))
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_element(self):
@@ -247,9 +256,9 @@ class PreprocessTestCase(TestCase):
             f('c')
 
         expected_message = (
-            "{modname}.f() expected a value in {set_!r}"
+            "{qualname}() expected a value in {set_!r}"
             " for argument 'a', but got 'c' instead."
-        ).format(set_=set_, modname=f.__module__)
+        ).format(set_=set_, qualname=qualname(f))
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_dtypes(self):
@@ -271,18 +280,18 @@ class PreprocessTestCase(TestCase):
             foo(good_a, arange(3), good_c)
 
         expected_message = (
-            "{modname}.foo() expected a value with dtype 'datetime64[ns]'"
+            "{qualname}() expected a value with dtype 'datetime64[ns]'"
             " for argument 'b', but got 'int64' instead."
-        ).format(modname=foo.__module__)
+        ).format(qualname=qualname(foo))
         self.assertEqual(e.exception.args[0], expected_message)
 
         with self.assertRaises(TypeError) as e:
             foo(arange(3, dtype='uint32'), good_c, good_c)
 
         expected_message = (
-            "{modname}.foo() expected a value with dtype 'float64'"
+            "{qualname}() expected a value with dtype 'float64'"
             " for argument 'a', but got 'uint32' instead."
-        ).format(modname=foo.__module__)
+        ).format(qualname=qualname(foo))
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_dtypes_with_tuple(self):
@@ -304,7 +313,7 @@ class PreprocessTestCase(TestCase):
             foo(arange(3, dtype='uint32'), object())
 
         expected_message = (
-            "{modname}.foo() expected a value with dtype 'datetime64[ns]' "
+            "{qualname}() expected a value with dtype 'datetime64[ns]' "
             "or 'float64' for argument 'a', but got 'uint32' instead."
-        ).format(modname=foo.__module__)
+        ).format(qualname=qualname(foo))
         self.assertEqual(e.exception.args[0], expected_message)
