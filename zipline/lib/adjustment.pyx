@@ -509,16 +509,10 @@ cdef class Datetime64Overwrite(Datetime64Adjustment):
     >>> import numpy as np; import pandas as pd
     >>> dts = pd.date_range('2014', freq='D', periods=9, tz='UTC')
     >>> arr = dts.values.reshape(3, 3)
-    >>> arr
-    array([['2013-12-31T19:00:00.000000000-0500',
-            '2014-01-01T19:00:00.000000000-0500',
-            '2014-01-02T19:00:00.000000000-0500'],
-           ['2014-01-03T19:00:00.000000000-0500',
-            '2014-01-04T19:00:00.000000000-0500',
-            '2014-01-05T19:00:00.000000000-0500'],
-           ['2014-01-06T19:00:00.000000000-0500',
-            '2014-01-07T19:00:00.000000000-0500',
-            '2014-01-08T19:00:00.000000000-0500']], dtype='datetime64[ns]')
+    >>> arr == np.datetime64(0, 'ns')
+    array([[False, False, False],
+           [False, False, False],
+           [False, False, False]], dtype=bool)
     >>> adj = Datetime64Overwrite(
     ...     first_row=1,
     ...     last_row=2,
@@ -527,16 +521,10 @@ cdef class Datetime64Overwrite(Datetime64Adjustment):
     ...     value=np.datetime64(0, 'ns'),
     ... )
     >>> adj.mutate(arr.view(np.int64))
-    >>> arr
-    array([['2013-12-31T19:00:00.000000000-0500',
-            '2014-01-01T19:00:00.000000000-0500',
-            '2014-01-02T19:00:00.000000000-0500'],
-           ['2014-01-03T19:00:00.000000000-0500',
-            '1969-12-31T19:00:00.000000000-0500',
-            '1969-12-31T19:00:00.000000000-0500'],
-           ['2014-01-06T19:00:00.000000000-0500',
-            '1969-12-31T19:00:00.000000000-0500',
-            '1969-12-31T19:00:00.000000000-0500']], dtype='datetime64[ns]')
+    >>> arr == np.datetime64(0, 'ns')
+    array([[False, False, False],
+           [False,  True,  True],
+           [False,  True,  True]], dtype=bool)
     """
     cpdef mutate(self, int64_t[:, :] data):
         cdef Py_ssize_t row, col

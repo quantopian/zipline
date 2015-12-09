@@ -66,13 +66,13 @@ def expect_dtypes(*_pos, **named):
 
     Usage
     -----
-    >>> from numpy import dtype
-    >>> @expect_types(x=dtype(int))
+    >>> from numpy import dtype, arange
+    >>> @expect_dtypes(x=dtype(int))
     ... def foo(x, y):
     ...    return x, y
     ...
     >>> foo(arange(3), 'foo')
-    (2, '3')
+    (array([0, 1, 2]), 'foo')
     >>> foo(arange(3, dtype=float), 'foo')
     Traceback (most recent call last):
        ...
