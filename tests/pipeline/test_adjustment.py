@@ -65,6 +65,6 @@ class AdjustmentTestCase(TestCase):
         exc = e.exception
         expected_msg = (
             "Don't know how to make overwrite adjustments for values of type "
-            "<class 'tests.pipeline.test_adjustment.SomeClass'>."
+            "%r." % SomeClass
         )
         self.assertEqual(str(exc), expected_msg)

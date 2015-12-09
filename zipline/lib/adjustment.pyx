@@ -51,11 +51,11 @@ cpdef choose_adjustment_type(int adjustment_kind, object value):
     if adjustment_kind in (ADD, MULTIPLY):
         if not _is_float(value):
             raise TypeError(
-                "Can't construct %s Adjustment with value of type %s.\n"
+                "Can't construct %s Adjustment with value of type %r.\n"
                 "ADD and MULTIPLY adjustments are only supported for "
                 "floating point data." % (
                     ADJUSTMENT_KIND_NAMES[adjustment_kind],
-                    type(value).__name__,
+                    type(value),
                 )
             )
         return _float_adjustment_types[adjustment_kind]
@@ -68,7 +68,7 @@ cpdef choose_adjustment_type(int adjustment_kind, object value):
         else:
             raise TypeError(
                 "Don't know how to make overwrite "
-                "adjustments for values of type %s." % type(value),
+                "adjustments for values of type %r." % type(value),
             )
     else:
         raise ValueError("Unknown adjustment type %d." % adjustment_kind)
