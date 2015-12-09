@@ -49,9 +49,9 @@ class DataPortal(object):
                  sim_params=None,
                  equity_daily_reader=None,
                  equity_minute_reader=None,
-                 minutes_futures_path=None,
-                 adjustment_reader=None,
-                 futures_sid_path_func=None):
+                 future_daily_reader=None,
+                 future_minute_reader=None,
+                 adjustment_reader=None):
         self.env = env
 
         # Internal pointers to the current dt (can be minute) and current day.
@@ -63,8 +63,6 @@ class DataPortal(object):
         self.current_day = None
 
         self.views = {}
-
-        self._minutes_futures_path = minutes_futures_path
 
         self._asset_finder = env.asset_finder
 
@@ -99,12 +97,12 @@ class DataPortal(object):
         else:
             self._data_frequency = "minute"
 
-        self._futures_sid_path_func = futures_sid_path_func
-
         self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
 
         self._equity_daily_reader = equity_daily_reader
         self._equity_minute_reader = equity_minute_reader
+        self._future_daily_reader = future_daily_reader
+        self._future_minute_reader = future_minute_reader
 
     def _open_minute_file(self, field, asset):
         sid_str = str(int(asset))
@@ -121,12 +119,13 @@ class DataPortal(object):
         sid = int(asset)
 
         if isinstance(asset, Future):
-            if self._futures_sid_path_func is not None:
-                path = self._futures_sid_path_func(
-                    self._minutes_futures_path, sid
+            if self._future_minute_reader.sid_path_func is not None:
+                path = self._future_minute_reader.sid_path_func(
+                    self._future_minute_reader.rootdir, sid
                 )
             else:
-                path = "{0}/{1}.bcolz".format(self._minutes_futures_path, sid)
+                path = "{0}/{1}.bcolz".format(
+                    self._future_minute_reader.rootdir, sid)
         elif isinstance(asset, Equity):
             if self._equity_minute_reader.sid_path_func is not None:
                 path = self._equity_minute_reader.sid_path_func(

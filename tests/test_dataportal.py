@@ -28,6 +28,7 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader
 )
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
+from zipline.data.future_pricing import FutureMinuteReader
 from zipline.data.us_equity_minutes import (
     MinuteBarWriterFromDataFrames,
     BcolzMinuteBarReader
@@ -343,9 +344,11 @@ class TestDataPortal(TestCase):
                 }
             })
 
+            future_minute_reader = FutureMinuteReader(tempdir.path)
+
             dp = DataPortal(
                 env,
-                minutes_futures_path=tempdir.path
+                future_minute_reader=future_minute_reader
             )
 
             future123 = env.asset_finder.retrieve_asset(123)
