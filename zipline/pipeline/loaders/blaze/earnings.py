@@ -13,6 +13,34 @@ from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
 ANNOUNCEMENT_FIELD_NAME = 'announcement_date'
 
 
+def bind_expression_to_resources(expr, resources):
+    """
+    Bind a Blaze expression to resources.
+
+    Parameters
+    ----------
+    expr : bz.Expr
+        The expression to which we want to bind resources.
+    resources : dict[bz.Symbol -> any]
+        Mapping from the atomic terms of ``expr`` to actual data resources.
+
+    Returns
+    -------
+    bound_expr : bz.Expr
+        ``expr`` with bound resources.
+    """
+    # bind the resources into the expression
+    if resources is None:
+        resources = {}
+
+    # _subs stands for substitute.  It's not actually private, blaze just
+    # prefixes symbol-manipulation methods with underscores to prevent
+    # collisions with data column names.
+    return expr._subs({
+        k: bz.Data(v, dshape=k.dshape) for k, v in iteritems(resources)
+    })
+
+
 class BlazeEarningsCalendarLoader(PipelineLoader):
     """A pipeline loader for the ``EarningsCalendar`` dataset that loads
     data from a blaze expression.
@@ -69,24 +97,10 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
             )
 
         expected_fields = self._expected_fields
-        self._has_ts = has_ts = TS_FIELD_NAME in dshape.measure.dict
-        if not has_ts:
-            # This field is optional.
-            expected_fields - {TS_FIELD_NAME}
-
-        # bind the resources into the expression
-        if resources is None:
-            resources = {}
-        elif not isinstance(resources, dict):
-            leaves = expr._leaves()
-            if len(leaves) != 1:
-                raise ValueError('no data resources found')
-
-            resources = {leaves[0]: resources}
-
-        self._expr = expr[list(expected_fields)]._subs({
-            k: bz.Data(v, dshape=k.dshape) for k, v in iteritems(resources)
-        })
+        self._expr = bind_expression_to_resources(
+            expr[list(expected_fields)],
+            resources,
+        )
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
 
     def load_adjusted_array(self, columns, dates, assets, mask):
@@ -100,7 +114,7 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
             pd.Timestamp,
             **self._odo_kwargs
         )
-        if lower is pd.NaT:
+        if pd.isnull(lower):
             # If there is no lower date, just query for data in the date
             # range. It must all be null anyways.
             lower = dates[0]
@@ -121,18 +135,15 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         )
 
         gb = raw.groupby(SID_FIELD_NAME)
-        if self._has_ts:
-            def mkseries(idx, raw_loc=raw.loc):
-                vs = raw_loc[
-                    idx, [TS_FIELD_NAME, ANNOUNCEMENT_FIELD_NAME]
-                ].values
-                return pd.Series(
-                    index=pd.DatetimeIndex(vs[:, 0]),
-                    data=vs[:, 1],
-                )
-        else:
-            def mkseries(idx, raw_loc=raw.loc):
-                return pd.DatetimeIndex(raw_loc[idx, ANNOUNCEMENT_FIELD_NAME])
+
+        def mkseries(idx, raw_loc=raw.loc):
+            vs = raw_loc[
+                idx, [TS_FIELD_NAME, ANNOUNCEMENT_FIELD_NAME]
+            ].values
+            return pd.Series(
+                index=pd.DatetimeIndex(vs[:, 0]),
+                data=vs[:, 1],
+            )
 
         return EarningsCalendarLoader(
             dates,
