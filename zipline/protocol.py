@@ -18,6 +18,7 @@ import pandas as pd
 
 from . utils.protocol_utils import Enum
 
+from pandas.tslib import normalize_date
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -252,4 +253,6 @@ class BarData(object):
 
     @property
     def fetcher_assets(self):
-        return self.data_portal.get_fetcher_assets()
+        return self.data_portal.get_fetcher_assets(
+            normalize_date(self.data_portal.current_dt)
+        )

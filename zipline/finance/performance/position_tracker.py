@@ -414,7 +414,7 @@ class PositionTracker(object):
             return None
 
         amount = self.positions.get(event.sid).amount
-        price = self._data_portal.get_spot_value(event.sid, 'close')
+        price = self._data_portal.get_spot_value(event.sid, 'close', event.dt)
 
         txn = Transaction(
             sid=event.sid,
