@@ -98,7 +98,7 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
                 timestamp=filtered[TS_FIELD_NAME].max(),
             ).timestamp.min(),
             pd.Timestamp,
-            **self._odo_kwargs or {}
+            **self._odo_kwargs
         )
         if lower is pd.NaT:
             # If there is no lower date, just query for data in the date
@@ -111,7 +111,7 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
                 (expr[TS_FIELD_NAME] <= dates[-1])
             ],
             pd.DataFrame,
-            **self._odo_kwargs or {}
+            **self._odo_kwargs
         )
 
         sids = raw.loc[:, SID_FIELD_NAME]
