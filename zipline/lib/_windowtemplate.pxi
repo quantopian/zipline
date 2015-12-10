@@ -55,10 +55,16 @@ cdef class AdjustedArrayWindow:
         self.anchor = window_length + offset
         self.max_anchor = data.shape[0]
 
+        self.next_adj = self.pop_next_adj()
+
+    cdef pop_next_adj(self):
+        """
+        Pop the index of the next adjustment to apply from self.adjustment_indices.
+        """
         if len(self.adjustment_indices) > 0:
-            self.next_adj = self.adjustment_indices.pop()
+            return self.adjustment_indices.pop()
         else:
-            self.next_adj = self.max_anchor
+            return self.max_anchor
 
     def __iter__(self):
         return self
@@ -81,10 +87,7 @@ cdef class AdjustedArrayWindow:
             for adjustment in self.adjustments[self.next_adj]:
                 adjustment.mutate(self.data)
 
-            if len(self.adjustment_indices) > 0:
-                self.next_adj = self.adjustment_indices.pop()
-            else:
-                self.next_adj = self.max_anchor
+            self.next_adj = self.pop_next_adj()
 
         start = anchor - self.window_length
         out = asarray(self.data[start:self.anchor]).view(self.viewtype)
