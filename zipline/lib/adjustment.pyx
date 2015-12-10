@@ -10,9 +10,11 @@ ctypedef object DatetimeIndex_t
 ctypedef object Timestamp_t
 
 # Adjustment kinds.
-MULTIPLY = 0
-ADD = 1
-OVERWRITE = 2
+cpdef enum AdjustmentKind:
+    MULTIPLY = 0
+    ADD = 1
+    OVERWRITE = 2
+
 ADJUSTMENT_KIND_NAMES = {
     MULTIPLY: 'MULTIPLY',
     ADD: 'ADD',
@@ -35,7 +37,7 @@ def _is_datetime(object value):
     return isinstance(value, (datetime64, Timestamp))
 
 
-cpdef choose_adjustment_type(int adjustment_kind, object value):
+cpdef choose_adjustment_type(AdjustmentKind adjustment_kind, object value):
     """
     Make an adjustment object of the type appropriate for the given kind and
     value.
@@ -78,7 +80,7 @@ cpdef make_adjustment_from_indices(Py_ssize_t first_row,
                                    Py_ssize_t last_row,
                                    Py_ssize_t first_column,
                                    Py_ssize_t last_column,
-                                   int adjustment_kind,
+                                   AdjustmentKind adjustment_kind,
                                    object value):
     """
     Make an Adjustment object from row/column indices into a baseline array.
@@ -95,7 +97,7 @@ cpdef make_adjustment_from_labels(DatetimeIndex_t dates_index,
                                   Timestamp_t start_date,
                                   Timestamp_t end_date,
                                   int asset_id,
-                                  int adjustment_kind,
+                                  AdjustmentKind adjustment_kind,
                                   object value):
     """
     Make an Adjustment object from date/asset labels into a labelled baseline
