@@ -13,12 +13,12 @@ from zipline.errors import (
     BadPercentileBounds,
     UnsupportedDataType,
 )
-from zipline.pipeline.term import (
-    CompositeTerm,
+from zipline.pipeline.mixins import (
     CustomTermMixin,
-    RequiredWindowLengthMixin,
+    PositiveWindowLengthMixin,
     SingleInputMixin,
 )
+from zipline.pipeline.term import CompositeTerm
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     FILTER_BINOPS,
@@ -243,7 +243,7 @@ class PercentileFilter(SingleInputMixin, Filter):
         return (lower_bounds <= data) & (data <= upper_bounds)
 
 
-class CustomFilter(RequiredWindowLengthMixin, CustomTermMixin, Filter):
+class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     """
     Filter analog to ``CustomFactor``.
     """

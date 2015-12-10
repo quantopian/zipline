@@ -12,13 +12,12 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.rank import masked_rankdata_2d
-from zipline.pipeline.term import (
+from zipline.pipeline.mixins import (
     CustomTermMixin,
-    NotSpecified,
-    RequiredWindowLengthMixin,
+    PositiveWindowLengthMixin,
     SingleInputMixin,
-    CompositeTerm,
 )
+from zipline.pipeline.term import CompositeTerm, NotSpecified
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -606,7 +605,7 @@ class Rank(SingleInputMixin, Factor):
         )
 
 
-class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
+class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     '''
     Base class for user-defined Factors.
 

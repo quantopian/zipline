@@ -8,20 +8,27 @@ from bottleneck import (
     nanmean,
     nansum,
 )
+from numbers import Number
 from numpy import (
     abs,
+    arange,
+    average,
     clip,
     diff,
+    exp,
     fmax,
+    full,
     inf,
     isnan,
+    log,
     NINF,
 )
 from numexpr import evaluate
 
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.term import SingleInputMixin
+from zipline.pipeline.mixins import SingleInputMixin
 from zipline.utils.control_flow import ignore_nanwarnings
+from zipline.utils.input_validation import expect_types
 from .factor import CustomFactor
 
 
@@ -119,3 +126,118 @@ class MaxDrawdown(CustomFactor, SingleInputMixin):
         for i, end in enumerate(drawdown_ends):
             peak = nanmax(data[:end + 1, i])
             out[i] = (peak - data[end, i]) / data[end, i]
+
+
+def DollarVolume():
+    """
+    Returns a Factor computing the product of most recent close price and
+    volume.
+    """
+    return USEquityPricing.close.latest * USEquityPricing.volume.latest
+
+
+def exponential_decay_weights(length, decay_rate):
+    """
+    Return weighting vector for an exponential moving statistic on `length`
+    rows with a decay rate of `decay_rate`.
+    """
+    return full(length, decay_rate) ** arange(length + 1, 1, -1)
+
+
+class ExponentialWeightedMovingAverage(SingleInputMixin, CustomFactor):
+    """
+    Exponentially Weighted Moving Average
+
+    **Default Inputs:** None
+    **Default Window Length:** None
+
+    Parameters
+    ----------
+    inputs : length-1 list or tuple of BoundColumn
+        The expression over which to compute the average.
+    window_length : int > 0
+        Length of the lookback window over which to compute the average.
+    decay_rate : float, 0 < decay_rate <= 1
+        Weighting factor by which to discount past observations.
+
+        When calculating historical averages, rows are multiplied by the
+        sequence::
+
+            decay_rate, decay_rate ** 2, decay_rate ** 3, ...
+
+    See Also
+    --------
+    pandas.ewma
+    """
+    params = ('decay_rate',)
+
+    @classmethod
+    @expect_types(span=Number)
+    def from_span(cls, inputs, window_length, span):
+        """
+        Convenience constructor for passing `decay_rate` in terms of `span`.
+
+        Forwards `decay_rate` as `1 - (2.0 / (1 + span))`.  This provides the
+        behavior equivalent to passing `span` to pandas.ewma.
+        """
+        if span <= 1:
+            raise ValueError(
+                "`span` must be a positive number. %s was passed." % span
+            )
+
+        decay_rate = (1.0 - (2.0 / (1.0 + span)))
+        assert 0.0 < decay_rate <= 1.0
+
+        return cls(
+            inputs=inputs,
+            window_length=window_length,
+            decay_rate=decay_rate,
+        )
+
+    @classmethod
+    @expect_types(halflife=Number)
+    def from_halflife(cls, inputs, window_length, halflife):
+        """
+        Convenience constructor for passing `decay_rate` in terms of half life.
+
+        Forwards `decay_rate` as `exp(log(.5) / halflife)`.  This provides
+        the behavior equivalent to passing `halflife` to pandas.ewma.
+        """
+        if halflife <= 0:
+            raise ValueError(
+                "`span` must be a positive number. %s was passed." % halflife
+            )
+        decay_rate = exp(log(.5) / halflife)
+        assert 0.0 < decay_rate <= 1.0
+
+        return cls(
+            inputs=inputs,
+            window_length=window_length,
+            decay_rate=decay_rate,
+        )
+
+    @classmethod
+    def from_center_of_mass(cls, inputs, window_length, center_of_mass):
+        """
+        Convenience constructor for passing `decay_rate` in terms of center of
+        mass.
+
+        Forwards `decay_rate` as `1 - (1 / center_of_mass)`.  This provides
+        behavior equivalent to passing `center_of_mass` to pandas.ewma.
+        """
+        return cls(
+            inputs=inputs,
+            window_length=window_length,
+            decay_rate=(1.0 - (1.0 / (1.0 + center_of_mass))),
+        )
+
+    def compute(self, today, assets, out, data, decay_rate):
+        out[:] = average(
+            data,
+            axis=0,
+            weights=exponential_decay_weights(len(data), decay_rate),
+        )
+
+
+# Convenience alias.
+EWMA = ExponentialWeightedMovingAverage

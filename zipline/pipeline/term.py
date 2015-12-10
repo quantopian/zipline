@@ -4,7 +4,7 @@ Base class for Filters, Factors and Classifiers
 from abc import ABCMeta, abstractproperty
 from weakref import WeakValueDictionary
 
-from numpy import full_like, dtype as dtype_class
+from numpy import dtype as dtype_class
 from six import with_metaclass
 
 from zipline.errors import (
@@ -12,7 +12,6 @@ from zipline.errors import (
     InputTermNotAtomic,
     InvalidDType,
     TermInputsNotSpecified,
-    WindowLengthNotPositive,
     WindowLengthNotSpecified,
 )
 from zipline.utils.memoize import lazyval
@@ -34,11 +33,16 @@ class Term(with_metaclass(ABCMeta, object)):
     dtype = NotSpecified
     domain = NotSpecified
 
+    # Subclasses aren't required to provide `params`.  The default behavior is
+    # no params.
+    params = ()
+
     _term_cache = WeakValueDictionary()
 
     def __new__(cls,
-                domain=NotSpecified,
-                dtype=NotSpecified,
+                domain=domain,
+                dtype=dtype,
+                # params is explicitly not allowed to be passed to an instance.
                 *args,
                 **kwargs):
         """
@@ -56,11 +60,14 @@ class Term(with_metaclass(ABCMeta, object)):
 
         if domain is NotSpecified:
             domain = cls.domain
+
         dtype = cls._validate_dtype(dtype)
+        params = cls._pop_params(kwargs)
 
         identity = cls.static_identity(
             domain=domain,
             dtype=dtype,
+            params=params,
             *args, **kwargs
         )
 
@@ -71,9 +78,58 @@ class Term(with_metaclass(ABCMeta, object)):
                 super(Term, cls).__new__(cls)._init(
                     domain=domain,
                     dtype=dtype,
+                    params=params,
                     *args, **kwargs
                 )
             return new_instance
+
+    @classmethod
+    def _pop_params(cls, kwargs):
+        """
+        Pop entries from the `kwargs` passed to cls.__new__ based on the values
+        in `cls.params`.
+
+        Parameters
+        ----------
+        kwargs : dict
+            The kwargs passed to cls.__new__.
+
+        Returns
+        -------
+        params : list[(str, object)]
+            A list of string, value pairs containing the entries in cls.params.
+
+        Raises
+        ------
+        TypeError
+            Raised if any parameter values are not passed or not hashable.
+        """
+        param_values = []
+        for key in cls.params:
+            try:
+                value = kwargs.pop(key)
+                # Check here that the value is hashable so that we fail here
+                # instead of trying to hash the param values tuple later.
+                hash(key)
+                param_values.append(value)
+            except KeyError:
+                raise TypeError(
+                    "{typename} expected a keyword parameter {name!r}.".format(
+                        typename=cls.__name__,
+                        name=key
+                    )
+                )
+            except TypeError:
+                # Value wasn't hashable.
+                raise TypeError(
+                    "{typename} expected a hashable value for parameter "
+                    "{name!r}, but got {value!r} instead.".format(
+                        typename=cls.__name__,
+                        name=key,
+                        value=value,
+                    )
+                )
+        return tuple(zip(cls.params, param_values))
 
     @classmethod
     def _validate_dtype(cls, passed_dtype):
@@ -127,7 +183,7 @@ class Term(with_metaclass(ABCMeta, object)):
         pass
 
     @classmethod
-    def static_identity(cls, domain, dtype):
+    def static_identity(cls, domain, dtype, params):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -139,11 +195,36 @@ class Term(with_metaclass(ABCMeta, object)):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, domain, dtype)
+        return (cls, domain, dtype, params)
 
-    def _init(self, domain, dtype):
+    def _init(self, domain, dtype, params):
+        """
+        Parameters
+        ----------
+        domain : object
+            Unused placeholder.
+        dtype : np.dtype
+            Dtype of this term's output.
+        params : tuple[(str, hashable)]
+            Tuple of key/value pairs of additional parameters.
+        """
         self.domain = domain
         self.dtype = dtype
+
+        for name, value in params:
+            if hasattr(self, name):
+                raise TypeError(
+                    "Parameter {name!r} conflicts with already-present"
+                    "attribute with value {value!r}.".format(
+                        name=name,
+                        value=getattr(self, name),
+                    )
+                )
+            # TODO: Consider setting these values as attributes and replacing
+            # the boilerplate in NumericalExpression, Rank, and
+            # PercentileFilter.
+
+        self.params = dict(params)
 
         # Make sure that subclasses call super() in their _validate() methods
         # by setting this flag.  The base class implementation of _validate
@@ -217,92 +298,20 @@ class AssetExists(Term):
         return "AssetExists()"
 
 
-# TODO: Move mixins to a separate file?
-class SingleInputMixin(object):
-
-    def _validate(self):
-        num_inputs = len(self.inputs)
-        if num_inputs != 1:
-            raise ValueError(
-                "{typename} expects only one input, "
-                "but received {num_inputs} instead.".format(
-                    typename=type(self).__name__,
-                    num_inputs=num_inputs
-                )
-            )
-        return super(SingleInputMixin, self)._validate()
-
-
-class RequiredWindowLengthMixin(object):
-    def _validate(self):
-        if not self.windowed:
-            raise WindowLengthNotPositive(window_length=self.window_length)
-        return super(RequiredWindowLengthMixin, self)._validate()
-
-
-class CustomTermMixin(object):
-    """
-    Mixin for user-defined rolling-window Terms.
-
-    Implements `_compute` in terms of a user-defined `compute` function, which
-    is mapped over the input windows.
-
-    Used by CustomFactor, CustomFilter, CustomClassifier, etc.
-    """
-
-    def __new__(cls,
-                inputs=NotSpecified,
-                window_length=NotSpecified,
-                dtype=NotSpecified):
-        return super(CustomTermMixin, cls).__new__(
-            cls,
-            inputs=inputs,
-            window_length=window_length,
-            dtype=dtype,
-        )
-
-    def compute(self, today, assets, out, *arrays):
-        """
-        Override this method with a function that writes a value into `out`.
-        """
-        raise NotImplementedError()
-
-    def _compute(self, windows, dates, assets, mask):
-        """
-        Call the user's `compute` function on each window with a pre-built
-        output array.
-        """
-        # TODO: Make mask available to user's `compute`.
-        compute = self.compute
-        missing_value = self.missing_value
-        out = full_like(mask, missing_value, dtype=self.dtype)
-        with self.ctx:
-            # TODO: Consider pre-filtering columns that are all-nan at each
-            # time-step?
-            for idx, date in enumerate(dates):
-                compute(
-                    date,
-                    assets,
-                    out[idx],
-                    *(next(w) for w in windows)
-                )
-        out[~mask] = missing_value
-        return out
-
-    def short_repr(self):
-        return type(self).__name__ + '(%d)' % self.window_length
-
-
 class CompositeTerm(Term):
     inputs = NotSpecified
     window_length = NotSpecified
     mask = NotSpecified
 
-    def __new__(cls, inputs=NotSpecified, window_length=NotSpecified,
-                mask=NotSpecified, *args, **kwargs):
+    def __new__(cls,
+                inputs=inputs,
+                window_length=window_length,
+                mask=mask,
+                *args, **kwargs):
 
         if inputs is NotSpecified:
             inputs = cls.inputs
+
         # Having inputs = NotSpecified is an error, but we handle it later
         # in self._validate rather than here.
         if inputs is not NotSpecified:

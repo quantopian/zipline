@@ -18,7 +18,10 @@ from numpy.random import randn, seed
 from zipline.errors import UnknownRankMethod
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline import Factor, Filter, TermGraph
-from zipline.pipeline.factors import RSI, Returns
+from zipline.pipeline.factors import (
+    Returns,
+    RSI,
+)
 from zipline.utils.test_utils import check_allclose, check_arrays
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype, np_NaT
 

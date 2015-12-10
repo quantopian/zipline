@@ -6,7 +6,9 @@ from collections import OrderedDict
 from unittest import TestCase
 from itertools import product
 
+from nose_parameterized import parameterized
 from numpy import (
+    arange,
     array,
     full,
     nan,
@@ -14,12 +16,16 @@ from numpy import (
     zeros,
     float32,
     concatenate,
+    log,
 )
+from numpy.testing import assert_almost_equal
 from pandas import (
     DataFrame,
     date_range,
+    ewma,
     Int64Index,
     MultiIndex,
+    rolling_apply,
     rolling_mean,
     Series,
     Timestamp,
@@ -46,8 +52,12 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline import CustomFactor
 from zipline.pipeline.factors import (
+    DollarVolume,
     MaxDrawdown,
     SimpleMovingAverage,
+    EWMA,
+    ExponentialWeightedMovingAverage,
+    DollarVolume,
 )
 from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
@@ -767,3 +777,160 @@ class SyntheticBcolzTestCase(TestCase):
         result = results['drawdown'].unstack()
 
         assert_frame_equal(expected, result)
+
+
+class ParameterizedFactorTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        day = cls.env.trading_day
+
+        cls.sids = sids = Int64Index([1, 2, 3])
+        cls.dates = dates = date_range(
+            '2015-02-01',
+            '2015-02-28',
+            freq=day,
+            tz='UTC',
+        )
+
+        asset_info = make_simple_equity_info(
+            cls.sids,
+            start_date=Timestamp('2015-01-31', tz='UTC'),
+            end_date=Timestamp('2015-03-01', tz='UTC'),
+        )
+        cls.env.write_data(equities_df=asset_info)
+        cls.asset_finder = cls.env.asset_finder
+
+        cls.raw_data = DataFrame(
+            data=arange(len(dates) * len(sids), dtype=float).reshape(
+                len(dates), len(sids),
+            ),
+            index=dates,
+            columns=cls.asset_finder.retrieve_all(sids),
+        )
+
+        close_loader = DataFrameLoader(USEquityPricing.close, cls.raw_data)
+        volume_loader = DataFrameLoader(
+            USEquityPricing.volume,
+            cls.raw_data * 2,
+        )
+
+        cls.engine = SimplePipelineEngine(
+            {
+                USEquityPricing.close: close_loader,
+                USEquityPricing.volume: volume_loader,
+            }.__getitem__,
+            cls.dates,
+            cls.asset_finder,
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+        del cls.asset_finder
+
+    def expected_ewma(self, window_length, decay_rate):
+        alpha = 1 - decay_rate
+        span = (2 / alpha) - 1
+        return rolling_apply(
+            self.raw_data,
+            window_length,
+            lambda window: ewma(window, span=span)[-1],
+        )[window_length:]
+
+    @parameterized.expand([
+        (3,),
+        (5,),
+    ])
+    def test_ewma(self, window_length):
+        def ewma_name(decay_rate):
+            return 'ewma_%s' % decay_rate
+
+        decay_rates = [0.25, 0.5, 0.75]
+        ewmas = {
+            ewma_name(decay_rate): ExponentialWeightedMovingAverage(
+                inputs=(USEquityPricing.close,),
+                window_length=window_length,
+                decay_rate=decay_rate,
+            )
+            for decay_rate in decay_rates
+        }
+
+        all_results = self.engine.run_pipeline(
+            Pipeline(columns=ewmas),
+            self.dates[window_length],
+            self.dates[-1],
+        )
+
+        for decay_rate in decay_rates:
+            result = all_results[ewma_name(decay_rate)].unstack()
+            expected = self.expected_ewma(window_length, decay_rate)
+            assert_frame_equal(result, expected)
+
+    @staticmethod
+    def decay_rate_to_span(decay_rate):
+        alpha = 1 - decay_rate
+        return (2 / alpha) - 1
+
+    @staticmethod
+    def decay_rate_to_com(decay_rate):
+        alpha = 1 - decay_rate
+        return (1 / alpha) - 1
+
+    @staticmethod
+    def decay_rate_to_halflife(decay_rate):
+        return log(.5) / log(decay_rate)
+
+    @parameterized.expand([
+        (3,),
+        (5,),
+        (10,),
+    ])
+    def test_from_span(self, span):
+        from_span = EWMA.from_span(
+            inputs=[USEquityPricing.close],
+            window_length=20,
+            span=span,
+        )
+        implied_span = self.decay_rate_to_span(from_span.params['decay_rate'])
+        assert_almost_equal(span, implied_span)
+
+    @parameterized.expand([
+        (3,),
+        (5,),
+        (10,),
+    ])
+    def test_from_halflife(self, halflife):
+        from_hl = EWMA.from_halflife(
+            inputs=[USEquityPricing.close],
+            window_length=20,
+            halflife=halflife,
+        )
+        implied_hl = self.decay_rate_to_halflife(from_hl.params['decay_rate'])
+        assert_almost_equal(halflife, implied_hl)
+
+    @parameterized.expand([
+        (3,),
+        (5,),
+        (10,),
+    ])
+    def test_from_com(self, com):
+        from_com = EWMA.from_center_of_mass(
+            inputs=[USEquityPricing.close],
+            window_length=20,
+            center_of_mass=com,
+        )
+        implied_com = self.decay_rate_to_com(from_com.params['decay_rate'])
+        assert_almost_equal(com, implied_com)
+
+    def test_ewma_aliasing(self):
+        self.assertIs(ExponentialWeightedMovingAverage, EWMA)
+
+    def test_dollar_volume(self):
+        results = self.engine.run_pipeline(
+            Pipeline(columns={'dv': DollarVolume()}),
+            self.dates[0],
+            self.dates[-1],
+        )['dv'].unstack()
+        expected = (self.raw_data ** 2) * 2
+        assert_frame_equal(results, expected)
