@@ -111,10 +111,10 @@ def _expect_dtype(_dtype_or_dtype_tuple):
 
     def display_bad_value(value):
         # If the bad value has a dtype, but it's wrong, show the dtype name.
-        if hasattr(value, 'dtype'):
+        try:
             return value.dtype.name
-        # Otherwise, show the value itself.
-        return value
+        except AttributeError:
+            return value
 
     return make_check(
         exc_type=TypeError,
