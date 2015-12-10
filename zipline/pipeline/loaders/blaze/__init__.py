@@ -8,13 +8,13 @@ from .core import (
     global_loader,
 )
 from .earnings import (
-    ANCMT_FIELD_NAME,
+    ANNOUNCEMENT_FIELD_NAME,
     BlazeEarningsCalendarLoader,
 )
 
 __all__ = (
     'AD_FIELD_NAME',
-    'ANCMT_FIELD_NAME',
+    'ANNOUNCEMENT_FIELD_NAME',
     'BlazeEarningsCalendarLoader',
     'BlazeLoader',
     'NoDeltasWarning',

@@ -20,7 +20,7 @@ from zipline.pipeline.factors.events import (
 )
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
 from zipline.pipeline.loaders.blaze import (
-    ANCMT_FIELD_NAME,
+    ANNOUNCEMENT_FIELD_NAME,
     BlazeEarningsCalendarLoader,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
@@ -371,7 +371,7 @@ class BlazeEarningsCalendarLoaderTestCase(EarningsCalendarLoaderTestCase):
         ).loader_args(dates)
         return (bz.Data(pd.concat(
             pd.DataFrame({
-                ANCMT_FIELD_NAME: earning_dates,
+                ANNOUNCEMENT_FIELD_NAME: earning_dates,
                 TS_FIELD_NAME: earning_dates.index,
                 SID_FIELD_NAME: sid,
             })

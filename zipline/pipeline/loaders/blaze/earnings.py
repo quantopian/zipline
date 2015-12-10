@@ -10,7 +10,7 @@ from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
 
 
-ANCMT_FIELD_NAME = 'announcement_date'
+ANNOUNCEMENT_FIELD_NAME = 'announcement_date'
 
 
 class BlazeEarningsCalendarLoader(PipelineLoader):
@@ -34,7 +34,7 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
        Dim * {{
            {SID_FIELD_NAME}: int64,
            {TS_FIELD_NAME}: datetime64,
-           {ANCMT_FIELD_NAME}: datetime64,
+           {ANNOUNCEMENT_FIELD_NAME}: datetime64,
        }}
 
     Where each row of the table is a record including the sid to identify the
@@ -47,13 +47,13 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
     __doc__ = __doc__.format(
         TS_FIELD_NAME=TS_FIELD_NAME,
         SID_FIELD_NAME=SID_FIELD_NAME,
-        ANCMT_FIELD_NAME=ANCMT_FIELD_NAME,
+        ANNOUNCEMENT_FIELD_NAME=ANNOUNCEMENT_FIELD_NAME,
     )
 
     _expected_fields = frozenset({
         TS_FIELD_NAME,
         SID_FIELD_NAME,
-        ANCMT_FIELD_NAME,
+        ANNOUNCEMENT_FIELD_NAME,
     })
 
     def __init__(self,
@@ -123,14 +123,16 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         gb = raw.groupby(SID_FIELD_NAME)
         if self._has_ts:
             def mkseries(idx, raw_loc=raw.loc):
-                vs = raw_loc[idx, [TS_FIELD_NAME, ANCMT_FIELD_NAME]].values
+                vs = raw_loc[
+                    idx, [TS_FIELD_NAME, ANNOUNCEMENT_FIELD_NAME]
+                ].values
                 return pd.Series(
                     index=pd.DatetimeIndex(vs[:, 0]),
                     data=vs[:, 1],
                 )
         else:
             def mkseries(idx, raw_loc=raw.loc):
-                return pd.DatetimeIndex(raw_loc[idx, ANCMT_FIELD_NAME])
+                return pd.DatetimeIndex(raw_loc[idx, ANNOUNCEMENT_FIELD_NAME])
 
         return EarningsCalendarLoader(
             dates,
