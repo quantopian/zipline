@@ -45,12 +45,12 @@ class EarningsCalendarLoader(PipelineLoader):
         ``announcement_dates``.
     """
     def __init__(self, all_dates, announcement_dates, infer_timestamps=False):
-        self._all_dates = all_dates
+        self.all_dates = all_dates
 
-        self._announcement_dates = announcement_dates = (
+        self.announcement_dates = announcement_dates = (
             announcement_dates.copy()
         )
-        dates = self._all_dates.values
+        dates = self.all_dates.values
         for k, v in iteritems(announcement_dates):
             if isinstance(v, pd.DatetimeIndex):
                 if not infer_timestamps:
@@ -80,8 +80,8 @@ class EarningsCalendarLoader(PipelineLoader):
         return DataFrameLoader(
             EarningsCalendar.next_announcement,
             next_earnings_date_frame(
-                self._all_dates,
-                self._announcement_dates,
+                self.all_dates,
+                self.announcement_dates,
             ),
             adjustments=None,
         )
@@ -91,8 +91,8 @@ class EarningsCalendarLoader(PipelineLoader):
         return DataFrameLoader(
             EarningsCalendar.previous_announcement,
             previous_earnings_date_frame(
-                self._all_dates,
-                self._announcement_dates,
+                self.all_dates,
+                self.announcement_dates,
             ),
             adjustments=None,
         )

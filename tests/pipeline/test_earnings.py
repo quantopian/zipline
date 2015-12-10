@@ -4,6 +4,7 @@ Tests for the reference loader for EarningsCalendar.
 from unittest import TestCase
 
 import blaze as bz
+from blaze.compute.core import swap_resources_into_scope
 from contextlib2 import ExitStack
 from nose_parameterized import parameterized
 import pandas as pd
@@ -388,9 +389,30 @@ class BlazeEarningsCalendarLoaderNotInteractiveTestCase(
             BlazeEarningsCalendarLoaderNotInteractiveTestCase,
             self,
         ).loader_args(dates)
+        return swap_resources_into_scope(bound_expr, {})
 
-        expr = bz.symbol('expr', bound_expr.dshape)
-        return (
-            expr,
-            {expr: bound_expr._resources()[bound_expr]},
+
+class EarningsCalendarLoaderInferTimestampTestCase(TestCase):
+    def test_infer_timestamp(self):
+        dtx = pd.date_range('2014-01-01', '2014-01-10')
+        announcement_dates = {
+            0: dtx,
+            1: pd.Series(dtx, dtx),
+        }
+        loader = EarningsCalendarLoader(
+            dtx,
+            announcement_dates,
+            infer_timestamps=True,
+        )
+        self.assertEqual(
+            loader.announcement_dates.keys(),
+            announcement_dates.keys(),
+        )
+        assert_series_equal(
+            loader.announcement_dates[0],
+            pd.Series(index=[dtx[0]] * 10, data=dtx),
+        )
+        assert_series_equal(
+            loader.announcement_dates[1],
+            announcement_dates[1],
         )
