@@ -4,7 +4,7 @@ Base class for Filters, Factors and Classifiers
 from abc import ABCMeta, abstractproperty
 from weakref import WeakValueDictionary
 
-from numpy import full, dtype as dtype_class
+from numpy import full_like, dtype as dtype_class
 from six import with_metaclass
 
 from zipline.errors import (
@@ -275,7 +275,7 @@ class CustomTermMixin(object):
         # TODO: Make mask available to user's `compute`.
         compute = self.compute
         missing_value = self.missing_value
-        out = full(mask.shape, missing_value, dtype=self.dtype)
+        out = full_like(mask, missing_value, dtype=self.dtype)
         with self.ctx:
             # TODO: Consider pre-filtering columns that are all-nan at each
             # time-step?
