@@ -18,7 +18,8 @@ import pandas as pd
 
 from . utils.protocol_utils import Enum
 
-from pandas.tslib import normalize_date
+from zipline._protocol import BarData as _BarData
+BarData = _BarData
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -232,72 +233,3 @@ class Positions(dict):
         pos = Position(key)
         self[key] = pos
         return pos
-
-
-class BarData(object):
-    """
-    Holds the event data for all sids for a given dt.
-
-    This is what is passed as `data` to the `handle_data` function.
-    """
-
-    def __init__(self, data_portal, simulator):
-        self.data_portal = data_portal or {}
-        self.simulator = simulator
-        self._views = {}
-
-    @property
-    def simulation_dt(self):
-        return self.simulator.simulation_dt
-
-    def _get_equity_price_view(self, asset):
-        """
-        Returns a DataPortalSidView for the given asset.  Used to support the
-        data[sid(N)] public API.  Not needed if DataPortal is used standalone.
-
-        Parameters
-        ----------
-        asset : Asset
-            Asset that is being queried.
-
-        Returns
-        -------
-        DataPortalSidView: Accessor into the given asset's data.
-        """
-        try:
-            view = self._views[asset]
-        except KeyError:
-            view = self._views[asset] = \
-                SidView(asset, self.data_portal, self)
-
-        return view
-
-    def __getitem__(self, name):
-        return self._get_equity_price_view(name)
-
-    def __iter__(self):
-        raise TypeError('%r object is not iterable'
-                        % self.__class__.__name__)
-
-    @property
-    def fetcher_assets(self):
-        return self.data_portal.get_fetcher_assets(
-            normalize_date(self.simulation_dt)
-        )
-
-
-class SidView(object):
-    def __init__(self, asset, data_portal, bar_data):
-        self.asset = asset
-        self.data_portal = data_portal
-        self.bar_data = bar_data
-
-    def __getattr__(self, column):
-        return self.data_portal.get_spot_value(
-            self.asset, column, self.bar_data.simulation_dt)
-
-    def __contains__(self, column):
-        return self.data_portal.contains(self.asset, column)
-
-    def __getitem__(self, column):
-        return self.__getattr__(column)
