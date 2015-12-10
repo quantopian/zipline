@@ -388,7 +388,9 @@ class BlazeEarningsCalendarLoaderNotInteractiveTestCase(
             BlazeEarningsCalendarLoaderNotInteractiveTestCase,
             self,
         ).loader_args(dates)
+
+        expr = bz.symbol('expr', bound_expr.dshape)
         return (
-            bz.symbol('expr', bound_expr.dshape),
-            bound_expr._resources()[bound_expr],
+            expr,
+            {expr: bound_expr._resources()[bound_expr]},
         )

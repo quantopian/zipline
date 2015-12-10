@@ -28,10 +28,23 @@ class EarningsCalendarLoader(PipelineLoader):
     all_dates : pd.DatetimeIndex
         Index of dates for which we can serve queries.
     announcement_dates : dict[int -> pd.Series or pd.DatetimeIndex]
-        Dict mapping sids to an index of dates on which earnings were
-        announced.
+        Dict mapping sids to objects representing dates on which earnings
+        occurred.
+
+        If a dict value is a Series, it's interpreted as a mapping from the
+        date on which we learned an announcement was coming to the date on
+        which the announcement was made.
+
+        If a dict value is a DatetimeIndex, it's interpreted as just containing
+        the dates that announcements were made, and we assume we knew about the
+        announcement on all prior dates.  This mode is only supported if
+        ``infer_timestamp`` is explicitly passed as a truthy value.
+
+    infer_timestamps : bool, optional
+        Whether to allow passing ``DatetimeIndex`` values in
+        ``announcement_dates``.
     """
-    def __init__(self, all_dates, announcement_dates):
+    def __init__(self, all_dates, announcement_dates, infer_timestamps=False):
         self._all_dates = all_dates
 
         self._announcement_dates = announcement_dates = (
@@ -40,6 +53,12 @@ class EarningsCalendarLoader(PipelineLoader):
         dates = self._all_dates.values
         for k, v in iteritems(announcement_dates):
             if isinstance(v, pd.DatetimeIndex):
+                if not infer_timestamps:
+                    raise ValueError(
+                        "Got DatetimeIndex of announcement dates for sid %d.\n"
+                        "Pass `infer_timestamps=True` to use the first date in"
+                        " `all_dates` as implicit timestamp."
+                    )
                 # If we are passed a DatetimeIndex, we always have
                 # knowledge of the announcements.
                 announcement_dates[k] = pd.Series(

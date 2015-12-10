@@ -49,9 +49,8 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
     ----------
     expr : Expr
         The expression representing the data to load.
-    resources : any, optional
-        The resources to use when computing ``expr``. If expr is already
-        bound to resources this can be omitted.
+    resources : dict, optional
+        Mapping from the atomic terms of ``expr`` to actual data resources.
     odo_kwargs : dict, optional
         Extra keyword arguments to pass to odo when executing the expression.
 
