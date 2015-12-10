@@ -73,13 +73,6 @@ class DataPortal(object):
                  futures_sid_path_func=None):
         self.env = env
 
-        # Internal pointers to the current dt (can be minute) and current day.
-        # In daily mode, they point to the same thing. In minute mode, it's
-        # useful to have separate pointers to the current day and to the
-        # current minute.  These pointers are updated by the
-        # AlgorithmSimulator's transform loop.
-        self.current_dt = None
-
         # This is a bit ugly, but is here for performance reasons.  In minute
         # simulations, we need to very quickly go from dt -> (# of minutes
         # since Jan 1 2002 9:30 Eastern).
@@ -1107,27 +1100,6 @@ class DataPortal(object):
 
         return adjustments
 
-    def get_equity_price_view(self, asset):
-        """
-        Returns a DataPortalSidView for the given asset.  Used to support the
-        data[sid(N)] public API.  Not needed if DataPortal is used standalone.
-
-        Parameters
-        ----------
-        asset : Asset
-            Asset that is being queried.
-
-        Returns
-        -------
-        DataPortalSidView: Accessor into the given asset's data.
-        """
-        try:
-            view = self.views[asset]
-        except KeyError:
-            view = self.views[asset] = DataPortalSidView(asset, self)
-
-        return view
-
     def _check_is_currently_alive(self, asset, dt):
         sid = int(asset)
 
@@ -1287,20 +1259,3 @@ class DataPortal(object):
                       if isinstance(asset, Asset)]
 
         return asset_list
-
-
-class DataPortalSidView(object):
-    def __init__(self, asset, portal):
-        self.asset = asset
-        self.portal = portal
-        self.current_dt = None
-
-    def __getattr__(self, column):
-        return self.portal.get_spot_value(
-            self.asset, column, self.portal.current_dt)
-
-    def __contains__(self, column):
-        return self.portal.contains(self.asset, column)
-
-    def __getitem__(self, column):
-        return self.__getattr__(column)
