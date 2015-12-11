@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.filters.filter &mdash; Zipline v0.8.3+126.g1a595c0 documentation</title>
+  <title>zipline.pipeline.filters.filter &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+126.g1a595c0 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -203,7 +203,6 @@
 <span class="sd">filter.py</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">bool_</span><span class="p">,</span>
     <span class="n">float64</span><span class="p">,</span>
     <span class="n">nan</span><span class="p">,</span>
     <span class="n">nanpercentile</span><span class="p">,</span>
@@ -213,10 +212,13 @@
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BadPercentileBounds</span><span class="p">,</span>
+    <span class="n">UnsupportedDataType</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">SingleInputMixin</span><span class="p">,</span>
     <span class="n">CompositeTerm</span><span class="p">,</span>
+    <span class="n">CustomTermMixin</span><span class="p">,</span>
+    <span class="n">RequiredWindowLengthMixin</span><span class="p">,</span>
+    <span class="n">SingleInputMixin</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.expression</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BadBinaryOperator</span><span class="p">,</span>
@@ -224,6 +226,8 @@
     <span class="n">method_name_for_op</span><span class="p">,</span>
     <span class="n">NumericalExpression</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">nullctx</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">bool_dtype</span>
 
 
 <span class="k">def</span> <span class="nf">concat_tuples</span><span class="p">(</span><span class="o">*</span><span class="n">tuples</span><span class="p">):</span>
@@ -250,7 +254,7 @@
             <span class="n">self_expr</span><span class="p">,</span> <span class="n">other_expr</span><span class="p">,</span> <span class="n">new_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_binary_op</span><span class="p">(</span>
                 <span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
                 <span class="s">&quot;({left}) {op} ({right})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">left</span><span class="o">=</span><span class="n">self_expr</span><span class="p">,</span>
                     <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
@@ -265,16 +269,16 @@
             <span class="k">return</span> <span class="n">commuted_method_getter</span><span class="p">(</span><span class="n">other</span><span class="p">)(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+                <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
                     <span class="s">&quot;x_0 {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
                     <span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
                 <span class="p">)</span>
-            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
                 <span class="s">&quot;x_0 {op} x_1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
                 <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>  <span class="c"># Note that this is true for bool as well</span>
-            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
                 <span class="s">&quot;x_0 {op} ({constant})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">other</span><span class="p">)),</span>
                 <span class="n">binds</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
             <span class="p">)</span>
@@ -297,12 +301,12 @@
         <span class="c"># unary_op_return_type aren&#39;t defined when the top-level function is</span>
         <span class="c"># invoked.</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
                 <span class="s">&quot;{op}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="p">(</span><span class="s">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+            <span class="k">return</span> <span class="n">NumExprFilter</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
 
     <span class="n">unary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Unary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
     <span class="k">return</span> <span class="n">unary_operator</span>
@@ -312,7 +316,7 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pipeline API expression producing boolean-valued outputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">bool_</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">bool_dtype</span>
 
     <span class="n">clsdict</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
     <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
@@ -323,11 +327,33 @@
     <span class="p">)</span>
     <span class="n">__invert__</span> <span class="o">=</span> <span class="n">unary_operator</span><span class="p">(</span><span class="s">&#39;~&#39;</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># Run superclass validation first so that we handle `dtype not passed`</span>
+        <span class="c"># before this.</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Filter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">bool_dtype</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span>
+                <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">retval</span>
+
 </div>
 <span class="k">class</span> <span class="nc">NumExprFilter</span><span class="p">(</span><span class="n">NumericalExpression</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Filter computed from a numexpr expression.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">binds</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper for creating new NumExprFactors.</span>
+
+<span class="sd">        This is just a wrapper around NumExprFactor.__new__ that always</span>
+<span class="sd">        forwards `bool` as the dtype, since Filters can only be of boolean</span>
+<span class="sd">        dtype.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span><span class="n">expr</span><span class="o">=</span><span class="n">expr</span><span class="p">,</span> <span class="n">binds</span><span class="o">=</span><span class="n">binds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">bool_dtype</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -416,6 +442,13 @@
             <span class="n">keepdims</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">lower_bounds</span> <span class="o">&lt;=</span> <span class="n">data</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span> <span class="o">&lt;=</span> <span class="n">upper_bounds</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">CustomFilter</span><span class="p">(</span><span class="n">RequiredWindowLengthMixin</span><span class="p">,</span> <span class="n">CustomTermMixin</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Filter analog to ``CustomFactor``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">nullctx</span><span class="p">()</span>
 </pre></div>
 
           </div>
@@ -446,7 +479,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+126.g1a595c0',
+            VERSION:'v0.8.3+141.gebb4fbd',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

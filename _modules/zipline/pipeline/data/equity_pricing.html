@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.latest &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
+  <title>zipline.pipeline.data.equity_pricing &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
   
 
   
@@ -187,7 +187,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.factors.latest</li>
+    <li>zipline.pipeline.data.equity_pricing</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -198,22 +198,24 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.factors.latest</h1><div class="highlight"><pre>
+  <h1>Source code for zipline.pipeline.data.equity_pricing</h1><div class="highlight"><pre>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Factor that produces the most most recently-known value of Column.</span>
+<span class="sd">Dataset representing OHLCV data.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
-<span class="kn">from</span> <span class="nn">..term</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">float64_dtype</span>
+
+<span class="kn">from</span> <span class="nn">.dataset</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">DataSet</span>
 
 
-<div class="viewcode-block" id="Latest"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.Latest">[docs]</a><span class="k">class</span> <span class="nc">Latest</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
+<div class="viewcode-block" id="USEquityPricing"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.USEquityPricing">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricing</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Factor producing the most recently-known value of `inputs[0]` on each day.</span>
+<span class="sd">    Dataset representing daily trading prices and volumes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">1</span>
-
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+    <span class="nb">open</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
+    <span class="n">high</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
+    <span class="n">low</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
+    <span class="n">close</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
+    <span class="n">volume</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

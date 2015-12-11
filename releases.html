@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Release Notes &mdash; Zipline v0.8.3+126.g1a595c0 documentation</title>
+  <title>Release Notes &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+126.g1a595c0 documentation" href="index.html"/>
+    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="index.html"/>
         <link rel="next" title="API Reference" href="appendix.html"/>
         <link rel="prev" title="Zipline beginner tutorial" href="beginner-tutorial.html"/> 
 
@@ -220,7 +220,12 @@ subject to change at any time.</p>
 </div>
 <div class="section" id="highlights">
 <h3>Highlights<a class="headerlink" href="#highlights" title="Permalink to this headline">¶</a></h3>
-<p>None</p>
+<ul class="simple">
+<li>Added a new <a class="reference internal" href="appendix.html#zipline.pipeline.data.EarningsCalendar" title="zipline.pipeline.data.EarningsCalendar"><code class="xref py py-class docutils literal"><span class="pre">EarningsCalendar</span></code></a> dataset
+for use in the Pipeline API. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/905">#905</a>).</li>
+<li><a class="reference internal" href="appendix.html#zipline.assets.assets.AssetFinder" title="zipline.assets.assets.AssetFinder"><code class="xref py py-class docutils literal"><span class="pre">AssetFinder</span></code></a> speedups (<a class="reference external" href="https://github.com/quantopian/zipline/issues/830">#830</a> and
+<a class="reference external" href="https://github.com/quantopian/zipline/issues/817">#817</a>).</li>
+</ul>
 </div>
 <div class="section" id="enhancements">
 <h3>Enhancements<a class="headerlink" href="#enhancements" title="Permalink to this headline">¶</a></h3>
@@ -231,12 +236,26 @@ passed the <code class="xref py py-class docutils literal"><span class="pre">Bar
 be used for the duration of all of the functions scheduled to run. This can be
 passed to <a class="reference internal" href="appendix.html#zipline.algorithm.TradingAlgorithm" title="zipline.algorithm.TradingAlgorithm"><code class="xref py py-class docutils literal"><span class="pre">TradingAlgorithm</span></code></a> by the keyword argument
 <code class="docutils literal"><span class="pre">create_event_context</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/828">#828</a>).</li>
+<li>Added support for <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor" title="zipline.pipeline.factors.Factor"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Factor</span></code></a> instances with
+<code class="docutils literal"><span class="pre">datetime64[ns]</span></code> dtypes. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/905">#905</a>)</li>
+<li>Added a new <code class="xref py py-class docutils literal"><span class="pre">EarningsCalendar</span></code> dataset
+for use in the Pipeline API.  This dataset provides an abstract interface for
+adding earnings announcement data to a new algorithm. A pandas-based
+reference implementation for this dataset can be found in
+<code class="xref py py-mod docutils literal"><span class="pre">zipline.pipeline.loaders.earnings</span></code>, and an experimental blaze-based
+implementation can be found in
+<code class="xref py py-mod docutils literal"><span class="pre">zipline.pipeline.loaders.blaze.earnings</span></code>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/905">#905</a>).</li>
+<li>Added new built-in factors,
+<a class="reference internal" href="appendix.html#zipline.pipeline.factors.BusinessDaysUntilNextEarnings" title="zipline.pipeline.factors.BusinessDaysUntilNextEarnings"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysUntilNextEarnings</span></code></a> and
+<a class="reference internal" href="appendix.html#zipline.pipeline.factors.BusinessDaysSincePreviousEarnings" title="zipline.pipeline.factors.BusinessDaysSincePreviousEarnings"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysSincePreviousEarnings</span></code></a>.  These
+factors use the new <code class="docutils literal"><span class="pre">EarningsCalendar</span></code> dataset. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/905">#905</a>).</li>
 <li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.isnan" title="zipline.pipeline.factors.Factor.isnan"><code class="xref py py-meth docutils literal"><span class="pre">isnan()</span></code></a>,
 <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.notnan" title="zipline.pipeline.factors.Factor.notnan"><code class="xref py py-meth docutils literal"><span class="pre">notnan()</span></code></a> and
 <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor.isfinite" title="zipline.pipeline.factors.Factor.isfinite"><code class="xref py py-meth docutils literal"><span class="pre">isfinite()</span></code></a> methods to
 <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Factor" title="zipline.pipeline.factors.Factor"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Factor</span></code></a> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/861">#861</a>).</li>
 <li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Returns" title="zipline.pipeline.factors.Returns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Returns</span></code></a>, a built-in factor which
-calculates the percent change in close price over the given window_length.</li>
+calculates the percent change in close price over the given
+window_length. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/884">#884</a>).</li>
 </ul>
 </div>
 <div class="section" id="experimental-features">
@@ -267,6 +286,9 @@ an extension, <a class="reference internal" href="appendix.html#zipline.assets.a
 loads equities into dictionaries and then directs
 <a class="reference internal" href="appendix.html#zipline.assets.assets.AssetFinder.lookup_symbol" title="zipline.assets.assets.AssetFinder.lookup_symbol"><code class="xref py py-meth docutils literal"><span class="pre">lookup_symbol()</span></code></a> to these dictionaries
 to find matching equities (<a class="reference external" href="https://github.com/quantopian/zipline/issues/830">#830</a>).</li>
+<li>Improved performance of
+<a class="reference internal" href="appendix.html#zipline.assets.assets.AssetFinder.lookup_symbol" title="zipline.assets.assets.AssetFinder.lookup_symbol"><code class="xref py py-meth docutils literal"><span class="pre">lookup_symbol()</span></code></a> by performing
+batched queries. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/817">#817</a>).</li>
 </ul>
 </div>
 <div class="section" id="maintenance-and-refactorings">
@@ -1130,7 +1152,7 @@ numbers of commit:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+126.g1a595c0',
+            VERSION:'v0.8.3+141.gebb4fbd',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

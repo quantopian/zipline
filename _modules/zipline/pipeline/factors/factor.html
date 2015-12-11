@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.factor &mdash; Zipline v0.8.3+126.g1a595c0 documentation</title>
+  <title>zipline.pipeline.factors.factor &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+126.g1a595c0 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -205,19 +205,14 @@
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">apply_along_axis</span><span class="p">,</span>
-    <span class="n">float64</span><span class="p">,</span>
-    <span class="n">nan</span><span class="p">,</span>
-    <span class="n">inf</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">rankdata</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">float64</span><span class="p">,</span> <span class="n">inf</span>
+<span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">curry</span>
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">UnknownRankMethod</span><span class="p">,</span>
     <span class="n">UnsupportedDataType</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">rankdata_2d_ordinal</span>
+<span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">masked_rankdata_2d</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CustomTermMixin</span><span class="p">,</span>
     <span class="n">NotSpecified</span><span class="p">,</span>
@@ -234,15 +229,65 @@
     <span class="n">NumericalExpression</span><span class="p">,</span>
     <span class="n">NUMEXPR_MATH_FUNCS</span><span class="p">,</span>
     <span class="n">UNARY_OPS</span><span class="p">,</span>
+    <span class="n">unary_op_name</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">NumExprFilter</span><span class="p">,</span>
     <span class="n">PercentileFilter</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">nullctx</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">bool_dtype</span><span class="p">,</span>
+    <span class="n">datetime64ns_dtype</span><span class="p">,</span>
+    <span class="n">float64_dtype</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.preprocess</span> <span class="kn">import</span> <span class="n">preprocess</span>
 
 
 <span class="n">_RANK_METHODS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s">&#39;average&#39;</span><span class="p">,</span> <span class="s">&#39;min&#39;</span><span class="p">,</span> <span class="s">&#39;max&#39;</span><span class="p">,</span> <span class="s">&#39;dense&#39;</span><span class="p">,</span> <span class="s">&#39;ordinal&#39;</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">numbers_to_float64</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">argname</span><span class="p">,</span> <span class="n">argvalue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Preprocessor for converting numerical inputs into floats.</span>
+
+<span class="sd">    This is used in the binary operator constructors for Factor so that</span>
+<span class="sd">    `2 + Factor()` has the same behavior as `2.0 + Factor()`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">argvalue</span><span class="p">,</span> <span class="n">Number</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">float64</span><span class="p">(</span><span class="n">argvalue</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">argvalue</span>
+
+
+<span class="nd">@curry</span>
+<span class="k">def</span> <span class="nf">set_attribute</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorator factory for setting attributes on a function.</span>
+
+<span class="sd">    Doesn&#39;t change the behavior of the wrapped function.</span>
+
+<span class="sd">    Usage</span>
+<span class="sd">    -----</span>
+<span class="sd">    &gt;&gt;&gt; @set_attribute(&#39;__name__&#39;, &#39;foo&#39;)</span>
+<span class="sd">    ... def bar():</span>
+<span class="sd">    ...     return 3</span>
+<span class="sd">    ...</span>
+<span class="sd">    &gt;&gt;&gt; bar()</span>
+<span class="sd">    3</span>
+<span class="sd">    &gt;&gt;&gt; bar.__name__</span>
+<span class="sd">    &#39;foo&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">f</span>
+    <span class="k">return</span> <span class="n">decorator</span>
+
+
+<span class="c"># Decorators for setting the __name__ and __doc__ properties of a decorated</span>
+<span class="c"># function.</span>
+<span class="c"># Example:</span>
+<span class="n">with_name</span> <span class="o">=</span> <span class="n">set_attribute</span><span class="p">(</span><span class="s">&#39;__name__&#39;</span><span class="p">)</span>
+<span class="n">with_doc</span> <span class="o">=</span> <span class="n">set_attribute</span><span class="p">(</span><span class="s">&#39;__doc__&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">binop_return_type</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
@@ -250,6 +295,46 @@
         <span class="k">return</span> <span class="n">NumExprFilter</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">NumExprFactor</span>
+
+
+<span class="k">def</span> <span class="nf">binop_return_dtype</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the expected return dtype for the given binary operator.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    op : str</span>
+<span class="sd">        Operator symbol, (e.g. &#39;+&#39;, &#39;-&#39;, ...).</span>
+<span class="sd">    left : numpy.dtype</span>
+<span class="sd">        Dtype of left hand side.</span>
+<span class="sd">    right : numpy.dtype</span>
+<span class="sd">        Dtype of right hand side.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    outdtype : numpy.dtype</span>
+<span class="sd">        The dtype of the result of `left &lt;op&gt; right`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">is_comparison</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">left</span> <span class="o">!=</span> <span class="n">right</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s">&quot;Don&#39;t know how to compute {left} {op} {right}.</span><span class="se">\n</span><span class="s">&quot;</span>
+                <span class="s">&quot;Comparisons are only supported between Factors of equal &quot;</span>
+                <span class="s">&quot;dtypes.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">left</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">right</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">bool_dtype</span>
+
+    <span class="k">elif</span> <span class="n">left</span> <span class="o">!=</span> <span class="n">float64_dtype</span> <span class="ow">or</span> <span class="n">right</span> <span class="o">!=</span> <span class="n">float64_dtype</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s">&quot;Don&#39;t know how to compute {left} {op} {right}.</span><span class="se">\n</span><span class="s">&quot;</span>
+            <span class="s">&quot;Arithmetic operators are only supported on Factors of &quot;</span>
+            <span class="s">&quot;dtype &#39;float64&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">left</span><span class="o">=</span><span class="n">left</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
+                <span class="n">right</span><span class="o">=</span><span class="n">right</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">float64_dtype</span>
 
 
 <span class="k">def</span> <span class="nf">binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">):</span>
@@ -264,6 +349,9 @@
     <span class="c"># NumericalExpression operator.</span>
     <span class="n">commuted_method_getter</span> <span class="o">=</span> <span class="n">attrgetter</span><span class="p">(</span><span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">commute</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
 
+    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">other</span><span class="o">=</span><span class="n">numbers_to_float64</span><span class="p">)</span>
+    <span class="nd">@with_doc</span><span class="p">(</span><span class="s">&quot;Binary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
+    <span class="nd">@with_name</span><span class="p">(</span><span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">binary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="c"># This can&#39;t be hoisted up a scope because the types returned by</span>
         <span class="c"># binop_return_type aren&#39;t defined when the top-level function is</span>
@@ -280,6 +368,7 @@
                     <span class="n">right</span><span class="o">=</span><span class="n">other_expr</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">new_inputs</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">binop_return_dtype</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">NumExprFactor</span><span class="p">):</span>
             <span class="c"># NumericalExpression overrides ops to correctly handle merging of</span>
@@ -291,19 +380,22 @@
                 <span class="k">return</span> <span class="n">return_type</span><span class="p">(</span>
                     <span class="s">&quot;x_0 {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
                     <span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">binop_return_dtype</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="k">return</span> <span class="n">return_type</span><span class="p">(</span>
                 <span class="s">&quot;x_0 {op} x_1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
                 <span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">binop_return_dtype</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Number</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">return_type</span><span class="p">(</span>
                 <span class="s">&quot;x_0 {op} ({constant})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="n">other</span><span class="p">),</span>
                 <span class="n">binds</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+                <span class="c"># Interpret numeric literals as floats.</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">binop_return_dtype</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="p">)</span>
         <span class="k">raise</span> <span class="n">BadBinaryOperator</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
 
-    <span class="n">binary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Binary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
     <span class="k">return</span> <span class="n">binary_operator</span>
 
 
@@ -316,6 +408,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">is_comparison</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
 
+    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">other</span><span class="o">=</span><span class="n">numbers_to_float64</span><span class="p">)</span>
+    <span class="nd">@with_name</span><span class="p">(</span><span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">commute</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">reflected_binary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
@@ -329,6 +423,7 @@
                     <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">new_inputs</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">binop_return_dtype</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="p">)</span>
 
         <span class="c"># Only have to handle the numeric case because in all other valid cases</span>
@@ -337,6 +432,7 @@
             <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
                 <span class="s">&quot;{constant} {op} x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">constant</span><span class="o">=</span><span class="n">other</span><span class="p">),</span>
                 <span class="n">binds</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">binop_return_dtype</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">raise</span> <span class="n">BadBinaryOperator</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">reflected_binary_operator</span>
@@ -346,12 +442,26 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Factory function for making unary operator methods for Factors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c"># Only negate is currently supported for all our possible input types.</span>
+    <span class="c"># Only negate is currently supported.</span>
     <span class="n">valid_ops</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;-&#39;</span><span class="p">}</span>
     <span class="k">if</span> <span class="n">op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ops</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Invalid unary operator </span><span class="si">%s</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
 
+    <span class="nd">@with_doc</span><span class="p">(</span><span class="s">&quot;Unary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span><span class="p">)</span>
+    <span class="nd">@with_name</span><span class="p">(</span><span class="n">unary_op_name</span><span class="p">(</span><span class="n">op</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">unary_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">float64_dtype</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s">&quot;Can&#39;t apply unary operator {op!r} to instance of &quot;</span>
+                <span class="s">&quot;{typename!r} with dtype {dtypename!r}.</span><span class="se">\n</span><span class="s">&quot;</span>
+                <span class="s">&quot;{op!r} is only supported for Factors of dtype &quot;</span>
+                <span class="s">&quot;&#39;float64&#39;.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
+                    <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                    <span class="n">dtypename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
         <span class="c"># This can&#39;t be hoisted up a scope because the types returned by</span>
         <span class="c"># unary_op_return_type aren&#39;t defined when the top-level function is</span>
         <span class="c"># invoked.</span>
@@ -359,11 +469,14 @@
             <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
                 <span class="s">&quot;{op}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">float64_dtype</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span><span class="s">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
-
-    <span class="n">unary_operator</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="s">&quot;Unary Operator: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">op</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
+                <span class="s">&quot;{op}x_0&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">),</span>
+                <span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">float64_dtype</span><span class="p">,</span>
+            <span class="p">)</span>
     <span class="k">return</span> <span class="n">unary_operator</span>
 
 
@@ -375,23 +488,30 @@
     <span class="k">if</span> <span class="n">func</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NUMEXPR_MATH_FUNCS</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Unsupported mathematical function &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="n">func</span><span class="p">)</span>
 
+    <span class="nd">@with_name</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">mathfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">NumericalExpression</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
                 <span class="s">&quot;{func}({expr})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">,</span> <span class="n">expr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_expr</span><span class="p">),</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">float64_dtype</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span><span class="s">&quot;{func}(x_0)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">),</span> <span class="p">(</span><span class="bp">self</span><span class="p">,))</span>
+            <span class="k">return</span> <span class="n">NumExprFactor</span><span class="p">(</span>
+                <span class="s">&quot;{func}(x_0)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">=</span><span class="n">func</span><span class="p">),</span>
+                <span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">float64_dtype</span><span class="p">,</span>
+            <span class="p">)</span>
     <span class="k">return</span> <span class="n">mathfunc</span>
+
+
+<span class="n">FACTOR_DTYPES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="n">datetime64ns_dtype</span><span class="p">,</span> <span class="n">float64_dtype</span><span class="p">])</span>
 
 
 <div class="viewcode-block" id="Factor"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor">[docs]</a><span class="k">class</span> <span class="nc">Factor</span><span class="p">(</span><span class="n">CompositeTerm</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Pipeline API expression producing numerically-valued outputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64</span>
-
     <span class="c"># Dynamically add functions for creating NumExprFactor/NumExprFilter</span>
     <span class="c"># instances.</span>
     <span class="n">clsdict</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
@@ -411,10 +531,11 @@
     <span class="p">)</span>
     <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
         <span class="p">{</span>
-            <span class="s">&#39;__neg__&#39;</span><span class="p">:</span> <span class="n">unary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="n">unary_op_name</span><span class="p">(</span><span class="n">op</span><span class="p">):</span> <span class="n">unary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">UNARY_OPS</span>
         <span class="p">}</span>
     <span class="p">)</span>
+
     <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
         <span class="p">{</span>
             <span class="n">funcname</span><span class="p">:</span> <span class="n">function_application</span><span class="p">(</span><span class="n">funcname</span><span class="p">)</span>
@@ -426,6 +547,17 @@
     <span class="n">__rtruediv__</span> <span class="o">=</span> <span class="n">clsdict</span><span class="p">[</span><span class="s">&#39;__rdiv__&#39;</span><span class="p">]</span>
 
     <span class="n">eq</span> <span class="o">=</span> <span class="n">binary_operator</span><span class="p">(</span><span class="s">&#39;==&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># Do superclass validation first so that `NotSpecified` dtypes get</span>
+        <span class="c"># handled.</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Factor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">FACTOR_DTYPES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span>
+                <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">retval</span>
 
 <div class="viewcode-block" id="Factor.rank"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.rank">[docs]</a>    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;ordinal&#39;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -467,7 +599,7 @@
 <span class="sd">        zipline.lib.rank</span>
 <span class="sd">        zipline.pipeline.factors.Rank</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">Rank</span><span class="p">(</span><span class="bp">self</span> <span class="k">if</span> <span class="n">ascending</span> <span class="k">else</span> <span class="o">-</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="n">ascending</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Factor.top"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.top">[docs]</a>    <span class="k">def</span> <span class="nf">top</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -548,6 +680,10 @@
 <div class="viewcode-block" id="Factor.isnan"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.isnan">[docs]</a>    <span class="k">def</span> <span class="nf">isnan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        A Filter producing True for all values where this Factor is NaN.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        nanfilter : zipline.pipeline.filters.Filter</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span> <span class="o">!=</span> <span class="bp">self</span>
 </div>
@@ -614,25 +750,28 @@
 <span class="sd">    instance of this class.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64</span>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">ascending</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Rank</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
             <span class="n">cls</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">factor</span><span class="p">,),</span>
             <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">ascending</span><span class="o">=</span><span class="n">ascending</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">ascending</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_method</span> <span class="o">=</span> <span class="n">method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ascending</span> <span class="o">=</span> <span class="n">ascending</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Rank</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">ascending</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="nb">super</span><span class="p">(</span><span class="n">Rank</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
             <span class="n">method</span><span class="p">,</span>
+            <span class="n">ascending</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -651,23 +790,13 @@
 <span class="sd">        For each row in the input, compute a like-shaped array of per-row</span>
 <span class="sd">        ranks.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">inv_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">mask</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">data</span><span class="p">[</span><span class="n">inv_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
-        <span class="c"># OPTIMIZATION: Fast path the default case with our own specialized</span>
-        <span class="c"># Cython implementation.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_method</span> <span class="o">==</span> <span class="s">&#39;ordinal&#39;</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">rankdata_2d_ordinal</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c"># FUTURE OPTIMIZATION:</span>
-            <span class="c"># Write a less general &quot;apply to rows&quot; method that doesn&#39;t do all</span>
-            <span class="c"># the extra work that apply_along_axis does.</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">apply_along_axis</span><span class="p">(</span><span class="n">rankdata</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">)</span>
-
-        <span class="c"># rankdata will sort nan values into last place, but we want our</span>
-        <span class="c"># nans to propagate, so explicitly re-apply.</span>
-        <span class="n">result</span><span class="p">[</span><span class="n">inv_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">nan</span>
-        <span class="k">return</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">masked_rankdata_2d</span><span class="p">(</span>
+            <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">mask</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_method</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ascending</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s">&quot;{type}({input_}, method=&#39;{method}&#39;, mask={mask})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -714,7 +843,7 @@
 <span class="sd">            Row label for the last row of all arrays passed as `inputs`.</span>
 <span class="sd">        assets : np.array[int64, ndim=1]</span>
 <span class="sd">            Column labels for `out` and`inputs`.</span>
-<span class="sd">        out : np.array[float64, ndim=1]</span>
+<span class="sd">        out : np.array[self.dtype, ndim=1]</span>
 <span class="sd">            Output array of the same shape as `assets`.  `compute` should write</span>
 <span class="sd">            its desired return values into `out`.</span>
 <span class="sd">        *inputs : tuple of np.array</span>
@@ -782,12 +911,8 @@
 <span class="sd">        median_close10 = MedianValue([USEquityPricing.close], window_length=10)</span>
 <span class="sd">        median_low15 = MedianValue([USEquityPricing.low], window_length=15)</span>
 <span class="sd">    &#39;&#39;&#39;</span>
-    <span class="n">ctx</span> <span class="o">=</span> <span class="n">nullctx</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">float64</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">UnsupportedDataType</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span></div>
+    <span class="n">dtype</span> <span class="o">=</span> <span class="n">float64_dtype</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">nullctx</span><span class="p">()</span></div>
 </pre></div>
 
           </div>
@@ -818,7 +943,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+126.g1a595c0',
+            VERSION:'v0.8.3+141.gebb4fbd',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

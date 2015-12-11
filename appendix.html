@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; Zipline v0.8.3+126.g1a595c0 documentation</title>
+  <title>API Reference &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+126.g1a595c0 documentation" href="index.html"/>
+    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="index.html"/>
         <link rel="next" title="Zipline Release Process" href="release-process.html"/>
         <link rel="prev" title="Release Notes" href="releases.html"/> 
 
@@ -698,7 +698,7 @@ and self.screen is not None, we raise an error.</p>
 
 <dl class="class">
 <dt id="zipline.pipeline.CustomFactor">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.</code><code class="descname">CustomFactor</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#CustomFactor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.CustomFactor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.</code><code class="descname">CustomFactor</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#CustomFactor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.CustomFactor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Base class for user-defined Factors.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -736,7 +736,7 @@ passed as inputs to the CustomFactor constructor.</p>
     Row label for the last row of all arrays passed as `inputs`.
 assets : np.array[int64, ndim=1]
     Column labels for `out` and`inputs`.
-out : np.array[float64, ndim=1]
+out : np.array[self.dtype, ndim=1]
     Output array of the same shape as `assets`.  `compute` should write
     its desired return values into `out`.
 *inputs : tuple of np.array
@@ -957,6 +957,14 @@ filter as well.</p>
 <dt id="zipline.pipeline.factors.Factor.isnan">
 <code class="descname">isnan</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.isnan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.isnan" title="Permalink to this definition">¶</a></dt>
 <dd><p>A Filter producing True for all values where this Factor is NaN.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>nanfilter</strong> : zipline.pipeline.filters.Filter</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -1050,13 +1058,13 @@ NaN, inf, or -inf.</p>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.Latest">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">Latest</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/latest.html#Latest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Latest" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">Latest</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/latest.html#Latest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Latest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Factor producing the most recently-known value of <cite>inputs[0]</cite> on each day.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.MaxDrawdown">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">MaxDrawdown</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#MaxDrawdown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.MaxDrawdown" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">MaxDrawdown</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#MaxDrawdown"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.MaxDrawdown" title="Permalink to this definition">¶</a></dt>
 <dd><p>Max Drawdown</p>
 <p><strong>Default Inputs:</strong> None</p>
 <p><strong>Default Window Length:</strong> None</p>
@@ -1064,22 +1072,61 @@ NaN, inf, or -inf.</p>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.Returns">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">Returns</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#Returns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Returns" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">Returns</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#Returns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Returns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the percent change in close price over the given window_length.</p>
 <p><strong>Default Inputs</strong>: [USEquityPricing.close]</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.RSI">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RSI</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#RSI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RSI" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RSI</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#RSI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RSI" title="Permalink to this definition">¶</a></dt>
 <dd><p>Relative Strength Index</p>
 <p><strong>Default Inputs</strong>: [USEquityPricing.close]</p>
 <p><strong>Default Window Length</strong>: 15</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="zipline.pipeline.factors.BusinessDaysUntilNextEarnings">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">BusinessDaysUntilNextEarnings</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/events.html#BusinessDaysUntilNextEarnings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.BusinessDaysUntilNextEarnings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factor returning the number of <strong>business days</strong> (not trading days!) until
+the next known earnings date for each asset.</p>
+<p>This doesn&#8217;t use trading days because the trading calendar includes
+information that may not have been available to the algorithm at the time
+when <cite>compute</cite> is called.</p>
+<p>For example, the NYSE closings September 11th 2001, would not have been
+known to the algorithm on September 10th.</p>
+<p>Assets that announced or will announce earnings today will produce a value
+of 0.0.  Assets that will announce earnings on the next upcoming business
+day will produce a value of 1.0.</p>
+<p>Assets for which <cite>EarningsCalendar.next_announcement</cite> is <cite>NaT</cite> will produce
+a value of <cite>NaN</cite>.</p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">BusinessDaysSincePreviousEarnings</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.BusinessDaysSincePreviousEarnings">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">BusinessDaysSincePreviousEarnings</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/events.html#BusinessDaysSincePreviousEarnings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.BusinessDaysSincePreviousEarnings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Factor returning the number of <strong>business days</strong> (not trading days!) since
+the most recent earnings date for each asset.</p>
+<p>This doesn&#8217;t use trading days for symmetry with
+BusinessDaysUntilNextEarnings.</p>
+<p>Assets which announced or will announce earnings today will produce a value
+of 0.0.  Assets that announced earnings on the previous business day will
+produce a value of 1.0.</p>
+<p>Assets for which <cite>EarningsCalendar.previous_announcement</cite> is <cite>NaT</cite> will
+produce a value of <cite>NaN</cite>.</p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">BusinessDaysUntilNextEarnings</span></code></p>
+</div>
+</dd></dl>
+
+<dl class="class">
 <dt id="zipline.pipeline.factors.SimpleMovingAverage">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">SimpleMovingAverage</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#SimpleMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.SimpleMovingAverage" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">SimpleMovingAverage</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#SimpleMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.SimpleMovingAverage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Average Value of an arbitrary column</p>
 <p><strong>Default Inputs</strong>: None</p>
 <p><strong>Default Window Length</strong>: None</p>
@@ -1087,7 +1134,7 @@ NaN, inf, or -inf.</p>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.VWAP">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">VWAP</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#VWAP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.VWAP" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">VWAP</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#VWAP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.VWAP" title="Permalink to this definition">¶</a></dt>
 <dd><p>Volume Weighted Average Price</p>
 <p><strong>Default Inputs:</strong> [USEquityPricing.close, USEquityPricing.volume]</p>
 <p><strong>Default Window Length:</strong> None</p>
@@ -1095,7 +1142,7 @@ NaN, inf, or -inf.</p>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.WeightedAverageValue">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">WeightedAverageValue</code><span class="sig-paren">(</span><em>inputs=sentinel('NotSpecified')</em>, <em>window_length=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#WeightedAverageValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.WeightedAverageValue" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">WeightedAverageValue</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#WeightedAverageValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.WeightedAverageValue" title="Permalink to this definition">¶</a></dt>
 <dd><p>Helper for VWAP-like computations.</p>
 <p><strong>Default Inputs:</strong> None</p>
 <p><strong>Default Window Length:</strong> None</p>
@@ -1116,6 +1163,53 @@ NaN, inf, or -inf.</p>
 <code class="descname">__or__</code><span class="sig-paren">(</span><em>other</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.pipeline.filters.Filter.__or__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Binary Operator: &#8216;|&#8217;</p>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.data.EarningsCalendar">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.data.</code><code class="descname">EarningsCalendar</code><a class="reference internal" href="_modules/zipline/pipeline/data/earnings.html#EarningsCalendar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.data.EarningsCalendar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dataset representing dates of upcoming or recently announced earnings.</p>
+<dl class="attribute">
+<dt id="zipline.pipeline.data.EarningsCalendar.next_announcement">
+<code class="descname">next_announcement</code><em class="property"> = EarningsCalendar.next_announcement::datetime64[ns]</em><a class="headerlink" href="#zipline.pipeline.data.EarningsCalendar.next_announcement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.pipeline.data.EarningsCalendar.previous_announcement">
+<code class="descname">previous_announcement</code><em class="property"> = EarningsCalendar.previous_announcement::datetime64[ns]</em><a class="headerlink" href="#zipline.pipeline.data.EarningsCalendar.previous_announcement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.data.USEquityPricing">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.data.</code><code class="descname">USEquityPricing</code><a class="reference internal" href="_modules/zipline/pipeline/data/equity_pricing.html#USEquityPricing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.data.USEquityPricing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dataset representing daily trading prices and volumes.</p>
+<dl class="attribute">
+<dt id="zipline.pipeline.data.USEquityPricing.close">
+<code class="descname">close</code><em class="property"> = USEquityPricing.close::float64</em><a class="headerlink" href="#zipline.pipeline.data.USEquityPricing.close" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.pipeline.data.USEquityPricing.high">
+<code class="descname">high</code><em class="property"> = USEquityPricing.high::float64</em><a class="headerlink" href="#zipline.pipeline.data.USEquityPricing.high" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.pipeline.data.USEquityPricing.low">
+<code class="descname">low</code><em class="property"> = USEquityPricing.low::float64</em><a class="headerlink" href="#zipline.pipeline.data.USEquityPricing.low" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.pipeline.data.USEquityPricing.open">
+<code class="descname">open</code><em class="property"> = USEquityPricing.open::float64</em><a class="headerlink" href="#zipline.pipeline.data.USEquityPricing.open" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.pipeline.data.USEquityPricing.volume">
+<code class="descname">volume</code><em class="property"> = USEquityPricing.volume::float64</em><a class="headerlink" href="#zipline.pipeline.data.USEquityPricing.volume" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -1670,7 +1764,7 @@ Assets.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+126.g1a595c0',
+            VERSION:'v0.8.3+141.gebb4fbd',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
