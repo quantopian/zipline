@@ -169,7 +169,7 @@ def calc_position_stats(positions,
 
 class PositionTracker(object):
 
-    def __init__(self, asset_finder, data_portal):
+    def __init__(self, asset_finder, data_portal, data_frequency):
         self.asset_finder = asset_finder
 
         # FIXME really want to avoid storing a data portal here,
@@ -191,6 +191,8 @@ class PositionTracker(object):
         # Dict, keyed on dates, that contains lists of close position events
         # for any Assets in this tracker's positions
         self._auto_close_position_sids = {}
+
+        self.data_frequency = data_frequency
 
     def _update_asset(self, sid):
         try:
@@ -414,7 +416,8 @@ class PositionTracker(object):
             return None
 
         amount = self.positions.get(event.sid).amount
-        price = self._data_portal.get_spot_value(event.sid, 'close', event.dt)
+        price = self._data_portal.get_spot_value(
+            event.sid, 'close', event.dt, self.data_frequency)
 
         txn = Transaction(
             sid=event.sid,
@@ -462,7 +465,7 @@ class PositionTracker(object):
         data_portal = self._data_portal
         for sid, position in iteritems(self.positions):
             position.last_sale_price = data_portal.get_spot_value(
-                sid, 'close', dt)
+                sid, 'close', dt, self.data_frequency)
 
     def stats(self):
         return calc_position_stats(self.positions,
@@ -477,6 +480,7 @@ class PositionTracker(object):
         state_dict['unpaid_dividends'] = self._unpaid_dividends
         state_dict['unpaid_stock_dividends'] = self._unpaid_stock_dividends
         state_dict['auto_close_position_sids'] = self._auto_close_position_sids
+        state_dict['data_frequency'] = self.data_frequency
 
         STATE_VERSION = 3
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -491,6 +495,7 @@ class PositionTracker(object):
 
         self.asset_finder = state['asset_finder']
         self.positions = positiondict()
+        self.data_frequency = state['data_frequency']
         # note that positions_store is temporary and gets regened from
         # .positions
         self._positions_store = zp.Positions()

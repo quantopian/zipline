@@ -236,7 +236,8 @@ class TradingAlgorithm(object):
         if not self.blotter:
             self.blotter = Blotter(
                 slippage_func=VolumeShareSlippage(),
-                commission=PerShare()
+                commission=PerShare(),
+                data_frequency=self.data_frequency,
             )
 
         # The symbol lookup date specifies the date to use when resolving

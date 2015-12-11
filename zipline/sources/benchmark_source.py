@@ -175,9 +175,9 @@ class BenchmarkSource(object):
 
                 # get a minute history window of the first day
                 first_open = data_portal.get_spot_value(
-                    sid, 'open', trading_days[0])
+                    sid, 'open', trading_days[0], 'daily')
                 first_close = data_portal.get_spot_value(
-                    sid, 'close', trading_days[0])
+                    sid, 'close', trading_days[0], 'daily')
 
                 first_day_return = (first_close - first_open) / first_open
 

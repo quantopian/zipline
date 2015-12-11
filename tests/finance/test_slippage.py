@@ -137,8 +137,12 @@ class SlippageTestCase(TestCase):
             orders_txns = list(slippage_model.simulate(
                 open_orders,
                 self.minutes[0],
-                data_portal.get_spot_value(133, 'close', self.minutes[0]),
-                data_portal.get_spot_value(133, 'volume', self.minutes[0])
+                data_portal.get_spot_value(
+                    133, 'close', self.minutes[0],
+                    self.sim_params.data_frequency),
+                data_portal.get_spot_value(
+                    133, 'volume', self.minutes[0],
+                    self.sim_params.data_frequency)
             ))
 
             self.assertEquals(len(orders_txns), 1)
@@ -180,8 +184,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[3],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[3]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[3])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[3],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[3],
+                self.sim_params.data_frequency)
         ))
         self.assertEquals(len(orders_txns), 0)
 
@@ -198,8 +206,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[3],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[3]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[3])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[3],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[3],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -217,8 +229,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[3],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[3]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[3])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[3],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[3],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 1)
@@ -253,8 +269,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[0],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[0]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[0])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[0],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[0],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -272,8 +292,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[0],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[0]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[0])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[0],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[0],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -291,8 +315,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[1],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[1]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[1])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[1],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[1],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 1)
@@ -476,8 +504,12 @@ class SlippageTestCase(TestCase):
                 _, txn = next(slippage_model.simulate(
                     [order],
                     dt,
-                    data_portal.get_spot_value(133, "close", dt),
-                    data_portal.get_spot_value(133, "volume", dt)
+                    data_portal.get_spot_value(
+                        133, "close", dt,
+                        self.sim_params.data_frequency),
+                    data_portal.get_spot_value(
+                        133, "volume", dt,
+                        self.sim_params.data_frequency)
                 ))
             except StopIteration:
                 txn = None
@@ -510,8 +542,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[2],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[2]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[2])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[2],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[2],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -519,8 +555,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[3],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[3]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[3])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[3],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[3],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -539,8 +579,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[2],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[2]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[2])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[2],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[2],
+                self.sim_params.data_frequency),
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -548,8 +592,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[3],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[3]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[3])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[3],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[3],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -568,8 +616,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[2],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[2]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[2])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[2],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[2],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -577,8 +629,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[3],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[3]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[3])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[3],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[3],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 1)
@@ -610,8 +666,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[0],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[0]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[0])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[0],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[0],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -619,8 +679,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[1],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[1]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[1])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[1],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[1],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -639,8 +703,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[0],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[0]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[0])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[0],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[0],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -648,8 +716,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[1],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[1]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[1])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[1],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[1],
+                self.sim_params.data_frequency)
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -668,8 +740,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[0],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[0]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[0]),
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[0],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[0],
+                self.sim_params.data_frequency),
         ))
 
         self.assertEquals(len(orders_txns), 0)
@@ -677,8 +753,12 @@ class SlippageTestCase(TestCase):
         orders_txns = list(slippage_model.simulate(
             open_orders,
             self.minutes[1],
-            self.data_portal.get_spot_value(133, 'close', self.minutes[1]),
-            self.data_portal.get_spot_value(133, 'volume', self.minutes[1])
+            self.data_portal.get_spot_value(
+                133, 'close', self.minutes[1],
+                self.sim_params.data_frequency),
+            self.data_portal.get_spot_value(
+                133, 'volume', self.minutes[1],
+                self.sim_params.data_frequency),
         ))
 
         self.assertEquals(len(orders_txns), 1)

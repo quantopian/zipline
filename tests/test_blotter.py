@@ -99,7 +99,7 @@ class BlotterTestCase(TestCase):
                            (StopLimitOrder(10, 20), 10, 20)])
     def test_blotter_order_types(self, style_obj, expected_lmt, expected_stp):
 
-        blotter = Blotter()
+        blotter = Blotter('daily')
 
         blotter.order(24, 100, style_obj)
         result = blotter.open_orders[24][0]
@@ -108,7 +108,7 @@ class BlotterTestCase(TestCase):
         self.assertEqual(result.stop, expected_stp)
 
     def test_order_rejection(self):
-        blotter = Blotter()
+        blotter = Blotter(self.sim_params.data_frequency)
 
         # Reject a nonexistent order -> no order appears in new_order,
         # no exceptions raised out
@@ -137,7 +137,7 @@ class BlotterTestCase(TestCase):
 
         # Do it again, but reject it at a later time (after tradesimulation
         # pulls it from new_orders)
-        blotter = Blotter()
+        blotter = Blotter(self.sim_params.data_frequency)
 
         new_open_id = blotter.order(24, 10, MarketOrder())
         new_open_order = blotter.open_orders[24][0]
@@ -153,7 +153,8 @@ class BlotterTestCase(TestCase):
         self.assertEqual(rejected_order.reason, rejection_reason)
 
         # You can't reject a filled order.
-        blotter = Blotter()   # Reset for paranoia
+        # Reset for paranoia
+        blotter = Blotter(self.sim_params.data_frequency)
         blotter.slippage_func = FixedSlippage()
         filled_id = blotter.order(24, 100, MarketOrder())
         filled_order = None
@@ -177,7 +178,7 @@ class BlotterTestCase(TestCase):
         status indication. When a fill happens, the order should switch
         status to OPEN/FILLED as necessary
         """
-        blotter = Blotter()
+        blotter = Blotter(self.sim_params.data_frequency)
         # Nothing happens on held of a non-existent order
         blotter.hold(56)
         self.assertEqual(blotter.new_orders, [])
@@ -213,7 +214,7 @@ class BlotterTestCase(TestCase):
             expected_status = ORDER_STATUS.OPEN if expected_open else \
                 ORDER_STATUS.FILLED
 
-            blotter = Blotter()
+            blotter = Blotter(self.sim_params.data_frequency)
             open_id = blotter.order(24, order_size, MarketOrder())
             open_order = blotter.open_orders[24][0]
             self.assertEqual(open_id, open_order.id)

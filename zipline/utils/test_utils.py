@@ -763,11 +763,11 @@ class FetcherDataPortal(DataPortal):
             sim_params
         )
 
-    def get_spot_value(self, asset, field, dt=None):
+    def get_spot_value(self, asset, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path
         if self._check_extra_sources(asset, field, (dt or self.current_dt)):
             return super(FetcherDataPortal, self).get_spot_value(
-                asset, field, dt)
+                asset, field, dt, data_frequency)
 
         # otherwise just return a fixed value
         return int(asset)
