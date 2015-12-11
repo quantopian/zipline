@@ -56,6 +56,9 @@ cdef class BarData:
 
         return view
 
+    def __contains__(self, name):
+        raise ValueError("'BarData' object is not iterable")
+
     def __getitem__(self, name):
         return self._get_equity_price_view(name)
 
