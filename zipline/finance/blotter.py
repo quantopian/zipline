@@ -31,7 +31,7 @@ from zipline.finance.slippage import (
     check_order_triggers
 )
 from zipline.finance.commission import PerShare
-from zipline.utils.protocol_utils import Enum
+from zipline.utils.enum import enum
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -39,7 +39,7 @@ from zipline.utils.serialization_utils import (
 
 log = Logger('Blotter')
 
-ORDER_STATUS = Enum(
+ORDER_STATUS = enum(
     'OPEN',
     'FILLED',
     'CANCELLED',

@@ -11,7 +11,12 @@ Development
 Highlights
 ~~~~~~~~~~
 
-None
+* Added a new :class:`~zipline.pipeline.data.EarningsCalendar` dataset
+  for use in the Pipeline API. (:issue:`905`).
+
+* :class:`~zipline.assets.assets.AssetFinder` speedups (:issue:`830` and
+  :issue:`817`).
+
 
 Enhancements
 ~~~~~~~~~~~~
@@ -23,13 +28,30 @@ Enhancements
   passed to :class:`~zipline.algorithm.TradingAlgorithm` by the keyword argument
   ``create_event_context`` (:issue:`828`).
 
+* Added support for :class:`zipline.pipeline.factors.Factor` instances with
+  ``datetime64[ns]`` dtypes. (:issue:`905`)
+
+* Added a new :class:`~zipline.pipeline.data.earnings.EarningsCalendar` dataset
+  for use in the Pipeline API.  This dataset provides an abstract interface for
+  adding earnings announcement data to a new algorithm. A pandas-based
+  reference implementation for this dataset can be found in
+  :mod:`zipline.pipeline.loaders.earnings`, and an experimental blaze-based
+  implementation can be found in
+  :mod:`zipline.pipeline.loaders.blaze.earnings`. (:issue:`905`).
+
+* Added new built-in factors,
+  :class:`zipline.pipeline.factors.BusinessDaysUntilNextEarnings` and
+  :class:`zipline.pipeline.factors.BusinessDaysSincePreviousEarnings`.  These
+  factors use the new ``EarningsCalendar`` dataset. (:issue:`905`).
+
 * Added :meth:`~zipline.pipeline.factors.Factor.isnan`,
   :meth:`~zipline.pipeline.factors.Factor.notnan` and
   :meth:`~zipline.pipeline.factors.Factor.isfinite` methods to
   :class:`zipline.pipeline.factors.Factor` (:issue:`861`).
 
 * Added :class:`zipline.pipeline.factors.Returns`, a built-in factor which
-  calculates the percent change in close price over the given window_length.
+  calculates the percent change in close price over the given
+  window_length. (:issue:`884`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -60,6 +82,10 @@ Performance
   loads equities into dictionaries and then directs
   :meth:`~zipline.assets.assets.AssetFinder.lookup_symbol` to these dictionaries
   to find matching equities (:issue:`830`).
+
+* Improved performance of
+  :meth:`~zipline.assets.assets.AssetFinder.lookup_symbol` by performing
+  batched queries. (:issue:`817`).
 
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

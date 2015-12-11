@@ -157,9 +157,10 @@ import toolz.curried.operator as op
 from six import with_metaclass, PY2, itervalues
 
 
-from ..data.dataset import DataSet, Column
-from zipline.lib.adjusted_array import adjusted_array
+from zipline.pipeline.data.dataset import DataSet, Column
+from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import Float64Overwrite
+from zipline.utils.enum import enum
 from zipline.utils.input_validation import expect_element
 from zipline.utils.numpy_utils import repeat_last_axis
 
@@ -306,7 +307,7 @@ def new_dataset(expr, deltas):
         except TypeError:
             col = NonNumpyField(name, type_)
         else:
-            col = Column(type_.to_numpy_dtype().type)
+            col = Column(type_.to_numpy_dtype())
 
         columns[name] = col
 
@@ -391,10 +392,10 @@ class NoDeltasWarning(UserWarning):
         return 'No deltas could be inferred from expr: %s' % self._expr
 
 
-_valid_no_deltas_rules = 'warn', 'raise', 'ignore'
+no_deltas_rules = enum('warn', 'raise_', 'ignore')
 
 
-def _get_deltas(expr, deltas, no_deltas_rule):
+def get_deltas(expr, deltas, no_deltas_rule):
     """Find the correct deltas for the expression.
 
     Parameters
@@ -406,7 +407,7 @@ def _get_deltas(expr, deltas, no_deltas_rule):
         be searched for by walking up the expression tree. If this cannot be
         reflected, then an action will be taken based on the
         ``no_deltas_rule``.
-    no_deltas_rule : {'warn', 'raise', 'ignore'}
+    no_deltas_rule : no_deltas_rule
         How to handle the case where deltas='auto' but no deltas could be
         found.
 
@@ -421,11 +422,11 @@ def _get_deltas(expr, deltas, no_deltas_rule):
     try:
         return expr._child[(expr._name or '') + '_deltas']
     except (ValueError, AttributeError):
-        if no_deltas_rule == 'raise':
+        if no_deltas_rule == no_deltas_rules.raise_:
             raise ValueError(
                 "no deltas table could be reflected for %s" % expr
             )
-        elif no_deltas_rule == 'warn':
+        elif no_deltas_rule == no_deltas_rules.warn:
             warnings.warn(NoDeltasWarning(expr))
     return None
 
@@ -466,12 +467,12 @@ def _ensure_timestamp_field(dataset_expr, deltas):
     return dataset_expr, deltas
 
 
-@expect_element(no_deltas_rule=_valid_no_deltas_rules)
+@expect_element(no_deltas_rule=no_deltas_rules)
 def from_blaze(expr,
                deltas='auto',
                loader=None,
                resources=None,
-               no_deltas_rule=_valid_no_deltas_rules[0]):
+               no_deltas_rule=no_deltas_rules.warn):
     """Create a Pipeline API object from a blaze expression.
 
     Parameters
@@ -490,7 +491,7 @@ def from_blaze(expr,
     resources : dict or any, optional
         The data to execute the blaze expressions against. This is used as the
         scope for ``bz.compute``.
-    no_deltas_rule : {'warn', 'raise', 'ignore'}
+    no_deltas_rule : no_deltas_rule
         What should happen if ``deltas='auto'`` but no deltas can be found.
         'warn' says to raise a warning but continue.
         'raise' says to raise an exception if no deltas can be found.
@@ -505,7 +506,7 @@ def from_blaze(expr,
         is passed, a ``BoundColumn`` on the dataset that would be constructed
         from passing the parent is returned.
     """
-    deltas = _get_deltas(expr, deltas, no_deltas_rule)
+    deltas = get_deltas(expr, deltas, no_deltas_rule)
     if deltas is not None:
         invalid_nodes = tuple(filter(is_invalid_deltas_node, expr._subterms()))
         if invalid_nodes:
@@ -886,7 +887,7 @@ class BlazeLoader(dict):
 
         for column_idx, column in enumerate(columns):
             column_name = column.name
-            yield column, adjusted_array(
+            yield column, AdjustedArray(
                 column_view(
                     dense_output[column_name].values.astype(column.dtype),
                 ),

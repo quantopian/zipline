@@ -2,7 +2,6 @@
 filter.py
 """
 from numpy import (
-    bool_,
     float64,
     nan,
     nanpercentile,
@@ -12,10 +11,13 @@ from operator import attrgetter
 
 from zipline.errors import (
     BadPercentileBounds,
+    UnsupportedDataType,
 )
 from zipline.pipeline.term import (
-    SingleInputMixin,
     CompositeTerm,
+    CustomTermMixin,
+    RequiredWindowLengthMixin,
+    SingleInputMixin,
 )
 from zipline.pipeline.expression import (
     BadBinaryOperator,
@@ -23,6 +25,8 @@ from zipline.pipeline.expression import (
     method_name_for_op,
     NumericalExpression,
 )
+from zipline.utils.control_flow import nullctx
+from zipline.utils.numpy_utils import bool_dtype
 
 
 def concat_tuples(*tuples):
@@ -49,7 +53,7 @@ def binary_operator(op):
             self_expr, other_expr, new_inputs = self.build_binary_op(
                 op, other,
             )
-            return NumExprFilter(
+            return NumExprFilter.create(
                 "({left}) {op} ({right})".format(
                     left=self_expr,
                     op=op,
@@ -64,16 +68,16 @@ def binary_operator(op):
             return commuted_method_getter(other)(self)
         elif isinstance(other, Filter):
             if self is other:
-                return NumExprFilter(
+                return NumExprFilter.create(
                     "x_0 {op} x_0".format(op=op),
                     (self,),
                 )
-            return NumExprFilter(
+            return NumExprFilter.create(
                 "x_0 {op} x_1".format(op=op),
                 (self, other),
             )
         elif isinstance(other, int):  # Note that this is true for bool as well
-            return NumExprFilter(
+            return NumExprFilter.create(
                 "x_0 {op} ({constant})".format(op=op, constant=int(other)),
                 binds=(self,),
             )
@@ -96,12 +100,12 @@ def unary_operator(op):
         # unary_op_return_type aren't defined when the top-level function is
         # invoked.
         if isinstance(self, NumericalExpression):
-            return NumExprFilter(
+            return NumExprFilter.create(
                 "{op}({expr})".format(op=op, expr=self._expr),
                 self.inputs,
             )
         else:
-            return NumExprFilter("{op}x_0".format(op=op), (self,))
+            return NumExprFilter.create("{op}x_0".format(op=op), (self,))
 
     unary_operator.__doc__ = "Unary Operator: '%s'" % op
     return unary_operator
@@ -111,7 +115,7 @@ class Filter(CompositeTerm):
     """
     Pipeline API expression producing boolean-valued outputs.
     """
-    dtype = bool_
+    dtype = bool_dtype
 
     clsdict = locals()
     clsdict.update(
@@ -122,11 +126,33 @@ class Filter(CompositeTerm):
     )
     __invert__ = unary_operator('~')
 
+    def _validate(self):
+        # Run superclass validation first so that we handle `dtype not passed`
+        # before this.
+        retval = super(Filter, self)._validate()
+        if self.dtype != bool_dtype:
+            raise UnsupportedDataType(
+                typename=type(self).__name__,
+                dtype=self.dtype
+            )
+        return retval
+
 
 class NumExprFilter(NumericalExpression, Filter):
     """
     A Filter computed from a numexpr expression.
     """
+
+    @classmethod
+    def create(cls, expr, binds):
+        """
+        Helper for creating new NumExprFactors.
+
+        This is just a wrapper around NumExprFactor.__new__ that always
+        forwards `bool` as the dtype, since Filters can only be of boolean
+        dtype.
+        """
+        return cls(expr=expr, binds=binds, dtype=bool_dtype)
 
     def _compute(self, arrays, dates, assets, mask):
         """
@@ -215,3 +241,10 @@ class PercentileFilter(SingleInputMixin, Filter):
             keepdims=True,
         )
         return (lower_bounds <= data) & (data <= upper_bounds)
+
+
+class CustomFilter(RequiredWindowLengthMixin, CustomTermMixin, Filter):
+    """
+    Filter analog to ``CustomFactor``.
+    """
+    ctx = nullctx()

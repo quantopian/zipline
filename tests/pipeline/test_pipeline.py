@@ -5,14 +5,17 @@ from unittest import TestCase
 
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import USEquityPricing
+from zipline.utils.numpy_utils import float64_dtype
 
 
 class SomeFactor(Factor):
+    dtype = float64_dtype
     window_length = 5
     inputs = [USEquityPricing.close, USEquityPricing.high]
 
 
 class SomeOtherFactor(Factor):
+    dtype = float64_dtype
     window_length = 5
     inputs = [USEquityPricing.close, USEquityPricing.high]
 

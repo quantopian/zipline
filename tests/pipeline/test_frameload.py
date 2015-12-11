@@ -13,16 +13,16 @@ from pandas import (
 )
 
 from zipline.lib.adjustment import (
+    ADD,
     Float64Add,
     Float64Multiply,
     Float64Overwrite,
+    MULTIPLY,
+    OVERWRITE,
 )
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import (
-    ADD,
     DataFrameLoader,
-    MULTIPLY,
-    OVERWRITE,
 )
 from zipline.utils.tradingcalendar import trading_day
 
@@ -226,7 +226,7 @@ class DataFrameLoaderTestCase(TestCase):
         self.assertEqual(formatted_adjustments, expected_formatted_adjustments)
 
         mask = self.mask[dates_slice, sids_slice]
-        with patch('zipline.pipeline.loaders.frame.adjusted_array') as m:
+        with patch('zipline.pipeline.loaders.frame.AdjustedArray') as m:
             loader.load_adjusted_array(
                 columns=[USEquityPricing.close],
                 dates=self.dates[dates_slice],

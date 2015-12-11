@@ -4,17 +4,19 @@ Base class for Filters, Factors and Classifiers
 from abc import ABCMeta, abstractproperty
 from weakref import WeakValueDictionary
 
-from numpy import bool_, full, nan
+from numpy import full_like, dtype as dtype_class
 from six import with_metaclass
 
 from zipline.errors import (
     DTypeNotSpecified,
     InputTermNotAtomic,
+    InvalidDType,
     TermInputsNotSpecified,
     WindowLengthNotPositive,
     WindowLengthNotSpecified,
 )
 from zipline.utils.memoize import lazyval
+from zipline.utils.numpy_utils import bool_dtype, default_fillvalue_for_dtype
 from zipline.utils.sentinel import sentinel
 
 
@@ -54,9 +56,7 @@ class Term(with_metaclass(ABCMeta, object)):
 
         if domain is NotSpecified:
             domain = cls.domain
-
-        if dtype is NotSpecified:
-            dtype = cls.dtype
+        dtype = cls._validate_dtype(dtype)
 
         identity = cls.static_identity(
             domain=domain,
@@ -75,6 +75,41 @@ class Term(with_metaclass(ABCMeta, object)):
                 )
             return new_instance
 
+    @classmethod
+    def _validate_dtype(cls, passed_dtype):
+        """
+        Validate a `dtype` passed to Term.__new__.
+
+        If passed_dtype is NotSpecified, then we try to fall back to a
+        class-level attribute.  If a value is found at that point, we pass it
+        to np.dtype so that users can pass `float` or `bool` and have them
+        coerce to the appropriate numpy types.
+
+        Returns
+        -------
+        validated : np.dtype
+            The dtype to use for the new term.
+
+        Raises
+        ------
+        DTypeNotSpecified
+            When no dtype was passed to the instance, and the class doesn't
+            provide a default.
+        InvalidDType
+            When either the class or the instance provides a value not
+            coercible to a numpy dtype.
+        """
+        dtype = passed_dtype
+        if dtype is NotSpecified:
+            dtype = cls.dtype
+        if dtype is NotSpecified:
+            raise DTypeNotSpecified(termname=cls.__name__)
+        try:
+            dtype = dtype_class(dtype)
+        except TypeError:
+            raise InvalidDType(dtype=dtype, termname=cls.__name__)
+        return dtype
+
     def __init__(self, *args, **kwargs):
         """
         Noop constructor to play nicely with our caching __new__.  Subclasses
@@ -91,13 +126,6 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         pass
 
-    def _init(self, domain, dtype):
-        self.domain = domain
-        self.dtype = dtype
-
-        self._validate()
-        return self
-
     @classmethod
     def static_identity(cls, domain, dtype):
         """
@@ -113,13 +141,27 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         return (cls, domain, dtype)
 
+    def _init(self, domain, dtype):
+        self.domain = domain
+        self.dtype = dtype
+
+        # Make sure that subclasses call super() in their _validate() methods
+        # by setting this flag.  The base class implementation of _validate
+        # should set this flag to True.
+        self._subclass_called_super_validate = False
+        self._validate()
+        del self._subclass_called_super_validate
+
+        return self
+
     def _validate(self):
         """
         Assert that this term is well-formed.  This should be called exactly
         once, at the end of Term._init().
         """
-        if self.dtype is NotSpecified:
-            raise DTypeNotSpecified(termname=type(self).__name__)
+        # mark that we got here to enforce that subclasses overriding _validate
+        # call super().
+        self._subclass_called_super_validate = True
 
     @abstractproperty
     def inputs(self):
@@ -145,6 +187,10 @@ class Term(with_metaclass(ABCMeta, object)):
         return not any(dep for dep in self.dependencies
                        if dep is not AssetExists())
 
+    @lazyval
+    def missing_value(self):
+        return default_fillvalue_for_dtype(self.dtype)
+
 
 class AssetExists(Term):
     """
@@ -160,7 +206,7 @@ class AssetExists(Term):
     --------
     zipline.assets.AssetFinder.lifetimes
     """
-    dtype = bool_
+    dtype = bool_dtype
     dataset = None
     extra_input_rows = 0
     inputs = ()
@@ -204,18 +250,15 @@ class CustomTermMixin(object):
     Used by CustomFactor, CustomFilter, CustomClassifier, etc.
     """
 
-    def __new__(cls, inputs=NotSpecified, window_length=NotSpecified):
-
+    def __new__(cls,
+                inputs=NotSpecified,
+                window_length=NotSpecified,
+                dtype=NotSpecified):
         return super(CustomTermMixin, cls).__new__(
             cls,
             inputs=inputs,
             window_length=window_length,
-        )
-
-    def __init__(self, inputs=NotSpecified, window_length=NotSpecified):
-        return super(CustomTermMixin, self).__init__(
-            inputs=inputs,
-            window_length=window_length,
+            dtype=dtype,
         )
 
     def compute(self, today, assets, out, *arrays):
@@ -231,7 +274,8 @@ class CustomTermMixin(object):
         """
         # TODO: Make mask available to user's `compute`.
         compute = self.compute
-        out = full(mask.shape, nan, dtype=self.dtype)
+        missing_value = self.missing_value
+        out = full_like(mask, missing_value, dtype=self.dtype)
         with self.ctx:
             # TODO: Consider pre-filtering columns that are all-nan at each
             # time-step?
@@ -242,7 +286,7 @@ class CustomTermMixin(object):
                     out[idx],
                     *(next(w) for w in windows)
                 )
-        out[~mask] = nan
+        out[~mask] = missing_value
         return out
 
     def short_repr(self):

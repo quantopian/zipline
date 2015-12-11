@@ -1,20 +1,32 @@
 """
 Tests for Factor terms.
 """
+from itertools import product
 from nose_parameterized import parameterized
 
-from numpy import arange, array, empty, eye, nan, ones, datetime64
+from numpy import (
+    arange,
+    array,
+    datetime64,
+    empty,
+    eye,
+    nan,
+    ones,
+)
 from numpy.random import randn, seed
 
 from zipline.errors import UnknownRankMethod
+from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline import Factor, Filter, TermGraph
 from zipline.pipeline.factors import RSI, Returns
 from zipline.utils.test_utils import check_allclose, check_arrays
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype, np_NaT
 
 from .base import BasePipelineTestCase
 
 
 class F(Factor):
+    dtype = float64_dtype
     inputs = ()
     window_length = 0
 
@@ -22,6 +34,12 @@ class F(Factor):
 class Mask(Filter):
     inputs = ()
     window_length = 0
+
+
+for_each_factor_dtype = parameterized.expand([
+    ('datetime64[ns]', datetime64ns_dtype),
+    ('float', float64_dtype),
+])
 
 
 class FactorTestCase(BasePipelineTestCase):
@@ -34,7 +52,10 @@ class FactorTestCase(BasePipelineTestCase):
         with self.assertRaises(UnknownRankMethod):
             self.f.rank("not a real rank method")
 
-    def test_rank_ascending(self):
+    @for_each_factor_dtype
+    def test_rank_ascending(self, name, factor_dtype):
+
+        f = F(dtype=factor_dtype)
 
         # Generated with:
         # data = arange(25).reshape(5, 5).transpose() % 4
@@ -42,7 +63,8 @@ class FactorTestCase(BasePipelineTestCase):
                       [1, 2, 3, 0, 1],
                       [2, 3, 0, 1, 2],
                       [3, 0, 1, 2, 3],
-                      [0, 1, 2, 3, 0]], dtype=float)
+                      [0, 1, 2, 3, 0]], dtype=factor_dtype)
+
         expected_ranks = {
             'ordinal': array([[1., 3., 4., 5., 2.],
                               [2., 4., 5., 1., 3.],
@@ -75,22 +97,25 @@ class FactorTestCase(BasePipelineTestCase):
             graph = TermGraph(terms)
             results = self.run_graph(
                 graph,
-                initial_workspace={self.f: data},
+                initial_workspace={f: data},
                 mask=self.build_mask(ones((5, 5))),
             )
             for method in terms:
                 check_arrays(results[method], expected_ranks[method])
 
-        check({meth: self.f.rank(method=meth) for meth in expected_ranks})
+        check({meth: f.rank(method=meth) for meth in expected_ranks})
         check({
-            meth: self.f.rank(method=meth, ascending=True)
+            meth: f.rank(method=meth, ascending=True)
             for meth in expected_ranks
         })
         # Not passing a method should default to ordinal.
-        check({'ordinal': self.f.rank()})
-        check({'ordinal': self.f.rank(ascending=True)})
+        check({'ordinal': f.rank()})
+        check({'ordinal': f.rank(ascending=True)})
 
-    def test_rank_descending(self):
+    @for_each_factor_dtype
+    def test_rank_descending(self, name, factor_dtype):
+
+        f = F(dtype=factor_dtype)
 
         # Generated with:
         # data = arange(25).reshape(5, 5).transpose() % 4
@@ -98,7 +123,7 @@ class FactorTestCase(BasePipelineTestCase):
                       [1, 2, 3, 0, 1],
                       [2, 3, 0, 1, 2],
                       [3, 0, 1, 2, 3],
-                      [0, 1, 2, 3, 0]], dtype=float)
+                      [0, 1, 2, 3, 0]], dtype=factor_dtype)
         expected_ranks = {
             'ordinal': array([[4., 3., 2., 1., 5.],
                               [3., 2., 1., 5., 4.],
@@ -131,35 +156,38 @@ class FactorTestCase(BasePipelineTestCase):
             graph = TermGraph(terms)
             results = self.run_graph(
                 graph,
-                initial_workspace={self.f: data},
+                initial_workspace={f: data},
                 mask=self.build_mask(ones((5, 5))),
             )
             for method in terms:
                 check_arrays(results[method], expected_ranks[method])
 
         check({
-            meth: self.f.rank(method=meth, ascending=False)
+            meth: f.rank(method=meth, ascending=False)
             for meth in expected_ranks
         })
         # Not passing a method should default to ordinal.
-        check({'ordinal': self.f.rank(ascending=False)})
+        check({'ordinal': f.rank(ascending=False)})
 
-    def test_rank_after_mask(self):
+    @for_each_factor_dtype
+    def test_rank_after_mask(self, name, factor_dtype):
+
+        f = F(dtype=factor_dtype)
         # data = arange(25).reshape(5, 5).transpose() % 4
         data = array([[0, 1, 2, 3, 0],
                       [1, 2, 3, 0, 1],
                       [2, 3, 0, 1, 2],
                       [3, 0, 1, 2, 3],
-                      [0, 1, 2, 3, 0]], dtype=float)
+                      [0, 1, 2, 3, 0]], dtype=factor_dtype)
         mask_data = ~eye(5, dtype=bool)
-        initial_workspace = {self.f: data, Mask(): mask_data}
+        initial_workspace = {f: data, Mask(): mask_data}
 
         graph = TermGraph(
             {
-                "ascending_nomask": self.f.rank(ascending=True),
-                "ascending_mask": self.f.rank(ascending=True, mask=Mask()),
-                "descending_nomask": self.f.rank(ascending=False),
-                "descending_mask": self.f.rank(ascending=False, mask=Mask()),
+                "ascending_nomask": f.rank(ascending=True),
+                "ascending_mask": f.rank(ascending=True, mask=Mask()),
+                "descending_nomask": f.rank(ascending=False),
+                "descending_mask": f.rank(ascending=False, mask=Mask()),
             }
         )
 
@@ -246,3 +274,53 @@ class FactorTestCase(BasePipelineTestCase):
         returns.compute(today, assets, out, test_data)
 
         check_allclose(expected, out)
+
+    def gen_ranking_cases():
+        seeds = range(int(1e4), int(1e5), int(1e4))
+        methods = ('ordinal', 'average')
+        use_mask_values = (True, False)
+        set_missing_values = (True, False)
+        ascending_values = (True, False)
+        return product(
+            seeds,
+            methods,
+            use_mask_values,
+            set_missing_values,
+            ascending_values,
+        )
+
+    @parameterized.expand(gen_ranking_cases())
+    def test_masked_rankdata_2d(self,
+                                seed_value,
+                                method,
+                                use_mask,
+                                set_missing,
+                                ascending):
+        eyemask = ~eye(5, dtype=bool)
+        nomask = ones((5, 5), dtype=bool)
+
+        seed(seed_value)
+        asfloat = (randn(5, 5) * seed_value)
+        asdatetime = (asfloat).copy().view('datetime64[ns]')
+
+        mask = eyemask if use_mask else nomask
+        if set_missing:
+            asfloat[:, 2] = nan
+            asdatetime[:, 2] = np_NaT
+
+        float_result = masked_rankdata_2d(
+            data=asfloat,
+            mask=mask,
+            missing_value=nan,
+            method=method,
+            ascending=True,
+        )
+        datetime_result = masked_rankdata_2d(
+            data=asdatetime,
+            mask=mask,
+            missing_value=np_NaT,
+            method=method,
+            ascending=True,
+        )
+
+        check_arrays(float_result, datetime_result)
