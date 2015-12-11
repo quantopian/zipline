@@ -1110,7 +1110,7 @@ class DataPortal(object):
         if self._asset_start_dates[sid] > dt:
             raise NoTradeDataAvailableTooEarly(
                 sid=sid,
-                dt=dt,
+                dt=normalize_date(dt),
                 start_dt=start_date
             )
 
@@ -1118,7 +1118,7 @@ class DataPortal(object):
         if self._asset_end_dates[sid] < dt:
             raise NoTradeDataAvailableTooLate(
                 sid=sid,
-                dt=dt,
+                dt=normalize_date(dt),
                 end_dt=end_date
             )
 
