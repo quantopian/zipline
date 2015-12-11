@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
 import bcolz
 from logbook import Logger
 
@@ -73,14 +72,6 @@ class DataPortal(object):
                  adjustment_reader=None,
                  futures_sid_path_func=None):
         self.env = env
-
-        # Internal pointers to the current dt (can be minute) and current day.
-        # In daily mode, they point to the same thing. In minute mode, it's
-        # useful to have separate pointers to the current day and to the
-        # current minute.  These pointers are updated by the
-        # AlgorithmSimulator's transform loop.
-        self.current_dt = None
-        self.current_day = None
 
         # This is a bit ugly, but is here for performance reasons.  In minute
         # simulations, we need to very quickly go from dt -> (# of minutes
@@ -317,19 +308,18 @@ class DataPortal(object):
                     loc[day, column]
             except:
                 log.error(
-                    "Could not find value for asset={0}, current_day={1},"
+                    "Could not find value for asset={0}, day={1},"
                     "column={2}".format(
                         str(asset),
-                        str(self.current_day),
+                        str(day),
                         str(column)))
 
                 raise KeyError
 
-    def get_spot_value(self, asset, field, dt=None):
+    def get_spot_value(self, asset, field, dt):
         """
         Public API method that returns a scalar value representing the value
-        of the desired asset's field at either the given dt, or this data
-        portal's current_dt.
+        of the desired asset's field at either the given dt.
 
         Parameters
         ---------
@@ -351,7 +341,7 @@ class DataPortal(object):
         extra_source_val = self._check_extra_sources(
             asset,
             field,
-            (dt or self.current_dt)
+            dt,
         )
 
         if extra_source_val is not None:
@@ -368,18 +358,16 @@ class DataPortal(object):
         self._check_is_currently_alive(asset, dt)
 
         if self._data_frequency == "daily":
-            day_to_use = dt or self.current_day
+            day_to_use = dt
             day_to_use = normalize_date(day_to_use)
             return self._get_daily_data(asset, column_to_use, day_to_use)
         else:
-            dt_to_use = dt or self.current_dt
-
             if isinstance(asset, Future):
                 return self._get_minute_spot_value_future(
-                    asset, column_to_use, dt_to_use)
+                    asset, column_to_use, dt)
             else:
                 return self._get_minute_spot_value(
-                    asset, column_to_use, dt_to_use)
+                    asset, column_to_use, dt)
 
     def _get_minute_spot_value_future(self, asset, column, dt):
         # Futures bcolz files have 1440 bars per day (24 hours), 7 days a week.
@@ -480,7 +468,7 @@ class DataPortal(object):
             # to be adjusted.
             if result != 0:
                 minutes = self.env.market_minute_window(
-                    start=(dt or self.current_dt),
+                    start=dt,
                     count=(original_start - minute_offset_to_use + 1),
                     step=-1
                 ).order()
@@ -1112,31 +1100,7 @@ class DataPortal(object):
 
         return adjustments
 
-    def get_equity_price_view(self, asset):
-        """
-        Returns a DataPortalSidView for the given asset.  Used to support the
-        data[sid(N)] public API.  Not needed if DataPortal is used standalone.
-
-        Parameters
-        ----------
-        asset : Asset
-            Asset that is being queried.
-
-        Returns
-        -------
-        DataPortalSidView: Accessor into the given asset's data.
-        """
-        try:
-            view = self.views[asset]
-        except KeyError:
-            view = self.views[asset] = DataPortalSidView(asset, self)
-
-        return view
-
     def _check_is_currently_alive(self, asset, dt):
-        if dt is None:
-            dt = self.current_day
-
         sid = int(asset)
 
         if sid not in self._asset_start_dates:
@@ -1258,7 +1222,7 @@ class DataPortal(object):
             (field in self._augmented_sources_map and
              asset in self._augmented_sources_map[field])
 
-    def get_fetcher_assets(self):
+    def get_fetcher_assets(self, day):
         """
         Returns a list of assets for the current date, as defined by the
         fetcher data.
@@ -1277,12 +1241,12 @@ class DataPortal(object):
         if self._extra_source_df is None:
             return []
 
-        if self.current_day in self._extra_source_df.index:
-            date_to_use = self.current_day
+        if day in self._extra_source_df.index:
+            date_to_use = day
         else:
             # current day isn't in the fetcher df, go back the last
             # available day
-            idx = self._extra_source_df.index.searchsorted(self.current_day)
+            idx = self._extra_source_df.index.searchsorted(day)
             if idx == 0:
                 return []
 
@@ -1295,18 +1259,3 @@ class DataPortal(object):
                       if isinstance(asset, Asset)]
 
         return asset_list
-
-
-class DataPortalSidView(object):
-    def __init__(self, asset, portal):
-        self.asset = asset
-        self.portal = portal
-
-    def __getattr__(self, column):
-        return self.portal.get_spot_value(self.asset, column)
-
-    def __contains__(self, column):
-        return self.portal.contains(self.asset, column)
-
-    def __getitem__(self, column):
-        return self.__getattr__(column)

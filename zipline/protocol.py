@@ -18,6 +18,8 @@ import pandas as pd
 
 from . utils.protocol_utils import Enum
 
+from zipline._protocol import BarData as _BarData
+BarData = _BarData
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -231,25 +233,3 @@ class Positions(dict):
         pos = Position(key)
         self[key] = pos
         return pos
-
-
-class BarData(object):
-    """
-    Holds the event data for all sids for a given dt.
-
-    This is what is passed as `data` to the `handle_data` function.
-    """
-
-    def __init__(self, data_portal=None):
-        self.data_portal = data_portal or {}
-
-    def __getitem__(self, name):
-        return self.data_portal.get_equity_price_view(name)
-
-    def __iter__(self):
-        raise TypeError('%r object is not iterable'
-                        % self.__class__.__name__)
-
-    @property
-    def fetcher_assets(self):
-        return self.data_portal.get_fetcher_assets()
