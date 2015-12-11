@@ -59,10 +59,6 @@ cdef class BarData:
     def __getitem__(self, name):
         return self._get_equity_price_view(name)
 
-    def __iter__(self):
-        raise TypeError('%r object is not iterable'
-                        % self.__class__.__name__)
-
     @property
     def fetcher_assets(self):
         return self.data_portal.get_fetcher_assets(
