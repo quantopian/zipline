@@ -56,6 +56,9 @@ cdef class BarData:
 
         return view
 
+    def __iter__(self):
+        raise ValueError("'BarData' object is not iterable")
+
     def __contains__(self, name):
         raise ValueError("'BarData' object is not iterable")
 
