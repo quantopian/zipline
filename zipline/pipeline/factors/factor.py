@@ -394,8 +394,8 @@ class Factor(CompositeTerm):
         See Also
         --------
         scipy.stats.rankdata
-        zipline.lib.rank
-        zipline.pipeline.factors.Rank
+        zipline.lib.rank.masked_rankdata_2d
+        zipline.pipeline.factors.factor.Rank
         """
         return Rank(self, method=method, ascending=ascending, mask=mask)
 
@@ -466,7 +466,7 @@ class Factor(CompositeTerm):
 
         See Also
         --------
-        zipline.pipeline.filters.PercentileFilter
+        zipline.pipeline.filters.filter.PercentileFilter
         """
         return PercentileFilter(
             self,

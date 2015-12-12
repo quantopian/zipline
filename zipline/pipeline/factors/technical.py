@@ -143,6 +143,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
     Base class for factors implementing exponential-weighted operations.
 
     **Default Inputs:** None
+
     **Default Window Length:** None
 
     Parameters
@@ -242,6 +243,7 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
     Exponentially Weighted Moving Average
 
     **Default Inputs:** None
+
     **Default Window Length:** None
 
     Parameters
@@ -275,6 +277,7 @@ class ExponentialWeightedStandardDeviation(_ExponentialWeightedFactor):
     Exponentially Weighted Moving Standard Deviation
 
     **Default Inputs:** None
+
     **Default Window Length:** None
 
     Parameters
