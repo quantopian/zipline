@@ -23,6 +23,7 @@ from pandas import (
     DataFrame,
     date_range,
     ewma,
+    ewmstd,
     Int64Index,
     MultiIndex,
     rolling_apply,
@@ -34,6 +35,7 @@ from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
 from six import iteritems, itervalues
 from testfixtures import TempDirectory
+from toolz import merge
 
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment
@@ -53,11 +55,12 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline import CustomFactor
 from zipline.pipeline.factors import (
     DollarVolume,
+    EWMA,
+    EWMSTD,
+    ExponentialWeightedMovingAverage,
+    ExponentialWeightedStandardDeviation,
     MaxDrawdown,
     SimpleMovingAverage,
-    EWMA,
-    ExponentialWeightedMovingAverage,
-    DollarVolume,
 )
 from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
@@ -838,17 +841,39 @@ class ParameterizedFactorTestCase(TestCase):
             lambda window: ewma(window, span=span)[-1],
         )[window_length:]
 
+    def expected_ewmstd(self, window_length, decay_rate):
+        alpha = 1 - decay_rate
+        span = (2 / alpha) - 1
+        return rolling_apply(
+            self.raw_data,
+            window_length,
+            lambda window: ewmstd(window, span=span)[-1],
+        )[window_length:]
+
     @parameterized.expand([
         (3,),
         (5,),
     ])
-    def test_ewma(self, window_length):
+    def test_ewm_stats(self, window_length):
+
         def ewma_name(decay_rate):
             return 'ewma_%s' % decay_rate
 
+        def ewmstd_name(decay_rate):
+            return 'ewmstd_%s' % decay_rate
+
         decay_rates = [0.25, 0.5, 0.75]
         ewmas = {
-            ewma_name(decay_rate): ExponentialWeightedMovingAverage(
+            ewma_name(decay_rate): EWMA(
+                inputs=(USEquityPricing.close,),
+                window_length=window_length,
+                decay_rate=decay_rate,
+            )
+            for decay_rate in decay_rates
+        }
+
+        ewmstds = {
+            ewmstd_name(decay_rate): EWMSTD(
                 inputs=(USEquityPricing.close,),
                 window_length=window_length,
                 decay_rate=decay_rate,
@@ -857,15 +882,19 @@ class ParameterizedFactorTestCase(TestCase):
         }
 
         all_results = self.engine.run_pipeline(
-            Pipeline(columns=ewmas),
+            Pipeline(columns=merge(ewmas, ewmstds)),
             self.dates[window_length],
             self.dates[-1],
         )
 
         for decay_rate in decay_rates:
-            result = all_results[ewma_name(decay_rate)].unstack()
-            expected = self.expected_ewma(window_length, decay_rate)
-            assert_frame_equal(result, expected)
+            ewma_result = all_results[ewma_name(decay_rate)].unstack()
+            ewma_expected = self.expected_ewma(window_length, decay_rate)
+            assert_frame_equal(ewma_result, ewma_expected)
+
+            ewmstd_result = all_results[ewmstd_name(decay_rate)].unstack()
+            ewmstd_expected = self.expected_ewmstd(window_length, decay_rate)
+            assert_frame_equal(ewmstd_result, ewmstd_expected)
 
     @staticmethod
     def decay_rate_to_span(decay_rate):
@@ -881,13 +910,12 @@ class ParameterizedFactorTestCase(TestCase):
     def decay_rate_to_halflife(decay_rate):
         return log(.5) / log(decay_rate)
 
-    @parameterized.expand([
-        (3,),
-        (5,),
-        (10,),
-    ])
-    def test_from_span(self, span):
-        from_span = EWMA.from_span(
+    def ewm_cases():
+        return product([EWMSTD, EWMA], [3, 5, 10])
+
+    @parameterized.expand(ewm_cases())
+    def test_from_span(self, type_, span):
+        from_span = type_.from_span(
             inputs=[USEquityPricing.close],
             window_length=20,
             span=span,
@@ -895,12 +923,8 @@ class ParameterizedFactorTestCase(TestCase):
         implied_span = self.decay_rate_to_span(from_span.params['decay_rate'])
         assert_almost_equal(span, implied_span)
 
-    @parameterized.expand([
-        (3,),
-        (5,),
-        (10,),
-    ])
-    def test_from_halflife(self, halflife):
+    @parameterized.expand(ewm_cases())
+    def test_from_halflife(self, type_, halflife):
         from_hl = EWMA.from_halflife(
             inputs=[USEquityPricing.close],
             window_length=20,
@@ -909,12 +933,8 @@ class ParameterizedFactorTestCase(TestCase):
         implied_hl = self.decay_rate_to_halflife(from_hl.params['decay_rate'])
         assert_almost_equal(halflife, implied_hl)
 
-    @parameterized.expand([
-        (3,),
-        (5,),
-        (10,),
-    ])
-    def test_from_com(self, com):
+    @parameterized.expand(ewm_cases())
+    def test_from_com(self, type_, com):
         from_com = EWMA.from_center_of_mass(
             inputs=[USEquityPricing.close],
             window_length=20,
@@ -923,8 +943,11 @@ class ParameterizedFactorTestCase(TestCase):
         implied_com = self.decay_rate_to_com(from_com.params['decay_rate'])
         assert_almost_equal(com, implied_com)
 
-    def test_ewma_aliasing(self):
+    del ewm_cases
+
+    def test_ewm_aliasing(self):
         self.assertIs(ExponentialWeightedMovingAverage, EWMA)
+        self.assertIs(ExponentialWeightedStandardDeviation, EWMSTD)
 
     def test_dollar_volume(self):
         results = self.engine.run_pipeline(

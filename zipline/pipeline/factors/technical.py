@@ -22,6 +22,8 @@ from numpy import (
     isnan,
     log,
     NINF,
+    sqrt,
+    sum as np_sum,
 )
 from numexpr import evaluate
 
@@ -136,17 +138,9 @@ def DollarVolume():
     return USEquityPricing.close.latest * USEquityPricing.volume.latest
 
 
-def exponential_decay_weights(length, decay_rate):
+class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
     """
-    Return weighting vector for an exponential moving statistic on `length`
-    rows with a decay rate of `decay_rate`.
-    """
-    return full(length, decay_rate) ** arange(length + 1, 1, -1)
-
-
-class ExponentialWeightedMovingAverage(SingleInputMixin, CustomFactor):
-    """
-    Exponentially Weighted Moving Average
+    Base class for factors implementing exponential-weighted operations.
 
     **Default Inputs:** None
     **Default Window Length:** None
@@ -165,11 +159,22 @@ class ExponentialWeightedMovingAverage(SingleInputMixin, CustomFactor):
 
             decay_rate, decay_rate ** 2, decay_rate ** 3, ...
 
-    See Also
-    --------
-    pandas.ewma
+    Methods
+    -------
+    weights
+    from_span
+    from_halflife
+    from_center_of_mass
     """
     params = ('decay_rate',)
+
+    @staticmethod
+    def weights(length, decay_rate):
+        """
+        Return weighting vector for an exponential moving statistic on `length`
+        rows with a decay rate of `decay_rate`.
+        """
+        return full(length, decay_rate) ** arange(length + 1, 1, -1)
 
     @classmethod
     @expect_types(span=Number)
@@ -231,13 +236,79 @@ class ExponentialWeightedMovingAverage(SingleInputMixin, CustomFactor):
             decay_rate=(1.0 - (1.0 / (1.0 + center_of_mass))),
         )
 
+
+class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
+    """
+    Exponentially Weighted Moving Average
+
+    **Default Inputs:** None
+    **Default Window Length:** None
+
+    Parameters
+    ----------
+    inputs : length-1 list/tuple of BoundColumn
+        The expression over which to compute the average.
+    window_length : int > 0
+        Length of the lookback window over which to compute the average.
+    decay_rate : float, 0 < decay_rate <= 1
+        Weighting factor by which to discount past observations.
+
+        When calculating historical averages, rows are multiplied by the
+        sequence::
+
+            decay_rate, decay_rate ** 2, decay_rate ** 3, ...
+
+    See Also
+    --------
+    pandas.ewma
+    """
     def compute(self, today, assets, out, data, decay_rate):
         out[:] = average(
             data,
             axis=0,
-            weights=exponential_decay_weights(len(data), decay_rate),
+            weights=self.weights(len(data), decay_rate),
         )
 
 
-# Convenience alias.
+class ExponentialWeightedStandardDeviation(_ExponentialWeightedFactor):
+    """
+    Exponentially Weighted Moving Standard Deviation
+
+    **Default Inputs:** None
+    **Default Window Length:** None
+
+    Parameters
+    ----------
+    inputs : length-1 list/tuple of BoundColumn
+        The expression over which to compute the average.
+    window_length : int > 0
+        Length of the lookback window over which to compute the average.
+    decay_rate : float, 0 < decay_rate <= 1
+        Weighting factor by which to discount past observations.
+
+        When calculating historical averages, rows are multiplied by the
+        sequence::
+
+            decay_rate, decay_rate ** 2, decay_rate ** 3, ...
+
+    See Also
+    --------
+    pandas.ewmstd
+    """
+
+    def compute(self, today, assets, out, data, decay_rate):
+        weights = self.weights(len(data), decay_rate)
+
+        mean = average(data, axis=0, weights=weights)
+        variance = average((data - mean) ** 2, axis=0, weights=weights)
+
+        squared_weight_sum = (np_sum(weights) ** 2)
+        bias_correction = (
+            squared_weight_sum / (squared_weight_sum - np_sum(weights ** 2))
+        )
+        out[:] = sqrt(variance * bias_correction)
+
+
+# Convenience aliases.
 EWMA = ExponentialWeightedMovingAverage
+EWMSTD = ExponentialWeightedStandardDeviation
