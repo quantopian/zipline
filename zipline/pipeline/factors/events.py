@@ -33,9 +33,10 @@ class BusinessDaysUntilNextEarnings(Factor):
     Assets for which `EarningsCalendar.next_announcement` is `NaT` will produce
     a value of `NaN`.
 
+
     See Also
     --------
-    BusinessDaysSincePreviousEarnings
+    zipline.pipeline.factors.BusinessDaysSincePreviousEarnings
     """
     inputs = [EarningsCalendar.next_announcement]
     window_length = 0
@@ -71,7 +72,7 @@ class BusinessDaysSincePreviousEarnings(Factor):
 
     See Also
     --------
-    BusinessDaysUntilNextEarnings
+    zipline.pipeline.factors.BusinessDaysUntilNextEarnings
     """
     inputs = [EarningsCalendar.previous_announcement]
     window_length = 0

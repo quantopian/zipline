@@ -12,13 +12,12 @@ from zipline.errors import (
     UnsupportedDataType,
 )
 from zipline.lib.rank import masked_rankdata_2d
-from zipline.pipeline.term import (
+from zipline.pipeline.mixins import (
     CustomTermMixin,
-    NotSpecified,
-    RequiredWindowLengthMixin,
+    PositiveWindowLengthMixin,
     SingleInputMixin,
-    CompositeTerm,
 )
+from zipline.pipeline.term import CompositeTerm, NotSpecified
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -395,8 +394,8 @@ class Factor(CompositeTerm):
         See Also
         --------
         scipy.stats.rankdata
-        zipline.lib.rank
-        zipline.pipeline.factors.Rank
+        zipline.lib.rank.masked_rankdata_2d
+        zipline.pipeline.factors.factor.Rank
         """
         return Rank(self, method=method, ascending=ascending, mask=mask)
 
@@ -467,7 +466,7 @@ class Factor(CompositeTerm):
 
         See Also
         --------
-        zipline.pipeline.filters.PercentileFilter
+        zipline.pipeline.filters.filter.PercentileFilter
         """
         return PercentileFilter(
             self,
@@ -606,7 +605,7 @@ class Rank(SingleInputMixin, Factor):
         )
 
 
-class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
+class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     '''
     Base class for user-defined Factors.
 

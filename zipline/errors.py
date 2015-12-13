@@ -375,6 +375,17 @@ class WindowLengthNotSpecified(ZiplineError):
     )
 
 
+class InvalidTermParams(ZiplineError):
+    """
+    Raised if a user attempts to construct a Term using ParameterizedTermMixin
+    without specifying a `params` list in the class body.
+    """
+    msg = (
+        "Expected a list of strings as a class-level attribute for "
+        "{termname}.params, but got {value} instead."
+    )
+
+
 class DTypeNotSpecified(ZiplineError):
     """
     Raised if a user attempts to construct a term without specifying dtype and

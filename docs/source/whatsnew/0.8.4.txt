@@ -17,7 +17,6 @@ Highlights
 * :class:`~zipline.assets.assets.AssetFinder` speedups (:issue:`830` and
   :issue:`817`).
 
-
 Enhancements
 ~~~~~~~~~~~~
 
@@ -53,6 +52,13 @@ Enhancements
   calculates the percent change in close price over the given
   window_length. (:issue:`884`).
 
+* Added a new built-in factor:
+  :class:`~zipline.pipeline.factors.DollarVolume`. (:issue:`910`).
+
+* Added :class:`~zipline.pipeline.factors.ExponentialWeightedMovingAverage` and
+  :class:`~zipline.pipeline.factors.ExponentialWeightedStandardDeviation`
+  factors. (:issue:`910`).
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -60,7 +66,11 @@ Experimental Features
 
    Experimental features are subject to change.
 
-None
+* Added support for parameterized ``Factor`` subclasses.  Factors may specify
+  ``params`` as a class-level attribute containing a tuple of parameter names.
+  These values are then accepted by the constructor and forwarded by name to
+  the factor's ``compute`` function.  This API is experimental, and may change
+  in future releases.
 
 Bug Fixes
 ~~~~~~~~~
@@ -71,6 +81,7 @@ Bug Fixes
 
 * Fixes an error raised in calculating beta when benchmark data were sparse.
   Instead `numpy.nan` is returned (:issue:`859`).
+
 * Fixed an issue pickling :func:`~zipline.utils.sentinel.sentinel` objects
   (:issue:`872`).
 
