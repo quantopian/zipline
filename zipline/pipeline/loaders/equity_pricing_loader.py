@@ -60,8 +60,8 @@ class USEquityPricingLoader(PipelineLoader):
             SQLiteAdjustmentReader(adjustments_path)
         )
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
-        # load_adjusted_array is called with dates on which the user's algo
+    def load_columns(self, columns, dates, assets, mask):
+        # load_columns is called with dates on which the user's algo
         # will be shown data, which means we need to return the data that would
         # be known at the start of each date.  We assume that the latest data
         # known on day N is the data from day (N - 1), so we shift all query

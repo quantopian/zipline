@@ -93,7 +93,7 @@ def assert_multi_index_is_product(testcase, index, *levels):
 class ColumnArgs(tuple):
     """A tuple of Columns that defines equivalence based on the order of the
     columns' DataSets, instead of the columns themselves. This is used when
-    comparing the columns passed to a loader's load_adjusted_array method,
+    comparing the columns passed to a loader's load_columns method,
     since we want to assert that they are ordered by DataSet.
     """
     def __new__(cls, *cols):
@@ -119,10 +119,10 @@ class RecordingConstantLoader(ConstantLoader):
 
         self.load_calls = []
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, assets, mask):
         self.load_calls.append(ColumnArgs(*columns))
 
-        return super(RecordingConstantLoader, self).load_adjusted_array(
+        return super(RecordingConstantLoader, self).load_columns(
             columns, dates, assets, mask,
         )
 

@@ -55,13 +55,13 @@ class DataFrameLoaderTestCase(TestCase):
 
         with self.assertRaises(ValueError):
             # Wrong column.
-            loader.load_adjusted_array(
+            loader.load_columns(
                 [USEquityPricing.open], self.dates, self.sids, self.mask
             )
 
         with self.assertRaises(ValueError):
             # Too many columns.
-            loader.load_adjusted_array(
+            loader.load_columns(
                 [USEquityPricing.open, USEquityPricing.close],
                 self.dates,
                 self.sids,
@@ -75,7 +75,7 @@ class DataFrameLoaderTestCase(TestCase):
 
         dates_slice = slice(None, 10, None)
         sids_slice = slice(1, 3, None)
-        [adj_array] = loader.load_adjusted_array(
+        [adj_array] = loader.load_columns(
             [USEquityPricing.close],
             self.dates[dates_slice],
             self.sids[sids_slice],
@@ -227,7 +227,7 @@ class DataFrameLoaderTestCase(TestCase):
 
         mask = self.mask[dates_slice, sids_slice]
         with patch('zipline.pipeline.loaders.frame.AdjustedArray') as m:
-            loader.load_adjusted_array(
+            loader.load_columns(
                 columns=[USEquityPricing.close],
                 dates=self.dates[dates_slice],
                 assets=self.sids[sids_slice],

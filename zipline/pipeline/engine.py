@@ -341,7 +341,7 @@ class SimplePipelineEngine(object):
                     key=lambda t: t.dataset
                 )
                 loader = get_loader(term)
-                loaded = loader.load_adjusted_array(
+                loaded = loader.load_columns(
                     to_load, mask_dates, assets, mask,
                 )
                 workspace.update(loaded)

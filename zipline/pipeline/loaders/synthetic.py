@@ -67,7 +67,7 @@ class ConstantLoader(PipelineLoader):
 
         self._loaders = loaders
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, assets, mask):
         """
         Load by delegating to sub-loaders.
         """
@@ -78,7 +78,7 @@ class ConstantLoader(PipelineLoader):
             except KeyError:
                 raise ValueError("Couldn't find loader for %s" % col)
             out.update(
-                loader.load_adjusted_array([col], dates, assets, mask)
+                loader.load_columns([col], dates, assets, mask)
             )
         return out
 

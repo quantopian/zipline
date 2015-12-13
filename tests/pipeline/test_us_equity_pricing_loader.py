@@ -423,7 +423,7 @@ class USEquityPricingLoaderTestCase(TestCase):
             adjustment_reader,
         )
 
-        results = pricing_loader.load_adjusted_array(
+        results = pricing_loader.load_columns(
             columns,
             dates=query_days,
             assets=self.assets,
@@ -502,7 +502,7 @@ class USEquityPricingLoaderTestCase(TestCase):
             adjustment_reader,
         )
 
-        results = pricing_loader.load_adjusted_array(
+        results = pricing_loader.load_columns(
             columns,
             dates=query_days,
             assets=Int64Index(arange(1, 7)),

@@ -97,9 +97,9 @@ class EarningsCalendarLoader(PipelineLoader):
             adjustments=None,
         )
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, assets, mask):
         return merge(
-            self.get_loader(column).load_adjusted_array(
+            self.get_loader(column).load_columns(
                 [column], dates, assets, mask
             )
             for column in columns

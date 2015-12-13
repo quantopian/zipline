@@ -780,7 +780,7 @@ class BlazeLoader(dict):
             return self
         raise KeyError(column)
 
-    def load_adjusted_array(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, assets, mask):
         return dict(
             concat(map(
                 partial(self._load_dataset, dates, assets, mask),
