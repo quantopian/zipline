@@ -780,15 +780,15 @@ class BlazeLoader(dict):
             return self
         raise KeyError(column)
 
-    def load_columns(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, sids, mask):
         return dict(
             concat(map(
-                partial(self._load_dataset, dates, assets, mask),
+                partial(self._load_dataset, dates, sids, mask),
                 itervalues(groupby(getdataset, columns))
             ))
         )
 
-    def _load_dataset(self, dates, assets, mask, columns):
+    def _load_dataset(self, dates, sids, mask, columns):
         try:
             (dataset,) = set(map(getdataset, columns))
         except ValueError:
@@ -796,7 +796,7 @@ class BlazeLoader(dict):
 
         expr, deltas, resources = self[dataset]
         have_sids = SID_FIELD_NAME in expr.fields
-        assets = list(map(int, assets))  # coerce from numpy.int64
+        sids = list(map(int, sids))  # coerce from numpy.int64
         fields = list(map(dataset_name, columns))
         query_fields = fields + [AD_FIELD_NAME, TS_FIELD_NAME] + (
             [SID_FIELD_NAME] if have_sids else []
@@ -822,7 +822,7 @@ class BlazeLoader(dict):
             lower = odo(ts[ts <= dates[0]].max(), pd.Timestamp)
             selection = ts <= dates[-1]
             if have_sids:
-                selection &= e[SID_FIELD_NAME].isin(assets)
+                selection &= e[SID_FIELD_NAME].isin(sids)
             if lower is not pd.NaT:
                 selection &= ts >= lower
 
@@ -860,7 +860,7 @@ class BlazeLoader(dict):
             cols = dense_output.columns
             dense_output = dense_output.reindex(
                 columns=pd.MultiIndex.from_product(
-                    (cols.levels[0], assets),
+                    (cols.levels[0], sids),
                     names=cols.names,
                 ),
             )
@@ -872,13 +872,13 @@ class BlazeLoader(dict):
             column_view = compose(
                 # We need to copy this because we need a concrete ndarray.
                 # The `repeat_last_axis` call will give us a fancy strided
-                # array which uses a buffer to represent `len(assets)` columns.
+                # array which uses a buffer to represent `len(sids)` columns.
                 # The engine puts nans at the indicies for which we do not have
                 # sid information so that the nan-aware reductions still work.
                 # A future change to the engine would be to add first class
                 # support for macro econimic datasets.
                 copy,
-                partial(repeat_last_axis, count=len(assets)),
+                partial(repeat_last_axis, count=len(sids)),
             )
             sparse_output = sparse_output.set_index(TS_FIELD_NAME)
             dense_output = sparse_output.reindex(dates, method='ffill')
@@ -897,7 +897,7 @@ class BlazeLoader(dict):
                     sparse_output.index,
                     column_idx,
                     column_name,
-                    assets,
+                    sids,
                     sparse_deltas,
                 )
             )

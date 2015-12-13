@@ -50,13 +50,13 @@ class ConstantLoader(PipelineLoader):
     -----
     Adjustments are unsupported with ConstantLoader.
     """
-    def __init__(self, constants, dates, assets):
+    def __init__(self, constants, dates, sids):
         loaders = {}
         for column, const in iteritems(constants):
             frame = DataFrame(
                 const,
                 index=dates,
-                columns=assets,
+                columns=sids,
                 dtype=column.dtype,
             )
             loaders[column] = DataFrameLoader(
@@ -67,7 +67,7 @@ class ConstantLoader(PipelineLoader):
 
         self._loaders = loaders
 
-    def load_columns(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, sids, mask):
         """
         Load by delegating to sub-loaders.
         """
@@ -78,7 +78,7 @@ class ConstantLoader(PipelineLoader):
             except KeyError:
                 raise ValueError("Couldn't find loader for %s" % col)
             out.update(
-                loader.load_columns([col], dates, assets, mask)
+                loader.load_columns([col], dates, sids, mask)
             )
         return out
 
@@ -192,12 +192,12 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
         from_date = (date - cls.PSEUDO_EPOCH).days
         return from_asset + from_colname + from_date
 
-    def expected_values_2d(self, dates, assets, colname):
+    def expected_values_2d(self, dates, sids, colname):
         """
         Return an 2D array containing cls.expected_value(asset_id, date,
         colname) for each date/asset pair in the inputs.
 
-        Values before/after an assets lifetime are filled with 0 for volume and
+        Values before/after an sids lifetime are filled with 0 for volume and
         NaN for price columns.
         """
         if colname == 'volume':
@@ -207,8 +207,8 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
             dtype = float64
             missing = float('nan')
 
-        data = full((len(dates), len(assets)), missing, dtype=dtype)
-        for j, asset in enumerate(assets):
+        data = full((len(dates), len(sids)), missing, dtype=dtype)
+        for j, asset in enumerate(sids):
             start, end = self.asset_start(asset), self.asset_end(asset)
             for i, date in enumerate(dates):
                 # No value expected for dates outside the asset's start/end
@@ -219,8 +219,8 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
         return data
 
     # BEGIN SUPERCLASS INTERFACE
-    def gen_tables(self, assets):
-        for asset in assets:
+    def gen_tables(self, sids):
+        for asset in sids:
             yield asset, self._raw_data_for_asset(asset)
 
     def to_uint32(self, array, colname):

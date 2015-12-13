@@ -102,7 +102,7 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         )
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
 
-    def load_columns(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, sids, mask):
         expr = self._expr
         filtered = expr[expr[TS_FIELD_NAME] <= dates[0]]
         lower = odo(
@@ -129,7 +129,7 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
 
         sids = raw.loc[:, SID_FIELD_NAME]
         raw.drop(
-            sids[~(sids.isin(assets) | sids.notnull())].index,
+            sids[~(sids.isin(sids) | sids.notnull())].index,
             inplace=True
         )
 
@@ -147,4 +147,4 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         return EarningsCalendarLoader(
             dates,
             valmap(mkseries, gb.groups),
-        ).load_columns(columns, dates, assets, mask)
+        ).load_columns(columns, dates, sids, mask)

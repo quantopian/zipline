@@ -60,7 +60,7 @@ class USEquityPricingLoader(PipelineLoader):
             SQLiteAdjustmentReader(adjustments_path)
         )
 
-    def load_columns(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, sids, mask):
         # load_columns is called with dates on which the user's algo
         # will be shown data, which means we need to return the data that would
         # be known at the start of each date.  We assume that the latest data
@@ -74,12 +74,12 @@ class USEquityPricingLoader(PipelineLoader):
             columns,
             start_date,
             end_date,
-            assets,
+            sids,
         )
         adjustments = self.adjustments_loader.load_adjustments(
             columns,
             dates,
-            assets,
+            sids,
         )
         adjusted_arrays = [
             AdjustedArray(raw_array, mask, col_adjustments)

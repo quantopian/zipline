@@ -119,11 +119,11 @@ class RecordingConstantLoader(ConstantLoader):
 
         self.load_calls = []
 
-    def load_columns(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, sids, mask):
         self.load_calls.append(ColumnArgs(*columns))
 
         return super(RecordingConstantLoader, self).load_columns(
-            columns, dates, assets, mask,
+            columns, dates, sids, mask,
         )
 
 
@@ -144,16 +144,16 @@ class ConstantInputTestCase(TestCase):
             USEquityPricing.close: 3,
             USEquityPricing.high: 4,
         }
-        self.assets = [1, 2, 3]
+        self.sids = [1, 2, 3]
         self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
         self.loader = ConstantLoader(
             constants=self.constants,
             dates=self.dates,
-            assets=self.assets,
+            sids=self.sids,
         )
 
         self.asset_info = make_simple_equity_info(
-            self.assets,
+            self.sids,
             start_date=self.dates[0],
             end_date=self.dates[-1],
         )
@@ -179,8 +179,8 @@ class ConstantInputTestCase(TestCase):
             lambda column: loader, self.dates, self.asset_finder,
         )
         factor = AssetID()
-        asset = self.assets[0]
-        p = Pipeline(columns={'f': factor}, screen=factor <= asset)
+        sid = self.sids[0]
+        p = Pipeline(columns={'f': factor}, screen=factor <= sid)
 
         # The crux of this is that when we run the pipeline for a single day
         #  (i.e. start and end dates are the same) we should accurately get
@@ -191,7 +191,7 @@ class ConstantInputTestCase(TestCase):
     def test_screen(self):
         loader = self.loader
         finder = self.asset_finder
-        assets = array(self.assets)
+        sids = array(self.sids)
         engine = SimplePipelineEngine(
             lambda column: loader, self.dates, self.asset_finder,
         )
@@ -199,11 +199,11 @@ class ConstantInputTestCase(TestCase):
         dates = self.dates[10:10 + num_dates]
 
         factor = AssetID()
-        for asset in assets:
-            p = Pipeline(columns={'f': factor}, screen=factor <= asset)
+        for sid in sids:
+            p = Pipeline(columns={'f': factor}, screen=factor <= sid)
             result = engine.run_pipeline(p, dates[0], dates[-1])
 
-            expected_sids = assets[assets <= asset]
+            expected_sids = sids[sids <= sid]
             expected_assets = finder.retrieve_all(expected_sids)
             expected_result = DataFrame(
                 index=MultiIndex.from_product([dates, expected_assets]),
@@ -216,11 +216,11 @@ class ConstantInputTestCase(TestCase):
     def test_single_factor(self):
         loader = self.loader
         finder = self.asset_finder
-        assets = self.assets
+        sids = self.sids
         engine = SimplePipelineEngine(
             lambda column: loader, self.dates, self.asset_finder,
         )
-        result_shape = (num_dates, num_assets) = (5, len(assets))
+        result_shape = (num_dates, num_sids) = (5, len(sids))
         dates = self.dates[10:10 + num_dates]
 
         factor = RollingSumDifference()
@@ -239,7 +239,7 @@ class ConstantInputTestCase(TestCase):
             result = engine.run_pipeline(p, dates[0], dates[-1])
             self.assertEqual(set(result.columns), {'f'})
             assert_multi_index_is_product(
-                self, result.index, dates, finder.retrieve_all(assets)
+                self, result.index, dates, finder.retrieve_all(sids)
             )
 
             check_arrays(
@@ -251,11 +251,11 @@ class ConstantInputTestCase(TestCase):
 
         loader = self.loader
         finder = self.asset_finder
-        assets = self.assets
+        sids = self.sids
         engine = SimplePipelineEngine(
             lambda column: loader, self.dates, self.asset_finder,
         )
-        shape = num_dates, num_assets = (5, len(assets))
+        shape = num_dates, num_sids = (5, len(sids))
         dates = self.dates[10:10 + num_dates]
 
         short_factor = RollingSumDifference(window_length=3)
@@ -276,7 +276,7 @@ class ConstantInputTestCase(TestCase):
 
         self.assertEqual(set(results.columns), {'short', 'high', 'long'})
         assert_multi_index_is_product(
-            self, results.index, dates, finder.retrieve_all(assets)
+            self, results.index, dates, finder.retrieve_all(sids)
         )
 
         # row-wise sum over an array whose values are all (1 - 2)
@@ -325,21 +325,21 @@ class ConstantInputTestCase(TestCase):
         expected_high_low = 3.0 * (constants[high] - constants[low])
         assert_frame_equal(
             high_low_result,
-            DataFrame(expected_high_low, index=dates, columns=self.assets),
+            DataFrame(expected_high_low, index=dates, columns=self.sids),
         )
 
         open_close_result = results['open_close'].unstack()
         expected_open_close = 3.0 * (constants[open] - constants[close])
         assert_frame_equal(
             open_close_result,
-            DataFrame(expected_open_close, index=dates, columns=self.assets),
+            DataFrame(expected_open_close, index=dates, columns=self.sids),
         )
 
         avg_result = results['avg'].unstack()
         expected_avg = (expected_high_low + expected_open_close) / 2.0
         assert_frame_equal(
             avg_result,
-            DataFrame(expected_avg, index=dates, columns=self.assets),
+            DataFrame(expected_avg, index=dates, columns=self.sids),
         )
 
     def test_rolling_and_nonrolling(self):
@@ -348,14 +348,14 @@ class ConstantInputTestCase(TestCase):
         volume = USEquityPricing.volume
 
         # Test for thirty days up to the last day that we think all
-        # the assets existed.
+        # the sids existed.
         dates_to_test = self.dates[-30:]
 
         constants = {open_: 1, close: 2, volume: 3}
         loader = ConstantLoader(
             constants=constants,
             dates=self.dates,
-            assets=self.assets,
+            sids=self.sids,
         )
         engine = SimplePipelineEngine(
             lambda column: loader, self.dates, self.asset_finder,
@@ -381,7 +381,7 @@ class ConstantInputTestCase(TestCase):
             set(result.columns)
         )
 
-        result_index = self.assets * len(dates_to_test)
+        result_index = self.sids * len(dates_to_test)
         result_shape = (len(result_index),)
         check_arrays(
             result['sumdiff'],
@@ -414,12 +414,12 @@ class ConstantInputTestCase(TestCase):
                       Loader1DataSet2.col2: 4}
         loader1 = RecordingConstantLoader(constants=constants1,
                                           dates=self.dates,
-                                          assets=self.assets)
+                                          sids=self.sids)
         constants2 = {Loader2DataSet.col1: 5,
                       Loader2DataSet.col2: 6}
         loader2 = RecordingConstantLoader(constants=constants2,
                                           dates=self.dates,
-                                          assets=self.assets)
+                                          sids=self.sids)
 
         engine = SimplePipelineEngine(
             lambda column:
@@ -457,7 +457,7 @@ class ConstantInputTestCase(TestCase):
                        * pipe_col.window_length)
                 for name, pipe_col in iteritems(columns)}
 
-        index = MultiIndex.from_product([self.dates[2:], self.assets])
+        index = MultiIndex.from_product([self.dates[2:], self.sids])
         expected = DataFrame(
             data={col:
                   concatenate((
@@ -491,7 +491,7 @@ class FrameInputTestCase(TestCase):
         cls.env = TradingEnvironment()
         day = cls.env.trading_day
 
-        cls.assets = Int64Index([1, 2, 3])
+        cls.sids = Int64Index([1, 2, 3])
         cls.dates = date_range(
             '2015-01-01',
             '2015-01-31',
@@ -500,7 +500,7 @@ class FrameInputTestCase(TestCase):
         )
 
         asset_info = make_simple_equity_info(
-            cls.assets,
+            cls.sids,
             start_date=cls.dates[0],
             end_date=cls.dates[-1],
         )
@@ -517,10 +517,10 @@ class FrameInputTestCase(TestCase):
         return self.make_frame(True)
 
     def make_frame(self, data):
-        return DataFrame(data, columns=self.assets, index=self.dates)
+        return DataFrame(data, columns=self.sids, index=self.dates)
 
     def test_compute_with_adjustments(self):
-        dates, assets = self.dates, self.assets
+        dates, sids = self.dates, self.sids
         low, high = USEquityPricing.low, USEquityPricing.high
         apply_idxs = [3, 10, 16]
 
@@ -531,7 +531,7 @@ class FrameInputTestCase(TestCase):
             [
                 dict(
                     kind=MULTIPLY,
-                    sid=assets[1],
+                    sid=sids[1],
                     value=2.0,
                     start_date=None,
                     end_date=apply_date(0, offset=-1),
@@ -539,7 +539,7 @@ class FrameInputTestCase(TestCase):
                 ),
                 dict(
                     kind=MULTIPLY,
-                    sid=assets[1],
+                    sid=sids[1],
                     value=3.0,
                     start_date=None,
                     end_date=apply_date(1, offset=-1),
@@ -547,7 +547,7 @@ class FrameInputTestCase(TestCase):
                 ),
                 dict(
                     kind=MULTIPLY,
-                    sid=assets[1],
+                    sid=sids[1],
                     value=5.0,
                     start_date=None,
                     end_date=apply_date(2, offset=-1),

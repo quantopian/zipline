@@ -61,7 +61,7 @@ class DataFrameLoader(PipelineLoader):
         self.column = column
         self.baseline = baseline.values
         self.dates = baseline.index
-        self.assets = baseline.columns
+        self.sids = baseline.columns
 
         if adjustments is None:
             adjustments = DataFrame(
@@ -144,7 +144,7 @@ class DataFrameLoader(PipelineLoader):
             )
         return out
 
-    def load_columns(self, columns, dates, assets, mask):
+    def load_columns(self, columns, dates, sids, mask):
         """
         Load data from our stored baseline.
         """
@@ -157,18 +157,18 @@ class DataFrameLoader(PipelineLoader):
             raise ValueError("Can't load unknown column %s" % columns[0])
 
         date_indexer = self.dates.get_indexer(dates)
-        assets_indexer = self.assets.get_indexer(assets)
+        sids_indexer = self.sids.get_indexer(sids)
 
         # Boolean arrays with True on matched entries
         good_dates = (date_indexer != -1)
-        good_assets = (assets_indexer != -1)
+        good_sids = (sids_indexer != -1)
 
         return {
             column: AdjustedArray(
                 # Pull out requested columns/rows from our baseline data.
-                data=self.baseline[ix_(date_indexer, assets_indexer)],
+                data=self.baseline[ix_(date_indexer, sids_indexer)],
                 # Mask out requested columns/rows that didnt match.
-                mask=(good_assets & good_dates[:, None]) & mask,
-                adjustments=self.format_adjustments(dates, assets),
+                mask=(good_sids & good_dates[:, None]) & mask,
+                adjustments=self.format_adjustments(dates, sids),
             ),
         }

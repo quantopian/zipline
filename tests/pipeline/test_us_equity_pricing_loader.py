@@ -95,7 +95,7 @@ EQUITY_INFO = DataFrame(
     columns=['start_date', 'end_date'],
 ).astype(datetime64)
 
-TEST_QUERY_ASSETS = EQUITY_INFO.index
+TEST_QUERY_SIDS = EQUITY_INFO.index
 
 
 # ADJUSTMENTS use the following scheme to indicate information about the value
@@ -280,14 +280,14 @@ class USEquityPricingLoaderTestCase(TestCase):
                                         daily_bar_reader)
         writer.write(SPLITS, MERGERS, DIVIDENDS)
 
-        cls.assets = TEST_QUERY_ASSETS
+        cls.sids = TEST_QUERY_SIDS
         cls.asset_info = EQUITY_INFO
         cls.bcolz_writer = SyntheticDailyBarWriter(
             cls.asset_info,
             cls.calendar_days,
         )
         cls.bcolz_path = cls.test_data_dir.getpath('equity_pricing.bcolz')
-        cls.bcolz_writer.write(cls.bcolz_path, cls.calendar_days, cls.assets)
+        cls.bcolz_writer.write(cls.bcolz_path, cls.calendar_days, cls.sids)
 
     @classmethod
     def tearDownClass(cls):
@@ -367,7 +367,7 @@ class USEquityPricingLoaderTestCase(TestCase):
         adjustments = reader.load_adjustments(
             columns,
             query_days,
-            self.assets,
+            self.sids,
         )
 
         close_adjustments = adjustments[0]
@@ -413,7 +413,7 @@ class USEquityPricingLoaderTestCase(TestCase):
         adjustments = adjustment_reader.load_adjustments(
             columns,
             query_days,
-            self.assets,
+            self.sids,
         )
         self.assertEqual(adjustments, [{}, {}])
 
@@ -426,19 +426,19 @@ class USEquityPricingLoaderTestCase(TestCase):
         results = pricing_loader.load_columns(
             columns,
             dates=query_days,
-            assets=self.assets,
-            mask=ones((len(query_days), len(self.assets)), dtype=bool),
+            sids=self.sids,
+            mask=ones((len(query_days), len(self.sids)), dtype=bool),
         )
         closes, volumes = map(getitem(results), columns)
 
         expected_baseline_closes = self.bcolz_writer.expected_values_2d(
             shifted_query_days,
-            self.assets,
+            self.sids,
             'close',
         )
         expected_baseline_volumes = self.bcolz_writer.expected_values_2d(
             shifted_query_days,
-            self.assets,
+            self.sids,
             'volume',
         )
 
@@ -462,7 +462,7 @@ class USEquityPricingLoaderTestCase(TestCase):
         with self.assertRaises(WindowLengthTooLong):
             volumes.traverse(windowlen + 1)
 
-    def apply_adjustments(self, dates, assets, baseline_values, adjustments):
+    def apply_adjustments(self, dates, sids, baseline_values, adjustments):
         min_date, max_date = dates[[0, -1]]
         # HACK: Simulate the coercion to float64 we do in adjusted_array.  This
         # should be removed when AdjustedArray properly supports
@@ -475,7 +475,7 @@ class USEquityPricingLoaderTestCase(TestCase):
             if eff_date not in dates:
                 continue
             eff_date_loc = dates.get_loc(eff_date)
-            asset_col = assets.get_loc(sid)
+            asset_col = sids.get_loc(sid)
             # Apply ratio multiplicatively to the asset column on all rows less
             # than or equal adjustment effective date.
             values[:eff_date_loc + 1, asset_col] *= ratio
@@ -505,19 +505,19 @@ class USEquityPricingLoaderTestCase(TestCase):
         results = pricing_loader.load_columns(
             columns,
             dates=query_days,
-            assets=Int64Index(arange(1, 7)),
+            sids=Int64Index(arange(1, 7)),
             mask=ones((len(query_days), 6), dtype=bool),
         )
         highs, volumes = map(getitem(results), columns)
 
         expected_baseline_highs = self.bcolz_writer.expected_values_2d(
             shifted_query_days,
-            self.assets,
+            self.sids,
             'high',
         )
         expected_baseline_volumes = self.bcolz_writer.expected_values_2d(
             shifted_query_days,
-            self.assets,
+            self.sids,
             'volume',
         )
 
@@ -529,7 +529,7 @@ class USEquityPricingLoaderTestCase(TestCase):
                 baseline_dates = query_days[offset:offset + windowlen]
                 expected_adjusted_highs = self.apply_adjustments(
                     baseline_dates,
-                    self.assets,
+                    self.sids,
                     baseline,
                     # Apply all adjustments.
                     concat([SPLITS, MERGERS, DIVIDENDS_EXPECTED],
@@ -546,7 +546,7 @@ class USEquityPricingLoaderTestCase(TestCase):
 
                 expected_adjusted_volumes = self.apply_adjustments(
                     baseline_dates,
-                    self.assets,
+                    self.sids,
                     baseline,
                     adjustments,
                 )
