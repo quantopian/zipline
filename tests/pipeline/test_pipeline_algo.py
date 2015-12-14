@@ -50,7 +50,6 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentReader,
 )
 from zipline.finance import trading
-from zipline.finance.trading import SimulationParameters
 from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factors import VWAP
