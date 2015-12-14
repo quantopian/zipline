@@ -4,10 +4,10 @@ import math
 from six import text_type, iteritems
 
 import zipline.protocol as zp
-from zipline.utils.protocol_utils import Enum
+from zipline.utils.utils import enum
 from zipline.utils.serialization_utils import VERSION_LABEL
 
-ORDER_STATUS = Enum(
+ORDER_STATUS = enum(
     'OPEN',
     'FILLED',
     'CANCELLED',
