@@ -279,6 +279,10 @@ class DataPortal(object):
         dt: pd.Timestamp
             The timestamp from which to go back in time one slot.
 
+        data_frequency: string
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
+
         Returns
         -------
         The value of the desired field at the desired time.
