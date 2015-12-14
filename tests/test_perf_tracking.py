@@ -22,23 +22,22 @@ from datetime import (
 )
 import logging
 import operator
-
 import unittest
+import itertools
+
 from nose_parameterized import parameterized
 import nose.tools as nt
 import pytz
-import itertools
-
 import pandas as pd
 import numpy as np
-from six.moves import range, zip
 
+from six.moves import range, zip
+from zipline.finance.trading import noop_load
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
 from zipline.finance.performance import position_tracker
 from zipline.finance.slippage import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
-
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
 from zipline.finance.blotter import Order
@@ -70,7 +69,6 @@ def check_perf_period(pp,
                       longs_count,
                       short_exposure,
                       shorts_count):
-
     perf_data = pp.to_dict()
     np.testing.assert_allclose(
         gross_leverage, perf_data['gross_leverage'], rtol=1e-3)
@@ -141,7 +139,7 @@ def benchmark_events_in_range(sim_params, env):
         for dt, ret in env.benchmark_returns.iteritems()
         if dt.date() >= sim_params.period_start.date() and
         dt.date() <= sim_params.period_end.date()
-    ]
+        ]
 
 
 def calculate_results(sim_params,
@@ -184,7 +182,7 @@ def calculate_results(sim_params,
             [
                 event.to_series(index=zp.DIVIDEND_FIELDS)
                 for event in dividend_events
-            ],
+                ],
         )
         perf_tracker.update_dividends(dividend_frame)
 
@@ -364,7 +362,6 @@ class TestSplitPerformance(unittest.TestCase):
 
 
 class TestCommissionEvents(unittest.TestCase):
-
     def setUp(self):
         self.env = TradingEnvironment()
         self.env.write_data(
@@ -521,7 +518,6 @@ class TestCommissionEvents(unittest.TestCase):
 
 
 class TestDividendPerformance(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
@@ -671,7 +667,7 @@ class TestDividendPerformance(unittest.TestCase):
             10.00,
             events[0].dt,  # Declared date
             events[1].dt,  # Exclusion date
-            events[2].dt   # Pay date
+            events[2].dt  # Pay date
         )
 
         # Simulate a transaction being filled on the ex_date.
@@ -715,7 +711,7 @@ class TestDividendPerformance(unittest.TestCase):
             10.00,
             events[0].dt,  # Declared date
             events[1].dt,  # Exclusion date
-            events[3].dt   # Pay date
+            events[3].dt  # Pay date
         )
 
         buy_txn = create_txn(events[0], 10.0, 100)
@@ -973,7 +969,6 @@ class TestDividendPerformance(unittest.TestCase):
 
 
 class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
-
     # The holiday tests begins the simulation on the day
     # before Thanksgiving, so that the next trading day is
     # two days ahead. Any tests that hard code events
@@ -993,12 +988,138 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
         self.benchmark_events = benchmark_events_in_range(self.sim_params,
                                                           self.env)
 
+from zipline.assets import (
+    CurrencyPair,
+    Asset,
+    Equity
+)
 
-class TestPositionPerformance(unittest.TestCase):
+class TestCurrencyPositionPerformance(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.env = TradingEnvironment()
+        cls.env = TradingEnvironment(load=noop_load)
+
+        """
+        TODO:
+        1. add in equities Assets with a currency
+        2. add in no 10 Currency_Pair make it GBPUSD
+        """
+
+        cls.currency1 = CurrencyPair(10,
+                                 symbol="QF4",
+                                 pair="GBPUSD",
+                                 base="GBP",
+                                 quote="USD",
+                                 start_date=datetime(1970, 1, 1))
+        cls.equity1 = Equity(1,
+                         symbol='AAPL',
+                         currency='USD')
+
+        cls.env.write_data(equities_identifiers=[cls.equity1])
+        cls.env.write_data(currency_identifiers=[cls.currency1])
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env, cls.currency1, cls.equity1
+
+    def setUp(self):
+        self.sim_params = create_simulation_parameters(num_days=4)
+        self.finder = self.env.asset_finder
+        # self.benchmark_events = benchmark_events_in_range(self.sim_params,
+        #                                                   self.env)
+
+    def test_long_short_positions_gbp_base_usd_quote(self):
+        """
+        start with $1000
+        buy 100 stock1 shares at $10
+        stock1 then goes down to $9
+        """
+
+        trades_1 = factory.create_trade_history(
+            1,
+            [10, 10, 10, 9],
+            [100, 100, 100, 100],
+            oneday,
+            self.sim_params,
+            env=self.env
+        )
+
+        # todo:mb - fix the currency data for the same duration
+        # for each day setup rates as:
+        # [0.5, 0.25, 0.33, 0.75]
+        # then we check the value of the account each day back in GBP
+
+        txn1 = create_txn(trades_1[1], 10.0, 100)
+        pt = perf.PositionTracker(self.env.asset_finder)
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        pp.position_tracker = pt
+        pt.execute_transaction(txn1)
+        pp.handle_execution(txn1)
+
+        for trade in trades_1[:-2]:
+            pt.update_last_sale(trade)
+
+        pp.calculate_performance()
+
+        check_perf_period(
+            pp,
+            gross_leverage=1.0,
+            net_leverage=1.0,
+            long_exposure=1000.0,
+            longs_count=1,
+            short_exposure=0,
+            shorts_count=0)
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+        check_account(account,
+                      settled_cash=0.0,
+                      equity_with_loan=1000.0,
+                      total_positions_value=1000.0,
+                      regt_equity=0.0,
+                      available_funds=0.0,
+                      excess_liquidity=0.0,
+                      cushion=0.0,
+                      leverage=1.0,
+                      net_leverage=1.0,
+                      net_liquidation=1000.0)
+
+        # now simulate stock1 going to $9
+        pt.update_last_sale(trades_1[-1])
+        # and stock2 going to $11
+        # pt.update_last_sale(trades_2[-1])
+
+        pp.calculate_performance()
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+
+        check_perf_period(
+            pp,
+            gross_leverage=1,
+            net_leverage=1,
+            long_exposure=900.0,
+            longs_count=1,
+            short_exposure=0,
+            shorts_count=0)
+
+        check_account(account,
+                      settled_cash=0.0,
+                      equity_with_loan=900.0,
+                      total_positions_value=900.0,
+                      regt_equity=0.0,
+                      available_funds=0.0,
+                      excess_liquidity=0.0,
+                      cushion=0,
+                      leverage=1,
+                      net_leverage=1,
+                      net_liquidation=900.0)
+
+
+class TestPositionPerformance(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment(load=noop_load)
         cls.env.write_data(equities_identifiers=[1, 2])
 
     @classmethod
@@ -1769,7 +1890,6 @@ shares in position"
 
 
 class TestPerformanceTracker(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
@@ -2184,7 +2304,6 @@ class TestPosition(unittest.TestCase):
 
 
 class TestPositionTracker(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
@@ -2295,7 +2414,6 @@ class TestPositionTracker(unittest.TestCase):
 
 
 class TestPerformancePeriod(unittest.TestCase):
-
     def test_serialization(self):
         env = TradingEnvironment()
         pt = perf.PositionTracker(env.asset_finder)
