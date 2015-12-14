@@ -8,7 +8,8 @@ from six import (
 )
 
 from zipline.pipeline.term import Term, AssetExists
-from zipline.pipeline.factors import Latest
+from zipline.utils.input_validation import ensure_dtype
+from zipline.utils.preprocess import preprocess
 
 
 class Column(object):
@@ -16,6 +17,7 @@ class Column(object):
     An abstract column of data, not yet associated with a dataset.
     """
 
+    @preprocess(dtype=ensure_dtype)
     def __init__(self, dtype):
         self.dtype = dtype
 
@@ -73,15 +75,13 @@ class BoundColumn(Term):
 
     @property
     def latest(self):
-        # FIXME: Once we support non-float dtypes, this should pass a dtype
-        # along.  Right now we're just assuming that inputs will safely coerce
-        # to float.
-        return Latest(inputs=(self,))
+        from zipline.pipeline.factors import Latest
+        return Latest(inputs=(self,), dtype=self.dtype)
 
     def __repr__(self):
         return "{qualname}::{dtype}".format(
             qualname=self.qualname,
-            dtype=self.dtype.__name__,
+            dtype=self.dtype.name,
         )
 
     def short_repr(self):

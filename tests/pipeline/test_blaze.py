@@ -25,8 +25,11 @@ from zipline.pipeline.loaders.blaze import (
     from_blaze,
     BlazeLoader,
     NoDeltasWarning,
+)
+from zipline.pipeline.loaders.blaze.core import (
     NonNumpyField,
     NonPipelineField,
+    no_deltas_rules,
 )
 from zipline.utils.numpy_utils import repeat_last_axis
 from zipline.utils.test_utils import tmp_asset_finder, make_simple_equity_info
@@ -82,7 +85,7 @@ class BlazeToPipelineTestCase(TestCase):
         ds = from_blaze(
             expr,
             loader=self.garbage_loader,
-            no_deltas_rule='ignore',
+            no_deltas_rule=no_deltas_rules.ignore,
         )
         self.assertEqual(ds.__name__, name)
         self.assertTrue(issubclass(ds, DataSet))
@@ -102,7 +105,7 @@ class BlazeToPipelineTestCase(TestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule='ignore',
+                no_deltas_rule=no_deltas_rules.ignore,
             ),
             ds,
         )
@@ -113,7 +116,7 @@ class BlazeToPipelineTestCase(TestCase):
         value = from_blaze(
             expr.value,
             loader=self.garbage_loader,
-            no_deltas_rule='ignore',
+            no_deltas_rule=no_deltas_rules.ignore,
         )
         self.assertEqual(value.name, 'value')
         self.assertIsInstance(value, BoundColumn)
@@ -124,7 +127,7 @@ class BlazeToPipelineTestCase(TestCase):
             from_blaze(
                 expr.value,
                 loader=self.garbage_loader,
-                no_deltas_rule='ignore',
+                no_deltas_rule=no_deltas_rules.ignore,
             ),
             value,
         )
@@ -132,7 +135,7 @@ class BlazeToPipelineTestCase(TestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule='ignore',
+                no_deltas_rule=no_deltas_rules.ignore,
             ).value,
             value,
         )
@@ -142,7 +145,7 @@ class BlazeToPipelineTestCase(TestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule='ignore',
+                no_deltas_rule=no_deltas_rules.ignore,
             ),
             value.dataset,
         )
@@ -164,7 +167,7 @@ class BlazeToPipelineTestCase(TestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule='ignore',
+                no_deltas_rule=no_deltas_rules.ignore,
             )
         self.assertIn("'asof_date'", str(e.exception))
         self.assertIn(repr(str(expr.dshape.measure)), str(e.exception))
@@ -193,7 +196,7 @@ class BlazeToPipelineTestCase(TestCase):
             from_blaze(
                 expr,
                 loader=loader,
-                no_deltas_rule='warn',
+                no_deltas_rule=no_deltas_rules.warn,
             )
         self.assertEqual(len(ws), 1)
         w = ws[0].message
@@ -207,7 +210,7 @@ class BlazeToPipelineTestCase(TestCase):
             from_blaze(
                 expr,
                 loader=loader,
-                no_deltas_rule='raise',
+                no_deltas_rule=no_deltas_rules.raise_,
             )
         self.assertIn(str(expr), str(e.exception))
 
@@ -224,7 +227,7 @@ class BlazeToPipelineTestCase(TestCase):
         ds = from_blaze(
             expr,
             loader=self.garbage_loader,
-            no_deltas_rule='ignore',
+            no_deltas_rule=no_deltas_rules.ignore,
         )
         with self.assertRaises(AttributeError):
             ds.a
@@ -246,7 +249,7 @@ class BlazeToPipelineTestCase(TestCase):
         ds = from_blaze(
             expr,
             loader=self.garbage_loader,
-            no_deltas_rule='ignore',
+            no_deltas_rule=no_deltas_rules.ignore,
         )
         with self.assertRaises(AttributeError):
             ds.a
@@ -298,7 +301,7 @@ class BlazeToPipelineTestCase(TestCase):
         ds = from_blaze(
             expr,
             loader=loader,
-            no_deltas_rule='ignore',
+            no_deltas_rule=no_deltas_rules.ignore,
         )
         p = Pipeline()
         p.add(ds.value.latest, 'value')
@@ -326,7 +329,7 @@ class BlazeToPipelineTestCase(TestCase):
         ds = from_blaze(
             expr,
             loader=loader,
-            no_deltas_rule='ignore',
+            no_deltas_rule=no_deltas_rules.ignore,
         )
         p = Pipeline()
         p.add(ds.value.latest, 'value')
@@ -367,7 +370,7 @@ class BlazeToPipelineTestCase(TestCase):
             expr,
             deltas,
             loader=loader,
-            no_deltas_rule='raise',
+            no_deltas_rule=no_deltas_rules.raise_,
         )
         p = Pipeline()
 

@@ -1,17 +1,14 @@
 """
 Tests for Term.
 """
+from collections import Counter
 from itertools import product
 from unittest import TestCase
 
-from numpy import (
-    float32,
-    uint32,
-    uint8,
-)
-
 from zipline.errors import (
+    DTypeNotSpecified,
     InputTermNotAtomic,
+    InvalidDType,
     TermInputsNotSpecified,
     WindowLengthNotSpecified,
 )
@@ -19,30 +16,40 @@ from zipline.pipeline import Factor, TermGraph
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
+from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
+    float64_dtype,
+)
 
 
 class SomeDataSet(DataSet):
-
-    foo = Column(float32)
-    bar = Column(uint32)
-    buzz = Column(uint8)
+    foo = Column(float64_dtype)
+    bar = Column(float64_dtype)
+    buzz = Column(float64_dtype)
 
 
 class SomeFactor(Factor):
+    dtype = float64_dtype
     window_length = 5
     inputs = [SomeDataSet.foo, SomeDataSet.bar]
-
-
-class NoLookbackFactor(Factor):
-    window_length = 0
+SomeFactorAlias = SomeFactor
 
 
 class SomeOtherFactor(Factor):
+    dtype = float64_dtype
     window_length = 5
     inputs = [SomeDataSet.bar, SomeDataSet.buzz]
 
 
-SomeFactorAlias = SomeFactor
+class DateFactor(Factor):
+    dtype = datetime64ns_dtype
+    window_length = 5
+    inputs = [SomeDataSet.bar, SomeDataSet.buzz]
+
+
+class NoLookbackFactor(Factor):
+    dtype = float64_dtype
+    window_length = 0
 
 
 def gen_equivalent_factors():
@@ -163,6 +170,13 @@ class ObjectIdentityTestCase(TestCase):
         for obj in objs:
             self.assertIs(first, obj)
 
+    def assertDifferentObjects(self, *objs):
+        id_counts = Counter(map(id, objs))
+        ((most_common_id, count),) = id_counts.most_common(1)
+        if count > 1:
+            dupe = [o for o in objs if id(o) == most_common_id][0]
+            self.fail("%s appeared %d times in %s" % (dupe, count, objs))
+
     def test_instance_caching(self):
 
         self.assertSameObject(*gen_equivalent_factors())
@@ -172,8 +186,8 @@ class ObjectIdentityTestCase(TestCase):
         )
 
         self.assertIs(
-            SomeFactor(dtype=int),
-            SomeFactor(dtype=int),
+            SomeFactor(dtype=float64_dtype),
+            SomeFactor(dtype=float64_dtype),
         )
 
         self.assertIs(
@@ -194,7 +208,7 @@ class ObjectIdentityTestCase(TestCase):
         # Different dtype
         self.assertIsNot(
             f,
-            SomeFactor(dtype=int)
+            SomeFactor(dtype=datetime64ns_dtype)
         )
 
         # Reordering inputs changes semantics.
@@ -208,6 +222,7 @@ class ObjectIdentityTestCase(TestCase):
         orig_foobar_instance = SomeFactorAlias()
 
         class SomeFactor(Factor):
+            dtype = float64_dtype
             window_length = 5
             inputs = [SomeDataSet.foo, SomeDataSet.bar]
 
@@ -252,16 +267,42 @@ class ObjectIdentityTestCase(TestCase):
             method = getattr(f, funcname)
             self.assertIs(method(), method())
 
+    def test_parameterized_term(self):
+
+        class SomeFactorParameterized(SomeFactor):
+            params = ('a', 'b')
+
+        f = SomeFactorParameterized(a=1, b=2)
+        self.assertEqual(f.params, {'a': 1, 'b': 2})
+
+        g = SomeFactorParameterized(a=1, b=3)
+        h = SomeFactorParameterized(a=2, b=2)
+        self.assertDifferentObjects(f, g, h)
+
+        f2 = SomeFactorParameterized(a=1, b=2)
+        f3 = SomeFactorParameterized(b=2, a=1)
+        self.assertSameObject(f, f2, f3)
+
+        self.assertEqual(f.params['a'], 1)
+        self.assertEqual(f.params['b'], 2)
+        self.assertEqual(f.window_length, SomeFactor.window_length)
+        self.assertEqual(f.inputs, tuple(SomeFactor.inputs))
+
     def test_bad_input(self):
 
         class SomeFactor(Factor):
-            pass
+            dtype = float64_dtype
 
-        class SomeFactorDefaultInputs(Factor):
+        class SomeFactorDefaultInputs(SomeFactor):
             inputs = (SomeDataSet.foo, SomeDataSet.bar)
 
-        class SomeFactorDefaultLength(Factor):
+        class SomeFactorDefaultLength(SomeFactor):
             window_length = 10
+
+        class SomeFactorNoDType(SomeFactor):
+            window_length = 10
+            inputs = (SomeDataSet.foo,)
+            dtype = NotSpecified
 
         with self.assertRaises(TermInputsNotSpecified):
             SomeFactor(window_length=1)
@@ -274,3 +315,9 @@ class ObjectIdentityTestCase(TestCase):
 
         with self.assertRaises(WindowLengthNotSpecified):
             SomeFactorDefaultInputs()
+
+        with self.assertRaises(DTypeNotSpecified):
+            SomeFactorNoDType()
+
+        with self.assertRaises(InvalidDType):
+            SomeFactor(dtype=1)

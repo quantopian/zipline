@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from functools import wraps
 from itertools import (
+    combinations,
     count,
     product,
 )
@@ -19,6 +20,7 @@ from pandas.tseries.offsets import MonthBegin
 from six import iteritems, itervalues
 from six.moves import filter
 from sqlalchemy import create_engine
+from toolz import concat
 
 from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
@@ -972,3 +974,28 @@ def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
     writer.write(splits, mergers, dividends)
 
     return path
+
+
+def assert_timestamp_equal(left, right, compare_nat_equal=True, msg=""):
+    """
+    Assert that two pandas Timestamp objects are the same.
+
+    Parameters
+    ----------
+    left, right : pd.Timestamp
+        The values to compare.
+    compare_nat_equal : bool, optional
+        Whether to consider `NaT` values equal.  Defaults to True.
+    msg : str, optional
+        A message to forward to `pd.util.testing.assert_equal`.
+    """
+    if compare_nat_equal and left is pd.NaT and right is pd.NaT:
+        return
+    return pd.util.testing.assert_equal(left, right, msg=msg)
+
+
+def powerset(values):
+    """
+    Return the power set (i.e., the set of all subsets) of entries in `values`.
+    """
+    return concat(combinations(values, i) for i in range(len(values) + 1))

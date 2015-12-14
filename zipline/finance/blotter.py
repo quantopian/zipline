@@ -24,12 +24,21 @@ from zipline.finance.order import Order
 
 from zipline.finance.slippage import VolumeShareSlippage
 from zipline.finance.commission import PerShare
+from zipline.utils.enum import enum
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
 
 log = Logger('Blotter')
+
+ORDER_STATUS = enum(
+    'OPEN',
+    'FILLED',
+    'CANCELLED',
+    'REJECTED',
+    'HELD',
+)
 
 
 class Blotter(object):

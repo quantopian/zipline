@@ -1,10 +1,12 @@
 from operator import (
+    add,
     and_,
     ge,
     gt,
     le,
     lt,
     methodcaller,
+    mul,
     ne,
     or_,
 )
@@ -14,6 +16,7 @@ import numpy
 from numpy import (
     arange,
     eye,
+    float64,
     full,
     isnan,
     zeros,
@@ -30,20 +33,30 @@ from zipline.pipeline.expression import (
     NUMEXPR_MATH_FUNCS,
 )
 
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 from zipline.utils.test_utils import check_arrays
 
 
 class F(Factor):
+    dtype = float64_dtype
     inputs = ()
     window_length = 0
 
 
 class G(Factor):
+    dtype = float64_dtype
     inputs = ()
     window_length = 0
 
 
 class H(Factor):
+    dtype = float64_dtype
+    inputs = ()
+    window_length = 0
+
+
+class DateFactor(Factor):
+    dtype = datetime64ns_dtype
     inputs = ()
     window_length = 0
 
@@ -56,10 +69,12 @@ class NumericalExpressionTestCase(TestCase):
         self.f = F()
         self.g = G()
         self.h = H()
+        self.d = DateFactor()
         self.fake_raw_data = {
             self.f: full((5, 5), 3),
             self.g: full((5, 5), 2),
             self.h: full((5, 5), 1),
+            self.d: full((5, 5), 0, dtype='datetime64[ns]'),
         }
         self.mask = DataFrame(True, index=self.dates, columns=self.assets)
 
@@ -80,39 +95,39 @@ class NumericalExpressionTestCase(TestCase):
         f = self.f
         g = self.g
 
-        NumericalExpression("x_0", (f,))
-        NumericalExpression("x_0 ", (f,))
-        NumericalExpression("x_0 + x_0", (f,))
-        NumericalExpression("x_0 + 2", (f,))
-        NumericalExpression("2 * x_0", (f,))
-        NumericalExpression("x_0 + x_1", (f, g))
-        NumericalExpression("x_0 + x_1 + x_0", (f, g))
-        NumericalExpression("x_0 + 1 + x_1", (f, g))
+        NumericalExpression("x_0", (f,), dtype=float64_dtype)
+        NumericalExpression("x_0 ", (f,), dtype=float64_dtype)
+        NumericalExpression("x_0 + x_0", (f,), dtype=float64_dtype)
+        NumericalExpression("x_0 + 2", (f,), dtype=float64_dtype)
+        NumericalExpression("2 * x_0", (f,), dtype=float64_dtype)
+        NumericalExpression("x_0 + x_1", (f, g), dtype=float64_dtype)
+        NumericalExpression("x_0 + x_1 + x_0", (f, g), dtype=float64_dtype)
+        NumericalExpression("x_0 + 1 + x_1", (f, g), dtype=float64_dtype)
 
     def test_validate_bad(self):
-        f, g, h = F(), G(), H()
+        f, g, h = self.f, self.g, self.h
 
         # Too few inputs.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0", ())
+            NumericalExpression("x_0", (), dtype=float64_dtype)
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0 + x_1", (f,))
+            NumericalExpression("x_0 + x_1", (f,), dtype=float64_dtype)
 
         # Too many inputs.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0", (f, g))
+            NumericalExpression("x_0", (f, g), dtype=float64_dtype)
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0 + x_1", (f, g, h))
+            NumericalExpression("x_0 + x_1", (f, g, h), dtype=float64_dtype)
 
         # Invalid variable name.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0x_1", (f,))
+            NumericalExpression("x_0x_1", (f,), dtype=float64_dtype)
         with self.assertRaises(ValueError):
-            NumericalExpression("x_0x_1", (f, g))
+            NumericalExpression("x_0x_1", (f, g), dtype=float64_dtype)
 
         # Variable index must start at 0.
         with self.assertRaises(ValueError):
-            NumericalExpression("x_1", (f,))
+            NumericalExpression("x_1", (f,), dtype=float64_dtype)
 
         # Scalar operands must be numeric.
         with self.assertRaises(TypeError):
@@ -127,6 +142,64 @@ class NumericalExpressionTestCase(TestCase):
             f + (f > 2)
         with self.assertRaises(TypeError):
             (f > f) > f
+
+    def test_combine_datetimes(self):
+        with self.assertRaises(TypeError) as e:
+            self.d + self.d
+        message = e.exception.args[0]
+        expected = (
+            "Don't know how to compute datetime64[ns] + datetime64[ns].\n"
+            "Arithmetic operators are only supported on Factors of dtype "
+            "'float64'."
+        )
+        self.assertEqual(message, expected)
+
+        # Confirm that * shows up in the error instead of +.
+        with self.assertRaises(TypeError) as e:
+            self.d * self.d
+        message = e.exception.args[0]
+        expected = (
+            "Don't know how to compute datetime64[ns] * datetime64[ns].\n"
+            "Arithmetic operators are only supported on Factors of dtype "
+            "'float64'."
+        )
+        self.assertEqual(message, expected)
+
+    def test_combine_datetime_with_float(self):
+        # Test with both float-type factors and numeric values.
+        for float_value in (self.f, float64(1.0), 1.0):
+            for op, sym in ((add, '+'), (mul, '*')):
+                with self.assertRaises(TypeError) as e:
+                    op(self.f, self.d)
+                message = e.exception.args[0]
+                expected = (
+                    "Don't know how to compute float64 {sym} datetime64[ns].\n"
+                    "Arithmetic operators are only supported on Factors of "
+                    "dtype 'float64'."
+                ).format(sym=sym)
+                self.assertEqual(message, expected)
+
+                with self.assertRaises(TypeError) as e:
+                    op(self.d, self.f)
+                message = e.exception.args[0]
+                expected = (
+                    "Don't know how to compute datetime64[ns] {sym} float64.\n"
+                    "Arithmetic operators are only supported on Factors of "
+                    "dtype 'float64'."
+                ).format(sym=sym)
+                self.assertEqual(message, expected)
+
+    def test_negate_datetime(self):
+        with self.assertRaises(TypeError) as e:
+            -self.d
+
+        message = e.exception.args[0]
+        expected = (
+            "Can't apply unary operator '-' to instance of "
+            "'DateFactor' with dtype 'datetime64[ns]'.\n"
+            "'-' is only supported for Factors of dtype 'float64'."
+        )
+        self.assertEqual(message, expected)
 
     def test_negate(self):
         f, g = self.f, self.g

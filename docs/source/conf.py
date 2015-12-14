@@ -16,6 +16,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.autosummary',
     'sphinx.ext.viewcode',
+    'sphinx.ext.todo',
 ]
 
 
@@ -90,3 +91,5 @@ intersphinx_mapping = {
 }
 
 doctest_global_setup = "import zipline"
+
+todo_include_todos = True

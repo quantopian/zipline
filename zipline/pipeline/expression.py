@@ -9,11 +9,11 @@ import numexpr
 from numexpr.necompiler import getExprNames
 from numpy import (
     empty,
-    find_common_type,
     inf,
 )
 
-from zipline.pipeline.term import Term, NotSpecified, CompositeTerm
+from zipline.pipeline.term import Term, CompositeTerm
+
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
 
@@ -54,6 +54,11 @@ _ops_to_commuted_methods = {
     '>=': '__le__',
     '>': '__lt__',
 }
+_unary_ops_to_methods = {
+    '-': '__neg__',
+    '~': '__invert__',
+}
+
 UNARY_OPS = {'-'}
 MATH_BINOPS = {'+', '-', '*', '/', '**', '%'}
 FILTER_BINOPS = {'&', '|'}  # NumExpr doesn't support xor.
@@ -151,6 +156,10 @@ def method_name_for_op(op, commute=False):
     return _ops_to_methods[op]
 
 
+def unary_op_name(op):
+    return _unary_ops_to_methods[op]
+
+
 def is_comparison(op):
     return op in COMPARISONS
 
@@ -162,31 +171,17 @@ class NumericalExpression(CompositeTerm):
     Parameters
     ----------
     expr : string
-       A string suitable for passing to numexpr.  All variables in 'expr'
-       should be of the form "x_i", where i is the index of the corresponding
-       factor input in 'binds'.
+        A string suitable for passing to numexpr.  All variables in 'expr'
+        should be of the form "x_i", where i is the index of the corresponding
+        factor input in 'binds'.
     binds : tuple
-       A tuple of factors to use as inputs.
+        A tuple of factors to use as inputs.
+    dtype : np.dtype
+        The dtype for the expression.
     """
     window_length = 0
 
-    def __new__(cls, expr, binds):
-
-        # If our class doesn't have an explicit dtype set, infer one from the
-        # inputs.
-
-        # FIXME: This doesn't take into account dtypes of constants, so it will
-        # break if we have something like
-        #     factor(int64) + factor(int64) + 2.5.
-        # The real fix for this is probably for the calling context to specify
-        # dtypes.
-        if cls.dtype is not NotSpecified:
-            dtype = cls.dtype
-        else:
-            dtype = find_common_type(
-                [factor.dtype for factor in binds],
-                [],
-            )
+    def __new__(cls, expr, binds, dtype):
         return super(NumericalExpression, cls).__new__(
             cls,
             inputs=binds,

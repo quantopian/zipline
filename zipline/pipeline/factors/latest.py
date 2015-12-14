@@ -2,7 +2,7 @@
 Factor that produces the most most recently-known value of Column.
 """
 from .factor import CustomFactor
-from ..term import SingleInputMixin
+from ..mixins import SingleInputMixin
 
 
 class Latest(SingleInputMixin, CustomFactor):

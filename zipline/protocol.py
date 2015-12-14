@@ -16,7 +16,7 @@ from copy import copy
 
 import pandas as pd
 
-from . utils.protocol_utils import Enum
+from .utils.enum import enum
 
 from zipline._protocol import BarData as _BarData
 BarData = _BarData
@@ -26,7 +26,7 @@ from zipline.utils.serialization_utils import (
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
-DATASOURCE_TYPE = Enum(
+DATASOURCE_TYPE = enum(
     'AS_TRADED_EQUITY',
     'MERGER',
     'SPLIT',

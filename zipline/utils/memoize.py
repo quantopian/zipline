@@ -53,6 +53,9 @@ class lazyval(object):
     def __set__(self, instance, value):
         raise AttributeError("Can't set read-only attribute.")
 
+    def __delitem__(self, instance):
+        del self._cache[instance]
+
 
 def remember_last(f):
     """

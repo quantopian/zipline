@@ -409,6 +409,17 @@ class WindowLengthNotSpecified(ZiplineError):
     )
 
 
+class InvalidTermParams(ZiplineError):
+    """
+    Raised if a user attempts to construct a Term using ParameterizedTermMixin
+    without specifying a `params` list in the class body.
+    """
+    msg = (
+        "Expected a list of strings as a class-level attribute for "
+        "{termname}.params, but got {value} instead."
+    )
+
+
 class DTypeNotSpecified(ZiplineError):
     """
     Raised if a user attempts to construct a term without specifying dtype and
@@ -416,6 +427,17 @@ class DTypeNotSpecified(ZiplineError):
     """
     msg = (
         "{termname} requires a dtype, but no dtype was passed."
+    )
+
+
+class InvalidDType(ZiplineError):
+    """
+    Raised when a pipeline Term is constructed with a dtype that isn't a numpy
+    dtype object.
+    """
+    msg = (
+        "{termname} expected a numpy dtype "
+        "object for a dtype, but got {dtype} instead."
     )
 
 
@@ -476,7 +498,7 @@ class UnsupportedDataType(ZiplineError):
     """
     Raised by CustomFactors with unsupported dtypes.
     """
-    msg = "CustomFactors with dtype {dtype} are not supported."
+    msg = "{typename} instances with dtype {dtype} are not supported."
 
 
 class NoFurtherDataError(ZiplineError):

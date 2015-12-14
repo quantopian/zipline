@@ -4,26 +4,20 @@ factor.py
 from operator import attrgetter
 from numbers import Number
 
-from numpy import (
-    apply_along_axis,
-    float64,
-    nan,
-    inf,
-)
-from scipy.stats import rankdata
+from numpy import float64, inf
+from toolz import curry
 
 from zipline.errors import (
     UnknownRankMethod,
     UnsupportedDataType,
 )
-from zipline.lib.rank import rankdata_2d_ordinal
-from zipline.pipeline.term import (
+from zipline.lib.rank import masked_rankdata_2d
+from zipline.pipeline.mixins import (
     CustomTermMixin,
-    NotSpecified,
-    RequiredWindowLengthMixin,
+    PositiveWindowLengthMixin,
     SingleInputMixin,
-    CompositeTerm,
 )
+from zipline.pipeline.term import CompositeTerm, NotSpecified
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -33,15 +27,65 @@ from zipline.pipeline.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
     UNARY_OPS,
+    unary_op_name,
 )
 from zipline.pipeline.filters import (
     NumExprFilter,
     PercentileFilter,
 )
 from zipline.utils.control_flow import nullctx
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    datetime64ns_dtype,
+    float64_dtype,
+)
+from zipline.utils.preprocess import preprocess
 
 
 _RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
+
+
+def numbers_to_float64(func, argname, argvalue):
+    """
+    Preprocessor for converting numerical inputs into floats.
+
+    This is used in the binary operator constructors for Factor so that
+    `2 + Factor()` has the same behavior as `2.0 + Factor()`.
+    """
+    if isinstance(argvalue, Number):
+        return float64(argvalue)
+    return argvalue
+
+
+@curry
+def set_attribute(name, value):
+    """
+    Decorator factory for setting attributes on a function.
+
+    Doesn't change the behavior of the wrapped function.
+
+    Usage
+    -----
+    >>> @set_attribute('__name__', 'foo')
+    ... def bar():
+    ...     return 3
+    ...
+    >>> bar()
+    3
+    >>> bar.__name__
+    'foo'
+    """
+    def decorator(f):
+        setattr(f, name, value)
+        return f
+    return decorator
+
+
+# Decorators for setting the __name__ and __doc__ properties of a decorated
+# function.
+# Example:
+with_name = set_attribute('__name__')
+with_doc = set_attribute('__doc__')
 
 
 def binop_return_type(op):
@@ -49,6 +93,46 @@ def binop_return_type(op):
         return NumExprFilter
     else:
         return NumExprFactor
+
+
+def binop_return_dtype(op, left, right):
+    """
+    Compute the expected return dtype for the given binary operator.
+
+    Parameters
+    ----------
+    op : str
+        Operator symbol, (e.g. '+', '-', ...).
+    left : numpy.dtype
+        Dtype of left hand side.
+    right : numpy.dtype
+        Dtype of right hand side.
+
+    Returns
+    -------
+    outdtype : numpy.dtype
+        The dtype of the result of `left <op> right`.
+    """
+    if is_comparison(op):
+        if left != right:
+            raise TypeError(
+                "Don't know how to compute {left} {op} {right}.\n"
+                "Comparisons are only supported between Factors of equal "
+                "dtypes.".format(left=left, op=op, right=right)
+            )
+        return bool_dtype
+
+    elif left != float64_dtype or right != float64_dtype:
+        raise TypeError(
+            "Don't know how to compute {left} {op} {right}.\n"
+            "Arithmetic operators are only supported on Factors of "
+            "dtype 'float64'.".format(
+                left=left.name,
+                op=op,
+                right=right.name,
+            )
+        )
+    return float64_dtype
 
 
 def binary_operator(op):
@@ -63,6 +147,9 @@ def binary_operator(op):
     # NumericalExpression operator.
     commuted_method_getter = attrgetter(method_name_for_op(op, commute=True))
 
+    @preprocess(other=numbers_to_float64)
+    @with_doc("Binary Operator: '%s'" % op)
+    @with_name(method_name_for_op(op))
     def binary_operator(self, other):
         # This can't be hoisted up a scope because the types returned by
         # binop_return_type aren't defined when the top-level function is
@@ -79,6 +166,7 @@ def binary_operator(op):
                     right=other_expr,
                 ),
                 new_inputs,
+                dtype=binop_return_dtype(op, self.dtype, other.dtype),
             )
         elif isinstance(other, NumExprFactor):
             # NumericalExpression overrides ops to correctly handle merging of
@@ -90,19 +178,22 @@ def binary_operator(op):
                 return return_type(
                     "x_0 {op} x_0".format(op=op),
                     (self,),
+                    dtype=binop_return_dtype(op, self.dtype, other.dtype),
                 )
             return return_type(
                 "x_0 {op} x_1".format(op=op),
                 (self, other),
+                dtype=binop_return_dtype(op, self.dtype, other.dtype),
             )
         elif isinstance(other, Number):
             return return_type(
                 "x_0 {op} ({constant})".format(op=op, constant=other),
                 binds=(self,),
+                # Interpret numeric literals as floats.
+                dtype=binop_return_dtype(op, self.dtype, other.dtype)
             )
         raise BadBinaryOperator(op, self, other)
 
-    binary_operator.__doc__ = "Binary Operator: '%s'" % op
     return binary_operator
 
 
@@ -115,6 +206,8 @@ def reflected_binary_operator(op):
     """
     assert not is_comparison(op)
 
+    @preprocess(other=numbers_to_float64)
+    @with_name(method_name_for_op(op, commute=True))
     def reflected_binary_operator(self, other):
 
         if isinstance(self, NumericalExpression):
@@ -128,6 +221,7 @@ def reflected_binary_operator(op):
                     op=op,
                 ),
                 new_inputs,
+                dtype=binop_return_dtype(op, other.dtype, self.dtype)
             )
 
         # Only have to handle the numeric case because in all other valid cases
@@ -136,6 +230,7 @@ def reflected_binary_operator(op):
             return NumExprFactor(
                 "{constant} {op} x_0".format(op=op, constant=other),
                 binds=(self,),
+                dtype=binop_return_dtype(op, other.dtype, self.dtype),
             )
         raise BadBinaryOperator(op, other, self)
     return reflected_binary_operator
@@ -145,12 +240,26 @@ def unary_operator(op):
     """
     Factory function for making unary operator methods for Factors.
     """
-    # Only negate is currently supported for all our possible input types.
+    # Only negate is currently supported.
     valid_ops = {'-'}
     if op not in valid_ops:
         raise ValueError("Invalid unary operator %s." % op)
 
+    @with_doc("Unary Operator: '%s'" % op)
+    @with_name(unary_op_name(op))
     def unary_operator(self):
+        if self.dtype != float64_dtype:
+            raise TypeError(
+                "Can't apply unary operator {op!r} to instance of "
+                "{typename!r} with dtype {dtypename!r}.\n"
+                "{op!r} is only supported for Factors of dtype "
+                "'float64'.".format(
+                    op=op,
+                    typename=type(self).__name__,
+                    dtypename=self.dtype.name,
+                )
+            )
+
         # This can't be hoisted up a scope because the types returned by
         # unary_op_return_type aren't defined when the top-level function is
         # invoked.
@@ -158,11 +267,14 @@ def unary_operator(op):
             return NumExprFactor(
                 "{op}({expr})".format(op=op, expr=self._expr),
                 self.inputs,
+                dtype=float64_dtype,
             )
         else:
-            return NumExprFactor("{op}x_0".format(op=op), (self,))
-
-    unary_operator.__doc__ = "Unary Operator: '%s'" % op
+            return NumExprFactor(
+                "{op}x_0".format(op=op),
+                (self,),
+                dtype=float64_dtype,
+            )
     return unary_operator
 
 
@@ -174,23 +286,30 @@ def function_application(func):
     if func not in NUMEXPR_MATH_FUNCS:
         raise ValueError("Unsupported mathematical function '%s'" % func)
 
+    @with_name(func)
     def mathfunc(self):
         if isinstance(self, NumericalExpression):
             return NumExprFactor(
                 "{func}({expr})".format(func=func, expr=self._expr),
                 self.inputs,
+                dtype=float64_dtype,
             )
         else:
-            return NumExprFactor("{func}(x_0)".format(func=func), (self,))
+            return NumExprFactor(
+                "{func}(x_0)".format(func=func),
+                (self,),
+                dtype=float64_dtype,
+            )
     return mathfunc
+
+
+FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype])
 
 
 class Factor(CompositeTerm):
     """
     Pipeline API expression producing numerically-valued outputs.
     """
-    dtype = float64
-
     # Dynamically add functions for creating NumExprFactor/NumExprFilter
     # instances.
     clsdict = locals()
@@ -210,10 +329,11 @@ class Factor(CompositeTerm):
     )
     clsdict.update(
         {
-            '__neg__': unary_operator(op)
+            unary_op_name(op): unary_operator(op)
             for op in UNARY_OPS
         }
     )
+
     clsdict.update(
         {
             funcname: function_application(funcname)
@@ -225,6 +345,17 @@ class Factor(CompositeTerm):
     __rtruediv__ = clsdict['__rdiv__']
 
     eq = binary_operator('==')
+
+    def _validate(self):
+        # Do superclass validation first so that `NotSpecified` dtypes get
+        # handled.
+        retval = super(Factor, self)._validate()
+        if self.dtype not in FACTOR_DTYPES:
+            raise UnsupportedDataType(
+                typename=type(self).__name__,
+                dtype=self.dtype
+            )
+        return retval
 
     def rank(self, method='ordinal', ascending=True, mask=NotSpecified):
         """
@@ -263,10 +394,10 @@ class Factor(CompositeTerm):
         See Also
         --------
         scipy.stats.rankdata
-        zipline.lib.rank
-        zipline.pipeline.factors.Rank
+        zipline.lib.rank.masked_rankdata_2d
+        zipline.pipeline.factors.factor.Rank
         """
-        return Rank(self if ascending else -self, method=method, mask=mask)
+        return Rank(self, method=method, ascending=ascending, mask=mask)
 
     def top(self, N, mask=NotSpecified):
         """
@@ -335,7 +466,7 @@ class Factor(CompositeTerm):
 
         See Also
         --------
-        zipline.pipeline.filters.PercentileFilter
+        zipline.pipeline.filters.filter.PercentileFilter
         """
         return PercentileFilter(
             self,
@@ -347,6 +478,10 @@ class Factor(CompositeTerm):
     def isnan(self):
         """
         A Filter producing True for all values where this Factor is NaN.
+
+        Returns
+        -------
+        nanfilter : zipline.pipeline.filters.Filter
         """
         return self != self
 
@@ -413,25 +548,28 @@ class Rank(SingleInputMixin, Factor):
     instance of this class.
     """
     window_length = 0
-    dtype = float64
+    dtype = float64_dtype
 
-    def __new__(cls, factor, method, mask):
+    def __new__(cls, factor, method, ascending, mask):
         return super(Rank, cls).__new__(
             cls,
             inputs=(factor,),
             method=method,
+            ascending=ascending,
             mask=mask,
         )
 
-    def _init(self, method, *args, **kwargs):
+    def _init(self, method, ascending, *args, **kwargs):
         self._method = method
+        self._ascending = ascending
         return super(Rank, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, method, *args, **kwargs):
+    def static_identity(cls, method, ascending, *args, **kwargs):
         return (
             super(Rank, cls).static_identity(*args, **kwargs),
             method,
+            ascending,
         )
 
     def _validate(self):
@@ -450,23 +588,13 @@ class Rank(SingleInputMixin, Factor):
         For each row in the input, compute a like-shaped array of per-row
         ranks.
         """
-        inv_mask = ~mask
-        data = arrays[0].copy()
-        data[inv_mask] = nan
-        # OPTIMIZATION: Fast path the default case with our own specialized
-        # Cython implementation.
-        if self._method == 'ordinal':
-            result = rankdata_2d_ordinal(data)
-        else:
-            # FUTURE OPTIMIZATION:
-            # Write a less general "apply to rows" method that doesn't do all
-            # the extra work that apply_along_axis does.
-            result = apply_along_axis(rankdata, 1, data, method=self._method)
-
-        # rankdata will sort nan values into last place, but we want our
-        # nans to propagate, so explicitly re-apply.
-        result[inv_mask] = nan
-        return result
+        return masked_rankdata_2d(
+            arrays[0],
+            mask,
+            self.inputs[0].missing_value,
+            self._method,
+            self._ascending,
+        )
 
     def __repr__(self):
         return "{type}({input_}, method='{method}', mask={mask})".format(
@@ -477,7 +605,7 @@ class Rank(SingleInputMixin, Factor):
         )
 
 
-class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
+class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     '''
     Base class for user-defined Factors.
 
@@ -513,7 +641,7 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
             Row label for the last row of all arrays passed as `inputs`.
         assets : np.array[int64, ndim=1]
             Column labels for `out` and`inputs`.
-        out : np.array[float64, ndim=1]
+        out : np.array[self.dtype, ndim=1]
             Output array of the same shape as `assets`.  `compute` should write
             its desired return values into `out`.
         *inputs : tuple of np.array
@@ -581,9 +709,5 @@ class CustomFactor(RequiredWindowLengthMixin, CustomTermMixin, Factor):
         median_close10 = MedianValue([USEquityPricing.close], window_length=10)
         median_low15 = MedianValue([USEquityPricing.low], window_length=15)
     '''
+    dtype = float64_dtype
     ctx = nullctx()
-
-    def _validate(self):
-        if self.dtype != float64:
-            raise UnsupportedDataType(dtype=self.dtype)
-        return super(CustomFactor, self)._validate()
