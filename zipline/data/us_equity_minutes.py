@@ -1,3 +1,17 @@
+# Copyright 2015 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from abc import (
     ABCMeta,
     abstractmethod,
@@ -255,13 +269,15 @@ class BcolzMinuteBarReader(object):
     def _find_position_of_minute(self, minute_dt):
         """
         Internal method that returns the position of the given minute in the
-        list of every trading minute since market open on 1/2/2002.
+        list of every trading minute since market open of the first trading
+        day.
 
         IMPORTANT: This method assumes every day is 390 minutes long, even
         early closes.  Our minute bcolz files are generated like this to
         support fast lookup.
 
-        ex. this method would return 2 for 1/2/2002 9:32 AM Eastern.
+        ex. this method would return 2 for 1/2/2002 9:32 AM Eastern, if
+        1/2/2002 is the first trading day of the dataset.
 
         Parameters
         ----------
@@ -271,7 +287,7 @@ class BcolzMinuteBarReader(object):
         Returns
         -------
         The position of the given minute in the list of all trading minutes
-        since market open on 1/2/2002.
+        since market open on the first trading day.
         """
         day = minute_dt.date()
         day_idx = self.trading_days.searchsorted(day)

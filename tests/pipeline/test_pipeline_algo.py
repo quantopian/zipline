@@ -162,14 +162,11 @@ class ClosesOnly(TestCase):
             data
         )
 
+        daily_bar_reader = BcolzDailyBarReader(path)
+
         self.data_portal = DataPortal(
             self.env,
-            daily_equities_path=path,
-            sim_params=SimulationParameters(
-                period_start=self.dates[0],
-                period_end=self.dates[-1],
-                env=self.env
-            )
+            equity_daily_reader=daily_bar_reader,
         )
 
         # Add a split for 'A' on its second date.

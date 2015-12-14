@@ -11,10 +11,12 @@ from zipline.data.data_portal import DataPortal
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, \
     SQLiteAdjustmentReader
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
+from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.us_equity_minutes import (
     MinuteBarWriterFromDataFrames,
     BcolzMinuteBarReader
 )
+from zipline.data.future_pricing import FutureMinuteReader
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 
 
@@ -69,7 +71,6 @@ class TestDataPortal(TestCase):
             dp = DataPortal(
                 env,
                 equity_minute_reader=equity_minute_reader,
-                sim_params=sim_params
             )
 
             for minute_idx, minute in enumerate(minutes):
@@ -134,10 +135,11 @@ class TestDataPortal(TestCase):
                 data_frequency="daily"
             )
 
+            equity_daily_reader = BcolzDailyBarReader(path)
+
             dp = DataPortal(
                 env,
-                daily_equities_path=path,
-                sim_params=sim_params
+                equity_daily_reader=equity_daily_reader,
             )
 
             for day_idx, day in enumerate(days):
@@ -255,7 +257,6 @@ class TestDataPortal(TestCase):
             dp = DataPortal(
                 env,
                 equity_minute_reader=equity_minute_reader,
-                sim_params=sim_params,
                 adjustment_reader=SQLiteAdjustmentReader(adjustments_path)
             )
 
@@ -343,9 +344,11 @@ class TestDataPortal(TestCase):
                 }
             })
 
+            future_minute_reader = FutureMinuteReader(tempdir.path)
+
             dp = DataPortal(
                 env,
-                minutes_futures_path=tempdir.path
+                future_minute_reader=future_minute_reader
             )
 
             future123 = env.asset_finder.retrieve_asset(123)

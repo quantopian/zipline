@@ -88,7 +88,6 @@ class SlippageTestCase(TestCase):
         cls.data_portal = DataPortal(
             cls.env,
             equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-            sim_params=cls.sim_params
         )
 
     @classmethod
@@ -120,7 +119,6 @@ class SlippageTestCase(TestCase):
             data_portal = DataPortal(
                 self.env,
                 equity_minute_reader=equity_minute_reader,
-                sim_params=self.sim_params
             )
 
             slippage_model = VolumeShareSlippage()
@@ -494,7 +492,6 @@ class SlippageTestCase(TestCase):
             data_portal = DataPortal(
                 self.env,
                 equity_minute_reader=equity_minute_reader,
-                sim_params=self.sim_params
             )
 
             slippage_model = VolumeShareSlippage()

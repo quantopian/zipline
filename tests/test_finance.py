@@ -42,6 +42,7 @@ from zipline.utils.test_utils import(
     setup_logger,
     teardown_logger
 )
+from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.us_equity_minutes import (
     MinuteBarWriterFromDataFrames,
     BcolzMinuteBarReader
@@ -233,7 +234,6 @@ class FinanceTestCase(TestCase):
                 data_portal = DataPortal(
                     env,
                     equity_minute_reader=equity_minute_reader,
-                    sim_params=sim_params
                 )
             else:
                 sim_params = factory.create_simulation_parameters(
@@ -257,10 +257,11 @@ class FinanceTestCase(TestCase):
                 DailyBarWriterFromDataFrames(assets).write(
                     path, days, assets)
 
+                equity_daily_reader = BcolzDailyBarReader(path)
+
                 data_portal = DataPortal(
                     env,
-                    daily_equities_path=path,
-                    sim_params=sim_params
+                    equity_daily_reader=equity_daily_reader,
                 )
 
             if "default_slippage" not in params or \

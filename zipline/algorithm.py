@@ -406,7 +406,8 @@ class TradingAlgorithm(object):
             )
             self.data_portal.setup_offset_cache(
                 clock.minutes_by_day,
-                clock.minutes_to_day)
+                clock.minutes_to_day,
+                self.sim_params.trading_days)
             return clock
         else:
             return DailySimulationClock(self.sim_params.trading_days)
@@ -588,7 +589,8 @@ class TradingAlgorithm(object):
         )
 
         # ingest this into dataportal
-        self.data_portal.handle_extra_source(csv_data_source.df)
+        self.data_portal.handle_extra_source(csv_data_source.df,
+                                             self.sim_params)
 
         return csv_data_source
 

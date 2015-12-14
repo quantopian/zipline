@@ -30,6 +30,8 @@ from zipline.utils.test_utils import (
     str_to_seconds,
     MockDailyBarReader
 )
+from zipline.data.future_pricing import FutureMinuteReader
+from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.us_equity_minutes import (
     MinuteBarWriterFromCSVs,
     BcolzMinuteBarReader
@@ -347,11 +349,16 @@ class HistoryTestCase(TestCase):
 
         equity_minute_reader = BcolzMinuteBarReader(minutes_path)
 
+        equity_daily_reader = BcolzDailyBarReader(
+            join(temp_path, daily_equities_filename))
+
+        future_minute_reader = FutureMinuteReader(futures_path)
+
         return DataPortal(
             env,
             equity_minute_reader=equity_minute_reader,
-            minutes_futures_path=futures_path,
-            daily_equities_path=join(temp_path, daily_equities_filename),
+            future_minute_reader=future_minute_reader,
+            equity_daily_reader=equity_daily_reader,
             adjustment_reader=adjustment_reader
         )
 

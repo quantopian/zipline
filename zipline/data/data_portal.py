@@ -22,10 +22,7 @@ from pandas.tslib import normalize_date
 from six import iteritems
 
 from zipline.assets import Asset, Future, Equity
-from zipline.data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    NoDataOnDate
-)
+from zipline.data.us_equity_pricing import NoDataOnDate
 from zipline.pipeline.data.equity_pricing import USEquityPricing
 
 from zipline.utils import tradingcalendar
@@ -65,12 +62,11 @@ US_EQUITY_COLUMNS = {
 class DataPortal(object):
     def __init__(self,
                  env,
-                 sim_params=None,
+                 equity_daily_reader=None,
                  equity_minute_reader=None,
-                 minutes_futures_path=None,
-                 daily_equities_path=None,
-                 adjustment_reader=None,
-                 futures_sid_path_func=None):
+                 future_daily_reader=None,
+                 future_minute_reader=None,
+                 adjustment_reader=None):
         self.env = env
 
         # This is a bit ugly, but is here for performance reasons.  In minute
@@ -83,9 +79,6 @@ class DataPortal(object):
         self.cur_data_offset = 0
 
         self.views = {}
-
-        self._daily_equities_path = daily_equities_path
-        self._minutes_futures_path = minutes_futures_path
 
         self._asset_finder = env.asset_finder
 
@@ -115,18 +108,12 @@ class DataPortal(object):
         self._augmented_sources_map = {}
         self._extra_source_df = None
 
-        self._sim_params = sim_params
-
-        self._futures_sid_path_func = futures_sid_path_func
-
         self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
 
-        if daily_equities_path is not None:
-            self._daily_bar_reader = BcolzDailyBarReader(daily_equities_path)
-        else:
-            self._daily_bar_reader = None
-
+        self._equity_daily_reader = equity_daily_reader
         self._equity_minute_reader = equity_minute_reader
+        self._future_daily_reader = future_daily_reader
+        self._future_minute_reader = future_minute_reader
 
         # The following values are used by _minute_offset to calculate the
         # index into the minute bcolz date.
@@ -141,7 +128,7 @@ class DataPortal(object):
         # days data starts.
         self._day_offsets = None
 
-    def handle_extra_source(self, source_df):
+    def handle_extra_source(self, source_df, sim_params):
         """
         Extra sources always have a sid column.
 
@@ -172,15 +159,15 @@ class DataPortal(object):
         # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
         # holding that data.
 
-        if self._sim_params.emission_rate == "daily":
+        if sim_params.emission_rate == "daily":
             source_date_index = self.env.days_in_range(
-                start=self._sim_params.period_start,
-                end=self._sim_params.period_end
+                start=sim_params.period_start,
+                end=sim_params.period_end
             )
         else:
             source_date_index = self.env.minutes_for_days_in_range(
-                start=self._sim_params.period_start,
-                end=self._sim_params.period_end
+                start=sim_params.period_start,
+                end=sim_params.period_end
             )
 
         # Break the source_df up into one dataframe per sid.  This lets
@@ -231,12 +218,13 @@ class DataPortal(object):
         sid = int(asset)
 
         if isinstance(asset, Future):
-            if self._futures_sid_path_func is not None:
-                path = self._futures_sid_path_func(
-                    self._minutes_futures_path, sid
+            if self._future_minute_reader.sid_path_func is not None:
+                path = self._future_minute_reader.sid_path_func(
+                    self._future_minute_reader.rootdir, sid
                 )
             else:
-                path = "{0}/{1}.bcolz".format(self._minutes_futures_path, sid)
+                path = "{0}/{1}.bcolz".format(
+                    self._future_minute_reader.rootdir, sid)
         elif isinstance(asset, Equity):
             if self._equity_minute_reader.sid_path_func is not None:
                 path = self._equity_minute_reader.sid_path_func(
@@ -403,7 +391,7 @@ class DataPortal(object):
         else:
             return result
 
-    def setup_offset_cache(self, minutes_by_day, minutes_to_day):
+    def setup_offset_cache(self, minutes_by_day, minutes_to_day, trading_days):
         # TODO: This case should not be hit, but is when tests are setup
         # with data_frequency of daily, but run with minutely.
         if self._equity_minute_reader is None:
@@ -411,14 +399,12 @@ class DataPortal(object):
 
         self._minutes_to_day = minutes_to_day
         self._minutes_by_day = minutes_by_day
-        if self._sim_params is not None:
-            start = self._sim_params.trading_days[0]
-            first_trading_day_idx = self._equity_minute_reader.trading_days.\
-                searchsorted(start)
-            self._day_offsets = {
-                day: (i + first_trading_day_idx) * 390
-                for i, day in enumerate(
-                    self._sim_params.trading_days)}
+        start = trading_days[0]
+        first_trading_day_idx = self._equity_minute_reader.trading_days.\
+            searchsorted(start)
+        self._day_offsets = {
+            day: (i + first_trading_day_idx) * 390
+            for i, day in enumerate(trading_days)}
 
     def _minute_offset(self, dt):
         if self._day_offsets is not None:
@@ -503,7 +489,7 @@ class DataPortal(object):
     def _get_daily_data(self, asset, column, dt):
         while True:
             try:
-                value = self._daily_bar_reader.spot_price(asset, dt, column)
+                value = self._equity_daily_reader.spot_price(asset, dt, column)
                 if value != -1:
                     return value
                 else:
@@ -1023,10 +1009,10 @@ class DataPortal(object):
         active_days = days_in_window[day_slice]
 
         if active_days.shape[0]:
-            data = self._daily_bar_reader.history_window(field,
-                                                         active_days[0],
-                                                         active_days[-1],
-                                                         asset)
+            data = self._equity_daily_reader.history_window(field,
+                                                            active_days[0],
+                                                            active_days[-1],
+                                                            asset)
             return_array[day_slice] = data
             self._apply_all_adjustments(
                 return_array,

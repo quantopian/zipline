@@ -38,6 +38,7 @@ from zipline.utils.test_utils import(
 from zipline.finance.slippage import DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT, \
     FixedSlippage
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
+from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.data_portal import DataPortal
 
 
@@ -81,10 +82,11 @@ class BlotterTestCase(TestCase):
             assets
         )
 
+        equity_daily_reader = BcolzDailyBarReader(path)
+
         cls.data_portal = DataPortal(
             cls.env,
-            daily_equities_path=path,
-            sim_params=cls.sim_params
+            equity_daily_reader=equity_daily_reader,
         )
 
     @classmethod

@@ -185,6 +185,28 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
         Forwards `decay_rate` as `1 - (2.0 / (1 + span))`.  This provides the
         behavior equivalent to passing `span` to pandas.ewma.
+
+        Example
+        -------
+        .. code-block:: python
+
+            # Equivalent to:
+            # my_ewma = EWMA(
+            #    inputs=[USEquityPricing.close],
+            #    window_length=30,
+            #    decay_rate=(1 - (2.0 / (1 + 15.0))),
+            # )
+            my_ewma = EWMA.from_span(
+                inputs=[USEquityPricing.close],
+                window_length=30,
+                span=15,
+            )
+
+        Note
+        ----
+        This classmethod is provided by both
+        :class:`ExponentialWeightedMovingAverage` and
+        :class:`ExponentialWeightedStandardDeviation`.
         """
         if span <= 1:
             raise ValueError(
@@ -204,10 +226,33 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
     @expect_types(halflife=Number)
     def from_halflife(cls, inputs, window_length, halflife):
         """
-        Convenience constructor for passing `decay_rate` in terms of half life.
+        Convenience constructor for passing ``decay_rate`` in terms of half
+        life.
 
-        Forwards `decay_rate` as `exp(log(.5) / halflife)`.  This provides
+        Forwards ``decay_rate`` as ``exp(log(.5) / halflife)``.  This provides
         the behavior equivalent to passing `halflife` to pandas.ewma.
+
+        Example
+        -------
+        .. code-block:: python
+
+            # Equivalent to:
+            # my_ewma = EWMA(
+            #    inputs=[USEquityPricing.close],
+            #    window_length=30,
+            #    decay_rate=np.exp(np.log(0.5) / 15),
+            # )
+            my_ewma = EWMA.from_halflife(
+                inputs=[USEquityPricing.close],
+                window_length=30,
+                halflife=15,
+            )
+
+        Note
+        ----
+        This classmethod is provided by both
+        :class:`ExponentialWeightedMovingAverage` and
+        :class:`ExponentialWeightedStandardDeviation`.
         """
         if halflife <= 0:
             raise ValueError(
@@ -228,8 +273,30 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         Convenience constructor for passing `decay_rate` in terms of center of
         mass.
 
-        Forwards `decay_rate` as `1 - (1 / center_of_mass)`.  This provides
+        Forwards `decay_rate` as `1 - (1 / 1 + center_of_mass)`.  This provides
         behavior equivalent to passing `center_of_mass` to pandas.ewma.
+
+        Example
+        -------
+        .. code-block:: python
+
+            # Equivalent to:
+            # my_ewma = EWMA(
+            #    inputs=[USEquityPricing.close],
+            #    window_length=30,
+            #    decay_rate=(1 - (1 / 15.0)),
+            # )
+            my_ewma = EWMA.from_center_of_mass(
+                inputs=[USEquityPricing.close],
+                window_length=30,
+                center_of_mass=15,
+            )
+
+        Note
+        ----
+        This classmethod is provided by both
+        :class:`ExponentialWeightedMovingAverage` and
+        :class:`ExponentialWeightedStandardDeviation`.
         """
         return cls(
             inputs=inputs,
@@ -260,9 +327,13 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
 
             decay_rate, decay_rate ** 2, decay_rate ** 3, ...
 
+    Notes
+    -----
+    - This class can also be imported under the name ``EWMA``.
+
     See Also
     --------
-    pandas.ewma
+    :func:`pandas.ewma`
     """
     def compute(self, today, assets, out, data, decay_rate):
         out[:] = average(
@@ -294,9 +365,13 @@ class ExponentialWeightedStandardDeviation(_ExponentialWeightedFactor):
 
             decay_rate, decay_rate ** 2, decay_rate ** 3, ...
 
+    Notes
+    -----
+    - This class can also be imported under the name ``EWMSTD``.
+
     See Also
     --------
-    pandas.ewmstd
+    :func:`pandas.ewmstd`
     """
 
     def compute(self, today, assets, out, data, decay_rate):

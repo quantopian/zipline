@@ -31,7 +31,7 @@ from zipline.data.us_equity_minutes import (
     BcolzMinuteBarReader
 )
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, OHLC, \
-    UINT32_MAX, BcolzDailyBarWriter
+    UINT32_MAX, BcolzDailyBarWriter, BcolzDailyBarReader
 from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
 
@@ -635,10 +635,11 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
     if sim_params.data_frequency == "daily":
         daily_path = write_daily_data(tempdir, sim_params, sids)
 
+        equity_daily_reader = BcolzDailyBarReader(daily_path)
+
         return DataPortal(
             env,
-            daily_equities_path=daily_path,
-            sim_params=sim_params,
+            equity_daily_reader=equity_daily_reader,
             adjustment_reader=adjustment_reader
         )
     else:
@@ -655,7 +656,6 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
         return DataPortal(
             env,
             equity_minute_reader=equity_minute_reader,
-            sim_params=sim_params,
             adjustment_reader=adjustment_reader
         )
 
@@ -693,10 +693,11 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
             assets
         )
 
+        equity_daily_reader = BcolzDailyBarReader(path)
+
         return DataPortal(
             env,
-            daily_equities_path=path,
-            sim_params=sim_params,
+            equity_daily_reader=equity_daily_reader,
         )
     else:
         minutes = env.minutes_for_days_in_range(
@@ -750,7 +751,7 @@ class FakeDataPortal(object):
     def __init__(self):
         self._adjustment_reader = None
 
-    def setup_offset_cache(self, minutes_by_day, minutes_to_day):
+    def setup_offset_cache(self, minutes_by_day, minutes_to_day, trading_days):
         pass
 
 
@@ -774,7 +775,7 @@ class FetcherDataPortal(DataPortal):
         # otherwise just return a fixed value
         return int(asset)
 
-    def setup_offset_cache(self, minutes_by_day, minutes_to_day):
+    def setup_offset_cache(self, minutes_by_day, minutes_to_day, trading_days):
         pass
 
     def _get_daily_window_for_sid(self, asset, field, days_in_window,
