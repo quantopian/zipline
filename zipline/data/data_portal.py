@@ -32,7 +32,6 @@ BASE_FIELDS = {
 class DataPortal(object):
     def __init__(self,
                  env,
-                 sim_params=None,
                  equity_daily_reader=None,
                  equity_minute_reader=None,
                  future_daily_reader=None,
