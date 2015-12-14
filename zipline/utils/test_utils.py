@@ -742,7 +742,6 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
         return DataPortal(
             env,
             equity_minute_reader=equity_minute_reader,
-            sim_params=sim_params
         )
 
 
