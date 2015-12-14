@@ -242,7 +242,12 @@ class Blotter(object):
                     raise zipline.errors.TransactionVolumeExceedsOrder(
                         txn=txn, order=order)
 
-                order.filled += txn.amount
+                prev_cost = order.cost_basis * order.amount
+                txn_cost = txn.amount * txn.price
+                total_cost = prev_cost + txn_cost
+                total_shares = order.filled + txn.amount
+                order.cost_basis = total_cost / total_shares
+                order.filled = total_shares
                 if txn.commission is not None:
                     order.commission = ((order.commission or 0.0) +
                                         txn.commission)
@@ -304,6 +309,7 @@ class Order(object):
         self.sid = sid
         self.amount = amount
         self.filled = filled
+        self.cost_basis = 0.0
         self.commission = commission
         self._status = ORDER_STATUS.OPEN
         self.stop = stop
@@ -357,6 +363,7 @@ class Order(object):
         # new_price = old_price * ratio
 
         self.amount = int(self.amount / ratio)
+        self.cost_basis = self.cost_basis * ratio
 
         if self.limit is not None:
             self.limit = round(self.limit * ratio, 2)
