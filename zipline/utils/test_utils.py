@@ -24,7 +24,7 @@ from toolz import concat
 from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
-from zipline.finance.blotter import ORDER_STATUS
+from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
 
 
