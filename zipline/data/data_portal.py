@@ -116,10 +116,6 @@ class DataPortal(object):
         self._extra_source_df = None
 
         self._sim_params = sim_params
-        if self._sim_params is not None:
-            self._data_frequency = self._sim_params.data_frequency
-        else:
-            self._data_frequency = "minute"
 
         self._futures_sid_path_func = futures_sid_path_func
 
@@ -263,7 +259,7 @@ class DataPortal(object):
 
         return bcolz.open(path, mode='r')
 
-    def get_previous_value(self, asset, field, dt):
+    def get_previous_value(self, asset, field, dt, data_frequency):
         """
         Given an asset and a column and a dt, returns the previous value for
         the same asset/column pair.  If this data portal is in minute mode,
@@ -283,16 +279,20 @@ class DataPortal(object):
         dt: pd.Timestamp
             The timestamp from which to go back in time one slot.
 
+        data_frequency: string
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
+
         Returns
         -------
         The value of the desired field at the desired time.
         """
-        if self._data_frequency == 'daily':
+        if data_frequency == 'daily':
             prev_dt = self.env.previous_trading_day(dt)
-        elif self._data_frequency == 'minute':
+        elif data_frequency == 'minute':
             prev_dt = self.env.previous_market_minute(dt)
 
-        return self.get_spot_value(asset, field, prev_dt)
+        return self.get_spot_value(asset, field, prev_dt, data_frequency)
 
     def _check_extra_sources(self, asset, column, day):
         # If we have an extra source with a column called "price", only look
@@ -316,7 +316,7 @@ class DataPortal(object):
 
                 raise KeyError
 
-    def get_spot_value(self, asset, field, dt):
+    def get_spot_value(self, asset, field, dt, data_frequency):
         """
         Public API method that returns a scalar value representing the value
         of the desired asset's field at either the given dt.
@@ -332,7 +332,11 @@ class DataPortal(object):
             "price".
 
         dt: pd.Timestamp
-            (Optional) The timestamp for the desired value.
+            The timestamp for the desired value.
+
+        data_frequency: string
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
 
         Returns
         -------
@@ -357,7 +361,7 @@ class DataPortal(object):
 
         self._check_is_currently_alive(asset, dt)
 
-        if self._data_frequency == "daily":
+        if data_frequency == "daily":
             day_to_use = dt
             day_to_use = normalize_date(day_to_use)
             return self._get_daily_data(asset, column_to_use, day_to_use)

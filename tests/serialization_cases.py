@@ -60,14 +60,16 @@ returns = factory.create_returns_from_list(
 def object_serialization_cases(skip_daily=False):
     # Wrapped in a function to recreate DI objects.
     cases = [
-        (Blotter, (), {}, 'repr'),
+        (Blotter, ('minute',), {}, 'repr'),
         (Order, (datetime.datetime(2013, 6, 19), 8554, 100), {}, 'dict'),
         (PerShare, (), {}, 'dict'),
         (PerTrade, (), {}, 'dict'),
         (PerDollar, (), {}, 'dict'),
-        (PerformancePeriod, (10000, cases_env.asset_finder), {}, 'dict'),
+        (PerformancePeriod, (10000, cases_env.asset_finder, 'minute'), {},
+         'dict'),
         (Position, (8554,), {}, 'dict'),
-        (PositionTracker, (cases_env.asset_finder, None), {}, 'dict'),
+        (PositionTracker, (cases_env.asset_finder, None, 'minute'),
+         {}, 'dict'),
         # FIXME temporarily commenting out because of dataportal issues
         # (PerformanceTracker, (sim_params_minute, cases_env, None), {},
         # 'to_dict'),

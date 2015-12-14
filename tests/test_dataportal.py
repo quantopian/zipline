@@ -75,7 +75,10 @@ class TestDataPortal(TestCase):
             for minute_idx, minute in enumerate(minutes):
                 for field_idx, field in enumerate(
                         ["open", "high", "low", "close", "volume"]):
-                    val = dp.get_spot_value(0, field, dt=minute)
+                    val = dp.get_spot_value(
+                        0, field,
+                        dt=minute,
+                        data_frequency=sim_params.data_frequency)
                     if minute_idx == 0:
                         self.assertEqual(0, val)
                     elif minute_idx < 200:
@@ -140,7 +143,10 @@ class TestDataPortal(TestCase):
             for day_idx, day in enumerate(days):
                 for field_idx, field in enumerate(
                         ["open", "high", "low", "close", "volume"]):
-                    val = dp.get_spot_value(0, field, dt=day)
+                    val = dp.get_spot_value(
+                        0, field,
+                        dt=day,
+                        data_frequency=sim_params.data_frequency)
                     if day_idx == 0:
                         self.assertEqual(0, val)
                     elif day_idx < 9:
@@ -258,7 +264,10 @@ class TestDataPortal(TestCase):
                 for field_idx, field in enumerate(["open", "high", "low",
                                                    "close", "volume"]):
                     self.assertEqual(
-                        dp.get_spot_value(0, field, dt=minute),
+                        dp.get_spot_value(
+                            0, field,
+                            dt=minute,
+                            data_frequency=sim_params.data_frequency),
                         idx + (1000 * field_idx)
                     )
 
@@ -268,12 +277,18 @@ class TestDataPortal(TestCase):
                 for field_idx, field in enumerate(["open", "high", "low",
                                                    "close"]):
                     self.assertEqual(
-                        dp.get_spot_value(0, field, dt=minute),
+                        dp.get_spot_value(
+                            0, field,
+                            dt=minute,
+                            data_frequency=sim_params.data_frequency),
                         (389 + (1000 * field_idx)) / 2.0
                     )
 
                 self.assertEqual(
-                    dp.get_spot_value(0, "volume", dt=minute),
+                    dp.get_spot_value(
+                        0, "volume",
+                        dt=minute,
+                        data_frequency=sim_params.data_frequency),
                     8778  # 4389 * 2
                 )
 
@@ -282,7 +297,11 @@ class TestDataPortal(TestCase):
                 for field_idx, field in enumerate(["open", "high", "low",
                                                    "close", "volume"]):
                     self.assertEqual(
-                        dp.get_spot_value(0, field, dt=minute),
+                        dp.get_spot_value(
+                            0, field,
+                            dt=minute,
+                            data_frequency=sim_params.data_frequency
+                        ),
                         (390 + idx + (1000 * field_idx))
                     )
         finally:
@@ -331,19 +350,26 @@ class TestDataPortal(TestCase):
 
             future123 = env.asset_finder.retrieve_asset(123)
 
+            data_frequency = 'minute'
+
             for i in range(0, 10000):
                 dt = pd.Timestamp(start_dt + timedelta(minutes=i))
 
                 self.assertEqual(i,
-                                 dp.get_spot_value(future123, "open", dt))
+                                 dp.get_spot_value(
+                                     future123, "open", dt, data_frequency))
                 self.assertEqual(i + 10000,
-                                 dp.get_spot_value(future123, "high", dt))
+                                 dp.get_spot_value(
+                                     future123, "high", dt, data_frequency))
                 self.assertEqual(i + 20000,
-                                 dp.get_spot_value(future123, "low", dt))
+                                 dp.get_spot_value(
+                                     future123, "low", dt, data_frequency))
                 self.assertEqual(i + 30000,
-                                 dp.get_spot_value(future123, "close", dt))
+                                 dp.get_spot_value(
+                                     future123, "close", dt, data_frequency))
                 self.assertEqual(i + 40000,
-                                 dp.get_spot_value(future123, "volume", dt))
+                                 dp.get_spot_value(
+                                     future123, "volume", dt, data_frequency))
 
         finally:
             tempdir.cleanup()

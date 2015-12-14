@@ -23,16 +23,14 @@ cdef class BarData:
     """
     cdef object data_portal
     cdef object simulator
+    cdef object data_frequency
     cdef dict _views
 
     def __init__(self, data_portal, simulator):
         self.data_portal = data_portal
         self.simulator = simulator
+        self.data_frequency = simulator.sim_params.data_frequency
         self._views = {}
-
-    property simulation_dt:
-        def __get__(self):
-            return self.simulator.simulation_dt
 
     def _get_equity_price_view(self, asset):
         """
@@ -52,7 +50,8 @@ cdef class BarData:
             view = self._views[asset]
         except KeyError:
             view = self._views[asset] = \
-                SidView(asset, self.data_portal, self)
+                SidView(asset, self.data_portal,
+                        self.simulator, self.data_frequency)
 
         return view
 
@@ -68,23 +67,27 @@ cdef class BarData:
     @property
     def fetcher_assets(self):
         return self.data_portal.get_fetcher_assets(
-            normalize_date(self.simulation_dt)
+            normalize_date(self.simulator.simulation_dt)
         )
 
 cdef class SidView:
 
     cdef object asset
     cdef object data_portal
-    cdef object bar_data
+    cdef object simulator
+    cdef object data_frequency
     
-    def __init__(self, asset, data_portal, bar_data):
+    def __init__(self, asset, data_portal, simulator, data_frequency):
         self.asset = asset
         self.data_portal = data_portal
-        self.bar_data = bar_data
+        self.simulator = simulator
+        self.data_frequency = data_frequency
 
     def __getattr__(self, column):
         return self.data_portal.get_spot_value(
-            self.asset, column, self.bar_data.simulation_dt)
+            self.asset, column,
+            self.simulator.simulation_dt,
+            self.data_frequency)
 
     def __contains__(self, column):
         return self.data_portal.contains(self.asset, column)

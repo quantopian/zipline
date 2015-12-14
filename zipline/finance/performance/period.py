@@ -154,6 +154,7 @@ class PerformancePeriod(object):
             self,
             starting_cash,
             asset_finder,
+            data_frequency,
             period_open=None,
             period_close=None,
             keep_transactions=True,
@@ -162,6 +163,7 @@ class PerformancePeriod(object):
             name=None):
 
         self.asset_finder = asset_finder
+        self.data_frequency = data_frequency
 
         self.period_open = period_open
         self.period_close = period_close
@@ -276,11 +278,11 @@ class PerformancePeriod(object):
                     continue
 
                 old_price = data_portal.get_previous_value(
-                    sid, 'close', dt=old_price_dt
+                    sid, 'close', old_price_dt, self.data_frequency
                 )
 
                 price = data_portal.get_spot_value(
-                    sid, 'close', dt=self.period_close
+                    sid, 'close', self.period_close, self.data_frequency,
                 )
 
                 payout = (
@@ -452,6 +454,7 @@ class PerformancePeriod(object):
 
         state_dict['_portfolio_store'] = self._portfolio_store
         state_dict['_account_store'] = self._account_store
+        state_dict['data_frequency'] = self.data_frequency
 
         state_dict['processed_transactions'] = \
             dict(self.processed_transactions)

@@ -109,8 +109,10 @@ class PerformanceTracker(object):
         else:
             self._adjustment_reader = None
 
-        self.position_tracker = PositionTracker(asset_finder=env.asset_finder,
-                                                data_portal=data_portal)
+        self.position_tracker = PositionTracker(
+            asset_finder=env.asset_finder,
+            data_portal=data_portal,
+            data_frequency=self.sim_params.data_frequency)
 
         if self.emission_rate == 'daily':
             self.all_benchmark_returns = pd.Series(
@@ -131,6 +133,7 @@ class PerformanceTracker(object):
         self.cumulative_performance = PerformancePeriod(
             # initial cash is your capital base.
             starting_cash=self.capital_base,
+            data_frequency=self.sim_params.data_frequency,
             # the cumulative period will be calculated over the entire test.
             period_open=self.period_start,
             period_close=self.period_end,
@@ -148,6 +151,7 @@ class PerformanceTracker(object):
         self.todays_performance = PerformancePeriod(
             # initial cash is your capital base.
             starting_cash=self.capital_base,
+            data_frequency=self.sim_params.data_frequency,
             # the daily period will be calculated for the market day
             period_open=self.market_open,
             period_close=self.market_close,

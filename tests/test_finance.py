@@ -199,11 +199,6 @@ class FinanceTestCase(TestCase):
             complete_fill = params.get('complete_fill')
 
             env = TradingEnvironment()
-            blotter = Blotter()
-
-            if "default_slippage" not in params or \
-                    not params["default_slippage"]:
-                blotter.slippage_func = FixedSlippage()
 
             sid = 1
 
@@ -267,6 +262,15 @@ class FinanceTestCase(TestCase):
                     daily_equities_path=path,
                     sim_params=sim_params
                 )
+
+            if "default_slippage" not in params or \
+               not params["default_slippage"]:
+                slippage_func = FixedSlippage()
+            else:
+                slippage_func = None
+
+            blotter = Blotter(sim_params.data_frequency,
+                              slippage_func)
 
             env.write_data(equities_data={
                 sid: {
@@ -347,7 +351,8 @@ class FinanceTestCase(TestCase):
             tempdir.cleanup()
 
     def test_blotter_processes_splits(self):
-        blotter = Blotter(slippage_func=FixedSlippage())
+        blotter = Blotter('daily',
+                          slippage_func=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2

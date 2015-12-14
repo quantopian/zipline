@@ -33,7 +33,8 @@ log = Logger('Blotter')
 
 
 class Blotter(object):
-    def __init__(self, slippage_func=None, commission=None):
+    def __init__(self, data_frequency,
+                 slippage_func=None, commission=None):
         # these orders are aggregated by sid
         self.open_orders = defaultdict(list)
 
@@ -47,6 +48,8 @@ class Blotter(object):
 
         self.slippage_func = slippage_func or VolumeShareSlippage()
         self.commission = commission or PerShare()
+
+        self.data_frequency = data_frequency
 
         self.current_dt = None
 
@@ -228,10 +231,10 @@ class Blotter(object):
 
         for asset, asset_orders in iteritems(self.open_orders):
             price = data_portal.get_spot_value(
-                asset, 'close', self.current_dt)
+                asset, 'close', self.current_dt, self.data_frequency)
 
             volume = data_portal.get_spot_value(
-                asset, 'volume', self.current_dt)
+                asset, 'volume', self.current_dt, self.data_frequency)
 
             for order, txn in self.slippage_func(asset_orders, self.current_dt,
                                                  price, volume):
@@ -273,7 +276,7 @@ class Blotter(object):
 
     def __getstate__(self):
 
-        state_to_save = ['new_orders', 'orders', '_status']
+        state_to_save = ['new_orders', 'orders', '_status', 'data_frequency']
 
         state_dict = {k: self.__dict__[k] for k in state_to_save
                       if k in self.__dict__}
@@ -288,7 +291,7 @@ class Blotter(object):
 
     def __setstate__(self, state):
 
-        self.__init__()
+        self.__init__(state.pop('data_frequency'))
 
         OLDEST_SUPPORTED_STATE = 1
         version = state.pop(VERSION_LABEL)
