@@ -441,15 +441,18 @@ class TradingAlgorithm(object):
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
 
-        self.trading_client = AlgorithmSimulator(
+        self.trading_client = self._create_trading_client(sim_params)
+
+        return self.trading_client.transform()
+
+    def _create_trading_client(self, sim_params):
+        return AlgorithmSimulator(
             self,
             sim_params,
             self.data_portal,
             self._create_clock(),
             self._create_benchmark_source()
         )
-
-        return self.trading_client.transform()
 
     def get_generator(self):
         """

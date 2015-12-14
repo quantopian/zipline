@@ -231,6 +231,22 @@ class TestMiscellaneousAPI(TestCase):
             with ZiplineAPI(algo):
                 self.assertIs(sentinel, getattr(zipline.api, name)())
 
+    def test_cannot_iterate_over_data(self):
+        def initialize(algo):
+            pass
+
+        def handle_data(algo, data):
+            for asset in data:
+                pass
+
+        algo = TradingAlgorithm(initialize=initialize,
+                                handle_data=handle_data,
+                                sim_params=self.sim_params,
+                                env=self.env)
+
+        with self.assertRaises(ValueError):
+            algo.run(self.data_portal)
+
     def test_get_environment(self):
         expected_env = {
             'arena': 'backtest',
