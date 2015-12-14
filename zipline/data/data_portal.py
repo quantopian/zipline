@@ -328,7 +328,11 @@ class DataPortal(object):
             "price".
 
         dt: pd.Timestamp
-            (Optional) The timestamp for the desired value.
+            The timestamp for the desired value.
+
+        data_frequency: string
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
 
         Returns
         -------
