@@ -4,7 +4,7 @@ import math
 from six import text_type, iteritems
 
 import zipline.protocol as zp
-from zipline.utils.utils import enum
+from zipline.utils import enum
 from zipline.utils.serialization_utils import VERSION_LABEL
 
 ORDER_STATUS = enum(
