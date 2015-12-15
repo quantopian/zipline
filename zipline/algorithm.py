@@ -30,6 +30,7 @@ from six import (
     string_types,
 )
 
+
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     HistoryInInitialize,
