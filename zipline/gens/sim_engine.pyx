@@ -73,7 +73,7 @@ cdef class MinuteSimulationClock:
     def __iter__(self):
 
         minute_emission = self.minute_emission
-        
+
         for day in self.trading_days:
             yield day, DAY_START
 
