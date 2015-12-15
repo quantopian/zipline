@@ -16,9 +16,9 @@ from zipline.finance.risk.period import RiskMetricsPeriod
 from zipline.finance.risk.report import RiskReport
 from zipline.finance.slippage import (
     FixedSlippage,
-    Transaction,
     VolumeShareSlippage
 )
+from zipline.finance.transaction import Transaction
 from zipline.protocol import Account
 from zipline.protocol import Portfolio
 from zipline.protocol import Position as ProtocolPosition
