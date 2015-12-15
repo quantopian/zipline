@@ -170,13 +170,6 @@ class PerformanceTracker(object):
         self.account_needs_update = True
         self._account = None
 
-        self._perf_periods = [self.cumulative_performance,
-                              self.todays_performance]
-
-    @property
-    def perf_periods(self):
-        return self._perf_periods
-
     def __repr__(self):
         return "%s(%r)" % (
             self.__class__.__name__,
