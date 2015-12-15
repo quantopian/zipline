@@ -14,11 +14,10 @@
 # limitations under the License.
 
 import os
-import pandas
 import pickle
 
 from nose_parameterized import parameterized
-from unittest import TestCase
+from unittest import TestCase, skip
 
 from zipline.finance.blotter import Order
 
@@ -51,20 +50,13 @@ class VersioningTestCase(TestCase):
 
     # Only test versioning in minutely mode right now
     @parameterized.expand(object_serialization_cases(skip_daily=True))
+    @skip
     def test_object_serialization(self,
                                   _,
                                   cls,
                                   initargs,
                                   di_vars,
                                   comparison_method='dict'):
-
-        # The state generated under one version of pandas may not be
-        # compatible with another. To ensure that tests pass under the travis
-        # pandas version matrix, we only run versioning tests under the
-        # current version of pandas. This will need to be updated once we
-        # change the pandas version on prod.
-        if pandas.__version__ != '0.12.0':
-            return
 
         # Make reference object
         obj = cls(*initargs)

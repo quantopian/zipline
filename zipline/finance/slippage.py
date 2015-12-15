@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from functools import partial
 
 from six import with_metaclass
 
-from zipline.protocol import DATASOURCE_TYPE
+from zipline.finance.transaction import create_transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -32,66 +32,6 @@ SELL = 1 << 0
 BUY = 1 << 1
 STOP = 1 << 2
 LIMIT = 1 << 3
-
-
-def check_order_triggers(order, event):
-    """
-    Given an order and a trade event, return a tuple of
-    (stop_reached, limit_reached).
-    For market orders, will return (False, False).
-    For stop orders, limit_reached will always be False.
-    For limit orders, stop_reached will always be False.
-    For stop limit orders a Boolean is returned to flag
-    that the stop has been reached.
-
-    Orders that have been triggered already (price targets reached),
-    the order's current values are returned.
-    """
-    if order.triggered:
-        return (order.stop_reached, order.limit_reached, False)
-
-    stop_reached = False
-    limit_reached = False
-    sl_stop_reached = False
-
-    order_type = 0
-
-    if order.amount > 0:
-        order_type |= BUY
-    else:
-        order_type |= SELL
-
-    if order.stop is not None:
-        order_type |= STOP
-
-    if order.limit is not None:
-        order_type |= LIMIT
-
-    if order_type == BUY | STOP | LIMIT:
-        if event.price >= order.stop:
-            sl_stop_reached = True
-            if event.price <= order.limit:
-                limit_reached = True
-    elif order_type == SELL | STOP | LIMIT:
-        if event.price <= order.stop:
-            sl_stop_reached = True
-            if event.price >= order.limit:
-                limit_reached = True
-    elif order_type == BUY | STOP:
-        if event.price >= order.stop:
-            stop_reached = True
-    elif order_type == SELL | STOP:
-        if event.price <= order.stop:
-            stop_reached = True
-    elif order_type == BUY | LIMIT:
-        if event.price <= order.limit:
-            limit_reached = True
-    elif order_type == SELL | LIMIT:
-        # This is a SELL LIMIT order
-        if event.price >= order.limit:
-            limit_reached = True
-
-    return (stop_reached, limit_reached, sl_stop_reached)
 
 
 def transact_stub(slippage, commission, event, open_orders):
@@ -110,66 +50,6 @@ def transact_stub(slippage, commission, event, open_orders):
 
 def transact_partial(slippage, commission):
     return partial(transact_stub, slippage, commission)
-
-
-class Transaction(object):
-
-    def __init__(self, sid, amount, dt, price, order_id, commission=None):
-        self.sid = sid
-        self.amount = amount
-        self.dt = dt
-        self.price = price
-        self.order_id = order_id
-        self.commission = commission
-        self.type = DATASOURCE_TYPE.TRANSACTION
-
-    def __getitem__(self, name):
-        return self.__dict__[name]
-
-    def to_dict(self):
-        py = copy(self.__dict__)
-        del py['type']
-        return py
-
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Transaction saved state is too old.")
-
-        self.__dict__.update(state)
-
-
-def create_transaction(event, order, price, amount):
-
-    # floor the amount to protect against non-whole number orders
-    # TODO: Investigate whether we can add a robust check in blotter
-    # and/or tradesimulation, as well.
-    amount_magnitude = int(abs(amount))
-
-    if amount_magnitude < 1:
-        raise Exception("Transaction magnitude must be at least 1.")
-
-    transaction = Transaction(
-        sid=event.sid,
-        amount=int(amount),
-        dt=event.dt,
-        price=price,
-        order_id=order.id
-    )
-
-    return transaction
 
 
 class LiquidityExceeded(Exception):
