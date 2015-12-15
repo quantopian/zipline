@@ -73,7 +73,7 @@ class DataPortal(object):
         -------
         The value of the desired field at the desired time.
         """
-        NotImplementedError
+        raise NotImplementedError
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         """
@@ -101,7 +101,7 @@ class DataPortal(object):
         -------
         The value of the desired field at the desired time.
         """
-        NotImplementedError
+        raise NotImplementedError
 
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            ffill=True):
@@ -131,7 +131,7 @@ class DataPortal(object):
         -------
         A dataframe containing the requested data.
         """
-        NotImplementedError
+        raise NotImplementedError
 
     def get_splits(self, sids, dt):
         """
@@ -150,7 +150,7 @@ class DataPortal(object):
         -------
         list: List of splits, where each split is a (sid, ratio) tuple.
         """
-        NotImplementedError
+        raise NotImplementedError
 
     def get_stock_dividends(self, sid, trading_days):
         """
@@ -170,7 +170,7 @@ class DataPortal(object):
         list: A list of objects with all relevant attributes populated.
         All timestamp fields are converted to pd.Timestamps.
         """
-        NotImplementedError
+        raise NotImplementedError
 
     def get_fetcher_assets(self, day):
         """
@@ -186,4 +186,4 @@ class DataPortal(object):
         -------
         list: a list of Asset objects.
         """
-        NotImplementedError
+        raise NotImplementedError
