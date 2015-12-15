@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,22 @@
 from __future__ import division
 
 import abc
-from copy import copy
+
 import math
 
-from six import with_metaclass
-from zipline.finance.transaction import create_transaction
+from copy import copy
 
-from zipline.utils.serialization_utils import VERSION_LABEL
+from six import with_metaclass
+
+from zipline.finance.transaction import create_transaction
+from zipline.utils.serialization_utils import (
+    VERSION_LABEL
+)
+
+SELL = 1 << 0
+BUY = 1 << 1
+STOP = 1 << 2
+LIMIT = 1 << 3
 
 
 class LiquidityExceeded(Exception):
@@ -47,6 +56,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         self._volume_for_bar = 0
 
         for order in current_orders:
+
             if order.open_amount == 0:
                 continue
 
@@ -71,6 +81,7 @@ class VolumeShareSlippage(SlippageModel):
 
     def __init__(self, volume_limit=DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
+
         self.volume_limit = volume_limit
         self.price_impact = price_impact
 
@@ -175,6 +186,7 @@ class FixedSlippage(SlippageModel):
         )
 
     def __getstate__(self):
+
         state_dict = copy(self.__dict__)
 
         STATE_VERSION = 1
@@ -183,6 +195,7 @@ class FixedSlippage(SlippageModel):
         return state_dict
 
     def __setstate__(self, state):
+
         OLDEST_SUPPORTED_STATE = 1
         version = state.pop(VERSION_LABEL)
 
