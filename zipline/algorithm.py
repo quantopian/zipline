@@ -83,10 +83,7 @@ from zipline.utils.api_support import (
     ZiplineAPI,
 )
 from zipline.utils.input_validation import ensure_upper_case
-from zipline.utils.cache import (
-    CachedObject,
-    Expired
-)
+from zipline.utils.cache import CachedObject, Expired
 import zipline.utils.events
 from zipline.utils.events import (
     EventManager,
