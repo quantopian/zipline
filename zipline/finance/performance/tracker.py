@@ -436,7 +436,7 @@ class PerformanceTracker(object):
         self.cumulative_risk_metrics.update(todays_date,
                                             self.todays_performance.returns,
                                             bench_since_open,
-                                            account)
+                                            account.leverage)
 
         minute_packet = self.to_dict(emission_type='minute')
 
@@ -461,7 +461,7 @@ class PerformanceTracker(object):
             completed_date,
             self.todays_performance.returns,
             self.all_benchmark_returns[completed_date],
-            account)
+            account.leverage)
 
         return self._handle_market_close(completed_date)
 
