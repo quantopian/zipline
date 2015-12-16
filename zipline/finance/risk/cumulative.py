@@ -170,7 +170,7 @@ class RiskMetricsCumulative(object):
 
         self.num_trading_days = 0
 
-    def update(self, dt, algorithm_returns, benchmark_returns, account):
+    def update(self, dt, algorithm_returns, benchmark_returns, leverage):
         # Keep track of latest dt for use in to_dict and other methods
         # that report current state.
         self.latest_dt = dt
@@ -234,7 +234,7 @@ class RiskMetricsCumulative(object):
         self.annualized_mean_benchmark_returns = \
             self.annualized_mean_benchmark_returns_cont[:dt_loc + 1]
 
-        self.algorithm_cumulative_leverages_cont[dt_loc] = account['leverage']
+        self.algorithm_cumulative_leverages_cont[dt_loc] = leverage
         self.algorithm_cumulative_leverages = \
             self.algorithm_cumulative_leverages_cont[:dt_loc + 1]
 
