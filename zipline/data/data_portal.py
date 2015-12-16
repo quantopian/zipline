@@ -704,7 +704,7 @@ class DataPortal(object):
         return pd.DataFrame(
             np.array(data).T,
             index=minutes_for_window,
-            columns=map(int, assets)
+            columns=assets
         )
 
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
