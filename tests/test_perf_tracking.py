@@ -63,18 +63,14 @@ if not hasattr(nt, 'assert_count_equal'):
 
 
 def check_perf_period(pp,
-                      pt,
                       gross_leverage,
                       net_leverage,
                       long_exposure,
                       longs_count,
                       short_exposure,
-                      shorts_count,
-                      data_portal):
+                      shorts_count):
 
-    pos_stats = pt.stats()
-    pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-    perf_data = pp.to_dict(pos_stats, pp_stats, pt)
+    perf_data = pp.to_dict()
     np.testing.assert_allclose(
         gross_leverage, perf_data['gross_leverage'], rtol=1e-3)
     np.testing.assert_allclose(
@@ -217,7 +213,7 @@ def calculate_results(sim_params,
             pass
 
         msg = perf_tracker.handle_market_close_daily(date)
-        msg['account'] = perf_tracker.get_account(date)
+        msg['account'] = perf_tracker.get_account(True, date)
         results.append(msg)
     return results
 
@@ -242,6 +238,13 @@ def check_perf_tracker_serialization(perf_tracker):
 
     for k in scalar_keys:
         nt.assert_equal(getattr(test, k), getattr(perf_tracker, k), k)
+
+    perf_periods = (
+        test.cumulative_performance,
+        test.todays_performance
+    )
+    for period in perf_periods:
+        nt.assert_true(hasattr(period, '_position_tracker'))
 
 
 def setup_env_data(env, sim_params, sids):
@@ -1229,7 +1232,7 @@ class TestPositionPerformance(unittest.TestCase):
             2,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
-            onesec,
+            oneday,
             self.sim_params,
             env=self.env
         )
@@ -1249,30 +1252,27 @@ class TestPositionPerformance(unittest.TestCase):
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
                                     data_portal)
+        pp.position_tracker = pt
         pt.execute_transaction(txn1)
         pp.handle_execution(txn1)
         pt.execute_transaction(txn2)
         pp.handle_execution(txn2)
 
+        dt = trades_1[-2].dt
+        pt.sync_last_sale_prices(dt)
+
+        pp.calculate_performance()
+
         check_perf_period(
             pp,
-            pt,
             gross_leverage=2.0,
             net_leverage=0.0,
             long_exposure=1000.0,
             longs_count=1,
             short_exposure=-1000.0,
-            shorts_count=1,
-            data_portal=data_portal
-        )
-
-        dt = trades_1[-2].dt
-        pt.sync_last_sale_prices(dt)
-
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
+            shorts_count=1)
         # Validate that the account attributes were updated.
-        account = pp.as_account(pos_stats, pp_stats)
+        account = pp.as_account()
         check_account(account,
                       settled_cash=1000.0,
                       equity_with_loan=1000.0,
@@ -1285,24 +1285,22 @@ class TestPositionPerformance(unittest.TestCase):
                       net_leverage=0.0,
                       net_liquidation=1000.0)
 
-        # Validate that the account attributes were updated.
         dt = trades_1[-1].dt
         pt.sync_last_sale_prices(dt)
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-        account = pp.as_account(pos_stats, pp_stats)
+
+        pp.calculate_performance()
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
 
         check_perf_period(
             pp,
-            pt,
             gross_leverage=2.5,
             net_leverage=-0.25,
             long_exposure=900.0,
             longs_count=1,
             short_exposure=-1100.0,
-            shorts_count=1,
-            data_portal=data_portal
-        )
+            shorts_count=1)
 
         check_account(account,
                       settled_cash=1000.0,
@@ -1346,27 +1344,27 @@ class TestPositionPerformance(unittest.TestCase):
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
                                     data_portal)
+        pp.position_tracker = pt
 
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
+        pp.calculate_performance()
+
         check_perf_period(
             pp,
-            pt,
             gross_leverage=10.0,
             net_leverage=10.0,
             long_exposure=10000.0,
             longs_count=1,
             short_exposure=0.0,
-            shorts_count=0,
-            data_portal=data_portal
-        )
+            shorts_count=0)
 
         # Validate that the account attributes were updated.
         pt.sync_last_sale_prices(trades[-2].dt)
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-        account = pp.as_account(pos_stats, pp_stats)
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
         check_account(account,
                       settled_cash=-9000.0,
                       equity_with_loan=1000.0,
@@ -1382,22 +1380,19 @@ class TestPositionPerformance(unittest.TestCase):
         # now simulate a price jump to $11
         pt.sync_last_sale_prices(trades[-1].dt)
 
+        pp.calculate_performance()
+
         check_perf_period(
             pp,
-            pt,
             gross_leverage=5.5,
             net_leverage=5.5,
             long_exposure=11000.0,
             longs_count=1,
             short_exposure=0.0,
-            shorts_count=0,
-            data_portal=data_portal
-        )
+            shorts_count=0)
 
         # Validate that the account attributes were updated.
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-        account = pp.as_account(pos_stats, pp_stats)
+        account = pp.as_account()
 
         check_account(account,
                       settled_cash=-9000.0,
@@ -1439,8 +1434,11 @@ class TestPositionPerformance(unittest.TestCase):
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
+                                    data_portal,
                                     period_open=self.sim_params.period_start,
                                     period_close=self.sim_params.period_end)
+        pp.position_tracker = pt
+
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
@@ -1449,9 +1447,11 @@ class TestPositionPerformance(unittest.TestCase):
         # incorrectly show as sharply dipping if a transaction arrives
         # before a trade. This is caused by returns being based on holding
         # stocks with a last sale price of 0.
-        self.assertEqual(pt.positions[1].last_sale_price, 10.0)
+        self.assertEqual(pp.positions[1].last_sale_price, 10.0)
 
         pt.sync_last_sale_prices(trades[-1].dt)
+
+        pp.calculate_performance()
 
         self.assertEqual(
             pp.period_cash_flow,
@@ -1460,15 +1460,18 @@ class TestPositionPerformance(unittest.TestCase):
             cost of sole txn in test"
         )
 
-        self.assertEqual(len(pt.positions), 1, "should be just one position")
+        self.assertEqual(
+            len(pp.positions),
+            1,
+            "should be just one position")
 
         self.assertEqual(
-            pt.positions[1].sid,
+            pp.positions[1].sid,
             txn.sid,
             "position should be in security with id 1")
 
         self.assertEqual(
-            pt.positions[1].amount,
+            pp.positions[1].amount,
             txn.amount,
             "should have a position of {sharecount} shares".format(
                 sharecount=txn.amount
@@ -1476,47 +1479,40 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         self.assertEqual(
-            pt.positions[1].cost_basis,
+            pp.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            pt.positions[1].last_sale_price,
+            pp.positions[1].last_sale_price,
             trades[-1]['price'],
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
                 exp=trades[-1]['price'],
-                act=pt.positions[1].last_sale_price)
+                act=pp.positions[1].last_sale_price)
         )
 
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-
         self.assertEqual(
-            pos_stats.net_value,
+            pp.ending_value,
             1100,
             "ending value should be price of last trade times number of \
             shares in position"
         )
 
-        self.assertEqual(pp_stats.pnl, 100,
-                         "gain of 1 on 100 shares should be 100")
+        self.assertEqual(pp.pnl, 100, "gain of 1 on 100 shares should be 100")
 
         check_perf_period(
             pp,
-            pt,
             gross_leverage=1.0,
             net_leverage=1.0,
             long_exposure=1100.0,
             longs_count=1,
             short_exposure=0.0,
-            shorts_count=0,
-            data_portal=data_portal
-        )
+            shorts_count=0)
 
         # Validate that the account attributes were updated.
-        account = pp.as_account(pos_stats, pp_stats)
+        account = pp.as_account()
         check_account(account,
                       settled_cash=0.0,
                       equity_with_loan=1100.0,
@@ -1558,11 +1554,14 @@ single short-sale transaction"""
             1000.0, self.env.asset_finder,
             self.sim_params.data_frequency,
             data_portal)
+        pp.position_tracker = pt
 
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
         pt.sync_last_sale_prices(trades_1[-1].dt)
+
+        pp.calculate_performance()
 
         self.assertEqual(
             pp.period_cash_flow,
@@ -1572,55 +1571,53 @@ single short-sale transaction"""
         )
 
         self.assertEqual(
-            len(pt.positions),
+            len(pp.positions),
             1,
             "should be just one position")
 
         self.assertEqual(
-            pt.positions[1].sid,
+            pp.positions[1].sid,
             txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            pt.positions[1].amount,
+            pp.positions[1].amount,
             -100,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            pt.positions[1].cost_basis,
+            pp.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            pt.positions[1].last_sale_price,
+            pp.positions[1].last_sale_price,
             trades_1[-1]['price'],
             "last sale should be price of last trade"
         )
 
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-
         self.assertEqual(
-            pos_stats.net_value,
+            pp.ending_value,
             -1100,
             "ending value should be price of last trade times number of \
             shares in position"
         )
 
-        self.assertEqual(pp_stats.pnl, -100,
-                         "gain of 1 on 100 shares should be 100")
+        self.assertEqual(pp.pnl, -100, "gain of 1 on 100 shares should be 100")
 
         # simulate additional trades, and ensure that the position value
         # reflects the new price
         trades_2 = trades[-2:]
 
         # simulate a rollover to a new period
-        pp.rollover(pos_stats, pp_stats)
+        pp.rollover()
 
         pt.sync_last_sale_prices(trades[-1].dt)
+
+        pp.calculate_performance()
 
         self.assertEqual(
             pp.period_cash_flow,
@@ -1630,46 +1627,43 @@ single short-sale transaction"""
         )
 
         self.assertEqual(
-            len(pt.positions),
+            len(pp.positions),
             1,
             "should be just one position"
         )
 
         self.assertEqual(
-            pt.positions[1].sid,
+            pp.positions[1].sid,
             txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            pt.positions[1].amount,
+            pp.positions[1].amount,
             -100,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            pt.positions[1].cost_basis,
+            pp.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            pt.positions[1].last_sale_price,
+            pp.positions[1].last_sale_price,
             trades_2[-1].price,
             "last sale should be price of last trade"
         )
 
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-
         self.assertEqual(
-            pos_stats.net_value,
+            pp.ending_value,
             -900,
             "ending value should be price of last trade times number of \
             shares in position")
 
         self.assertEqual(
-            pp_stats.pnl,
+            pp.pnl,
             200,
             "drop of 2 on -100 shares should be 200"
         )
@@ -1680,11 +1674,14 @@ single short-sale transaction"""
         ppTotal = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                          self.sim_params.data_frequency,
                                          data_portal)
+        ppTotal.position_tracker = pt
 
         ptTotal.execute_transaction(txn)
         ppTotal.handle_execution(txn)
 
         ptTotal.sync_last_sale_prices(trades[-1].dt)
+
+        ppTotal.calculate_performance()
 
         self.assertEqual(
             ppTotal.period_cash_flow,
@@ -1694,64 +1691,57 @@ cost of sole txn in test"
         )
 
         self.assertEqual(
-            len(ptTotal.positions),
+            len(ppTotal.positions),
             1,
             "should be just one position"
         )
         self.assertEqual(
-            ptTotal.positions[1].sid,
+            ppTotal.positions[1].sid,
             txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            ptTotal.positions[1].amount,
+            ppTotal.positions[1].amount,
             -100,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            ptTotal.positions[1].cost_basis,
+            ppTotal.positions[1].cost_basis,
             txn.price,
             "should have a cost basis of 10"
         )
 
         self.assertEqual(
-            ptTotal.positions[1].last_sale_price,
+            ppTotal.positions[1].last_sale_price,
             trades_2[-1].price,
             "last sale should be price of last trade"
         )
 
-        pos_total_stats = ptTotal.stats()
-        pp_total_stats = ppTotal.stats(ptTotal.positions, pos_total_stats,
-                                       data_portal)
-
         self.assertEqual(
-            pos_total_stats.net_value,
+            ppTotal.ending_value,
             -900,
             "ending value should be price of last trade times number of \
             shares in position")
 
         self.assertEqual(
-            pp_total_stats.pnl,
+            ppTotal.pnl,
             100,
             "drop of 1 on -100 shares should be 100"
         )
 
         check_perf_period(
             pp,
-            pt,
             gross_leverage=0.8181,
             net_leverage=-0.8181,
             long_exposure=0.0,
             longs_count=0,
             short_exposure=-900.0,
-            shorts_count=1,
-            data_portal=data_portal
-        )
+            shorts_count=1)
 
         # Validate that the account attributes.
-        account = ppTotal.as_account(pos_stats, pp_stats)
+        account = ppTotal.as_account()
         check_account(account,
                       settled_cash=2000.0,
                       equity_with_loan=1100.0,
@@ -1796,6 +1786,7 @@ trade after cover"""
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
                                     data_portal)
+        pp.position_tracker = pt
 
         pt.execute_transaction(short_txn)
         pp.handle_execution(short_txn)
@@ -1803,6 +1794,8 @@ trade after cover"""
         pp.handle_execution(cover_txn)
 
         pt.sync_last_sale_prices(trades[-1].dt)
+
+        pp.calculate_performance()
 
         short_txn_cost = short_txn.price * short_txn.amount
         cover_txn_cost = cover_txn.price * cover_txn.amount
@@ -1814,64 +1807,58 @@ trade after cover"""
         )
 
         self.assertEqual(
-            len(pt.positions),
+            len(pp.positions),
             1,
             "should be just one position"
         )
 
         self.assertEqual(
-            pt.positions[1].sid,
+            pp.positions[1].sid,
             short_txn.sid,
             "position should be in security from the transaction"
         )
 
         self.assertEqual(
-            pt.positions[1].amount,
+            pp.positions[1].amount,
             0,
             "should have a position of -100 shares"
         )
 
         self.assertEqual(
-            pt.positions[1].cost_basis,
+            pp.positions[1].cost_basis,
             0,
             "a covered position should have a cost basis of 0"
         )
 
         self.assertEqual(
-            pt.positions[1].last_sale_price,
+            pp.positions[1].last_sale_price,
             trades[-1].price,
             "last sale should be price of last trade"
         )
 
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-
         self.assertEqual(
-            pos_stats.net_value,
+            pp.ending_value,
             0,
             "ending value should be price of last trade times number of \
 shares in position"
         )
 
         self.assertEqual(
-            pp_stats.pnl,
+            pp.pnl,
             300,
             "gain of 1 on 100 shares should be 300"
         )
 
         check_perf_period(
             pp,
-            pt,
             gross_leverage=0.0,
             net_leverage=0.0,
             long_exposure=0.0,
             longs_count=0,
             short_exposure=0.0,
-            shorts_count=0,
-            data_portal=data_portal
-        )
+            shorts_count=0)
 
-        account = pp.as_account(pos_stats, pp_stats)
+        account = pp.as_account()
         check_account(account,
                       settled_cash=1300.0,
                       equity_with_loan=1300.0,
@@ -1910,9 +1897,12 @@ shares in position"
             1000.0,
             self.env.asset_finder,
             self.sim_params.data_frequency,
+            data_portal,
             period_open=self.sim_params.period_start,
             period_close=self.sim_params.trading_days[-1]
         )
+        pp.position_tracker = pt
+
         average_cost = 0
         for i, txn in enumerate(transactions):
             pt.execute_transaction(txn)
@@ -1936,11 +1926,10 @@ shares in position"
 
         pt.sync_last_sale_prices(dt)
 
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
+        pp.calculate_performance()
 
         self.assertEqual(
-            pp_stats.pnl,
+            pp.pnl,
             400
         )
 
@@ -1952,7 +1941,7 @@ shares in position"
             10.0,
             -100)
 
-        pp.rollover(pos_stats, pp_stats)
+        pp.rollover()
 
         pt.execute_transaction(sale_txn)
         pp.handle_execution(sale_txn)
@@ -1960,36 +1949,35 @@ shares in position"
         dt = down_tick.dt
         pt.sync_last_sale_prices(dt)
 
+        pp.calculate_performance()
         self.assertEqual(
-            pt.positions[1].last_sale_price,
+            pp.positions[1].last_sale_price,
             10,
             "should have a last sale of 10, was {val}".format(
-                val=pt.positions[1].last_sale_price)
+                val=pp.positions[1].last_sale_price)
         )
 
         self.assertEqual(
-            pt.positions[1].cost_basis,
+            pp.positions[1].cost_basis,
             11,
             "should have a cost basis of 11"
         )
 
-        pos_stats = pt.stats()
-        pp_stats = pp.stats(pt.positions, pos_stats, data_portal)
-
-        self.assertEqual(pp_stats.pnl, -800,
-                         "this period goes from +400 to -400")
+        self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
         pt3 = perf.PositionTracker(self.env.asset_finder, data_portal,
                                    self.sim_params.data_frequency)
         pp3 = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                     self.sim_params.data_frequency)
+                                     self.sim_params.data_frequency,
+                                     data_portal)
+        pp3.position_tracker = pt3
 
         average_cost = 0
         for i, txn in enumerate(transactions):
             pt3.execute_transaction(txn)
             pp3.handle_execution(txn)
             average_cost = (average_cost * i + txn.price) / (i + 1)
-            self.assertEqual(pt3.positions[1].cost_basis, average_cost)
+            self.assertEqual(pp3.positions[1].cost_basis, average_cost)
 
         pt3.execute_transaction(sale_txn)
         pp3.handle_execution(sale_txn)
@@ -1997,24 +1985,21 @@ shares in position"
         trades.append(down_tick)
         pt3.sync_last_sale_prices(trades[-1].dt)
 
+        pp3.calculate_performance()
         self.assertEqual(
-            pt3.positions[1].last_sale_price,
+            pp3.positions[1].last_sale_price,
             10,
             "should have a last sale of 10"
         )
 
         self.assertEqual(
-            pt3.positions[1].cost_basis,
+            pp3.positions[1].cost_basis,
             11,
             "should have a cost basis of 11"
         )
 
-        pt3.sync_last_sale_prices(dt)
-        pt3_stats = pt3.stats()
-        pp3_stats = pp3.stats(pt3.positions, pt3_stats, data_portal)
-
         self.assertEqual(
-            pp3_stats.pnl,
+            pp3.pnl,
             -400,
             "should be -400 for all trades and transactions in period"
         )
@@ -2045,13 +2030,16 @@ shares in position"
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder, data_portal,
                                     self.sim_params.data_frequency)
+        pp.position_tracker = pt
 
         for txn, cb in zip(transactions, cost_bases):
             pt.execute_transaction(txn)
             pp.handle_execution(txn)
-            self.assertEqual(pt.positions[1].cost_basis, cb)
+            self.assertEqual(pp.positions[1].cost_basis, cb)
 
-        self.assertEqual(pt.positions[1].cost_basis, cost_bases[-1])
+        pp.calculate_performance()
+
+        self.assertEqual(pp.positions[1].cost_basis, cost_bases[-1])
 
 
 class TestPosition(unittest.TestCase):
@@ -2189,12 +2177,13 @@ class TestPerformancePeriod(unittest.TestCase):
 
     def test_serialization(self):
         env = TradingEnvironment()
-        pp = perf.PerformancePeriod(100, env.asset_finder, 'minute')
+        pp = perf.PerformancePeriod(100, env.asset_finder, 'minute', None)
 
         p_string = dumps_with_persistent_ids(pp)
         test = loads_with_persistent_ids(p_string, env=env)
 
         correct = pp.__dict__.copy()
+        correct.pop('_data_portal')
 
         nt.assert_count_equal(test.__dict__.keys(), correct.keys())
 

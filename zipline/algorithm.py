@@ -242,6 +242,9 @@ class TradingAlgorithm(object):
         # symbols to sids, and can be set using set_symbol_lookup_date()
         self._symbol_lookup_date = None
 
+        self.portfolio_needs_update = True
+        self.account_needs_update = True
+        self.performance_needs_update = True
         self._portfolio = None
         self._account = None
 
@@ -884,9 +887,12 @@ class TradingAlgorithm(object):
         return self.updated_portfolio()
 
     def updated_portfolio(self):
-        if self._portfolio is None and self.perf_tracker is not None:
+        if self.portfolio_needs_update:
             self._portfolio = \
-                self.perf_tracker.get_portfolio(self.datetime)
+                self.perf_tracker.get_portfolio(self.performance_needs_update,
+                                                self.datetime)
+            self.portfolio_needs_update = False
+            self.performance_needs_update = False
         return self._portfolio
 
     @property
@@ -894,9 +900,12 @@ class TradingAlgorithm(object):
         return self.updated_account()
 
     def updated_account(self):
-        if self._account is None and self.perf_tracker is not None:
+        if self.account_needs_update:
             self._account = \
-                self.perf_tracker.get_account(self.datetime)
+                self.perf_tracker.get_account(self.performance_needs_update,
+                                              self.datetime)
+            self.account_needs_update = False
+            self.performance_needs_update = False
         return self._account
 
     def set_logger(self, logger):
@@ -921,6 +930,10 @@ class TradingAlgorithm(object):
 
         self._portfolio = None
         self._account = None
+
+        self.portfolio_needs_update = True
+        self.account_needs_update = True
+        self.performance_needs_update = True
 
     @api_method
     def get_datetime(self, tz=None):
