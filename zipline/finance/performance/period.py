@@ -198,9 +198,9 @@ class PerformancePeriod(object):
     def handle_cash_payment(self, payment_amount):
         self.adjust_cash(payment_amount)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, cost):
         # Deduct from our total cash pool.
-        self.adjust_cash(-commission.cost)
+        self.adjust_cash(-cost)
 
     def adjust_cash(self, amount):
         self.period_cash_flow += amount

@@ -317,11 +317,10 @@ class PositionTracker(object):
         position.update(txn)
         self._update_asset(sid)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, sid, cost):
         # Adjust the cost basis of the stock if we own it
-        if commission.sid in self.positions:
-            self.positions[commission.sid].\
-                adjust_commission_cost_basis(commission)
+        if sid in self.positions:
+            self.positions[sid].adjust_commission_cost_basis(sid, cost)
 
     def handle_split(self, split):
         if split.sid in self.positions:
