@@ -317,18 +317,17 @@ class PositionTracker(object):
         position.update(txn)
         self._update_asset(sid)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, sid, cost):
         # Adjust the cost basis of the stock if we own it
-        if commission.sid in self.positions:
-            self.positions[commission.sid].\
-                adjust_commission_cost_basis(commission)
+        if sid in self.positions:
+            self.positions[sid].adjust_commission_cost_basis(sid, cost)
 
     def handle_split(self, split):
         if split.sid in self.positions:
             # Make the position object handle the split. It returns the
             # leftover cash from a fractional share, if there is any.
             position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
+            leftover_cash = position.handle_split(split.sid, split.ratio)
             self._update_asset(split.sid)
             return leftover_cash
 
