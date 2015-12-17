@@ -23,7 +23,6 @@ from six import iteritems
 
 from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import NoDataOnDate
-from zipline.pipeline.data.equity_pricing import USEquityPricing
 
 from zipline.utils import tradingcalendar
 from zipline.errors import (
