@@ -140,6 +140,10 @@ class AlgorithmSimulator(object):
                 for new_order in new_orders:
                     perf_tracker.process_order(new_order)
 
+            self.algo.portfolio_needs_update = True
+            self.algo.account_needs_update = True
+            self.algo.performance_needs_update = True
+
         def once_a_day(midnight_dt):
             # set all the timestamps
             self.simulation_dt = midnight_dt
