@@ -179,7 +179,6 @@ class PositionTracker(object):
 
         # sid => position object
         self.positions = positiondict()
-
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
@@ -316,8 +315,7 @@ class PositionTracker(object):
     def handle_commission(self, sid, cost):
         # Adjust the cost basis of the stock if we own it
         if sid in self.positions:
-            self.positions[sid].\
-                adjust_commission_cost_basis(sid, cost)
+            self.positions[sid].adjust_commission_cost_basis(sid, cost)
 
     def handle_splits(self, splits):
         """
@@ -430,9 +428,11 @@ class PositionTracker(object):
         return txn
 
     def get_positions(self):
+
         positions = self._positions_store
 
         for sid, pos in iteritems(self.positions):
+
             if pos.amount == 0:
                 # Clear out the position if it has become empty since the last
                 # time get_positions was called.  Catching the KeyError is
