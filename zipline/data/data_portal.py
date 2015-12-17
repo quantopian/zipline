@@ -33,8 +33,6 @@ from zipline.errors import (
 
 log = Logger('DataPortal')
 
-HISTORY_FREQUENCIES = ["1d", "1m"]
-
 BASE_FIELDS = {
     'open': 'open',
     'open_price': 'open',
@@ -44,18 +42,6 @@ BASE_FIELDS = {
     'close_price': 'close',
     'volume': 'volume',
     'price': 'close'
-}
-
-
-US_EQUITY_COLUMNS = {
-    'open': USEquityPricing.open,
-    'open_price': USEquityPricing.open,
-    'high': USEquityPricing.high,
-    'low': USEquityPricing.low,
-    'close': USEquityPricing.close,
-    'close_price': USEquityPricing.close,
-    'volume': USEquityPricing.volume,
-    'price': USEquityPricing.close,
 }
 
 
