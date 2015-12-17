@@ -327,7 +327,7 @@ class PositionTracker(object):
             # Make the position object handle the split. It returns the
             # leftover cash from a fractional share, if there is any.
             position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
+            leftover_cash = position.handle_split(split.sid, split.ratio)
             self._update_asset(split.sid)
             return leftover_cash
 

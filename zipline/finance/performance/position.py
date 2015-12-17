@@ -82,20 +82,18 @@ class Position(object):
         payment_owed = zp.dividend_payment(out)
         return payment_owed
 
-    def handle_split(self, split):
+    def handle_split(self, sid, ratio):
         """
         Update the position by the split ratio, and return the resulting
         fractional share that will be converted into cash.
 
         Returns the unused cash.
         """
-        if self.sid != split.sid:
+        if self.sid != sid:
             raise Exception("updating split with the wrong sid!")
 
-        ratio = split.ratio
-
-        log.info("handling split for sid = " + str(split.sid) +
-                 ", ratio = " + str(split.ratio))
+        log.info("handling split for sid = " + str(sid) +
+                 ", ratio = " + str(ratio))
         log.info("before split: " + str(self))
 
         # adjust the # of shares by the ratio
