@@ -7,7 +7,6 @@ import pandas as pd
 
 from zipline.finance.blotter import Blotter, Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
-from zipline.finance.performance.period import PerformancePeriod
 from zipline.finance.performance.position import Position
 from zipline.finance.performance.position_tracker import PositionTracker
 from zipline.finance.risk.cumulative import RiskMetricsCumulative
