@@ -43,6 +43,7 @@ class Blotter(object):
 
         # holding orders that have come in since the last event.
         self.new_orders = []
+        self.current_dt = None
 
         self.max_shares = int(1e+11)
 
@@ -50,8 +51,6 @@ class Blotter(object):
         self.commission = commission or PerShare()
 
         self.data_frequency = data_frequency
-
-        self.current_dt = None
 
     def __repr__(self):
         return """
