@@ -91,7 +91,6 @@ import zipline.protocol as zp
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
-from zipline.finance.performance.position_tracker import calc_position_stats
 
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
@@ -210,7 +209,7 @@ class PerformancePeriod(object):
 
     def calculate_performance(self):
         pt = self.position_tracker
-        pos_stats = calc_position_stats(pt)
+        pos_stats = pt.stats()
         self.ending_value = pos_stats.net_value
         self.ending_exposure = pos_stats.net_exposure
 
@@ -279,7 +278,7 @@ class PerformancePeriod(object):
         return self.position_tracker.position_amounts
 
     def __core_dict(self):
-        pos_stats = calc_position_stats(self.position_tracker)
+        pos_stats = self.position_tracker.stats()
         period_stats = calc_period_stats(pos_stats, self.ending_cash)
 
         rval = {
@@ -384,7 +383,7 @@ class PerformancePeriod(object):
         account = self._account_store
 
         pt = self.position_tracker
-        pos_stats = calc_position_stats(pt)
+        pos_stats = pt.stats()
         period_stats = calc_period_stats(pos_stats, self.ending_cash)
 
         # If no attribute is found on the PerformancePeriod resort to the

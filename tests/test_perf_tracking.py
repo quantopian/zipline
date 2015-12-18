@@ -35,7 +35,6 @@ from six.moves import range, zip
 
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-from zipline.finance.performance import position_tracker
 from zipline.finance.transaction import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
 
@@ -2209,7 +2208,7 @@ class TestPositionTracker(unittest.TestCase):
         np.bool_(False)
         """
         pt = perf.PositionTracker(self.env.asset_finder)
-        pos_stats = position_tracker.calc_position_stats(pt)
+        pos_stats = pt.stats()
 
         stats = [
             'net_value',
@@ -2263,7 +2262,7 @@ class TestPositionTracker(unittest.TestCase):
 
         # Test long-only methods
 
-        pos_stats = position_tracker.calc_position_stats(pt)
+        pos_stats = pt.stats()
         self.assertEqual(100, pos_stats.long_value)
         self.assertEqual(100 + 300000, pos_stats.long_exposure)
         self.assertEqual(2, pos_stats.longs_count)
