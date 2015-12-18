@@ -56,7 +56,7 @@ Enhancements
   :class:`~zipline.pipeline.factors.DollarVolume`. (:issue:`910`).
 
 * Added :class:`~zipline.pipeline.factors.ExponentialWeightedMovingAverage` and
-  :class:`~zipline.pipeline.factors.ExponentialWeightedStandardDeviation`
+  :class:`~zipline.pipeline.factors.ExponentialWeightedMovingStdDev`
   factors. (:issue:`910`).
 
 Experimental Features
