@@ -121,6 +121,7 @@ def calc_gross_value(long_value, short_value):
     return long_value + abs(short_value)
 
 
+<<<<<<< HEAD
 def calc_position_stats(positions,
                         position_value_multipliers,
                         position_exposure_multipliers):
@@ -167,6 +168,8 @@ def calc_position_stats(positions,
     )
 
 
+=======
+>>>>>>> master
 class PositionTracker(object):
 
     def __init__(self, asset_finder, data_portal, data_frequency):
@@ -461,6 +464,7 @@ class PositionTracker(object):
                 positions.append(pos.to_dict())
         return positions
 
+<<<<<<< HEAD
     def sync_last_sale_prices(self, dt):
         data_portal = self._data_portal
         for sid, position in iteritems(self.positions):
@@ -471,6 +475,50 @@ class PositionTracker(object):
         return calc_position_stats(self.positions,
                                    self._position_value_multipliers,
                                    self._position_exposure_multipliers)
+=======
+    def stats(self):
+        amounts = []
+        last_sale_prices = []
+        for pos in itervalues(self.positions):
+            amounts.append(pos.amount)
+            last_sale_prices.append(pos.last_sale_price)
+
+        position_values = calc_position_values(
+            amounts,
+            last_sale_prices,
+            self._position_value_multipliers
+        )
+
+        position_exposures = calc_position_exposures(
+            amounts,
+            last_sale_prices,
+            self._position_exposure_multipliers
+        )
+
+        long_value = calc_long_value(position_values)
+        short_value = calc_short_value(position_values)
+        gross_value = calc_gross_value(long_value, short_value)
+        long_exposure = calc_long_exposure(position_exposures)
+        short_exposure = calc_short_exposure(position_exposures)
+        gross_exposure = calc_gross_exposure(long_exposure, short_exposure)
+        net_exposure = calc_net(position_exposures)
+        longs_count = calc_longs_count(position_exposures)
+        shorts_count = calc_shorts_count(position_exposures)
+        net_value = calc_net(position_values)
+
+        return PositionStats(
+            long_value=long_value,
+            gross_value=gross_value,
+            short_value=short_value,
+            long_exposure=long_exposure,
+            short_exposure=short_exposure,
+            gross_exposure=gross_exposure,
+            net_exposure=net_exposure,
+            longs_count=longs_count,
+            shorts_count=shorts_count,
+            net_value=net_value
+        )
+>>>>>>> master
 
     def __getstate__(self):
         state_dict = {}
