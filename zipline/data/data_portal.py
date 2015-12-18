@@ -43,6 +43,8 @@ BASE_FIELDS = {
     'price': 'close'
 }
 
+HISTORY_FREQUENCIES = set(["1m", "1d"])
+
 
 class DataPortal(object):
     def __init__(self,
