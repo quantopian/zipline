@@ -41,22 +41,22 @@ class WrongDataForTransform(ZiplineError):
 
 class UnsupportedSlippageModel(ZiplineError):
     """
-    Raised if a user script calls the override_slippage magic
+    Raised if a user script calls the set_slippage magic
     with a slipage object that isn't a VolumeShareSlippage or
     FixedSlipapge
     """
     msg = """
-You attempted to override slippage with an unsupported class. \
+You attempted to set slippage with an unsupported class. \
 Please use VolumeShareSlippage or FixedSlippage.
 """.strip()
 
 
-class OverrideSlippagePostInit(ZiplineError):
-    # Raised if a users script calls override_slippage magic
+class SetSlippagePostInit(ZiplineError):
+    # Raised if a users script calls set_slippage magic
     # after the initialize method has returned.
     msg = """
-You attempted to override slippage outside of `initialize`. \
-You may only call override_slippage in your initialize method.
+You attempted to set slippage outside of `initialize`. \
+You may only call 'set_slippage' in your initialize method.
 """.strip()
 
 
@@ -80,24 +80,24 @@ Account controls may only be set in your initialize method.
 
 class UnsupportedCommissionModel(ZiplineError):
     """
-    Raised if a user script calls the override_commission magic
+    Raised if a user script calls the set_commission magic
     with a commission object that isn't a PerShare, PerTrade or
     PerDollar commission
     """
     msg = """
-You attempted to override commission with an unsupported class. \
+You attempted to set commission with an unsupported class. \
 Please use PerShare or PerTrade.
 """.strip()
 
 
-class OverrideCommissionPostInit(ZiplineError):
+class SetCommissionPostInit(ZiplineError):
     """
-    Raised if a users script calls override_commission magic
+    Raised if a users script calls set_commission magic
     after the initialize method has returned.
     """
     msg = """
 You attempted to override commission outside of `initialize`. \
-You may only call override_commission in your initialize method.
+You may only call 'set_commission' in your initialize method.
 """.strip()
 
 
