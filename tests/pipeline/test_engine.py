@@ -58,7 +58,7 @@ from zipline.pipeline.factors import (
     EWMA,
     EWMSTD,
     ExponentialWeightedMovingAverage,
-    ExponentialWeightedStandardDeviation,
+    ExponentialWeightedMovingStdDev,
     MaxDrawdown,
     SimpleMovingAverage,
 )
@@ -947,7 +947,7 @@ class ParameterizedFactorTestCase(TestCase):
 
     def test_ewm_aliasing(self):
         self.assertIs(ExponentialWeightedMovingAverage, EWMA)
-        self.assertIs(ExponentialWeightedStandardDeviation, EWMSTD)
+        self.assertIs(ExponentialWeightedMovingStdDev, EWMSTD)
 
     def test_dollar_volume(self):
         results = self.engine.run_pipeline(
