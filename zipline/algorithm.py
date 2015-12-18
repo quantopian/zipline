@@ -829,7 +829,7 @@ class TradingAlgorithm(object):
         for control in self.trading_controls:
             control.validate(asset,
                              amount,
-                             self.portfolio,
+                             self.updated_portfolio(),
                              self.get_datetime(),
                              self.trading_client.current_data)
 
@@ -927,9 +927,6 @@ class TradingAlgorithm(object):
         self.datetime = dt
         self.perf_tracker.set_date(dt)
         self.blotter.set_date(dt)
-
-        self._portfolio = None
-        self._account = None
 
         self.portfolio_needs_update = True
         self.account_needs_update = True
@@ -1127,8 +1124,8 @@ class TradingAlgorithm(object):
 
     def validate_account_controls(self):
         for control in self.account_controls:
-            control.validate(self.portfolio,
-                             self.account,
+            control.validate(self.updated_portfolio(),
+                             self.updated_account(),
                              self.get_datetime(),
                              self.trading_client.current_data)
 
