@@ -206,7 +206,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         ----
         This classmethod is provided by both
         :class:`ExponentialWeightedMovingAverage` and
-        :class:`ExponentialWeightedStandardDeviation`.
+        :class:`ExponentialWeightedMovingStdDev`.
         """
         if span <= 1:
             raise ValueError(
@@ -252,7 +252,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         ----
         This classmethod is provided by both
         :class:`ExponentialWeightedMovingAverage` and
-        :class:`ExponentialWeightedStandardDeviation`.
+        :class:`ExponentialWeightedMovingStdDev`.
         """
         if halflife <= 0:
             raise ValueError(
@@ -296,7 +296,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         ----
         This classmethod is provided by both
         :class:`ExponentialWeightedMovingAverage` and
-        :class:`ExponentialWeightedStandardDeviation`.
+        :class:`ExponentialWeightedMovingStdDev`.
         """
         return cls(
             inputs=inputs,
@@ -343,7 +343,7 @@ class ExponentialWeightedMovingAverage(_ExponentialWeightedFactor):
         )
 
 
-class ExponentialWeightedStandardDeviation(_ExponentialWeightedFactor):
+class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
     """
     Exponentially Weighted Moving Standard Deviation
 
@@ -389,4 +389,4 @@ class ExponentialWeightedStandardDeviation(_ExponentialWeightedFactor):
 
 # Convenience aliases.
 EWMA = ExponentialWeightedMovingAverage
-EWMSTD = ExponentialWeightedStandardDeviation
+EWMSTD = ExponentialWeightedMovingStdDev

@@ -63,7 +63,7 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
    :members:
 
-.. autoclass:: zipline.pipeline.factors.ExponentialWeightedStandardDeviation
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
    :members:
 
 .. autofunction:: zipline.pipeline.factors.DollarVolume
