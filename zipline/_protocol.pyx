@@ -90,3 +90,8 @@ cdef class SidView:
 
     def __getitem__(self, column):
         return self.__getattr__(column)
+
+    property sid:
+        def __get__(self):
+            return self.asset
+

@@ -247,6 +247,24 @@ class TestMiscellaneousAPI(TestCase):
         with self.assertRaises(ValueError):
             algo.run(self.data_portal)
 
+    def test_get_sid(self):
+        algo_text = """
+from zipline.api import sid
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    aapl = data[sid(3)]
+    assert aapl.sid == 3
+"""
+
+        algo = TradingAlgorithm(script=algo_text,
+                                sim_params=self.sim_params,
+                                env=self.env)
+
+        algo.run(self.data_portal)
+
     def test_get_environment(self):
         expected_env = {
             'arena': 'backtest',
