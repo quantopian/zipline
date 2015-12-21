@@ -85,6 +85,8 @@ Bug Fixes
 * Fixed an issue pickling :func:`~zipline.utils.sentinel.sentinel` objects
   (:issue:`872`).
 
+* Fixed spurious warnings on first download of treasury data (:issue `922`).
+
 Performance
 ~~~~~~~~~~~
 
