@@ -54,7 +54,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline import CustomFactor
 from zipline.pipeline.factors import (
-    DollarVolume,
+    AverageDollarVolume,
     EWMA,
     EWMSTD,
     ExponentialWeightedMovingAverage,
@@ -951,9 +951,18 @@ class ParameterizedFactorTestCase(TestCase):
 
     def test_dollar_volume(self):
         results = self.engine.run_pipeline(
-            Pipeline(columns={'dv': DollarVolume()}),
-            self.dates[0],
+            Pipeline(
+                columns={
+                    'dv1': AverageDollarVolume(window_length=1),
+                    'dv5': AverageDollarVolume(window_length=5),
+                }
+            ),
+            self.dates[5],
             self.dates[-1],
-        )['dv'].unstack()
-        expected = (self.raw_data ** 2) * 2
-        assert_frame_equal(results, expected)
+        )
+
+        expected_1 = (self.raw_data[5:] ** 2) * 2
+        assert_frame_equal(results['dv1'].unstack(), expected_1)
+
+        expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
+        assert_frame_equal(results['dv5'].unstack(), expected_5)
