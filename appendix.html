@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
+  <title>API Reference &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="index.html"/>
+    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="index.html"/>
         <link rel="next" title="Zipline Release Process" href="release-process.html"/>
         <link rel="prev" title="Release Notes" href="releases.html"/> 
 
@@ -713,9 +713,9 @@ class-level attribute named <cite>inputs</cite>.</p>
 </div></blockquote>
 <p><strong>window_length</strong> : int, optional</p>
 <blockquote class="last">
-<div><p>Number of rows of rows to pass for each input.  If this
-argument is not passed to the CustomFactor constructor, we look for a
-class-level attribute named <cite>window_length</cite>.</p>
+<div><p>Number of rows to pass for each input.  If this argument is not passed
+to the CustomFactor constructor, we look for a class-level attribute
+named <cite>window_length</cite>.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -847,7 +847,7 @@ pairs for which <cite>mask</cite> produces a value of False.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v0.16.1)"><code class="xref py py-obj docutils literal"><span class="pre">scipy.stats.rankdata</span></code></a>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.lib.rank</span></code>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.factors.Rank</span></code></p>
+<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v0.16.1)"><code class="xref py py-obj docutils literal"><span class="pre">scipy.stats.rankdata</span></code></a>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.lib.rank.masked_rankdata_2d</span></code>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.factors.factor.Rank</span></code></p>
 </div>
 <p class="rubric">Notes</p>
 <p>The default value for <cite>method</cite> is different from the default for
@@ -949,7 +949,7 @@ filter as well.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.filters.PercentileFilter</span></code></p>
+<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.filters.filter.PercentileFilter</span></code></p>
 </div>
 </dd></dl>
 
@@ -1102,7 +1102,7 @@ day will produce a value of 1.0.</p>
 a value of <cite>NaN</cite>.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">BusinessDaysSincePreviousEarnings</span></code></p>
+<p class="last"><a class="reference internal" href="#zipline.pipeline.factors.BusinessDaysSincePreviousEarnings" title="zipline.pipeline.factors.BusinessDaysSincePreviousEarnings"><code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysSincePreviousEarnings</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -1120,7 +1120,7 @@ produce a value of 1.0.</p>
 produce a value of <cite>NaN</cite>.</p>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">BusinessDaysUntilNextEarnings</span></code></p>
+<p class="last"><a class="reference internal" href="#zipline.pipeline.factors.BusinessDaysUntilNextEarnings" title="zipline.pipeline.factors.BusinessDaysUntilNextEarnings"><code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysUntilNextEarnings</span></code></a></p>
 </div>
 </dd></dl>
 
@@ -1146,6 +1146,95 @@ produce a value of <cite>NaN</cite>.</p>
 <dd><p>Helper for VWAP-like computations.</p>
 <p><strong>Default Inputs:</strong> None</p>
 <p><strong>Default Window Length:</strong> None</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.ExponentialWeightedMovingAverage">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">ExponentialWeightedMovingAverage</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#ExponentialWeightedMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.ExponentialWeightedMovingAverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exponentially Weighted Moving Average</p>
+<p><strong>Default Inputs:</strong> None</p>
+<p><strong>Default Window Length:</strong> None</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>inputs</strong> : length-1 list/tuple of BoundColumn</p>
+<blockquote>
+<div><p>The expression over which to compute the average.</p>
+</div></blockquote>
+<p><strong>window_length</strong> : int &gt; 0</p>
+<blockquote>
+<div><p>Length of the lookback window over which to compute the average.</p>
+</div></blockquote>
+<p><strong>decay_rate</strong> : float, 0 &lt; decay_rate &lt;= 1</p>
+<blockquote class="last">
+<div><p>Weighting factor by which to discount past observations.</p>
+<p>When calculating historical averages, rows are multiplied by the
+sequence:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">decay_rate</span><span class="p">,</span> <span class="n">decay_rate</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">decay_rate</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="o">...</span>
+</pre></div>
+</div>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.ewma.html#pandas.ewma" title="(in pandas v0.17.1)"><code class="xref py py-func docutils literal"><span class="pre">pandas.ewma()</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li>This class can also be imported under the name <code class="docutils literal"><span class="pre">EWMA</span></code>.</li>
+</ul>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.pipeline.factors.ExponentialWeightedMovingStdDev">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">ExponentialWeightedMovingStdDev</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#ExponentialWeightedMovingStdDev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.ExponentialWeightedMovingStdDev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exponentially Weighted Moving Standard Deviation</p>
+<p><strong>Default Inputs:</strong> None</p>
+<p><strong>Default Window Length:</strong> None</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>inputs</strong> : length-1 list/tuple of BoundColumn</p>
+<blockquote>
+<div><p>The expression over which to compute the average.</p>
+</div></blockquote>
+<p><strong>window_length</strong> : int &gt; 0</p>
+<blockquote>
+<div><p>Length of the lookback window over which to compute the average.</p>
+</div></blockquote>
+<p><strong>decay_rate</strong> : float, 0 &lt; decay_rate &lt;= 1</p>
+<blockquote class="last">
+<div><p>Weighting factor by which to discount past observations.</p>
+<p>When calculating historical averages, rows are multiplied by the
+sequence:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">decay_rate</span><span class="p">,</span> <span class="n">decay_rate</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">decay_rate</span> <span class="o">**</span> <span class="mi">3</span><span class="p">,</span> <span class="o">...</span>
+</pre></div>
+</div>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/generated/pandas.ewmstd.html#pandas.ewmstd" title="(in pandas v0.17.1)"><code class="xref py py-func docutils literal"><span class="pre">pandas.ewmstd()</span></code></a></p>
+</div>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li>This class can also be imported under the name <code class="docutils literal"><span class="pre">EWMSTD</span></code>.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.pipeline.factors.DollarVolume">
+<code class="descclassname">zipline.pipeline.factors.</code><code class="descname">DollarVolume</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#DollarVolume"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.DollarVolume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a Factor computing the product of most recent close price and
+volume.</p>
 </dd></dl>
 
 <dl class="class">
@@ -1764,7 +1853,7 @@ Assets.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+141.gebb4fbd',
+            VERSION:'v0.8.3+170.g8abef95',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

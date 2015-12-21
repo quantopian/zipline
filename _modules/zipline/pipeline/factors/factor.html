@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.factor &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
+  <title>zipline.pipeline.factors.factor &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -213,13 +213,12 @@
     <span class="n">UnsupportedDataType</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">masked_rankdata_2d</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CustomTermMixin</span><span class="p">,</span>
-    <span class="n">NotSpecified</span><span class="p">,</span>
-    <span class="n">RequiredWindowLengthMixin</span><span class="p">,</span>
+    <span class="n">PositiveWindowLengthMixin</span><span class="p">,</span>
     <span class="n">SingleInputMixin</span><span class="p">,</span>
-    <span class="n">CompositeTerm</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">CompositeTerm</span><span class="p">,</span> <span class="n">NotSpecified</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.expression</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BadBinaryOperator</span><span class="p">,</span>
     <span class="n">COMPARISONS</span><span class="p">,</span>
@@ -596,8 +595,8 @@
 <span class="sd">        See Also</span>
 <span class="sd">        --------</span>
 <span class="sd">        scipy.stats.rankdata</span>
-<span class="sd">        zipline.lib.rank</span>
-<span class="sd">        zipline.pipeline.factors.Rank</span>
+<span class="sd">        zipline.lib.rank.masked_rankdata_2d</span>
+<span class="sd">        zipline.pipeline.factors.factor.Rank</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">Rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="n">ascending</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 </div>
@@ -668,7 +667,7 @@
 
 <span class="sd">        See Also</span>
 <span class="sd">        --------</span>
-<span class="sd">        zipline.pipeline.filters.PercentileFilter</span>
+<span class="sd">        zipline.pipeline.filters.filter.PercentileFilter</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">PercentileFilter</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span>
@@ -807,7 +806,7 @@
         <span class="p">)</span>
 
 
-<div class="viewcode-block" id="CustomFactor"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.CustomFactor">[docs]</a><span class="k">class</span> <span class="nc">CustomFactor</span><span class="p">(</span><span class="n">RequiredWindowLengthMixin</span><span class="p">,</span> <span class="n">CustomTermMixin</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
+<div class="viewcode-block" id="CustomFactor"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.CustomFactor">[docs]</a><span class="k">class</span> <span class="nc">CustomFactor</span><span class="p">(</span><span class="n">PositiveWindowLengthMixin</span><span class="p">,</span> <span class="n">CustomTermMixin</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
     <span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">    Base class for user-defined Factors.</span>
 
@@ -819,9 +818,9 @@
 <span class="sd">        argument is passed to the CustomFactor constructor, we look for a</span>
 <span class="sd">        class-level attribute named `inputs`.</span>
 <span class="sd">    window_length : int, optional</span>
-<span class="sd">        Number of rows of rows to pass for each input.  If this</span>
-<span class="sd">        argument is not passed to the CustomFactor constructor, we look for a</span>
-<span class="sd">        class-level attribute named `window_length`.</span>
+<span class="sd">        Number of rows to pass for each input.  If this argument is not passed</span>
+<span class="sd">        to the CustomFactor constructor, we look for a class-level attribute</span>
+<span class="sd">        named `window_length`.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
@@ -943,7 +942,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+141.gebb4fbd',
+            VERSION:'v0.8.3+170.g8abef95',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

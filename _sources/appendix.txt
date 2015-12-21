@@ -60,6 +60,14 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.WeightedAverageValue
    :members:
 
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
+   :members:
+
+.. autofunction:: zipline.pipeline.factors.DollarVolume
+
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
    :exclude-members: dtype

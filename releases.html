@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Release Notes &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
+  <title>Release Notes &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="index.html"/>
+    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="index.html"/>
         <link rel="next" title="API Reference" href="appendix.html"/>
         <link rel="prev" title="Zipline beginner tutorial" href="beginner-tutorial.html"/> 
 
@@ -256,6 +256,11 @@ factors use the new <code class="docutils literal"><span class="pre">EarningsCal
 <li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.factors.Returns" title="zipline.pipeline.factors.Returns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.Returns</span></code></a>, a built-in factor which
 calculates the percent change in close price over the given
 window_length. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/884">#884</a>).</li>
+<li>Added a new built-in factor:
+<a class="reference internal" href="appendix.html#zipline.pipeline.factors.DollarVolume" title="zipline.pipeline.factors.DollarVolume"><code class="xref py py-class docutils literal"><span class="pre">DollarVolume</span></code></a>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/910">#910</a>).</li>
+<li>Added <a class="reference internal" href="appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingAverage" title="zipline.pipeline.factors.ExponentialWeightedMovingAverage"><code class="xref py py-class docutils literal"><span class="pre">ExponentialWeightedMovingAverage</span></code></a> and
+<a class="reference internal" href="appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingStdDev" title="zipline.pipeline.factors.ExponentialWeightedMovingStdDev"><code class="xref py py-class docutils literal"><span class="pre">ExponentialWeightedMovingStdDev</span></code></a>
+factors. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/910">#910</a>).</li>
 </ul>
 </div>
 <div class="section" id="experimental-features">
@@ -264,7 +269,13 @@ window_length. (<a class="reference external" href="https://github.com/quantopia
 <p class="first admonition-title">Warning</p>
 <p class="last">Experimental features are subject to change.</p>
 </div>
-<p>None</p>
+<ul class="simple">
+<li>Added support for parameterized <code class="docutils literal"><span class="pre">Factor</span></code> subclasses.  Factors may specify
+<code class="docutils literal"><span class="pre">params</span></code> as a class-level attribute containing a tuple of parameter names.
+These values are then accepted by the constructor and forwarded by name to
+the factor&#8217;s <code class="docutils literal"><span class="pre">compute</span></code> function.  This API is experimental, and may change
+in future releases.</li>
+</ul>
 </div>
 <div class="section" id="bug-fixes">
 <h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
@@ -1152,7 +1163,7 @@ numbers of commit:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+141.gebb4fbd',
+            VERSION:'v0.8.3+170.g8abef95',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

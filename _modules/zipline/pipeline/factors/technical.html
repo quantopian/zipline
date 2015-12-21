@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.technical &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
+  <title>zipline.pipeline.factors.technical &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -209,20 +209,29 @@
     <span class="n">nanmean</span><span class="p">,</span>
     <span class="n">nansum</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="nb">abs</span><span class="p">,</span>
+    <span class="n">arange</span><span class="p">,</span>
+    <span class="n">average</span><span class="p">,</span>
     <span class="n">clip</span><span class="p">,</span>
     <span class="n">diff</span><span class="p">,</span>
+    <span class="n">exp</span><span class="p">,</span>
     <span class="n">fmax</span><span class="p">,</span>
+    <span class="n">full</span><span class="p">,</span>
     <span class="n">inf</span><span class="p">,</span>
     <span class="n">isnan</span><span class="p">,</span>
+    <span class="n">log</span><span class="p">,</span>
     <span class="n">NINF</span><span class="p">,</span>
+    <span class="n">sqrt</span><span class="p">,</span>
+    <span class="nb">sum</span> <span class="k">as</span> <span class="n">np_sum</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">numexpr</span> <span class="kn">import</span> <span class="n">evaluate</span>
 
 <span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">USEquityPricing</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">ignore_nanwarnings</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
 <span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
 
 
@@ -319,7 +328,269 @@
         <span class="c"># TODO: Accelerate this loop in Cython or Numba.</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">drawdown_ends</span><span class="p">):</span>
             <span class="n">peak</span> <span class="o">=</span> <span class="n">nanmax</span><span class="p">(</span><span class="n">data</span><span class="p">[:</span><span class="n">end</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span>
-            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span></div>
+            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
+
+</div>
+<div class="viewcode-block" id="DollarVolume"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.DollarVolume">[docs]</a><span class="k">def</span> <span class="nf">DollarVolume</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a Factor computing the product of most recent close price and</span>
+<span class="sd">    volume.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="o">.</span><span class="n">latest</span> <span class="o">*</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="o">.</span><span class="n">latest</span>
+
+</div>
+<span class="k">class</span> <span class="nc">_ExponentialWeightedFactor</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for factors implementing exponential-weighted operations.</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : length-1 list or tuple of BoundColumn</span>
+<span class="sd">        The expression over which to compute the average.</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        Length of the lookback window over which to compute the average.</span>
+<span class="sd">    decay_rate : float, 0 &lt; decay_rate &lt;= 1</span>
+<span class="sd">        Weighting factor by which to discount past observations.</span>
+
+<span class="sd">        When calculating historical averages, rows are multiplied by the</span>
+<span class="sd">        sequence::</span>
+
+<span class="sd">            decay_rate, decay_rate ** 2, decay_rate ** 3, ...</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    weights</span>
+<span class="sd">    from_span</span>
+<span class="sd">    from_halflife</span>
+<span class="sd">    from_center_of_mass</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;decay_rate&#39;</span><span class="p">,)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">weights</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return weighting vector for an exponential moving statistic on `length`</span>
+<span class="sd">        rows with a decay rate of `decay_rate`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">full</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">)</span> <span class="o">**</span> <span class="n">arange</span><span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">span</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">from_span</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">span</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience constructor for passing `decay_rate` in terms of `span`.</span>
+
+<span class="sd">        Forwards `decay_rate` as `1 - (2.0 / (1 + span))`.  This provides the</span>
+<span class="sd">        behavior equivalent to passing `span` to pandas.ewma.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        -------</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Equivalent to:</span>
+<span class="sd">            # my_ewma = EWMA(</span>
+<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    window_length=30,</span>
+<span class="sd">            #    decay_rate=(1 - (2.0 / (1 + 15.0))),</span>
+<span class="sd">            # )</span>
+<span class="sd">            my_ewma = EWMA.from_span(</span>
+<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                window_length=30,</span>
+<span class="sd">                span=15,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        This classmethod is provided by both</span>
+<span class="sd">        :class:`ExponentialWeightedMovingAverage` and</span>
+<span class="sd">        :class:`ExponentialWeightedMovingStdDev`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">span</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s"> was passed.&quot;</span> <span class="o">%</span> <span class="n">span</span>
+            <span class="p">)</span>
+
+        <span class="n">decay_rate</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">span</span><span class="p">)))</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">decay_rate</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">halflife</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">from_halflife</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">halflife</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience constructor for passing ``decay_rate`` in terms of half</span>
+<span class="sd">        life.</span>
+
+<span class="sd">        Forwards ``decay_rate`` as ``exp(log(.5) / halflife)``.  This provides</span>
+<span class="sd">        the behavior equivalent to passing `halflife` to pandas.ewma.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        -------</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Equivalent to:</span>
+<span class="sd">            # my_ewma = EWMA(</span>
+<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    window_length=30,</span>
+<span class="sd">            #    decay_rate=np.exp(np.log(0.5) / 15),</span>
+<span class="sd">            # )</span>
+<span class="sd">            my_ewma = EWMA.from_halflife(</span>
+<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                window_length=30,</span>
+<span class="sd">                halflife=15,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        This classmethod is provided by both</span>
+<span class="sd">        :class:`ExponentialWeightedMovingAverage` and</span>
+<span class="sd">        :class:`ExponentialWeightedMovingStdDev`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">halflife</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&quot;`span` must be a positive number. </span><span class="si">%s</span><span class="s"> was passed.&quot;</span> <span class="o">%</span> <span class="n">halflife</span>
+            <span class="p">)</span>
+        <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="p">)</span> <span class="o">/</span> <span class="n">halflife</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;</span> <span class="n">decay_rate</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_center_of_mass</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">center_of_mass</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience constructor for passing `decay_rate` in terms of center of</span>
+<span class="sd">        mass.</span>
+
+<span class="sd">        Forwards `decay_rate` as `1 - (1 / 1 + center_of_mass)`.  This provides</span>
+<span class="sd">        behavior equivalent to passing `center_of_mass` to pandas.ewma.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        -------</span>
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            # Equivalent to:</span>
+<span class="sd">            # my_ewma = EWMA(</span>
+<span class="sd">            #    inputs=[USEquityPricing.close],</span>
+<span class="sd">            #    window_length=30,</span>
+<span class="sd">            #    decay_rate=(1 - (1 / 15.0)),</span>
+<span class="sd">            # )</span>
+<span class="sd">            my_ewma = EWMA.from_center_of_mass(</span>
+<span class="sd">                inputs=[USEquityPricing.close],</span>
+<span class="sd">                window_length=30,</span>
+<span class="sd">                center_of_mass=15,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        This classmethod is provided by both</span>
+<span class="sd">        :class:`ExponentialWeightedMovingAverage` and</span>
+<span class="sd">        :class:`ExponentialWeightedMovingStdDev`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
+            <span class="n">decay_rate</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">center_of_mass</span><span class="p">))),</span>
+        <span class="p">)</span>
+
+
+<div class="viewcode-block" id="ExponentialWeightedMovingAverage"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingAverage">[docs]</a><span class="k">class</span> <span class="nc">ExponentialWeightedMovingAverage</span><span class="p">(</span><span class="n">_ExponentialWeightedFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exponentially Weighted Moving Average</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : length-1 list/tuple of BoundColumn</span>
+<span class="sd">        The expression over which to compute the average.</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        Length of the lookback window over which to compute the average.</span>
+<span class="sd">    decay_rate : float, 0 &lt; decay_rate &lt;= 1</span>
+<span class="sd">        Weighting factor by which to discount past observations.</span>
+
+<span class="sd">        When calculating historical averages, rows are multiplied by the</span>
+<span class="sd">        sequence::</span>
+
+<span class="sd">            decay_rate, decay_rate ** 2, decay_rate ** 3, ...</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - This class can also be imported under the name ``EWMA``.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`pandas.ewma`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">decay_rate</span><span class="p">),</span>
+        <span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="ExponentialWeightedMovingStdDev"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingStdDev">[docs]</a><span class="k">class</span> <span class="nc">ExponentialWeightedMovingStdDev</span><span class="p">(</span><span class="n">_ExponentialWeightedFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exponentially Weighted Moving Standard Deviation</span>
+
+<span class="sd">    **Default Inputs:** None</span>
+
+<span class="sd">    **Default Window Length:** None</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : length-1 list/tuple of BoundColumn</span>
+<span class="sd">        The expression over which to compute the average.</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        Length of the lookback window over which to compute the average.</span>
+<span class="sd">    decay_rate : float, 0 &lt; decay_rate &lt;= 1</span>
+<span class="sd">        Weighting factor by which to discount past observations.</span>
+
+<span class="sd">        When calculating historical averages, rows are multiplied by the</span>
+<span class="sd">        sequence::</span>
+
+<span class="sd">            decay_rate, decay_rate ** 2, decay_rate ** 3, ...</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    - This class can also be imported under the name ``EWMSTD``.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`pandas.ewmstd`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">):</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">decay_rate</span><span class="p">)</span>
+
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">average</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+        <span class="n">variance</span> <span class="o">=</span> <span class="n">average</span><span class="p">((</span><span class="n">data</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+        <span class="n">squared_weight_sum</span> <span class="o">=</span> <span class="p">(</span><span class="n">np_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">bias_correction</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">squared_weight_sum</span> <span class="o">/</span> <span class="p">(</span><span class="n">squared_weight_sum</span> <span class="o">-</span> <span class="n">np_sum</span><span class="p">(</span><span class="n">weights</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">*</span> <span class="n">bias_correction</span><span class="p">)</span>
+
+
+<span class="c"># Convenience aliases.</span></div>
+<span class="n">EWMA</span> <span class="o">=</span> <span class="n">ExponentialWeightedMovingAverage</span>
+<span class="n">EWMSTD</span> <span class="o">=</span> <span class="n">ExponentialWeightedMovingStdDev</span>
 </pre></div>
 
           </div>
@@ -350,7 +621,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+141.gebb4fbd',
+            VERSION:'v0.8.3+170.g8abef95',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

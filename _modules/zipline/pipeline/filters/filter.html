@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.filters.filter &mdash; Zipline v0.8.3+141.gebb4fbd documentation</title>
+  <title>zipline.pipeline.filters.filter &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+141.gebb4fbd documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -214,12 +214,12 @@
     <span class="n">BadPercentileBounds</span><span class="p">,</span>
     <span class="n">UnsupportedDataType</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CompositeTerm</span><span class="p">,</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CustomTermMixin</span><span class="p">,</span>
-    <span class="n">RequiredWindowLengthMixin</span><span class="p">,</span>
+    <span class="n">PositiveWindowLengthMixin</span><span class="p">,</span>
     <span class="n">SingleInputMixin</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">CompositeTerm</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.expression</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BadBinaryOperator</span><span class="p">,</span>
     <span class="n">FILTER_BINOPS</span><span class="p">,</span>
@@ -444,7 +444,7 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">lower_bounds</span> <span class="o">&lt;=</span> <span class="n">data</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">data</span> <span class="o">&lt;=</span> <span class="n">upper_bounds</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">CustomFilter</span><span class="p">(</span><span class="n">RequiredWindowLengthMixin</span><span class="p">,</span> <span class="n">CustomTermMixin</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">CustomFilter</span><span class="p">(</span><span class="n">PositiveWindowLengthMixin</span><span class="p">,</span> <span class="n">CustomTermMixin</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Filter analog to ``CustomFactor``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -479,7 +479,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+141.gebb4fbd',
+            VERSION:'v0.8.3+170.g8abef95',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
