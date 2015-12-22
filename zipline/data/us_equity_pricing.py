@@ -481,6 +481,13 @@ class BcolzDailyBarReader(object):
             col = self._spot_cols[colname] = self._table[colname]
         return col
 
+    def get_last_traded_dt(self, asset, day):
+        volumes = self._spot_col('volume')
+        ix = self.sid_day_index(asset, day)
+        while True:
+            if volumes[ix] != 0:
+                return day
+
     def sid_day_index(self, sid, day):
         """
         Parameters
