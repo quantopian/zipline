@@ -87,6 +87,15 @@ Bug Fixes
 
 * Fixed spurious warnings on first download of treasury data (:issue `922`).
 
+* Corrected the error messages for :func:`~zipline.api.set_commission` and
+  :func:`~zipline.api.set_slippage` when used outside of the ``initialize``
+  function. These errors called the functions ``override_*`` instead of
+  ``set_*``. This also renamed the exception types raised from
+  ``OverrideSlippagePostInit`` and ``OverrideCommissionPostInit`` to
+  :class:`~zipline.errors.SetSlippagePostInit` and
+  :class:`~zipline.errors.SetCommissionPostInit` (:issue:`923`).
+
+
 Performance
 ~~~~~~~~~~~
 
