@@ -322,6 +322,72 @@ class TestDataPortal(TestCase):
         finally:
             tempdir.cleanup()
 
+    def test_last_traded_dt(self):
+        tempdir = TempDirectory()
+        try:
+            start_day = pd.Timestamp("2013-06-21", tz='UTC')
+            end_day = pd.Timestamp("2013-06-24", tz='UTC')
+
+            env = TradingEnvironment()
+            env.write_data(
+                equities_data={
+                    0: {
+                        'start_date': start_day,
+                        'end_date': env.next_trading_day(end_day)
+                    }
+                }
+            )
+
+            minutes = env.minutes_for_days_in_range(
+                start=start_day,
+                end=end_day
+            )
+
+            df = pd.DataFrame({
+                # 390 bars of real data, then 100 missing bars, then 290
+                # bars of data again
+                "open": np.array(list(range(0, 390)) + [0] * 100 +
+                                 list(range(390, 680))) * 1000,
+                "high": np.array(list(range(1000, 1390)) + [0] * 100 +
+                                 list(range(1390, 1680))) * 1000,
+                "low": np.array(list(range(2000, 2390)) + [0] * 100 +
+                                list(range(2390, 2680))) * 1000,
+                "close": np.array(list(range(3000, 3390)) + [0] * 100 +
+                                  list(range(3390, 3680))) * 1000,
+                "volume": np.array(list(range(4000, 4390)) + [0] * 100 +
+                                   list(range(4390, 4680))),
+                "minute": minutes
+            })
+
+            MinuteBarWriterFromDataFrames(
+                pd.Timestamp('2002-01-02', tz='UTC')).write(
+                    tempdir.path, {0: df})
+
+            equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
+
+            dp = DataPortal(
+                env,
+                equity_minute_reader=equity_minute_reader,
+            )
+
+            asset = env.asset_finder.retrieve_asset(0)
+
+            minute_with_trade = minutes[389]
+
+            minute_without_trade = minutes[390]
+
+            last_traded = dp.get_last_traded_dt(asset, minute_with_trade,
+                                                'minute')
+
+            self.assertEqual(last_traded, minute_with_trade)
+
+            last_traded = dp.get_last_traded_dt(asset, minute_without_trade,
+                                                'minute')
+
+            self.assertEqual(last_traded, minute_with_trade)
+        finally:
+            tempdir.cleanup()
+
     def test_spot_value_futures(self):
         tempdir = TempDirectory()
         try:

@@ -197,6 +197,11 @@ class HistoryTestCase(TestCase):
                                         splits=splits,
                                         mergers=mergers,
                                         dividends=dividends)
+
+            cls.data_portal = cls.get_portal(
+                daily_equities_filename="test_daily_data.bcolz",
+                adjustments_filename="adjustments.sqlite"
+            )
         except:
             cls.tempdir.cleanup()
             raise
@@ -331,15 +336,16 @@ class HistoryTestCase(TestCase):
 
         writer.write(splits, mergers, dividends)
 
-    def get_portal(self,
+    @classmethod
+    def get_portal(cls,
                    daily_equities_filename="test_daily_data.bcolz",
                    adjustments_filename="adjustments.sqlite",
                    env=None):
 
         if env is None:
-            env = self.env
+            env = cls.env
 
-        temp_path = self.tempdir.path
+        temp_path = cls.tempdir.path
 
         minutes_path = os.path.join(temp_path, 'equity', 'minutes')
         futures_path = os.path.join(temp_path, 'futures', 'minutes')
@@ -399,7 +405,7 @@ class HistoryTestCase(TestCase):
 
     def test_minute_basic_functionality(self):
         # get a 5-bar minute history from the very end of the available data
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [1],
             pd.Timestamp("2014-03-21 18:23:00+00:00", tz='UTC'),
             5,
@@ -413,7 +419,7 @@ class HistoryTestCase(TestCase):
             self.assertEqual(window.iloc[-5 + i].loc[1], reference[i])
 
     def test_minute_splits(self):
-        portal = self.get_portal()
+        portal = self.data_portal
 
         window = portal.get_history_window(
             [1],
@@ -439,7 +445,7 @@ class HistoryTestCase(TestCase):
         self.assertEquals(window.loc[day3_start, 1], 533.854)
 
     def test_minute_window_starts_before_trading_start(self):
-        portal = self.get_portal()
+        portal = self.data_portal
 
         # get a 50-bar minute history for MSFT starting 5 minutes into 3/20,
         # its first trading day
@@ -486,7 +492,7 @@ class HistoryTestCase(TestCase):
 
     def test_minute_window_ends_before_trading_start(self):
         # entire window is before the trading start
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [2],
             pd.Timestamp("2014-02-05 14:35:00", tz='UTC'),
             100,
@@ -499,7 +505,7 @@ class HistoryTestCase(TestCase):
             self.assertTrue(np.isnan(window.iloc[i].loc[2]))
 
     def test_minute_window_ends_after_trading_end(self):
-        portal = self.get_portal()
+        portal = self.data_portal
 
         window = portal.get_history_window(
             [2],
@@ -521,7 +527,7 @@ class HistoryTestCase(TestCase):
 
     def test_minute_window_starts_after_trading_end(self):
         # entire window is after the trading end
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [2],
             pd.Timestamp("2014-04-02 14:35:00", tz='UTC'),
             100,
@@ -534,7 +540,7 @@ class HistoryTestCase(TestCase):
             self.assertTrue(np.isnan(window.iloc[i].loc[2]))
 
     def test_minute_window_starts_before_1_2_2002(self):
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [3],
             pd.Timestamp("2002-01-02 14:35:00", tz='UTC'),
             50,
@@ -555,7 +561,7 @@ class HistoryTestCase(TestCase):
         # right after the early close.
 
         # five minutes into the day after an early close, get 20 1m bars
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [self.IBM],
             pd.Timestamp("2014-07-07 13:35:00", tz='UTC'),
             20,
@@ -575,7 +581,7 @@ class HistoryTestCase(TestCase):
 
     def test_minute_merger(self):
         def check(field, ref):
-            window = self.get_portal().get_history_window(
+            window = self.data_portal.get_history_window(
                 [self.C],
                 pd.Timestamp("2014-07-16 13:35", tz='UTC'),
                 10,
@@ -613,7 +619,7 @@ class HistoryTestCase(TestCase):
         # right after the open on 2002-01-02
 
         for field in ["open_price", "high", "low", "volume", "close_price"]:
-            no_ffill = self.get_portal().get_history_window(
+            no_ffill = self.data_portal.get_history_window(
                 [4],
                 pd.Timestamp("2002-01-02 21:00:00", tz='UTC'),
                 390,
@@ -629,7 +635,7 @@ class HistoryTestCase(TestCase):
                 for bar_idx in missing_bar_indices:
                     self.assertTrue(np.isnan(no_ffill.iloc[bar_idx].loc[4]))
 
-        ffill_window = self.get_portal().get_history_window(
+        ffill_window = self.data_portal.get_history_window(
             [4],
             pd.Timestamp("2002-01-02 21:00:00", tz='UTC'),
             390,
@@ -662,7 +668,7 @@ class HistoryTestCase(TestCase):
 
         # make sure that if we pass ffill=False with field="price", we do
         # not ffill
-        really_no_ffill_window = self.get_portal().get_history_window(
+        really_no_ffill_window = self.data_portal.get_history_window(
             [4],
             pd.Timestamp("2002-01-02 21:00:00", tz='UTC'),
             390,
@@ -697,7 +703,7 @@ class HistoryTestCase(TestCase):
         # 2014-03-21 13:35:00+00:00,185422405,185430210,185416293,185423251,302
 
         def run_query(field, values):
-            window = self.get_portal().get_history_window(
+            window = self.data_portal.get_history_window(
                 [self.BRKA],
                 pd.Timestamp("2014-03-21 13:35", tz='UTC'),
                 10,
@@ -812,7 +818,7 @@ class HistoryTestCase(TestCase):
         test_window("volume", vol_data, ffill=False)
 
     def test_daily_window_starts_before_trading_start(self):
-        portal = self.get_portal()
+        portal = self.data_portal
 
         # MSFT started on 3/3/2014, so try to go before that
         window = portal.get_history_window(
@@ -834,7 +840,7 @@ class HistoryTestCase(TestCase):
         self.assertTrue(np.isnan(window.iloc[4].loc[self.MSFT]))
 
     def test_daily_window_ends_before_trading_start(self):
-        portal = self.get_portal()
+        portal = self.data_portal
 
         # MSFT started on 3/3/2014, so try to go before that
         window = portal.get_history_window(
@@ -851,7 +857,7 @@ class HistoryTestCase(TestCase):
 
     def test_daily_window_starts_after_trading_end(self):
         # MSFT stopped trading EOD Friday 8/29/2014
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [self.MSFT],
             pd.Timestamp("2014-09-12 13:35:00", tz='UTC'),
             8,
@@ -865,7 +871,7 @@ class HistoryTestCase(TestCase):
 
     def test_daily_window_ends_after_trading_end(self):
         # MSFT stopped trading EOD Friday 8/29/2014
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [self.MSFT],
             pd.Timestamp("2014-09-04 13:35:00", tz='UTC'),
             10,
@@ -884,7 +890,7 @@ class HistoryTestCase(TestCase):
             self.assertTrue(np.isnan(window.iloc[i].loc[self.MSFT]))
 
     def test_empty_sid_list(self):
-        portal = self.get_portal()
+        portal = self.data_portal
 
         fields = ["open_price",
                   "close_price",
@@ -946,7 +952,7 @@ class HistoryTestCase(TestCase):
 
     def test_minute_window_ends_before_1_2_2002(self):
         with self.assertRaises(ValueError):
-            self.get_portal().get_history_window(
+            self.data_portal.get_history_window(
                 [self.GS],
                 pd.Timestamp("2001-12-31 14:35:00", tz='UTC'),
                 50,
@@ -955,7 +961,7 @@ class HistoryTestCase(TestCase):
             )
 
     def test_bad_history_inputs(self):
-        portal = self.get_portal()
+        portal = self.data_portal
 
         # bad fieldname
         for field in ["foo", "bar", "", "5"]:
@@ -981,7 +987,7 @@ class HistoryTestCase(TestCase):
 
     def test_daily_merger(self):
         def check(field, ref):
-            window = self.get_portal().get_history_window(
+            window = self.data_portal.get_history_window(
                 [self.C],
                 pd.Timestamp("2014-07-17 13:35", tz='UTC'),
                 4,
@@ -1018,7 +1024,7 @@ class HistoryTestCase(TestCase):
 
     def test_minute_adjustments_as_of_lookback_date(self):
         # AAPL has splits on 2014-03-20 and 2014-03-21
-        window_0320 = self.get_portal().get_history_window(
+        window_0320 = self.data_portal.get_history_window(
             [self.AAPL],
             pd.Timestamp("2014-03-20 13:35", tz='UTC'),
             395,
@@ -1026,7 +1032,7 @@ class HistoryTestCase(TestCase):
             "open_price"
         )
 
-        window_0321 = self.get_portal().get_history_window(
+        window_0321 = self.data_portal.get_history_window(
             [self.AAPL],
             pd.Timestamp("2014-03-21 13:35", tz='UTC'),
             785,
@@ -1042,7 +1048,7 @@ class HistoryTestCase(TestCase):
                              window_0321.iloc[i].loc[self.AAPL] * 2)
 
     def test_daily_adjustments_as_of_lookback_date(self):
-        window_0402 = self.get_portal().get_history_window(
+        window_0402 = self.data_portal.get_history_window(
             [self.IBM],
             pd.Timestamp("2014-04-02 13:35", tz='UTC'),
             23,
@@ -1050,7 +1056,7 @@ class HistoryTestCase(TestCase):
             "open_price"
         )
 
-        window_0702 = self.get_portal().get_history_window(
+        window_0702 = self.data_portal.get_history_window(
             [self.IBM],
             pd.Timestamp("2014-07-02 13:35", tz='UTC'),
             86,
@@ -1064,7 +1070,7 @@ class HistoryTestCase(TestCase):
 
     def test_minute_dividends(self):
         def check(field, ref):
-            window = self.get_portal().get_history_window(
+            window = self.data_portal.get_history_window(
                 [self.DIVIDEND_SID],
                 pd.Timestamp("2014-03-18 13:35", tz='UTC'),
                 10,
@@ -1152,7 +1158,7 @@ class HistoryTestCase(TestCase):
 
     def test_daily_dividends(self):
         def check(field, ref):
-            window = self.get_portal().get_history_window(
+            window = self.data_portal.get_history_window(
                 [self.DIVIDEND_SID],
                 pd.Timestamp("2014-03-21 13:35", tz='UTC'),
                 6,
@@ -1232,7 +1238,7 @@ class HistoryTestCase(TestCase):
             self.futures_start_dates[self.FUTURE_ASSET] + \
             timedelta(minutes=9999)
 
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [self.FUTURE_ASSET],
             futures_end_dt,
             1000,
@@ -1274,7 +1280,7 @@ class HistoryTestCase(TestCase):
                              window.iloc[idx][self.FUTURE_ASSET])
 
     def test_history_minute_blended(self):
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [self.FUTURE_ASSET2, self.AAPL],
             pd.Timestamp("2014-03-21 20:00", tz='UTC'),
             200,
@@ -1290,7 +1296,7 @@ class HistoryTestCase(TestCase):
         # get 3 days ending 11/30 10:00 am Eastern
         # = 11/25, 11/27 (half day), 11/30 (partial)
 
-        window = self.get_portal().get_history_window(
+        window = self.data_portal.get_history_window(
             [self.env.asset_finder.retrieve_asset(self.FUTURE_ASSET)],
             pd.Timestamp("2015-11-30 15:00", tz='UTC'),
             3,

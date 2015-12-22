@@ -405,10 +405,6 @@ class TradingAlgorithm(object):
                 env.trading_days,
                 minutely_emission
             )
-            self.data_portal.setup_offset_cache(
-                clock.minutes_by_day,
-                clock.minutes_to_day,
-                self.sim_params.trading_days)
             return clock
         else:
             return DailySimulationClock(self.sim_params.trading_days)

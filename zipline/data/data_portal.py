@@ -102,19 +102,6 @@ class DataPortal(object):
         self._future_daily_reader = future_daily_reader
         self._future_minute_reader = future_minute_reader
 
-        # The following values are used by _minute_offset to calculate the
-        # index into the minute bcolz date.
-
-        # A lookup of table every minute to the corresponding day, to avoid
-        # calling `.date()` on every lookup.
-        self._minutes_to_day = {}
-        # A map of days (keyed by midnight) to a DatetimeIndex of market
-        # minutes for that day.
-        self._minutes_by_day = {}
-        # A dict of day to the offset into the minute bcolz on which that
-        # days data starts.
-        self._day_offsets = None
-
     def handle_extra_source(self, source_df, sim_params):
         """
         Extra sources always have a sid column.
@@ -233,6 +220,16 @@ class DataPortal(object):
                     self._equity_minute_reader.rootdir, sid)
 
         return bcolz.open(path, mode='r')
+
+    def get_last_traded_dt(self, asset, dt, data_frequency):
+        """
+        Given an asset and dt, returns the last traded dt from the viewpoint
+        of the given dt.
+
+        If there is a trade on the dt, the answer is dt provided.
+        """
+        if data_frequency == 'minute':
+            return self._equity_minute_reader.get_last_traded_dt(asset, dt)
 
     def get_previous_value(self, asset, field, dt, data_frequency):
         """
@@ -378,48 +375,12 @@ class DataPortal(object):
         else:
             return result
 
-    def setup_offset_cache(self, minutes_by_day, minutes_to_day, trading_days):
-        # TODO: This case should not be hit, but is when tests are setup
-        # with data_frequency of daily, but run with minutely.
-        if self._equity_minute_reader is None:
-            return
-
-        self._minutes_to_day = minutes_to_day
-        self._minutes_by_day = minutes_by_day
-        start = trading_days[0]
-        first_trading_day_idx = self._equity_minute_reader.trading_days.\
-            searchsorted(start)
-        self._day_offsets = {
-            day: (i + first_trading_day_idx) * 390
-            for i, day in enumerate(trading_days)}
-
-    def _minute_offset(self, dt):
-        if self._day_offsets is not None:
-            try:
-                day = self._minutes_to_day[dt]
-                minutes = self._minutes_by_day[day]
-                return self._day_offsets[day] + minutes.get_loc(dt)
-            except KeyError:
-                return None
-
     def _get_minute_spot_value(self, asset, column, dt):
         # if dt is before the first market minute, minute_index
         # will be 0.  if it's after the last market minute, it'll
         # be len(minutes_for_day)
-        minute_offset_to_use = self._minute_offset(dt)
-
-        if minute_offset_to_use is None:
-            given_day = pd.Timestamp(dt.date(), tz='utc')
-            day_index = self._equity_minute_reader.trading_days.searchsorted(
-                given_day)
-
-            # if dt is before the first market minute, minute_index
-            # will be 0.  if it's after the last market minute, it'll
-            # be len(minutes_for_day)
-            minute_index = self.env.market_minutes_for_day(given_day).\
-                searchsorted(dt)
-
-            minute_offset_to_use = (day_index * 390) + minute_index
+        minute_offset_to_use = \
+            self._equity_minute_reader._find_position_of_minute(dt)
 
         carray = self._equity_minute_reader._open_minute_file(column, asset)
         result = carray[minute_offset_to_use]
@@ -809,12 +770,17 @@ class DataPortal(object):
         # bar_count bars, and that's the unadjusted data
         raw_data = self._equity_minute_reader._open_minute_file(field, asset)
 
-        start_idx = max(
-            self._equity_minute_reader._find_position_of_minute(
-                minutes_for_window[0]),
-            0)
-        end_idx = self._equity_minute_reader._find_position_of_minute(
-            minutes_for_window[-1]) + 1
+        try:
+            start_idx = self._equity_minute_reader._find_position_of_minute(
+                minutes_for_window[0])
+        except KeyError:
+            start_idx = 0
+
+        try:
+            end_idx = self._equity_minute_reader._find_position_of_minute(
+                minutes_for_window[-1]) + 1
+        except KeyError:
+            end_idx = 0
 
         if end_idx == 0:
             # No data to return for minute window.

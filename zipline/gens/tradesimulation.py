@@ -179,7 +179,7 @@ class AlgorithmSimulator(object):
                     once_a_day(dt)
                 elif action == DAY_END:
                     # End of the day.
-                    handle_benchmark(dt)
+                    handle_benchmark(normalize_date(dt))
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == MINUTE_END:
                     handle_benchmark(dt)
