@@ -56,15 +56,6 @@ class DataPortal(object):
                  adjustment_reader=None):
         self.env = env
 
-        # This is a bit ugly, but is here for performance reasons.  In minute
-        # simulations, we need to very quickly go from dt -> (# of minutes
-        # since Jan 1 2002 9:30 Eastern).
-        #
-        # The clock that heartbeats the simulation has all the necessary
-        # information to do this calculation very quickly.  This value is
-        # calculated there, and then set here
-        self.cur_data_offset = 0
-
         self.views = {}
 
         self._asset_finder = env.asset_finder
