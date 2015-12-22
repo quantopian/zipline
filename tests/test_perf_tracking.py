@@ -2084,7 +2084,6 @@ class TestPositionTracker(unittest.TestCase):
         Originally this bug was due to np.dot([], []) returning
         np.bool_(False)
         """
-<<<<<<< HEAD
         sim_params = factory.create_simulation_parameters(
             num_days=4, env=self.env
         )
@@ -2105,9 +2104,6 @@ class TestPositionTracker(unittest.TestCase):
 
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   sim_params.data_frequency)
-=======
-        pt = perf.PositionTracker(self.env.asset_finder)
->>>>>>> master
         pos_stats = pt.stats()
 
         stats = [
