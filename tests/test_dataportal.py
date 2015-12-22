@@ -384,6 +384,11 @@ class TestDataPortal(TestCase):
             last_traded = dp.get_last_traded_dt(asset, minute_without_trade,
                                                 'minute')
 
+            minute_without_trade = minutes[489]
+
+            last_traded = dp.get_last_traded_dt(asset, minute_without_trade,
+                                                'minute')
+
             self.assertEqual(last_traded, minute_with_trade)
         finally:
             tempdir.cleanup()

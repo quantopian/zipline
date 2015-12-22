@@ -265,6 +265,24 @@ def handle_data(context, data):
 
         algo.run(self.data_portal)
 
+    def test_sid_datetime(self):
+        algo_text = """
+from zipline.api import sid, get_datetime
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    aapl = data[sid(1)]
+    assert aapl.datetime == get_datetime()
+"""
+
+        algo = TradingAlgorithm(script=algo_text,
+                                sim_params=self.sim_params,
+                                env=self.env)
+
+        algo.run(self.data_portal)
+
     def test_get_environment(self):
         expected_env = {
             'arena': 'backtest',
