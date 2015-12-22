@@ -253,6 +253,8 @@ class BcolzMinuteBarReader(object):
             'dt': {},
         }
 
+        self._minute_index = self._calc_minute_index()
+
     def _get_metadata(self):
         with open(os.path.join(self.rootdir, METADATA_FILENAME)) as fp:
             return json.load(fp)
@@ -265,6 +267,29 @@ class BcolzMinuteBarReader(object):
             path = "{0}/{1}.bcolz".format(self.rootdir, sid)
 
         return bcolz.open(path, mode='r')
+
+    def _calc_minute_index(self):
+        _nanos_in_minute = 60000000000
+        minutes = []
+        opens = tradingcalendar.open_and_closes.market_open.to_dict()
+        for day in self.trading_days:
+            start = opens[day].value
+            end = start + _nanos_in_minute * 390
+            minute_values = np.arange(start, end, _nanos_in_minute)
+            minutes.extend(minute_values)
+        return pd.to_datetime(minutes, utc=True, box=True)
+
+    def get_last_traded_dt(self, asset, dt):
+        return self._minute_index[
+            self._find_last_traded_position(asset, dt)]
+
+    def _find_last_traded_position(self, asset, dt):
+        volumes = self._open_minute_file('volume', asset)
+        minute_pos = self._find_position_of_minute(dt)
+        while True:
+            if minute_pos == 0 or volumes[minute_pos] != 0:
+                return minute_pos
+            minute_pos -= 1
 
     def _find_position_of_minute(self, minute_dt):
         """
@@ -289,23 +314,7 @@ class BcolzMinuteBarReader(object):
         The position of the given minute in the list of all trading minutes
         since market open on the first trading day.
         """
-        day = minute_dt.date()
-        day_idx = self.trading_days.searchsorted(day)
-        if day_idx < 0:
-            return -1
-
-        day_open = pd.Timestamp(
-            datetime(
-                year=day.year,
-                month=day.month,
-                day=day.day,
-                hour=9,
-                minute=31),
-            tz='US/Eastern').tz_convert('UTC')
-
-        minutes_offset = int((minute_dt - day_open).total_seconds()) / 60
-
-        return int((390 * day_idx) + minutes_offset)
+        return self._minute_index.get_loc(minute_dt)
 
     def _open_minute_file(self, field, asset):
         sid_str = str(int(asset))

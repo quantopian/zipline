@@ -46,7 +46,7 @@ cdef class MinuteSimulationClock:
         self.market_closes = market_closes
         self.trading_days = trading_days
         self.all_trading_days = all_trading_days
-        self.minutes_by_day, self.minutes_to_day = self.calc_minutes_by_day()
+        self.minutes_by_day = self.calc_minutes_by_day()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -61,14 +61,11 @@ cdef class MinuteSimulationClock:
 
     cpdef calc_minutes_by_day(self):
         minutes_by_day = {}
-        minutes_to_day = {}
         for day_idx, day in enumerate(self.trading_days):
             minutes = pd.to_datetime(
                 self.market_minutes(day_idx), utc=True, box=True)
             minutes_by_day[day] = minutes
-            for minute in minutes:
-                minutes_to_day[minute] = day
-        return minutes_by_day, minutes_to_day
+        return minutes_by_day
 
     def __iter__(self):
 
@@ -86,7 +83,7 @@ cdef class MinuteSimulationClock:
                     yield minute, MINUTE_END
 
             if not minute_emission:
-                yield day, DAY_END
+                yield minutes[-1], DAY_END
 
 
 cdef class DailySimulationClock:
