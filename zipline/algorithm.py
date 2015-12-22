@@ -39,11 +39,11 @@ from zipline.errors import (
     HistoryInInitialize,
     NoSuchPipeline,
     OrderDuringInitialize,
-    OverrideCommissionPostInit,
-    OverrideSlippagePostInit,
     PipelineOutputDuringInitialize,
     RegisterAccountControlPostInit,
     RegisterTradingControlPostInit,
+    SetCommissionPostInit,
+    SetSlippagePostInit,
     UnsupportedCommissionModel,
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
@@ -1072,7 +1072,7 @@ class TradingAlgorithm(object):
         if not isinstance(slippage, SlippageModel):
             raise UnsupportedSlippageModel()
         if self.initialized:
-            raise OverrideSlippagePostInit()
+            raise SetSlippagePostInit()
         self.slippage = slippage
 
     @api_method
@@ -1081,7 +1081,7 @@ class TradingAlgorithm(object):
             raise UnsupportedCommissionModel()
 
         if self.initialized:
-            raise OverrideCommissionPostInit()
+            raise SetCommissionPostInit()
         self.commission = commission
 
     @api_method
