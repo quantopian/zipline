@@ -393,6 +393,118 @@ class TestDataPortal(TestCase):
         finally:
             tempdir.cleanup()
 
+    def test_last_traded_dt_daily(self):
+        tempdir = TempDirectory()
+        try:
+            # 17 trading days
+            start_day = pd.Timestamp("2015-09-07", tz='UTC')
+            end_day = pd.Timestamp("2015-09-30", tz='UTC')
+
+            env = TradingEnvironment()
+            env.write_data(
+                equities_data={
+                    0: {
+                        'start_date': start_day,
+                        'end_date': end_day
+                    },
+                    1: {
+                        'start_date': env.next_trading_day(start_day),
+                        'end_date': end_day
+                    }
+                }
+            )
+
+            days = env.days_in_range(start_day, end_day)
+
+            # first bar is missing.  then 8 real bars.  then 8 more missing
+            # bars.
+            df = pd.DataFrame({
+                "open": [0] + list(range(0, 8)) + [0] * 8,
+                "high": [0] + list(range(10, 18)) + [0] * 8,
+                "low": [0] + list(range(20, 28)) + [0] * 8,
+                "close": [0] + list(range(30, 38)) + [0] * 8,
+                "volume": [0] + list(range(40, 48)) + [0] * 8,
+                "day": [day.value for day in days]
+            }, index=days)
+            # Test a second sid, so that edge condition with very first sid
+            # in calendar, as well as a sid with a start date after the
+            # calendar start are tested for the 'no leading data case'
+            df_sid_1 = pd.DataFrame({
+                "open": [0] + list(range(0, 8)) + [0] * 7,
+                "high": [0] + list(range(10, 18)) + [0] * 7,
+                "low": [0] + list(range(20, 28)) + [0] * 7,
+                "close": [0] + list(range(30, 38)) + [0] * 7,
+                "volume": [0] + list(range(40, 48)) + [0] * 7,
+                "day": [day.value for day in days[1:]]
+            }, index=days[1:])
+
+            assets = {0: df, 1: df_sid_1}
+            path = os.path.join(tempdir.path, "testdaily.bcolz")
+
+            DailyBarWriterFromDataFrames(assets).write(
+                path,
+                days,
+                assets
+            )
+
+            equity_daily_reader = BcolzDailyBarReader(path)
+
+            dp = DataPortal(
+                env,
+                equity_daily_reader=equity_daily_reader,
+            )
+
+            asset = env.asset_finder.retrieve_asset(0)
+
+            # Day with trades.
+            day_with_trade = df.index[8]
+            last_traded = dp.get_last_traded_dt(asset, day_with_trade,
+                                                'daily')
+
+            self.assertEqual(last_traded, day_with_trade)
+
+            # Day with no trades, should return most recent with trade.
+            day_without_trade = df.index[11]
+            last_traded = dp.get_last_traded_dt(asset, day_without_trade,
+                                                'daily')
+
+            self.assertEqual(last_traded, day_with_trade)
+
+            first_day_also_no_trade = df.index[0]
+
+            # Beginning bar, should return None.
+            last_traded = dp.get_last_traded_dt(asset, first_day_also_no_trade,
+                                                'daily')
+
+            self.assertEqual(last_traded, None)
+
+            asset = env.asset_finder.retrieve_asset(1)
+
+            # Day with trades.
+            day_with_trade = df_sid_1.index[8]
+            last_traded = dp.get_last_traded_dt(asset, day_with_trade,
+                                                'daily')
+
+            self.assertEqual(last_traded, day_with_trade)
+
+            # Day with no trades, should return most recent with trade.
+            day_without_trade = df_sid_1.index[10]
+            last_traded = dp.get_last_traded_dt(asset, day_without_trade,
+                                                'daily')
+
+            self.assertEqual(last_traded, day_with_trade)
+
+            first_day_also_no_trade = df_sid_1.index[0]
+
+            # Beginning bar, should return None.
+            last_traded = dp.get_last_traded_dt(asset, first_day_also_no_trade,
+                                                'daily')
+
+            self.assertEqual(last_traded, None)
+
+        finally:
+            tempdir.cleanup()
+
     def test_spot_value_futures(self):
         tempdir = TempDirectory()
         try:
