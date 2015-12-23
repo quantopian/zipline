@@ -221,6 +221,8 @@ class DataPortal(object):
         """
         if data_frequency == 'minute':
             return self._equity_minute_reader.get_last_traded_dt(asset, dt)
+        elif data_frequency == 'daily':
+            return self._equity_daily_reader.get_last_traded_dt(asset, dt)
 
     def get_previous_value(self, asset, field, dt, data_frequency):
         """

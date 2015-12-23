@@ -95,3 +95,13 @@ cdef class SidView:
         def __get__(self):
             return self.asset
 
+    property dt:
+        def __get__(self):
+            return self.datetime
+
+    property datetime:
+        def __get__(self):
+            return self.data_portal.get_last_traded_dt(
+                self.asset,
+                self.simulator.simulation_dt,
+                self.data_frequency)
