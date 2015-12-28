@@ -66,7 +66,8 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
    :members:
 
-.. autofunction:: zipline.pipeline.factors.DollarVolume
+.. autoclass:: zipline.pipeline.factors.AverageDollarVolume
+   :members:
 
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__

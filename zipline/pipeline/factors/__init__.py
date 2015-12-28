@@ -8,7 +8,7 @@ from .events import (
     BusinessDaysUntilNextEarnings,
 )
 from .technical import (
-    DollarVolume,
+    AverageDollarVolume,
     EWMA,
     EWMSTD,
     ExponentialWeightedMovingAverage,
@@ -25,7 +25,7 @@ __all__ = [
     'BusinessDaysSincePreviousEarnings',
     'BusinessDaysUntilNextEarnings',
     'CustomFactor',
-    'DollarVolume',
+    'AverageDollarVolume',
     'EWMA',
     'EWMSTD',
     'ExponentialWeightedMovingAverage',

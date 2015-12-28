@@ -53,7 +53,7 @@ Enhancements
   window_length. (:issue:`884`).
 
 * Added a new built-in factor:
-  :class:`~zipline.pipeline.factors.DollarVolume`. (:issue:`910`).
+  :class:`~zipline.pipeline.factors.AverageDollarVolume`. (:issue:`927`).
 
 * Added :class:`~zipline.pipeline.factors.ExponentialWeightedMovingAverage` and
   :class:`~zipline.pipeline.factors.ExponentialWeightedMovingStdDev`
