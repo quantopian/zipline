@@ -71,15 +71,17 @@ class HistoryTestCase(TestCase):
         cls.DIVIDEND_SID = 9
         cls.FUTURE_ASSET = 10
         cls.FUTURE_ASSET2 = 11
+        cls.FUTURE_ASSET3 = 12
+        cls.FOO = 13
         cls.assets = [cls.AAPL, cls.MSFT, cls.DELL, cls.TSLA, cls.BRKA,
-                      cls.IBM, cls.GS, cls.C, cls.DIVIDEND_SID]
+                      cls.IBM, cls.GS, cls.C, cls.DIVIDEND_SID, cls.FOO]
 
         asset_info = make_simple_asset_info(
             cls.assets,
             Timestamp('2014-03-03'),
             Timestamp('2014-08-30'),
             ['AAPL', 'MSFT', 'DELL', 'TSLA', 'BRKA', 'IBM', 'GS', 'C',
-             'DIVIDEND_SID']
+             'DIVIDEND_SID', 'FOO']
         )
         cls.env = TradingEnvironment()
 
@@ -97,6 +99,12 @@ class HistoryTestCase(TestCase):
                     "end_date": pd.Timestamp('2014-03-22', tz='UTC'),
                     'symbol': 'TEST_FUTURE2',
                     'asset_type': 'future',
+                },
+                cls.FUTURE_ASSET3: {
+                    "start_date": pd.Timestamp('2014-03-19', tz='UTC'),
+                    "end_date": pd.Timestamp('2014-03-22', tz='UTC'),
+                    'symbol': 'TEST_FUTURE3',
+                    'asset_type': 'future',
                 }
             }
         )
@@ -109,7 +117,8 @@ class HistoryTestCase(TestCase):
 
             cls.futures_start_dates = {
                 cls.FUTURE_ASSET: pd.Timestamp("2015-11-23 20:11", tz='UTC'),
-                cls.FUTURE_ASSET2: pd.Timestamp("2014-03-19 13:31", tz='UTC')
+                cls.FUTURE_ASSET2: pd.Timestamp("2014-03-19 13:31", tz='UTC'),
+                cls.FUTURE_ASSET3: pd.Timestamp("2014-03-19 13:31", tz='UTC')
             }
 
             futures_tempdir = os.path.join(cls.tempdir.path,
@@ -133,6 +142,21 @@ class HistoryTestCase(TestCase):
                 timedelta(minutes=3270)
             )
 
+            # build data for FUTURE_ASSET3 from 2014-03-19 13:31 to
+            # 2014-03-21 20:00.
+            # Pause trading between 2014-03-20 14:00 and 2014-03-20 15:00
+            gap_start = pd.Timestamp('2014-03-20 14:00', tz='UTC')
+            gap_end = pd.Timestamp('2014-03-20 15:00', tz='UTC')
+            cls.create_fake_futures_minute_data(
+                futures_tempdir,
+                cls.env.asset_finder.retrieve_asset(cls.FUTURE_ASSET3),
+                cls.futures_start_dates[cls.FUTURE_ASSET3],
+                cls.futures_start_dates[cls.FUTURE_ASSET3] +
+                timedelta(minutes=3270),
+                gap_start_dt=gap_start,
+                gap_end_dt=gap_end,
+            )
+
             cls.create_fake_daily_data(cls.tempdir)
 
             splits = DataFrame([
@@ -153,7 +177,11 @@ class HistoryTestCase(TestCase):
                  'sid': cls.IBM},
                 {'effective_date': str_to_seconds("2014-07-07"),
                  'ratio': 0.5,
-                 'sid': cls.IBM}],
+                 'sid': cls.IBM},
+                {'effective_date': str_to_seconds("2002-03-21"),
+                 'ratio': 0.5,
+                 'sid': cls.FOO},
+            ],
                 columns=['effective_date', 'ratio', 'sid'],
             )
 
@@ -211,7 +239,8 @@ class HistoryTestCase(TestCase):
         cls.tempdir.cleanup()
 
     @classmethod
-    def create_fake_futures_minute_data(cls, tempdir, asset, start_dt, end_dt):
+    def create_fake_futures_minute_data(cls, tempdir, asset, start_dt, end_dt,
+                                        gap_start_dt=None, gap_end_dt=None):
         num_minutes = int((end_dt - start_dt).total_seconds() / 60)
 
         # need to prepend one 0 per minute between normalize_date(start_dt)
@@ -233,6 +262,12 @@ class HistoryTestCase(TestCase):
                                list(range(40000, 40000 + num_minutes)))
         })
 
+        if gap_start_dt and gap_end_dt:
+            minutes = pd.date_range(normalize_date(start_dt), end_dt, freq='T')
+            gap_start_ix = minutes.get_loc(gap_start_dt)
+            gap_end_ix = minutes.get_loc(gap_end_dt)
+            future_df.iloc[gap_start_ix:gap_end_ix, :] = 0
+
         path = join(tempdir, "{0}.bcolz".format(asset.sid))
         ctable = bcolz.ctable.fromdataframe(future_df, rootdir=path)
 
@@ -253,6 +288,8 @@ class HistoryTestCase(TestCase):
             cls.C: join(TEST_MINUTE_RESOURCE_PATH, "C_minute.csv.gz"),
             cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
                                    "DIVIDEND_minute.csv.gz"),
+            cls.FOO: join(TEST_MINUTE_RESOURCE_PATH,
+                          "FOO_minute.csv.gz"),
         }
 
         equities_tempdir = os.path.join(tempdir.path, 'equity', 'minutes')
@@ -274,7 +311,8 @@ class HistoryTestCase(TestCase):
             cls.GS: join(TEST_MINUTE_RESOURCE_PATH, 'GS_daily.csv.gz'),
             cls.C: join(TEST_MINUTE_RESOURCE_PATH, 'C_daily.csv.gz'),
             cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
-                                   'DIVIDEND_daily.csv.gz')
+                                   'DIVIDEND_daily.csv.gz'),
+            cls.FOO: join(TEST_MINUTE_RESOURCE_PATH, 'FOO_daily.csv.gz'),
         }
         raw_data = {
             asset: read_csv(path, parse_dates=['day']).set_index('day')
@@ -443,6 +481,73 @@ class HistoryTestCase(TestCase):
         self.assertEquals(window.loc[day2_start, 1], 533.087)
         self.assertEquals(window.loc[day2_end, 1], 533.853)
         self.assertEquals(window.loc[day3_start, 1], 533.854)
+
+    def test_ffill_minute_equity_window_starts_with_nan(self):
+        """
+        Test that forward filling does not leave leading nan if there is data
+        available before the start of the window.
+        """
+
+        window = self.data_portal.get_history_window(
+            [self.FOO],
+            pd.Timestamp("2014-03-21 13:41:00+00:00", tz='UTC'),
+            20,
+            "1m",
+            "price"
+        )
+
+        # The previous value is on 2014-03-20, and there is a split between
+        # the two dates, the spot price of the latest value is 1066.92, with
+        # the expected result being 533.46 after the 2:1 split is applied.
+        expected = np.append(np.full(19, 533.460),
+                             np.array(529.601))
+
+        np.testing.assert_allclose(window.loc[:, self.FOO], expected)
+
+    def test_ffill_minute_future_window_starts_with_nan(self):
+        """
+        Test that forward filling does not leave leading nan if there is data
+        available before the start of the window.
+        """
+
+        window = self.data_portal.get_history_window(
+            [self.FUTURE_ASSET3],
+            pd.Timestamp("2014-03-20 15:00:00+00:00", tz='UTC'),
+            20,
+            "1m",
+            "price"
+        )
+
+        # 31468 is the value at 2014-03-20 13:59, and should be the forward
+        # filled value until 2015-03-20 15:00
+        expected = np.append(np.full(19, 31468),
+                             np.array(31529))
+
+        np.testing.assert_allclose(window.loc[:, self.FUTURE_ASSET3],
+                                   expected)
+
+    def test_ffill_daily_equity_window_starts_with_nan(self):
+        """
+        Test that forward filling does not leave leading nan if there is data
+        available before the start of the window.
+        """
+        window = self.data_portal.get_history_window(
+            [self.FOO],
+            pd.Timestamp("2014-03-21 00:00:00+00:00", tz='UTC'),
+            2,
+            "1d",
+            "price"
+        )
+
+        # The previous value is on 2014-03-20, and there is a split between
+        # the two dates, the spot price of the latest value is 106.692, with
+        # the expected result being 533.46 after the 2:1 split is applied.
+        expected = np.array([
+            53.346,
+            52.95,
+        ])
+
+        np.testing.assert_allclose(window.loc[:, self.FOO], expected)
 
     def test_minute_window_starts_before_trading_start(self):
         portal = self.data_portal
