@@ -35,6 +35,8 @@ MINUTES_PER_DAY = 390
 
 _writer_env = TradingEnvironment()
 
+_NANOS_IN_MINUTE = 60000000000
+
 METADATA_FILENAME = 'metadata.json'
 
 
@@ -47,6 +49,24 @@ def write_metadata(directory, first_trading_day):
 
     with open(metadata_path, 'w') as fp:
         json.dump(metadata, fp)
+
+
+def _bcolz_minute_index(trading_days):
+    minutes = np.zeros(len(trading_days) * MINUTES_PER_DAY,
+                       dtype='datetime64[ns]')
+    market_opens = tradingcalendar.open_and_closes.market_open
+    mask = market_opens.index.slice_indexer(start=trading_days[0],
+                                            end=trading_days[-1])
+    opens = market_opens[mask]
+
+    deltas = np.arange(0, MINUTES_PER_DAY, dtype='timedelta64[m]')
+    for i, market_open in enumerate(opens):
+        start = market_open.asm8
+        minute_values = start + deltas
+        start_ix = MINUTES_PER_DAY * i
+        end_ix = start_ix + MINUTES_PER_DAY
+        minutes[start_ix:end_ix] = minute_values
+    return pd.to_datetime(minutes, utc=True, box=True)
 
 
 class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
@@ -70,33 +90,12 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
         return self._write_internal(directory, _iterator,
                                     sid_path_func=sid_path_func)
 
-    @staticmethod
-    def full_minutes_for_days(env, dt1, dt2):
-        start_date = env.normalize_date(dt1)
-        end_date = env.normalize_date(dt2)
+    def full_minutes_for_days(self, dt1, dt2):
+        start_date = _writer_env.normalize_date(dt1)
+        end_date = _writer_env.normalize_date(dt2)
 
-        all_minutes = []
-
-        for day in env.days_in_range(start_date, end_date):
-            minutes_in_day = pd.date_range(
-                start=pd.Timestamp(
-                    datetime(
-                        year=day.year,
-                        month=day.month,
-                        day=day.day,
-                        hour=9,
-                        minute=31),
-                    tz='US/Eastern').tz_convert('UTC'),
-                periods=390,
-                freq="min"
-            )
-
-            all_minutes.append(minutes_in_day)
-
-        # flatten
-        return pd.DatetimeIndex(
-            np.concatenate(all_minutes), copy=False, tz='UTC'
-        )
+        trading_days = _writer_env.days_in_range(start_date, end_date)
+        return _bcolz_minute_index(trading_days)
 
     def _write_internal(self, directory, iterator, sid_path_func=None):
         first_trading_day = self.first_trading_day
@@ -112,6 +111,8 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
                 minute=31
             ), tz='US/Eastern').tz_convert('UTC')
 
+        all_minutes = None
+
         for asset_id, df in iterator:
             if sid_path_func is None:
                 path = join(directory, "{0}.bcolz".format(asset_id))
@@ -120,27 +121,56 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
 
             os.makedirs(path)
 
-            minutes = self.full_minutes_for_days(_writer_env,
-                                                 first_open, df.index[-1])
+            last_dt = df.index[-1]
+
+            if all_minutes is None:
+                all_minutes = \
+                    self.full_minutes_for_days(first_open, last_dt)
+                minutes = all_minutes
+            else:
+                if df.index[-1] in all_minutes:
+                    mask = all_minutes.slice_indexer(end=last_dt)
+                    minutes = all_minutes[mask]
+                else:
+                    # Need to extend all minutes from open after last value
+                    # in all_minutes to the last_dt.
+                    next_open, _ = _writer_env.next_open_and_close(
+                        all_minutes[-1])
+                    to_append = self.full_minutes_for_days(next_open, last_dt)
+                    all_minutes = all_minutes.append(to_append)
+                    minutes = all_minutes
+
             minutes_count = len(minutes)
 
-            dt_col = np.zeros(minutes_count, dtype=np.uint32)
             open_col = np.zeros(minutes_count, dtype=np.uint32)
             high_col = np.zeros(minutes_count, dtype=np.uint32)
             low_col = np.zeros(minutes_count, dtype=np.uint32)
             close_col = np.zeros(minutes_count, dtype=np.uint32)
             vol_col = np.zeros(minutes_count, dtype=np.uint32)
 
-            for row in df.iterrows():
-                dt = row[0]
-                idx = minutes.searchsorted(dt)
+            opens = df.open.values.astype(np.uint32)
+            highs = df.high.values.astype(np.uint32)
+            lows = df.low.values.astype(np.uint32)
+            closes = df.close.values.astype(np.uint32)
+            volumes = df.volume.values.astype(np.uint32)
 
-                dt_col[idx] = dt.value / 1e9
-                open_col[idx] = row[1].loc["open"]
-                high_col[idx] = row[1].loc["high"]
-                low_col[idx] = row[1].loc["low"]
-                close_col[idx] = row[1].loc["close"]
-                vol_col[idx] = row[1].loc["volume"]
+            dt_ixs = np.searchsorted(minutes.values, df.index.values)
+
+            for i, dt_ix in enumerate(dt_ixs):
+                # Each day has 390 slots, where 9:31 is the first
+                # slot (ix=0) of the day, and each slot represents a
+                # minute's data.
+                #
+                # Get the difference in seconds between the current
+                # minute and market open and then divide by 60 to get
+                # the index into which to write, while still writing
+                    # from the same row aligned with the dt in the from the
+                # CSV.
+                open_col[dt_ix] = opens[i]
+                high_col[dt_ix] = highs[i]
+                low_col[dt_ix] = lows[i]
+                close_col[dt_ix] = closes[i]
+                vol_col[dt_ix] = volumes[i]
 
             ctable(
                 columns=[
@@ -149,7 +179,6 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
                     low_col,
                     close_col,
                     vol_col,
-                    dt_col
                 ],
                 names=[
                     "open",
@@ -157,7 +186,6 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
                     "low",
                     "close",
                     "volume",
-                    "dt"
                 ],
                 rootdir=path,
                 mode='w'
@@ -253,7 +281,7 @@ class BcolzMinuteBarReader(object):
             'dt': {},
         }
 
-        self._minute_index = self._calc_minute_index()
+        self._minute_index = _bcolz_minute_index(self.trading_days)
 
     def _get_metadata(self):
         with open(os.path.join(self.rootdir, METADATA_FILENAME)) as fp:
@@ -267,17 +295,6 @@ class BcolzMinuteBarReader(object):
             path = "{0}/{1}.bcolz".format(self.rootdir, sid)
 
         return bcolz.open(path, mode='r')
-
-    def _calc_minute_index(self):
-        _nanos_in_minute = 60000000000
-        minutes = []
-        opens = tradingcalendar.open_and_closes.market_open.to_dict()
-        for day in self.trading_days:
-            start = opens[day].value
-            end = start + _nanos_in_minute * 390
-            minute_values = np.arange(start, end, _nanos_in_minute)
-            minutes.extend(minute_values)
-        return pd.to_datetime(minutes, utc=True, box=True)
 
     def get_last_traded_dt(self, asset, dt):
         return self._minute_index[
