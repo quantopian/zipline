@@ -32,6 +32,10 @@ class SubDataSet(SomeDataSet):
     pass
 
 
+class SubDataSetNewCol(SomeDataSet):
+    qux = Column(float64_dtype)
+
+
 class SomeFactor(Factor):
     dtype = float64_dtype
     window_length = 5
@@ -336,11 +340,46 @@ class SubDataSetTestCase(TestCase):
             column.name: column for column in SubDataSet.columns
         }
         self.assertEqual(
-            set(some_dataset_map),
-            set(sub_dataset_map),
+            {column.name for column in SomeDataSet.columns},
+            {column.name for column in SubDataSet.columns},
         )
         for k, some_dataset_column in some_dataset_map.items():
             sub_dataset_column = sub_dataset_map[k]
+            self.assertIsNot(
+                some_dataset_column,
+                sub_dataset_column,
+                'subclass column %r should not have the same identity as'
+                ' the parent' % k,
+            )
+            self.assertEqual(
+                some_dataset_column.dtype,
+                sub_dataset_column.dtype,
+                'subclass column %r should have the same dtype as the parent' %
+                k,
+            )
+
+    def test_add_column(self):
+        some_dataset_map = {
+            column.name: column for column in SomeDataSet.columns
+        }
+        sub_dataset_new_col_map = {
+            column.name: column for column in SubDataSetNewCol.columns
+        }
+        sub_col_names = {column.name for column in SubDataSetNewCol.columns}
+
+        # check our extra col
+        self.assertIn('qux', sub_col_names)
+        self.assertEqual(
+            sub_dataset_new_col_map['qux'].dtype,
+            float64_dtype,
+        )
+
+        self.assertEqual(
+            {column.name for column in SomeDataSet.columns},
+            sub_col_names - {'qux'},
+        )
+        for k, some_dataset_column in some_dataset_map.items():
+            sub_dataset_column = sub_dataset_new_col_map[k]
             self.assertIsNot(
                 some_dataset_column,
                 sub_dataset_column,
