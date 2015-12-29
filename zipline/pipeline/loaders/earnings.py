@@ -44,9 +44,12 @@ class EarningsCalendarLoader(PipelineLoader):
         Whether to allow passing ``DatetimeIndex`` values in
         ``announcement_dates``.
     """
-    def __init__(self, all_dates, announcement_dates, infer_timestamps=False):
+    def __init__(self,
+                 all_dates,
+                 announcement_dates,
+                 infer_timestamps=False,
+                 dataset=EarningsCalendar):
         self.all_dates = all_dates
-
         self.announcement_dates = announcement_dates = (
             announcement_dates.copy()
         )
@@ -64,13 +67,14 @@ class EarningsCalendarLoader(PipelineLoader):
                 announcement_dates[k] = pd.Series(
                     v, index=repeat(dates[0], len(v)),
                 )
+        self.dataset = dataset
 
     def get_loader(self, column):
         """Dispatch to the loader for ``column``.
         """
-        if column is EarningsCalendar.next_announcement:
+        if column is self.dataset.next_announcement:
             return self.next_announcement_loader
-        elif column is EarningsCalendar.previous_announcement:
+        elif column is self.dataset.previous_announcement:
             return self.previous_announcement_loader
         else:
             raise ValueError("Don't know how to load column '%s'." % column)
@@ -78,7 +82,7 @@ class EarningsCalendarLoader(PipelineLoader):
     @lazyval
     def next_announcement_loader(self):
         return DataFrameLoader(
-            EarningsCalendar.next_announcement,
+            self.dataset.next_announcement,
             next_earnings_date_frame(
                 self.all_dates,
                 self.announcement_dates,
@@ -89,7 +93,7 @@ class EarningsCalendarLoader(PipelineLoader):
     @lazyval
     def previous_announcement_loader(self):
         return DataFrameLoader(
-            EarningsCalendar.previous_announcement,
+            self.dataset.previous_announcement,
             previous_earnings_date_frame(
                 self.all_dates,
                 self.announcement_dates,

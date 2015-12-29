@@ -90,7 +90,7 @@ class BlazeToPipelineTestCase(TestCase):
         self.assertEqual(ds.__name__, name)
         self.assertTrue(issubclass(ds, DataSet))
         self.assertEqual(
-            {c.name: c.dtype for c in ds._columns},
+            {c.name: c.dtype for c in ds.columns},
             {'sid': np.int64, 'value': np.float64},
         )
 

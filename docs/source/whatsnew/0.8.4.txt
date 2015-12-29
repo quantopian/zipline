@@ -59,6 +59,10 @@ Enhancements
   :class:`~zipline.pipeline.factors.ExponentialWeightedMovingStdDev`
   factors. (:issue:`910`).
 
+* Allow :class:`~zipline.pipeline.data.DataSet` classes to be subclassed where
+  subclasses inherit all of the columns from the parent. These columns will be
+  new sentinels so you can register them a custom loader (:issue:`924`).
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 

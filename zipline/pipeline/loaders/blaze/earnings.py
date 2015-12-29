@@ -6,6 +6,7 @@ from six import iteritems
 from toolz import valmap
 
 from .core import TS_FIELD_NAME, SID_FIELD_NAME
+from zipline.pipeline.data import EarningsCalendar
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
 
@@ -87,7 +88,8 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
                  expr,
                  resources=None,
                  compute_kwargs=None,
-                 odo_kwargs=None):
+                 odo_kwargs=None,
+                 dataset=EarningsCalendar):
         dshape = expr.dshape
 
         if not istabular(dshape):
@@ -101,6 +103,7 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
             resources,
         )
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
+        self._dataset = dataset
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         expr = self._expr
@@ -147,4 +150,5 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         return EarningsCalendarLoader(
             dates,
             valmap(mkseries, gb.groups),
+            dataset=self._dataset,
         ).load_adjusted_array(columns, dates, assets, mask)
