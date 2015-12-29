@@ -115,11 +115,13 @@ class DataSetMeta(type):
 
     def __new__(mcls, name, bases, dict_):
         newtype = super(DataSetMeta, mcls).__new__(mcls, name, bases, dict_)
+        # collect all of the column names that we inherit from our parents
         column_names = set().union(
             *(getattr(base, '_column_names', ()) for base in bases)
         )
         for maybe_colname, maybe_column in iteritems(dict_):
             if isinstance(maybe_column, Column):
+                # add column names defined on our class
                 bound_column_descr = maybe_column.bind(maybe_colname)
                 setattr(newtype, maybe_colname, bound_column_descr)
                 column_names.add(maybe_colname)
