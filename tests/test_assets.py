@@ -50,6 +50,8 @@ from zipline.assets.futures import (
 from zipline.assets.asset_writer import (
     check_version_info,
     write_version_info,
+)
+from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION,
     _version_table_schema,
 )
