@@ -41,6 +41,7 @@ import zipline.utils.math_utils as zp_math
 
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
+from zipline.finance.slippage import TradeBar
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.loaders.synthetic import NullAdjustmentReader
 from zipline.utils.factory import create_simulation_parameters
@@ -126,7 +127,8 @@ def create_txn(sid, dt, price, amount):
     of a given trade event.
     """
     mock_order = Order(dt, sid, amount, id=None)
-    return create_transaction(sid, dt, mock_order, price, amount)
+    trade_bar = TradeBar(sid, dt, price, None)
+    return create_transaction(trade_bar, mock_order, price, amount)
 
 
 def benchmark_events_in_range(sim_params, env):
