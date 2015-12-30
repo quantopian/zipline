@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from operator import mul
 
 import bcolz
 from logbook import Logger
@@ -20,6 +21,7 @@ import numpy as np
 import pandas as pd
 from pandas.tslib import normalize_date
 from six import iteritems
+from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import NoDataOnDate
@@ -337,6 +339,80 @@ class DataPortal(object):
             else:
                 return self._get_minute_spot_value(
                     asset, column_to_use, dt)
+
+    def _get_adjusted_value(self, asset, field, dt,
+                            perspective_dt,
+                            data_frequency):
+        """
+        Private method that returns a scalar value representing the value
+        of the desired asset's field at the given dt with adjustments applied.
+
+        Parameters
+        ---------
+        asset : Asset
+            The asset whose data is desired.
+
+        field: string
+            The desired field of the asset.  Valid values are "open",
+            "open_price", "high", "low", "close", "close_price", "volume", and
+            "price".
+
+        dt: pd.Timestamp
+            The timestamp for the desired value.
+
+        perspective_dt : pd.Timestamp
+            The timestamp from which the data is being viewed back from.
+
+        data_frequency: string
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
+
+        Returns
+        -------
+        The value of the desired field at the desired time.
+        """
+        if isinstance(asset, int):
+            asset = self._asset_finder.retrieve_asset(asset)
+
+        spot_value = self.get_spot_value(asset, field, dt, data_frequency)
+
+        if isinstance(asset, Equity):
+            adjs = []
+            split_adjustments = self._get_adjustment_list(
+                asset, self._splits_dict, "SPLITS"
+            )
+            for adj_dt, adj in split_adjustments:
+                if adj_dt < dt:
+                    if field != 'volume':
+                        adjs.append(adj)
+                    else:
+                        adjs.append(1.0 / adj)
+                if adj_dt >= perspective_dt:
+                    break
+
+            if field != 'volume':
+                merger_adjustments = self._get_adjustment_list(
+                    asset, self._mergers_dict, "MERGERS"
+                )
+                for adj_dt, adj in merger_adjustments:
+                    if adj_dt < dt:
+                        adjs.append(adj)
+                    if adj_dt >= perspective_dt:
+                        break
+                div_adjustments = self._get_adjustment_list(
+                    asset, self._dividends_dict, "DIVIDENDS",
+                )
+                for adj_dt, adj in div_adjustments:
+                    if adj_dt < dt:
+                        adjs.append(adj)
+                    if adj_dt >= perspective_dt:
+                        break
+
+            ratio = reduce(mul, adjs, 1.0)
+
+            spot_value *= ratio
+
+        return spot_value
 
     def _get_minute_spot_value_future(self, asset, column, dt):
         # Futures bcolz files have 1440 bars per day (24 hours), 7 days a week.
@@ -682,8 +758,9 @@ class DataPortal(object):
             raise ValueError("Invalid history field: " + str(field))
 
         # sanity check in case sids were passed in
-        assets = [(self.env.asset_finder.retrieve_asset(asset) if
-                   isinstance(asset, int) else asset) for asset in assets]
+        assets = np.array([
+            (self.env.asset_finder.retrieve_asset(asset) if
+             isinstance(asset, int) else asset) for asset in assets])
 
         if frequency == "1d":
             df = self._get_history_daily_window(assets, end_dt, bar_count,
@@ -696,6 +773,34 @@ class DataPortal(object):
 
         # forward-fill if needed
         if field == "price" and ffill:
+            assets_with_nan_index = np.where(pd.isnull(df.iloc[0, :]))[0]
+            assets_with_leading_nan = assets[assets_with_nan_index]
+
+            if frequency == "1m":
+                data_frequency = 'minute'
+            elif frequency == "1d":
+                data_frequency = 'daily'
+            else:
+                raise Exception(
+                    "Only 1d and 1m are supported for forward-filling.")
+
+            dt_to_fill = df.index[0]
+
+            perspective_dt = df.index[-1]
+            assets_with_leading_nan = np.where(pd.isnull(df.iloc[0]))[0]
+            for missing_loc in assets_with_leading_nan:
+                asset = assets[missing_loc]
+                previous_dt = self.get_last_traded_dt(
+                    asset, dt_to_fill, data_frequency)
+                previous_value = self._get_adjusted_value(
+                    asset,
+                    field,
+                    previous_dt,
+                    perspective_dt,
+                    data_frequency,
+                )
+                df.iloc[0, missing_loc] = previous_value
+
             df.fillna(method='ffill', inplace=True)
 
         return df
