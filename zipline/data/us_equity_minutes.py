@@ -148,29 +148,13 @@ class BcolzMinuteBarWriter(with_metaclass(ABCMeta)):
             close_col = np.zeros(minutes_count, dtype=np.uint32)
             vol_col = np.zeros(minutes_count, dtype=np.uint32)
 
-            opens = df.open.values.astype(np.uint32)
-            highs = df.high.values.astype(np.uint32)
-            lows = df.low.values.astype(np.uint32)
-            closes = df.close.values.astype(np.uint32)
-            volumes = df.volume.values.astype(np.uint32)
-
             dt_ixs = np.searchsorted(minutes.values, df.index.values)
 
-            for i, dt_ix in enumerate(dt_ixs):
-                # Each day has 390 slots, where 9:31 is the first
-                # slot (ix=0) of the day, and each slot represents a
-                # minute's data.
-                #
-                # Get the difference in seconds between the current
-                # minute and market open and then divide by 60 to get
-                # the index into which to write, while still writing
-                    # from the same row aligned with the dt in the from the
-                # CSV.
-                open_col[dt_ix] = opens[i]
-                high_col[dt_ix] = highs[i]
-                low_col[dt_ix] = lows[i]
-                close_col[dt_ix] = closes[i]
-                vol_col[dt_ix] = volumes[i]
+            open_col[dt_ixs] = df.open.values.astype(np.uint32)
+            high_col[dt_ixs] = df.high.values.astype(np.uint32)
+            low_col[dt_ixs] = df.low.values.astype(np.uint32)
+            close_col[dt_ixs] = df.close.values.astype(np.uint32)
+            vol_col[dt_ixs] = df.volume.values.astype(np.uint32)
 
             ctable(
                 columns=[
