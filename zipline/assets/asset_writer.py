@@ -345,12 +345,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
         tables_already_exist = self.check_for_tables(engine)
         metadata = generate_asset_db_metadata(bind=engine)
 
-        self.version_info = metadata.tables['version_info']
-        self.equities = metadata.tables['equities']
-        self.futures_exchanges = metadata.tables['futures_exchanges']
-        self.futures_root_symbols = metadata.tables['futures_root_symbols']
-        self.futures_contracts = metadata.tables['futures_contracts']
-        self.asset_router = metadata.tables['asset_router']
+        for table_name in asset_db_table_names:
+            setattr(self, table_name, metadata.tables[table_name])
 
         # Create the SQL tables if they do not already exist.
         metadata.create_all(checkfirst=True)
