@@ -130,12 +130,18 @@ class MaxDrawdown(CustomFactor, SingleInputMixin):
             out[i] = (peak - data[end, i]) / data[end, i]
 
 
-def DollarVolume():
+class AverageDollarVolume(CustomFactor):
     """
-    Returns a Factor computing the product of most recent close price and
-    volume.
+    Average Daily Dollar Volume
+
+    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]
+
+    **Default Window Length:** None
     """
-    return USEquityPricing.close.latest * USEquityPricing.volume.latest
+    inputs = [USEquityPricing.close, USEquityPricing.volume]
+
+    def compute(self, today, assets, out, close, volume):
+        out[:] = nanmean(close * volume, axis=0)
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):

@@ -53,11 +53,15 @@ Enhancements
   window_length. (:issue:`884`).
 
 * Added a new built-in factor:
-  :class:`~zipline.pipeline.factors.DollarVolume`. (:issue:`910`).
+  :class:`~zipline.pipeline.factors.AverageDollarVolume`. (:issue:`927`).
 
 * Added :class:`~zipline.pipeline.factors.ExponentialWeightedMovingAverage` and
   :class:`~zipline.pipeline.factors.ExponentialWeightedMovingStdDev`
   factors. (:issue:`910`).
+
+* Allow :class:`~zipline.pipeline.data.DataSet` classes to be subclassed where
+  subclasses inherit all of the columns from the parent. These columns will be
+  new sentinels so you can register them a custom loader (:issue:`924`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
