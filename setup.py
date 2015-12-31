@@ -133,12 +133,14 @@ def _with_bounds(req):
         return ''.join(with_bounds)
 
 
+REQ_PATTERN = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
+
+
 def _conda_format(req):
-    return re.sub(
-            '([^=<>]+)([=<>]{1,2})',
-            lambda m: '%s %s' % (m.group(1).lower(), m.group(2)),
-            req,
-            1,
+    return REQ_PATTERN.sub(
+        lambda m: '%s %s%s' % (m.group(1).lower(), m.group(2), m.group(3)),
+        req,
+        1,
     )
 
 
@@ -184,14 +186,12 @@ def module_requirements(requirements_path, module_names):
     module_names = set(module_names)
     found = set()
     module_lines = []
-    parser = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
     for line in read_requirements(requirements_path, strict_bounds=True):
-        match = parser.match(line)
+        match = REQ_PATTERN.match(line)
         if match is None:
             raise AssertionError("Could not parse requirement: '%s'" % line)
 
-        groups = match.groups()
-        name = groups[0]
+        name = match.group(1)
         if name in module_names:
             found.add(name)
             module_lines.append(line)
