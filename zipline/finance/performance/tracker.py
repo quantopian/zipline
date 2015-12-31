@@ -138,7 +138,7 @@ class PerformanceTracker(object):
             # period
             keep_transactions=False,
             keep_orders=False,
-            # don't serialize positions for cumualtive period
+            # don't serialize positions for cumulative period
             serialize_positions=False,
             asset_finder=self.env.asset_finder,
         )
