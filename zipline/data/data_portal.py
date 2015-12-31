@@ -792,6 +792,8 @@ class DataPortal(object):
                 asset = assets[missing_loc]
                 previous_dt = self.get_last_traded_dt(
                     asset, dt_to_fill, data_frequency)
+                if pd.isnull(previous_dt):
+                    continue
                 previous_value = self._get_adjusted_value(
                     asset,
                     field,

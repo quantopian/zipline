@@ -297,13 +297,22 @@ class BcolzMinuteBarReader(object):
         return bcolz.open(path, mode='r')
 
     def get_last_traded_dt(self, asset, dt):
-        return self._minute_index[
-            self._find_last_traded_position(asset, dt)]
+        minute_pos = self._find_last_traded_position(asset, dt)
+        if minute_pos == -1:
+            return pd.NaT
+        return self._minute_index[minute_pos]
 
     def _find_last_traded_position(self, asset, dt):
         volumes = self._open_minute_file('volume', asset)
+        start_date = asset.start_date
+        _minute_index = self._minute_index
+
         minute_pos = self._find_position_of_minute(dt)
+
         while True:
+            dt = _minute_index[minute_pos]
+            if dt < start_date:
+                return -1
             if minute_pos == 0 or volumes[minute_pos] != 0:
                 return minute_pos
             minute_pos -= 1
