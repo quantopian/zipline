@@ -504,6 +504,25 @@ class HistoryTestCase(TestCase):
 
         np.testing.assert_allclose(window.loc[:, self.FOO], expected)
 
+    def test_ffill_minute_equity_window_no_previous(self):
+        """
+        Test that forward filling handles the case where the window starts
+        with a nan, and there are no previous values.
+        """
+
+        window = self.data_portal.get_history_window(
+            [self.FOO],
+            pd.Timestamp("2014-03-19 13:41:00+00:00", tz='UTC'),
+            20,
+            "1m",
+            "price"
+        )
+
+        # There should be no values, since there is no data before 2014-03-20
+        expected = np.full(20, np.nan)
+
+        np.testing.assert_allclose(window.loc[:, self.FOO], expected)
+
     def test_ffill_minute_future_window_starts_with_nan(self):
         """
         Test that forward filling does not leave leading nan if there is data
