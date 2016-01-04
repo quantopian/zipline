@@ -291,7 +291,7 @@ class DataPortal(object):
         Parameters
         ---------
         asset : Asset
-            The asset whose data is desired.gith
+            The asset whose data is desired.
 
         field: string
             The desired field of the asset.  Valid values are "open",
