@@ -2227,26 +2227,6 @@ class TestPositionTracker(unittest.TestCase):
             self.assertEquals(val, 0)
             self.assertNotIsInstance(val, (bool, np.bool_))
 
-    def test_update_last_sale(self):
-        pt = perf.PositionTracker(self.env.asset_finder)
-        dt = pd.Timestamp("1984/03/06 3:00PM")
-        pos1 = perf.Position(1, amount=np.float64(100.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pos3 = perf.Position(3, amount=np.float64(100.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pt.update_positions({1: pos1, 3: pos3})
-
-        event1 = Event({'sid': 1,
-                        'price': 11,
-                        'dt': dt})
-        event3 = Event({'sid': 3,
-                        'price': 11,
-                        'dt': dt})
-
-        # Check cash-adjustment return value
-        self.assertEqual(0, pt.update_last_sale(event1))
-        self.assertEqual(100000, pt.update_last_sale(event3))
-
     def test_position_values_and_exposures(self):
         pt = perf.PositionTracker(self.env.asset_finder)
         dt = pd.Timestamp("1984/03/06 3:00PM")
