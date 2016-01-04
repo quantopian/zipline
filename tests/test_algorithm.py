@@ -1853,9 +1853,6 @@ class TestClosePosAlgo(TestCase):
         # Check results
         results = algo.run(self.data_portal)
 
-        expected_pnl = [0, 0, 1, 2]
-        self.check_algo_pnl(results, expected_pnl)
-
         expected_positions = [0, 1, 1, 0]
         self.check_algo_positions(results, expected_positions)
 
