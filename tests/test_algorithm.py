@@ -728,8 +728,6 @@ class TestTransformAlgorithm(TestCase):
                                                                 cls.sim_params,
                                                                 trades_by_sid)
 
-        cls.data_portal.current_day = cls.sim_params.trading_days[0]
-
     @classmethod
     def tearDownClass(cls):
         teardown_logger(cls)

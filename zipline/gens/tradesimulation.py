@@ -148,7 +148,6 @@ class AlgorithmSimulator(object):
             # set all the timestamps
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
-            data_portal.current_day = midnight_dt
 
             # call before trading start
             algo.before_trading_start(current_data)
