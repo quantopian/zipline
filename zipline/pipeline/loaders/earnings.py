@@ -106,5 +106,3 @@ class EarningsCalendarLoader(PipelineLoader):
             )
             for column in columns
         )
-
-
