@@ -27,55 +27,13 @@ from zipline.pipeline.loaders.blaze import (
     TS_FIELD_NAME,
 )
 from zipline.utils.numpy_utils import make_datetime64D, np_NaT
-from zipline.utils.tradingcalendar import trading_days
 from zipline.utils.test_utils import (
     make_simple_equity_info,
-    powerset,
     tmp_asset_finder,
+    gen_calendars,
+    to_series,
+    num_days_in_range,
 )
-
-
-def _to_series(knowledge_dates, earning_dates):
-    """
-    Helper for converting a dict of strings to a Series of datetimes.
-
-    This is just for making the test cases more readable.
-    """
-    return pd.Series(
-        index=pd.to_datetime(knowledge_dates),
-        data=pd.to_datetime(earning_dates),
-    )
-
-
-def num_days_in_range(dates, start, end):
-    """
-    Return the number of days in `dates` between start and end, inclusive.
-    """
-    start_idx, stop_idx = dates.slice_locs(start, end)
-    return stop_idx - start_idx
-
-
-def gen_calendars():
-    """
-    Generate calendars to use as inputs to test_compute_latest.
-    """
-    start, stop = '2014-01-01', '2014-01-31'
-    all_dates = pd.date_range(start, stop, tz='utc')
-
-    # These dates are the points where announcements or knowledge dates happen.
-    # Test every combination of them being absent.
-    critical_dates = pd.to_datetime([
-        '2014-01-05',
-        '2014-01-10',
-        '2014-01-15',
-        '2014-01-20',
-    ])
-    for to_drop in map(list, powerset(critical_dates)):
-        # Have to yield tuples.
-        yield (all_dates.drop(to_drop),)
-
-    # Also test with the trading calendar.
-    yield (trading_days[trading_days.slice_indexer(start, stop)],)
 
 
 class EarningsCalendarLoaderTestCase(TestCase):
@@ -99,22 +57,22 @@ class EarningsCalendarLoaderTestCase(TestCase):
 
         cls.earnings_dates = {
             # K1--K2--E1--E2.
-            A: _to_series(
+            A: to_series(
                 knowledge_dates=['2014-01-05', '2014-01-10'],
                 earning_dates=['2014-01-15', '2014-01-20'],
             ),
             # K1--K2--E2--E1.
-            B: _to_series(
+            B: to_series(
                 knowledge_dates=['2014-01-05', '2014-01-10'],
                 earning_dates=['2014-01-20', '2014-01-15']
             ),
             # K1--E1--K2--E2.
-            C: _to_series(
+            C: to_series(
                 knowledge_dates=['2014-01-05', '2014-01-15'],
                 earning_dates=['2014-01-10', '2014-01-20']
             ),
             # K1 == K2.
-            D: _to_series(
+            D: to_series(
                 knowledge_dates=['2014-01-05'] * 2,
                 earning_dates=['2014-01-10', '2014-01-15'],
             ),
@@ -294,7 +252,16 @@ class EarningsCalendarLoaderTestCase(TestCase):
             index=announcement_dates.index,
         )
 
-    @parameterized.expand(gen_calendars())
+    @parameterized.expand(gen_calendars(
+        '2014-01-01',
+        '2014-01-31',
+        critical_dates=pd.to_datetime([
+            '2014-01-05',
+            '2014-01-10',
+            '2014-01-15',
+            '2014-01-20',
+        ]),
+    ))
     def test_compute_earnings(self, dates):
 
         (
