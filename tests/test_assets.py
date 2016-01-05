@@ -280,7 +280,8 @@ class TestFuture(TestCase):
             notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
             expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
             auto_close_date=pd.Timestamp('2014-01-18', tz='UTC'),
-            contract_multiplier=500
+            tick_size=.01,
+            multiplier=500
         )
         cls.future2 = Future(
             0,
@@ -311,7 +312,8 @@ class TestFuture(TestCase):
                         in reprd)
         self.assertTrue("auto_close_date=Timestamp('2014-01-18 00:00:00+0000'"
                         in reprd)
-        self.assertTrue("contract_multiplier=500" in reprd)
+        self.assertTrue("tick_size=0.01" in reprd)
+        self.assertTrue("multiplier=500" in reprd)
 
     def test_reduce(self):
         reduced = self.future.__reduce__()
@@ -323,7 +325,8 @@ class TestFuture(TestCase):
         self.assertTrue('notice_date' in dictd)
         self.assertTrue('expiration_date' in dictd)
         self.assertTrue('auto_close_date' in dictd)
-        self.assertTrue('contract_multiplier' in dictd)
+        self.assertTrue('tick_size' in dictd)
+        self.assertTrue('multiplier' in dictd)
 
         from_dict = Future.from_dict(dictd)
         self.assertTrue(isinstance(from_dict, Future))

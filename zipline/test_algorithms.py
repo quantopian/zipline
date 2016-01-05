@@ -343,7 +343,7 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
 
         multiplier = 2.
         if isinstance(self.sid(0), Future):
-            multiplier *= self.sid(0).contract_multiplier
+            multiplier *= self.sid(0).multiplier
 
         self.order_value(self.sid(0), data[0].price * multiplier)
 
@@ -391,7 +391,7 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
         if isinstance(self.sid(0), Future):
             self.target_shares += np.floor(
                 (.001 * self.portfolio.portfolio_value) /
-                (data[0].price * self.sid(0).contract_multiplier)
+                (data[0].price * self.sid(0).multiplier)
             )
 
 
@@ -439,7 +439,7 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
             self.target_shares = np.round(20 / data[0].price)
         if isinstance(self.sid(0), Future):
             self.target_shares = np.round(
-                20 / (data[0].price * self.sid(0).contract_multiplier))
+                20 / (data[0].price * self.sid(0).multiplier))
 
 
 class FutureFlipAlgo(TestAlgorithm):

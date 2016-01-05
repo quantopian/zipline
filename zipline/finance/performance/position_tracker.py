@@ -156,8 +156,7 @@ class PositionTracker(object):
                 self._position_exposure_multipliers[sid] = 1
             if isinstance(asset, Future):
                 self._position_value_multipliers[sid] = 0
-                self._position_exposure_multipliers[sid] = \
-                    asset.contract_multiplier
+                self._position_exposure_multipliers[sid] = asset.multiplier
                 # Futures auto-close timing is controlled by the Future's
                 # auto_close_date property
                 self._insert_auto_close_position_date(
