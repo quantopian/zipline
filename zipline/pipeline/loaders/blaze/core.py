@@ -154,7 +154,7 @@ from toolz import (
     memoize,
 )
 import toolz.curried.operator as op
-from six import with_metaclass, PY2, itervalues
+from six import with_metaclass, PY2, itervalues, iteritems
 
 
 from zipline.pipeline.data.dataset import DataSet, Column
@@ -903,3 +903,86 @@ class BlazeLoader(dict):
             )
 
 global_loader = BlazeLoader.global_instance()
+
+
+def bind_expression_to_resources(expr, resources):
+    """
+    Bind a Blaze expression to resources.
+
+    Parameters
+    ----------
+    expr : bz.Expr
+        The expression to which we want to bind resources.
+    resources : dict[bz.Symbol -> any]
+        Mapping from the atomic terms of ``expr`` to actual data resources.
+
+    Returns
+    -------
+    bound_expr : bz.Expr
+        ``expr`` with bound resources.
+    """
+    # bind the resources into the expression
+    if resources is None:
+        resources = {}
+
+    # _subs stands for substitute.  It's not actually private, blaze just
+    # prefixes symbol-manipulation methods with underscores to prevent
+    # collisions with data column names.
+    return expr._subs({
+        k: bz.Data(v, dshape=k.dshape) for k, v in iteritems(resources)
+    })
+
+
+def ffill_query_in_range(expr,
+                         lower,
+                         upper,
+                         odo_kwargs=None,
+                         ts_field=TS_FIELD_NAME,
+                         sid_field=SID_FIELD_NAME):
+    """Query a blaze expression in a given time range properly forward filling
+    from values that fall before the lower date.
+
+    Parameters
+    ----------
+    expr : Expr
+        Bound blaze expression.
+    lower : datetime
+        The lower date to query for.
+    upper : datetime
+        The upper date to query for.
+    odo_kwargs : dict, optional
+        The extra keyword arguments to pass to ``odo``.
+    ts_field : str, optional
+        The name of the timestamp field in the given blaze expression.
+    sid_field : str, optional
+        The name of the sid field in the given blaze expression.
+
+    Returns
+    -------
+    raw : pd.DataFrame
+        A strict dataframe for the data in the given date range. This may
+        start before the requested start date if a value is needed to ffill.
+    """
+    odo_kwargs = odo_kwargs or {}
+    filtered = expr[expr[ts_field] <= lower]
+    computed_lower = odo(
+        bz.by(
+            filtered[sid_field],
+            timestamp=filtered[ts_field].max(),
+        ).timestamp.min(),
+        pd.Timestamp,
+        **odo_kwargs
+    )
+    if pd.isnull(computed_lower):
+        # If there is no lower date, just query for data in the date
+        # range. It must all be null anyways.
+        computed_lower = lower
+
+    return odo(
+        expr[
+            (expr[ts_field] >= computed_lower) &
+            (expr[ts_field] <= upper)
+        ],
+        pd.DataFrame,
+        **odo_kwargs
+    )
