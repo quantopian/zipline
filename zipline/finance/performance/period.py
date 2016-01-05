@@ -126,6 +126,10 @@ def calc_period_stats(pos_stats, ending_cash):
         net_leverage=net_leverage)
 
 
+def calc_payout(contract_multiplier, amount, old_price, price):
+    return (price - old_price) * contract_multiplier * amount
+
+
 class PerformancePeriod(object):
 
     def __init__(
@@ -229,15 +233,12 @@ class PerformancePeriod(object):
         payouts = []
         for asset, old_price in iteritems(self._payout_last_sale_prices):
             pos = positions[asset]
-            price = pos.last_sale_price
-
-            payout = (
-                (price - old_price)
-                *
-                asset.contract_multiplier
-                *
-                pos.amount
-            )
+            amount = pos.amount
+            payout = calc_payout(
+                asset.contract_multiplier,
+                amount,
+                old_price,
+                pos.last_sale_price)
             payouts.append(payout)
 
         return sum(payouts)
@@ -283,10 +284,11 @@ class PerformancePeriod(object):
         if isinstance(asset, Future):
             try:
                 old_price = self._payout_last_sale_prices[asset]
-                amount = self.position_tracker.positions[asset].amount
+                pos = self.position_tracker.positions[asset]
+                amount = pos.amount
                 price = txn.price
-                cash_adj = (price - old_price) * asset.contract_multiplier * \
-                    amount
+                cash_adj = calc_payout(
+                    asset.contract_multiplier, amount, old_price, price)
                 self.adjust_cash(cash_adj)
                 if amount + txn.amount == 0:
                     del self._payout_last_sale_prices[asset]
