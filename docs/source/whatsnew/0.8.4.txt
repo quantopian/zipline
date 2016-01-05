@@ -99,6 +99,9 @@ Bug Fixes
   :class:`~zipline.errors.SetSlippagePostInit` and
   :class:`~zipline.errors.SetCommissionPostInit` (:issue:`923`).
 
+* Fixed an issue in the CLI that would cause assets to be added twice.
+  This would map the same symbol to two different sids (:issue:`942`).
+
 
 Performance
 ~~~~~~~~~~~
