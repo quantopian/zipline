@@ -15,28 +15,8 @@
 from __future__ import division
 
 from copy import copy
-from functools import partial
-import math
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.utils.serialization_utils import VERSION_LABEL
-
-
-def transact_stub(slippage, commission, event, open_orders):
-    """
-    This is intended to be wrapped in a partial, so that the
-    slippage and commission models can be enclosed.
-    """
-    for order, transaction in slippage(event, open_orders):
-        if transaction and transaction.amount != 0:
-            direction = math.copysign(1, transaction.amount)
-            per_share, total_commission = commission.calculate(transaction)
-            transaction.price += per_share * direction
-            transaction.commission = total_commission
-        yield order, transaction
-
-
-def transact_partial(slippage, commission):
-    return partial(transact_stub, slippage, commission)
 
 
 class Transaction(object):
