@@ -18,7 +18,7 @@ requirements:
     - python
     - setuptools
     - cython ==0.22.1
-    - numpy ==1.9.2
+    - numpy
   run:
     - python
     {% for req in data.get('install_requires', []) -%}
