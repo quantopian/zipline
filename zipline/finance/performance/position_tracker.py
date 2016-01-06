@@ -131,7 +131,6 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
-        self._position_payout_multipliers = OrderedDict()
         self._unpaid_dividends = pd.DataFrame(
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
@@ -145,7 +144,6 @@ class PositionTracker(object):
         try:
             self._position_value_multipliers[sid]
             self._position_exposure_multipliers[sid]
-            self._position_payout_multipliers[sid]
         except KeyError:
             # Check if there is an AssetFinder
             if self.asset_finder is None:
@@ -156,12 +154,9 @@ class PositionTracker(object):
             if isinstance(asset, Equity):
                 self._position_value_multipliers[sid] = 1
                 self._position_exposure_multipliers[sid] = 1
-                self._position_payout_multipliers[sid] = 0
             if isinstance(asset, Future):
                 self._position_value_multipliers[sid] = 0
                 self._position_exposure_multipliers[sid] = \
-                    asset.contract_multiplier
-                self._position_payout_multipliers[sid] = \
                     asset.contract_multiplier
                 # Futures auto-close timing is controlled by the Future's
                 # auto_close_date property
@@ -234,13 +229,8 @@ class PositionTracker(object):
             return 0
 
         pos = self.positions[sid]
-        old_price = pos.last_sale_price
         pos.last_sale_date = event.dt
         pos.last_sale_price = price
-
-        # Calculate cash adjustment on assets with multipliers
-        return ((price - old_price) * self._position_payout_multipliers[sid]
-                * pos.amount)
 
     def update_positions(self, positions):
         # update positions in batch
@@ -483,7 +473,6 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
-        self._position_payout_multipliers = OrderedDict()
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])
