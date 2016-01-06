@@ -19,7 +19,7 @@ from nose_parameterized import parameterized
 from six.moves import range
 from testfixtures import TempDirectory
 from textwrap import dedent
-from unittest import TestCase
+from unittest import TestCase, skip
 
 import numpy as np
 import pandas as pd
@@ -1832,6 +1832,7 @@ class TestClosePosAlgo(TestCase):
     def tearDownClass(cls):
         cls.tempdir.cleanup()
 
+    @skip
     def test_auto_close_future(self):
         self.env.write_data(futures_data={
             1: {
