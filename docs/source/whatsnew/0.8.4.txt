@@ -126,6 +126,9 @@ Build
 * Use ``versioneer`` to manage the project ``__version__`` and setup.py version
   (:issue:`829`).
 * Fixed coveralls integration on travis build (:issue:`840`).
+* Fixed conda build, which now uses git source as its source and reads
+  requirements using setup.py, instead of copying them and letting them get out
+  of sync (:issue:`937`).
 
 Documentation
 ~~~~~~~~~~~~~
