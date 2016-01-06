@@ -86,7 +86,7 @@ def _normalize_array(data):
     else:
         raise TypeError(
             "Don't know how to construct AdjustedArray "
-            "on data of type %s." % dtype
+            "on data of type %s." % data_dtype
         )
 
 
