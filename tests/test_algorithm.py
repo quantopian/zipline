@@ -1916,6 +1916,7 @@ class TestFutureFlip(TestCase):
     def tearDownClass(cls):
         cls.tempdir.cleanup()
 
+    @skip
     def test_flip_algo(self):
         metadata = {1: {'symbol': 'TEST',
                         'start_date': self.sim_params.trading_days[0],
