@@ -252,8 +252,8 @@ class PerformancePeriod(object):
         payout = self._get_payout_total(pt.positions)
 
         total_at_start = self.starting_cash + self.starting_value
-        self.ending_cash = self.starting_cash + self.period_cash_flow
-        total_at_end = self.ending_cash + self.ending_value + payout
+        self.ending_cash = self.starting_cash + self.period_cash_flow + payout
+        total_at_end = self.ending_cash + self.ending_value
 
         self.pnl = total_at_end - total_at_start
         if total_at_start != 0:
