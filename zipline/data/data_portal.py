@@ -773,9 +773,6 @@ class DataPortal(object):
 
         # forward-fill if needed
         if field == "price" and ffill:
-            assets_with_nan_index = np.where(pd.isnull(df.iloc[0, :]))[0]
-            assets_with_leading_nan = assets[assets_with_nan_index]
-
             if frequency == "1m":
                 data_frequency = 'minute'
             elif frequency == "1d":
