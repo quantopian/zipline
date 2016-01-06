@@ -18,7 +18,6 @@ import abc
 
 import math
 
-from collections import namedtuple
 from copy import copy
 
 from six import with_metaclass
@@ -40,8 +39,6 @@ class LiquidityExceeded(Exception):
 
 DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
 
-TradeBar = namedtuple('TradeBar', ('sid', 'dt', 'price', 'volume'))
-
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
     def __init__(self):
@@ -55,7 +52,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
     def process_order(self, trade_bar, order):
         pass
 
-    def simulate(self, current_orders, dt, price, volume):
+    def simulate(self, trade_bar, current_orders):
 
         self._volume_for_bar = 0
 
@@ -64,14 +61,10 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if order.open_amount == 0:
                 continue
 
-            order.check_triggers(price, dt)
+            order.check_triggers(trade_bar.price, trade_bar.dt)
             if not order.triggered:
                 continue
 
-            trade_bar = TradeBar(order.sid,
-                                 dt,
-                                 price,
-                                 volume)
             try:
                 txn = self.process_order(trade_bar, order)
             except LiquidityExceeded:
@@ -81,8 +74,8 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
 
-    def __call__(self, current_orders, dt, price, volume, **kwargs):
-        return self.simulate(current_orders, dt, price, volume, **kwargs)
+    def __call__(self, trade_bar, current_orders, **kwargs):
+        return self.simulate(trade_bar, current_orders, **kwargs)
 
 
 class VolumeShareSlippage(SlippageModel):

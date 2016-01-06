@@ -40,6 +40,7 @@ from zipline.finance.slippage import DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT, \
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.data_portal import DataPortal
+from zipline.protocol import BarData
 
 
 class BlotterTestCase(TestCase):
@@ -161,7 +162,12 @@ class BlotterTestCase(TestCase):
         filled_id = blotter.order(24, 100, MarketOrder())
         filled_order = None
         blotter.current_dt = self.sim_params.trading_days[-1]
-        txns, _ = blotter.get_transactions(self.data_portal)
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.sim_params.trading_days[-1],
+            self.sim_params.data_frequency,
+        )
+        txns, _ = blotter.get_transactions(bar_data)
         for txn in txns:
             filled_order = blotter.orders[txn.order_id]
 
@@ -225,7 +231,12 @@ class BlotterTestCase(TestCase):
 
             filled_order = None
             blotter.current_dt = dt
-            txns, _ = blotter.get_transactions(self.data_portal)
+            bar_data = BarData(
+                self.data_portal,
+                lambda: dt,
+                self.sim_params.data_frequency,
+            )
+            txns, _ = blotter.get_transactions(bar_data)
             for txn in txns:
                 filled_order = blotter.orders[txn.order_id]
 
