@@ -55,6 +55,9 @@ from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION,
     _version_table_schema,
 )
+from zipline.assets.asset_db_migrations import (
+    downgrade
+)
 from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
@@ -64,6 +67,7 @@ from zipline.errors import (
     SidAssignmentError,
     SidsNotFound,
     SymbolNotFound,
+    AssetDBImpossibleDowngrade,
 )
 from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
@@ -1365,3 +1369,30 @@ class TestAssetDBVersioning(TestCase):
 
         # Now that the versions match, this Finder should succeed
         AssetFinder(engine=env.engine)
+
+    def test_downgrade(self):
+        # Attempt to downgrade a current assets db all the way down to v0
+        env = TradingEnvironment(load=noop_load)
+        conn = env.engine.connect()
+        downgrade(env.engine, 0)
+
+        # Verify that the db version is now 0
+        metadata = sa.MetaData(conn)
+        metadata.reflect(bind=env.engine)
+        version_table = metadata.tables['version_info']
+        check_version_info(version_table, 0)
+
+        # Check some of the v1-to-v0 downgrades
+        self.assertTrue('futures_contracts' in metadata.tables)
+        self.assertTrue('version_info' in metadata.tables)
+        self.assertFalse('tick_size' in
+                         metadata.tables['futures_contracts'].columns)
+        self.assertTrue('contract_multiplier' in
+                        metadata.tables['futures_contracts'].columns)
+
+    def test_impossible_downgrade(self):
+        # Attempt to downgrade a current assets db to a
+        # higher-than-current version
+        env = TradingEnvironment(load=noop_load)
+        with self.assertRaises(AssetDBImpossibleDowngrade):
+            downgrade(env.engine, ASSET_DB_VERSION + 5)
