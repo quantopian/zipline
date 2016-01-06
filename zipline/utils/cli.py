@@ -241,7 +241,6 @@ def run_pipeline(print_algo=True, **kwargs):
                                     capital_base=float(kwargs['capital_base']),
                                     algo_filename=kwargs.get('algofile'),
                                     equities_metadata=asset_metadata,
-                                    identifiers=symbols,
                                     start=start,
                                     end=end)
 

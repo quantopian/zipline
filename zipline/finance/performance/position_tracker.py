@@ -136,7 +136,6 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
-        self._position_payout_multipliers = OrderedDict()
         self._unpaid_dividends = {}
         self._unpaid_stock_dividends = {}
         self._positions_store = zp.Positions()
@@ -151,7 +150,6 @@ class PositionTracker(object):
         try:
             self._position_value_multipliers[sid]
             self._position_exposure_multipliers[sid]
-            self._position_payout_multipliers[sid]
         except KeyError:
             # Check if there is an AssetFinder
             if self.asset_finder is None:
@@ -162,12 +160,9 @@ class PositionTracker(object):
             if isinstance(asset, Equity):
                 self._position_value_multipliers[sid] = 1
                 self._position_exposure_multipliers[sid] = 1
-                self._position_payout_multipliers[sid] = 0
             if isinstance(asset, Future):
                 self._position_value_multipliers[sid] = 0
                 self._position_exposure_multipliers[sid] = \
-                    asset.contract_multiplier
-                self._position_payout_multipliers[sid] = \
                     asset.contract_multiplier
                 # Futures auto-close timing is controlled by the Future's
                 # auto_close_date property
@@ -499,7 +494,6 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
-        self._position_payout_multipliers = OrderedDict()
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])

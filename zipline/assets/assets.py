@@ -37,11 +37,13 @@ from zipline.assets import (
     Asset, Equity, Future,
 )
 from zipline.assets.asset_writer import (
-    split_delimited_symbol,
     check_version_info,
-    ASSET_DB_VERSION,
+    split_delimited_symbol,
     asset_db_table_names,
-    SQLITE_MAX_VARIABLE_NUMBER
+    SQLITE_MAX_VARIABLE_NUMBER,
+)
+from zipline.assets.asset_db_schema import (
+    ASSET_DB_VERSION
 )
 from zipline.utils.control_flow import invert
 

@@ -256,9 +256,9 @@ class PerformanceTracker(object):
 
     def process_transaction(self, transaction):
         self.txn_count += 1
-        self.position_tracker.execute_transaction(transaction)
         self.cumulative_performance.handle_execution(transaction)
         self.todays_performance.handle_execution(transaction)
+        self.position_tracker.execute_transaction(transaction)
 
     def handle_splits(self, splits):
         leftover_cash = self.position_tracker.handle_splits(splits)
