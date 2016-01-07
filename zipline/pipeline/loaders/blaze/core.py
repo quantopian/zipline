@@ -127,6 +127,7 @@ from __future__ import division, absolute_import
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
 from copy import copy
+from datetime import time
 from functools import partial
 from itertools import count
 import warnings
@@ -144,6 +145,7 @@ from datashape import (
 )
 from odo import odo
 import pandas as pd
+from six import with_metaclass, PY2, itervalues, iteritems
 from toolz import (
     complement,
     compose,
@@ -154,15 +156,19 @@ from toolz import (
     memoize,
 )
 import toolz.curried.operator as op
-from six import with_metaclass, PY2, itervalues, iteritems
 
 
 from zipline.pipeline.data.dataset import DataSet, Column
+from zipline.pipeline.loaders.utils import (
+    normalize_data_query_time,
+    normalize_timestamp_to_query_time,
+)
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum
-from zipline.utils.input_validation import expect_element
+from zipline.utils.input_validation import expect_element, ensure_timezone
 from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.preprocess import preprocess
 
 
 AD_FIELD_NAME = 'asof_date'
@@ -764,8 +770,25 @@ def adjustments_from_deltas_with_sids(dates,
 
 
 class BlazeLoader(dict):
-    def __init__(self, colmap=None):
+    """A PipelineLoader for datasets constructed with ``from_blaze``.
+
+    Parameters
+    ----------
+    colmap : mapping[BoundColumn -> tuple[Expr, Expr, any]], optional
+        The initial column mapping to use.
+    data_query_time : time, optional
+        The time to use for the data query cutoff.
+    data_query_tz : tzinfo or str
+        The timezeone to use for the data query cutoff.
+    """
+    @preprocess(data_query_tz=ensure_timezone)
+    def __init__(self,
+                 colmap=None,
+                 data_query_time=time(0),
+                 data_query_tz='utc'):
         self.update(colmap or {})
+        self._data_query_time = data_query_time
+        self._data_query_tz = data_query_tz
 
     @classmethod
     @memoize(cache=WeakKeyDictionary())
@@ -802,6 +825,19 @@ class BlazeLoader(dict):
             [SID_FIELD_NAME] if have_sids else []
         )
 
+        data_query_time = self._data_query_time
+        data_query_tz = self._data_query_tz
+        lower_dt = normalize_data_query_time(
+            dates[0],
+            data_query_time,
+            data_query_tz,
+        )
+        upper_dt = normalize_data_query_time(
+            dates[-1],
+            data_query_time,
+            data_query_tz,
+        )
+
         def where(e):
             """Create the query to run against the resources.
 
@@ -819,8 +855,8 @@ class BlazeLoader(dict):
             # Hack to get the lower bound to query:
             # This must be strictly executed because the data for `ts` will
             # be removed from scope too early otherwise.
-            lower = odo(ts[ts <= dates[0]].max(), pd.Timestamp)
-            selection = ts <= dates[-1]
+            lower = odo(ts[ts <= lower_dt].max(), pd.Timestamp)
+            selection = ts <= upper_dt
             if have_sids:
                 selection &= e[SID_FIELD_NAME].isin(assets)
             if lower is not pd.NaT:
@@ -830,10 +866,31 @@ class BlazeLoader(dict):
 
         extra_kwargs = {'d': resources} if resources else {}
         materialized_expr = odo(where(expr), pd.DataFrame, **extra_kwargs)
+        materialized_expr[TS_FIELD_NAME] = materialized_expr[
+            TS_FIELD_NAME
+        ].astype('datetime64[ns]')
         materialized_deltas = (
             odo(where(deltas), pd.DataFrame, **extra_kwargs)
             if deltas is not None else
             pd.DataFrame(columns=query_fields)
+        )
+        materialized_deltas[TS_FIELD_NAME] = materialized_deltas[
+            TS_FIELD_NAME
+        ].astype('datetime64[ns]')
+
+        normalize_timestamp_to_query_time(
+            materialized_expr,
+            data_query_time,
+            data_query_tz,
+            inplace=True,
+            ts_field=TS_FIELD_NAME,
+        )
+        normalize_timestamp_to_query_time(
+            materialized_deltas,
+            data_query_time,
+            data_query_tz,
+            inplace=True,
+            ts_field=TS_FIELD_NAME,
         )
 
         # Inline the deltas that changed our most recently known value.
@@ -978,7 +1035,7 @@ def ffill_query_in_range(expr,
         # range. It must all be null anyways.
         computed_lower = lower
 
-    return odo(
+    raw = odo(
         expr[
             (expr[ts_field] >= computed_lower) &
             (expr[ts_field] <= upper)
@@ -986,3 +1043,5 @@ def ffill_query_in_range(expr,
         pd.DataFrame,
         **odo_kwargs
     )
+    raw.loc[:, ts_field] = raw.loc[:, ts_field].astype('datetime64[ns]')
+    return raw

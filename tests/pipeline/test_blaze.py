@@ -4,7 +4,7 @@ Tests for the blaze interface to the pipeline api.
 from __future__ import division
 
 from collections import OrderedDict
-from datetime import timedelta
+from datetime import timedelta, time
 from unittest import TestCase
 import warnings
 
@@ -317,6 +317,43 @@ class BlazeToPipelineTestCase(TestCase):
         expected = self.df.drop('asof_date', axis=1).set_index(
             ['timestamp', 'sid'],
         )
+        expected.index = pd.MultiIndex.from_product((
+            expected.index.levels[0],
+            finder.retrieve_all(expected.index.levels[1]),
+        ))
+        assert_frame_equal(result, expected, check_dtype=False)
+
+    def test_custom_query_time_tz(self):
+        df = self.df.copy()
+        df['timestamp'] = (
+            pd.DatetimeIndex(df['timestamp'], tz='EST') +
+            timedelta(hours=8, minutes=45)
+        ).tz_convert('utc')
+        df.ix[3:5, 'timestamp'] = pd.Timestamp('2014-01-01 13:46', tz='utc')
+        expr = bz.Data(df, name='expr', dshape=self.dshape)
+        loader = BlazeLoader(data_query_time=time(8, 45), data_query_tz='EST')
+        ds = from_blaze(
+            expr,
+            loader=loader,
+            no_deltas_rule=no_deltas_rules.ignore,
+        )
+        p = Pipeline()
+        p.add(ds.value.latest, 'value')
+        dates = self.dates
+
+        with tmp_asset_finder() as finder:
+            result = SimplePipelineEngine(
+                loader,
+                dates,
+                finder,
+            ).run_pipeline(p, dates[0], dates[-1])
+
+        expected = df.drop('asof_date', axis=1)
+        expected['timestamp'] = expected['timestamp'].dt.normalize().astype(
+            'datetime64[ns]',
+        )
+        expected.ix[3:5, 'timestamp'] += timedelta(days=1)
+        expected.set_index(['timestamp', 'sid'], inplace=True)
         expected.index = pd.MultiIndex.from_product((
             expected.index.levels[0],
             finder.retrieve_all(expected.index.levels[1]),

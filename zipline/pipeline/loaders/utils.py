@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pandas as pd
 from six import iteritems
@@ -93,3 +95,78 @@ def previous_date_frame(date_index, events_by_sid):
     frame = pd.DataFrame(out, index=date_index, columns=sids)
     frame.ffill(inplace=True)
     return frame
+
+
+def normalize_data_query_time(dt, time, tz):
+    """Apply the correct time and timezone to a date.
+
+    Parameters
+    ----------
+    dt : pd.Timestamp
+        The original datetime that represents the date.
+    time : datetime.time
+        The time of day to use as the cutoff point for new data. Data points
+        that you learn about after this time will become available to your
+        algorithm on the next trading day.
+    tz : tzinfo
+        The timezone to normalize your dates to before comparing against
+        `time`.
+
+    Returns
+    -------
+    query_dt : pd.Timestamp
+        The timestamp with the correct time and date in utc.
+    """
+    # merge the correct date with the time in the given timezone then convert
+    # back to utc
+    return pd.Timestamp(
+        datetime.datetime.combine(dt.date(), time),
+        tz=tz,
+    ).tz_convert('utc')
+
+
+def normalize_timestamp_to_query_time(df,
+                                      time,
+                                      tz,
+                                      inplace=False,
+                                      ts_field='timestamp'):
+    """Update the timestamp field of a dataframe to normalize dates around
+    some data query time/timezone.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe to update. This needs a column named ``ts_field``.
+    time : datetime.time
+        The time of day to use as the cutoff point for new data. Data points
+        that you learn about after this time will become available to your
+        algorithm on the next trading day.
+    tz : tzinfo
+        The timezone to normalize your dates to before comparing against
+        `time`.
+    inplace : bool, optional
+        Update the dataframe in place.
+    ts_field : str, optional
+        The name of the timestamp field in ``df``.
+
+    Returns
+    -------
+    df : pd.DataFrame
+        The dataframe with the timestamp field normalized. If ``inplace`` is
+        true, then this will be the same object as ``df`` otherwise this will
+        be a copy.
+    """
+    if not inplace:
+        # don't mutate the dataframe in place
+        df = df.copy()
+
+    dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
+    dtidx_local_time = dtidx.tz_convert(tz)
+    to_roll_forward = dtidx_local_time.time > time
+    # for all of the times that are greater than our query time add 1
+    # day and truncate to the date
+    df.loc[to_roll_forward, ts_field] = (
+        dtidx_local_time[to_roll_forward] + datetime.timedelta(days=1)
+    ).normalize().tz_localize(None).tz_localize('utc')  # cast back to utc
+    df.loc[~to_roll_forward, ts_field] = dtidx[~to_roll_forward].normalize()
+    return df

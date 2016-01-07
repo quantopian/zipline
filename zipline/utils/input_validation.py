@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import tzinfo
 from functools import partial
 from operator import attrgetter
 
 from numpy import dtype
+from pytz import timezone
 from six import iteritems, string_types, PY3
 from toolz import valmap, complement, compose
 import toolz.curried.operator as op
@@ -59,6 +61,33 @@ def ensure_dtype(func, argname, arg):
                 arg=arg,
             ),
         )
+
+
+def ensure_timezone(func, argname, arg):
+    """Argument preprocessor that converts the input into a tzinfo object.
+
+    Usage
+    -----
+    >>> from zipline.utils.preprocess import preprocess
+    >>> @preprocess(tz=ensure_timezone)
+    ... def foo(tz):
+    ...     return tz
+    >>> foo('utc')
+    <UTC>
+    """
+    if isinstance(arg, tzinfo):
+        return arg
+    if isinstance(arg, string_types):
+        return timezone(arg)
+
+    raise TypeError(
+        "{func}() couldn't convert argument "
+        "{argname}={arg!r} to a timezone.".format(
+            func=_qualified_name(func),
+            argname=argname,
+            arg=arg,
+        ),
+    )
 
 
 def expect_dtypes(*_pos, **named):
