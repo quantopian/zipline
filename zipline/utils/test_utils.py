@@ -26,6 +26,7 @@ from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
+from zipline.utils.tradingcalendar import trading_days
 
 
 EPOCH = pd.Timestamp(0, tz='UTC')
@@ -630,3 +631,36 @@ def powerset(values):
     Return the power set (i.e., the set of all subsets) of entries in `values`.
     """
     return concat(combinations(values, i) for i in range(len(values) + 1))
+
+
+def to_series(knowledge_dates, earning_dates):
+    """
+    Helper for converting a dict of strings to a Series of datetimes.
+
+    This is just for making the test cases more readable.
+    """
+    return pd.Series(
+        index=pd.to_datetime(knowledge_dates),
+        data=pd.to_datetime(earning_dates),
+    )
+
+
+def num_days_in_range(dates, start, end):
+    """
+    Return the number of days in `dates` between start and end, inclusive.
+    """
+    start_idx, stop_idx = dates.slice_locs(start, end)
+    return stop_idx - start_idx
+
+
+def gen_calendars(start, stop, critical_dates):
+    """
+    Generate calendars to use as inputs.
+    """
+    all_dates = pd.date_range(start, stop, tz='utc')
+    for to_drop in map(list, powerset(critical_dates)):
+        # Have to yield tuples.
+        yield (all_dates.drop(to_drop),)
+
+    # Also test with the trading calendar.
+    yield (trading_days[trading_days.slice_indexer(start, stop)],)

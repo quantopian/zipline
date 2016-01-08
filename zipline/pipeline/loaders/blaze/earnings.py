@@ -1,45 +1,19 @@
-import blaze as bz
 from datashape import istabular
-from odo import odo
 import pandas as pd
-from six import iteritems
 from toolz import valmap
 
-from .core import TS_FIELD_NAME, SID_FIELD_NAME
+from .core import (
+    TS_FIELD_NAME,
+    SID_FIELD_NAME,
+    bind_expression_to_resources,
+    ffill_query_in_range,
+)
 from zipline.pipeline.data import EarningsCalendar
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
 
 
 ANNOUNCEMENT_FIELD_NAME = 'announcement_date'
-
-
-def bind_expression_to_resources(expr, resources):
-    """
-    Bind a Blaze expression to resources.
-
-    Parameters
-    ----------
-    expr : bz.Expr
-        The expression to which we want to bind resources.
-    resources : dict[bz.Symbol -> any]
-        Mapping from the atomic terms of ``expr`` to actual data resources.
-
-    Returns
-    -------
-    bound_expr : bz.Expr
-        ``expr`` with bound resources.
-    """
-    # bind the resources into the expression
-    if resources is None:
-        resources = {}
-
-    # _subs stands for substitute.  It's not actually private, blaze just
-    # prefixes symbol-manipulation methods with underscores to prevent
-    # collisions with data column names.
-    return expr._subs({
-        k: bz.Data(v, dshape=k.dshape) for k, v in iteritems(resources)
-    })
 
 
 class BlazeEarningsCalendarLoader(PipelineLoader):
@@ -61,8 +35,8 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
 
        Dim * {{
            {SID_FIELD_NAME}: int64,
-           {TS_FIELD_NAME}: datetime64,
-           {ANNOUNCEMENT_FIELD_NAME}: datetime64,
+           {TS_FIELD_NAME}: datetime,
+           {ANNOUNCEMENT_FIELD_NAME}: ?datetime,
        }}
 
     Where each row of the table is a record including the sid to identify the
@@ -87,7 +61,6 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
     def __init__(self,
                  expr,
                  resources=None,
-                 compute_kwargs=None,
                  odo_kwargs=None,
                  dataset=EarningsCalendar):
         dshape = expr.dshape
@@ -106,33 +79,15 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         self._dataset = dataset
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        expr = self._expr
-        filtered = expr[expr[TS_FIELD_NAME] <= dates[0]]
-        lower = odo(
-            bz.by(
-                filtered[SID_FIELD_NAME],
-                timestamp=filtered[TS_FIELD_NAME].max(),
-            ).timestamp.min(),
-            pd.Timestamp,
-            **self._odo_kwargs
+        raw = ffill_query_in_range(
+            self._expr,
+            dates[0],
+            dates[-1],
+            self._odo_kwargs,
         )
-        if pd.isnull(lower):
-            # If there is no lower date, just query for data in the date
-            # range. It must all be null anyways.
-            lower = dates[0]
-
-        raw = odo(
-            expr[
-                (expr[TS_FIELD_NAME] >= lower) &
-                (expr[TS_FIELD_NAME] <= dates[-1])
-            ],
-            pd.DataFrame,
-            **self._odo_kwargs
-        )
-
         sids = raw.loc[:, SID_FIELD_NAME]
         raw.drop(
-            sids[~(sids.isin(assets) | sids.notnull())].index,
+            sids[~sids.isin(assets)].index,
             inplace=True
         )
 
