@@ -78,10 +78,14 @@ class AlgorithmSimulator(object):
                 record.extra['algo_dt'] = self.simulation_dt
         self.processor = Processor(inject_algo_dt)
 
+    def get_simulation_dt(self):
+        return self.simulation_dt
+
     def _create_bar_data(self):
         return BarData(
             data_portal=self.data_portal,
-            simulator=self
+            simulation_dt_func=self.get_simulation_dt,
+            data_frequency=self.sim_params.data_frequency,
         )
 
     def transform(self):
@@ -114,7 +118,7 @@ class AlgorithmSimulator(object):
             # handle any transactions and commissions coming out new orders
             # placed in the last bar
             new_transactions, new_commissions = \
-                blotter.get_transactions(data_portal)
+                blotter.get_transactions(current_data)
 
             for transaction in new_transactions:
                 perf_tracker.process_transaction(transaction)

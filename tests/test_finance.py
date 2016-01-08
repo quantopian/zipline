@@ -49,6 +49,7 @@ from zipline.data.us_equity_minutes import (
 )
 from zipline.data.data_portal import DataPortal
 from zipline.finance.slippage import FixedSlippage
+from zipline.protocol import BarData
 
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 
@@ -317,7 +318,12 @@ class FinanceTestCase(TestCase):
                             order_date = order_date + timedelta(days=1)
                             order_date = order_date.replace(hour=14, minute=30)
                 else:
-                    txns, _ = blotter.get_transactions(data_portal)
+                    bar_data = BarData(
+                        data_portal,
+                        lambda: tick,
+                        sim_params.data_frequency
+                    )
+                    txns, _ = blotter.get_transactions(bar_data)
                     for txn in txns:
                         tracker.process_transaction(txn)
                         transactions.append(txn)

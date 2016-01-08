@@ -196,7 +196,7 @@ class Blotter(object):
             for order in orders_to_modify:
                 order.handle_split(split[1])
 
-    def get_transactions(self, data_portal):
+    def get_transactions(self, bar_data):
         """
         Creates a list of transactions based on the current open orders,
         slippage model, and commission model.
@@ -230,14 +230,9 @@ class Blotter(object):
         transactions = []
 
         for asset, asset_orders in iteritems(self.open_orders):
-            price = data_portal.get_spot_value(
-                asset, 'close', self.current_dt, self.data_frequency)
+            trade_bar = bar_data[asset]
 
-            volume = data_portal.get_spot_value(
-                asset, 'volume', self.current_dt, self.data_frequency)
-
-            for order, txn in self.slippage_func(asset_orders, self.current_dt,
-                                                 price, volume):
+            for order, txn in self.slippage_func(trade_bar, asset_orders):
                 direction = math.copysign(1, txn.amount)
                 per_share, total_commission = self.commission.calculate(txn)
                 txn.price += per_share * direction

@@ -41,7 +41,6 @@ import zipline.utils.math_utils as zp_math
 
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
-from zipline.finance.slippage import TradeBar
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.loaders.synthetic import NullAdjustmentReader
 from zipline.utils.factory import create_simulation_parameters
@@ -121,13 +120,12 @@ def check_account(account,
                                account['net_liquidation'], rtol=1e-3)
 
 
-def create_txn(sid, dt, price, amount):
+def create_txn(trade_bar, price, amount):
     """
     Create a fake transaction to be filled and processed prior to the execution
     of a given trade event.
     """
-    mock_order = Order(dt, sid, amount, id=None)
-    trade_bar = TradeBar(sid, dt, price, None)
+    mock_order = Order(trade_bar.dt, trade_bar.sid, amount, id=None)
     return create_transaction(trade_bar, mock_order, price, amount)
 
 
@@ -291,7 +289,7 @@ class TestSplitPerformance(unittest.TestCase):
 
         # set up a long position in sid 1
         # 100 shares at $20 apiece = $2000 position
-        txns = [create_txn(events[0].sid, events[0].dt, 20, 100)]
+        txns = [create_txn(events[0], 20, 100)]
 
         # set up a split with ratio 3 occurring at the start of the second
         # day.
@@ -406,7 +404,7 @@ class TestCommissionEvents(unittest.TestCase):
 
         # Create 3 transactions:  50, 100, 150 shares traded @ $20
         first_trade = trade_events[0]
-        transactions = [create_txn(first_trade.sid, first_trade.dt, 20, i)
+        transactions = [create_txn(first_trade, 20, i)
                         for i in [50, 100, 150]]
 
         # Create commission models and validate that produce expected
@@ -430,7 +428,7 @@ class TestCommissionEvents(unittest.TestCase):
         commissions[cash_adj_dt] = [cash_adjustment]
 
         # Insert a purchase order.
-        txns = [create_txn(1, cash_adj_dt, 20, 1)]
+        txns = [create_txn(trade_events[0], 20, 1)]
         results = calculate_results(self.sim_params,
                                     self.env,
                                     self.tempdir,
@@ -487,8 +485,8 @@ class TestCommissionEvents(unittest.TestCase):
         # Buy and sell the same sid so that we have a zero position by the
         # time of events[3].
         txns = [
-            create_txn(events[0].sid, events[0].dt, 20, 1),
-            create_txn(events[1].sid, events[1].dt, 20, -1),
+            create_txn(events[0], 20, 1),
+            create_txn(events[1], 20, -1),
         ]
 
         # Add a cash adjustment at the time of event[3].
@@ -616,7 +614,7 @@ class TestDividendPerformance(unittest.TestCase):
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         # Simulate a transaction being filled prior to the ex_date.
-        txns = [create_txn(events[0].sid, events[0].dt, 10.0, 100)]
+        txns = [create_txn(events[0], 10.0, 100)]
         results = calculate_results(
             self.sim_params,
             self.env,
@@ -692,7 +690,7 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends, stock_dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        txns = [create_txn(events[1][0].sid, events[1][0].dt, 10.0, 100)]
+        txns = [create_txn(events[1][0], 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
@@ -758,7 +756,7 @@ class TestDividendPerformance(unittest.TestCase):
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         # Simulate a transaction being filled on the ex_date.
-        txns = [create_txn(events[1].sid, events[1].dt, 10.0, 100)]
+        txns = [create_txn(events[1], 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
@@ -819,8 +817,8 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        buy_txn = create_txn(events[0].sid, events[0].dt, 10.0, 100)
-        sell_txn = create_txn(events[2].sid, events[2].dt, 10.0, -100)
+        buy_txn = create_txn(events[0], 10.0, 100)
+        sell_txn = create_txn(events[2], 10.0, -100)
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
@@ -882,8 +880,8 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        buy_txn = create_txn(events[1].sid, events[1].dt, 10.0, 100)
-        sell_txn = create_txn(events[2].sid, events[2].dt, 10.0, -100)
+        buy_txn = create_txn(events[1], 10.0, 100)
+        sell_txn = create_txn(events[2], 10.0, -100)
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
@@ -949,7 +947,7 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        txns = [create_txn(events[1].sid, events[1].dt, 10.0, 100)]
+        txns = [create_txn(events[1], 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
@@ -1012,7 +1010,7 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        txns = [create_txn(events[1].sid, events[1].dt, 10.0, -100)]
+        txns = [create_txn(events[1], 10.0, -100)]
 
         results = calculate_results(
             self.sim_params,
@@ -1142,7 +1140,7 @@ class TestDividendPerformance(unittest.TestCase):
         sim_params.update_internal_from_env(self.env)
 
         # Simulate a transaction being filled prior to the ex_date.
-        txns = [create_txn(events[0].sid, events[0].dt, 10.0, 100)]
+        txns = [create_txn(events[0], 10.0, 100)]
         results = calculate_results(
             sim_params,
             self.env,
@@ -1239,8 +1237,8 @@ class TestPositionPerformance(unittest.TestCase):
             env=self.env
         )
 
-        txn1 = create_txn(trades_1[1].sid, trades_1[1].dt, 10.0, 100)
-        txn2 = create_txn(trades_2[1].sid, trades_1[1].dt, 10.0, -100)
+        txn1 = create_txn(trades_1[1], 10.0, 100)
+        txn2 = create_txn(trades_2[1], 10.0, -100)
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
@@ -1340,7 +1338,7 @@ class TestPositionPerformance(unittest.TestCase):
             self.sim_params,
             {1: trades})
 
-        txn = create_txn(trades[1].sid, trades[1].dt, 10.0, 1000)
+        txn = create_txn(trades[1], 10.0, 1000)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1431,7 +1429,7 @@ class TestPositionPerformance(unittest.TestCase):
             self.sim_params,
             {1: trades})
 
-        txn = create_txn(trades[1].sid, trades[1].dt, 10.0, 100)
+        txn = create_txn(trades[1], 10.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1549,7 +1547,7 @@ single short-sale transaction"""
             self.sim_params,
             {1: trades})
 
-        txn = create_txn(trades[1].sid, trades[1].dt, 10.0, -100)
+        txn = create_txn(trades[1], 10.0, -100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(
@@ -1777,12 +1775,11 @@ trade after cover"""
             {1: trades})
 
         short_txn = create_txn(
-            trades[1].sid,
-            trades[1].dt,
+            trades[1],
             10.0,
             -100,
         )
-        cover_txn = create_txn(trades[6].sid, trades[6].dt, 7.0, 100)
+        cover_txn = create_txn(trades[6], 7.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1938,8 +1935,7 @@ shares in position"
         down_tick = trades[-1]
 
         sale_txn = create_txn(
-            down_tick.sid,
-            down_tick.dt,
+            down_tick,
             10.0,
             -100)
 
