@@ -6,85 +6,90 @@ from six.moves import zip
 from zipline.utils.numpy_utils import np_NaT
 
 
-def next_date_frame(dates, announcement_dates):
+def next_date_frame(dates, events_by_sid):
     """
-    Make a DataFrame representing simulated next earnings dates.
+    Make a DataFrame representing the simulated next known date for an event.
 
     Parameters
     ----------
     dates : pd.DatetimeIndex.
         The index of the returned DataFrame.
-    announcement_dates : dict[int -> pd.Series]
-        Dict mapping sids to an index of dates on which earnings were announced
-        for that sid.
-
+    events_by_sid : dict[int -> pd.Series]
+        Dict mapping sids to a series of dates. Each k:v pair of the series
+        represents the date we learned of the event mapping to the date the
+        event will occur.
     Returns
     -------
-    next_earnings: pd.DataFrame
-        A DataFrame representing, for each (label, date) pair, the first entry
-        in `earnings_calendars[label]` on or after `date`.  Entries falling
-        after the last date in a calendar will have `np_NaT` as the result in
-        the output.
+    next_events: pd.DataFrame
+        A DataFrame where each column is a security from `events_by_sid` where
+        the values are the dates of the next known event with the knowledge we
+        had on the date of the index. Entries falling after the last date will
+        have `NaT` as the result in the output.
+
 
     See Also
     --------
-    previous_earnings_date_frame
+    previous_date_frame
     """
     cols = {
-        equity: np.full_like(dates, np_NaT) for equity in announcement_dates
+        equity: np.full_like(dates, np_NaT) for equity in events_by_sid
     }
     raw_dates = dates.values
-    for equity, earnings_dates in iteritems(announcement_dates):
+    for equity, event_dates in iteritems(events_by_sid):
         data = cols[equity]
-        if not earnings_dates.index.is_monotonic_increasing:
-            earnings_dates = earnings_dates.sort_index()
+        if not event_dates.index.is_monotonic_increasing:
+            event_dates = event_dates.sort_index()
 
         # Iterate over the raw Series values, since we're comparing against
         # numpy arrays anyway.
-        iterkv = zip(earnings_dates.index.values, earnings_dates.values)
-        for timestamp, announce_date in iterkv:
-            date_mask = (timestamp <= raw_dates) & (raw_dates <= announce_date)
-            value_mask = (announce_date <= data) | (data == np_NaT)
-            data[date_mask & value_mask] = announce_date
+        iterkv = zip(event_dates.index.values, event_dates.values)
+        for knowledge_date, event_date in iterkv:
+            date_mask = (
+                (knowledge_date <= raw_dates) &
+                (raw_dates <= event_date)
+            )
+            value_mask = (event_date <= data) | (data == np_NaT)
+            data[date_mask & value_mask] = event_date
 
     return pd.DataFrame(index=dates, data=cols)
 
 
-def previous_date_frame(dates, announcement_dates):
+def previous_date_frame(date_index, events_by_sid):
     """
-    Make a DataFrame representing simulated next earnings dates.
+    Make a DataFrame representing simulated next earnings date_index.
 
     Parameters
     ----------
-    dates : DatetimeIndex.
+    date_index : DatetimeIndex.
         The index of the returned DataFrame.
-    announcement_dates : dict[int -> DatetimeIndex]
-        Dict mapping sids to an index of dates on which earnings were announced
-        for that sid.
+    events_by_sid : dict[int -> DatetimeIndex]
+        Dict mapping sids to a series of dates. Each k:v pair of the series
+        represents the date we learned of the event mapping to the date the
+        event will occur.
 
     Returns
     -------
-    prev_earnings: pd.DataFrame
-        A DataFrame representing, for (label, date) pair, the first entry in
-        `announcement_dates[label]` strictly before `date`.  Entries falling
-        before the first date in a calendar will have `NaT` as the result in
-        the output.
+    previous_events: pd.DataFrame
+        A DataFrame where each column is a security from `events_by_sid` where
+        the values are the dates of the previous event that occured on the date
+        of the index. Entries falling before the first date will have `NaT` as
+        the result in the output.
 
     See Also
     --------
-    next_earnings_date_frame
+    next_date_frame
     """
-    sids = list(announcement_dates)
-    out = np.full((len(dates), len(sids)), np_NaT, dtype='datetime64[ns]')
-    dn = dates[-1].asm8
+    sids = list(events_by_sid)
+    out = np.full((len(date_index), len(sids)), np_NaT, dtype='datetime64[ns]')
+    dn = date_index[-1].asm8
     for col_idx, sid in enumerate(sids):
-        # announcement_dates[sid] is Series mapping knowledge_date to actual
-        # announcement date.  We don't care about the knowledge date for
+        # events_by_sid[sid] is Series mapping knowledge_date to actual
+        # event_date.  We don't care about the knowledge date for
         # computing previous earnings.
-        values = announcement_dates[sid].values
+        values = events_by_sid[sid].values
         values = values[values <= dn]
-        out[dates.searchsorted(values), col_idx] = values
+        out[date_index.searchsorted(values), col_idx] = values
 
-    frame = pd.DataFrame(out, index=dates, columns=sids)
+    frame = pd.DataFrame(out, index=date_index, columns=sids)
     frame.ffill(inplace=True)
     return frame
