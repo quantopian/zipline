@@ -23,6 +23,20 @@ cdef class BarData:
     This is what is passed as `data` to the `handle_data` function.
     """
     def __init__(self, data_portal, simulation_dt_func, data_frequency):
+        """
+        Parameters
+        ---------
+        data_portal : DataPortal
+            Provider for bar pricing data.
+
+        simulation_dt_func: function
+            Function which returns the current simulation time.
+            This is usually bound to a method of TradingSimulation.
+
+        data_frequency: string
+            The frequency of the bar data; i.e. whether the data is
+            'daily' or 'minute' bars
+        """
         self.data_portal = data_portal
         self.simulation_dt_func = simulation_dt_func
         self.data_frequency = data_frequency
@@ -79,6 +93,23 @@ cdef class BarData:
 
 cdef class SidView:
     def __init__(self, asset, data_portal, simulation_dt_func, data_frequency):
+        """
+        Parameters
+        ---------
+        asset : Asset
+            The asset for which the instance retrieves data.
+
+        data_portal : DataPortal
+            Provider for bar pricing data.
+
+        simulation_dt_func: function
+            Function which returns the current simulation time.
+            This is usually bound to a method of TradingSimulation.
+
+        data_frequency: string
+            The frequency of the bar data; i.e. whether the data is
+            'daily' or 'minute' bars
+        """
         self.asset = asset
         self.data_portal = data_portal
         self.simulation_dt_func = simulation_dt_func
