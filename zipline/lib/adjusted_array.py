@@ -82,11 +82,12 @@ def _normalize_array(data):
                 "not representable as datetime64[ns].\n"
                 "Min Date: %s\n"
                 "Max Date: %s\n"
-            ) % (data.min(), data.max())
+                % (data.min(), data.max())
+            )
     else:
         raise TypeError(
             "Don't know how to construct AdjustedArray "
-            "on data of type %s." % dtype
+            "on data of type %s." % data_dtype
         )
 
 
