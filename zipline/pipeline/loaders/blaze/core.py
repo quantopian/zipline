@@ -866,32 +866,23 @@ class BlazeLoader(dict):
 
         extra_kwargs = {'d': resources} if resources else {}
         materialized_expr = odo(where(expr), pd.DataFrame, **extra_kwargs)
-        materialized_expr[TS_FIELD_NAME] = materialized_expr[
-            TS_FIELD_NAME
-        ].astype('datetime64[ns]')
         materialized_deltas = (
             odo(where(deltas), pd.DataFrame, **extra_kwargs)
             if deltas is not None else
             pd.DataFrame(columns=query_fields)
         )
-        materialized_deltas[TS_FIELD_NAME] = materialized_deltas[
-            TS_FIELD_NAME
-        ].astype('datetime64[ns]')
+        for m in (materialized_expr, materialized_deltas):
+            m.loc[:, TS_FIELD_NAME] = m.loc[
+                :, TS_FIELD_NAME
+            ].astype('datetime64[ns]')
 
-        normalize_timestamp_to_query_time(
-            materialized_expr,
-            data_query_time,
-            data_query_tz,
-            inplace=True,
-            ts_field=TS_FIELD_NAME,
-        )
-        normalize_timestamp_to_query_time(
-            materialized_deltas,
-            data_query_time,
-            data_query_tz,
-            inplace=True,
-            ts_field=TS_FIELD_NAME,
-        )
+            normalize_timestamp_to_query_time(
+                m,
+                data_query_time,
+                data_query_tz,
+                inplace=True,
+                ts_field=TS_FIELD_NAME,
+            )
 
         # Inline the deltas that changed our most recently known value.
         # Also, we reindex by the dates to create a dense representation of
