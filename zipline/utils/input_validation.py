@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from operator import attrgetter
 
 from numpy import dtype
@@ -281,6 +282,30 @@ def expect_element(*_pos, **named):
         raise TypeError("expect_element() only takes keyword arguments.")
 
     return preprocess(**valmap(_expect_element, named))
+
+
+def coerce(from_, to, **to_kwargs):
+    """
+    A preprocessing decorator that coerces inputs of a given type by passing
+    them to a callable.
+
+    Usage
+    -----
+    >>> @preprocess(x=coerce(float, int), y=coerce(float, int))
+    ... def floordiff(x, y):
+    ...     return x - y
+    ...
+    >>> floordiff(3.2, 2.5)
+    1
+    """
+    def preprocessor(func, argname, arg):
+        if isinstance(arg, from_):
+            return to(arg, **to_kwargs)
+        return arg
+    return preprocessor
+
+
+coerce_string = partial(coerce, string_types)
 
 
 def _expect_element(collection):
