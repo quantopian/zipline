@@ -162,7 +162,7 @@ def normalize_timestamp_to_query_time(df,
 
     dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
     dtidx_local_time = dtidx.tz_convert(tz)
-    to_roll_forward = dtidx_local_time.time > time
+    to_roll_forward = dtidx_local_time.time >= time
     # for all of the times that are greater than our query time add 1
     # day and truncate to the date
     df.loc[to_roll_forward, ts_field] = (
@@ -170,3 +170,27 @@ def normalize_timestamp_to_query_time(df,
     ).normalize().tz_localize(None).tz_localize('utc')  # cast back to utc
     df.loc[~to_roll_forward, ts_field] = dtidx[~to_roll_forward].normalize()
     return df
+
+
+def check_data_query_args(data_query_time, data_query_tz):
+    """Checks the data_query_time and data_query_tz arguments for loaders
+    and raises a standard exception if one is None and the other is not.
+
+    Parameters
+    ----------
+    data_query_time : datetime.time or None
+    data_query_tz : tzinfo or None
+
+    Raises
+    ------
+    ValueError
+        Raised when only one of the arguments is None.
+    """
+    if (data_query_time is None) ^ (data_query_tz is None):
+        raise ValueError(
+            "either 'data_query_time' and 'data_query_tz' must both be"
+            " None or neither may be None (got %r, %r)" % (
+                data_query_time,
+                data_query_tz,
+            ),
+        )

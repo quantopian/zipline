@@ -127,7 +127,7 @@ from __future__ import division, absolute_import
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
 from copy import copy
-from datetime import time
+from datetime import timedelta
 from functools import partial
 from itertools import count
 import warnings
@@ -160,13 +160,18 @@ import toolz.curried.operator as op
 
 from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.loaders.utils import (
+    check_data_query_args,
     normalize_data_query_time,
     normalize_timestamp_to_query_time,
 )
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum
-from zipline.utils.input_validation import expect_element, ensure_timezone
+from zipline.utils.input_validation import (
+    expect_element,
+    ensure_timezone,
+    optionally,
+)
 from zipline.utils.numpy_utils import repeat_last_axis
 from zipline.utils.preprocess import preprocess
 
@@ -781,12 +786,14 @@ class BlazeLoader(dict):
     data_query_tz : tzinfo or str
         The timezeone to use for the data query cutoff.
     """
-    @preprocess(data_query_tz=ensure_timezone)
+    @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,
                  colmap=None,
-                 data_query_time=time(0),
-                 data_query_tz='utc'):
+                 data_query_time=None,
+                 data_query_tz=None):
         self.update(colmap or {})
+
+        check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
 
@@ -827,16 +834,20 @@ class BlazeLoader(dict):
 
         data_query_time = self._data_query_time
         data_query_tz = self._data_query_tz
-        lower_dt = normalize_data_query_time(
-            dates[0],
-            data_query_time,
-            data_query_tz,
-        )
-        upper_dt = normalize_data_query_time(
-            dates[-1],
-            data_query_time,
-            data_query_tz,
-        )
+        if data_query_time is not None:
+            lower_dt = normalize_data_query_time(
+                dates[0] - timedelta(days=1),
+                data_query_time,
+                data_query_tz,
+            )
+            upper_dt = normalize_data_query_time(
+                dates[-1],
+                data_query_time,
+                data_query_tz,
+            )
+        else:
+            lower_dt = dates[0] - timedelta(days=1)
+            upper_dt = dates[-1]
 
         def where(e):
             """Create the query to run against the resources.
@@ -871,18 +882,20 @@ class BlazeLoader(dict):
             if deltas is not None else
             pd.DataFrame(columns=query_fields)
         )
-        for m in (materialized_expr, materialized_deltas):
-            m.loc[:, TS_FIELD_NAME] = m.loc[
-                :, TS_FIELD_NAME
-            ].astype('datetime64[ns]')
 
-            normalize_timestamp_to_query_time(
-                m,
-                data_query_time,
-                data_query_tz,
-                inplace=True,
-                ts_field=TS_FIELD_NAME,
-            )
+        if data_query_time is not None:
+            for m in (materialized_expr, materialized_deltas):
+                m.loc[:, TS_FIELD_NAME] = m.loc[
+                    :, TS_FIELD_NAME
+                ].astype('datetime64[ns]')
+
+                normalize_timestamp_to_query_time(
+                    m,
+                    data_query_time,
+                    data_query_tz,
+                    inplace=True,
+                    ts_field=TS_FIELD_NAME,
+                )
 
         # Inline the deltas that changed our most recently known value.
         # Also, we reindex by the dates to create a dense representation of
