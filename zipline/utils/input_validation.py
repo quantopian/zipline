@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import tzinfo
-from functools import partial
+from functools import partial, wraps
 from operator import attrgetter
 
 from numpy import dtype
@@ -22,6 +22,46 @@ from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
 from zipline.utils.preprocess import preprocess
+
+
+def optionally(preprocessor):
+    """Modify a preprocessor to explicitly allow `None`.
+
+    Parameters
+    ----------
+    preprocessor : callable[callable, str, any -> any]
+        A preprocessor to delegate to when `arg is not None`.
+
+    Returns
+    -------
+    optional_preprocessor : callable[callable, str, any -> any]
+        A preprocessor that delegates to `preprocessor` when `arg is not None`.
+
+    Usage
+    -----
+    >>> def preprocessor(func, argname, arg):
+    ...     if not isinstance(arg, int):
+    ...         raise TypeError('arg must be int')
+    ...     return arg
+    ...
+    >>> @preprocess(a=optionally(preprocessor))
+    ... def f(a):
+    ...     return a
+    ...
+    >>> f(1)  # call with int
+    1
+    >> f('a')  # call with not int
+    Traceback (most recent call last):
+       ...
+    TypeError: arg must be int
+    >>> f(None)  # call with explicit None
+    None
+    """
+    @wraps(preprocessor)
+    def wrapper(func, argname, arg):
+        return arg if arg is None else preprocessor(func, argname, arg)
+
+    return wrapper
 
 
 def ensure_upper_case(func, argname, arg):

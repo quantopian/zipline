@@ -17,6 +17,7 @@ from zipline.utils.input_validation import (
     expect_dtypes,
     expect_types,
     optional,
+    optionally,
 )
 
 
@@ -347,3 +348,22 @@ class PreprocessTestCase(TestCase):
         # test invalid timezone strings
         for tz in invalid:
             self.assertRaises(pytz.UnknownTimeZoneError, f, tz)
+
+    def test_optionally(self):
+        error = TypeError('arg must be int')
+
+        def preprocessor(func, argname, arg):
+            if not isinstance(arg, int):
+                raise error
+            return arg
+
+        @preprocess(a=optionally(preprocessor))
+        def f(a):
+            return a
+
+        self.assertIs(f(1), 1)
+        self.assertIsNone(f(None))
+
+        with self.assertRaises(TypeError) as e:
+            f('a')
+        self.assertIs(e.exception, error)
