@@ -45,9 +45,10 @@ from pandas import (
 )
 from six import (
     iteritems,
-    string_types,
     with_metaclass,
 )
+
+from zipline.utils.input_validation import coerce_string, preprocess
 
 from ._equities import _compute_row_slices, _read_bcolz_data
 from ._adjustments import load_adjustments_from_sqlite
@@ -910,9 +911,8 @@ class SQLiteAdjustmentReader(object):
         Connection from which to load data.
     """
 
+    @preprocess(conn=coerce_string(sqlite3.connect))
     def __init__(self, conn):
-        if isinstance(conn, str):
-            conn = sqlite3.connect(conn)
         self.conn = conn
 
     def load_adjustments(self, columns, dates, assets):
