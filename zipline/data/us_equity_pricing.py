@@ -23,6 +23,7 @@ import sqlite3
 from bcolz import (
     carray,
     ctable,
+    open as open_ctable,
 )
 from click import progressbar
 from numpy import (
@@ -364,9 +365,8 @@ class BcolzDailyBarReader(object):
     We use calendar_offset and calendar to orient loaded blocks within a
     range of queried dates.
     """
+    @preprocess(table=coerce_string(open_ctable, mode='r'))
     def __init__(self, table):
-        if isinstance(table, string_types):
-            table = ctable(rootdir=table, mode='r')
 
         self._table = table
         self._calendar = DatetimeIndex(table.attrs['calendar'], tz='UTC')
