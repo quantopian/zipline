@@ -63,6 +63,8 @@ Enhancements
   subclasses inherit all of the columns from the parent. These columns will be
   new sentinels so you can register them a custom loader (:issue:`924`).
 
+* Added :func:`~zipline.utils.input_validation.coerce`.
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
