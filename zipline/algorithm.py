@@ -1093,12 +1093,14 @@ class TradingAlgorithm(object):
 
     @api_method
     @require_initialized(HistoryInInitialize())
-    def history(self, sids, bar_count, frequency, field, ffill=True):
-        if self.data_portal is None:
-            raise Exception("no data portal!")
+    def history(self, assets, bar_count, frequency, field, ffill=True):
+        try:
+            assets = list(assets)
+        except TypeError:
+            assets = [assets]
 
         return self.data_portal.get_history_window(
-            sids,
+            assets,
             self.datetime,
             bar_count,
             frequency,
