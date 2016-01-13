@@ -54,8 +54,8 @@ def optionally(preprocessor):
     Traceback (most recent call last):
        ...
     TypeError: arg must be int
-    >>> f(None)  # call with explicit None
-    None
+    >>> f(None) is None  # call with explicit None
+    True
     """
     @wraps(preprocessor)
     def wrapper(func, argname, arg):
