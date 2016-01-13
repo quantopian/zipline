@@ -122,7 +122,6 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
     --------
     BcolzDailyBarReader : Consumer of the data written by this class.
     """
-
     @abstractmethod
     def gen_tables(self, assets):
         """
@@ -199,6 +198,8 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
             for k in US_EQUITY_PRICING_BCOLZ_COLUMNS
         }
 
+        earliest_date = None
+
         for asset_id, table in iterator:
             nrows = len(table)
             for column_name in columns:
@@ -210,6 +211,11 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
                 columns[column_name].append(
                     self.to_uint32(table[column_name][:], column_name)
                 )
+
+            if earliest_date is None:
+                earliest_date = table["day"][0]
+            else:
+                earliest_date = min(earliest_date, table["day"][0])
 
             # Bcolz doesn't support ints as keys in `attrs`, so convert
             # assets to strings for use as attr keys.
@@ -244,6 +250,9 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
             rootdir=filename,
             mode='w',
         )
+
+        full_table.attrs['first_trading_day'] = \
+            int(earliest_date / 1e6)
         full_table.attrs['first_row'] = first_row
         full_table.attrs['last_row'] = last_row
         full_table.attrs['calendar_offset'] = calendar_offset
@@ -382,6 +391,16 @@ class BcolzDailyBarReader(object):
             int(id_): offset
             for id_, offset in iteritems(table.attrs['calendar_offset'])
         }
+
+        try:
+            self._first_trading_day = Timestamp(
+                table.attrs['first_trading_day'],
+                unit='ms',
+                tz='UTC'
+            )
+        except KeyError:
+            self._first_trading_day = None
+
         # Cache of fully read np.array for the carrays in the daily bar table.
         # raw_array does not use the same cache, but it could.
         # Need to test keeping the entire array in memory for the course of a
@@ -458,6 +477,10 @@ class BcolzDailyBarReader(object):
         if column != 'volume':
             window = window.astype(float64) * self.PRICE_ADJUSTMENT_FACTOR
         return window
+
+    @property
+    def first_trading_day(self):
+        return self._first_trading_day
 
     def _spot_col(self, colname):
         """

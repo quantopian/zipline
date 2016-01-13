@@ -66,7 +66,6 @@ class HistoryTestCase(TestCase):
         cls.TSLA = 4
         cls.BRKA = 5
         cls.IBM = 6
-        cls.GS = 7
         cls.C = 8
         cls.DIVIDEND_SID = 9
         cls.FUTURE_ASSET = 10
@@ -74,13 +73,13 @@ class HistoryTestCase(TestCase):
         cls.FUTURE_ASSET3 = 12
         cls.FOO = 13
         cls.assets = [cls.AAPL, cls.MSFT, cls.DELL, cls.TSLA, cls.BRKA,
-                      cls.IBM, cls.GS, cls.C, cls.DIVIDEND_SID, cls.FOO]
+                      cls.IBM, cls.C, cls.DIVIDEND_SID, cls.FOO]
 
         asset_info = make_simple_asset_info(
             cls.assets,
-            Timestamp('2014-03-03'),
+            Timestamp('2014-02-25'),
             Timestamp('2014-08-30'),
-            ['AAPL', 'MSFT', 'DELL', 'TSLA', 'BRKA', 'IBM', 'GS', 'C',
+            ['AAPL', 'MSFT', 'DELL', 'TSLA', 'BRKA', 'IBM', 'C',
              'DIVIDEND_SID', 'FOO']
         )
         cls.env = TradingEnvironment()
@@ -283,8 +282,6 @@ class HistoryTestCase(TestCase):
             cls.TSLA: join(TEST_MINUTE_RESOURCE_PATH, "TSLA_minute.csv.gz"),
             cls.BRKA: join(TEST_MINUTE_RESOURCE_PATH, "BRKA_minute.csv.gz"),
             cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv.gz"),
-            cls.GS:
-            join(TEST_MINUTE_RESOURCE_PATH, "IBM_minute.csv.gz"),  # unused
             cls.C: join(TEST_MINUTE_RESOURCE_PATH, "C_minute.csv.gz"),
             cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
                                    "DIVIDEND_minute.csv.gz"),
@@ -308,7 +305,6 @@ class HistoryTestCase(TestCase):
             cls.TSLA: join(TEST_DAILY_RESOURCE_PATH, 'MSFT.csv'),  # unused
             cls.BRKA: join(TEST_DAILY_RESOURCE_PATH, 'BRK-A.csv'),
             cls.IBM: join(TEST_MINUTE_RESOURCE_PATH, 'IBM_daily.csv.gz'),
-            cls.GS: join(TEST_MINUTE_RESOURCE_PATH, 'GS_daily.csv.gz'),
             cls.C: join(TEST_MINUTE_RESOURCE_PATH, 'C_daily.csv.gz'),
             cls.DIVIDEND_SID: join(TEST_MINUTE_RESOURCE_PATH,
                                    'DIVIDEND_daily.csv.gz'),
@@ -1039,51 +1035,6 @@ class HistoryTestCase(TestCase):
                 for i in range(0, 6):
                     self.assertEqual(len(window.iloc[i]), 0)
 
-    def test_daily_window_starts_before_minute_data(self):
-
-        env = TradingEnvironment()
-        asset_info = make_simple_asset_info(
-            [self.GS],
-            Timestamp('1999-04-05'),
-            Timestamp('2004-08-30'),
-            ['GS']
-        )
-        env.write_data(equities_df=asset_info)
-        portal = self.get_portal(env=env)
-
-        window = portal.get_history_window(
-            [self.GS],
-            # 3rd day of daily data for GS, minute data starts in 2002.
-            pd.Timestamp("1999-04-07 14:35:00", tz='UTC'),
-            10,
-            "1d",
-            "low"
-        )
-
-        # 12/20, 12/21, 12/24, 12/26, 12/27, 12/28, 12/31 should be NaNs
-        # 1/2 and 1/3 should be non-NaN
-        # 1/4 should be NaN (since we don't have minute data for it)
-
-        self.assertEqual(len(window), 10)
-
-        for i in range(0, 7):
-            self.assertTrue(np.isnan(window.iloc[i].loc[self.GS]))
-
-        for i in range(8, 9):
-            self.assertFalse(np.isnan(window.iloc[i].loc[self.GS]))
-
-        self.assertTrue(np.isnan(window.iloc[9].loc[self.GS]))
-
-    def test_minute_window_ends_before_1_2_2002(self):
-        with self.assertRaises(ValueError):
-            self.data_portal.get_history_window(
-                [self.GS],
-                pd.Timestamp("2001-12-31 14:35:00", tz='UTC'),
-                50,
-                "1m",
-                "close_price"
-            )
-
     def test_bad_history_inputs(self):
         portal = self.data_portal
 
@@ -1432,3 +1383,131 @@ class HistoryTestCase(TestCase):
 
         np.testing.assert_array_equal([12929.0, 15629.0, 19769.0],
                                       window.values.T[0])
+
+
+class VeryOldHistoryTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.GS = 1
+        cls.assets = [cls.GS]
+        cls.env = TradingEnvironment()
+
+        cls.env.write_data(
+            equities_df=make_simple_asset_info(
+                cls.assets,
+                Timestamp('2014-02-25'),
+                Timestamp('2014-08-30'),
+                ['GS']
+            )
+        )
+
+        cls.tempdir = TempDirectory()
+        cls.tempdir.create()
+
+        try:
+            cls.create_fake_minute_data(cls.tempdir)
+            cls.create_fake_daily_data(cls.tempdir)
+
+            cls.data_portal = cls.get_portal(
+                daily_equities_filename="test_daily_data.bcolz"
+            )
+        except:
+            cls.tempdir.cleanup()
+            raise
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
+
+    @classmethod
+    def create_fake_minute_data(cls, tempdir):
+        resources = {
+            cls.GS:
+                join(TEST_MINUTE_RESOURCE_PATH, 'IBM_minute.csv.gz')  # unused
+        }
+
+        equities_tempdir = os.path.join(tempdir.path, 'equity', 'minutes')
+        os.makedirs(equities_tempdir)
+
+        MinuteBarWriterFromCSVs(resources,
+                                pd.Timestamp('2002-01-02', tz='UTC')).write(
+                                    equities_tempdir, cls.assets)
+
+    @classmethod
+    def create_fake_daily_data(cls, tempdir):
+        resources = {
+            cls.GS: join(TEST_MINUTE_RESOURCE_PATH, 'GS_daily.csv.gz'),
+        }
+        raw_data = {
+            asset: read_csv(path, parse_dates=['day']).set_index('day')
+            for asset, path in iteritems(resources)
+        }
+        for frame in raw_data.values():
+            frame['price'] = frame['close']
+
+        writer = DailyBarWriterFromCSVs(resources)
+        data_path = tempdir.getpath('test_daily_data.bcolz')
+        writer.write(data_path, trading_days, cls.assets)
+
+    @classmethod
+    def get_portal(cls,
+                   daily_equities_filename="test_daily_data.bcolz",
+                   env=None):
+
+        if env is None:
+            env = cls.env
+
+        minutes_path = os.path.join(cls.tempdir.path, 'equity', 'minutes')
+
+        equity_daily_reader = BcolzDailyBarReader(
+            join(cls.tempdir.path, daily_equities_filename))
+
+        return DataPortal(
+            env,
+            equity_minute_reader=BcolzMinuteBarReader(minutes_path),
+            equity_daily_reader=equity_daily_reader
+        )
+
+    def test_daily_window_starts_before_minute_data(self):
+        env = TradingEnvironment()
+        asset_info = make_simple_asset_info(
+            [self.GS],
+            Timestamp('1999-04-05'),
+            Timestamp('2004-08-30'),
+            ['GS']
+        )
+        env.write_data(equities_df=asset_info)
+        portal = self.get_portal(env=env)
+
+        window = portal.get_history_window(
+            [self.GS],
+            # 3rd day of daily data for GS, minute data starts in 2002.
+            pd.Timestamp("1999-04-07 14:35:00", tz='UTC'),
+            10,
+            "1d",
+            "low"
+        )
+
+        # 12/20, 12/21, 12/24, 12/26, 12/27, 12/28, 12/31 should be NaNs
+        # 1/2 and 1/3 should be non-NaN
+        # 1/4 should be NaN (since we don't have minute data for it)
+
+        self.assertEqual(len(window), 10)
+
+        for i in range(0, 7):
+            self.assertTrue(np.isnan(window.iloc[i].loc[self.GS]))
+
+        for i in range(8, 9):
+            self.assertFalse(np.isnan(window.iloc[i].loc[self.GS]))
+
+        self.assertTrue(np.isnan(window.iloc[9].loc[self.GS]))
+
+    def test_minute_window_ends_before_1_2_2002(self):
+        with self.assertRaises(ValueError):
+            self.data_portal.get_history_window(
+                [self.GS],
+                pd.Timestamp("2001-12-31 14:35:00", tz='UTC'),
+                50,
+                "1m",
+                "close_price"
+            )
