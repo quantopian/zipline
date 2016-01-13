@@ -50,7 +50,7 @@ def optionally(preprocessor):
     ...
     >>> f(1)  # call with int
     1
-    >> f('a')  # call with not int
+    >>> f('a')  # call with not int
     Traceback (most recent call last):
        ...
     TypeError: arg must be int
