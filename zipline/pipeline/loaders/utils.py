@@ -125,6 +125,40 @@ def normalize_data_query_time(dt, time, tz):
     ).tz_convert('utc')
 
 
+def normalize_data_query_bounds(lower, upper, time, tz):
+    """Adjust the first and last dates in the requested datetime index based on
+    the provided query time and tz.
+
+    lower : pd.Timestamp
+        The lower date requested.
+    upper : pd.Timestamp
+        The upper date requested.
+    time : datetime.time
+        The time of day to use as the cutoff point for new data. Data points
+        that you learn about after this time will become available to your
+        algorithm on the next trading day.
+    tz : tzinfo
+        The timezone to normalize your dates to before comparing against
+        `time`.
+    """
+    # Subtract one day to grab things that happened on the first day we are
+    # requesting. This doesn't need to be a trading day, we are only adding
+    # a lower bound to limit the amount of in memory filtering that needs
+    # to happen.
+    lower -= datetime.timedelta(days=1)
+    if time is not None:
+        return normalize_data_query_time(
+            lower,
+            time,
+            tz,
+        ), normalize_data_query_time(
+            upper,
+            time,
+            tz,
+        )
+    return lower, upper
+
+
 def normalize_timestamp_to_query_time(df,
                                       time,
                                       tz,

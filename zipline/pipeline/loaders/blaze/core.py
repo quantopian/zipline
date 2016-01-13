@@ -127,7 +127,6 @@ from __future__ import division, absolute_import
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
 from copy import copy
-from datetime import timedelta
 from functools import partial
 from itertools import count
 import warnings
@@ -161,7 +160,7 @@ import toolz.curried.operator as op
 from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
-    normalize_data_query_time,
+    normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
 )
 from zipline.lib.adjusted_array import AdjustedArray
@@ -834,20 +833,12 @@ class BlazeLoader(dict):
 
         data_query_time = self._data_query_time
         data_query_tz = self._data_query_tz
-        if data_query_time is not None:
-            lower_dt = normalize_data_query_time(
-                dates[0] - timedelta(days=1),
-                data_query_time,
-                data_query_tz,
-            )
-            upper_dt = normalize_data_query_time(
-                dates[-1],
-                data_query_time,
-                data_query_tz,
-            )
-        else:
-            lower_dt = dates[0] - timedelta(days=1)
-            upper_dt = dates[-1]
+        lower_dt, upper_dt = normalize_data_query_bounds(
+            dates[0],
+            dates[-1],
+            data_query_time,
+            data_query_tz,
+        )
 
         def where(e):
             """Create the query to run against the resources.

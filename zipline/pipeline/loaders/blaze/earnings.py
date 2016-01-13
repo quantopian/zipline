@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from datashape import istabular
 import pandas as pd
 from toolz import valmap
@@ -15,7 +13,7 @@ from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
-    normalize_data_query_time,
+    normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
 )
 from zipline.utils.input_validation import ensure_timezone, optionally
@@ -100,20 +98,12 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
     def load_adjusted_array(self, columns, dates, assets, mask):
         data_query_time = self._data_query_time
         data_query_tz = self._data_query_tz
-        if data_query_time is not None:
-            lower_dt = normalize_data_query_time(
-                dates[0] - timedelta(days=1),
-                data_query_time,
-                data_query_tz,
-            )
-            upper_dt = normalize_data_query_time(
-                dates[-1],
-                data_query_time,
-                data_query_tz,
-            )
-        else:
-            lower_dt = dates[0] - timedelta(days=1)
-            upper_dt = dates[-1]
+        lower_dt, upper_dt = normalize_data_query_bounds(
+            dates[0],
+            dates[-1],
+            data_query_time,
+            data_query_tz,
+        )
 
         raw = ffill_query_in_range(
             self._expr,
