@@ -11,6 +11,13 @@ from .core import (
 from zipline.pipeline.data import EarningsCalendar
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
+from zipline.pipeline.loaders.utils import (
+    check_data_query_args,
+    normalize_data_query_bounds,
+    normalize_timestamp_to_query_time,
+)
+from zipline.utils.input_validation import ensure_timezone, optionally
+from zipline.utils.preprocess import preprocess
 
 
 ANNOUNCEMENT_FIELD_NAME = 'announcement_date'
@@ -28,6 +35,10 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         Mapping from the atomic terms of ``expr`` to actual data resources.
     odo_kwargs : dict, optional
         Extra keyword arguments to pass to odo when executing the expression.
+    data_query_time : time, optional
+        The time to use for the data query cutoff.
+    data_query_tz : tzinfo or str
+        The timezeone to use for the data query cutoff.
 
     Notes
     -----
@@ -58,10 +69,13 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         ANNOUNCEMENT_FIELD_NAME,
     })
 
+    @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,
                  expr,
                  resources=None,
                  odo_kwargs=None,
+                 data_query_time=None,
+                 data_query_tz=None,
                  dataset=EarningsCalendar):
         dshape = expr.dshape
 
@@ -77,12 +91,24 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
         )
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
         self._dataset = dataset
+        check_data_query_args(data_query_time, data_query_tz)
+        self._data_query_time = data_query_time
+        self._data_query_tz = data_query_tz
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        raw = ffill_query_in_range(
-            self._expr,
+        data_query_time = self._data_query_time
+        data_query_tz = self._data_query_tz
+        lower_dt, upper_dt = normalize_data_query_bounds(
             dates[0],
             dates[-1],
+            data_query_time,
+            data_query_tz,
+        )
+
+        raw = ffill_query_in_range(
+            self._expr,
+            lower_dt,
+            upper_dt,
             self._odo_kwargs,
         )
         sids = raw.loc[:, SID_FIELD_NAME]
@@ -90,6 +116,14 @@ class BlazeEarningsCalendarLoader(PipelineLoader):
             sids[~sids.isin(assets)].index,
             inplace=True
         )
+        if data_query_time is not None:
+            normalize_timestamp_to_query_time(
+                raw,
+                data_query_time,
+                data_query_tz,
+                inplace=True,
+                ts_field=TS_FIELD_NAME,
+            )
 
         gb = raw.groupby(SID_FIELD_NAME)
 

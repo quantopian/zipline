@@ -63,7 +63,25 @@ Enhancements
   subclasses inherit all of the columns from the parent. These columns will be
   new sentinels so you can register them a custom loader (:issue:`924`).
 
-* Added :func:`~zipline.utils.input_validation.coerce`.
+* Added :func:`~zipline.utils.input_validation.coerce` to coerce inputs from one
+  type into another before passing them to the function (:issue:`948`).
+
+* Added :func:`~zipline.utils.input_validation.optionally` to wrap other
+  preprocessor functions to explicitly allow ``None`` (:issue:`947`).
+
+* Added :func:`~zipline.utils.input_validation.ensure_timezone` to allow string
+  arguments to get converted into ``datetime.tzinfo`` objects. This also allows
+  ``tzinfo`` objects to be passed directly (:issue:`947`).
+
+* Added two optional arguments, ``data_query_time`` and ``data_query_tz`` to
+  :class:`~zipline.pipeline.loaders.blaze.core.BlazeLoader` and
+  :class:`~zipline.pipeline.loaders.blaze.earnings.BlazeEarningsCalendarLoader`.
+  These arguments allow the user to specify some cutoff time for data when
+  loading from the resource. For example, if I want to simulate executing my
+  ``before_trading_start`` function at ``8:45 US/Eastern`` then I could pass
+  ``datetime.time(8, 45)`` and ``'US/Eastern'`` to the loader. This means that
+  data that is timestamped on or after ``8:45`` will not seen on that day in the
+  simulation. The data will be made available on the next day (:issue:`947`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
