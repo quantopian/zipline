@@ -89,6 +89,7 @@ def check_account(account,
                   settled_cash,
                   equity_with_loan,
                   total_positions_value,
+                  total_positions_exposure,
                   regt_equity,
                   available_funds,
                   excess_liquidity,
@@ -105,6 +106,8 @@ def check_account(account,
                                account['equity_with_loan'], rtol=1e-3)
     np.testing.assert_allclose(total_positions_value,
                                account['total_positions_value'], rtol=1e-3)
+    np.testing.assert_allclose(total_positions_exposure,
+                               account['total_positions_exposure'], rtol=1e-3)
     np.testing.assert_allclose(regt_equity,
                                account['regt_equity'], rtol=1e-3)
     np.testing.assert_allclose(available_funds,
@@ -1002,7 +1005,9 @@ class TestPositionPerformance(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[1, 2])
+        # Sids 1 and 2 are equities, Sid 3 is a future
+        cls.env.write_data(equities_identifiers=[1, 2],
+                           futures_data={3: {'contract_multiplier': 100}})
 
     @classmethod
     def tearDownClass(cls):
@@ -1071,6 +1076,7 @@ class TestPositionPerformance(unittest.TestCase):
                       settled_cash=1000.0,
                       equity_with_loan=1000.0,
                       total_positions_value=0.0,
+                      total_positions_exposure=0.0,
                       regt_equity=1000.0,
                       available_funds=1000.0,
                       excess_liquidity=1000.0,
@@ -1102,6 +1108,7 @@ class TestPositionPerformance(unittest.TestCase):
                       settled_cash=1000.0,
                       equity_with_loan=800.0,
                       total_positions_value=-200.0,
+                      total_positions_exposure=-200.0,
                       regt_equity=1000.0,
                       available_funds=1000.0,
                       excess_liquidity=1000.0,
@@ -1153,6 +1160,7 @@ class TestPositionPerformance(unittest.TestCase):
                       settled_cash=-9000.0,
                       equity_with_loan=1000.0,
                       total_positions_value=10000.0,
+                      total_positions_exposure=10000.0,
                       regt_equity=-9000.0,
                       available_funds=-9000.0,
                       excess_liquidity=-9000.0,
@@ -1182,6 +1190,7 @@ class TestPositionPerformance(unittest.TestCase):
                       settled_cash=-9000.0,
                       equity_with_loan=2000.0,
                       total_positions_value=11000.0,
+                      total_positions_exposure=11000.0,
                       regt_equity=-9000.0,
                       available_funds=-9000.0,
                       excess_liquidity=-9000.0,
@@ -1289,6 +1298,7 @@ class TestPositionPerformance(unittest.TestCase):
                       settled_cash=0.0,
                       equity_with_loan=1100.0,
                       total_positions_value=1100.0,
+                      total_positions_exposure=1100.0,
                       regt_equity=0.0,
                       available_funds=0.0,
                       excess_liquidity=0.0,
@@ -1508,10 +1518,359 @@ cost of sole txn in test"
                       settled_cash=2000.0,
                       equity_with_loan=1100.0,
                       total_positions_value=-900.0,
+                      total_positions_exposure=-900.0,
                       regt_equity=2000.0,
                       available_funds=2000.0,
                       excess_liquidity=2000.0,
                       cushion=1.8181,
+                      leverage=0.8181,
+                      net_leverage=-0.8181,
+                      net_liquidation=1100.0)
+
+    def test_long_future_position(self):
+        """
+            verify that the performance period calculates properly for a
+            single buy transaction
+        """
+        # post some trades in the market
+        trades = factory.create_trade_history(
+            3,
+            [10, 10, 10, 11],
+            [100, 100, 100, 100],
+            onesec,
+            self.sim_params,
+            env=self.env
+        )
+
+        txn = create_txn(trades[1], 10.0, 1)
+        pt = perf.PositionTracker(self.env.asset_finder)
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        pp.position_tracker = pt
+
+        pt.execute_transaction(txn)
+        pp.handle_execution(txn)
+
+        # This verifies that the last sale price is being correctly
+        # set in the positions. If this is not the case then returns can
+        # incorrectly show as sharply dipping if a transaction arrives
+        # before a trade. This is caused by returns being based on holding
+        # stocks with a last sale price of 0.
+        self.assertEqual(pp.positions[3].last_sale_price, 10.0)
+
+        for trade in trades:
+            pt.update_last_sale(trade)
+
+        pp.calculate_performance()
+
+        self.assertEqual(
+            pp.period_cash_flow,
+            0,
+            "there should be no cash flow on a futures txn"
+        )
+
+        self.assertEqual(
+            len(pp.positions),
+            1,
+            "should be just one position")
+
+        self.assertEqual(
+            pp.positions[3].sid,
+            txn.sid,
+            "position should be in security with id 1")
+
+        self.assertEqual(
+            pp.positions[3].amount,
+            txn.amount,
+            "should have a position of {sharecount} shares".format(
+                sharecount=txn.amount
+            )
+        )
+
+        self.assertEqual(
+            pp.positions[3].cost_basis,
+            txn.price,
+            "should have a cost basis of 10"
+        )
+
+        self.assertEqual(
+            pp.positions[3].last_sale_price,
+            trades[-1]['price'],
+            "last sale should be same as last trade. \
+            expected {exp} actual {act}".format(
+                exp=trades[-1]['price'],
+                act=pp.positions[3].last_sale_price)
+        )
+
+        self.assertEqual(
+            pp.ending_value,
+            0,
+            "ending value should be 0 because only futures are held"
+        )
+
+        self.assertEqual(
+            pp.ending_exposure,
+            1100,
+            "ending exposure should be price of last trade times number of \
+            contracts in position")
+
+        self.assertEqual(pp.pnl, 100, "gain of 1 on 1 100x contract should be "
+                                      "100")
+
+        check_perf_period(
+            pp,
+            gross_leverage=1.0,
+            net_leverage=1.0,
+            long_exposure=1100.0,
+            longs_count=1,
+            short_exposure=0.0,
+            shorts_count=0)
+
+        # Validate that the account attributes were updated.
+        account = pp.as_account()
+        check_account(account,
+                      settled_cash=1100.0,
+                      equity_with_loan=1100.0,
+                      total_positions_value=0.0,
+                      total_positions_exposure=1100.0,
+                      regt_equity=1100.0,
+                      available_funds=1100.0,
+                      excess_liquidity=1100.0,
+                      cushion=1.0,
+                      leverage=1.0,
+                      net_leverage=1.0,
+                      net_liquidation=1100.0)
+
+    def test_short_future_position(self):
+        """verify that the performance period calculates properly for a \
+single short-sale transaction"""
+        trades = factory.create_trade_history(
+            3,
+            [10, 10, 10, 11, 10, 9],
+            [100, 100, 100, 100, 100, 100],
+            onesec,
+            self.sim_params,
+            env=self.env
+        )
+
+        trades_1 = trades[:-2]
+
+        txn = create_txn(trades[1], 10.0, -1)
+        pt = perf.PositionTracker(self.env.asset_finder)
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        pp.position_tracker = pt
+
+        pt.execute_transaction(txn)
+        pp.handle_execution(txn)
+        for trade in trades_1:
+            pt.update_last_sale(trade)
+
+        pp.calculate_performance()
+
+        self.assertEqual(
+            pp.period_cash_flow,
+            0,
+            "there should be no cash flow on a futures txn"
+        )
+
+        self.assertEqual(
+            len(pp.positions),
+            1,
+            "should be just one position")
+
+        self.assertEqual(
+            pp.positions[3].sid,
+            txn.sid,
+            "position should be in future from the transaction"
+        )
+
+        self.assertEqual(
+            pp.positions[3].amount,
+            -1,
+            "should have a position of -1 contract"
+        )
+
+        self.assertEqual(
+            pp.positions[3].cost_basis,
+            txn.price,
+            "should have a cost basis of 10"
+        )
+
+        self.assertEqual(
+            pp.positions[3].last_sale_price,
+            trades_1[-1]['price'],
+            "last sale should be price of last trade"
+        )
+
+        self.assertEqual(
+            pp.ending_value,
+            0,
+            "ending value should be 0 because only futures are held"
+        )
+
+        self.assertEqual(
+            pp.ending_exposure,
+            -1100,
+            "ending exposure should be price of last trade times number of \
+            contracts in position")
+
+        self.assertEqual(pp.pnl, -100, "gain of 1 on 1 100x contract should be"
+                                       " 100")
+
+        # simulate additional trades, and ensure that the position value
+        # reflects the new price
+        trades_2 = trades[-2:]
+
+        # simulate a rollover to a new period
+        pp.rollover()
+
+        for trade in trades_2:
+            pt.update_last_sale(trade)
+
+        pp.calculate_performance()
+
+        self.assertEqual(
+            pp.period_cash_flow,
+            0,
+            "capital used should be zero, there were no transactions in \
+            performance period"
+        )
+
+        self.assertEqual(
+            len(pp.positions),
+            1,
+            "should be just one position"
+        )
+
+        self.assertEqual(
+            pp.positions[3].sid,
+            txn.sid,
+            "position should be in future from the transaction"
+        )
+
+        self.assertEqual(
+            pp.positions[3].amount,
+            -1,
+            "should have a position of -1 contract"
+        )
+
+        self.assertEqual(
+            pp.positions[3].cost_basis,
+            txn.price,
+            "should have a cost basis of 10"
+        )
+
+        self.assertEqual(
+            pp.positions[3].last_sale_price,
+            trades_2[-1].price,
+            "last sale should be price of last trade"
+        )
+
+        self.assertEqual(
+            pp.ending_value,
+            0,
+            "ending value should be 0 because only futures are held")
+
+        self.assertEqual(
+            pp.ending_exposure,
+            -900,
+            "ending exposure should be price of last trade times number of \
+            shares in position")
+
+        self.assertEqual(
+            pp.pnl,
+            200,
+            "drop of 2 on -1 100x contract should be 200"
+        )
+
+        # now run a performance period encompassing the entire trade sample.
+        ptTotal = perf.PositionTracker(self.env.asset_finder)
+        ppTotal = perf.PerformancePeriod(1000.0, self.env.asset_finder)
+        ppTotal.position_tracker = pt
+
+        for trade in trades_1:
+            ptTotal.update_last_sale(trade)
+
+        ptTotal.execute_transaction(txn)
+        ppTotal.handle_execution(txn)
+
+        for trade in trades_2:
+            ptTotal.update_last_sale(trade)
+
+        ppTotal.calculate_performance()
+
+        self.assertEqual(
+            ppTotal.period_cash_flow,
+            0,
+            "capital used should be equal to the opposite of the transaction \
+cost of sole txn in test"
+        )
+
+        self.assertEqual(
+            len(ppTotal.positions),
+            1,
+            "should be just one position"
+        )
+        self.assertEqual(
+            ppTotal.positions[3].sid,
+            txn.sid,
+            "position should be in security from the transaction"
+        )
+
+        self.assertEqual(
+            ppTotal.positions[3].amount,
+            -1,
+            "should have a position of -1 contract"
+        )
+
+        self.assertEqual(
+            ppTotal.positions[3].cost_basis,
+            txn.price,
+            "should have a cost basis of 10"
+        )
+
+        self.assertEqual(
+            ppTotal.positions[3].last_sale_price,
+            trades_2[-1].price,
+            "last sale should be price of last trade"
+        )
+
+        self.assertEqual(
+            pp.ending_value,
+            0,
+            "ending value should be 0 because only futures are held")
+
+        self.assertEqual(
+            pp.ending_exposure,
+            -900,
+            "ending exposure should be price of last trade times number of \
+            shares in position")
+
+        self.assertEqual(
+            ppTotal.pnl,
+            100,
+            "drop of 1 on -1 100x contract should be 100"
+        )
+
+        check_perf_period(
+            pp,
+            gross_leverage=0.8181,
+            net_leverage=-0.8181,
+            long_exposure=0.0,
+            longs_count=0,
+            short_exposure=-900.0,
+            shorts_count=1)
+
+        # Validate that the account attributes.
+        account = ppTotal.as_account()
+        check_account(account,
+                      settled_cash=1100.0,
+                      equity_with_loan=1100.0,
+                      total_positions_value=0.0,
+                      total_positions_exposure=-900.0,
+                      regt_equity=1100.0,
+                      available_funds=1100.0,
+                      excess_liquidity=1100.0,
+                      cushion=1.0,
                       leverage=0.8181,
                       net_leverage=-0.8181,
                       net_liquidation=1100.0)
@@ -1616,6 +1975,7 @@ shares in position"
                       settled_cash=1300.0,
                       equity_with_loan=1300.0,
                       total_positions_value=0.0,
+                      total_positions_exposure=0.0,
                       regt_equity=1300.0,
                       available_funds=1300.0,
                       excess_liquidity=1300.0,
