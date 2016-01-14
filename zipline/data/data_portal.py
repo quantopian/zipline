@@ -79,8 +79,7 @@ class DataPortal(object):
         self._mergers_dict = {}
         self._dividends_dict = {}
 
-        # Cache of sid -> the first trading day of an asset, even if that day
-        # is before 1/2/2002.
+        # Cache of sid -> the first trading day of an asset.
         self._asset_start_dates = {}
         self._asset_end_dates = {}
 
@@ -94,6 +93,16 @@ class DataPortal(object):
         self._equity_minute_reader = equity_minute_reader
         self._future_daily_reader = future_daily_reader
         self._future_minute_reader = future_minute_reader
+
+        self._first_trading_day = None
+
+        # get the first trading day from our readers.
+        if self._equity_daily_reader is not None:
+            self._first_trading_day = \
+                self._equity_daily_reader.first_trading_day
+        elif self._equity_minute_reader is not None:
+            self._first_trading_day = \
+                self._equity_minute_reader.first_trading_day
 
     def handle_extra_source(self, source_df, sim_params):
         """
@@ -684,7 +693,7 @@ class DataPortal(object):
 
         if modified_minutes_length == 0:
             raise ValueError("Cannot calculate history window that ends"
-                             "before 2002-01-02 14:31 UTC!")
+                             "before the first trading day!")
 
         data = []
         bars_to_prepend = 0
@@ -859,9 +868,10 @@ class DataPortal(object):
 
     def _get_minute_window_for_equity(self, asset, field, minutes_for_window):
         # each sid's minutes are stored in a bcolz file
-        # the bcolz file has 390 bars per day, starting at 1/2/2002, regardless
+        # the bcolz file has 390 bars per day, regardless
         # of when the asset started trading and regardless of half days.
         # for a half day, the second half is filled with zeroes.
+        # all the minutely bcolz files start on the same day.
 
         # find the position of start_dt in the entire timeline, go back
         # bar_count bars, and that's the unadjusted data
@@ -1174,7 +1184,12 @@ class DataPortal(object):
         sid = int(asset)
 
         if sid not in self._asset_start_dates:
-            self._asset_start_dates[sid] = asset.start_date
+            if self._first_trading_day is not None:
+                self._asset_start_dates[sid] = \
+                    max(asset.start_date, self._first_trading_day)
+            else:
+                self._asset_start_dates[sid] = asset.start_date
+
             self._asset_end_dates[sid] = asset.end_date
 
     def get_splits(self, sids, dt):

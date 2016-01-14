@@ -759,11 +759,8 @@ class FetcherDataPortal(DataPortal):
     Mock dataportal that returns fake data for history and non-fetcher
     spot value.
     """
-    def __init__(self, env, sim_params):
-        super(FetcherDataPortal, self).__init__(
-            env,
-            sim_params
-        )
+    def __init__(self, env):
+        super(FetcherDataPortal, self).__init__(env)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path
