@@ -1,3 +1,3 @@
--e git://github.com/quantopian/blaze.git@43d2f7e00a228106cea038a53322497831539559#egg=blaze-dev
+-e git://github.com/quantopian/blaze.git@c785f07f83b591a8d53db3a5013423f6b0f7ffd3#egg=blaze-dev
 -e git://github.com/quantopian/odo.git@4f7f45fb039d89ea101803b95da21fc055901d66#egg=odo-dev
 -e git://github.com/quantopian/datashape.git@9bd8fb970a0fc55e866a0b46b5101c9aa47e24ed#egg=datashape-dev
