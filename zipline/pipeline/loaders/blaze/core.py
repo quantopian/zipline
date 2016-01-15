@@ -182,6 +182,7 @@ from zipline.utils.preprocess import preprocess
 AD_FIELD_NAME = 'asof_date'
 TS_FIELD_NAME = 'timestamp'
 SID_FIELD_NAME = 'sid'
+ANNOUNCEMENT_FIELD_NAME = 'announcement_date'
 valid_deltas_node_types = (
     bz.expr.Field,
     bz.expr.ReLabel,

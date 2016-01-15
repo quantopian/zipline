@@ -1,6 +1,7 @@
 import datetime
 
 import numpy as np
+from numpy import NaN
 import pandas as pd
 from six import iteritems
 from six.moves import zip
@@ -82,15 +83,68 @@ def previous_date_frame(date_index, events_by_sid):
     next_date_frame
     """
     sids = list(events_by_sid)
-    out = np.full((len(date_index), len(sids)), NaTns, dtype='datetime64[ns]')
-    dn = date_index[-1].asm8
+    out = np.full((len(date_index), len(sids)), np_NaT, dtype='datetime64[ns]')
+    d_n = date_index[-1].asm8
     for col_idx, sid in enumerate(sids):
         # events_by_sid[sid] is Series mapping knowledge_date to actual
         # event_date.  We don't care about the knowledge date for
         # computing previous earnings.
         values = events_by_sid[sid].values
-        values = values[values <= dn]
+        values = values[values <= d_n]
         out[date_index.searchsorted(values), col_idx] = values
+
+    frame = pd.DataFrame(out, index=date_index, columns=sids)
+    frame.ffill(inplace=True)
+    return frame
+
+
+def previous_value(date_index, events_by_sid, event_date_field, value_field,
+                   value_field_dtype, missing_value):
+    """
+    Make a DataFrame representing simulated next earnings date_index.
+
+    Parameters
+    ----------
+    date_index : DatetimeIndex.
+        The index of the returned DataFrame.
+    events_by_sid : dict[int -> DatetimeIndex]
+        Dict mapping sids to a series of dates. Each k:v pair of the series
+        represents the date we learned of the event mapping to the date the
+        event will occur.
+
+    Returns
+    -------
+    previous_events: pd.DataFrame
+        A DataFrame where each column is a security from `events_by_sid` where
+        the values are the dates of the previous event that occured on the date
+        of the index. Entries falling before the first date will have `NaT` as
+        the result in the output.
+
+    See Also
+    --------
+    next_date_frame
+    """
+    sids = list(events_by_sid)
+    # TODO: generalize; need to use dtype of column and missing value for that
+    # column; so pass
+    # in the pipeline column's attributes for these (replace NaN and dtype
+    # below)
+    out = np.full(
+        (len(date_index), len(sids)),
+        # TODO; replace with missing_value
+        NaN,
+        dtype=value_field_dtype
+    )
+    d_n = date_index[-1].asm8
+    for col_idx, sid in enumerate(sids):
+        # events_by_sid[sid] is DataFrame mapping knowledge_date to event
+        # date and value.  We don't care about the knowledge date for computing
+        # previous values.
+        df = events_by_sid[sid]
+        df = df[df[event_date_field] <= d_n]
+        out[
+            date_index.searchsorted(df[event_date_field].values), col_idx
+        ] = df[value_field]
 
     frame = pd.DataFrame(out, index=date_index, columns=sids)
     frame.ffill(inplace=True)

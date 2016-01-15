@@ -57,30 +57,33 @@ class EarningsCalendarLoaderTestCase(TestCase):
 
         cls.earnings_dates = {
             # K1--K2--E1--E2.
-            A: to_series(
-                knowledge_dates=['2014-01-05', '2014-01-10'],
-                earning_dates=['2014-01-15', '2014-01-20'],
-            ),
+            A: pd.DataFrame({
+                "timestamp": pd.to_datetime(['2014-01-05', '2014-01-10']),
+                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-15',
+                                                         '2014-01-20'])
+            }),
             # K1--K2--E2--E1.
-            B: to_series(
-                knowledge_dates=['2014-01-05', '2014-01-10'],
-                earning_dates=['2014-01-20', '2014-01-15']
-            ),
+            B: pd.DataFrame({
+                "timestamp": pd.to_datetime(['2014-01-05', '2014-01-10']),
+                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-20',
+                                                         '2014-01-15'])
+            }),
             # K1--E1--K2--E2.
-            C: to_series(
-                knowledge_dates=['2014-01-05', '2014-01-15'],
-                earning_dates=['2014-01-10', '2014-01-20']
-            ),
+            C: pd.DataFrame({
+                "timestamp": pd.to_datetime(['2014-01-05', '2014-01-15']),
+                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
+                                                         '2014-01-20'])
+            }),
             # K1 == K2.
-            D: to_series(
-                knowledge_dates=['2014-01-05'] * 2,
-                earning_dates=['2014-01-10', '2014-01-15'],
-            ),
-            E: pd.Series(
-                data=[],
-                index=pd.DatetimeIndex([]),
-                dtype='datetime64[ns]',
-            ),
+            D: pd.DataFrame({
+                "timestamp": pd.to_datetime(['2014-01-05'] * 2),
+                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
+                                                         '2014-01-15'])
+            }),
+            E: pd.DataFrame({
+                "timestamp": pd.to_datetime([]),
+                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([])
+            })
         }
 
     @classmethod
@@ -118,7 +121,8 @@ class EarningsCalendarLoaderTestCase(TestCase):
 
         def zip_with_dates(dts):
             return pd.Series(pd.to_datetime(dts), index=dates)
-
+        # TODO: tests will break because I now need mappings of sid ->
+        # dataframe instead of sid -> series
         _expected_next_announce = pd.DataFrame({
             A: zip_with_dates(
                 ['NaT'] * num_days_between(None, '2014-01-04') +
@@ -345,11 +349,11 @@ class BlazeEarningsCalendarLoaderTestCase(EarningsCalendarLoaderTestCase):
         ).loader_args(dates)
         return (bz.Data(pd.concat(
             pd.DataFrame({
-                ANNOUNCEMENT_FIELD_NAME: earning_dates,
-                TS_FIELD_NAME: earning_dates.index,
+                ANNOUNCEMENT_FIELD_NAME: df[ANNOUNCEMENT_FIELD_NAME],
+                TS_FIELD_NAME: df[TS_FIELD_NAME],
                 SID_FIELD_NAME: sid,
             })
-            for sid, earning_dates in iteritems(mapping)
+            for sid, df in iteritems(mapping)
         ).reset_index(drop=True)),)
 
 
@@ -369,8 +373,8 @@ class EarningsCalendarLoaderInferTimestampTestCase(TestCase):
     def test_infer_timestamp(self):
         dtx = pd.date_range('2014-01-01', '2014-01-10')
         announcement_dates = {
-            0: dtx,
-            1: pd.Series(dtx, dtx),
+            0: pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx}),
+            1: pd.DataFrame({TS_FIELD_NAME: dtx, ANNOUNCEMENT_FIELD_NAME: dtx}),
         }
         loader = EarningsCalendarLoader(
             dtx,
@@ -378,14 +382,18 @@ class EarningsCalendarLoaderInferTimestampTestCase(TestCase):
             infer_timestamps=True,
         )
         self.assertEqual(
-            loader.announcement_dates.keys(),
+            loader.events_by_sid.keys(),
             announcement_dates.keys(),
         )
         assert_series_equal(
-            loader.announcement_dates[0],
-            pd.Series(index=[dtx[0]] * 10, data=dtx),
+            pd.Series(loader.events_by_sid[0][ANNOUNCEMENT_FIELD_NAME]),
+            pd.Series(index=[dtx[0]] * 10, data=dtx,
+                      name=ANNOUNCEMENT_FIELD_NAME),
         )
         assert_series_equal(
-            loader.announcement_dates[1],
-            announcement_dates[1],
+            pd.Series(loader.events_by_sid[1][ANNOUNCEMENT_FIELD_NAME]),
+            pd.Series(index=announcement_dates[1][TS_FIELD_NAME],
+                      data=np.array(announcement_dates[1][
+                          ANNOUNCEMENT_FIELD_NAME]),
+                      name=ANNOUNCEMENT_FIELD_NAME)
         )
