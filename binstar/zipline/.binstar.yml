@@ -1,0 +1,22 @@
+package: zipline
+user: quantopian
+
+platform:
+  - linux-64
+engine:
+  - python=2.7
+  - python=3.4
+
+install:
+  - conda config --add channels quantopian
+  - conda config --set always_yes true
+
+before_script:
+  - python -V
+
+script:
+  - conda build conda/zipline/
+
+iotimeout: 600
+
+build_targets: conda
