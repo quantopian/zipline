@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import print_function
-
+import os
 import re
 import sys
 from operator import lt, gt, eq, le, ge
@@ -117,6 +117,7 @@ def _filter_requirements(lines_iter):
 
 
 REQ_UPPER_BOUNDS = {
+    'numpy': '<1.10',
 }
 
 
@@ -133,7 +134,18 @@ def _with_bounds(req):
         return ''.join(with_bounds)
 
 
-def read_requirements(path, strict_bounds):
+REQ_PATTERN = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
+
+
+def _conda_format(req):
+    return REQ_PATTERN.sub(
+        lambda m: '%s %s%s' % (m.group(1).lower(), m.group(2), m.group(3)),
+        req,
+        1,
+    )
+
+
+def read_requirements(path, strict_bounds, conda_format=False):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
 
@@ -144,20 +156,25 @@ def read_requirements(path, strict_bounds):
     with open(real_path) as f:
         reqs = _filter_requirements(f.readlines())
 
-        if strict_bounds:
-            return list(reqs)
-        else:
-            return list(map(_with_bounds, reqs))
+        if not strict_bounds:
+            reqs = map(_with_bounds, reqs)
+
+        if conda_format:
+            reqs = map(_conda_format, reqs)
+
+        return list(reqs)
 
 
-def install_requires(strict_bounds=False):
+def install_requires(strict_bounds=False, conda_format=False):
     return read_requirements('etc/requirements.txt',
-                             strict_bounds=strict_bounds)
+                             strict_bounds=strict_bounds,
+                             conda_format=conda_format)
 
 
-def extras_requires():
+def extras_requires(conda_format=False):
     dev_reqs = read_requirements('etc/requirements_dev.txt',
-                                 strict_bounds=True)
+                                 strict_bounds=True,
+                                 conda_format=conda_format)
     talib_reqs = ['TA-Lib==0.4.9']
     return {
         'dev': dev_reqs,
@@ -170,14 +187,12 @@ def module_requirements(requirements_path, module_names):
     module_names = set(module_names)
     found = set()
     module_lines = []
-    parser = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
-    for line in read_requirements(requirements_path, strict_bounds=False):
-        match = parser.match(line)
+    for line in read_requirements(requirements_path, strict_bounds=True):
+        match = REQ_PATTERN.match(line)
         if match is None:
             raise AssertionError("Could not parse requirement: '%s'" % line)
 
-        groups = match.groups()
-        name = groups[0]
+        name = match.group(1)
         if name in module_names:
             found.add(name)
             module_lines.append(line)
@@ -214,6 +229,7 @@ def pre_setup():
 
 pre_setup()
 
+conda_build = os.path.basename(sys.argv[0]) == 'conda-build'
 
 setup(
     name='zipline',
@@ -241,7 +257,7 @@ setup(
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: System :: Distributed Computing',
     ],
-    install_requires=install_requires(),
-    extras_require=extras_requires(),
+    install_requires=install_requires(conda_format=conda_build),
+    extras_require=extras_requires(conda_format=conda_build),
     url="http://zipline.io",
 )
