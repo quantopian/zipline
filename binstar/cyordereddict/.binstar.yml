@@ -1,4 +1,4 @@
-package: zipline
+package: cyordereddict
 user: quantopian
 
 platform:
@@ -10,15 +10,12 @@ engine:
 install:
   - conda config --add channels quantopian
   - conda config --set always_yes true
-  - source deactivate
-  - conda install conda-build=1.10alpha.0
-  - source activate /home/anaconda/env
 
 before_script:
   - python -V
 
 script:
-  - conda build conda/zipline/
+  - conda build conda/cyordereddict
 
 iotimeout: 600
 

@@ -11,14 +11,14 @@ build:
 
 
 source:
-  git_url: ../../
+  path: ../../
 
 requirements:
   build:
     - python
-    - setuptools
-    - cython
-    - numpy
+    {% for req in data.get('install_requires', []) -%}
+    - {{req}}
+    {% endfor %}
   run:
     - python
     {% for req in data.get('install_requires', []) -%}
