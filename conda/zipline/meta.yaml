@@ -16,7 +16,7 @@ source:
 requirements:
   build:
     - python
-    {% for req in data.get('install_requires', []) -%}
+    {% for req in data.get('build_requires', []) -%}
     - {{req}}
     {% endfor %}
   run:

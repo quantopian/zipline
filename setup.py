@@ -225,6 +225,12 @@ def module_requirements(requirements_path, module_names, strict_bounds):
 
 conda_build = os.path.basename(sys.argv[0]) == 'conda-build'
 
+setup_requires = module_requirements(
+    'etc/requirements.txt',
+    ('Cython', 'numpy'),
+    strict_bounds=False,
+)
+
 setup(
     name='zipline',
     version=versioneer.get_version(),
@@ -252,10 +258,7 @@ setup(
     ],
     install_requires=install_requires(conda_format=conda_build),
     extras_require=extras_requires(conda_format=conda_build),
-    setup_requires=module_requirements(
-        'etc/requirements.txt',
-        ('Cython', 'numpy'),
-        strict_bounds=False,
-    ),
+    setup_requires=setup_requires if not conda_build else [],
+    build_requires=setup_requires,
     url="http://zipline.io",
 )
