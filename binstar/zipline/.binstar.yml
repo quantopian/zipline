@@ -11,6 +11,8 @@ install:
   - conda config --add channels quantopian
   - conda config --set always_yes true
   - source deactivate
+  # conda-build built from https://github.com/conda/conda-build/pull/717
+  # (conda-build can only be installed in root env.)
   - conda install conda-build=1.10alpha.0
   - source activate /home/anaconda/env
 
