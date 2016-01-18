@@ -9,6 +9,7 @@ from six import (
 
 from zipline.pipeline.term import Term, AssetExists
 from zipline.utils.input_validation import ensure_dtype
+from zipline.utils.numpy_utils import bool_dtype
 from zipline.utils.preprocess import preprocess
 
 
@@ -92,7 +93,10 @@ class BoundColumn(Term):
 
     @property
     def latest(self):
-        from zipline.pipeline.factors import Latest
+        if self.dtype == bool_dtype:
+            from zipline.pipeline.filters import Latest
+        else:
+            from zipline.pipeline.factors import Latest
         return Latest(inputs=(self,), dtype=self.dtype)
 
     def __repr__(self):

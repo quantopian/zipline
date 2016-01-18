@@ -12,11 +12,12 @@ from zipline.errors import (
     TermInputsNotSpecified,
     WindowLengthNotSpecified,
 )
-from zipline.pipeline import Factor, TermGraph
+from zipline.pipeline import Factor, Filter, TermGraph
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.utils.numpy_utils import (
+    bool_dtype,
     datetime64ns_dtype,
     float64_dtype,
 )
@@ -330,6 +331,17 @@ class ObjectIdentityTestCase(TestCase):
 
         with self.assertRaises(InvalidDType):
             SomeFactor(dtype=1)
+
+    def test_latest_on_different_dtypes(self):
+
+        class D(DataSet):
+            bool_col = Column(dtype=bool_dtype)
+            float_col = Column(dtype=float64_dtype)
+            datetime_col = Column(dtype=datetime64ns_dtype)
+
+        self.assertIsInstance(D.bool_col.latest, Filter)
+        self.assertIsInstance(D.float_col.latest, Factor)
+        self.assertIsInstance(D.datetime_col.latest, Factor)
 
 
 class SubDataSetTestCase(TestCase):
