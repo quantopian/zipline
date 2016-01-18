@@ -33,9 +33,54 @@ Pipeline API
    :exclude-members: dtype
    :member-order: bysource
 
+.. autoclass:: zipline.pipeline.factors.Latest
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.MaxDrawdown
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.Returns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RSI
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.BusinessDaysUntilNextEarnings
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.BusinessDaysSincePreviousEarnings
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.SimpleMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.VWAP
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.WeightedAverageValue
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.AverageDollarVolume
+   :members:
+
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
    :exclude-members: dtype
+
+.. autoclass:: zipline.pipeline.data.EarningsCalendar
+   :members: next_announcement, previous_announcement
+   :undoc-members:
+
+.. autoclass:: zipline.pipeline.data.USEquityPricing
+   :members: open, high, low, close, volume
+   :undoc-members:
+
 
 Asset Metadata
 ~~~~~~~~~~~~~~

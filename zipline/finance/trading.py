@@ -96,7 +96,6 @@ class TradingEnvironment(object):
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
 
-        self.prev_environment = self
         self.bm_symbol = bm_symbol
         if not load:
             load = load_market_data

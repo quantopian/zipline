@@ -35,8 +35,7 @@ from six.moves import range, zip
 from zipline.finance.trading import noop_load
 import zipline.utils.factory as factory
 import zipline.finance.performance as perf
-from zipline.finance.performance import position_tracker
-from zipline.finance.slippage import Transaction, create_transaction
+from zipline.finance.transaction import Transaction, create_transaction
 import zipline.utils.math_utils as zp_math
 from zipline.gens.composites import date_sorted_sources
 from zipline.finance.trading import SimulationParameters
@@ -254,7 +253,11 @@ def check_perf_tracker_serialization(perf_tracker):
     for k in scalar_keys:
         nt.assert_equal(getattr(test, k), getattr(perf_tracker, k), k)
 
-    for period in test.perf_periods:
+    perf_periods = (
+        test.cumulative_performance,
+        test.todays_performance
+    )
+    for period in perf_periods:
         nt.assert_true(hasattr(period, '_position_tracker'))
 
 
@@ -2324,7 +2327,7 @@ class TestPositionTracker(unittest.TestCase):
         np.bool_(False)
         """
         pt = perf.PositionTracker(self.env.asset_finder)
-        pos_stats = position_tracker.calc_position_stats(pt)
+        pos_stats = pt.stats()
 
         stats = [
             'net_value',
@@ -2343,26 +2346,6 @@ class TestPositionTracker(unittest.TestCase):
             self.assertEquals(val, 0)
             self.assertNotIsInstance(val, (bool, np.bool_))
 
-    def test_update_last_sale(self):
-        pt = perf.PositionTracker(self.env.asset_finder)
-        dt = pd.Timestamp("1984/03/06 3:00PM")
-        pos1 = perf.Position(1, amount=np.float64(100.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pos3 = perf.Position(3, amount=np.float64(100.0),
-                             last_sale_date=dt, last_sale_price=10)
-        pt.update_positions({1: pos1, 3: pos3})
-
-        event1 = Event({'sid': 1,
-                        'price': 11,
-                        'dt': dt})
-        event3 = Event({'sid': 3,
-                        'price': 11,
-                        'dt': dt})
-
-        # Check cash-adjustment return value
-        self.assertEqual(0, pt.update_last_sale(event1))
-        self.assertEqual(100000, pt.update_last_sale(event3))
-
     def test_position_values_and_exposures(self):
         pt = perf.PositionTracker(self.env.asset_finder)
         dt = pd.Timestamp("1984/03/06 3:00PM")
@@ -2378,7 +2361,7 @@ class TestPositionTracker(unittest.TestCase):
 
         # Test long-only methods
 
-        pos_stats = position_tracker.calc_position_stats(pt)
+        pos_stats = pt.stats()
         self.assertEqual(100, pos_stats.long_value)
         self.assertEqual(100 + 300000, pos_stats.long_exposure)
         self.assertEqual(2, pos_stats.longs_count)

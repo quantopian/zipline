@@ -35,7 +35,7 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         """
         Compute values for `pipeline` between `start_date` and `end_date`.
 
-        Returns a DataFrame with a MultiIndex of (date, asset) pairs
+        Returns a DataFrame with a MultiIndex of (date, asset) pairs.
 
         Parameters
         ----------
@@ -51,7 +51,7 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         result : pd.DataFrame
             A frame of computed results.
 
-            The columns `result` correspond wil be the computed results of
+            The columns `result` correspond will be the computed results of
             `pipeline.columns`, which should be a dictionary mapping strings to
             instances of `zipline.pipeline.term.Term`.
 

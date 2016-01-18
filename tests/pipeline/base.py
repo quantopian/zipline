@@ -8,11 +8,14 @@ from numpy import arange, prod
 from pandas import date_range, Int64Index, DataFrame
 from six import iteritems
 
-from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.utils.pandas_utils import explode
-from zipline.utils.test_utils import make_simple_equity_info, ExplodingObject
+from zipline.utils.test_utils import (
+    ExplodingObject,
+    make_simple_equity_info,
+    tmp_asset_finder,
+)
 from zipline.utils.tradingcalendar import trading_day
 
 
@@ -45,26 +48,26 @@ with_default_shape = with_defaults(shape=lambda self: self.default_shape)
 
 class BasePipelineTestCase(TestCase):
 
-    def setUp(self):
-        self.__calendar = date_range('2014', '2015', freq=trading_day)
-        self.__assets = assets = Int64Index(arange(1, 20))
-
-        # Set up env for test
-        env = TradingEnvironment()
-        env.write_data(
-            equities_df=make_simple_equity_info(
+    @classmethod
+    def setUpClass(cls):
+        cls.__calendar = date_range('2014', '2015', freq=trading_day)
+        cls.__assets = assets = Int64Index(arange(1, 20))
+        cls.__tmp_finder_ctx = tmp_asset_finder(
+            equities=make_simple_equity_info(
                 assets,
-                self.__calendar[0],
-                self.__calendar[-1],
-            ),
+                cls.__calendar[0],
+                cls.__calendar[-1],
+            )
         )
-        self.__finder = env.asset_finder
-
-        # Use a 30-day period at the end of the year by default.
-        self.__mask = self.__finder.lifetimes(
-            self.__calendar[-30:],
+        cls.__finder = cls.__tmp_finder_ctx.__enter__()
+        cls.__mask = cls.__finder.lifetimes(
+            cls.__calendar[-30:],
             include_start_date=False,
         )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.__tmp_finder_ctx.__exit__()
 
     @property
     def default_shape(self):

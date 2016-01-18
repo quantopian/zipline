@@ -8,7 +8,8 @@ from six import (
 )
 
 from zipline.pipeline.term import Term, AssetExists
-from zipline.pipeline.factors import Latest
+from zipline.utils.input_validation import ensure_dtype
+from zipline.utils.preprocess import preprocess
 
 
 class Column(object):
@@ -16,14 +17,32 @@ class Column(object):
     An abstract column of data, not yet associated with a dataset.
     """
 
+    @preprocess(dtype=ensure_dtype)
     def __init__(self, dtype):
         self.dtype = dtype
 
-    def bind(self, dataset, name):
+    def bind(self, name):
         """
-        Bind a column to a concrete dataset.
+        Bind a `Column` object to its name.
         """
-        return BoundColumn(dtype=self.dtype, dataset=dataset, name=name)
+        return _BoundColumnDescr(dtype=self.dtype, name=name)
+
+
+class _BoundColumnDescr(object):
+    """
+    Intermediate class that sits on `DataSet` objects and returns memoized
+    `BoundColumn` objects when requested.
+    """
+    def __init__(self, dtype, name):
+        self.dtype = dtype
+        self.name = name
+
+    def __get__(self, instance, owner):
+        return BoundColumn(
+            dtype=self.dtype,
+            dataset=owner,
+            name=self.name,
+        )
 
 
 class BoundColumn(Term):
@@ -73,15 +92,13 @@ class BoundColumn(Term):
 
     @property
     def latest(self):
-        # FIXME: Once we support non-float dtypes, this should pass a dtype
-        # along.  Right now we're just assuming that inputs will safely coerce
-        # to float.
-        return Latest(inputs=(self,))
+        from zipline.pipeline.factors import Latest
+        return Latest(inputs=(self,), dtype=self.dtype)
 
     def __repr__(self):
         return "{qualname}::{dtype}".format(
             qualname=self.qualname,
-            dtype=self.dtype.__name__,
+            dtype=self.dtype.name,
         )
 
     def short_repr(self):
@@ -97,20 +114,26 @@ class DataSetMeta(type):
     """
 
     def __new__(mcls, name, bases, dict_):
-        newtype = type.__new__(mcls, name, bases, dict_)
-        _columns = []
+        newtype = super(DataSetMeta, mcls).__new__(mcls, name, bases, dict_)
+        # collect all of the column names that we inherit from our parents
+        column_names = set().union(
+            *(getattr(base, '_column_names', ()) for base in bases)
+        )
         for maybe_colname, maybe_column in iteritems(dict_):
             if isinstance(maybe_column, Column):
-                bound_column = maybe_column.bind(newtype, maybe_colname)
-                setattr(newtype, maybe_colname, bound_column)
-                _columns.append(bound_column)
+                # add column names defined on our class
+                bound_column_descr = maybe_column.bind(maybe_colname)
+                setattr(newtype, maybe_colname, bound_column_descr)
+                column_names.add(maybe_colname)
 
-        newtype._columns = frozenset(_columns)
+        newtype._column_names = frozenset(column_names)
         return newtype
 
     @property
     def columns(self):
-        return self._columns
+        return frozenset(
+            getattr(self, colname) for colname in self._column_names
+        )
 
     def __lt__(self, other):
         return id(self) < id(other)
@@ -119,5 +142,5 @@ class DataSetMeta(type):
         return '<DataSet: %r>' % self.__name__
 
 
-class DataSet(with_metaclass(DataSetMeta)):
+class DataSet(with_metaclass(DataSetMeta, object)):
     domain = None

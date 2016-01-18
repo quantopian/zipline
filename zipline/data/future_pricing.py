@@ -1,5 +1,4 @@
-#
-# Copyright 2012 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ctypes import Structure, c_ubyte
 
-
-def Enum(*options):
+class FutureDailyReader(object):
     """
-    Fast enums are very important when we want really tight
-    loops. These are probably going to evolve into pure C structs
-    anyways so might as well get going on that.
+    Stubbed out. Currently unimplemented.
     """
-    class cstruct(Structure):
-        _fields_ = [(o, c_ubyte) for o in options]
+    pass
 
-        def __iter__(s):
-            return iter(range(len(options)))
-    return cstruct(*range(len(options)))
+
+class FutureMinuteReader(object):
+
+    def __init__(self, rootdir, sid_path_func=None):
+        self.rootdir = rootdir
+        self.sid_path_func = sid_path_func

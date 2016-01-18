@@ -291,6 +291,11 @@ class BcolzDailyBarTestCase(TestCase):
                                   'close')
         self.assertEqual(235651.0, price)
 
+        # Ensure that volume does not have float adjustment applied.
+        volume = reader.spot_price(1, Timestamp('2015-06-02', tz='UTC'),
+                                   'volume')
+        self.assertEqual(145631, volume)
+
     def test_unadjusted_spot_price_no_data(self):
         table = self.writer.write(self.dest, self.trading_days, self.assets)
         reader = BcolzDailyBarReader(table)
@@ -301,3 +306,20 @@ class BcolzDailyBarTestCase(TestCase):
         # after
         with self.assertRaises(NoDataOnDate):
             reader.spot_price(4, Timestamp('2015-06-16', tz='UTC'), 'close')
+
+    def test_unadjusted_spot_price_empty_value(self):
+        table = self.writer.write(self.dest, self.trading_days, self.assets)
+        reader = BcolzDailyBarReader(table)
+
+        # A sid, day and corresponding index into which to overwrite a zero.
+        zero_sid = 1
+        zero_day = Timestamp('2015-06-02', tz='UTC')
+        zero_ix = reader.sid_day_index(zero_sid, zero_day)
+
+        # Write a zero into the synthetic pricing data at the day and sid,
+        # so that a read should now return -1.
+        # This a little hacky, in lieu of changing the synthetic data set.
+        reader._spot_col('close')[zero_ix] = 0
+
+        close = reader.spot_price(zero_sid, zero_day, 'close')
+        self.assertEqual(-1, close)

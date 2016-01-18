@@ -16,9 +16,11 @@ from numpy import (
     uint32,
 )
 
-from zipline.lib.adjusted_array import (
-    adjusted_array,
+from zipline.data.us_equity_pricing import (
+    BcolzDailyBarReader,
+    SQLiteAdjustmentReader,
 )
+from zipline.lib.adjusted_array import AdjustedArray
 from zipline.errors import NoFurtherDataError
 
 from .base import PipelineLoader
@@ -39,6 +41,24 @@ class USEquityPricingLoader(PipelineLoader):
         # backshift dates.
         self._calendar = self.raw_price_loader._calendar
         self.adjustments_loader = adjustments_loader
+
+    @classmethod
+    def from_files(cls, pricing_path, adjustments_path):
+        """
+        Create a loader from a bcolz equity pricing dir and a SQLite
+        adjustments path.
+
+        Parameters
+        ----------
+        pricing_path : str
+            Path to a bcolz directory written by a BcolzDailyBarWriter.
+        adjusments_path : str
+            Path to an adjusments db written by a SQLiteAdjustmentWriter.
+        """
+        return cls(
+            BcolzDailyBarReader(pricing_path),
+            SQLiteAdjustmentReader(adjustments_path)
+        )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         # load_adjusted_array is called with dates on which the user's algo
@@ -62,7 +82,7 @@ class USEquityPricingLoader(PipelineLoader):
             assets,
         )
         adjusted_arrays = [
-            adjusted_array(raw_array, mask, col_adjustments)
+            AdjustedArray(raw_array, mask, col_adjustments)
             for raw_array, col_adjustments in zip(raw_arrays, adjustments)
         ]
 

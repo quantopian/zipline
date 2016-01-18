@@ -18,7 +18,8 @@ from nose_parameterized import parameterized
 from unittest import TestCase
 
 from zipline.finance import trading
-from zipline.finance.blotter import Blotter, ORDER_STATUS
+from zipline.finance.blotter import Blotter
+from zipline.finance.order import ORDER_STATUS
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,

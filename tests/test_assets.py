@@ -51,6 +51,8 @@ from zipline.assets.futures import (
 from zipline.assets.asset_writer import (
     check_version_info,
     write_version_info,
+)
+from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION,
     _version_table_schema,
 )
@@ -1542,3 +1544,24 @@ class TestAssetDBVersioning(TestCase):
         # Assert that trying to overwrite the version fails
         with self.assertRaises(sa.exc.IntegrityError):
             write_version_info(version_table, -3)
+
+    def test_finder_checks_version(self):
+        # Create an env and give it a bogus version number
+        env = TradingEnvironment(load=noop_load)
+        metadata = sa.MetaData(bind=env.engine)
+        version_table = _version_table_schema(metadata)
+        version_table.delete().execute()
+        write_version_info(version_table, -2)
+        check_version_info(version_table, -2)
+
+        # Assert that trying to build a finder with a bad db raises an error
+        with self.assertRaises(AssetDBVersionError):
+            AssetFinder(engine=env.engine)
+
+        # Change the version number of the db to the correct version
+        version_table.delete().execute()
+        write_version_info(version_table, ASSET_DB_VERSION)
+        check_version_info(version_table, ASSET_DB_VERSION)
+
+        # Now that the versions match, this Finder should succeed
+        AssetFinder(engine=env.engine)

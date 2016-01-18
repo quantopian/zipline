@@ -1,18 +1,19 @@
 package:
   name: logbook
-  version: !!str 0.6.0
+  version: "0.10.0"
 
 source:
-  fn: Logbook-0.6.0.tar.gz
-  url: https://pypi.python.org/packages/source/L/Logbook/Logbook-0.6.0.tar.gz
-  md5: 2c77da3adeafd191bb8071cc5ad447bf
+  fn: Logbook-0.10.0.tar.gz
+  url: https://pypi.python.org/packages/source/L/Logbook/Logbook-0.10.0.tar.gz
+  md5: 92439ce6f71f3120d65d84c2a3ab5047
 #  patches:
    # List any patch files here
    # - fix.patch
 
 # build:
-  #preserve_egg_dir: True
-  #entry_points:
+  # noarch_python: True
+  # preserve_egg_dir: True
+  # entry_points:
     # Put any entry points (scripts to be generated automatically) here. The
     # syntax is module:function.  For example
     #
@@ -29,16 +30,18 @@ requirements:
   build:
     - python
     - setuptools
+    - six >=1.4.0
 
   run:
     - python
+    - six >=1.4.0
 
 test:
   # Python imports
   imports:
     - logbook
 
-  #commands:
+  # commands:
     # You can put test commands to be run here.  Use this to test that the
     # entry points work.
 
@@ -53,6 +56,7 @@ test:
 about:
   home: http://logbook.pocoo.org/
   license: BSD
+  summary: 'A logging replacement for Python'
 
 # See
 # http://docs.continuum.io/conda/build.html for

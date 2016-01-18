@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from functools import wraps
 from itertools import (
+    combinations,
     count,
     product,
 )
@@ -18,12 +19,14 @@ from pandas.tseries.offsets import MonthBegin
 from six import iteritems, itervalues
 from six.moves import filter
 from sqlalchemy import create_engine
+from toolz import concat
 
 from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
-from zipline.finance.blotter import ORDER_STATUS
+from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
+from zipline.utils.tradingcalendar import trading_days
 
 
 EPOCH = pd.Timestamp(0, tz='UTC')
@@ -283,14 +286,14 @@ def make_rotating_equity_info(num_assets,
     )
 
 
-def make_simple_equity_info(assets, start_date, end_date, symbols=None):
+def make_simple_equity_info(sids, start_date, end_date, symbols=None):
     """
     Create a DataFrame representing assets that exist for the full duration
     between `start_date` and `end_date`.
 
     Parameters
     ----------
-    assets : array-like
+    sids : array-like of int
     start_date : pd.Timestamp
     end_date : pd.Timestamp
     symbols : list, optional
@@ -302,7 +305,7 @@ def make_simple_equity_info(assets, start_date, end_date, symbols=None):
     info : pd.DataFrame
         DataFrame representing newly-created assets.
     """
-    num_assets = len(assets)
+    num_assets = len(sids)
     if symbols is None:
         symbols = list(ascii_uppercase[:num_assets])
     return pd.DataFrame(
@@ -312,7 +315,7 @@ def make_simple_equity_info(assets, start_date, end_date, symbols=None):
             'end_date': [end_date] * num_assets,
             'exchange': 'TEST',
         },
-        index=assets,
+        index=sids,
     )
 
 
@@ -603,3 +606,61 @@ def subtest(iterator, *_names):
 
         return wrapped
     return dec
+
+
+def assert_timestamp_equal(left, right, compare_nat_equal=True, msg=""):
+    """
+    Assert that two pandas Timestamp objects are the same.
+
+    Parameters
+    ----------
+    left, right : pd.Timestamp
+        The values to compare.
+    compare_nat_equal : bool, optional
+        Whether to consider `NaT` values equal.  Defaults to True.
+    msg : str, optional
+        A message to forward to `pd.util.testing.assert_equal`.
+    """
+    if compare_nat_equal and left is pd.NaT and right is pd.NaT:
+        return
+    return pd.util.testing.assert_equal(left, right, msg=msg)
+
+
+def powerset(values):
+    """
+    Return the power set (i.e., the set of all subsets) of entries in `values`.
+    """
+    return concat(combinations(values, i) for i in range(len(values) + 1))
+
+
+def to_series(knowledge_dates, earning_dates):
+    """
+    Helper for converting a dict of strings to a Series of datetimes.
+
+    This is just for making the test cases more readable.
+    """
+    return pd.Series(
+        index=pd.to_datetime(knowledge_dates),
+        data=pd.to_datetime(earning_dates),
+    )
+
+
+def num_days_in_range(dates, start, end):
+    """
+    Return the number of days in `dates` between start and end, inclusive.
+    """
+    start_idx, stop_idx = dates.slice_locs(start, end)
+    return stop_idx - start_idx
+
+
+def gen_calendars(start, stop, critical_dates):
+    """
+    Generate calendars to use as inputs.
+    """
+    all_dates = pd.date_range(start, stop, tz='utc')
+    for to_drop in map(list, powerset(critical_dates)):
+        # Have to yield tuples.
+        yield (all_dates.drop(to_drop),)
+
+    # Also test with the trading calendar.
+    yield (trading_days[trading_days.slice_indexer(start, stop)],)

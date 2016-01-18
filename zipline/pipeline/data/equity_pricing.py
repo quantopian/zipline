@@ -1,12 +1,17 @@
-from numpy import float64, uint32
+"""
+Dataset representing OHLCV data.
+"""
+from zipline.utils.numpy_utils import float64_dtype
 
 from .dataset import Column, DataSet
 
 
 class USEquityPricing(DataSet):
-
-    open = Column(float64)
-    high = Column(float64)
-    low = Column(float64)
-    close = Column(float64)
-    volume = Column(uint32)
+    """
+    Dataset representing daily trading prices and volumes.
+    """
+    open = Column(float64_dtype)
+    high = Column(float64_dtype)
+    low = Column(float64_dtype)
+    close = Column(float64_dtype)
+    volume = Column(float64_dtype)

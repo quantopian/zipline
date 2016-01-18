@@ -18,9 +18,8 @@ from six import iteritems, iterkeys
 import pandas as pd
 import numpy as np
 
-from . utils.protocol_utils import Enum
-from . utils.math_utils import nanstd, nanmean, nansum
-from . data.currencies import CCY
+from .utils.enum import enum
+from .utils.math_utils import nanstd, nanmean, nansum
 
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
@@ -29,7 +28,7 @@ from zipline.utils.serialization_utils import (
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
-DATASOURCE_TYPE = Enum(
+DATASOURCE_TYPE = enum(
     'AS_TRADED_EQUITY',
     'MERGER',
     'SPLIT',

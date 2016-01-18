@@ -28,7 +28,7 @@ except ImportError:
 from six import iteritems, itervalues
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.finance.slippage import Transaction
+from zipline.finance.transaction import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -121,53 +121,6 @@ def calc_gross_value(long_value, short_value):
     return long_value + abs(short_value)
 
 
-def calc_position_stats(pt):
-    amounts = []
-    last_sale_prices = []
-    for pos in itervalues(pt.positions):
-        amounts.append(pos.amount)
-        last_sale_prices.append(pos.last_sale_price)
-
-    position_value_multipliers = pt._position_value_multipliers
-    position_exposure_multipliers = pt._position_exposure_multipliers
-
-    position_values = calc_position_values(
-        amounts,
-        last_sale_prices,
-        position_value_multipliers
-    )
-
-    position_exposures = calc_position_exposures(
-        amounts,
-        last_sale_prices,
-        position_exposure_multipliers
-    )
-
-    long_value = calc_long_value(position_values)
-    short_value = calc_short_value(position_values)
-    gross_value = calc_gross_value(long_value, short_value)
-    long_exposure = calc_long_exposure(position_exposures)
-    short_exposure = calc_short_exposure(position_exposures)
-    gross_exposure = calc_gross_exposure(long_exposure, short_exposure)
-    net_exposure = calc_net(position_exposures)
-    longs_count = calc_longs_count(position_exposures)
-    shorts_count = calc_shorts_count(position_exposures)
-    net_value = calc_net(position_values)
-
-    return PositionStats(
-        long_value=long_value,
-        gross_value=gross_value,
-        short_value=short_value,
-        long_exposure=long_exposure,
-        short_exposure=short_exposure,
-        gross_exposure=gross_exposure,
-        net_exposure=net_exposure,
-        longs_count=longs_count,
-        shorts_count=shorts_count,
-        net_value=net_value
-    )
-
-
 class PositionTracker(object):
 
     def __init__(self, asset_finder):
@@ -178,7 +131,6 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
-        self._position_payout_multipliers = OrderedDict()
         self._unpaid_dividends = pd.DataFrame(
             columns=zp.DIVIDEND_PAYMENT_FIELDS,
         )
@@ -192,7 +144,6 @@ class PositionTracker(object):
         try:
             self._position_value_multipliers[sid]
             self._position_exposure_multipliers[sid]
-            self._position_payout_multipliers[sid]
         except KeyError:
             # Check if there is an AssetFinder
             if self.asset_finder is None:
@@ -203,12 +154,9 @@ class PositionTracker(object):
             if isinstance(asset, Equity):
                 self._position_value_multipliers[sid] = 1
                 self._position_exposure_multipliers[sid] = 1
-                self._position_payout_multipliers[sid] = 0
             if isinstance(asset, Future):
                 self._position_value_multipliers[sid] = 0
                 self._position_exposure_multipliers[sid] = \
-                    asset.contract_multiplier
-                self._position_payout_multipliers[sid] = \
                     asset.contract_multiplier
                 # Futures auto-close timing is controlled by the Future's
                 # auto_close_date property
@@ -281,13 +229,8 @@ class PositionTracker(object):
             return 0
 
         pos = self.positions[sid]
-        old_price = pos.last_sale_price
         pos.last_sale_date = event.dt
         pos.last_sale_price = price
-
-        # Calculate cash adjustment on assets with multipliers
-        return ((price - old_price) * self._position_payout_multipliers[sid]
-                * pos.amount)
 
     def update_positions(self, positions):
         # update positions in batch
@@ -317,18 +260,17 @@ class PositionTracker(object):
         position.update(txn)
         self._update_asset(sid)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, sid, cost):
         # Adjust the cost basis of the stock if we own it
-        if commission.sid in self.positions:
-            self.positions[commission.sid].\
-                adjust_commission_cost_basis(commission)
+        if sid in self.positions:
+            self.positions[sid].adjust_commission_cost_basis(sid, cost)
 
     def handle_split(self, split):
         if split.sid in self.positions:
             # Make the position object handle the split. It returns the
             # leftover cash from a fractional share, if there is any.
             position = self.positions[split.sid]
-            leftover_cash = position.handle_split(split)
+            leftover_cash = position.handle_split(split.sid, split.ratio)
             self._update_asset(split.sid)
             return leftover_cash
 
@@ -457,6 +399,49 @@ class PositionTracker(object):
                 positions.append(pos.to_dict())
         return positions
 
+    def stats(self):
+        amounts = []
+        last_sale_prices = []
+        for pos in itervalues(self.positions):
+            amounts.append(pos.amount)
+            last_sale_prices.append(pos.last_sale_price)
+
+        position_values = calc_position_values(
+            amounts,
+            last_sale_prices,
+            self._position_value_multipliers
+        )
+
+        position_exposures = calc_position_exposures(
+            amounts,
+            last_sale_prices,
+            self._position_exposure_multipliers
+        )
+
+        long_value = calc_long_value(position_values)
+        short_value = calc_short_value(position_values)
+        gross_value = calc_gross_value(long_value, short_value)
+        long_exposure = calc_long_exposure(position_exposures)
+        short_exposure = calc_short_exposure(position_exposures)
+        gross_exposure = calc_gross_exposure(long_exposure, short_exposure)
+        net_exposure = calc_net(position_exposures)
+        longs_count = calc_longs_count(position_exposures)
+        shorts_count = calc_shorts_count(position_exposures)
+        net_value = calc_net(position_values)
+
+        return PositionStats(
+            long_value=long_value,
+            gross_value=gross_value,
+            short_value=short_value,
+            long_exposure=long_exposure,
+            short_exposure=short_exposure,
+            gross_exposure=gross_exposure,
+            net_exposure=net_exposure,
+            longs_count=longs_count,
+            shorts_count=shorts_count,
+            net_value=net_value
+        )
+
     def __getstate__(self):
         state_dict = {}
 
@@ -488,7 +473,6 @@ class PositionTracker(object):
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()
         self._position_exposure_multipliers = OrderedDict()
-        self._position_payout_multipliers = OrderedDict()
 
         # Update positions is called without a finder
         self.update_positions(state['positions'])

@@ -12,7 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pandas.core.common as com
+from pandas.core.common import mask_missing
+try:
+    from pandas.core.common import backfill_2d, pad_2d
+except ImportError:
+    # In 0.17, pad_2d and backfill_2d werw moved from pandas.core.common to
+    # pandas.core.missing
+    from pandas.core.missing import backfill_2d, pad_2d
 
 
 def _interpolate(values, method, axis=None):
@@ -49,14 +55,14 @@ def interpolate_2d(values, method='pad', axis=0, limit=None, fill_value=None):
     if fill_value is None:
         mask = None
     else:  # todo create faster fill func without masking
-        mask = com.mask_missing(transf(values), fill_value)
+        mask = mask_missing(transf(values), fill_value)
 
     # Note: pad_2d and backfill_2d work inplace in 0.12.0 and 0.15.2
     # in 0.15.2 they also return a reference to values
     if method == 'pad':
-        com.pad_2d(transf(values), limit=limit, mask=mask)
+        pad_2d(transf(values), limit=limit, mask=mask)
     else:
-        com.backfill_2d(transf(values), limit=limit, mask=mask)
+        backfill_2d(transf(values), limit=limit, mask=mask)
 
     # reshape back
     if ndim == 1:

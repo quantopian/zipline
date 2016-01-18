@@ -23,6 +23,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
+from zipline.assets import Equity, Future
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (
@@ -91,7 +92,6 @@ from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource,
                              RandomWalkSource)
-from zipline.assets import Equity
 
 from zipline.finance.execution import LimitOrder
 from zipline.finance.trading import SimulationParameters
@@ -645,10 +645,12 @@ class TestTransformAlgorithm(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        futures_metadata = {3: {'contract_multiplier': 10}}
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[0, 1, 133],
-                           futures_data=futures_metadata)
+        cls.env.write_data(equities_identifiers=[0, 1, 133])
+
+        futures_metadata = {0: {'contract_multiplier': 10}}
+        cls.futures_env = TradingEnvironment()
+        cls.futures_env.write_data(futures_data=futures_metadata)
 
     @classmethod
     def tearDownClass(cls):
@@ -795,6 +797,11 @@ class TestTransformAlgorithm(TestCase):
             sim_params=self.sim_params,
             env=self.env,
         )
+
+        # Ensure that the environment's asset 0 is an Equity
+        asset_to_test = algo.sid(0)
+        self.assertIsInstance(asset_to_test, Equity)
+
         algo.run(self.df)
 
     @parameterized.expand([
@@ -807,8 +814,13 @@ class TestTransformAlgorithm(TestCase):
     def test_order_methods_for_future(self, algo_class):
         algo = algo_class(
             sim_params=self.sim_params,
-            env=self.env,
+            env=self.futures_env,
         )
+
+        # Ensure that the environment's asset 0 is a Future
+        asset_to_test = algo.sid(0)
+        self.assertIsInstance(asset_to_test, Future)
+
         algo.run(self.df)
 
     def test_order_method_style_forwarding(self):

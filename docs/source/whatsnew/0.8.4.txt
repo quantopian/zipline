@@ -11,7 +11,11 @@ Development
 Highlights
 ~~~~~~~~~~
 
-None
+* Added a new :class:`~zipline.pipeline.data.EarningsCalendar` dataset
+  for use in the Pipeline API. (:issue:`905`).
+
+* :class:`~zipline.assets.assets.AssetFinder` speedups (:issue:`830` and
+  :issue:`817`).
 
 Enhancements
 ~~~~~~~~~~~~
@@ -23,10 +27,61 @@ Enhancements
   passed to :class:`~zipline.algorithm.TradingAlgorithm` by the keyword argument
   ``create_event_context`` (:issue:`828`).
 
+* Added support for :class:`zipline.pipeline.factors.Factor` instances with
+  ``datetime64[ns]`` dtypes. (:issue:`905`)
+
+* Added a new :class:`~zipline.pipeline.data.earnings.EarningsCalendar` dataset
+  for use in the Pipeline API.  This dataset provides an abstract interface for
+  adding earnings announcement data to a new algorithm. A pandas-based
+  reference implementation for this dataset can be found in
+  :mod:`zipline.pipeline.loaders.earnings`, and an experimental blaze-based
+  implementation can be found in
+  :mod:`zipline.pipeline.loaders.blaze.earnings`. (:issue:`905`).
+
+* Added new built-in factors,
+  :class:`zipline.pipeline.factors.BusinessDaysUntilNextEarnings` and
+  :class:`zipline.pipeline.factors.BusinessDaysSincePreviousEarnings`.  These
+  factors use the new ``EarningsCalendar`` dataset. (:issue:`905`).
+
 * Added :meth:`~zipline.pipeline.factors.Factor.isnan`,
   :meth:`~zipline.pipeline.factors.Factor.notnan` and
   :meth:`~zipline.pipeline.factors.Factor.isfinite` methods to
   :class:`zipline.pipeline.factors.Factor` (:issue:`861`).
+
+* Added :class:`zipline.pipeline.factors.Returns`, a built-in factor which
+  calculates the percent change in close price over the given
+  window_length. (:issue:`884`).
+
+* Added a new built-in factor:
+  :class:`~zipline.pipeline.factors.AverageDollarVolume`. (:issue:`927`).
+
+* Added :class:`~zipline.pipeline.factors.ExponentialWeightedMovingAverage` and
+  :class:`~zipline.pipeline.factors.ExponentialWeightedMovingStdDev`
+  factors. (:issue:`910`).
+
+* Allow :class:`~zipline.pipeline.data.DataSet` classes to be subclassed where
+  subclasses inherit all of the columns from the parent. These columns will be
+  new sentinels so you can register them a custom loader (:issue:`924`).
+
+* Added :func:`~zipline.utils.input_validation.coerce` to coerce inputs from one
+  type into another before passing them to the function (:issue:`948`).
+
+* Added :func:`~zipline.utils.input_validation.optionally` to wrap other
+  preprocessor functions to explicitly allow ``None`` (:issue:`947`).
+
+* Added :func:`~zipline.utils.input_validation.ensure_timezone` to allow string
+  arguments to get converted into ``datetime.tzinfo`` objects. This also allows
+  ``tzinfo`` objects to be passed directly (:issue:`947`).
+
+* Added two optional arguments, ``data_query_time`` and ``data_query_tz`` to
+  :class:`~zipline.pipeline.loaders.blaze.core.BlazeLoader` and
+  :class:`~zipline.pipeline.loaders.blaze.earnings.BlazeEarningsCalendarLoader`.
+  These arguments allow the user to specify some cutoff time for data when
+  loading from the resource. For example, if I want to simulate executing my
+  ``before_trading_start`` function at ``8:45 US/Eastern`` then I could pass
+  ``datetime.time(8, 45)`` and ``'US/Eastern'`` to the loader. This means that
+  data that is timestamped on or after ``8:45`` will not seen on that day in the
+  simulation. The data will be made available on the next day (:issue:`947`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -35,7 +90,11 @@ Experimental Features
 
    Experimental features are subject to change.
 
-None
+* Added support for parameterized ``Factor`` subclasses.  Factors may specify
+  ``params`` as a class-level attribute containing a tuple of parameter names.
+  These values are then accepted by the constructor and forwarded by name to
+  the factor's ``compute`` function.  This API is experimental, and may change
+  in future releases.
 
 Bug Fixes
 ~~~~~~~~~
@@ -47,6 +106,23 @@ Bug Fixes
 * Fixes an error raised in calculating beta when benchmark data were sparse.
   Instead `numpy.nan` is returned (:issue:`859`).
 
+* Fixed an issue pickling :func:`~zipline.utils.sentinel.sentinel` objects
+  (:issue:`872`).
+
+* Fixed spurious warnings on first download of treasury data (:issue `922`).
+
+* Corrected the error messages for :func:`~zipline.api.set_commission` and
+  :func:`~zipline.api.set_slippage` when used outside of the ``initialize``
+  function. These errors called the functions ``override_*`` instead of
+  ``set_*``. This also renamed the exception types raised from
+  ``OverrideSlippagePostInit`` and ``OverrideCommissionPostInit`` to
+  :class:`~zipline.errors.SetSlippagePostInit` and
+  :class:`~zipline.errors.SetCommissionPostInit` (:issue:`923`).
+
+* Fixed an issue in the CLI that would cause assets to be added twice.
+  This would map the same symbol to two different sids (:issue:`942`).
+
+
 Performance
 ~~~~~~~~~~~
 
@@ -56,11 +132,17 @@ Performance
   :meth:`~zipline.assets.assets.AssetFinder.lookup_symbol` to these dictionaries
   to find matching equities (:issue:`830`).
 
+* Improved performance of
+  :meth:`~zipline.assets.assets.AssetFinder.lookup_symbol` by performing
+  batched queries. (:issue:`817`).
+
 Maintenance and Refactorings
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Asset databases now contain version information to ensure compatibility
   with current Zipline version (:issue:`815`).
+
+* Upgrade requests version to 2.9.1.
 
 Build
 ~~~~~
@@ -69,6 +151,9 @@ Build
 * Use ``versioneer`` to manage the project ``__version__`` and setup.py version
   (:issue:`829`).
 * Fixed coveralls integration on travis build (:issue:`840`).
+* Fixed conda build, which now uses git source as its source and reads
+  requirements using setup.py, instead of copying them and letting them get out
+  of sync (:issue:`937`).
 
 Documentation
 ~~~~~~~~~~~~~
@@ -78,10 +163,14 @@ Documentation
 * Added reference docs for Asset Metadata APIs. (:issue:`864`).
 * Generated documentation now includes links to source code for many classes
   and functions. (:issue:`864`).
+* Added platform-specific documentation describing how to find binary
+  dependencies. (:issue:`883`).
 
 Miscellaneous
 ~~~~~~~~~~~~~
 
+* Added a :meth:`~zipline.pipeline.pipeline.Pipeline.show_graph` method to render
+  a Pipeline as an image (:issue:`836`).
 * Adds :func:`~zipline.utils.test_utils.subtest` decorator for creating subtests
   without ``nose_parameterized.expand`` which bloats the test output
   (:issue:`833`).

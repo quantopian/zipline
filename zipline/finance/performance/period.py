@@ -91,7 +91,6 @@ import zipline.protocol as zp
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
-from zipline.finance.performance.position_tracker import calc_position_stats
 
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
@@ -127,6 +126,10 @@ def calc_period_stats(pos_stats, ending_cash):
         net_leverage=net_leverage)
 
 
+def calc_payout(contract_multiplier, amount, old_price, price):
+    return (price - old_price) * contract_multiplier * amount
+
+
 class PerformancePeriod(object):
 
     def __init__(
@@ -150,6 +153,15 @@ class PerformancePeriod(object):
         self.pnl = 0.0
 
         self.ending_cash = starting_cash
+
+        # Keyed by asset, the previous last sale price of positions with
+        # payouts on price differences, e.g. Futures.
+        #
+        # This dt is not the previous minute to the minute for which the
+        # calculation is done, but the last sale price either before the period
+        # start, or when the price at execution.
+        self._payout_last_sale_prices = {}
+
         # rollover initializes a number of self's attributes:
         self.rollover()
         self.keep_transactions = keep_transactions
@@ -190,6 +202,15 @@ class PerformancePeriod(object):
         self.orders_by_modified = {}
         self.orders_by_id = OrderedDict()
 
+        payout_assets = self._payout_last_sale_prices.keys()
+
+        for asset in payout_assets:
+            if asset in self._payout_last_sale_prices:
+                self._payout_last_sale_prices[asset] = \
+                    self.position_tracker.positions[asset].last_sale_price
+            else:
+                del self._payout_last_sale_prices[asset]
+
     def handle_dividends_paid(self, net_cash_payment):
         if net_cash_payment:
             self.handle_cash_payment(net_cash_payment)
@@ -198,9 +219,9 @@ class PerformancePeriod(object):
     def handle_cash_payment(self, payment_amount):
         self.adjust_cash(payment_amount)
 
-    def handle_commission(self, commission):
+    def handle_commission(self, cost):
         # Deduct from our total cash pool.
-        self.adjust_cash(-commission.cost)
+        self.adjust_cash(-cost)
 
     def adjust_cash(self, amount):
         self.period_cash_flow += amount
@@ -208,14 +229,30 @@ class PerformancePeriod(object):
     def adjust_field(self, field, value):
         setattr(self, field, value)
 
+    def _get_payout_total(self, positions):
+        payouts = []
+        for asset, old_price in iteritems(self._payout_last_sale_prices):
+            pos = positions[asset]
+            amount = pos.amount
+            payout = calc_payout(
+                asset.contract_multiplier,
+                amount,
+                old_price,
+                pos.last_sale_price)
+            payouts.append(payout)
+
+        return sum(payouts)
+
     def calculate_performance(self):
         pt = self.position_tracker
-        pos_stats = calc_position_stats(pt)
+        pos_stats = pt.stats()
         self.ending_value = pos_stats.net_value
         self.ending_exposure = pos_stats.net_exposure
 
+        payout = self._get_payout_total(pt.positions)
+
         total_at_start = self.starting_cash + self.starting_value
-        self.ending_cash = self.starting_cash + self.period_cash_flow
+        self.ending_cash = self.starting_cash + self.period_cash_flow + payout
         total_at_end = self.ending_cash + self.ending_value
 
         self.pnl = total_at_end - total_at_start
@@ -242,6 +279,23 @@ class PerformancePeriod(object):
 
     def handle_execution(self, txn):
         self.period_cash_flow += self._calculate_execution_cash_flow(txn)
+
+        asset = self.asset_finder.retrieve_asset(txn.sid)
+        if isinstance(asset, Future):
+            try:
+                old_price = self._payout_last_sale_prices[asset]
+                pos = self.position_tracker.positions[asset]
+                amount = pos.amount
+                price = txn.price
+                cash_adj = calc_payout(
+                    asset.contract_multiplier, amount, old_price, price)
+                self.adjust_cash(cash_adj)
+                if amount + txn.amount == 0:
+                    del self._payout_last_sale_prices[asset]
+                else:
+                    self._payout_last_sale_prices[asset] = price
+            except KeyError:
+                self._payout_last_sale_prices[asset] = txn.price
 
         if self.keep_transactions:
             try:
@@ -279,7 +333,7 @@ class PerformancePeriod(object):
         return self.position_tracker.position_amounts
 
     def __core_dict(self):
-        pos_stats = calc_position_stats(self.position_tracker)
+        pos_stats = self.position_tracker.stats()
         period_stats = calc_period_stats(pos_stats, self.ending_cash)
 
         rval = {
@@ -384,7 +438,7 @@ class PerformancePeriod(object):
         account = self._account_store
 
         pt = self.position_tracker
-        pos_stats = calc_position_stats(pt)
+        pos_stats = pt.stats()
         period_stats = calc_period_stats(pos_stats, self.ending_cash)
 
         # If no attribute is found on the PerformancePeriod resort to the
@@ -443,6 +497,8 @@ class PerformancePeriod(object):
             dict(self.orders_by_id)
         state_dict['orders_by_modified'] = \
             dict(self.orders_by_modified)
+        state_dict['_payout_last_sale_prices'] = \
+            self._payout_last_sale_prices
 
         STATE_VERSION = 3
         state_dict[VERSION_LABEL] = STATE_VERSION
