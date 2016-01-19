@@ -33,12 +33,21 @@ class _BoundColumnDescr(object):
     """
     Intermediate class that sits on `DataSet` objects and returns memoized
     `BoundColumn` objects when requested.
+
+    This exists so that subclasses of DataSets don't share columns with their
+    parent classes.
     """
     def __init__(self, dtype, name):
         self.dtype = dtype
         self.name = name
 
     def __get__(self, instance, owner):
+        """
+        Produce a concrete BoundColumn object when accessed.
+
+        We don't bind to datasets at class creation time so that subclasses of
+        DataSets produce different BoundColumns.
+        """
         return BoundColumn(
             dtype=self.dtype,
             dataset=owner,
