@@ -11,9 +11,11 @@ from zipline.errors import (
     InvalidDType,
     TermInputsNotSpecified,
     WindowLengthNotSpecified,
+    UnsupportedDataType,
 )
 from zipline.pipeline import Factor, Filter, TermGraph
 from zipline.pipeline.data import Column, DataSet
+from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.utils.numpy_utils import (
@@ -334,14 +336,14 @@ class ObjectIdentityTestCase(TestCase):
 
     def test_latest_on_different_dtypes(self):
 
-        class D(DataSet):
-            bool_col = Column(dtype=bool_dtype)
-            float_col = Column(dtype=float64_dtype)
-            datetime_col = Column(dtype=datetime64ns_dtype)
+        self.assertIsInstance(TestingDataSet.bool_col.latest, Filter)
+        self.assertIsInstance(TestingDataSet.float_col.latest, Factor)
+        self.assertIsInstance(TestingDataSet.datetime_col.latest, Factor)
 
-        self.assertIsInstance(D.bool_col.latest, Filter)
-        self.assertIsInstance(D.float_col.latest, Factor)
-        self.assertIsInstance(D.datetime_col.latest, Factor)
+        # TODO: Support this by allowing users to provide a missing value on
+        # columns.
+        with self.assertRaises(UnsupportedDataType):
+            self.assertIsInstance(TestingDataSet.int_col.latest, Factor)
 
 
 class SubDataSetTestCase(TestCase):
