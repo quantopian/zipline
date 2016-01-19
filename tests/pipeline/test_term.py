@@ -19,7 +19,6 @@ from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.utils.numpy_utils import (
-    bool_dtype,
     datetime64ns_dtype,
     float64_dtype,
 )

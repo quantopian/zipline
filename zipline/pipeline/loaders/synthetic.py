@@ -32,31 +32,34 @@ def nanos_to_seconds(nanos):
     return nanos / (1000 * 1000 * 1000)
 
 
-class ConstantLoader(PipelineLoader):
+class PrecomputedLoader(PipelineLoader):
     """
-    Synthetic PipelineLoader that returns a constant value for each column.
+    Synthetic PipelineLoader that uses a pre-computed array for each column.
 
     Parameters
     ----------
-    constants : dict
-        Map from column to value(s) to use for that column.
+    values : dict
+        Map from column to values to use for that column.
         Values can be anything that can be passed as the first positional
-        argument to a DataFrame of the same shape as `mask`.
-    mask : pandas.DataFrame
-        Mask indicating when assets existed.
-        Indices of this frame are used to align input queries.
+        argument to a DataFrame whose indices are ``dates`` and ``sids``
+    dates : iterable[datetime-like]
+        Row labels for input data.  Can be anything that pd.DataFrame will
+        coerce to a DatetimeIndex.
+    sids : iterable[int-like]
+        Column labels for input data.  Can be anything that pd.DataFrame will
+        coerce to an Int64Index.
 
     Notes
     -----
-    Adjustments are unsupported with ConstantLoader.
+    Adjustments are unsupported by this loader.
     """
-    def __init__(self, constants, dates, assets):
+    def __init__(self, constants, dates, sids):
         loaders = {}
         for column, const in iteritems(constants):
             frame = DataFrame(
                 const,
                 index=dates,
-                columns=assets,
+                columns=sids,
                 dtype=column.dtype,
             )
             loaders[column] = DataFrameLoader(
