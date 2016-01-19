@@ -25,6 +25,8 @@ from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.finance.order import ORDER_STATUS
+from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.tradingcalendar import trading_days
 
@@ -238,6 +240,31 @@ def all_subindices(index):
     )
 
 
+def chrange(start, stop):
+    """
+    Construct an iterable of length-1 strings beginning with `start` and ending
+    with `stop`.
+
+    Parameters
+    ----------
+    start : str
+        The first character.
+    stop : str
+        The last character.
+
+    Returns
+    -------
+    chars: iterable[str]
+        Iterable of strings beginning with start and ending with stop.
+
+    Example
+    -------
+    >>> list(chrange('A', 'C'))
+    ['A', 'B', 'C']
+    """
+    return map(chr, range(ord(start), ord(stop) + 1))
+
+
 def make_rotating_equity_info(num_assets,
                               first_start,
                               frequency,
@@ -296,7 +323,7 @@ def make_simple_equity_info(sids, start_date, end_date, symbols=None):
     sids : array-like of int
     start_date : pd.Timestamp
     end_date : pd.Timestamp
-    symbols : list, optional
+    symbols : list, optionaln
         Symbols to use for the assets.
         If not provided, symbols are generated from the sequence 'A', 'B', ...
 
@@ -664,3 +691,34 @@ def gen_calendars(start, stop, critical_dates):
 
     # Also test with the trading calendar.
     yield (trading_days[trading_days.slice_indexer(start, stop)],)
+
+
+@contextmanager
+def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
+    """
+    A contextManager that yields a SimplePipelineEngine holding a reference to
+    an AssetFinder generated via tmp_asset_finder.
+
+    Parameters
+    ----------
+    calendar : pd.DatetimeIndex
+        Calendar to pass to the constructed PipelineEngine.
+    sids : iterable[int]
+        Sids to use for the temp asset finder.
+    random_seed : int
+        Integer used to seed instances of SeededRandomLoader.
+    symbols : iterable[str], optional
+        Symbols for constructed assets. Forwarded to make_simple_equity_info.
+    """
+    equity_info = make_simple_equity_info(
+        sids=sids,
+        start_date=calendar[0],
+        end_date=calendar[-1],
+        symbols=symbols,
+    )
+
+    loader = make_seeded_random_loader(random_seed, calendar, sids)
+    get_loader = lambda column: loader
+
+    with tmp_asset_finder(equities=equity_info) as finder:
+        yield SimplePipelineEngine(get_loader, calendar, finder)
