@@ -446,9 +446,9 @@ class AssetFinder(object):
                 self.equities.c.share_class_symbol ==
                 share_class_symbol,
                 self.equities.c.start_date <= ad_value),
-            ).order_by(
-                self.equities.c.end_date.desc(),
-            ).execute().fetchall()
+        ).order_by(
+            self.equities.c.end_date.desc(),
+        ).execute().fetchall()
         return candidates
 
     def _get_best_candidate(self, candidates):
@@ -655,6 +655,26 @@ class AssetFinder(object):
 
         contracts = self.retrieve_futures_contracts(sids)
         return [contracts[sid] for sid in sids]
+
+    def lookup_expired_futures(self, start, end):
+        start = start.value
+        end = end.value
+
+        fc_cols = self.futures_contracts.c
+
+        nd = sa.func.nullif(fc_cols.notice_date, pd.tslib.iNaT)
+        ed = sa.func.nullif(fc_cols.expiration_date, pd.tslib.iNaT)
+        date = sa.func.coalesce(sa.func.min(nd, ed), ed, nd)
+
+        sids = list(map(
+            itemgetter('sid'),
+            sa.select((fc_cols.sid,)).where(
+                (date >= start) & (date < end)).order_by(
+                sa.func.coalesce(ed, nd).asc()
+            ).execute().fetchall()
+        ))
+
+        return sids
 
     @property
     def sids(self):
@@ -904,6 +924,7 @@ class AssetFinderCachedEquities(AssetFinder):
     into memory and overrides the methods that lookup_symbol uses to look up
     those equities.
     """
+
     def __init__(self, engine):
         super(AssetFinderCachedEquities, self).__init__(engine)
         self.fuzzy_symbol_hashed_equities = {}

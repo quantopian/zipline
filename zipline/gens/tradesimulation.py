@@ -64,6 +64,7 @@ class AlgorithmSimulator(object):
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
+        self.previous_dt = self.algo_start
 
         # =============
         # Logging Setup
@@ -96,9 +97,18 @@ class AlgorithmSimulator(object):
             self._call_before_trading_start(mkt_open)
 
             for date, snapshot in stream_in:
-
+                expired_sids = self.env.asset_finder.lookup_expired_futures(
+                    start=self.previous_dt, end=date)
+                self.previous_dt = date
                 self.simulation_dt = date
                 self.on_dt_changed(date)
+
+                # removing expired futures
+                for sid in expired_sids:
+                    try:
+                        del self.current_data[sid]
+                    except KeyError:
+                        continue
 
                 # If we're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,

@@ -60,6 +60,7 @@ from zipline.test_algorithms import (
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
     TestTargetValueAlgorithm,
+    TestRemoveDataAlgo,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -1977,3 +1978,43 @@ class TestTradingAlgorithm(TestCase):
                                 analyze=analyze)
         results = algo.run(self.panel)
         self.assertIs(results, self.perf_ref)
+
+
+class TestRemoveData(TestCase):
+    """
+    tests if futures data is removed after expiry
+    """
+    def setUp(self):
+        dt = pd.Timestamp('2015-01-02', tz='UTC')
+        env = TradingEnvironment()
+        ix = env.trading_days.get_loc(dt)
+
+        metadata = {0: {'symbol': 'X',
+                        'expiration_date': env.trading_days[ix + 5],
+                        'end_date': env.trading_days[ix + 6]},
+                    1: {'symbol': 'Y',
+                        'expiration_date': env.trading_days[ix + 7],
+                        'end_date': env.trading_days[ix + 8]}}
+
+        env.write_data(futures_data=metadata)
+
+        index_x = env.trading_days[ix:ix + 5]
+        data_x = pd.DataFrame([[1, 100], [2, 100], [3, 100], [4, 100],
+                               [5, 100]],
+                              index=index_x, columns=['price', 'volume'])
+        index_y = env.trading_days[ix:ix + 5].shift(2)
+        data_y = pd.DataFrame([[6, 100], [7, 100], [8, 100], [9, 100],
+                               [10, 100]],
+                              index=index_y, columns=['price', 'volume'])
+
+        pan = pd.Panel({0: data_x, 1: data_y})
+        self.source = DataPanelSource(pan)
+        self.algo = TestRemoveDataAlgo(env=env)
+
+    def test_remove_data(self):
+        self.algo.run(self.source)
+
+        expected_lengths = [1, 1, 2, 2, 2, 2, 1]
+        # initially only data for X should be sent and on the last day only
+        # data for Y should be sent since X is expired
+        np.testing.assert_array_equal(self.algo.data, expected_lengths)

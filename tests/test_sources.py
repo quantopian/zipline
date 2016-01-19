@@ -123,9 +123,7 @@ class TestDataFrameSource(TestCase):
         self.assertEqual(5, event.sid)
         event = next(source)
         self.assertEqual(4, event.sid)
-        event = next(source)
-        self.assertEqual(5, event.sid)
-        self.assertFalse(np.isnan(event.price))
+        self.assertRaises(StopIteration, next, source)
 
 
 class TestRandomWalkSource(TestCase):
