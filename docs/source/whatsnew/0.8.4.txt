@@ -122,6 +122,11 @@ Bug Fixes
 * Fixed an issue in the CLI that would cause assets to be added twice.
   This would map the same symbol to two different sids (:issue:`942`).
 
+* Fixed an issue where the
+  :class:"`~zipline.finance.performance.period.PerformancePeriod` incorrectly
+  reported the total_positions_value when creating a
+  :class:`~zipline.protocol.Account` (:issue:`950`).
+
 
 Performance
 ~~~~~~~~~~~

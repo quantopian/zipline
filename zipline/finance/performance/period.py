@@ -457,7 +457,7 @@ class PerformancePeriod(object):
                     self.ending_cash + self.ending_value)
         account.total_positions_value = \
             getattr(self, 'total_positions_value', self.ending_value)
-        account.total_positions_value = \
+        account.total_positions_exposure = \
             getattr(self, 'total_positions_exposure', self.ending_exposure)
         account.regt_equity = \
             getattr(self, 'regt_equity', self.ending_cash)
