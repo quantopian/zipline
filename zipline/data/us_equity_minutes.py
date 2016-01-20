@@ -342,11 +342,8 @@ class BcolzMinuteBarWriter(object):
         if days_to_zerofill is not None and len(days_to_zerofill):
             self._zerofill(table, len(days_to_zerofill))
 
-        days_to_write_indexer = self._trading_days.slice_indexer(
-            start=input_first_day,
-            end=days[-1]
-        )
-        days_to_write = self._trading_days[days_to_write_indexer]
+        days_to_write = tds[tds.slice_indexer(start=input_first_day,
+                                              end=days[-1])]
         minutes_count = len(days_to_write) * self._minutes_per_day
 
         all_minutes = self._minute_index
