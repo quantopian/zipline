@@ -81,7 +81,7 @@ class BcolzMinuteBarTestCase(TestCase):
             },
             index=[minute])
         days = DatetimeIndex([self.test_calendar_start])
-        self.writer.write(sid, days, data)
+        self.writer.write(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
 
@@ -117,7 +117,7 @@ class BcolzMinuteBarTestCase(TestCase):
             },
             index=[minute_0, minute_1])
         days = DatetimeIndex([self.test_calendar_start])
-        self.writer.write(sid, days, data)
+        self.writer.write(sid, data)
 
         open_price = self.reader.get_value(sid, minute_0, 'open')
 
@@ -173,7 +173,7 @@ class BcolzMinuteBarTestCase(TestCase):
             },
             index=[minute])
         days = DatetimeIndex([second_day])
-        self.writer.write(sid, days, data)
+        self.writer.write(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
 
@@ -198,9 +198,17 @@ class BcolzMinuteBarTestCase(TestCase):
     def test_write_empty(self):
         minute = self.market_opens[self.test_calendar_start]
         sid = 1
-        data = None
+        data = DataFrame(
+            data={
+                'open': [0],
+                'high': [0],
+                'low': [0],
+                'close': [0],
+                'volume': [0]
+            },
+            index=[minute])
         days = DatetimeIndex([self.test_calendar_start])
-        self.writer.write(sid, days, data)
+        self.writer.write(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
 
@@ -243,7 +251,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [50.0, 51.0]
             },
             index=minutes)
-        self.writer.write(sid, days, data)
+        self.writer.write(sid, data)
 
         minute = minutes[0]
 
@@ -302,7 +310,7 @@ class BcolzMinuteBarTestCase(TestCase):
             },
             index=[minute])
         days = self.market_opens[0:1].index
-        self.writer.write(sid, days, data)
+        self.writer.write(sid, data)
 
         with self.assertRaises(BcolzMinuteOverlappingData):
-            self.writer.write(sid, days, data)
+            self.writer.write(sid, data)

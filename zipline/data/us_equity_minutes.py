@@ -20,6 +20,7 @@ from os.path import join
 import json
 import os
 import pandas as pd
+from pandas.core.datetools import normalize_date
 
 MINUTES_PER_DAY = 390
 DEFAULT_EXPECTEDLEN = 390 * 252 * 15
@@ -138,6 +139,12 @@ class BcolzMinuteBarWriter(object):
         market_opens : pd.Series
             The market opens used as a starting point for each periodic span of
             minutes in the index.
+
+            The index of the series is expected to be a DatetimeIndex of the
+            UTC midnight of each trading day.
+
+            The values are datetime64-like UTC market opens for each day in the
+            index.
 
         minutes_per_day : int
             The number of minutes per each period. Defaults to 390, the mode
@@ -285,7 +292,7 @@ class BcolzMinuteBarWriter(object):
         table.append([prepend_array] * 5)
         table.flush()
 
-    def write(self, sid, days, df):
+    def write(self, sid, df):
         """
         Write the OHLCV data for the given sid.
 
@@ -313,9 +320,11 @@ class BcolzMinuteBarWriter(object):
         table = ctable(rootdir=path)
 
         last_date = self.last_date_in_output_for_sid(sid)
+        tds = self._trading_days
+        days = tds[tds.slice_indexer(start=normalize_date(df.index[0]),
+                                     end=normalize_date(df.index[-1]))]
         input_first_day = days[0]
 
-        tds = self._trading_days
         if last_date is None:
             # If there is no data, determine how many days to add so that
             # desired days are written to the correct slots.
