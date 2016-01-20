@@ -128,7 +128,6 @@ class BcolzMinuteBarWriter(object):
         """
         Parameters:
         -----------
-
         first_trading_day : datetime-like
             The first trading day in the data set.
         
@@ -251,7 +250,6 @@ class BcolzMinuteBarWriter(object):
 
         Parameters:
         -----------
-
         path : string
             The path to rootdir of the new ctable.
         """
