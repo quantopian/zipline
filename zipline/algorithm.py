@@ -192,7 +192,7 @@ class TradingAlgorithm(object):
 
         self.logger = None
 
-        self.benchmark_return_source = None
+        self.benchmark_return_source = kwargs.pop('benchmark_return_source', None)
 
         # default components for transact
         self.slippage = VolumeShareSlippage()
