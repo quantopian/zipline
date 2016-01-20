@@ -559,15 +559,11 @@ class TradingAlgorithm(object):
 
         # The sids field of the source is the reference for the universe at
         # the start of the run
-        self._current_universe = set()
-        for source in self.sources:
-            for sid in source.sids:
-                self._current_universe.add(sid)
+        sids = {sid for source in self.sources for sid in source.sids}
         # Check that all sids from the source are accounted for in
         # the AssetFinder. This retrieve call will raise an exception if the
         # sid is not found.
-        for sid in self._current_universe:
-            self.asset_finder.retrieve_asset(sid)
+        self._current_universe = set(self.asset_finder.retrieve_all(sids))
 
         # force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
