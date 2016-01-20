@@ -263,6 +263,17 @@ class EquitiesNotFound(SidsNotFound):
         return "No equity found for sid: {sids[0]}."
 
 
+class CurrencyPairsNotFound(SidsNotFound):
+    """
+    Raised when a call to `retrieve_currencies` fails to find an asset.
+    """
+    @lazyval
+    def msg(self):
+        if self.plural:
+            return "No currencyPairs found for sids: {sids}."
+        return "No currencyPair found for sid: {sids[0]}."
+
+
 class FutureContractsNotFound(SidsNotFound):
     """
     Raised when a call to `retrieve_futures_contracts` fails to find an asset.

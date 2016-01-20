@@ -339,6 +339,7 @@ class PipelineAlgorithmTestCase(TestCase):
             Timestamp('2015'),
             ['AAPL', 'MSFT', 'BRK_A'],
         )
+        # cls.env = trading.TradingEnvironment(load=trading.noop_load)
         cls.env = trading.TradingEnvironment()
         cls.env.write_data(equities_df=asset_info)
         cls.tempdir = tempdir = TempDirectory()
@@ -397,7 +398,7 @@ class PipelineAlgorithmTestCase(TestCase):
         mergers = DataFrame(
             {
                 # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': array([], dtype=int),
+                'effective_date': array([], dtype=uint32),
                 'ratio': array([], dtype=float),
                 'sid': array([], dtype=int),
             },

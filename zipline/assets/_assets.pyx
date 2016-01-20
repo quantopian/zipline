@@ -17,19 +17,16 @@
 """
 Cythonized Asset object.
 """
-cimport cython
 
-import numpy as np
 import warnings
 cimport numpy as np
 
 # IMPORTANT NOTE: You must change this template if you change
 # Asset.__reduce__, or else we'll attempt to unpickle an old version of this
 # class
-CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v4.cache'
+CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v4.01.cache'
 
 cdef class Asset:
-
     cdef readonly int sid
     # Cached hash of self.sid
     cdef int sid_hash
@@ -43,25 +40,35 @@ cdef class Asset:
 
     cdef readonly object exchange
 
+    cdef readonly object currency
+    cdef readonly object price_format
+    cdef readonly object status
+
     def __cinit__(self,
-                  int sid, # sid is required
+                  int sid,  # sid is required
                   object symbol="",
                   object asset_name="",
                   object start_date=None,
                   object end_date=None,
                   object first_traded=None,
                   object exchange="",
+                  object currency="",
+                  object price_format=0,
+                  object status="",
                   *args,
                   **kwargs):
 
-        self.sid           = sid
-        self.sid_hash      = hash(sid)
-        self.symbol        = symbol
-        self.asset_name    = asset_name
-        self.exchange      = exchange
-        self.start_date    = start_date
-        self.end_date      = end_date
-        self.first_traded  = first_traded
+        self.sid = sid
+        self.sid_hash = hash(sid)
+        self.symbol = symbol
+        self.asset_name = asset_name
+        self.exchange = exchange
+        self.start_date = start_date
+        self.end_date = end_date
+        self.first_traded = first_traded
+        self.currency = currency
+        self.price_format = price_format
+        self.status = status
 
     def __int__(self):
         return self.sid
@@ -128,7 +135,8 @@ cdef class Asset:
 
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded')
+                 'start_date', 'end_date', 'first_traded',
+                 'currency', 'price_format', 'status')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -148,7 +156,10 @@ cdef class Asset:
                                  self.start_date,
                                  self.end_date,
                                  self.first_traded,
-                                 self.exchange,))
+                                 self.exchange,
+                                 self.currency,
+                                 self.price_format,
+                                 self.status))
 
     cpdef to_dict(self):
         """
@@ -162,6 +173,9 @@ cdef class Asset:
             'end_date': self.end_date,
             'first_traded': self.first_traded,
             'exchange': self.exchange,
+            'currency': self.currency,
+            'price_format': self.price_format,
+            'status': self.status
         }
 
     @classmethod
@@ -171,9 +185,7 @@ cdef class Asset:
         """
         return cls(**dict_)
 
-
 cdef class Equity(Asset):
-
     def __str__(self):
         if self.symbol:
             return 'Equity(%d [%s])' % (self.sid, self.symbol)
@@ -196,8 +208,9 @@ cdef class Equity(Asset):
         """
         def __get__(self):
             warnings.warn("The security_start_date property will soon be "
-            "retired. Please use the start_date property instead.",
-            DeprecationWarning)
+                          "retired. Please use the start_date property "
+                          "instead.",
+                          DeprecationWarning)
             return self.start_date
 
     property security_end_date:
@@ -207,8 +220,8 @@ cdef class Equity(Asset):
         """
         def __get__(self):
             warnings.warn("The security_end_date property will soon be "
-            "retired. Please use the end_date property instead.",
-            DeprecationWarning)
+                          "retired. Please use the end_date property instead.",
+                          DeprecationWarning)
             return self.end_date
 
     property security_name:
@@ -218,13 +231,12 @@ cdef class Equity(Asset):
         """
         def __get__(self):
             warnings.warn("The security_name property will soon be "
-            "retired. Please use the asset_name property instead.",
-            DeprecationWarning)
+                          "retired. Please use the asset_name property "
+                          "instead.",
+                          DeprecationWarning)
             return self.asset_name
 
-
 cdef class Future(Asset):
-
     cdef readonly object root_symbol
     cdef readonly object notice_date
     cdef readonly object expiration_date
@@ -232,7 +244,7 @@ cdef class Future(Asset):
     cdef readonly float contract_multiplier
 
     def __cinit__(self,
-                  int sid, # sid is required
+                  int sid,  # sid is required
                   object symbol="",
                   object root_symbol="",
                   object asset_name="",
@@ -243,12 +255,15 @@ cdef class Future(Asset):
                   object auto_close_date=None,
                   object first_traded=None,
                   object exchange="",
+                  object currency="",
+                  object price_format=0,
+                  object status="",
                   float contract_multiplier=1):
 
-        self.root_symbol         = root_symbol
-        self.notice_date         = notice_date
-        self.expiration_date     = expiration_date
-        self.auto_close_date     = auto_close_date
+        self.root_symbol = root_symbol
+        self.notice_date = notice_date
+        self.expiration_date = expiration_date
+        self.auto_close_date = auto_close_date
         self.contract_multiplier = contract_multiplier
 
     def __str__(self):
@@ -299,6 +314,75 @@ cdef class Future(Asset):
         super_dict['contract_multiplier'] = self.contract_multiplier
         return super_dict
 
+"""
+TODO MB - rework this we need a Currency object and we need a FX pair
+
+ok we should use this a CurrencyPair, Currency could just be an enum?
+"""
+
+cdef class CurrencyPair(Asset):
+    cdef readonly object pair # 'USDGBP' for example
+    cdef readonly object base # 'USD'
+    cdef readonly object quote # 'GBP'
+    cdef readonly int multiplier # Factor to multiply 10^cvf to get the actual
+    # amount traded so cvf=4 would mean multiply 10^4 = 10,000
+
+    def __cinit__(self,
+                  int sid,  # sid is required
+                  object symbol="",
+                  object pair="",
+                  object base="",
+                  object quote="",
+                  object start_date=None,
+                  int multiplier=1
+                  ):
+
+        self.pair = pair
+        self.base = base
+        self.quote = quote
+        self.start_date = start_date
+        self.multiplier = multiplier
+
+    def __str__(self):
+        if self.symbol:
+            return 'Currency(%d [%s])' % (self.sid, self.symbol)
+        else:
+            return 'Currency(%d)' % self.sid
+
+    def __repr__(self):
+        attrs = ('symbol', 'pair', 'base', 'quote',
+                 'start_date', 'multiplier')
+        tuples = ((attr, repr(getattr(self, attr, None)))
+                  for attr in attrs)
+        strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
+        params = ', '.join(strings)
+        return 'Currency(%d, %s)' % (self.sid, params)
+
+    cpdef __reduce__(self):
+        """
+        Function used by pickle to determine how to serialize/deserialize this
+        class.  Should return a tuple whose first element is self.__class__,
+        and whose second element is a tuple of all the attributes that should
+        be serialized/deserialized during pickling.
+        """
+        return (self.__class__, (self.sid,
+                                 self.symbol,
+                                 self.pair,
+                                 self.base,
+                                 self.quote,
+                                 self.start_date,
+                                 self.multiplier,))
+    cpdef to_dict(self):
+        """
+        Convert to a python dict.
+        """
+        super_dict = super(CurrencyPair, self).to_dict()
+        super_dict['pair'] = self.pair
+        super_dict['base'] = self.base
+        super_dict['quote'] = self.quote
+        super_dict['start_date'] = self.start_date
+        super_dict['multiplier'] = self.multiplier
+        return super_dict
 
 def make_asset_array(int size, Asset asset):
     cdef np.ndarray out = np.empty([size], dtype=object)

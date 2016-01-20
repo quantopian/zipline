@@ -17,6 +17,7 @@ from copy import copy
 from six import iteritems, iterkeys
 import pandas as pd
 import numpy as np
+from .data.currencies import CCY
 
 from .utils.enum import enum
 from .utils.math_utils import nanstd, nanmean, nansum
@@ -198,6 +199,7 @@ class Account(object):
         self.leverage = 0.0
         self.net_leverage = 0.0
         self.net_liquidation = 0.0
+        self.currency = CCY.USD
 
     def __getitem__(self, key):
         return self.__dict__[key]

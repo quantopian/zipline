@@ -223,7 +223,7 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
         for asset in assets:
             yield asset, self._raw_data_for_asset(asset)
 
-    def to_uint32(self, array, colname):
+    def to_uint64(self, array, colname):
         if colname in {'open', 'high', 'low', 'close'}:
             # Data is stored as 1000 * raw value.
             assert array.max() < (UINT_32_MAX / 1000), "Test data overflow!"

@@ -27,6 +27,7 @@ import sqlalchemy as sa
 from zipline.errors import (
     EquitiesNotFound,
     FutureContractsNotFound,
+    CurrencyPairsNotFound,
     MapAssetIdentifierIndexError,
     MultipleSymbolsFound,
     RootSymbolNotFound,
@@ -34,7 +35,7 @@ from zipline.errors import (
     SymbolNotFound,
 )
 from zipline.assets import (
-    Asset, Equity, Future,
+    Asset, Equity, Future, CurrencyPair
 )
 from zipline.assets.asset_writer import (
     check_version_info,
@@ -259,6 +260,7 @@ class AssetFinder(object):
         # We don't update the asset cache here because it should already be
         # updated by `self.retrieve_equities`.
         update_hits(self.retrieve_equities(type_to_assets.pop('equity', ())))
+        update_hits(self.retrieve_currencies(type_to_assets.pop('currency', ())))
         update_hits(
             self.retrieve_futures_contracts(type_to_assets.pop('future', ()))
         )
@@ -294,6 +296,55 @@ class AssetFinder(object):
         """
         return self._retrieve_assets(sids, self.equities, Equity)
 
+    # def retrieve_currencies(self):
+    #     return None
+
+    def retrieve_currencies(self, sids, base=None, quote=None, pair=None, symbol=None):
+        """
+        Retrieve CurrencyPair objects for a list of sids.
+
+        Users generally shouldn't need to this method (instead, they should
+        prefer the more general/friendly `retrieve_assets`), but it has a
+        documented interface and tests because it's used upstream.
+
+        Parameters
+        ----------
+        sids : iterable[int]
+
+        Returns
+        -------
+        currencies : dict[int -> CurrencyPair]
+
+        Raises
+        ------
+        EquitiesNotFound
+            When any requested asset isn't found.
+        """
+        paramBasedSearch = base is not None or quote is not None or pair is not None or symbol is not None
+        sidBasedSearch = sids is not None
+        if paramBasedSearch:
+            if base:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.base, base)
+            elif quote:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.quote, quote)
+            elif pair:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.pair, pair)
+            elif symbol:
+                query = self._select_asset_by_col(self.currencies, self.currencies.c.symbol, symbol)
+            else:
+                log.info('params based search')
+                raise NotImplementedError()
+
+            ret = self._process_query_to_asset(query, CurrencyPair)
+            if ret is None or len(ret) == 0:
+                raise CurrencyPairsNotFound(plural=True, sids='Cannot find CurrencyPair with passed in params[{}]'.format(locals()))
+            else:
+                return ret
+
+        else:
+            return self._retrieve_assets(sids, self.currencies, CurrencyPair)
+
+
     def _retrieve_equity(self, sid):
         return self.retrieve_equities((sid,))[sid]
 
@@ -325,6 +376,10 @@ class AssetFinder(object):
         return sa.select([asset_tbl]).where(
             asset_tbl.c.sid.in_(map(int, sids))
         )
+
+    @staticmethod
+    def _select_asset_by_col(asset_tbl, col, val):
+        return sa.select([asset_tbl]).where(col == val)
 
     @staticmethod
     def _select_asset_by_symbol(asset_tbl, symbol):
@@ -375,8 +430,21 @@ class AssetFinder(object):
         if misses:
             if asset_type == Equity:
                 raise EquitiesNotFound(sids=misses)
+            elif asset_type == CurrencyPair:
+                raise CurrencyPairsNotFound(sid=misses)
             else:
                 raise FutureContractsNotFound(sids=misses)
+        return hits
+
+    def _process_query_to_asset(self, query, asset_type):
+        cache = self._asset_cache
+        hits = {}
+        # Load misses from the db.
+        for row in imap(dict, query.execute().fetchall()):
+            asset = asset_type(**_convert_asset_timestamp_fields(row))
+            sid = asset.sid
+            hits[sid] = cache[sid] = asset
+
         return hits
 
     def _get_fuzzy_candidates(self, fuzzy_symbol):
@@ -551,8 +619,8 @@ class AssetFinder(object):
 
         """
 
-        data = self._select_asset_by_symbol(self.futures_contracts, symbol)\
-                   .execute().fetchone()
+        data = self._select_asset_by_symbol(self.futures_contracts, symbol) \
+            .execute().fetchone()
 
         # If no data found, raise an exception
         if not data:

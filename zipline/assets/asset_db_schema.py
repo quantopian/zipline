@@ -16,6 +16,7 @@ def generate_asset_db_metadata(bind=None):
     _futures_root_symbols_schema(metadata)
     _futures_contracts_schema(metadata)
     _asset_router_schema(metadata)
+    _currencies_table_schema(metadata)
     return metadata
 
 
@@ -23,7 +24,7 @@ def generate_asset_db_metadata(bind=None):
 # NOTE: When modifying this schema, update the ASSET_DB_VERSION value
 asset_db_table_names = ['version_info', 'equities', 'futures_exchanges',
                         'futures_root_symbols', 'futures_contracts',
-                        'asset_router']
+                        'asset_router', 'currencies']
 
 
 def _equities_table_schema(metadata):
@@ -159,4 +160,25 @@ def _version_table_schema(metadata):
         ),
         # This constraint ensures a single entry in this table
         sa.CheckConstraint('id <= 1'),
+    )
+
+def _currencies_table_schema(metadata):
+    # NOTE: When modifying this schema, update the ASSET_DB_VERSION value
+    return sa.Table(
+        'currencies',
+        metadata,
+        sa.Column(
+            'sid',
+            sa.Integer,
+            unique=True,
+            nullable=False,
+            primary_key=True,
+        ),
+        sa.Column('symbol', sa.Text),
+        sa.Column('pair', sa.Text, index=True),
+        sa.Column('base', sa.Text, index=True),
+        sa.Column('quote', sa.Text, index=True),
+        sa.Column('fuzzy_symbol', sa.Text, index=True),
+        sa.Column('start_date', sa.Integer, default=0, nullable=False),
+        sa.Column('multiplier', sa.Integer, nullable=False),
     )

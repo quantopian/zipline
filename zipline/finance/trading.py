@@ -131,14 +131,17 @@ class TradingEnvironment(object):
                    futures_data=None,
                    exchanges_data=None,
                    root_symbols_data=None,
+                   currency_data=None,
                    equities_df=None,
                    futures_df=None,
                    exchanges_df=None,
                    root_symbols_df=None,
+                   currency_df=None,
                    equities_identifiers=None,
                    futures_identifiers=None,
                    exchanges_identifiers=None,
                    root_symbols_identifiers=None,
+                   currency_identifiers=None,
                    allow_sid_assignment=True):
         """ Write the supplied data to the database.
 
@@ -152,6 +155,8 @@ class TradingEnvironment(object):
             A dictionary of exchanges metadata
         root_symbols_data: dict, optional
             A dictionary of root symbols metadata
+        currency_data: dict, optional
+            A dictionary of currency metadata
         equities_df: pandas.DataFrame, optional
             A pandas.DataFrame of equity metadata
         futures_df: pandas.DataFrame, optional
@@ -160,6 +165,8 @@ class TradingEnvironment(object):
             A pandas.DataFrame of exchanges metadata
         root_symbols_df: pandas.DataFrame, optional
             A pandas.DataFrame of root symbols metadata
+        currency_df: pandas.DataFrame, optional
+            A pandas.DataFrame of currency metadata
         equities_identifiers: list, optional
             A list of equities identifiers (sids, symbols, Assets)
         futures_identifiers: list, optional
@@ -168,6 +175,8 @@ class TradingEnvironment(object):
             A list of exchanges identifiers (ids or names)
         root_symbols_identifiers: list, optional
             A list of root symbols identifiers (ids or symbols)
+        currency_identifiers: list, optional
+            A list of currency identifiers (ids or symbols)
         """
         if engine:
             self.engine = engine
@@ -175,14 +184,16 @@ class TradingEnvironment(object):
         # If any pandas.DataFrame data has been provided,
         # write it to the database.
         if (equities_df is not None or futures_df is not None or
-                exchanges_df is not None or root_symbols_df is not None):
+                exchanges_df is not None or root_symbols_df is not None or
+                currency_df is not None):
             self._write_data_dataframes(equities_df, futures_df,
-                                        exchanges_df, root_symbols_df)
+                                        exchanges_df, root_symbols_df, currency_df)
 
         if (equities_data is not None or futures_data is not None or
-                exchanges_data is not None or root_symbols_data is not None):
+                exchanges_data is not None or root_symbols_data is not None or
+                currency_data is not None):
             self._write_data_dicts(equities_data, futures_data,
-                                   exchanges_data, root_symbols_data)
+                                   exchanges_data, root_symbols_data, currency_data)
 
         # These could be lists or other iterables such as a pandas.Index.
         # For simplicity, don't check whether data has been provided.
@@ -190,21 +201,22 @@ class TradingEnvironment(object):
                                futures_identifiers,
                                exchanges_identifiers,
                                root_symbols_identifiers,
+                               currency_identifiers,
                                allow_sid_assignment=allow_sid_assignment)
 
     def _write_data_lists(self, equities=None, futures=None, exchanges=None,
-                          root_symbols=None, allow_sid_assignment=True):
-        AssetDBWriterFromList(equities, futures, exchanges, root_symbols)\
+                          root_symbols=None, currencies=None, allow_sid_assignment=True):
+        AssetDBWriterFromList(equities, futures, exchanges, root_symbols, currencies)\
             .write_all(self.engine, allow_sid_assignment=allow_sid_assignment)
 
     def _write_data_dicts(self, equities=None, futures=None, exchanges=None,
-                          root_symbols=None):
-        AssetDBWriterFromDictionary(equities, futures, exchanges, root_symbols)\
+                          root_symbols=None, currencies=None):
+        AssetDBWriterFromDictionary(equities, futures, exchanges, root_symbols, currencies)\
             .write_all(self.engine)
 
     def _write_data_dataframes(self, equities=None, futures=None,
-                               exchanges=None, root_symbols=None):
-        AssetDBWriterFromDataFrame(equities, futures, exchanges, root_symbols)\
+                               exchanges=None, root_symbols=None, currencies=None):
+        AssetDBWriterFromDataFrame(equities, futures, exchanges, root_symbols, currencies)\
             .write_all(self.engine)
 
     def normalize_date(self, test_date):

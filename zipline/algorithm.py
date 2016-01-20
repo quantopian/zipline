@@ -423,6 +423,9 @@ class TradingAlgorithm(object):
             else:
                 def update_time(date):
                     return date
+
+
+            # TODO:mbennett - need to to fix this to have some mock returns?
             benchmark_return_source = [
                 Event({'dt': update_time(dt),
                        'returns': ret,
@@ -430,9 +433,9 @@ class TradingAlgorithm(object):
                        'source_id': 'benchmarks'})
                 for dt, ret in
                 self.trading_environment.benchmark_returns.iteritems()
-                if dt.date() >= sim_params.period_start.date() and
-                dt.date() <= sim_params.period_end.date()
-            ]
+                if sim_params.period_start.date() <= dt.date() <=
+                sim_params.period_end.date()
+                ]
         else:
             benchmark_return_source = self.benchmark_return_source
 

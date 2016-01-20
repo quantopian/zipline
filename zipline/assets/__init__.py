@@ -17,6 +17,7 @@ from ._assets import (
     Asset,
     Equity,
     Future,
+    CurrencyPair,
     make_asset_array,
     CACHE_FILE_TEMPLATE
 )
@@ -34,5 +35,6 @@ __all__ = [
     'AssetFinderCachedEquities',
     'AssetConvertible',
     'make_asset_array',
-    'CACHE_FILE_TEMPLATE'
+    'CACHE_FILE_TEMPLATE',
+    'CurrencyPair'
 ]
