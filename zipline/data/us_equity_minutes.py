@@ -257,8 +257,7 @@ class BcolzMinuteBarWriter(object):
         """
         # Only create the subdir on container creation.
         sid_dirname = os.path.dirname(path)
-        if not os.path.exists(sid_dirname):
-            os.makedirs(sid_dirname)
+        os.makedirs(sid_dirname)
         initial_array = np.empty(0, np.uint32)
         table = ctable(
             rootdir=path,
