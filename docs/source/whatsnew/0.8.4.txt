@@ -127,6 +127,9 @@ Bug Fixes
   reported the total_positions_value when creating a
   :class:`~zipline.protocol.Account` (:issue:`950`).
 
+* Fixed issues around KeyErrors coming from history and BarData on 32-bit
+  python, where Assets did not compare properly with int64s (:issue:`959`).
+
 
 Performance
 ~~~~~~~~~~~
