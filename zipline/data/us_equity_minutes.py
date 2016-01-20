@@ -54,7 +54,7 @@ def _sid_subdir_path(sid):
 
     Parameters:
     -----------
-    sid - int
+    sid : int
         Asset identifier.
 
     Returns:
