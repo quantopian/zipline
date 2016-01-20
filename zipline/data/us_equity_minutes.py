@@ -158,7 +158,7 @@ class BcolzMinuteBarWriter(object):
             If the expectedlen is not used, the chunksize and corresponding
             compression ratios are not ideal.
 
-            Defaults to supporting 15 years of market data.
+            Defaults to supporting 15 years of NYSE equity market data.
 
             see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays
         """
