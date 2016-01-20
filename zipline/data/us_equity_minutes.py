@@ -59,7 +59,7 @@ def _sid_subdir_path(sid):
 
     Returns:
     --------
-    string
+    out : string
         A path for the bcolz rootdir, including subdirectory prefixes based on
         the padded string representation of the given sid.
 
@@ -213,8 +213,7 @@ class BcolzMinuteBarWriter(object):
 
         Returns:
         --------
-        string
-
+        out : string
             Full path to the bcolz rootdir for the given sid.
         """
         sid_subdir = _sid_subdir_path(sid)
@@ -229,7 +228,7 @@ class BcolzMinuteBarWriter(object):
 
         Returns:
         --------
-        pd.Timestamp
+        out : pd.Timestamp
             The midnight of the last date written in to the output for the
             given sid.
         """
@@ -461,6 +460,8 @@ class BcolzMinuteBarReader(object):
 
         Returns:
         --------
+        out : float|int
+
         The market data for the given sid, dt, and field coordinates.
 
         For OHLC:
@@ -498,6 +499,8 @@ class BcolzMinuteBarReader(object):
 
         Returns
         -------
+        out : int
+
         The position of the given minute in the list of all trading minutes
         since market open on the first trading day.
         """
