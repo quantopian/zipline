@@ -675,7 +675,7 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
     Then the overwrite will apply to indexes: 1, 2, 3, 4
     """
     first_row = dense_dates.searchsorted(asof)
-    next_idx = sparse_dates.searchsorted(asof, 'right')
+    next_idx = sparse_dates.searchsorted(asof.asm8, 'right')
     if next_idx == len(sparse_dates):
         # There is no next date in the sparse, this overwrite should apply
         # through the end of the dense dates.
@@ -692,8 +692,8 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
     yield Float64Overwrite(first_row, last_row, first, last, value)
 
 
-def adjustments_from_deltas_no_sids(dates,
-                                    dense_dates,
+def adjustments_from_deltas_no_sids(dense_dates,
+                                    sparse_dates,
                                     column_idx,
                                     column_name,
                                     assets,
@@ -703,10 +703,10 @@ def adjustments_from_deltas_no_sids(dates,
 
     Parameters
     ----------
-    dates : pd.DatetimeIndex
-        The dates requested by the loader.
     dense_dates : pd.DatetimeIndex
-        The dates that were in the dense data.
+        The dates requested by the loader.
+    sparse_dates : pd.DatetimeIndex
+        The dates that were in the raw data.
     column_idx : int
         The index of the column in the dataset.
     column_name : str
@@ -722,18 +722,18 @@ def adjustments_from_deltas_no_sids(dates,
     ad_series = deltas[AD_FIELD_NAME]
     asset_idx = 0, len(assets) - 1
     return {
-        dates.get_loc(kd): overwrite_from_dates(
+        dense_dates.get_loc(kd): overwrite_from_dates(
             ad_series.loc[kd],
-            dates,
             dense_dates,
+            sparse_dates,
             asset_idx,
             v,
         ) for kd, v in deltas[column_name].iteritems()
     }
 
 
-def adjustments_from_deltas_with_sids(dates,
-                                      dense_dates,
+def adjustments_from_deltas_with_sids(dense_dates,
+                                      sparse_dates,
                                       column_idx,
                                       column_name,
                                       assets,
@@ -746,7 +746,7 @@ def adjustments_from_deltas_with_sids(dates,
     dates : pd.DatetimeIndex
         The dates requested by the loader.
     dense_dates : pd.DatetimeIndex
-        The dates that were in the dense data.
+        The dates that were in the raw data.
     column_idx : int
         The index of the column in the dataset.
     column_name : str
@@ -763,11 +763,11 @@ def adjustments_from_deltas_with_sids(dates,
     adjustments = defaultdict(list)
     for sid_idx, (sid, per_sid) in enumerate(deltas[column_name].iteritems()):
         for kd, v in per_sid.iteritems():
-            adjustments[dates.searchsorted(kd)].extend(
+            adjustments[dense_dates.searchsorted(kd)].extend(
                 overwrite_from_dates(
                     ad_series.loc[kd, sid],
-                    dates,
                     dense_dates,
+                    sparse_dates,
                     (sid_idx, sid_idx),
                     v,
                 ),
@@ -904,7 +904,7 @@ class BlazeLoader(dict):
                     odo(where(e, column), pd.DataFrame, **_kwargs)
                     for column in columns
                 ),
-            )
+            ).sort(TS_FIELD_NAME)  # sort for the groupby later
 
         materialized_expr = collect_expr(expr)
         materialized_deltas = (
@@ -939,26 +939,41 @@ class BlazeLoader(dict):
         )
         sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
 
-        if have_sids:
-            # Unstack by the sid so that we get a multi-index on the columns
-            # of datacolumn, sid.
-            sparse_output = sparse_output.set_index(
-                [TS_FIELD_NAME, SID_FIELD_NAME],
-            ).unstack()
-            sparse_deltas = non_novel_deltas.set_index(
-                [TS_FIELD_NAME, SID_FIELD_NAME],
-            ).unstack()
-            cols = sparse_output.columns
-            dense_output = sparse_output.groupby(
-                dates[dates.searchsorted(sparse_output.index)],
-            ).last().reindex(
-                index=dates,
-                columns=pd.MultiIndex.from_product(
-                    (cols.levels[0], assets),
-                    names=cols.names,
-                ),
-            )
+        def last_in_date_group(df, reindex, have_sids=have_sids):
+            idx = dates[dates.searchsorted(
+                df[TS_FIELD_NAME].values.astype('datetime64[D]')
+            )]
+            if have_sids:
+                idx = [idx, SID_FIELD_NAME]
 
+            last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
+                idx,
+                sort=False,
+            ).last()
+
+            if have_sids:
+                last_in_group = last_in_group.unstack()
+
+            if reindex:
+                if have_sids:
+                    cols = last_in_group.columns
+                    last_in_group = last_in_group.reindex(
+                        index=dates,
+                        columns=pd.MultiIndex.from_product(
+                            (cols.levels[0], assets),
+                            names=cols.names,
+                        ),
+                    )
+                else:
+                    last_in_group = last_in_group.reindex(dates)
+
+            return last_in_group
+
+        sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
+        dense_output = last_in_date_group(sparse_output, reindex=True)
+        dense_output.ffill(inplace=True)
+
+        if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
         else:
@@ -974,14 +989,7 @@ class BlazeLoader(dict):
                 copy,
                 partial(repeat_last_axis, count=len(assets)),
             )
-            sparse_output = sparse_output.set_index(TS_FIELD_NAME)
-            dense_output = sparse_output.groupby(
-                dates[dates.searchsorted(sparse_output.index)],
-            ).last().reindex(dates)
-            sparse_deltas = non_novel_deltas.set_index(TS_FIELD_NAME)
             adjustments_from_deltas = adjustments_from_deltas_no_sids
-
-        dense_output.ffill(inplace=True)
 
         for column_idx, column in enumerate(columns):
             column_name = column.name
@@ -992,7 +1000,7 @@ class BlazeLoader(dict):
                 mask,
                 adjustments_from_deltas(
                     dates,
-                    sparse_output.index,
+                    sparse_output[TS_FIELD_NAME].values,
                     column_idx,
                     column_name,
                     assets,

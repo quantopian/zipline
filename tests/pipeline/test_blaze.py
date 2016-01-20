@@ -651,6 +651,118 @@ class BlazeToPipelineTestCase(TestCase):
             check_dtype=False,
         )
 
+    def test_id_take_last_in_group(self):
+        T = pd.Timestamp
+        df = pd.DataFrame(
+            columns=['asof_date',        'timestamp', 'sid', 'other', 'value'],
+            data=[
+                [T('2014-01-01'), T('2014-01-01 00'),    65,        0,      0],
+                [T('2014-01-01'), T('2014-01-01 01'),    65,        1, np.nan],
+                [T('2014-01-01'), T('2014-01-01 00'),    66,   np.nan, np.nan],
+                [T('2014-01-01'), T('2014-01-01 01'),    66,   np.nan,      1],
+                [T('2014-01-01'), T('2014-01-01 00'),    67,        2, np.nan],
+                [T('2014-01-01'), T('2014-01-01 01'),    67,   np.nan, np.nan],
+                [T('2014-01-02'), T('2014-01-02 00'),    65,   np.nan, np.nan],
+                [T('2014-01-02'), T('2014-01-02 01'),    65,   np.nan,      1],
+                [T('2014-01-02'), T('2014-01-02 00'),    66,   np.nan, np.nan],
+                [T('2014-01-02'), T('2014-01-02 01'),    66,        2, np.nan],
+                [T('2014-01-02'), T('2014-01-02 00'),    67,        3,      3],
+                [T('2014-01-02'), T('2014-01-02 01'),    67,        3,      3],
+                [T('2014-01-03'), T('2014-01-03 00'),    65,        2, np.nan],
+                [T('2014-01-03'), T('2014-01-03 01'),    65,        2, np.nan],
+                [T('2014-01-03'), T('2014-01-03 00'),    66,        3,      3],
+                [T('2014-01-03'), T('2014-01-03 01'),    66,   np.nan, np.nan],
+                [T('2014-01-03'), T('2014-01-03 00'),    67,   np.nan, np.nan],
+                [T('2014-01-03'), T('2014-01-03 01'),    67,   np.nan,      4],
+            ],
+        )
+        fields = OrderedDict(self.dshape.measure.fields)
+        fields['other'] = fields['value']
+
+        with tmp_asset_finder() as finder:
+            expected = pd.DataFrame(
+                columns=['other', 'value'],
+                data=[
+                    [1,           0],  # 2014-01-01 Equity(65 [A])
+                    [np.nan,      1],             # Equity(66 [B])
+                    [2,      np.nan],             # Equity(67 [C])
+                    [1,           1],  # 2014-01-02 Equity(65 [A])
+                    [2,           1],             # Equity(66 [B])
+                    [3,           3],             # Equity(67 [C])
+                    [2,           1],  # 2014-01-03 Equity(65 [A])
+                    [3,           3],             # Equity(66 [B])
+                    [3,           3],             # Equity(67 [C])
+                ],
+                index=pd.MultiIndex.from_product(
+                    (self.dates, finder.retrieve_all(self.sids)),
+                ),
+            )
+            self._test_id(
+                df,
+                var * Record(fields),
+                expected,
+                finder,
+                ('value', 'other'),
+            )
+
+    def test_id_take_last_in_group_macro(self):
+        """
+        output (expected):
+
+                                   other  value
+        2014-01-01 Equity(65 [A])    NaN      1
+                   Equity(66 [B])    NaN      1
+                   Equity(67 [C])    NaN      1
+        2014-01-02 Equity(65 [A])      1      2
+                   Equity(66 [B])      1      2
+                   Equity(67 [C])      1      2
+        2014-01-03 Equity(65 [A])      2      2
+                   Equity(66 [B])      2      2
+                   Equity(67 [C])      2      2
+         """
+        T = pd.Timestamp
+        df = pd.DataFrame(
+            columns=['asof_date',        'timestamp', 'other', 'value'],
+            data=[
+                [T('2014-01-01'), T('2014-01-01 00'),   np.nan,      1],
+                [T('2014-01-01'), T('2014-01-01 01'),   np.nan, np.nan],
+                [T('2014-01-02'), T('2014-01-02 00'),        1, np.nan],
+                [T('2014-01-02'), T('2014-01-02 01'),   np.nan,      2],
+                [T('2014-01-03'), T('2014-01-03 00'),        2, np.nan],
+                [T('2014-01-03'), T('2014-01-03 01'),        3,      3],
+            ],
+        )
+        fields = OrderedDict(self.macro_dshape.measure.fields)
+        fields['other'] = fields['value']
+
+        with tmp_asset_finder() as finder:
+            expected = pd.DataFrame(
+                columns=[
+                    'other', 'value',
+                ],
+                data=[
+                    [np.nan,      1],  # 2014-01-01 Equity(65 [A])
+                    [np.nan,      1],             # Equity(66 [B])
+                    [np.nan,      1],             # Equity(67 [C])
+                    [1,           2],  # 2014-01-02 Equity(65 [A])
+                    [1,           2],             # Equity(66 [B])
+                    [1,           2],             # Equity(67 [C])
+                    [2,           2],  # 2014-01-03 Equity(65 [A])
+                    [2,           2],             # Equity(66 [B])
+                    [2,           2],             # Equity(67 [C])
+                ],
+                index=pd.MultiIndex.from_product(
+                    (self.dates, finder.retrieve_all(self.sids)),
+                ),
+            )
+            self._test_id(
+                df,
+                var * Record(fields),
+                expected,
+                finder,
+                ('value', 'other'),
+            )
+
     def _run_pipeline(self,
                       expr,
                       deltas,
