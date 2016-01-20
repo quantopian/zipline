@@ -17,6 +17,7 @@ from copy import copy
 from six import iteritems, iterkeys
 import pandas as pd
 import numpy as np
+from .data.currencies import CCY
 
 from .utils.enum import enum
 from .utils.math_utils import nanstd, nanmean, nansum

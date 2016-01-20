@@ -1,10 +1,10 @@
 __author__ = 'michael'
 
 
-from zipline.utils.protocol_utils import Enum
+from zipline.utils.enum import enum
 
 # Currencies we need for basic FX conversions
-CCY = Enum(
+CCY = enum(
     'USD',
     'GBP',
     'CHF',
