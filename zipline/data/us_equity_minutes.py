@@ -251,10 +251,6 @@ class BcolzMinuteBarWriter(object):
     def first_trading_day(self):
         return self._first_trading_day
 
-    @property
-    def metadata_path(self):
-        return os.path.join(self._rootdir, METADATA_FILENAME)
-
     def sidpath(self, sid):
         """
         Parameters:
@@ -362,6 +358,11 @@ class BcolzMinuteBarWriter(object):
         df : pd.DataFrame
             DataFrame of market data with the following characteristics.
             columns : ('open', 'high', 'low', 'close', 'volume')
+                open : float64
+                high : float64
+                low  : float64
+                close : float64
+                volume : float64|int64
             index : DatetimeIndex of market minutes.
         """
         table = self._ensure_ctable(sid)
