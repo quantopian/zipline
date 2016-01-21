@@ -105,3 +105,9 @@ Asset Metadata
 
 .. autoclass:: zipline.assets.assets.AssetConvertible
    :members:
+
+Data API
+~~~~
+
+.. autoclass:: zipline.data.us_equity_minutes.BcolzMinuteBarWriter
+   :members:
