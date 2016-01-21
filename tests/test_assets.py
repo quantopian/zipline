@@ -727,14 +727,14 @@ class AssetFinderTestCase(TestCase):
             0: {
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
-                'expiration_date': pd.Timestamp('2015-06-14', tz='UTC'),
+                'notice_date': pd.Timestamp('2015-06-14', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-08-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-08-14', tz='UTC'),
+                'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
@@ -781,8 +781,8 @@ class AssetFinderTestCase(TestCase):
         # right order
         ad_contracts = finder.lookup_future_chain('AD', dt)
         self.assertEqual(len(ad_contracts), 6)
-        self.assertEqual(ad_contracts[0].sid, 0)
-        self.assertEqual(ad_contracts[1].sid, 1)
+        self.assertEqual(ad_contracts[0].sid, 1)
+        self.assertEqual(ad_contracts[1].sid, 0)
         self.assertEqual(ad_contracts[5].sid, 5)
 
         # Check that, when some contracts have expired, the chain has advanced
