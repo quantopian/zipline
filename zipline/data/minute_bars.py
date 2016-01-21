@@ -391,7 +391,7 @@ class BcolzMinuteBarWriter(object):
                     end=input_first_day)]
                 # Chop off the input first day.
                 days_to_zerofill = days_to_zerofill[:-1]
-            elif next_date >= input_first_day:
+            elif next_date > input_first_day:
                 raise BcolzMinuteOverlappingData(dedent("""
                 window start={0} is before expected write date={1} for
                 sid={2}""".strip()).format(days[0], input_first_day, sid))
