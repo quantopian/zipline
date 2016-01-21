@@ -32,3 +32,7 @@ script:
   - nosetests --with-timer --exclude=^test_examples --with-coverage --cover-package=zipline --timer-top-n=15
 after_success:
   - coveralls
+
+branches:
+  only:
+    - master
