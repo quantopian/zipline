@@ -96,6 +96,18 @@ class BcolzMinuteBarMetadata(object):
             return cls(first_trading_day, minute_index, ohlc_ratio)
 
     def __init__(self, first_trading_day, minute_index, ohlc_ratio):
+        """
+        Parameters:
+        -----------
+        first_trading_day : datetime-like
+            UTC midnight of the first day available in the dataset.
+        minute_index : pd.DatetimeIndex
+            The minutes which act as an index into the corresponding values
+            written into each sid's ctable.
+        ohlc_ratio : int
+             The factor by which the pricing data is multiplied so that the
+             float data can be stored as an integer.
+        """
         self.first_trading_day = first_trading_day
         self.minute_index = minute_index
         self.ohlc_ratio = ohlc_ratio
@@ -111,6 +123,9 @@ class BcolzMinuteBarMetadata(object):
         minute_index : list of integers
              nanosecond integer representation of the minutes, the enumeration
              of which corresponds to the values in each bcolz carray.
+        ohlc_ratio : int
+             The factor by which the pricing data is multiplied so that the
+             float data can be stored as an integer.
         """
         metadata = {
             'first_trading_day': str(self.first_trading_day.date()),
