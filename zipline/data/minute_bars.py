@@ -331,7 +331,7 @@ class BcolzMinuteBarWriter(object):
         sidpath = self.sidpath(sid)
         if not os.path.exists(sidpath):
             return self._init_ctable(sidpath)
-        return bcolz.ctable(rootdir=sidpath, mode='r')
+        return bcolz.ctable(rootdir=sidpath, mode='a')
 
     def _zerofill(self, table, numdays):
         num_to_prepend = numdays * self._minutes_per_day
