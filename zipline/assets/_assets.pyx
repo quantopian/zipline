@@ -19,6 +19,8 @@ Cythonized Asset object.
 """
 cimport cython
 
+from numbers import Integral
+
 import numpy as np
 import warnings
 cimport numpy as np
@@ -86,14 +88,20 @@ cdef class Asset:
         if isinstance(x, Asset):
             x_as_int = x.sid
         elif isinstance(x, int):
+            # ints are Integral, but much faster to special case
             x_as_int = x
+        elif isinstance(x, (long, np.int64, np.int32, Integral)):
+            x_as_int = int(x)
         else:
             return NotImplemented
 
         if isinstance(y, Asset):
             y_as_int = y.sid
         elif isinstance(y, int):
+            # ints are Integral, but much faster to special case
             y_as_int = y
+        elif isinstance(y, (long, np.int64, np.int32, Integral)):
+            y_as_int = int(y)
         else:
             return NotImplemented
 
