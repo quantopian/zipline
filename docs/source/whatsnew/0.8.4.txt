@@ -17,6 +17,11 @@ Highlights
 * :class:`~zipline.assets.assets.AssetFinder` speedups (:issue:`830` and
   :issue:`817`).
 
+* Improved support for non-float dtypes in Pipeline.  Most notably, we now
+  support ``datetime64`` and ``int64`` dtypes for ``Factor``, and
+  ``BoundColumn.latest`` now returns a proper ``Filter`` object when the column
+  is of dtype ``bool``.
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -82,6 +87,17 @@ Enhancements
   ``datetime.time(8, 45)`` and ``'US/Eastern'`` to the loader. This means that
   data that is timestamped on or after ``8:45`` will not seen on that day in the
   simulation. The data will be made available on the next day (:issue:`947`).
+
+* ``BoundColumn.latest`` now returns a
+  :class:`~zipline.pipeline.filters.Filter` for columns of dtype
+  ``bool`` (:issue:`962`).
+
+* Added support for :class:`~zipline.pipeline.factors.Factor` instances with
+  ``int64`` dtype.  :class:`~zipline.pipeline.data.dataset.Column` now requires
+  a ``missing_value`` when dtype is integral. (:issue:`962`)
+
+* It is also now possible to specify custom ``missing_value`` values for
+  ``float``, ``datetime``, and ``bool`` Pipeline terms. (:issue:`962`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
