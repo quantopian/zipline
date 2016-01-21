@@ -7,7 +7,11 @@ from six import (
     with_metaclass,
 )
 
-from zipline.pipeline.term import Term, AssetExists, NotSpecified
+from zipline.pipeline.term import (
+    Term,
+    AssetExists,
+    NotSpecified,
+)
 from zipline.utils.input_validation import ensure_dtype
 from zipline.utils.numpy_utils import (
     bool_dtype,
@@ -47,26 +51,26 @@ class _BoundColumnDescr(object):
     parent classes.
     """
     def __init__(self, dtype, missing_value, name):
-        self.dtype = dtype
-
-        # Calculating missing values here guarantees that we fail quickly if
-        # the user fails to provide a missing value for a dtype that requires
-        # one (e.g. int64), but still enables us to provide an error message
-        # that points to the name of the failing column.
-        if missing_value is NotSpecified:
-            try:
-                missing_value = default_missing_value_for_dtype(dtype)
-            except NoDefaultMissingValue:
-                # Re-raise with a better message.
-                raise NoDefaultMissingValue(
-                    "Failed to create Column with name {name!r} and"
-                    " dtype {dtype} because no missing_value was provided\n\n"
-                    "Columns with dtype {dtype} require a missing_value.\n"
-                    "Please pass missing_value to Column() or use a different"
-                    " dtype.".format(dtype=dtype, name=name)
-                )
-
-        self.missing_value = missing_value
+        # Validating and calculating default missing values here guarantees
+        # that we fail quickly if the user passes an unsupporte dtype or fails
+        # to provide a missing value for a dtype that requires one
+        # (e.g. int64), but still enables us to provide an error message that
+        # points to the name of the failing column.
+        try:
+            self.dtype, self.missing_value = Term.validate_dtype(
+                termname="Column(name={name!r})".format(name=name),
+                dtype=dtype,
+                missing_value=missing_value,
+            )
+        except NoDefaultMissingValue:
+            # Re-raise with a more specific message.
+            raise NoDefaultMissingValue(
+                "Failed to create Column with name {name!r} and"
+                " dtype {dtype} because no missing_value was provided\n\n"
+                "Columns with dtype {dtype} require a missing_value.\n"
+                "Please pass missing_value to Column() or use a different"
+                " dtype.".format(dtype=dtype, name=name)
+            )
         self.name = name
 
     def __get__(self, instance, owner):

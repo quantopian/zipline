@@ -7,6 +7,8 @@ from numpy import (
     float64,
     int32,
     int64,
+    int16,
+    uint16,
     ndarray,
     uint32,
     uint8,
@@ -29,13 +31,33 @@ from ._int64window import AdjustedArrayWindow as Int64Window
 from ._uint8window import AdjustedArrayWindow as UInt8Window
 
 NOMASK = None
+BOOL_DTYPES = frozenset(
+    map(dtype, [bool_]),
+)
 FLOAT_DTYPES = frozenset(
-    map(dtype, [float32, float64, int32]),
+    map(dtype, [float32, float64]),
 )
 INT_DTYPES = frozenset(
     # NOTE: uint64 not supported because it can't be safely cast to int64.
-    map(dtype, [int32, int64, uint32]),
+    map(dtype, [int16, uint16, int32, int64, uint32]),
 )
+DATETIME_DTYPES = frozenset(
+    map(dtype, ['datetime64[ns]', 'datetime64[D]']),
+)
+REPRESENTABLE_DTYPES = BOOL_DTYPES.union(
+    FLOAT_DTYPES,
+    INT_DTYPES,
+    DATETIME_DTYPES
+)
+
+
+def can_represent_dtype(dtype):
+    """
+    Can we build an AdjustedArray for a baseline of dtype ``dtype``?
+    """
+    return dtype in REPRESENTABLE_DTYPES
+
+
 CONCRETE_WINDOW_TYPES = {
     float64_dtype: Float64Window,
     int64_dtype: Int64Window,

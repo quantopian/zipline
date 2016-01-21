@@ -15,10 +15,13 @@ from toolz import flip
 
 uint8_dtype = dtype('uint8')
 bool_dtype = dtype('bool')
+
 int64_dtype = dtype('int64')
 
 float32_dtype = dtype('float32')
 float64_dtype = dtype('float64')
+
+complex128_dtype = dtype('complex128')
 
 datetime64D_dtype = dtype('datetime64[D]')
 datetime64ns_dtype = dtype('datetime64[ns]')

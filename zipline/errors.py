@@ -396,7 +396,7 @@ class DTypeNotSpecified(ZiplineError):
     )
 
 
-class InvalidDType(ZiplineError):
+class NotDType(ZiplineError):
     """
     Raised when a pipeline Term is constructed with a dtype that isn't a numpy
     dtype object.
@@ -404,6 +404,17 @@ class InvalidDType(ZiplineError):
     msg = (
         "{termname} expected a numpy dtype "
         "object for a dtype, but got {dtype} instead."
+    )
+
+
+class UnsupportedDType(ZiplineError):
+    """
+    Raised when a pipeline Term is constructed with a dtype that's not
+    supported.
+    """
+    msg = (
+        "Failed to construct {termname}.\n"
+        "Pipeline terms of dtype {dtype} are not yet supported."
     )
 
 
