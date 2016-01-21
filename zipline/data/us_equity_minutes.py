@@ -283,18 +283,15 @@ class BcolzMinuteBarWriter(object):
             The midnight of the last date written in to the output for the
             given sid.
         """
-        try:
-            sizes_path = "{0}/close/meta/sizes".format(self.sidpath(sid))
-            with open(sizes_path, mode='r') as f:
-                sizes = f.read()
-            data = json.loads(sizes)
-            num_days = data['shape'][0] / self._minutes_per_day
-            if num_days == 0:
-                # empty container
-                return None
-            return self._trading_days[num_days - 1]
-        except IOError:
-            return None
+        sizes_path = "{0}/close/meta/sizes".format(self.sidpath(sid))
+        with open(sizes_path, mode='r') as f:
+            sizes = f.read()
+        data = json.loads(sizes)
+        num_days = data['shape'][0] / self._minutes_per_day
+        if num_days == 0:
+            # empty container
+            return pd.NaT
+        return self._trading_days[num_days - 1]
 
     def _init_ctable(self, path):
         """
@@ -329,6 +326,14 @@ class BcolzMinuteBarWriter(object):
             mode='w',
         )
         table.flush()
+        return table
+
+    def _ensure_ctable(self, sid):
+        """Ensure that a ctable exists for ``sid``, then return it."""
+        sidpath = self.sidpath(sid)
+        if not os.path.exists(sidpath):
+            return self._init_ctable(sidpath)
+        return bcolz.ctable(rootdir=sidpath, mode='r')
 
     def _zerofill(self, table, numdays):
         num_to_prepend = numdays * self._minutes_per_day
@@ -359,10 +364,7 @@ class BcolzMinuteBarWriter(object):
             columns : ('open', 'high', 'low', 'close', 'volume')
             index : DatetimeIndex of market minutes.
         """
-        path = self.sidpath(sid)
-        if not os.path.exists(path):
-            self._init_ctable(path)
-        table = ctable(rootdir=path)
+        table = self._ensure_ctable(sid)
 
         last_date = self.last_date_in_output_for_sid(sid)
         tds = self._trading_days
@@ -370,7 +372,7 @@ class BcolzMinuteBarWriter(object):
                                      end=normalize_date(df.index[-1]))]
         input_first_day = days[0]
 
-        if last_date is None:
+        if last_date is pd.NaT:
             # If there is no data, determine how many days to add so that
             # desired days are written to the correct slots.
             days_to_zerofill = tds[tds.slice_indexer(end=input_first_day)]
