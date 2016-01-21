@@ -38,6 +38,7 @@ from zipline.finance.trading import TradingEnvironment
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
 
+
 class BcolzMinuteBarTestCase(TestCase):
 
     @classmethod
@@ -172,7 +173,6 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [50.0]
             },
             index=[minute])
-        days = DatetimeIndex([second_day])
         self.writer.write(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
@@ -207,7 +207,6 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [0]
             },
             index=[minute])
-        days = DatetimeIndex([self.test_calendar_start])
         self.writer.write(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')

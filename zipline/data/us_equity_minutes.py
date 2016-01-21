@@ -413,20 +413,16 @@ class BcolzMinuteBarWriter(object):
         close_col = np.zeros(minutes_count, dtype=np.uint32)
         vol_col = np.zeros(minutes_count, dtype=np.uint32)
 
-        if df is not None:
-            dt_ixs = np.searchsorted(all_minutes_in_window.values,
-                                     df.index.values)
+        dt_ixs = np.searchsorted(all_minutes_in_window.values,
+                                 df.index.values)
 
-            ohlc_ratio = self._ohlc_ratio
-            open_col[dt_ixs] = (df.open.values * ohlc_ratio).astype(np.uint32)
-            high_col[dt_ixs] = (df.high.values * ohlc_ratio).astype(np.uint32)
-            low_col[dt_ixs] = (df.low.values * ohlc_ratio).astype(np.uint32)
-            close_col[dt_ixs] = (df.close.values * ohlc_ratio).astype(
-                np.uint32)
-            vol_col[dt_ixs] = df.volume.values.astype(np.uint32)
-        else:
-            # If df is None, add zero rows for the given days.
-            pass
+        ohlc_ratio = self._ohlc_ratio
+        open_col[dt_ixs] = (df.open.values * ohlc_ratio).astype(np.uint32)
+        high_col[dt_ixs] = (df.high.values * ohlc_ratio).astype(np.uint32)
+        low_col[dt_ixs] = (df.low.values * ohlc_ratio).astype(np.uint32)
+        close_col[dt_ixs] = (df.close.values * ohlc_ratio).astype(
+            np.uint32)
+        vol_col[dt_ixs] = df.volume.values.astype(np.uint32)
 
         table.append([
             open_col,
