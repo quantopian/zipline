@@ -14,8 +14,11 @@ from zipline.utils.numpy_utils import (
 
 
 class TestingDataSet(DataSet):
+    # Tell nose this isn't a test case.
+    __test__ = False
 
-    bool_col = Column(dtype=bool_dtype)
+    bool_col = Column(dtype=bool_dtype, missing_value=False)
+    bool_col_default_True = Column(dtype=bool_dtype, missing_value=True)
     float_col = Column(dtype=float64_dtype)
     datetime_col = Column(dtype=datetime64ns_dtype)
-    int_col = Column(dtype=int64_dtype)
+    int_col = Column(dtype=int64_dtype, missing_value=0)

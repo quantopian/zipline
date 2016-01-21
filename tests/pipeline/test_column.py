@@ -42,13 +42,9 @@ class LatestTestCase(TestCase):
         )
 
     def test_latest(self):
+        columns = TDS.columns
         pipe = Pipeline(
-            columns={
-                name: getattr(TDS, name + '_col').latest
-                # Intentionally not including int and bool because they're not
-                # yet supported.
-                for name in ('float', 'datetime')
-            }
+            columns={c.name: c.latest for c in columns},
         )
 
         cal_slice = slice(20, 40)
@@ -58,6 +54,7 @@ class LatestTestCase(TestCase):
             dates_to_test[0],
             dates_to_test[-1],
         )
-        float_result = result.float.unstack()
-        expected_float_result = self.expected_latest(TDS.float_col, cal_slice)
-        assert_frame_equal(float_result, expected_float_result)
+        for column in columns:
+            float_result = result[column.name].unstack()
+            expected_float_result = self.expected_latest(column, cal_slice)
+            assert_frame_equal(float_result, expected_float_result)

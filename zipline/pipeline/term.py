@@ -15,7 +15,10 @@ from zipline.errors import (
     WindowLengthNotSpecified,
 )
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import bool_dtype, default_fillvalue_for_dtype
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    default_missing_value_for_dtype,
+)
 from zipline.utils.sentinel import sentinel
 
 
@@ -32,6 +35,7 @@ class Term(with_metaclass(ABCMeta, object)):
     # These are NotSpecified because a subclass is required to provide them.
     dtype = NotSpecified
     domain = NotSpecified
+    missing_value = NotSpecified
 
     # Subclasses aren't required to provide `params`.  The default behavior is
     # no params.
@@ -42,6 +46,7 @@ class Term(with_metaclass(ABCMeta, object)):
     def __new__(cls,
                 domain=domain,
                 dtype=dtype,
+                missing_value=missing_value,
                 # params is explicitly not allowed to be passed to an instance.
                 *args,
                 **kwargs):
@@ -55,18 +60,22 @@ class Term(with_metaclass(ABCMeta, object)):
         Caching previously-constructed Terms is **sane** because terms and
         their inputs are both conceptually immutable.
         """
-        # Class-level attributes can be used to provide defaults for Term
-        # subclasses.
-
+        # Subclasses can set override these class-level attributes to provide
+        # default values.
         if domain is NotSpecified:
             domain = cls.domain
+        if dtype is NotSpecified:
+            dtype = cls.dtype
+        if missing_value is NotSpecified:
+            missing_value = cls.missing_value
 
-        dtype = cls._validate_dtype(dtype)
+        dtype, missing_value = cls._validate_dtype(dtype, missing_value)
         params = cls._pop_params(kwargs)
 
         identity = cls.static_identity(
             domain=domain,
             dtype=dtype,
+            missing_value=missing_value,
             params=params,
             *args, **kwargs
         )
@@ -78,6 +87,7 @@ class Term(with_metaclass(ABCMeta, object)):
                 super(Term, cls).__new__(cls)._init(
                     domain=domain,
                     dtype=dtype,
+                    missing_value=missing_value,
                     params=params,
                     *args, **kwargs
                 )
@@ -132,9 +142,9 @@ class Term(with_metaclass(ABCMeta, object)):
         return tuple(zip(cls.params, param_values))
 
     @classmethod
-    def _validate_dtype(cls, passed_dtype):
+    def _validate_dtype(cls, passed_dtype, missing_value):
         """
-        Validate a `dtype` passed to Term.__new__.
+        Validate `dtype` passed to Term.__new__.
 
         If passed_dtype is NotSpecified, then we try to fall back to a
         class-level attribute.  If a value is found at that point, we pass it
@@ -157,14 +167,16 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         dtype = passed_dtype
         if dtype is NotSpecified:
-            dtype = cls.dtype
-        if dtype is NotSpecified:
             raise DTypeNotSpecified(termname=cls.__name__)
         try:
             dtype = dtype_class(dtype)
         except TypeError:
             raise InvalidDType(dtype=dtype, termname=cls.__name__)
-        return dtype
+
+        if missing_value is NotSpecified:
+            missing_value = default_missing_value_for_dtype(dtype)
+
+        return dtype, missing_value
 
     def __init__(self, *args, **kwargs):
         """
@@ -183,7 +195,7 @@ class Term(with_metaclass(ABCMeta, object)):
         pass
 
     @classmethod
-    def static_identity(cls, domain, dtype, params):
+    def static_identity(cls, domain, dtype, missing_value, params):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -195,9 +207,9 @@ class Term(with_metaclass(ABCMeta, object)):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, domain, dtype, params)
+        return (cls, domain, dtype, missing_value, params)
 
-    def _init(self, domain, dtype, params):
+    def _init(self, domain, dtype, missing_value, params):
         """
         Parameters
         ----------
@@ -210,6 +222,7 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         self.domain = domain
         self.dtype = dtype
+        self.missing_value = missing_value
 
         for name, value in params:
             if hasattr(self, name):
@@ -267,10 +280,6 @@ class Term(with_metaclass(ABCMeta, object)):
     def atomic(self):
         return not any(dep for dep in self.dependencies
                        if dep is not AssetExists())
-
-    @lazyval
-    def missing_value(self):
-        return default_fillvalue_for_dtype(self.dtype)
 
 
 class AssetExists(Term):

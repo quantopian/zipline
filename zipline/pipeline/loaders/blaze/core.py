@@ -165,6 +165,7 @@ from zipline.pipeline.loaders.utils import (
     normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
 )
+from zipline.pipeline.term import NotSpecified
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum
@@ -275,15 +276,21 @@ _new_names = ('BlazeDataSet_%d' % n for n in count())
 
 
 @memoize
-def new_dataset(expr, deltas):
-    """Creates or returns a dataset from a pair of blaze expressions.
+def new_dataset(expr, deltas, missing_values):
+    """
+    Creates or returns a dataset from a pair of blaze expressions.
 
     Parameters
     ----------
     expr : Expr
-       The blaze expression representing the first known values.
+        The blaze expression representing the first known values.
     deltas : Expr
-       The blaze expression representing the deltas to the data.
+        The blaze expression representing the deltas to the data.
+    missing_values : frozenset((name, value) pairs
+        Association pairs column name and missing_value for that column.
+
+        This needs to be a frozenset rather than a dict or tuple of tuples
+        because we want a collection that's unordered but still hashable.
 
     Returns
     -------
@@ -295,9 +302,16 @@ def new_dataset(expr, deltas):
     This function is memoized. repeated calls with the same inputs will return
     the same type.
     """
+    missing_values = dict(missing_values)
     columns = {}
     for name, type_ in expr.dshape.measure.fields:
+        # Don't generate a column for sid or timestamp, since they're
+        # implicitly the labels if the arrays that will be passed to pipeline
+        # Terms.
+        if name in (SID_FIELD_NAME, TS_FIELD_NAME):
+            continue
         try:
+            # TODO: This should support datetime and bool columns.
             if promote(type_, float64, promote_option=False) != float64:
                 raise NotPipelineCompatible()
             if isinstance(type_, Option):
@@ -307,7 +321,10 @@ def new_dataset(expr, deltas):
         except TypeError:
             col = NonNumpyField(name, type_)
         else:
-            col = Column(type_.to_numpy_dtype())
+            col = Column(
+                type_.to_numpy_dtype(),
+                missing_values.get(name, NotSpecified),
+            )
 
         columns[name] = col
 
@@ -473,6 +490,7 @@ def from_blaze(expr,
                loader=None,
                resources=None,
                odo_kwargs=None,
+               missing_values=None,
                no_deltas_rule=no_deltas_rules.warn):
     """Create a Pipeline API object from a blaze expression.
 
@@ -494,6 +512,9 @@ def from_blaze(expr,
         scope for ``bz.compute``.
     odo_kwargs : dict, optional
         The keyword arguments to pass to odo when evaluating the expressions.
+    missing_values : dict[str -> any], optional
+        A dict mapping column names to missing values for those columns.
+        Missing values are required for integral columns.
     no_deltas_rule : no_deltas_rule
         What should happen if ``deltas='auto'`` but no deltas can be found.
         'warn' says to raise a warning but continue.
@@ -583,7 +604,10 @@ def from_blaze(expr,
     _check_resources('deltas', deltas, resources)
 
     # Create or retrieve the Pipeline API dataset.
-    ds = new_dataset(dataset_expr, deltas)
+    if missing_values is None:
+        missing_values = {}
+    ds = new_dataset(dataset_expr, deltas, frozenset(missing_values.items()))
+
     # Register our new dataset with the loader.
     (loader if loader is not None else global_loader)[ds] = ExprData(
         bind_expression_to_resources(dataset_expr, resources),
@@ -1018,7 +1042,8 @@ class BlazeLoader(dict):
                     column_name,
                     asset_idx,
                     sparse_deltas,
-                )
+                ),
+                column.missing_value,
             )
 
 global_loader = BlazeLoader.global_instance()

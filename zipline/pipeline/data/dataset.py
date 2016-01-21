@@ -7,9 +7,13 @@ from six import (
     with_metaclass,
 )
 
-from zipline.pipeline.term import Term, AssetExists
+from zipline.pipeline.term import Term, AssetExists, NotSpecified
 from zipline.utils.input_validation import ensure_dtype
-from zipline.utils.numpy_utils import bool_dtype
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    default_missing_value_for_dtype,
+    NoDefaultMissingValue,
+)
 from zipline.utils.preprocess import preprocess
 
 
@@ -19,14 +23,19 @@ class Column(object):
     """
 
     @preprocess(dtype=ensure_dtype)
-    def __init__(self, dtype):
+    def __init__(self, dtype, missing_value=NotSpecified):
         self.dtype = dtype
+        self.missing_value = missing_value
 
     def bind(self, name):
         """
         Bind a `Column` object to its name.
         """
-        return _BoundColumnDescr(dtype=self.dtype, name=name)
+        return _BoundColumnDescr(
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            name=name,
+        )
 
 
 class _BoundColumnDescr(object):
@@ -37,8 +46,27 @@ class _BoundColumnDescr(object):
     This exists so that subclasses of DataSets don't share columns with their
     parent classes.
     """
-    def __init__(self, dtype, name):
+    def __init__(self, dtype, missing_value, name):
         self.dtype = dtype
+
+        # Calculating missing values here guarantees that we fail quickly if
+        # the user fails to provide a missing value for a dtype that requires
+        # one (e.g. int64), but still enables us to provide an error message
+        # that points to the name of the failing column.
+        if missing_value is NotSpecified:
+            try:
+                missing_value = default_missing_value_for_dtype(dtype)
+            except NoDefaultMissingValue:
+                # Re-raise with a better message.
+                raise NoDefaultMissingValue(
+                    "Failed to create Column with name {name!r} and"
+                    " dtype {dtype} because no missing_value was provided\n\n"
+                    "Columns with dtype {dtype} require a missing_value.\n"
+                    "Please pass missing_value to Column() or use a different"
+                    " dtype.".format(dtype=dtype, name=name)
+                )
+
+        self.missing_value = missing_value
         self.name = name
 
     def __get__(self, instance, owner):
@@ -50,6 +78,7 @@ class _BoundColumnDescr(object):
         """
         return BoundColumn(
             dtype=self.dtype,
+            missing_value=self.missing_value,
             dataset=owner,
             name=self.name,
         )
@@ -63,11 +92,12 @@ class BoundColumn(Term):
     extra_input_rows = 0
     inputs = ()
 
-    def __new__(cls, dtype, dataset, name):
+    def __new__(cls, dtype, missing_value, dataset, name):
         return super(BoundColumn, cls).__new__(
             cls,
             domain=dataset.domain,
             dtype=dtype,
+            missing_value=missing_value,
             dataset=dataset,
             name=name,
         )
@@ -106,7 +136,11 @@ class BoundColumn(Term):
             from zipline.pipeline.filters import Latest
         else:
             from zipline.pipeline.factors import Latest
-        return Latest(inputs=(self,), dtype=self.dtype)
+        return Latest(
+            inputs=(self,),
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+        )
 
     def __repr__(self):
         return "{qualname}::{dtype}".format(

@@ -11,7 +11,6 @@ from zipline.errors import (
     InvalidDType,
     TermInputsNotSpecified,
     WindowLengthNotSpecified,
-    UnsupportedDataType,
 )
 from zipline.pipeline import Factor, Filter, TermGraph
 from zipline.pipeline.data import Column, DataSet
@@ -21,6 +20,8 @@ from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
+    int64_dtype,
+    NoDefaultMissingValue,
 )
 
 
@@ -334,15 +335,27 @@ class ObjectIdentityTestCase(TestCase):
             SomeFactor(dtype=1)
 
     def test_latest_on_different_dtypes(self):
-
         self.assertIsInstance(TestingDataSet.bool_col.latest, Filter)
         self.assertIsInstance(TestingDataSet.float_col.latest, Factor)
         self.assertIsInstance(TestingDataSet.datetime_col.latest, Factor)
+        self.assertIsInstance(TestingDataSet.int_col.latest, Factor)
 
-        # TODO: Support this by allowing users to provide a missing value on
-        # columns.
-        with self.assertRaises(UnsupportedDataType):
-            self.assertIsInstance(TestingDataSet.int_col.latest, Factor)
+    def test_failure_timing_on_bad_missing_values(self):
+
+        # Just constructing a bad column shouldn't fail.
+        Column(dtype=int64_dtype)
+
+        with self.assertRaises(NoDefaultMissingValue) as e:
+            class BadDataSet(DataSet):
+                bad_column = Column(dtype=int64_dtype)
+                float_column = Column(dtype=float64_dtype)
+                int_column = Column(dtype=int64_dtype, missing_value=3)
+
+        self.assertTrue(
+            str(e.exception.message).startswith(
+                "Failed to create Column with name 'bad_column'"
+            )
+        )
 
 
 class SubDataSetTestCase(TestCase):

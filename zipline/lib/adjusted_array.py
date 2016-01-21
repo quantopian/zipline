@@ -17,26 +17,24 @@ from zipline.errors import (
 )
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
-    default_fillvalue_for_dtype,
     float64_dtype,
     int64_dtype,
     uint8_dtype,
 )
 from zipline.utils.memoize import lazyval
-from zipline.utils.sentinel import sentinel
 
 # These class names are all the same because of our bootleg templating system.
 from ._float64window import AdjustedArrayWindow as Float64Window
 from ._int64window import AdjustedArrayWindow as Int64Window
 from ._uint8window import AdjustedArrayWindow as UInt8Window
 
-Infer = sentinel(
-    'Infer',
-    "Sentinel used to say 'infer missing_value from data type.'"
-)
 NOMASK = None
-SUPPORTED_NUMERIC_DTYPES = frozenset(
-    map(dtype, [float32, float64, int32, int64, uint32])
+FLOAT_DTYPES = frozenset(
+    map(dtype, [float32, float64, int32]),
+)
+INT_DTYPES = frozenset(
+    # NOTE: uint64 not supported because it can't be safely cast to int64.
+    map(dtype, [int32, int64, uint32]),
 )
 CONCRETE_WINDOW_TYPES = {
     float64_dtype: Float64Window,
@@ -51,13 +49,10 @@ def _normalize_array(data):
     representation, returning the coerced array and a numpy dtype object to use
     as a view type when providing public view into the data.
 
-    Semantically numerical data (float*, int*, uint*) is coerced to float64 and
-    viewed as float64.  We coerce integral data to float so that we can use NaN
-    as a missing value.
-
-    datetime[*] data is coerced to int64 with a viewtype of ``datetime64[ns]``.
-
-    ``bool_`` data is coerced to uint8 with a viewtype of ``bool_``
+    - float* data is coerced to float64 with viewtype float64.
+    - int32, int64, and uint32 are converted to int64 with viewtype int64.
+    - datetime[*] data is coerced to int64 with a viewtype of datetime64[ns].
+    - bool_ data is coerced to uint8 with a viewtype of bool_.
 
     Parameters
     ----------
@@ -70,8 +65,10 @@ def _normalize_array(data):
     data_dtype = data.dtype
     if data_dtype == bool_:
         return data.astype(uint8), dtype(bool_)
-    elif data_dtype in SUPPORTED_NUMERIC_DTYPES:
+    elif data_dtype in FLOAT_DTYPES:
         return data.astype(float64), dtype(float64)
+    elif data_dtype in INT_DTYPES:
+        return data.astype(int64), dtype(int64)
     elif data_dtype.name.startswith('datetime'):
         try:
             outarray = data.astype('datetime64[ns]').view('int64')
@@ -105,18 +102,24 @@ class AdjustedArray(object):
     adjustments : dict[int -> list[Adjustment]]
         A dict mapping row indices to lists of adjustments to apply when we
         reach that row.
-    fillvalue : object, optional
+    missing_value : object
         A value to use to fill missing data in yielded windows.
-        Default behavior is to infer a value based on the dtype of `data`.
-        `NaN` is used for numeric data, and `NaT` is used for datetime data.
-    """
-    __slots__ = ('_data', '_viewtype', 'adjustments', '__weakref__')
+        Should be a value coercible to `data.dtype`.
 
-    def __init__(self, data, mask, adjustments, fillvalue=Infer):
+    """
+    __slots__ = (
+        '_data',
+        '_viewtype',
+        'adjustments',
+        'missing_value',
+        '__weakref__',
+    )
+
+    def __init__(self, data, mask, adjustments, missing_value):
         self._data, self._viewtype = _normalize_array(data)
+
         self.adjustments = adjustments
-        if fillvalue is Infer:
-            fillvalue = default_fillvalue_for_dtype(self.data.dtype)
+        self.missing_value = missing_value
 
         if mask is not NOMASK:
             if mask.dtype != bool_:
@@ -126,7 +129,7 @@ class AdjustedArray(object):
                     "Mask shape %s != data shape %s." %
                     (mask.shape, data.shape),
                 )
-            self._data[~mask] = fillvalue
+            self._data[~mask] = self.missing_value
 
     @lazyval
     def data(self):
