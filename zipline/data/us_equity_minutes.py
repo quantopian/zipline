@@ -25,7 +25,6 @@ from pandas.core.datetools import normalize_date
 MINUTES_PER_DAY = 390
 DEFAULT_EXPECTEDLEN = 390 * 252 * 15
 OHLC_RATIO = 1000
-METADATA_FILENAME = 'metadata.json'
 
 
 class BcolzMinuteOverlappingData(Exception):
@@ -74,6 +73,52 @@ def _sid_subdir_path(sid):
         padded_sid[2:4],
         "{0}.bcolz".format(str(padded_sid))
     )
+
+
+class BcolzMinuteBarMetadata(object):
+
+    METADATA_FILENAME = 'metadata.json'
+
+    @classmethod
+    def metadata_path(cls, rootdir):
+        return os.path.join(rootdir, cls.METADATA_FILENAME)
+
+    @classmethod
+    def read(cls, rootdir):
+        path = cls.metadata_path(rootdir)
+        with open(path) as fp:
+            raw_data = json.load(fp)
+            first_trading_day = pd.Timestamp(
+                raw_data['first_trading_day'], tz='UTC')
+            minute_index = pd.to_datetime(raw_data['minute_index'],
+                                          utc=True)
+            ohlc_ratio = raw_data['ohlc_ratio']
+            return cls(first_trading_day, minute_index, ohlc_ratio)
+
+    def __init__(self, first_trading_day, minute_index, ohlc_ratio):
+        self.first_trading_day = first_trading_day
+        self.minute_index = minute_index
+        self.ohlc_ratio = ohlc_ratio
+
+    def write(self, rootdir):
+        """
+        Write the metadata to a JSON file in the rootdir.
+
+        Values contained in the metadata are:
+        first_trading_day : string
+            'YYYY-MM-DD' formatted representation of the first trading day
+             available in the dataset.
+        minute_index : list of integers
+             nanosecond integer representation of the minutes, the enumeration
+             of which corresponds to the values in each bcolz carray.
+        """
+        metadata = {
+            'first_trading_day': str(self.first_trading_day.date()),
+            'minute_index': self.minute_index.asi8.tolist(),
+            'ohlc_ratio': self.ohlc_ratio,
+        }
+        with open(self.metadata_path(rootdir), 'w+') as fp:
+            json.dump(metadata, fp)
 
 
 class BcolzMinuteBarWriter(object):
@@ -131,7 +176,7 @@ class BcolzMinuteBarWriter(object):
         -----------
         first_trading_day : datetime-like
             The first trading day in the data set.
-        
+
         rootdir : string
             Path to the root directory into which to write the metadata and
             bcolz subdirectories.
@@ -151,8 +196,8 @@ class BcolzMinuteBarWriter(object):
             of minutes in NYSE trading days.
 
         ohlc_ratio : int
-            The ratio by which to multiply the pricing data to convert the floats
-            from floats to an integer to fit within the np.uint32.
+            The ratio by which to multiply the pricing data to convert the
+            floats from floats to an integer to fit within the np.uint32.
 
             The default is 1000 to support pricing data which comes in to the
             thousands place.
@@ -166,7 +211,7 @@ class BcolzMinuteBarWriter(object):
 
             Defaults to supporting 15 years of NYSE equity market data.
 
-            see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays
+            see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
         """
         self._rootdir = rootdir
         self._first_trading_day = first_trading_day
@@ -180,7 +225,12 @@ class BcolzMinuteBarWriter(object):
         self._minute_index = _calc_minute_index(
             self._market_opens, self._minutes_per_day)
 
-        self._write_metadata()
+        metadata = BcolzMinuteBarMetadata(
+            self._first_trading_day,
+            self._minute_index,
+            self._ohlc_ratio,
+        )
+        metadata.write(self._rootdir)
 
     @property
     def first_trading_day(self):
@@ -189,26 +239,6 @@ class BcolzMinuteBarWriter(object):
     @property
     def metadata_path(self):
         return os.path.join(self._rootdir, METADATA_FILENAME)
-
-    def _write_metadata(self):
-        """
-        Write the metadata to a JSON file in the rootdir.
-
-        Values contained in the metadata are:
-        first_trading_day : string
-            'YYYY-MM-DD' formatted representation of the first trading day
-             available in the dataset.
-        minute_index : list of integers
-             nanosecond integer representation of the minutes, the enumeration of which
-             corresponds to the values in each bcolz carray.
-        """
-        metadata = {
-            'first_trading_day': str(self.first_trading_day.date()),
-            'minute_index': self._minute_index.asi8.tolist(),
-            'ohlc_ratio': self._ohlc_ratio,
-        }
-        with open(self.metadata_path, 'w+') as fp:
-            json.dump(metadata, fp)
 
     def sidpath(self, sid):
         """
@@ -406,9 +436,9 @@ class BcolzMinuteBarReader(object):
 
         metadata = self._get_metadata()
 
-        self._first_trading_day = metadata['first_trading_day']
-        self._minute_index = metadata['minute_index']
-        self._ohlc_inverse = metadata['ohlc_inverse']
+        self._first_trading_day = metadata.first_trading_day
+        self._minute_index = metadata.minute_index
+        self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
 
         self._carrays = {
             'open': {},
@@ -419,16 +449,7 @@ class BcolzMinuteBarReader(object):
         }
 
     def _get_metadata(self):
-        with open(os.path.join(self.rootdir, METADATA_FILENAME)) as fp:
-            raw_data = json.load(fp)
-            metadata = {
-                'first_trading_day': pd.Timestamp(
-                    raw_data['first_trading_day'], tz='UTC'),
-                'minute_index': pd.to_datetime(raw_data['minute_index'],
-                                               utc=True),
-                'ohlc_inverse': 1.0 / raw_data['ohlc_ratio']
-            }
-            return metadata
+        return BcolzMinuteBarMetadata.read(self.rootdir)
 
     def _get_carray_path(self, sid, field):
         sid_subdir = _sid_subdir_path(sid)
@@ -458,7 +479,7 @@ class BcolzMinuteBarReader(object):
         dt : datetime-like
             The datetime at which the trade occurred.
         field : string
-            The type of pricing data to retrieve. 
+            The type of pricing data to retrieve.
             ('open', 'high', 'low', 'close', 'volume')
 
         Returns:
