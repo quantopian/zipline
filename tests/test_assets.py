@@ -50,6 +50,7 @@ from zipline.assets.futures import (
 from zipline.assets.asset_writer import (
     check_version_info,
     write_version_info,
+    _futures_defaults,
 )
 from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION,
@@ -325,12 +326,8 @@ class TestFuture(TestCase):
 
     def test_to_and_from_dict(self):
         dictd = self.future.to_dict()
-        self.assertTrue('root_symbol' in dictd)
-        self.assertTrue('notice_date' in dictd)
-        self.assertTrue('expiration_date' in dictd)
-        self.assertTrue('auto_close_date' in dictd)
-        self.assertTrue('tick_size' in dictd)
-        self.assertTrue('multiplier' in dictd)
+        for field in _futures_defaults.keys():
+            self.assertTrue(field in dictd)
 
         from_dict = Future.from_dict(dictd)
         self.assertTrue(isinstance(from_dict, Future))
