@@ -56,7 +56,8 @@ class LazyBuildExtCommandClass(dict):
 
         from Cython.Distutils import build_ext as cython_build_ext
 
-        class build_ext(cython_build_ext):
+        # Cython_build_ext isn't a new-style class in Py2.
+        class build_ext(cython_build_ext, object):
             """
             Custom build_ext command that lazily adds numpy's include_dir to
             extensions.
@@ -73,11 +74,7 @@ class LazyBuildExtCommandClass(dict):
                 for ext in self.extensions:
                     ext.include_dirs.append(numpy_incl)
 
-                # This explicitly calls the superclass method rather than the
-                # usual super() invocation because distutils' build_class, of
-                # which Cython's build_ext is a subclass, is an old-style class
-                # in Python 2, which doesn't support `super`.
-                cython_build_ext.build_extensions(self)
+                super(build_ext, self).build_extensions()
         return build_ext
 
 
