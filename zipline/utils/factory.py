@@ -309,8 +309,7 @@ def create_test_panel_source(sim_params=None, env=None, source_type=None):
                        'arbitrary': arbitrary},
                       index=index)
     if source_type:
-        source_types = np.full(len(index), source_type)
-        df['type'] = source_types
+        df['type'] = source_type
 
     panel = pd.Panel.from_dict({0: df})
 

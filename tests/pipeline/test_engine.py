@@ -257,7 +257,7 @@ class ConstantInputTestCase(TestCase):
 
             check_arrays(
                 result['f'].unstack().values,
-                full(result_shape, expected_result),
+                full(result_shape, expected_result, dtype=float),
             )
 
     def test_multiple_rolling_factors(self):
@@ -295,16 +295,16 @@ class ConstantInputTestCase(TestCase):
         # row-wise sum over an array whose values are all (1 - 2)
         check_arrays(
             results['short'].unstack().values,
-            full(shape, -short_factor.window_length),
+            full(shape, -short_factor.window_length, dtype=float),
         )
         check_arrays(
             results['long'].unstack().values,
-            full(shape, -long_factor.window_length),
+            full(shape, -long_factor.window_length, dtype=float),
         )
         # row-wise sum over an array whose values are all (1 - 3)
         check_arrays(
             results['high'].unstack().values,
-            full(shape, -2 * high_factor.window_length),
+            full(shape, -2 * high_factor.window_length, dtype=float),
         )
 
     def test_numeric_factor(self):
@@ -398,13 +398,19 @@ class ConstantInputTestCase(TestCase):
         result_shape = (len(result_index),)
         check_arrays(
             result['sumdiff'],
-            Series(index=result_index, data=full(result_shape, -3)),
+            Series(
+                index=result_index,
+                data=full(result_shape, -3, dtype=float),
+            ),
         )
 
         for name, const in [('open', 1), ('close', 2), ('volume', 3)]:
             check_arrays(
                 result[name],
-                Series(index=result_index, data=full(result_shape, const)),
+                Series(
+                    index=result_index,
+                    data=full(result_shape, const, dtype=float),
+                ),
             )
 
     def test_loader_given_multiple_columns(self):
@@ -471,19 +477,26 @@ class ConstantInputTestCase(TestCase):
                 for name, pipe_col in iteritems(columns)}
 
         index = MultiIndex.from_product([self.dates[2:], self.assets])
+
+        def expected_for_col(col):
+            val = vals[col]
+            offset = columns[col].window_length - min_window
+            return concatenate(
+                [
+                    full(offset * index.levshape[1], nan),
+                    full(
+                        (index.levshape[0] - offset) * index.levshape[1],
+                        val,
+                        float,
+                    )
+                ],
+            )
+
         expected = DataFrame(
-            data={col:
-                  concatenate((
-                      full((columns[col].window_length - min_window)
-                           * index.levshape[1],
-                           nan),
-                      full((index.levshape[0]
-                            - (columns[col].window_length - min_window))
-                           * index.levshape[1],
-                           val)))
-                  for col, val in iteritems(vals)},
+            data={col: expected_for_col(col) for col in vals},
             index=index,
-            columns=columns)
+            columns=columns,
+        )
 
         assert_frame_equal(result, expected)
 

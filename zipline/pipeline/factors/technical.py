@@ -181,7 +181,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
         Return weighting vector for an exponential moving statistic on `length`
         rows with a decay rate of `decay_rate`.
         """
-        return full(length, decay_rate) ** arange(length + 1, 1, -1)
+        return full(length, decay_rate, float) ** arange(length + 1, 1, -1)
 
     @classmethod
     @expect_types(span=Number)

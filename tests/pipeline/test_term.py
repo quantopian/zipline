@@ -40,6 +40,7 @@ class SomeFactor(Factor):
     dtype = float64_dtype
     window_length = 5
     inputs = [SomeDataSet.foo, SomeDataSet.bar]
+
 SomeFactorAlias = SomeFactor
 
 

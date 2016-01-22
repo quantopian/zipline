@@ -22,11 +22,19 @@ datetime64ns_dtype = dtype('datetime64[ns]')
 
 make_datetime64ns = flip(datetime64, 'ns')
 make_datetime64D = flip(datetime64, 'D')
-np_NaT = make_datetime64ns('NaT')
+
+NaTmap = {
+    dtype('datetime64[%s]' % unit): datetime64('NaT', unit)
+    for unit in ('ns', 'us', 'ms', 's', 'm', 'D')
+}
+NaT_for_dtype = NaTmap.__getitem__
+NaTns = NaT_for_dtype(datetime64ns_dtype)
+NaTD = NaT_for_dtype(datetime64D_dtype)
+
 
 _FILLVALUE_DEFAULTS = {
     float64_dtype: nan,
-    datetime64ns_dtype: np_NaT,
+    datetime64ns_dtype: NaT_for_dtype(datetime64ns_dtype),
 }
 
 
@@ -127,7 +135,10 @@ def repeat_last_axis(array, count):
 _notNaT = make_datetime64D(0)
 
 
-def busday_count_mask_NaT(begindates, enddates, out=None):
+def busday_count_mask_NaT(begindates,
+                          enddates,
+                          out=None,
+                          NaT=NaT_for_dtype(datetime64D_dtype)):
     """
     Simple of numpy.busday_count that returns `float` arrays rather than int
     arrays, and handles `NaT`s by returning `NaN`s where the inputs were `NaT`.
@@ -142,8 +153,8 @@ def busday_count_mask_NaT(begindates, enddates, out=None):
     if out is None:
         out = empty(broadcast(begindates, enddates).shape, dtype=float)
 
-    beginmask = (begindates == np_NaT)
-    endmask = (enddates == np_NaT)
+    beginmask = (begindates == NaT)
+    endmask = (enddates == NaT)
 
     out = busday_count(
         # Temporarily fill in non-NaT values.

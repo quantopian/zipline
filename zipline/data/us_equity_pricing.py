@@ -206,7 +206,7 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
                 if column_name == 'id':
                     # We know what the content of this column is, so don't
                     # bother reading it.
-                    columns['id'].append(full((nrows,), asset_id))
+                    columns['id'].append(full((nrows,), asset_id, uint32))
                     continue
                 columns[column_name].append(
                     self.to_uint32(table[column_name][:], column_name)

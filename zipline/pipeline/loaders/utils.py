@@ -5,7 +5,7 @@ import pandas as pd
 from six import iteritems
 from six.moves import zip
 
-from zipline.utils.numpy_utils import np_NaT
+from zipline.utils.numpy_utils import NaTns
 
 
 def next_date_frame(dates, events_by_sid):
@@ -34,7 +34,7 @@ def next_date_frame(dates, events_by_sid):
     previous_date_frame
     """
     cols = {
-        equity: np.full_like(dates, np_NaT) for equity in events_by_sid
+        equity: np.full_like(dates, NaTns) for equity in events_by_sid
     }
     raw_dates = dates.values
     for equity, event_dates in iteritems(events_by_sid):
@@ -50,7 +50,7 @@ def next_date_frame(dates, events_by_sid):
                 (knowledge_date <= raw_dates) &
                 (raw_dates <= event_date)
             )
-            value_mask = (event_date <= data) | (data == np_NaT)
+            value_mask = (event_date <= data) | (data == NaTns)
             data[date_mask & value_mask] = event_date
 
     return pd.DataFrame(index=dates, data=cols)
@@ -82,7 +82,7 @@ def previous_date_frame(date_index, events_by_sid):
     next_date_frame
     """
     sids = list(events_by_sid)
-    out = np.full((len(date_index), len(sids)), np_NaT, dtype='datetime64[ns]')
+    out = np.full((len(date_index), len(sids)), NaTns, dtype='datetime64[ns]')
     dn = date_index[-1].asm8
     for col_idx, sid in enumerate(sids):
         # events_by_sid[sid] is Series mapping knowledge_date to actual

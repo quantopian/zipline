@@ -26,7 +26,7 @@ from zipline.pipeline.loaders.blaze import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.utils.numpy_utils import make_datetime64D, np_NaT
+from zipline.utils.numpy_utils import make_datetime64D, NaTD
 from zipline.utils.test_utils import (
     make_simple_equity_info,
     tmp_asset_finder,
@@ -234,7 +234,7 @@ class EarningsCalendarLoaderTestCase(TestCase):
 
         # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
         # We fill these entries with NaNs later.
-        whereNaT = raw_announce_dates == np_NaT
+        whereNaT = raw_announce_dates == NaTD
         raw_announce_dates[whereNaT] = make_datetime64D(0)
 
         # The abs call here makes it so that we can use this function to
