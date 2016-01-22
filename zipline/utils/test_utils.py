@@ -567,13 +567,18 @@ class SubTestFailures(AssertionError):
 
 
 def subtest(iterator, *_names):
-    """Construct a subtest in a unittest.
+    """
+    Construct a subtest in a unittest.
 
-    This works by decorating a function as a subtest. The test will be run
-    by iterating over the ``iterator`` and *unpacking the values into the
-    function. If any of the runs fail, the result will be put into a set and
-    the rest of the tests will be run. Finally, if any failed, all of the
-    results will be dumped as one failure.
+    Consider using ``zipline.utils.test_utils.parameter_space`` when subtests
+    are constructed over a single input or over the cross-product of multiple
+    inputs.
+
+    ``subtest`` works by decorating a function as a subtest. The decorated
+    function will be run by iterating over the ``iterator`` and *unpacking the
+    values into the function. If any of the runs fail, the result will be put
+    into a set and the rest of the tests will be run. Finally, if any failed,
+    all of the results will be dumped as one failure.
 
     Parameters
     ----------
@@ -615,6 +620,10 @@ def subtest(iterator, *_names):
 
     We cannot use ``unittest2.TestCase.subTest`` because nose, pytest, and
     nose2 do not support ``addSubTest``.
+
+    See Also
+    --------
+    zipline.utils.test_utils.parameter_space
     """
     def dec(f):
         @wraps(f)
@@ -735,11 +744,16 @@ def parameter_space(**params):
 
     Usage
     -----
+    >>> from unittest import TestCase
     >>> class SomeTestCase(TestCase):
     ...     @parameter_space(x=[1, 2], y=[2, 3])
     ...     def test_some_func(self, x, y):
     ...         # Will be called with every possible combination of x and y.
     ...         self.assertEqual(somefunc(x, y), expected_result(x, y))
+
+    See Also
+    --------
+    zipline.utils.test_utils.subtest
     """
     def decorator(f):
 
