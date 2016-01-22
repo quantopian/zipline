@@ -18,6 +18,15 @@
 Cythonized Asset object.
 """
 cimport cython
+from cpython.number cimport PyNumber_Index
+from cpython.object cimport (
+    Py_EQ,
+    Py_NE,
+    Py_GE,
+    Py_LE,
+    Py_GT,
+    Py_LT,
+)
 
 from numbers import Integral
 
@@ -68,6 +77,9 @@ cdef class Asset:
     def __int__(self):
         return self.sid
 
+    def __index__(self):
+        return self.sid
+
     def __hash__(self):
         return self.sid_hash
 
@@ -75,58 +87,37 @@ cdef class Asset:
         """
         Cython rich comparison method.  This is used in place of various
         equality checkers in pure python.
-
-        <	0
-        <=	1
-        ==	2
-        !=	3
-        >	4
-        >=	5
         """
         cdef int x_as_int, y_as_int
 
-        if isinstance(x, Asset):
-            x_as_int = x.sid
-        elif isinstance(x, int):
-            # ints are Integral, but much faster to special case
-            x_as_int = x
-        elif isinstance(x, (long, np.int64, np.int32, Integral)):
-            x_as_int = int(x)
-        else:
+        try:
+            x_as_int = PyNumber_Index(x)
+        except TypeError:
             return NotImplemented
 
-        if isinstance(y, Asset):
-            y_as_int = y.sid
-        elif isinstance(y, int):
-            # ints are Integral, but much faster to special case
-            y_as_int = y
-        elif isinstance(y, (long, np.int64, np.int32, Integral)):
-            y_as_int = int(y)
-        else:
+        try:
+            y_as_int = PyNumber_Index(y)
+        except TypeError:
             return NotImplemented
 
         compared = x_as_int - y_as_int
 
         # Handle == and != first because they're significantly more common
         # operations.
-        if op == 2:
-            # Equality
+        if op == Py_EQ:
             return compared == 0
-        elif op == 3:
-            # Non-equality
+        elif op == Py_NE:
             return compared != 0
-        elif op == 0:
-            # <
+        elif op == Py_LT:
             return compared < 0
-        elif op == 1:
-            # <=
+        elif op == Py_LE:
             return compared <= 0
-        elif op == 4:
-            # >
+        elif op == Py_GT:
             return compared > 0
-        elif op == 5:
-            # >=
+        elif op == Py_GE:
             return compared >= 0
+        else:
+            raise AssertionError('%d is not an operator' % op)
 
     def __str__(self):
         if self.symbol:
