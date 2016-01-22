@@ -324,7 +324,7 @@ def make_simple_equity_info(sids, start_date, end_date, symbols=None):
     sids : array-like of int
     start_date : pd.Timestamp
     end_date : pd.Timestamp
-    symbols : list, optionaln
+    symbols : list, optional
         Symbols to use for the assets.
         If not provided, symbols are generated from the sequence 'A', 'B', ...
 
