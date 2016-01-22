@@ -54,7 +54,7 @@ def downgrade(engine, desired_version):
 
 
 def _pragma_foreign_keys(connection, on):
-    """Sets the PRAGMA foreign_keys state of the SQLLite database. Disabling
+    """Sets the PRAGMA foreign_keys state of the SQLite database. Disabling
     the pragma allows for batch modification of tables with foreign keys.
 
     Parameters
@@ -80,7 +80,7 @@ def _downgrade_v1_to_v0(op, version_info_table):
     op.drop_index('ix_futures_contracts_root_symbol')
     op.drop_index('ix_futures_contracts_symbol')
 
-    # Execute batch op to allow column modification in SQLLite
+    # Execute batch op to allow column modification in SQLite
     with op.batch_alter_table('futures_contracts') as batch_op:
 
         # Rename 'multiplier'
