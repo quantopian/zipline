@@ -15,7 +15,6 @@ from zipline.pipeline.term import (
 from zipline.utils.input_validation import ensure_dtype
 from zipline.utils.numpy_utils import (
     bool_dtype,
-    default_missing_value_for_dtype,
     NoDefaultMissingValue,
 )
 from zipline.utils.preprocess import preprocess
