@@ -138,6 +138,7 @@ from datashape import (
     DateTime,
     Option,
     float64,
+    floating,
     isrecord,
     isscalar,
     promote,
@@ -858,7 +859,14 @@ class BlazeLoader(dict):
                 The query to run for the given column.
             """
             colname = column.name
-            filtered = e[e[colname].notnull() & (e[TS_FIELD_NAME] <= lower_dt)]
+            pred = e[TS_FIELD_NAME] <= lower_dt
+            schema = e[colname].schema.measure
+            if isinstance(schema, Option):
+                pred &= e[colname].notnull()
+                schema = schema.ty
+            if schema in floating:
+                pred &= ~e[colname].isnan()
+            filtered = e[pred]
             lower = filtered.timestamp.max()
 
             if have_sids:
