@@ -667,7 +667,11 @@ class AssetFinder(object):
         return [contracts[sid] for sid in sids]
 
     def lookup_expired_futures(self, start, end):
+        if not isinstance(start, pd.Timestamp):
+            start = pd.Timestamp(start)
         start = start.value
+        if not isinstance(end, pd.Timestamp):
+            end = pd.Timestamp(end)
         end = end.value
 
         fc_cols = self.futures_contracts.c
