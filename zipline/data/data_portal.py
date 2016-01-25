@@ -615,7 +615,6 @@ class DataPortal(object):
 
     def _get_history_daily_window_equity(self, asset, days_for_window,
                                          end_dt, field_to_use):
-        sid = int(asset)
         ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
 
         # get the start and end dates for this sid
@@ -645,13 +644,13 @@ class DataPortal(object):
                 all_minutes_for_day[0:(last_minute_idx + 1)]
 
             daily_data = self._get_daily_window_for_sid(
-                sid,
+                asset,
                 field_to_use,
                 days_for_window[0:-1]
             )
 
             minute_data = self._get_minute_window_for_equity(
-                sid,
+                asset,
                 field_to_use,
                 minutes_for_partial_day
             )
