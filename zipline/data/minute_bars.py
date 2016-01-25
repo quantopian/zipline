@@ -454,7 +454,7 @@ class BcolzMinuteBarReader(object):
         """
         self._rootdir = rootdir
 
-        metadata = BcolzMinuteBarMetadata.read(self._rootdir)
+        metadata = self._get_metadata()
 
         self._first_trading_day = metadata.first_trading_day
         self._minute_index = metadata.minute_index
