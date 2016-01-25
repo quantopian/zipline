@@ -235,41 +235,6 @@ class DataPortal(object):
         elif data_frequency == 'daily':
             return self._equity_daily_reader.get_last_traded_dt(asset, dt)
 
-    def get_previous_value(self, asset, field, dt, data_frequency):
-        """
-        Given an asset and a column and a dt, returns the previous value for
-        the same asset/column pair.  If this data portal is in minute mode,
-        it's the previous minute value, otherwise it's the previous day's
-        value.
-
-        Parameters
-        ---------
-        asset : Asset
-            The asset whose data is desired.
-
-        field: string
-            The desired field of the asset.  Valid values are "open",
-            "open_price", "high", "low", "close", "close_price", "volume", and
-            "price".
-
-        dt: pd.Timestamp
-            The timestamp from which to go back in time one slot.
-
-        data_frequency: string
-            The frequency of the data to query; i.e. whether the data is
-            'daily' or 'minute' bars
-
-        Returns
-        -------
-        The value of the desired field at the desired time.
-        """
-        if data_frequency == 'daily':
-            prev_dt = self.env.previous_trading_day(dt)
-        elif data_frequency == 'minute':
-            prev_dt = self.env.previous_market_minute(dt)
-
-        return self.get_spot_value(asset, field, prev_dt, data_frequency)
-
     def _check_extra_sources(self, asset, column, day):
         # If we have an extra source with a column called "price", only look
         # at it if it's on something like palladium and not AAPL (since our
