@@ -300,9 +300,13 @@ class BcolzMinuteBarWriter(object):
         path : string
             The path to rootdir of the new ctable.
         """
-        # Only create the subdir on container creation.
-        sid_dirname = os.path.dirname(path)
-        os.makedirs(sid_dirname)
+        # Only create the containing subdir on creation.
+        # This is not to be confused with the `.bcolz` directory, but is the
+        # directory up one level from the `.bcolz` directories.
+        sid_containing_dirname = os.path.dirname(path)
+        if not os.path.exists(sid_containing_dirname):
+            # Other sids may have already created the containing directory.
+            os.makedirs(sid_containing_dirname)
         initial_array = np.empty(0, np.uint32)
         table = ctable(
             rootdir=path,

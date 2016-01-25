@@ -311,3 +311,91 @@ class BcolzMinuteBarTestCase(TestCase):
 
         with self.assertRaises(BcolzMinuteOverlappingData):
             self.writer.write(sid, data)
+
+    def test_write_multiple_sids(self):
+        """
+        Test writing multiple sids.
+
+        Tests both that the data is written to the correct sid, as well as
+        ensuring that the logic for creating the subdirectory path to each sid
+        does not cause issues from attempts to recreate existing paths.
+        (Calling out this coverage, because an assertion of that logic does not
+        show up in the test itself, but is exercised by the act of attempting
+        to write two consecutive sids, which would be written to the same
+        containing directory, `00/00/000001.bcolz` and `00/00/000002.bcolz)
+
+        Before applying a check to make sure the path writing did not
+        re-attempt directory creation an OSError like the following would
+        occur:
+
+        ```
+        OSError: [Errno 17] File exists: '/tmp/tmpR7yzzT/minute_bars/00/00'
+        ```
+        """
+        minute = self.market_opens[TEST_CALENDAR_START]
+        sids = [1, 2]
+        data = DataFrame(
+            data={
+                'open': [15.0],
+                'high': [17.0],
+                'low': [11.0],
+                'close': [15.0],
+                'volume': [100.0]
+            },
+            index=[minute])
+        self.writer.write(sids[0], data)
+
+        data = DataFrame(
+            data={
+                'open': [25.0],
+                'high': [27.0],
+                'low': [21.0],
+                'close': [25.0],
+                'volume': [200.0]
+            },
+            index=[minute])
+        self.writer.write(sids[1], data)
+
+        sid = sids[0]
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        self.assertEquals(15.0, open_price)
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        self.assertEquals(17.0, high_price)
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        self.assertEquals(11.0, low_price)
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        self.assertEquals(15.0, close_price)
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEquals(100.0, volume_price)
+
+        sid = sids[1]
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        self.assertEquals(25.0, open_price)
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        self.assertEquals(27.0, high_price)
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        self.assertEquals(21.0, low_price)
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        self.assertEquals(25.0, close_price)
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEquals(200.0, volume_price)
