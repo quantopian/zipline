@@ -388,7 +388,7 @@ def make_future_info(first_sid,
             'start_date': start_date_func(month_begin),
             'notice_date': notice_date_func(month_begin),
             'expiration_date': notice_date_func(month_begin),
-            'contract_multiplier': 500,
+            'multiplier': 500,
         })
     return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
 

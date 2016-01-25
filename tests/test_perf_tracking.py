@@ -1007,7 +1007,7 @@ class TestPositionPerformance(unittest.TestCase):
         cls.env = TradingEnvironment()
         # Sids 1 and 2 are equities, Sid 3 is a future
         cls.env.write_data(equities_identifiers=[1, 2],
-                           futures_data={3: {'contract_multiplier': 100}})
+                           futures_data={3: {'multiplier': 100}})
 
     @classmethod
     def tearDownClass(cls):
@@ -2551,8 +2551,8 @@ class TestPositionTracker(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        futures_metadata = {3: {'contract_multiplier': 1000},
-                            4: {'contract_multiplier': 1000}}
+        futures_metadata = {3: {'multiplier': 1000},
+                            4: {'multiplier': 1000}}
         cls.env.write_data(equities_identifiers=[1, 2],
                            futures_data=futures_metadata)
 

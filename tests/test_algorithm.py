@@ -649,7 +649,7 @@ class TestTransformAlgorithm(TestCase):
         cls.env = TradingEnvironment()
         cls.env.write_data(equities_identifiers=[0, 1, 133])
 
-        futures_metadata = {0: {'contract_multiplier': 10}}
+        futures_metadata = {0: {'multiplier': 10}}
         cls.futures_env = TradingEnvironment()
         cls.futures_env.write_data(futures_data=futures_metadata)
 
@@ -1916,7 +1916,7 @@ class TestFutureFlip(TestCase):
     def test_flip_algo(self):
         metadata = {1: {'symbol': 'TEST',
                         'end_date': self.days[3],
-                        'contract_multiplier': 5}}
+                        'multiplier': 5}}
         self.env.write_data(futures_data=metadata)
 
         algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,
