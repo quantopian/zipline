@@ -157,6 +157,10 @@ REQ_PATTERN = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
 
 
 def _conda_format(req):
+    match = REQ_PATTERN.match(req)
+    if match and match.group(1).lower() == 'numpy':
+        return 'numpy x.x'
+
     return REQ_PATTERN.sub(
         lambda m: '%s %s%s' % (m.group(1).lower(), m.group(2), m.group(3)),
         req,
