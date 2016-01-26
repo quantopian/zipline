@@ -13,7 +13,7 @@ source:
 requirements:
   build:
     - python
-    {% for req in data.get('build_requires', []) -%}
+    {% for req in data.get('setup_requires', []) -%}
     - {{req}}
     {% endfor %}
   run:
