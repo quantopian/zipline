@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import print_function
 import os
 from collections import OrderedDict
 
@@ -345,7 +344,7 @@ must specify stocks or indexes"""
 
     if stocks is not None:
         for stock in stocks:
-            print(stock)
+            logger.info('Loading stock: {}'.format(stock))
             stock_pathsafe = stock.replace(os.path.sep, '--')
             cache_filename = "{stock}-{start}-{end}.csv".format(
                 stock=stock_pathsafe,
@@ -361,7 +360,7 @@ must specify stocks or indexes"""
 
     if indexes is not None:
         for name, ticker in iteritems(indexes):
-            print(name)
+            logger.info('Loading index: {} ({})'.format(name, ticker))
             stkd = DataReader(ticker, 'yahoo', start, end).sort_index()
             data[name] = stkd
 
