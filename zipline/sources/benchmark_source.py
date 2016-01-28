@@ -142,7 +142,7 @@ class BenchmarkSource(object):
                 frequency="1m",
                 field="price",
                 ffill=True
-            )
+            )[sid]
 
             return benchmark_series.pct_change()[1:]
         else:
