@@ -858,6 +858,58 @@ class BlazeToPipelineTestCase(TestCase):
                 compute_fn=np.nanmax,
             )
 
+    @with_extra_sid
+    def test_deltas_only_one_delta_in_universe(self, asset_info):
+        expr = bz.Data(self.df, name='expr', dshape=self.dshape)
+        deltas = pd.DataFrame({
+            'sid': [65, 66],
+            'asof_date': [self.dates[1], self.dates[0]],
+            'timestamp': [self.dates[2], self.dates[1]],
+            'value': [10, 11],
+        })
+        deltas = bz.Data(deltas, name='deltas', dshape=self.dshape)
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-02': np.array([[0.0, 11.0, 2.0],
+                                    [1.0, 2.0, 3.0]]),
+            '2014-01-03': np.array([[10.0, 2.0, 3.0],
+                                    [2.0, 3.0, 4.0]]),
+            '2014-01-04': np.array([[2.0, 3.0, 4.0],
+                                    [2.0, 3.0, 4.0]]),
+        })
+
+        nassets = len(asset_info)
+        if nassets == 4:
+            expected_views = valmap(
+                lambda view: np.c_[view, [np.nan, np.nan]],
+                expected_views,
+            )
+
+        with tmp_asset_finder(equities=asset_info) as finder:
+            expected_output = pd.DataFrame(
+                columns=[
+                    'value',
+                ],
+                data=np.array([11, 10, 4]).repeat(len(asset_info.index)),
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    finder.retrieve_all(asset_info.index),
+                )),
+            )
+            dates = self.dates
+            dates = dates.insert(len(dates), dates[-1] + timedelta(days=1))
+            self._run_pipeline(
+                expr,
+                deltas,
+                expected_views,
+                expected_output,
+                finder,
+                calendar=dates,
+                start=dates[1],
+                end=dates[-1],
+                window_length=2,
+                compute_fn=np.nanmax,
+            )
+
     def test_deltas_macro(self):
         asset_info = asset_infos[0][0]
         expr = bz.Data(self.macro_df, name='expr', dshape=self.macro_dshape)
