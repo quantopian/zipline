@@ -15,6 +15,7 @@ import tempfile
 from logbook import FileHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
+import numpy as np
 import pandas as pd
 from pandas.tseries.offsets import MonthBegin
 from six import iteritems, itervalues
@@ -351,7 +352,8 @@ def make_jagged_equity_info(num_assets,
                             start_date,
                             first_end,
                             frequency,
-                            periods_between_ends):
+                            periods_between_ends,
+                            auto_close_delta):
     """
     Create a DataFrame representing assets that all begin at the same start
     date, but have cascading end dates.
@@ -375,7 +377,7 @@ def make_jagged_equity_info(num_assets,
     info : pd.DataFrame
         DataFrame representing newly-created assets.
     """
-    return pd.DataFrame(
+    frame = pd.DataFrame(
         {
             'symbol': [chr(ord('A') + i) for i in range(num_assets)],
             'start_date': start_date,
@@ -388,6 +390,13 @@ def make_jagged_equity_info(num_assets,
         },
         index=range(num_assets),
     )
+
+    # Explicitly pass None to disable setting the auto_close_date column.
+    if auto_close_delta is not None:
+        frame['auto_close_date'] = frame['end_date'] + auto_close_delta
+
+    return frame
+
 
 def make_trade_panel_for_asset_info(dates,
                                     asset_info,

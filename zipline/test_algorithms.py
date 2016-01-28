@@ -937,16 +937,6 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
                                      style=style)
 
 
-class TestRemoveDataAlgo(TradingAlgorithm):
-    def initialize(self, *args, **kwargs):
-        self.data = np.zeros(7)
-        self.i = 0
-
-    def handle_data(self, data):
-        self.data[self.i] = len(data)
-        self.i += 1
-
-
 ##############################
 # Quantopian style algorithms
 
