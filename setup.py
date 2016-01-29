@@ -24,7 +24,6 @@ from os.path import (
     join,
 )
 from distutils.version import StrictVersion
-from pkg_resources import resource_filename
 from setuptools import (
     Extension,
     find_packages,
@@ -55,6 +54,7 @@ class LazyBuildExtCommandClass(dict):
             return super(LazyBuildExtCommandClass, self).__getitem__(key)
 
         from Cython.Distutils import build_ext as cython_build_ext
+        import numpy
 
         # Cython_build_ext isn't a new-style class in Py2.
         class build_ext(cython_build_ext, object):
@@ -70,7 +70,7 @@ class LazyBuildExtCommandClass(dict):
                 may be run before numpy has been installed, in which case
                 importing numpy and calling `numpy.get_include()` will fail.
                 """
-                numpy_incl = resource_filename('numpy', 'core/include')
+                numpy_incl = numpy.get_include()
                 for ext in self.extensions:
                     ext.include_dirs.append(numpy_incl)
 
