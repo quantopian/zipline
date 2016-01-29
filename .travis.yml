@@ -16,16 +16,9 @@ matrix:
     env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.15.1
 
 before_install:
-  - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
   - sed -i "s/numpy==.*/numpy==$NUMPY_VERSION/g" etc/requirements.txt
   - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/g" etc/requirements.txt
 install:
-  - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
-  - source activate testenv
-  - conda remove --yes six pytz  # remove these packages so our requirements can downgrade them
   - pip install --upgrade pip coverage coveralls
   - pip install -r etc/requirements.txt
   - pip install -r etc/requirements_dev.txt
