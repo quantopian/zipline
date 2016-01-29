@@ -9,21 +9,22 @@ matrix:
   - python: 2.7
     env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
   - python: 2.7
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.15.1
+    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.15.1
   - python: 3.4
     env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
-  - python: 2.7
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.15.1
+  - python: 3.4
+    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.15.1
 
 before_install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
   - chmod +x miniconda.sh
   - ./miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - sed -i "s/numpy==.*/numpy==$NUMPY_VERSION/g" etc/requirements.txt
+  - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/g" etc/requirements.txt
 install:
   - conda create -n testenv --yes pip python=$TRAVIS_PYTHON_VERSION
   - source activate testenv
-  - conda install --yes -c quantopian numpy=$NUMPY_VERSION pandas=$PANDAS_VERSION scipy=$SCIPY_VERSION Cython=0.22.1 ta-lib=0.4.8
   - conda remove --yes six pytz  # remove these packages so our requirements can downgrade them
   - pip install --upgrade pip coverage coveralls
   - pip install -r etc/requirements.txt
