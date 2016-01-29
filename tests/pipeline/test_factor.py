@@ -26,7 +26,6 @@ from zipline.utils.test_utils import check_allclose, check_arrays
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
-    NaTD,
     NaTns,
 )
 
