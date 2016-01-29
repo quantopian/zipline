@@ -700,7 +700,7 @@ class HistoryContainer(object):
 
         for j, sid in enumerate(self.sids):
             sid_data = data.get(sid)
-            if not sid_data:
+            if sid_data.empty:
                 continue
             if algo_dt != sid_data['dt']:
                 continue
