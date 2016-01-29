@@ -4,11 +4,16 @@ cache:
   directories:
     - $HOME/.cache/pip
 matrix:
+  fast_finish: true
   include:
   - python: 2.7
     env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
+  - python: 2.7
+    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.15.1
   - python: 3.4
     env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
+  - python: 2.7
+    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.15.1
 
 before_install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
