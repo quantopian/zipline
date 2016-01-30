@@ -232,6 +232,8 @@ class AssetTestCase(TestCase):
         self.assertNotEqual(s_23, 23.5)
         self.assertNotEqual(s_23, [])
         self.assertNotEqual(s_23, None)
+        # Compare to a value that doesn't fit into a platform int:
+        self.assertNotEqual(s_23, sys.maxsize + 1)
 
         self.assertLess(s_23, s_24)
         self.assertLess(s_23, 24)
