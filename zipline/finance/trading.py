@@ -374,7 +374,7 @@ class TradingEnvironment(object):
 
     def get_open_and_close(self, day):
         index = self.open_and_closes.index.get_loc(day.date())
-        todays_minutes = self.open_and_closes.values[index]
+        todays_minutes = self.open_and_closes.iloc[index]
         return todays_minutes[0], todays_minutes[1]
 
     def market_minutes_for_day(self, stamp):
