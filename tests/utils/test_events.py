@@ -266,7 +266,7 @@ class TestStatelessRules(RuleTestCase):
     @subtest(minutes_for_days(), 'ms')
     def test_Always(self, ms):
         should_trigger = partial(Always().should_trigger, env=self.env)
-        self.assertTrue(all(map(partial(should_trigger, env=self.env), ms)))
+        self.assertTrue(all(map(should_trigger, ms)))
 
     @subtest(minutes_for_days(), 'ms')
     def test_Never(self, ms):
