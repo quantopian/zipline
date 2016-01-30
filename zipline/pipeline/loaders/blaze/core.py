@@ -174,6 +174,7 @@ from zipline.utils.input_validation import (
     optionally,
 )
 from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
 
 
@@ -626,10 +627,10 @@ def overwrite_novel_deltas(baseline, deltas, dates):
     ) <= 1
     novel_deltas = deltas.loc[novel_idx]
     non_novel_deltas = deltas.loc[~novel_idx]
-    return pd.concat(
+    return sort_values(pd.concat(
         (baseline, novel_deltas),
         ignore_index=True,
-    ).sort(TS_FIELD_NAME), non_novel_deltas
+    ), TS_FIELD_NAME), non_novel_deltas
 
 
 def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
@@ -910,13 +911,13 @@ class BlazeLoader(dict):
             This can return more data than needed. The in memory reindex will
             handle this.
             """
-            return reduce(
+            return sort_values(reduce(
                 partial(pd.merge, on=added_query_fields, how='outer'),
                 (
                     odo(where(e, column), pd.DataFrame, **odo_kwargs)
                     for column in columns
                 ),
-            ).sort(TS_FIELD_NAME)  # sort for the groupby later
+            ), TS_FIELD_NAME)  # sort for the groupby later
 
         materialized_expr = collect_expr(expr)
         materialized_deltas = (
