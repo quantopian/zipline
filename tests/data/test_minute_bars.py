@@ -23,6 +23,7 @@ from pandas import (
     DataFrame,
     DatetimeIndex,
     Timestamp,
+    NaT
 )
 from testfixtures import TempDirectory
 
@@ -399,3 +400,49 @@ class BcolzMinuteBarTestCase(TestCase):
         volume_price = self.reader.get_value(sid, minute, 'volume')
 
         self.assertEquals(200.0, volume_price)
+
+    def test_pad_data(self):
+        """
+        Test writing empty data.
+        """
+        sid = 1
+        last_date = self.writer.last_date_in_output_for_sid(sid)
+        self.assertIs(last_date, NaT)
+
+        self.writer.pad(sid, TEST_CALENDAR_START)
+
+        last_date = self.writer.last_date_in_output_for_sid(sid)
+        self.assertEqual(last_date, TEST_CALENDAR_START)
+
+        freq = self.market_opens.index.freq
+        minute = self.market_opens[TEST_CALENDAR_START + freq]
+        data = DataFrame(
+            data={
+                'open': [15.0],
+                'high': [17.0],
+                'low': [11.0],
+                'close': [15.0],
+                'volume': [100.0]
+            },
+            index=[minute])
+        self.writer.write(sid, data)
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        self.assertEquals(15.0, open_price)
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        self.assertEquals(17.0, high_price)
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        self.assertEquals(11.0, low_price)
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        self.assertEquals(15.0, close_price)
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEquals(100.0, volume_price)
