@@ -92,12 +92,12 @@ cdef class Asset:
 
         try:
             x_as_int = PyNumber_Index(x)
-        except TypeError:
+        except (TypeError, OverflowError):
             return NotImplemented
 
         try:
             y_as_int = PyNumber_Index(y)
-        except TypeError:
+        except (TypeError, OverflowError):
             return NotImplemented
 
         compared = x_as_int - y_as_int
