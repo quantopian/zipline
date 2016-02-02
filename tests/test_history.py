@@ -348,9 +348,9 @@ def handle_data(context, data):
         output = test_algo.run(source)
         self.assertIsNotNone(output)
 
-        history_trace = test_algo.history_trace
+        df.columns = self.env.asset_finder.retrieve_all(df.columns)
 
-        for i, received in enumerate(history_trace[bar_count - 1:]):
+        for i, received in enumerate(test_algo.history_trace[bar_count - 1:]):
             expected = df.iloc[i:i + bar_count]
             assert_frame_equal(expected, received)
 
