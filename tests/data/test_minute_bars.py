@@ -17,7 +17,7 @@ import os
 
 from unittest import TestCase
 
-from numpy import nan
+from numpy import nan, array
 from numpy.testing import assert_almost_equal
 from pandas import (
     DataFrame,
@@ -446,3 +446,57 @@ class BcolzMinuteBarTestCase(TestCase):
         volume_price = self.reader.get_value(sid, minute, 'volume')
 
         self.assertEquals(100.0, volume_price)
+
+    def test_write_cols(self):
+        minute_0 = self.market_opens[self.test_calendar_start]
+        minute_1 = minute_0 + timedelta(minutes=1)
+        sid = 1
+        cols = {
+            'open': array([10.0, 11.0]),
+            'high': array([20.0, 21.0]),
+            'low': array([30.0, 31.0]),
+            'close': array([40.0, 41.0]),
+            'volume': array([50.0, 51.0])
+        }
+        dts = array([minute_0, minute_1], dtype='datetime64[s]')
+        self.writer.write_cols(sid, dts, cols)
+
+        open_price = self.reader.get_value(sid, minute_0, 'open')
+
+        self.assertEquals(10.0, open_price)
+
+        high_price = self.reader.get_value(sid, minute_0, 'high')
+
+        self.assertEquals(20.0, high_price)
+
+        low_price = self.reader.get_value(sid, minute_0, 'low')
+
+        self.assertEquals(30.0, low_price)
+
+        close_price = self.reader.get_value(sid, minute_0, 'close')
+
+        self.assertEquals(40.0, close_price)
+
+        volume_price = self.reader.get_value(sid, minute_0, 'volume')
+
+        self.assertEquals(50.0, volume_price)
+
+        open_price = self.reader.get_value(sid, minute_1, 'open')
+
+        self.assertEquals(11.0, open_price)
+
+        high_price = self.reader.get_value(sid, minute_1, 'high')
+
+        self.assertEquals(21.0, high_price)
+
+        low_price = self.reader.get_value(sid, minute_1, 'low')
+
+        self.assertEquals(31.0, low_price)
+
+        close_price = self.reader.get_value(sid, minute_1, 'close')
+
+        self.assertEquals(41.0, close_price)
+
+        volume_price = self.reader.get_value(sid, minute_1, 'volume')
+
+        self.assertEquals(51.0, volume_price)
