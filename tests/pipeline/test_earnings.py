@@ -260,7 +260,7 @@ class EarningsCalendarLoaderTestCase(TestCase):
             '2014-01-10',
             '2014-01-15',
             '2014-01-20',
-        ]),
+        ], utc=True),
     ))
     def test_compute_earnings(self, dates):
 
@@ -296,10 +296,12 @@ class EarningsCalendarLoaderTestCase(TestCase):
         assert_series_equal(
             computed_next.isnull(),
             computed_next_busday_offset.isnull(),
+            check_names=False,
         )
         assert_series_equal(
             computed_previous.isnull(),
             computed_previous_busday_offset.isnull(),
+            check_names=False,
         )
 
         for sid in self.sids:
@@ -308,24 +310,28 @@ class EarningsCalendarLoaderTestCase(TestCase):
                 computed_next.xs(sid, level=1),
                 expected_next(sid),
                 sid,
+                check_names=False,
             )
 
             assert_series_equal(
                 computed_previous.xs(sid, level=1),
                 expected_previous(sid),
                 sid,
+                check_names=False,
             )
 
             assert_series_equal(
                 computed_next_busday_offset.xs(sid, level=1),
                 expected_next_busday_offset(sid),
                 sid,
+                check_names=False,
             )
 
             assert_series_equal(
                 computed_previous_busday_offset.xs(sid, level=1),
                 expected_previous_busday_offset(sid),
                 sid,
+                check_names=False,
             )
 
 
