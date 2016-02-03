@@ -2,12 +2,6 @@
 Technical Analysis Factors
 --------------------------
 """
-from bottleneck import (
-    nanargmax,
-    nanmax,
-    nanmean,
-    nansum,
-)
 from numbers import Number
 from numpy import (
     abs,
@@ -31,6 +25,12 @@ from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.mixins import SingleInputMixin
 from zipline.utils.control_flow import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
+from zipline.utils.math_utils import (
+    nanargmax,
+    nanmax,
+    nanmean,
+    nansum,
+)
 from .factor import CustomFactor
 
 
