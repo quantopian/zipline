@@ -230,6 +230,7 @@ cdef class Future(Asset):
     cdef readonly object auto_close_date
     cdef readonly object tick_size
     cdef readonly float multiplier
+    cdef readonly object effective_expiration
 
     def __cinit__(self,
                   int sid, # sid is required
@@ -252,6 +253,13 @@ cdef class Future(Asset):
         self.auto_close_date = auto_close_date
         self.tick_size       = tick_size
         self.multiplier      = multiplier
+
+        if notice_date is None:
+            self.effective_expiration = expiration_date
+        elif expiration_date is None:
+            self.effective_expiration = notice_date
+        else:
+            self.effective_expiration = min(notice_date, expiration_date)
 
     def __str__(self):
         if self.symbol:

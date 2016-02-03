@@ -12,13 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
+from itertools import takewhile
 
 from contextlib2 import ExitStack
-
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
-
-from zipline.utils.api_support import ZiplineAPI
 
 from zipline.finance.trading import NoFurtherDataError
 from zipline.protocol import (
@@ -26,6 +25,8 @@ from zipline.protocol import (
     SIDData,
     DATASOURCE_TYPE
 )
+from zipline.utils.api_support import ZiplineAPI
+from zipline.utils.data import SortedDict
 
 log = Logger('Trade Simulation')
 
@@ -56,15 +57,23 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
+        def _get_effective_expiration(sid,
+                                      finder=self.env.asset_finder,
+                                      default=self.sim_params.last_close
+                                      + timedelta(days=1)):
+            asset = finder.retrieve_asset(sid)
+            return getattr(asset, 'effective_expiration', None) or default
+
+        self._get_expiration = _get_effective_expiration
+
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        self.current_data = BarData()
+        self.current_data = BarData(SortedDict(self._get_expiration))
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
-        self.previous_dt = self.algo_start
 
         # =============
         # Logging Setup
@@ -97,14 +106,15 @@ class AlgorithmSimulator(object):
             self._call_before_trading_start(mkt_open)
 
             for date, snapshot in stream_in:
-                expired_sids = self.env.asset_finder.lookup_expired_futures(
-                    start=self.previous_dt, end=date)
-                self.previous_dt = date
+
                 self.simulation_dt = date
                 self.on_dt_changed(date)
 
-                # removing expired futures
-                for sid in expired_sids:
+                expired = list(takewhile(
+                    lambda asset_id: self._get_expiration(asset_id) < date,
+                    self.current_data
+                ))
+                for sid in expired:
                     try:
                         del self.current_data[sid]
                     except KeyError:
