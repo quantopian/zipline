@@ -1,0 +1,59 @@
+matrix:
+  fast_finish: true
+
+environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\etc\\run_with_env.cmd"
+
+  matrix:
+    - PYTHON: "C:\\Python34_64"
+      PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.16.1"
+      NUMPY_VERSION: "1.9.2"
+      SCIPY_VERSION: "0.15.1"
+
+    - PYTHON: "C:\\Python27_64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.16.1"
+      NUMPY_VERSION: "1.9.2"
+      SCIPY_VERSION: "0.15.1"
+
+
+# We always use a 64-bit machine, but can build x86 distributions
+# with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
+platform:
+    - x64
+
+# all our python builds have to happen in tests_script...
+build: false
+
+init:
+  - "ECHO %PYTHON_VERSION% %PYTHON%"
+
+install:
+  # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit),
+  - powershell .\etc\install.ps1
+  - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
+
+  - cmd: conda create -n testenv --yes pip python=%PYTHON_VERSION%
+  - cmd: activate testenv
+  - cmd: conda install --yes -c quantopian numpy=%NUMPY_VERSION% pandas=%PANDAS_VERSION% scipy=%SCIPY_VERSION% Cython=0.22.1 ta-lib=0.4.8
+  # remove these packages so our requirements can downgrade them
+  - cmd: conda remove --yes six pytz
+  - cmd: pip install --upgrade pip coverage coveralls
+  - cmd: pip install -r etc/requirements.txt
+  - cmd: pip install -r etc/requirements_dev.txt
+  # this uses git requirements right now
+  - cmd: pip install -r etc/requirements_blaze.txt
+  - cmd: pip install -e .
+
+test_script:
+  - cd \
+  - pip freeze | sort
+  - flake8 zipline tests
+  - nosetests --with-timer --exclude=^test_examples --with-coverage --cover-package=zipline --timer-top-n=15
