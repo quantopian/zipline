@@ -34,7 +34,7 @@ NaTD = NaT_for_dtype(datetime64D_dtype)
 
 _FILLVALUE_DEFAULTS = {
     float64_dtype: nan,
-    datetime64ns_dtype: NaT_for_dtype(datetime64ns_dtype),
+    datetime64ns_dtype: NaTns,
 }
 
 
@@ -138,7 +138,7 @@ _notNaT = make_datetime64D(0)
 def busday_count_mask_NaT(begindates,
                           enddates,
                           out=None,
-                          NaT=NaT_for_dtype(datetime64D_dtype)):
+                          NaT=NaTD):
     """
     Simple of numpy.busday_count that returns `float` arrays rather than int
     arrays, and handles `NaT`s by returning `NaN`s where the inputs were `NaT`.
