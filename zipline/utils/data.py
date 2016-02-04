@@ -419,16 +419,25 @@ class SortedDict(MutableMapping):
     >>> d[-1] = 'negative one'
     >>> d[0] = 'zero'
     >>> d[2] = 'two'
-    >>> d
-    SortedDict[<built-in function abs>]([(0, 'zero'), (-1, 'negative one'), (1, 'one')])  # noqa
+    >>> d  # doctest: +NORMALIZE_WHITESPACE
+    SortedDict(<built-in function abs>,
+               [(0, 'zero'), (-1, 'negative one'), (2, 'two')])
     >>> d[1] = 'one'  # Mutating the mapping maintains the sort order.
+    >>> d  # doctest: +NORMALIZE_WHITESPACE
+    SortedDict(<built-in function abs>,
+               [(0, 'zero'), (-1, 'negative one'), (1, 'one'), (2, 'two')])
+    >>> del d[0]
+    >>> d  # doctest: +NORMALIZE_WHITESPACE
+    SortedDict(<built-in function abs>,
+               [(-1, 'negative one'), (1, 'one'), (2, 'two')])
+    >>> del d[2]
     >>> d
-    SortedDict[<built-in function abs>]([(0, 'zero'), (-1, 'negative one'), (1, 'one')])  # noqa
+    SortedDict(<built-in function abs>, [(-1, 'negative one'), (1, 'one')])
     """
-    def __init__(self, sort_key, mapping=None, **kwargs):
+    def __init__(self, key, mapping=None, **kwargs):
         self._map = {}
         self._sorted_key_names = []
-        self._sort_key = sort_key
+        self._sort_key = key
 
         self.update(merge(mapping or {}, kwargs))
 
@@ -464,8 +473,8 @@ class SortedDict(MutableMapping):
         _repr_running[call_key] = 1
         try:
             if not self:
-                return '%s[%r]()' % (self.__class__.__name__, self._sort_key)
-            return '%s[%r](%r)' % (self.__class__.__name__, self._sort_key,
-                                   self.items())
+                return '%s(%r)' % (self.__class__.__name__, self._sort_key)
+            return '%s(%r, %r)' % (self.__class__.__name__, self._sort_key,
+                                   list(self.items()))
         finally:
             del _repr_running[call_key]
