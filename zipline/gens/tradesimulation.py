@@ -19,6 +19,7 @@ from contextlib2 import ExitStack
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
 
+from zipline.errors import SidsNotFound
 from zipline.finance.trading import NoFurtherDataError
 from zipline.protocol import (
     BarData,
@@ -57,19 +58,32 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
-        def _get_effective_expiration(sid,
-                                      finder=self.env.asset_finder,
-                                      default=self.sim_params.last_close
-                                      + timedelta(days=1)):
-            asset = finder.retrieve_asset(sid)
-            return getattr(asset, 'effective_expiration', None) or default
+        def _get_asset_close_date(sid,
+                                  finder=self.env.asset_finder,
+                                  default=self.sim_params.last_close
+                                  + timedelta(days=1)):
+            try:
+                asset = finder.retrieve_asset(sid)
+            except ValueError:
+                # Handle sid not an int, such as from a custom source.
+                # So that they don't compare equal to other sids, and we'd
+                # blow up comparing strings to ints, let's give them unique
+                # close dates.
+                return default + timedelta(microseconds=id(sid))
+            except SidsNotFound:
+                return default
+            # Default is used when the asset has no auto close date,
+            # and is set to a time after the simulation ends, so that the
+            # relevant asset isn't removed from the universe at all
+            # (at least not for this reason).
+            return asset.auto_close_date or default
 
-        self._get_expiration = _get_effective_expiration
+        self._get_asset_close = _get_asset_close_date
 
         # The algorithm's data as of our most recent event.
-        # We want an object that will have empty objects as default
-        # values on missing keys.
-        self.current_data = BarData(SortedDict(self._get_expiration))
+        # Maintain sids in order by asset close date, so that we can more
+        # efficiently remove them when their times come...
+        self.current_data = BarData(SortedDict(self._get_asset_close))
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -110,11 +124,11 @@ class AlgorithmSimulator(object):
                 self.simulation_dt = date
                 self.on_dt_changed(date)
 
-                expired = list(takewhile(
-                    lambda asset_id: self._get_expiration(asset_id) < date,
+                closed = list(takewhile(
+                    lambda asset_id: self._get_asset_close(asset_id) < date,
                     self.current_data
                 ))
-                for sid in expired:
+                for sid in closed:
                     try:
                         del self.current_data[sid]
                     except KeyError:
