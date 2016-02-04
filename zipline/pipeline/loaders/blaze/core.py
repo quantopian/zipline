@@ -127,7 +127,7 @@ from __future__ import division, absolute_import
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
 from copy import copy
-from functools import partial
+from functools import partial, reduce
 from itertools import count
 import warnings
 from weakref import WeakKeyDictionary
@@ -138,12 +138,15 @@ from datashape import (
     DateTime,
     Option,
     float64,
+    floating,
     isrecord,
     isscalar,
     promote,
 )
+import numpy as np
 from odo import odo
 import pandas as pd
+from six import with_metaclass, PY2, itervalues, iteritems
 from toolz import (
     complement,
     compose,
@@ -154,15 +157,24 @@ from toolz import (
     memoize,
 )
 import toolz.curried.operator as op
-from six import with_metaclass, PY2, itervalues
 
 
 from zipline.pipeline.data.dataset import DataSet, Column
+from zipline.pipeline.loaders.utils import (
+    check_data_query_args,
+    normalize_data_query_bounds,
+    normalize_timestamp_to_query_time,
+)
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum
-from zipline.utils.input_validation import expect_element
+from zipline.utils.input_validation import (
+    expect_element,
+    ensure_timezone,
+    optionally,
+)
 from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.preprocess import preprocess
 
 
 AD_FIELD_NAME = 'asof_date'
@@ -178,7 +190,7 @@ traversable_nodes = (
     bz.expr.Label,
 )
 is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
-getname = op.attrgetter('__name__')
+get__name__ = op.attrgetter('__name__')
 
 
 class _ExprRepr(object):
@@ -513,8 +525,10 @@ def from_blaze(expr,
             raise TypeError(
                 'expression with deltas may only contain (%s) nodes,'
                 " found: %s" % (
-                    ', '.join(map(getname, valid_deltas_node_types)),
-                    ', '.join(set(map(compose(getname, type), invalid_nodes))),
+                    ', '.join(map(get__name__, valid_deltas_node_types)),
+                    ', '.join(
+                        set(map(compose(get__name__, type), invalid_nodes)),
+                    ),
                 ),
             )
 
@@ -592,7 +606,7 @@ def from_blaze(expr,
 
 
 getdataset = op.attrgetter('dataset')
-dataset_name = op.attrgetter('name')
+getname = op.attrgetter('name')
 
 
 def overwrite_novel_deltas(baseline, deltas, dates):
@@ -662,8 +676,13 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
 
     Then the overwrite will apply to indexes: 1, 2, 3, 4
     """
+    if asof is pd.NaT:
+        # Not an actual delta.
+        # This happens due to the groupby we do on the deltas.
+        return
+
     first_row = dense_dates.searchsorted(asof)
-    next_idx = sparse_dates.searchsorted(asof, 'right')
+    next_idx = sparse_dates.searchsorted(asof.asm8, 'right')
     if next_idx == len(sparse_dates):
         # There is no next date in the sparse, this overwrite should apply
         # through the end of the dense dates.
@@ -680,25 +699,27 @@ def overwrite_from_dates(asof, dense_dates, sparse_dates, asset_idx, value):
     yield Float64Overwrite(first_row, last_row, first, last, value)
 
 
-def adjustments_from_deltas_no_sids(dates,
-                                    dense_dates,
+def adjustments_from_deltas_no_sids(dense_dates,
+                                    sparse_dates,
                                     column_idx,
                                     column_name,
-                                    assets,
+                                    asset_idx,
                                     deltas):
     """Collect all the adjustments that occur in a dataset that does not
     have a sid column.
 
     Parameters
     ----------
-    dates : pd.DatetimeIndex
-        The dates requested by the loader.
     dense_dates : pd.DatetimeIndex
-        The dates that were in the dense data.
+        The dates requested by the loader.
+    sparse_dates : pd.DatetimeIndex
+        The dates that were in the raw data.
     column_idx : int
         The index of the column in the dataset.
     column_name : str
         The name of the column to compute deltas for.
+    asset_idx : pd.Series[int -> int]
+        The mapping of sids to their index in the output.
     deltas : pd.DataFrame
         The overwrites that should be applied to the dataset.
 
@@ -708,23 +729,23 @@ def adjustments_from_deltas_no_sids(dates,
         The adjustments dictionary to feed to the adjusted array.
     """
     ad_series = deltas[AD_FIELD_NAME]
-    asset_idx = 0, len(assets) - 1
+    idx = 0, len(asset_idx) - 1
     return {
-        dates.get_loc(kd): overwrite_from_dates(
+        dense_dates.get_loc(kd): overwrite_from_dates(
             ad_series.loc[kd],
-            dates,
             dense_dates,
-            asset_idx,
+            sparse_dates,
+            idx,
             v,
         ) for kd, v in deltas[column_name].iteritems()
     }
 
 
-def adjustments_from_deltas_with_sids(dates,
-                                      dense_dates,
+def adjustments_from_deltas_with_sids(dense_dates,
+                                      sparse_dates,
                                       column_idx,
                                       column_name,
-                                      assets,
+                                      asset_idx,
                                       deltas):
     """Collect all the adjustments that occur in a dataset that does not
     have a sid column.
@@ -734,11 +755,13 @@ def adjustments_from_deltas_with_sids(dates,
     dates : pd.DatetimeIndex
         The dates requested by the loader.
     dense_dates : pd.DatetimeIndex
-        The dates that were in the dense data.
+        The dates that were in the raw data.
     column_idx : int
         The index of the column in the dataset.
     column_name : str
         The name of the column to compute deltas for.
+    asset_idx : pd.Series[int -> int]
+        The mapping of sids to their index in the output.
     deltas : pd.DataFrame
         The overwrites that should be applied to the dataset.
 
@@ -749,14 +772,15 @@ def adjustments_from_deltas_with_sids(dates,
     """
     ad_series = deltas[AD_FIELD_NAME]
     adjustments = defaultdict(list)
-    for sid_idx, (sid, per_sid) in enumerate(deltas[column_name].iteritems()):
+    for sid, per_sid in deltas[column_name].iteritems():
+        idx = asset_idx[sid]
         for kd, v in per_sid.iteritems():
-            adjustments[dates.searchsorted(kd)].extend(
+            adjustments[dense_dates.searchsorted(kd)].extend(
                 overwrite_from_dates(
                     ad_series.loc[kd, sid],
-                    dates,
                     dense_dates,
-                    (sid_idx, sid_idx),
+                    sparse_dates,
+                    (idx, idx),
                     v,
                 ),
             )
@@ -764,8 +788,28 @@ def adjustments_from_deltas_with_sids(dates,
 
 
 class BlazeLoader(dict):
-    def __init__(self, colmap=None):
-        self.update(colmap or {})
+    """A PipelineLoader for datasets constructed with ``from_blaze``.
+
+    Parameters
+    ----------
+    dsmap : mapping, optional
+        An initial mapping of datasets to ``ExprData`` objects.
+        NOTE: Further mutations to this map will not be reflected by this
+        object.
+    data_query_time : time, optional
+        The time to use for the data query cutoff.
+    data_query_tz : tzinfo or str
+        The timezeone to use for the data query cutoff.
+    """
+    @preprocess(data_query_tz=optionally(ensure_timezone))
+    def __init__(self,
+                 dsmap=None,
+                 data_query_time=None,
+                 data_query_tz=None):
+        self.update(dsmap or {})
+        check_data_query_args(data_query_time, data_query_tz)
+        self._data_query_time = data_query_time
+        self._data_query_tz = data_query_tz
 
     @classmethod
     @memoize(cache=WeakKeyDictionary())
@@ -796,14 +840,68 @@ class BlazeLoader(dict):
 
         expr, deltas, resources = self[dataset]
         have_sids = SID_FIELD_NAME in expr.fields
+        asset_idx = pd.Series(index=assets, data=np.arange(len(assets)))
         assets = list(map(int, assets))  # coerce from numpy.int64
-        fields = list(map(dataset_name, columns))
-        query_fields = fields + [AD_FIELD_NAME, TS_FIELD_NAME] + (
+        added_query_fields = [AD_FIELD_NAME, TS_FIELD_NAME] + (
             [SID_FIELD_NAME] if have_sids else []
         )
 
-        def where(e):
+        data_query_time = self._data_query_time
+        data_query_tz = self._data_query_tz
+        lower_dt, upper_dt = normalize_data_query_bounds(
+            dates[0],
+            dates[-1],
+            data_query_time,
+            data_query_tz,
+        )
+
+        def where(e, column):
             """Create the query to run against the resources.
+
+            Parameters
+            ----------
+            e : Expr
+                The baseline or deltas expression.
+            column : BoundColumn
+                The column to query for.
+
+            Returns
+            -------
+            q : Expr
+                The query to run for the given column.
+            """
+            colname = column.name
+            pred = e[TS_FIELD_NAME] <= lower_dt
+            schema = e[colname].schema.measure
+            if isinstance(schema, Option):
+                pred &= e[colname].notnull()
+                schema = schema.ty
+            if schema in floating:
+                pred &= ~e[colname].isnan()
+            filtered = e[pred]
+            lower = filtered.timestamp.max()
+
+            if have_sids:
+                # If we have sids, then we need to take the earliest of the
+                # greatest date that has a non-null value by sid.
+                lower = bz.by(
+                    filtered[SID_FIELD_NAME],
+                    timestamp=lower,
+                ).timestamp.min()
+
+            lower = odo(lower, pd.Timestamp)
+            if lower is pd.NaT:
+                # If there is no lower date, just query for data in he date
+                # range. It must all be null anyways.
+                lower = lower_dt
+
+            return e[
+                (e[TS_FIELD_NAME] >= lower) &
+                (e[TS_FIELD_NAME] <= upper_dt)
+            ][added_query_fields + [colname]]
+
+        def collect_expr(e, _kwargs={'d': resources} if resources else {}):
+            """Execute and merge all of the per-column subqueries.
 
             Parameters
             ----------
@@ -812,29 +910,44 @@ class BlazeLoader(dict):
 
             Returns
             -------
-            q : Expr
-                The query to run.
+            result : pd.DataFrame
+                The resulting dataframe.
+
+            Notes
+            -----
+            This can return more data than needed. The in memory reindex will
+            handle this.
             """
-            ts = e[TS_FIELD_NAME]
-            # Hack to get the lower bound to query:
-            # This must be strictly executed because the data for `ts` will
-            # be removed from scope too early otherwise.
-            lower = odo(ts[ts <= dates[0]].max(), pd.Timestamp)
-            selection = ts <= dates[-1]
-            if have_sids:
-                selection &= e[SID_FIELD_NAME].isin(assets)
-            if lower is not pd.NaT:
-                selection &= ts >= lower
+            return reduce(
+                partial(pd.merge, on=added_query_fields, how='outer'),
+                (
+                    odo(where(e, column), pd.DataFrame, **_kwargs)
+                    for column in columns
+                ),
+            ).sort(TS_FIELD_NAME)  # sort for the groupby later
 
-            return e[selection][query_fields]
-
-        extra_kwargs = {'d': resources} if resources else {}
-        materialized_expr = odo(where(expr), pd.DataFrame, **extra_kwargs)
+        materialized_expr = collect_expr(expr)
         materialized_deltas = (
-            odo(where(deltas), pd.DataFrame, **extra_kwargs)
+            collect_expr(deltas)
             if deltas is not None else
-            pd.DataFrame(columns=query_fields)
+            pd.DataFrame(
+                columns=added_query_fields + list(map(getname, columns)),
+            )
         )
+
+        if data_query_time is not None:
+            for m in (materialized_expr, materialized_deltas):
+                m.loc[:, TS_FIELD_NAME] = m.loc[
+                    :, TS_FIELD_NAME
+                ].astype('datetime64[ns]')
+
+                normalize_timestamp_to_query_time(
+                    m,
+                    data_query_time,
+                    data_query_tz,
+                    inplace=True,
+                    ts_field=TS_FIELD_NAME,
+                )
 
         # Inline the deltas that changed our most recently known value.
         # Also, we reindex by the dates to create a dense representation of
@@ -846,25 +959,41 @@ class BlazeLoader(dict):
         )
         sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
 
+        def last_in_date_group(df, reindex, have_sids=have_sids):
+            idx = dates[dates.searchsorted(
+                df[TS_FIELD_NAME].values.astype('datetime64[D]')
+            )]
+            if have_sids:
+                idx = [idx, SID_FIELD_NAME]
+
+            last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
+                idx,
+                sort=False,
+            ).last()
+
+            if have_sids:
+                last_in_group = last_in_group.unstack()
+
+            if reindex:
+                if have_sids:
+                    cols = last_in_group.columns
+                    last_in_group = last_in_group.reindex(
+                        index=dates,
+                        columns=pd.MultiIndex.from_product(
+                            (cols.levels[0], assets),
+                            names=cols.names,
+                        ),
+                    )
+                else:
+                    last_in_group = last_in_group.reindex(dates)
+
+            return last_in_group
+
+        sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
+        dense_output = last_in_date_group(sparse_output, reindex=True)
+        dense_output.ffill(inplace=True)
+
         if have_sids:
-            # Unstack by the sid so that we get a multi-index on the columns
-            # of datacolumn, sid.
-            sparse_output = sparse_output.set_index(
-                [TS_FIELD_NAME, SID_FIELD_NAME],
-            ).unstack()
-            sparse_deltas = non_novel_deltas.set_index(
-                [TS_FIELD_NAME, SID_FIELD_NAME],
-            ).unstack()
-
-            dense_output = sparse_output.reindex(dates, method='ffill')
-            cols = dense_output.columns
-            dense_output = dense_output.reindex(
-                columns=pd.MultiIndex.from_product(
-                    (cols.levels[0], assets),
-                    names=cols.names,
-                ),
-            )
-
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
         else:
@@ -880,9 +1009,6 @@ class BlazeLoader(dict):
                 copy,
                 partial(repeat_last_axis, count=len(assets)),
             )
-            sparse_output = sparse_output.set_index(TS_FIELD_NAME)
-            dense_output = sparse_output.reindex(dates, method='ffill')
-            sparse_deltas = non_novel_deltas.set_index(TS_FIELD_NAME)
             adjustments_from_deltas = adjustments_from_deltas_no_sids
 
         for column_idx, column in enumerate(columns):
@@ -894,12 +1020,97 @@ class BlazeLoader(dict):
                 mask,
                 adjustments_from_deltas(
                     dates,
-                    sparse_output.index,
+                    sparse_output[TS_FIELD_NAME].values,
                     column_idx,
                     column_name,
-                    assets,
+                    asset_idx,
                     sparse_deltas,
                 )
             )
 
 global_loader = BlazeLoader.global_instance()
+
+
+def bind_expression_to_resources(expr, resources):
+    """
+    Bind a Blaze expression to resources.
+
+    Parameters
+    ----------
+    expr : bz.Expr
+        The expression to which we want to bind resources.
+    resources : dict[bz.Symbol -> any]
+        Mapping from the atomic terms of ``expr`` to actual data resources.
+
+    Returns
+    -------
+    bound_expr : bz.Expr
+        ``expr`` with bound resources.
+    """
+    # bind the resources into the expression
+    if resources is None:
+        resources = {}
+
+    # _subs stands for substitute.  It's not actually private, blaze just
+    # prefixes symbol-manipulation methods with underscores to prevent
+    # collisions with data column names.
+    return expr._subs({
+        k: bz.Data(v, dshape=k.dshape) for k, v in iteritems(resources)
+    })
+
+
+def ffill_query_in_range(expr,
+                         lower,
+                         upper,
+                         odo_kwargs=None,
+                         ts_field=TS_FIELD_NAME,
+                         sid_field=SID_FIELD_NAME):
+    """Query a blaze expression in a given time range properly forward filling
+    from values that fall before the lower date.
+
+    Parameters
+    ----------
+    expr : Expr
+        Bound blaze expression.
+    lower : datetime
+        The lower date to query for.
+    upper : datetime
+        The upper date to query for.
+    odo_kwargs : dict, optional
+        The extra keyword arguments to pass to ``odo``.
+    ts_field : str, optional
+        The name of the timestamp field in the given blaze expression.
+    sid_field : str, optional
+        The name of the sid field in the given blaze expression.
+
+    Returns
+    -------
+    raw : pd.DataFrame
+        A strict dataframe for the data in the given date range. This may
+        start before the requested start date if a value is needed to ffill.
+    """
+    odo_kwargs = odo_kwargs or {}
+    filtered = expr[expr[ts_field] <= lower]
+    computed_lower = odo(
+        bz.by(
+            filtered[sid_field],
+            timestamp=filtered[ts_field].max(),
+        ).timestamp.min(),
+        pd.Timestamp,
+        **odo_kwargs
+    )
+    if pd.isnull(computed_lower):
+        # If there is no lower date, just query for data in the date
+        # range. It must all be null anyways.
+        computed_lower = lower
+
+    raw = odo(
+        expr[
+            (expr[ts_field] >= computed_lower) &
+            (expr[ts_field] <= upper)
+        ],
+        pd.DataFrame,
+        **odo_kwargs
+    )
+    raw.loc[:, ts_field] = raw.loc[:, ts_field].astype('datetime64[ns]')
+    return raw

@@ -7,14 +7,17 @@ from unittest import TestCase
 
 from nose_parameterized import parameterized
 from numpy import arange, dtype
+import pytz
 from six import PY3
 
 from zipline.utils.preprocess import call, preprocess
 from zipline.utils.input_validation import (
+    ensure_timezone,
     expect_element,
     expect_dtypes,
     expect_types,
     optional,
+    optionally,
 )
 
 
@@ -317,3 +320,50 @@ class PreprocessTestCase(TestCase):
             "or 'float64' for argument 'a', but got 'uint32' instead."
         ).format(qualname=qualname(foo))
         self.assertEqual(e.exception.args[0], expected_message)
+
+    def test_ensure_timezone(self):
+        @preprocess(tz=ensure_timezone)
+        def f(tz):
+            return tz
+
+        valid = {
+            'utc',
+            'EST',
+            'US/Eastern',
+        }
+        invalid = {
+            # unfortunatly, these are not actually timezones (yet)
+            'ayy',
+            'lmao',
+        }
+
+        # test coercing from string
+        for tz in valid:
+            self.assertEqual(f(tz), pytz.timezone(tz))
+
+        # test pass through of tzinfo objects
+        for tz in map(pytz.timezone, valid):
+            self.assertEqual(f(tz), tz)
+
+        # test invalid timezone strings
+        for tz in invalid:
+            self.assertRaises(pytz.UnknownTimeZoneError, f, tz)
+
+    def test_optionally(self):
+        error = TypeError('arg must be int')
+
+        def preprocessor(func, argname, arg):
+            if not isinstance(arg, int):
+                raise error
+            return arg
+
+        @preprocess(a=optionally(preprocessor))
+        def f(a):
+            return a
+
+        self.assertIs(f(1), 1)
+        self.assertIsNone(f(None))
+
+        with self.assertRaises(TypeError) as e:
+            f('a')
+        self.assertIs(e.exception, error)

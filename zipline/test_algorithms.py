@@ -337,7 +337,7 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
 
         multiplier = 2.
         if isinstance(self.sid(0), Future):
-            multiplier *= self.sid(0).contract_multiplier
+            multiplier *= self.sid(0).multiplier
 
         self.order_value(self.sid(0), data[0].price * multiplier)
 
@@ -449,7 +449,7 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
             self.target_shares = np.round(20 / data[0].price)
         if isinstance(self.sid(0), Future):
             self.target_shares = np.round(
-                20 / (data[0].price * self.sid(0).contract_multiplier))
+                20 / (data[0].price * self.sid(0).multiplier))
 
 
 class FutureFlipAlgo(TestAlgorithm):
@@ -728,6 +728,16 @@ class InvalidOrderAlgorithm(TradingAlgorithm):
                 order_target_percent(self.asset, .2,
                                      stop_price=10,
                                      style=style)
+
+
+class TestRemoveDataAlgo(TradingAlgorithm):
+    def initialize(self, *args, **kwargs):
+        self.data = np.zeros(7)
+        self.i = 0
+
+    def handle_data(self, data):
+        self.data[self.i] = len(data)
+        self.i += 1
 
 
 ##############################

@@ -29,7 +29,7 @@ from pandas.tseries.tools import normalize_date
 from pandas.util.testing import assert_frame_equal
 
 from nose_parameterized import parameterized
-from numpy import full
+from numpy import full, int32, int64
 import sqlalchemy as sa
 
 from zipline.assets import (
@@ -39,7 +39,7 @@ from zipline.assets import (
     AssetFinder,
     AssetFinderCachedEquities,
 )
-from six import itervalues
+from six import itervalues, integer_types
 from toolz import valmap
 
 from zipline.assets.futures import (
@@ -50,10 +50,14 @@ from zipline.assets.futures import (
 from zipline.assets.asset_writer import (
     check_version_info,
     write_version_info,
+    _futures_defaults,
 )
 from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION,
     _version_table_schema,
+)
+from zipline.assets.asset_db_migrations import (
+    downgrade
 )
 from zipline.errors import (
     EquitiesNotFound,
@@ -64,6 +68,7 @@ from zipline.errors import (
     SidAssignmentError,
     SidsNotFound,
     SymbolNotFound,
+    AssetDBImpossibleDowngrade,
 )
 from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.utils.test_utils import (
@@ -212,6 +217,14 @@ class AssetTestCase(TestCase):
         self.assertEqual(s_23, s_23)
         self.assertEqual(s_23, 23)
         self.assertEqual(23, s_23)
+        self.assertEqual(int32(23), s_23)
+        self.assertEqual(int64(23), s_23)
+        self.assertEqual(s_23, int32(23))
+        self.assertEqual(s_23, int64(23))
+        # Check all int types (includes long on py2):
+        for int_type in integer_types:
+            self.assertEqual(int_type(23), s_23)
+            self.assertEqual(s_23, int_type(23))
 
         self.assertNotEqual(s_23, s_24)
         self.assertNotEqual(s_23, 24)
@@ -219,6 +232,8 @@ class AssetTestCase(TestCase):
         self.assertNotEqual(s_23, 23.5)
         self.assertNotEqual(s_23, [])
         self.assertNotEqual(s_23, None)
+        # Compare to a value that doesn't fit into a platform int:
+        self.assertNotEqual(s_23, sys.maxsize + 1)
 
         self.assertLess(s_23, s_24)
         self.assertLess(s_23, 24)
@@ -272,7 +287,8 @@ class TestFuture(TestCase):
             notice_date=pd.Timestamp('2014-01-20', tz='UTC'),
             expiration_date=pd.Timestamp('2014-02-20', tz='UTC'),
             auto_close_date=pd.Timestamp('2014-01-18', tz='UTC'),
-            contract_multiplier=500
+            tick_size=.01,
+            multiplier=500
         )
         cls.future2 = Future(
             0,
@@ -303,7 +319,8 @@ class TestFuture(TestCase):
                         in reprd)
         self.assertTrue("auto_close_date=Timestamp('2014-01-18 00:00:00+0000'"
                         in reprd)
-        self.assertTrue("contract_multiplier=500" in reprd)
+        self.assertTrue("tick_size=0.01" in reprd)
+        self.assertTrue("multiplier=500" in reprd)
 
     def test_reduce(self):
         reduced = self.future.__reduce__()
@@ -311,11 +328,8 @@ class TestFuture(TestCase):
 
     def test_to_and_from_dict(self):
         dictd = self.future.to_dict()
-        self.assertTrue('root_symbol' in dictd)
-        self.assertTrue('notice_date' in dictd)
-        self.assertTrue('expiration_date' in dictd)
-        self.assertTrue('auto_close_date' in dictd)
-        self.assertTrue('contract_multiplier' in dictd)
+        for field in _futures_defaults.keys():
+            self.assertTrue(field in dictd)
 
         from_dict = Future.from_dict(dictd)
         self.assertTrue(isinstance(from_dict, Future))
@@ -727,14 +741,14 @@ class AssetFinderTestCase(TestCase):
             0: {
                 'symbol': 'ADN15',
                 'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
-                'expiration_date': pd.Timestamp('2015-06-14', tz='UTC'),
+                'notice_date': pd.Timestamp('2015-06-14', tz='UTC'),
+                'expiration_date': pd.Timestamp('2015-08-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
             1: {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
-                'notice_date': pd.Timestamp('2015-08-14', tz='UTC'),
+                'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
                 'start_date': pd.Timestamp('2015-01-01', tz='UTC')
             },
@@ -781,8 +795,8 @@ class AssetFinderTestCase(TestCase):
         # right order
         ad_contracts = finder.lookup_future_chain('AD', dt)
         self.assertEqual(len(ad_contracts), 6)
-        self.assertEqual(ad_contracts[0].sid, 0)
-        self.assertEqual(ad_contracts[1].sid, 1)
+        self.assertEqual(ad_contracts[0].sid, 1)
+        self.assertEqual(ad_contracts[1].sid, 0)
         self.assertEqual(ad_contracts[5].sid, 5)
 
         # Check that, when some contracts have expired, the chain has advanced
@@ -1354,3 +1368,30 @@ class TestAssetDBVersioning(TestCase):
 
         # Now that the versions match, this Finder should succeed
         AssetFinder(engine=env.engine)
+
+    def test_downgrade(self):
+        # Attempt to downgrade a current assets db all the way down to v0
+        env = TradingEnvironment(load=noop_load)
+        conn = env.engine.connect()
+        downgrade(env.engine, 0)
+
+        # Verify that the db version is now 0
+        metadata = sa.MetaData(conn)
+        metadata.reflect(bind=env.engine)
+        version_table = metadata.tables['version_info']
+        check_version_info(version_table, 0)
+
+        # Check some of the v1-to-v0 downgrades
+        self.assertTrue('futures_contracts' in metadata.tables)
+        self.assertTrue('version_info' in metadata.tables)
+        self.assertFalse('tick_size' in
+                         metadata.tables['futures_contracts'].columns)
+        self.assertTrue('contract_multiplier' in
+                        metadata.tables['futures_contracts'].columns)
+
+    def test_impossible_downgrade(self):
+        # Attempt to downgrade a current assets db to a
+        # higher-than-current version
+        env = TradingEnvironment(load=noop_load)
+        with self.assertRaises(AssetDBImpossibleDowngrade):
+            downgrade(env.engine, ASSET_DB_VERSION + 5)

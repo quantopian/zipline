@@ -63,6 +63,26 @@ Enhancements
   subclasses inherit all of the columns from the parent. These columns will be
   new sentinels so you can register them a custom loader (:issue:`924`).
 
+* Added :func:`~zipline.utils.input_validation.coerce` to coerce inputs from one
+  type into another before passing them to the function (:issue:`948`).
+
+* Added :func:`~zipline.utils.input_validation.optionally` to wrap other
+  preprocessor functions to explicitly allow ``None`` (:issue:`947`).
+
+* Added :func:`~zipline.utils.input_validation.ensure_timezone` to allow string
+  arguments to get converted into ``datetime.tzinfo`` objects. This also allows
+  ``tzinfo`` objects to be passed directly (:issue:`947`).
+
+* Added two optional arguments, ``data_query_time`` and ``data_query_tz`` to
+  :class:`~zipline.pipeline.loaders.blaze.core.BlazeLoader` and
+  :class:`~zipline.pipeline.loaders.blaze.earnings.BlazeEarningsCalendarLoader`.
+  These arguments allow the user to specify some cutoff time for data when
+  loading from the resource. For example, if I want to simulate executing my
+  ``before_trading_start`` function at ``8:45 US/Eastern`` then I could pass
+  ``datetime.time(8, 45)`` and ``'US/Eastern'`` to the loader. This means that
+  data that is timestamped on or after ``8:45`` will not seen on that day in the
+  simulation. The data will be made available on the next day (:issue:`947`).
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -102,6 +122,14 @@ Bug Fixes
 * Fixed an issue in the CLI that would cause assets to be added twice.
   This would map the same symbol to two different sids (:issue:`942`).
 
+* Fixed an issue where the
+  :class:"`~zipline.finance.performance.period.PerformancePeriod` incorrectly
+  reported the total_positions_value when creating a
+  :class:`~zipline.protocol.Account` (:issue:`950`).
+
+* Fixed issues around KeyErrors coming from history and BarData on 32-bit
+  python, where Assets did not compare properly with int64s (:issue:`959`).
+
 
 Performance
 ~~~~~~~~~~~
@@ -131,6 +159,9 @@ Build
 * Use ``versioneer`` to manage the project ``__version__`` and setup.py version
   (:issue:`829`).
 * Fixed coveralls integration on travis build (:issue:`840`).
+* Fixed conda build, which now uses git source as its source and reads
+  requirements using setup.py, instead of copying them and letting them get out
+  of sync (:issue:`937`).
 
 Documentation
 ~~~~~~~~~~~~~
@@ -155,3 +186,4 @@ Miscellaneous
 * Treasury and benchmark downloads will now wait up to an hour to download
   again if data returned from a remote source does not extend to the date
   expected. (:issue:`841`).
+* Added a tool to downgrade the assets db to previous versions (:issue:`941`).

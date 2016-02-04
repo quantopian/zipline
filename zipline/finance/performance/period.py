@@ -126,8 +126,8 @@ def calc_period_stats(pos_stats, ending_cash):
         net_leverage=net_leverage)
 
 
-def calc_payout(contract_multiplier, amount, old_price, price):
-    return (price - old_price) * contract_multiplier * amount
+def calc_payout(multiplier, amount, old_price, price):
+    return (price - old_price) * multiplier * amount
 
 
 class PerformancePeriod(object):
@@ -243,7 +243,7 @@ class PerformancePeriod(object):
             pos = positions[asset]
             amount = pos.amount
             payout = calc_payout(
-                asset.contract_multiplier,
+                asset.multiplier,
                 amount,
                 old_price,
                 pos.last_sale_price)
@@ -296,7 +296,7 @@ class PerformancePeriod(object):
                 amount = pos.amount
                 price = txn.price
                 cash_adj = calc_payout(
-                    asset.contract_multiplier, amount, old_price, price)
+                    asset.multiplier, amount, old_price, price)
                 self.adjust_cash(cash_adj)
                 if amount + txn.amount == 0:
                     del self._payout_last_sale_prices[asset]
@@ -465,7 +465,7 @@ class PerformancePeriod(object):
                     self.ending_cash + self.ending_value)
         account.total_positions_value = \
             getattr(self, 'total_positions_value', self.ending_value)
-        account.total_positions_value = \
+        account.total_positions_exposure = \
             getattr(self, 'total_positions_exposure', self.ending_exposure)
         account.regt_equity = \
             getattr(self, 'regt_equity', self.ending_cash)

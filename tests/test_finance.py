@@ -40,13 +40,11 @@ from zipline.finance.trading import SimulationParameters
 from zipline.finance.performance import PerformanceTracker
 from zipline.utils.test_utils import(
     setup_logger,
-    teardown_logger
-)
+    teardown_logger,
+    write_bcolz_minute_data)
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
-from zipline.data.us_equity_minutes import (
-    MinuteBarWriterFromDataFrames,
-    BcolzMinuteBarReader
-)
+from zipline.data.minute_bars import BcolzMinuteBarReader
+
 from zipline.data.data_portal import DataPortal
 from zipline.finance.slippage import FixedSlippage
 from zipline.protocol import BarData
@@ -214,7 +212,7 @@ class FinanceTestCase(TestCase):
                     int((trade_interval.total_seconds() / 60) * trade_count)
                     + 100)
 
-                price_data = np.array([10.1] * len(minutes)) * 1000
+                price_data = np.array([10.1] * len(minutes))
                 assets = {
                     sid: pd.DataFrame({
                         "open": price_data,
@@ -222,13 +220,16 @@ class FinanceTestCase(TestCase):
                         "low": price_data,
                         "close": price_data,
                         "volume": np.array([100] * len(minutes)),
-                        "minute": minutes
-                    }, index=minutes)
+                        "dt": minutes
+                    }).set_index("dt")
                 }
 
-                MinuteBarWriterFromDataFrames(
-                    pd.Timestamp('2002-01-02', tz='UTC')
-                ).write(tempdir.path, assets)
+                write_bcolz_minute_data(
+                    env,
+                    env.days_in_range(minutes[0], minutes[-1]),
+                    tempdir.path,
+                    assets
+                )
 
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 

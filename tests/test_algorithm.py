@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 
 from zipline.assets import Equity, Future
+from zipline.sources import DataPanelSource
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (
@@ -59,6 +60,7 @@ from zipline.test_algorithms import (
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
     TestTargetValueAlgorithm,
+    TestRemoveDataAlgo,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
@@ -700,7 +702,7 @@ class TestTransformAlgorithm(TestCase):
         cls.sids = [0, 1, 133]
         cls.tempdir = TempDirectory()
 
-        futures_metadata = {3: {'contract_multiplier': 10}}
+        futures_metadata = {3: {'multiplier': 10}}
         equities_metadata = {}
 
         for sid in cls.sids:
@@ -1922,7 +1924,8 @@ class TestFutureFlip(TestCase):
                         'start_date': self.sim_params.trading_days[0],
                         'end_date': self.env.next_trading_day(
                             self.sim_params.trading_days[-1]),
-                        'contract_multiplier': 5}}
+                        'multiplier': 5}}
+
         self.env.write_data(futures_data=metadata)
 
         algo = FutureFlipAlgo(sid=1, amount=1, env=self.env,

@@ -7,9 +7,8 @@ from weakref import WeakKeyDictionary
 
 
 class lazyval(object):
-    """
-    Decorator that marks that an attribute should not be computed until
-    needed, and that the value should be memoized.
+    """Decorator that marks that an attribute of an instance should not be
+    computed until needed, and that the value should be memoized.
 
     Example
     -------
@@ -55,6 +54,35 @@ class lazyval(object):
 
     def __delitem__(self, instance):
         del self._cache[instance]
+
+
+class classlazyval(lazyval):
+    """ Decorator that marks that an attribute of a class should not be
+    computed until needed, and that the value should be memoized.
+
+    Example
+    -------
+
+    >>> from zipline.utils.memoize import classlazyval
+    >>> class C(object):
+    ...     count = 0
+    ...     @classlazyval
+    ...     def val(cls):
+    ...         cls.count += 1
+    ...         return "val"
+    ...
+    >>> C.count
+    0
+    >>> C.val, C.count
+    ('val', 1)
+    >>> C.val, C.count
+    ('val', 1)
+    """
+    # We don't reassign the name on the class to implement the caching because
+    # then we would need to use a metaclass to track the name of the
+    # descriptor.
+    def __get__(self, instance, owner):
+        return super(classlazyval, self).__get__(owner, owner)
 
 
 def remember_last(f):

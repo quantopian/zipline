@@ -87,14 +87,20 @@ class DataPortal(object):
         self._augmented_sources_map = {}
         self._extra_source_df = None
 
-        self.MINUTE_PRICE_ADJUSTMENT_FACTOR = 0.001
-
         self._equity_daily_reader = equity_daily_reader
         self._equity_minute_reader = equity_minute_reader
         self._future_daily_reader = future_daily_reader
         self._future_minute_reader = future_minute_reader
 
         self._first_trading_day = None
+
+        if self._equity_minute_reader is not None:
+            try:
+                self.MINUTE_PRICE_ADJUSTMENT_FACTOR = \
+                    self._equity_minute_reader._ohlc_inverse
+            except:
+                import pdb; pdb.set_trace()
+                z = 5
 
         # get the first trading day from our readers.
         if self._equity_daily_reader is not None:
@@ -414,7 +420,8 @@ class DataPortal(object):
             result = carray[minute_offset]
 
         if column != 'volume':
-            return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
+            # FIXME switch to a futures reader
+            return result * 0.001
         else:
             return result
 
@@ -422,60 +429,47 @@ class DataPortal(object):
         # if dt is before the first market minute, minute_index
         # will be 0.  if it's after the last market minute, it'll
         # be len(minutes_for_day)
-        minute_offset_to_use = \
-            self._equity_minute_reader._find_position_of_minute(dt)
+        last_traded_dt = \
+            self._equity_minute_reader.get_last_traded_dt(asset, dt)
 
-        carray = self._equity_minute_reader._open_minute_file(column, asset)
-        result = carray[minute_offset_to_use]
+        if last_traded_dt is pd.NaT:
+            return 0
 
-        if result == 0:
-            # if the given minute doesn't have data, we need to seek
-            # backwards until we find data. This makes the data
-            # forward-filled.
+        result = self._equity_minute_reader.get_value(
+            asset.sid,
+            last_traded_dt,
+            column
+        )
 
-            # get this asset's start date, so that we don't look before it.
-            start_date = self._get_asset_start_date(asset)
-            start_date_idx = self._equity_minute_reader.trading_days.\
-                searchsorted(start_date)
-            start_day_offset = start_date_idx * 390
+        if np.isnan(result):
+            return 0
 
-            original_start = minute_offset_to_use
+        # once we've found data, we need to check whether it needs
+        # to be adjusted.
+        if last_traded_dt != dt and \
+                normalize_date(last_traded_dt) != normalize_date(dt):
 
-            while result == 0 and minute_offset_to_use > start_day_offset:
-                minute_offset_to_use -= 1
-                result = carray[minute_offset_to_use]
+            # round to the nearest day, as adjustments only happen overnight
+            minutes_in_delta = \
+                self.env.minutes_for_days_in_range(last_traded_dt, dt)
 
-            # once we've found data, we need to check whether it needs
-            # to be adjusted.
-            if result != 0:
-                minutes = self.env.market_minute_window(
-                    start=dt,
-                    count=(original_start - minute_offset_to_use + 1),
-                    step=-1
-                ).order()
+            # create a np array of size minutes, fill it all with
+            # the same value.  and adjust the array.
+            arr = np.array([result] * len(minutes_in_delta),
+                           dtype=np.float64)
 
-                # only need to check for adjustments if we've gone back
-                # far enough to cross the day boundary.
-                if minutes[0].date() != minutes[-1].date():
-                    # create a np array of size minutes, fill it all with
-                    # the same value.  and adjust the array.
-                    arr = np.array([result] * len(minutes),
-                                   dtype=np.float64)
-                    self._apply_all_adjustments(
-                        data=arr,
-                        asset=asset,
-                        dts=minutes,
-                        field=column
-                    )
+            self._apply_all_adjustments(
+                data=arr,
+                asset=asset,
+                dts=minutes_in_delta,
+                field=column
+            )
 
-                    # The first value of the adjusted array is the value
-                    # we want.
-                    result = arr[0]
+            # The first value of the adjusted array is the value
+            # we want.
+            result = arr[0]
 
-        if column != 'volume':
-            return result * self.MINUTE_PRICE_ADJUSTMENT_FACTOR
-        else:
-            return result
+        return result
 
     def _get_daily_data(self, asset, column, dt):
         while True:
@@ -656,7 +650,7 @@ class DataPortal(object):
         modified_minutes_length = len(modified_minutes_for_window)
 
         if modified_minutes_length == 0:
-            raise ValueError("Cannot calculate history window that ends"
+            raise ValueError("Cannot calculate history window that ends "
                              "before the first trading day!")
 
         data = []
@@ -846,6 +840,8 @@ class DataPortal(object):
                 minutes_for_window[0])
         except KeyError:
             start_idx = 0
+
+        end_date_to_use = min(minutes_for_window[-1], asset.end_date)
 
         try:
             end_idx = self._equity_minute_reader._find_position_of_minute(

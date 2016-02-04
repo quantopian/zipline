@@ -22,15 +22,13 @@ from unittest import TestCase
 from pandas.tslib import normalize_date
 from testfixtures import TempDirectory
 from zipline.data.data_portal import DataPortal
+from zipline.data.minute_bars import BcolzMinuteBarReader
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, \
     SQLiteAdjustmentReader
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
-from zipline.data.us_equity_minutes import (
-    MinuteBarWriterFromDataFrames,
-    BcolzMinuteBarReader
-)
 from zipline.data.future_pricing import FutureMinuteReader
+from zipline.utils.test_utils import write_bcolz_minute_data
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
 
 
@@ -57,21 +55,23 @@ class TestDataPortal(TestCase):
             df = pd.DataFrame({
                 # one missing bar, then 200 bars of real data,
                 # then 1.5 days of missing data
-                "open": np.array([0] + list(range(0, 200)) + [0] * 579)
-                * 1000,
-                "high": np.array([0] + list(range(1000, 1200)) + [0] * 579)
-                * 1000,
-                "low": np.array([0] + list(range(2000, 2200)) + [0] * 579)
-                * 1000,
-                "close": np.array([0] + list(range(3000, 3200)) + [0] * 579)
-                * 1000,
+                "open": np.array([0] + list(range(0, 200)) + [0] * 579),
+                "high": np.array([0] + list(range(1000, 1200)) + [0] * 579),
+                "low": np.array([0] + list(range(2000, 2200)) + [0] * 579),
+                "close": np.array([0] + list(range(3000, 3200)) + [0] * 579),
                 "volume": [0] + list(range(4000, 4200)) + [0] * 579,
-                "minute": minutes
-            })
+                "dt": minutes
+            }).set_index("dt")
 
-            MinuteBarWriterFromDataFrames(
-                pd.Timestamp('2002-01-02', tz='UTC')).write(
-                    tempdir.path, {0: df})
+            write_bcolz_minute_data(
+                env,
+                pd.date_range(
+                    start=normalize_date(minutes[0]),
+                    end=normalize_date(minutes[-1])
+                ),
+                tempdir.path,
+                {0: df}
+            )
 
             sim_params = SimulationParameters(
                 period_start=minutes[0],
@@ -197,21 +197,24 @@ class TestDataPortal(TestCase):
                 # 390 bars of real data, then 100 missing bars, then 290
                 # bars of data again
                 "open": np.array(list(range(0, 390)) + [0] * 100 +
-                                 list(range(390, 680))) * 1000,
+                                 list(range(390, 680))),
                 "high": np.array(list(range(1000, 1390)) + [0] * 100 +
-                                 list(range(1390, 1680))) * 1000,
+                                 list(range(1390, 1680))),
                 "low": np.array(list(range(2000, 2390)) + [0] * 100 +
-                                list(range(2390, 2680))) * 1000,
+                                list(range(2390, 2680))),
                 "close": np.array(list(range(3000, 3390)) + [0] * 100 +
-                                  list(range(3390, 3680))) * 1000,
+                                  list(range(3390, 3680))),
                 "volume": np.array(list(range(4000, 4390)) + [0] * 100 +
                                    list(range(4390, 4680))),
-                "minute": minutes
-            })
+                "dt": minutes
+            }).set_index("dt")
 
-            MinuteBarWriterFromDataFrames(
-                pd.Timestamp('2002-01-02', tz='UTC')).write(
-                    tempdir.path, {0: df})
+            write_bcolz_minute_data(
+                env,
+                env.days_in_range(start_day, end_day),
+                tempdir.path,
+                {0: df}
+            )
 
             sim_params = SimulationParameters(
                 period_start=minutes[0],
@@ -347,21 +350,24 @@ class TestDataPortal(TestCase):
                 # 390 bars of real data, then 100 missing bars, then 290
                 # bars of data again
                 "open": np.array(list(range(0, 390)) + [0] * 100 +
-                                 list(range(390, 680))) * 1000,
+                                 list(range(390, 680))),
                 "high": np.array(list(range(1000, 1390)) + [0] * 100 +
-                                 list(range(1390, 1680))) * 1000,
+                                 list(range(1390, 1680))),
                 "low": np.array(list(range(2000, 2390)) + [0] * 100 +
-                                list(range(2390, 2680))) * 1000,
+                                list(range(2390, 2680))),
                 "close": np.array(list(range(3000, 3390)) + [0] * 100 +
-                                  list(range(3390, 3680))) * 1000,
+                                  list(range(3390, 3680))),
                 "volume": np.array(list(range(4000, 4390)) + [0] * 100 +
                                    list(range(4390, 4680))),
-                "minute": minutes
-            })
+                "dt": minutes
+            }).set_index("dt")
 
-            MinuteBarWriterFromDataFrames(
-                pd.Timestamp('2002-01-02', tz='UTC')).write(
-                    tempdir.path, {0: df})
+            write_bcolz_minute_data(
+                env,
+                env.days_in_range(start_day, end_day),
+                tempdir.path,
+                {0: df}
+            )
 
             equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 

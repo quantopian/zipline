@@ -62,6 +62,7 @@ class AlgorithmSimulator(object):
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
+        self.previous_dt = self.algo_start
 
         self.clock = clock
 

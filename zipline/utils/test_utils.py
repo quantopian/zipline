@@ -26,14 +26,16 @@ from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.data.data_portal import DataPortal
-from zipline.data.us_equity_minutes import (
-    MinuteBarWriterFromDataFrames,
-    BcolzMinuteBarReader
+from zipline.data.minute_bars import (
+    BcolzMinuteBarReader,
+    BcolzMinuteBarWriter,
+    US_EQUITIES_MINUTES_PER_DAY
 )
 from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, OHLC, \
     UINT32_MAX, BcolzDailyBarWriter, BcolzDailyBarReader
 from zipline.finance.order import ORDER_STATUS
 from zipline.utils import security_list
+from zipline.utils.tradingcalendar import trading_days
 
 import numpy as np
 from numpy import (
@@ -428,7 +430,7 @@ def make_future_info(first_sid,
             'start_date': start_date_func(month_begin),
             'notice_date': notice_date_func(month_begin),
             'expiration_date': notice_date_func(month_begin),
-            'contract_multiplier': 500,
+            'multiplier': 500,
         })
     return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
 
@@ -586,23 +588,27 @@ class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
             )
 
 
-def write_minute_data(tempdir, minutes, sids, sid_path_func=None):
+def write_minute_data(env, tempdir, minutes, sids):
     assets = {}
 
     length = len(minutes)
 
     for sid_idx, sid in enumerate(sids):
         assets[sid] = pd.DataFrame({
-            "open": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
-            "high": (np.array(range(15, 15 + length)) + sid_idx) * 1000,
-            "low": (np.array(range(8, 8 + length)) + sid_idx) * 1000,
-            "close": (np.array(range(10, 10 + length)) + sid_idx) * 1000,
+            "open": (np.array(range(10, 10 + length)) + sid_idx),
+            "high": (np.array(range(15, 15 + length)) + sid_idx),
+            "low": (np.array(range(8, 8 + length)) + sid_idx),
+            "close": (np.array(range(10, 10 + length)) + sid_idx),
             "volume": np.array(range(100, 100 + length)) + sid_idx,
-            "minute": minutes
-        }, index=minutes)
+            "dt": minutes
+        }).set_index("dt")
 
-    MinuteBarWriterFromDataFrames(pd.Timestamp('2002-01-02', tz='UTC')).write(
-        tempdir.path, assets, sid_path_func=sid_path_func)
+    write_bcolz_minute_data(
+        env,
+        env.days_in_range(minutes[0], minutes[-1]),
+        tempdir.path,
+        assets
+    )
 
     return tempdir.path
 
@@ -630,8 +636,7 @@ def write_daily_data(tempdir, sim_params, sids):
     return path
 
 
-def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
-                       adjustment_reader=None):
+def create_data_portal(env, tempdir, sim_params, sids, adjustment_reader=None):
     if sim_params.data_frequency == "daily":
         daily_path = write_daily_data(tempdir, sim_params, sids)
 
@@ -648,8 +653,7 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
             sim_params.last_close
         )
 
-        minute_path = write_minute_data(tempdir, minutes, sids,
-                                        sid_path_func)
+        minute_path = write_minute_data(env, tempdir, minutes, sids)
 
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
 
@@ -658,6 +662,20 @@ def create_data_portal(env, tempdir, sim_params, sids, sid_path_func=None,
             equity_minute_reader=equity_minute_reader,
             adjustment_reader=adjustment_reader
         )
+
+
+def write_bcolz_minute_data(env, days, path, df_dict):
+    market_opens = env.open_and_closes.market_open.loc[days]
+
+    writer = BcolzMinuteBarWriter(
+        days[0],
+        path,
+        market_opens,
+        US_EQUITIES_MINUTES_PER_DAY
+    )
+
+    for sid, df in df_dict.iteritems():
+        writer.write(sid, df)
 
 
 def create_data_portal_from_trade_history(env, tempdir, sim_params,
@@ -996,3 +1014,36 @@ def powerset(values):
     Return the power set (i.e., the set of all subsets) of entries in `values`.
     """
     return concat(combinations(values, i) for i in range(len(values) + 1))
+
+
+def to_series(knowledge_dates, earning_dates):
+    """
+    Helper for converting a dict of strings to a Series of datetimes.
+
+    This is just for making the test cases more readable.
+    """
+    return pd.Series(
+        index=pd.to_datetime(knowledge_dates),
+        data=pd.to_datetime(earning_dates),
+    )
+
+
+def num_days_in_range(dates, start, end):
+    """
+    Return the number of days in `dates` between start and end, inclusive.
+    """
+    start_idx, stop_idx = dates.slice_locs(start, end)
+    return stop_idx - start_idx
+
+
+def gen_calendars(start, stop, critical_dates):
+    """
+    Generate calendars to use as inputs.
+    """
+    all_dates = pd.date_range(start, stop, tz='utc')
+    for to_drop in map(list, powerset(critical_dates)):
+        # Have to yield tuples.
+        yield (all_dates.drop(to_drop),)
+
+    # Also test with the trading calendar.
+    yield (trading_days[trading_days.slice_indexer(start, stop)],)

@@ -11,14 +11,57 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import tzinfo
+from functools import partial, wraps
 from operator import attrgetter
 
 from numpy import dtype
+from pytz import timezone
 from six import iteritems, string_types, PY3
 from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
 from zipline.utils.preprocess import preprocess
+
+
+def optionally(preprocessor):
+    """Modify a preprocessor to explicitly allow `None`.
+
+    Parameters
+    ----------
+    preprocessor : callable[callable, str, any -> any]
+        A preprocessor to delegate to when `arg is not None`.
+
+    Returns
+    -------
+    optional_preprocessor : callable[callable, str, any -> any]
+        A preprocessor that delegates to `preprocessor` when `arg is not None`.
+
+    Usage
+    -----
+    >>> def preprocessor(func, argname, arg):
+    ...     if not isinstance(arg, int):
+    ...         raise TypeError('arg must be int')
+    ...     return arg
+    ...
+    >>> @preprocess(a=optionally(preprocessor))
+    ... def f(a):
+    ...     return a
+    ...
+    >>> f(1)  # call with int
+    1
+    >>> f('a')  # call with not int
+    Traceback (most recent call last):
+       ...
+    TypeError: arg must be int
+    >>> f(None) is None  # call with explicit None
+    True
+    """
+    @wraps(preprocessor)
+    def wrapper(func, argname, arg):
+        return arg if arg is None else preprocessor(func, argname, arg)
+
+    return wrapper
 
 
 def ensure_upper_case(func, argname, arg):
@@ -58,6 +101,33 @@ def ensure_dtype(func, argname, arg):
                 arg=arg,
             ),
         )
+
+
+def ensure_timezone(func, argname, arg):
+    """Argument preprocessor that converts the input into a tzinfo object.
+
+    Usage
+    -----
+    >>> from zipline.utils.preprocess import preprocess
+    >>> @preprocess(tz=ensure_timezone)
+    ... def foo(tz):
+    ...     return tz
+    >>> foo('utc')
+    <UTC>
+    """
+    if isinstance(arg, tzinfo):
+        return arg
+    if isinstance(arg, string_types):
+        return timezone(arg)
+
+    raise TypeError(
+        "{func}() couldn't convert argument "
+        "{argname}={arg!r} to a timezone.".format(
+            func=_qualified_name(func),
+            argname=argname,
+            arg=arg,
+        ),
+    )
 
 
 def expect_dtypes(*_pos, **named):
@@ -281,6 +351,46 @@ def expect_element(*_pos, **named):
         raise TypeError("expect_element() only takes keyword arguments.")
 
     return preprocess(**valmap(_expect_element, named))
+
+
+def coerce(from_, to, **to_kwargs):
+    """
+    A preprocessing decorator that coerces inputs of a given type by passing
+    them to a callable.
+
+    Parameters
+    ----------
+    from : type or tuple or types
+        Inputs types on which to call ``to``.
+    to : function
+        Coercion function to call on inputs.
+    **to_kwargs
+        Additional keywords to forward to every call to ``to``.
+
+    Usage
+    -----
+    >>> @preprocess(x=coerce(float, int), y=coerce(float, int))
+    ... def floordiff(x, y):
+    ...     return x - y
+    ...
+    >>> floordiff(3.2, 2.5)
+    1
+
+    >>> @preprocess(x=coerce(str, int, base=2), y=coerce(str, int, base=2))
+    ... def add_binary_strings(x, y):
+    ...     return bin(x + y)[2:]
+    ...
+    >>> add_binary_strings('101', '001')
+    '110'
+    """
+    def preprocessor(func, argname, arg):
+        if isinstance(arg, from_):
+            return to(arg, **to_kwargs)
+        return arg
+    return preprocessor
+
+
+coerce_string = partial(coerce, string_types)
 
 
 def _expect_element(collection):

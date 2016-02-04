@@ -10,10 +10,10 @@ requirements:
   build:
     - python
     - cython
-    - numpy
+    - numpy x.x
   run:
     - python
-    - numpy
+    - numpy x.x
 
 test:
   imports:

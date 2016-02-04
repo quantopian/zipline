@@ -170,6 +170,7 @@ class TestBenchmark(TestCase):
         )
 
         path = write_minute_data(
+            self.env,
             self.tempdir,
             minutes,
             [2]

@@ -26,6 +26,7 @@ from nose_parameterized import parameterized
 
 import numpy as np
 import pandas as pd
+from pandas.tslib import normalize_date
 from testfixtures import TempDirectory
 
 from zipline.finance.slippage import VolumeShareSlippage
@@ -34,10 +35,10 @@ from zipline.finance.trading import TradingEnvironment, SimulationParameters
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
-from zipline.data.us_equity_minutes import MinuteBarWriterFromDataFrames
-from zipline.data.us_equity_minutes import BcolzMinuteBarReader
+from zipline.data.minute_bars import BcolzMinuteBarReader
 from zipline.data.data_portal import DataPortal
 from zipline.protocol import BarData
+from zipline.utils.test_utils import write_bcolz_minute_data
 
 
 class SlippageTestCase(TestCase):
@@ -66,18 +67,24 @@ class SlippageTestCase(TestCase):
 
         assets = {
             133: pd.DataFrame({
-                "open": np.array([3.0, 3.0, 3.5, 4.0, 3.5]) * 1000,
-                "high": np.array([3.15, 3.15, 3.15, 3.15, 3.15]) * 1000,
-                "low": np.array([2.85, 2.85, 2.85, 2.85, 2.85]) * 1000,
-                "close": np.array([3.0, 3.5, 4.0, 3.5, 3.0]) * 1000,
+                "open": np.array([3.0, 3.0, 3.5, 4.0, 3.5]),
+                "high": np.array([3.15, 3.15, 3.15, 3.15, 3.15]),
+                "low": np.array([2.85, 2.85, 2.85, 2.85, 2.85]),
+                "close": np.array([3.0, 3.5, 4.0, 3.5, 3.0]),
                 "volume": [2000, 2000, 2000, 2000, 2000],
-                "minute": cls.minutes
-            })
+                "dt": cls.minutes
+            }).set_index("dt")
         }
 
-        MinuteBarWriterFromDataFrames(
-            pd.Timestamp('2002-01-02', tz='UTC')
-        ).write(cls.tempdir.path, assets)
+        write_bcolz_minute_data(
+            cls.env,
+            pd.date_range(
+                start=normalize_date(cls.minutes[0]),
+                end=normalize_date(cls.minutes[-1])
+            ),
+            cls.tempdir.path,
+            assets
+        )
 
         cls.env.write_data(equities_data={
             133: {
@@ -102,18 +109,24 @@ class SlippageTestCase(TestCase):
         try:
             assets = {
                 133: pd.DataFrame({
-                    "open": [3000],
-                    "high": [3150],
-                    "low": [2850],
-                    "close": [3000],
+                    "open": [3.00],
+                    "high": [3.15],
+                    "low": [2.85],
+                    "close": [3.00],
                     "volume": [200],
-                    "minute": [self.minutes[0]]
-                })
+                    "dt": [self.minutes[0]]
+                }).set_index("dt")
             }
 
-            MinuteBarWriterFromDataFrames(
-                pd.Timestamp('2002-01-02', tz='UTC')
-            ).write(tempdir.path, assets)
+            write_bcolz_minute_data(
+                self.env,
+                pd.date_range(
+                    start=normalize_date(self.minutes[0]),
+                    end=normalize_date(self.minutes[-1])
+                ),
+                tempdir.path,
+                assets
+            )
 
             equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
@@ -462,18 +475,24 @@ class SlippageTestCase(TestCase):
 
             assets = {
                 133: pd.DataFrame({
-                    "open": [event_data["open"] * 1000],
-                    "high": [event_data["high"] * 1000],
-                    "low": [event_data["low"] * 1000],
-                    "close": [event_data["close"] * 1000],
+                    "open": [event_data["open"]],
+                    "high": [event_data["high"]],
+                    "low": [event_data["low"]],
+                    "close": [event_data["close"]],
                     "volume": [event_data["volume"]],
-                    "minute": [pd.Timestamp('2006-01-05 14:31', tz='UTC')]
-                })
+                    "dt": [pd.Timestamp('2006-01-05 14:31', tz='UTC')]
+                }).set_index("dt")
             }
 
-            MinuteBarWriterFromDataFrames(
-                pd.Timestamp('2002-01-02', tz='UTC')
-            ).write(tempdir.path, assets)
+            write_bcolz_minute_data(
+                self.env,
+                pd.date_range(
+                    start=normalize_date(self.minutes[0]),
+                    end=normalize_date(self.minutes[-1])
+                ),
+                tempdir.path,
+                assets
+            )
 
             equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
