@@ -96,11 +96,14 @@ class TestDataPortal(TestCase):
                         data_frequency=sim_params.data_frequency)
                     if minute_idx == 0:
                         self.assertEqual(0, val)
-                    elif minute_idx < 200:
+                    elif minute_idx <= 200:
                         self.assertEqual((minute_idx - 1) +
                                          (field_idx * 1000), val)
                     else:
-                        self.assertEqual(199 + (field_idx * 1000), val)
+                        if field == "volume":
+                            self.assertEqual(0, val)
+                        else:
+                            self.assertEqual(199 + (field_idx * 1000), val)
         finally:
             tempdir.cleanup()
 
@@ -302,12 +305,13 @@ class TestDataPortal(TestCase):
                         (389 + (1000 * field_idx)) / 2.0
                     )
 
+                # volume is never forward filled
                 self.assertEqual(
                     dp.get_spot_value(
                         0, "volume",
                         dt=minute,
                         data_frequency=sim_params.data_frequency),
-                    8778  # 4389 * 2
+                    0
                 )
 
             for idx, minute in enumerate(minutes[490:]):

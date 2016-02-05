@@ -323,7 +323,8 @@ class DataPortal(object):
 
     def _get_adjusted_value(self, asset, field, dt,
                             perspective_dt,
-                            data_frequency):
+                            data_frequency,
+                            spot_value=None):
         """
         Private method that returns a scalar value representing the value
         of the desired asset's field at the given dt with adjustments applied.
@@ -355,7 +356,8 @@ class DataPortal(object):
         if isinstance(asset, int):
             asset = self._asset_finder.retrieve_asset(asset)
 
-        spot_value = self.get_spot_value(asset, field, dt, data_frequency)
+        if spot_value is None:
+            spot_value = self.get_spot_value(asset, field, dt, data_frequency)
 
         if isinstance(asset, Equity):
             adjs = []
@@ -363,7 +365,7 @@ class DataPortal(object):
                 asset, self._splits_dict, "SPLITS"
             )
             for adj_dt, adj in split_adjustments:
-                if adj_dt < dt:
+                if adj_dt >= dt:
                     if field != 'volume':
                         adjs.append(adj)
                     else:
@@ -376,7 +378,7 @@ class DataPortal(object):
                     asset, self._mergers_dict, "MERGERS"
                 )
                 for adj_dt, adj in merger_adjustments:
-                    if adj_dt < dt:
+                    if adj_dt >= dt:
                         adjs.append(adj)
                     if adj_dt >= perspective_dt:
                         break
@@ -427,15 +429,25 @@ class DataPortal(object):
             return result
 
     def _get_minute_spot_value(self, asset, column, dt):
-        # if dt is before the first market minute, minute_index
-        # will be 0.  if it's after the last market minute, it'll
-        # be len(minutes_for_day)
+        result = self._equity_minute_reader.get_value(
+            asset.sid,
+            dt,
+            column
+        )
+
+        if result > 0 or column == "volume":
+            return result
+
+        # didn't find a trade on this dt, so have to go find the last traded
+        # dt
         last_traded_dt = \
             self._equity_minute_reader.get_last_traded_dt(asset, dt)
 
         if last_traded_dt is pd.NaT:
+            # no last traded dt, bail
             return 0
 
+        # get the value as of the last traded dt
         result = self._equity_minute_reader.get_value(
             asset.sid,
             last_traded_dt,
@@ -445,32 +457,9 @@ class DataPortal(object):
         if np.isnan(result):
             return 0
 
-        # once we've found data, we need to check whether it needs
-        # to be adjusted.
-        if last_traded_dt != dt and \
-                normalize_date(last_traded_dt) != normalize_date(dt):
-
-            # round to the nearest day, as adjustments only happen overnight
-            minutes_in_delta = \
-                self.env.minutes_for_days_in_range(last_traded_dt, dt)
-
-            # create a np array of size minutes, fill it all with
-            # the same value.  and adjust the array.
-            arr = np.array([result] * len(minutes_in_delta),
-                           dtype=np.float64)
-
-            self._apply_all_adjustments(
-                data=arr,
-                asset=asset,
-                dts=minutes_in_delta,
-                field=column
-            )
-
-            # The first value of the adjusted array is the value
-            # we want.
-            result = arr[0]
-
-        return result
+        # adjust if needed
+        return self._get_adjusted_value(asset, column, last_traded_dt, dt,
+                                        "minute", spot_value=result)
 
     def _get_daily_data(self, asset, column, dt):
         while True:
