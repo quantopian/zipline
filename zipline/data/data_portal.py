@@ -302,7 +302,12 @@ class DataPortal(object):
         if isinstance(asset, int):
             asset = self._asset_finder.retrieve_asset(asset)
 
-        self._check_is_currently_alive(asset, dt)
+        # FIXME: This try/except should be removed when assets are correctly
+        # removed from portfolio.
+        try:
+            self._check_is_currently_alive(asset, dt)
+        except NoTradeDataAvailableTooLate:
+            return 0
 
         if data_frequency == "daily":
             day_to_use = dt
