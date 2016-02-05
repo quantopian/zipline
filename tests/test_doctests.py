@@ -10,6 +10,7 @@ from zipline.pipeline import (
 )
 from zipline.utils import (
     cache,
+    data,
     input_validation,
     memoize,
     numpy_utils,
@@ -78,3 +79,6 @@ class DoctestTestCase(TestCase):
 
     def test_numpy_utils_docs(self):
         self._check_docs(numpy_utils)
+
+    def test_data_docs(self):
+        self._check_docs(data)

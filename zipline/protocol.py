@@ -502,7 +502,7 @@ class BarData(object):
     """
 
     def __init__(self, data=None):
-        self._data = data or {}
+        self._data = data if data is not None else {}
         self._contains_override = None
 
     def __contains__(self, name):

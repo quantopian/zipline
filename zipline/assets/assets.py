@@ -666,30 +666,6 @@ class AssetFinder(object):
         contracts = self.retrieve_futures_contracts(sids)
         return [contracts[sid] for sid in sids]
 
-    def lookup_expired_futures(self, start, end):
-        if not isinstance(start, pd.Timestamp):
-            start = pd.Timestamp(start)
-        start = start.value
-        if not isinstance(end, pd.Timestamp):
-            end = pd.Timestamp(end)
-        end = end.value
-
-        fc_cols = self.futures_contracts.c
-
-        nd = sa.func.nullif(fc_cols.notice_date, pd.tslib.iNaT)
-        ed = sa.func.nullif(fc_cols.expiration_date, pd.tslib.iNaT)
-        date = sa.func.coalesce(sa.func.min(nd, ed), ed, nd)
-
-        sids = list(map(
-            itemgetter('sid'),
-            sa.select((fc_cols.sid,)).where(
-                (date >= start) & (date < end)).order_by(
-                sa.func.coalesce(ed, nd).asc()
-            ).execute().fetchall()
-        ))
-
-        return sids
-
     @property
     def sids(self):
         return tuple(map(

@@ -12,20 +12,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
+from itertools import takewhile
 
 from contextlib2 import ExitStack
-
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
 
-from zipline.utils.api_support import ZiplineAPI
-
+from zipline.errors import SidsNotFound
 from zipline.finance.trading import NoFurtherDataError
 from zipline.protocol import (
     BarData,
     SIDData,
     DATASOURCE_TYPE
 )
+from zipline.utils.api_support import ZiplineAPI
+from zipline.utils.data import SortedDict
 
 log = Logger('Trade Simulation')
 
@@ -56,15 +58,36 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
+        def _get_asset_close_date(sid,
+                                  finder=self.env.asset_finder,
+                                  default=self.sim_params.last_close
+                                  + timedelta(days=1)):
+            try:
+                asset = finder.retrieve_asset(sid)
+            except ValueError:
+                # Handle sid not an int, such as from a custom source.
+                # So that they don't compare equal to other sids, and we'd
+                # blow up comparing strings to ints, let's give them unique
+                # close dates.
+                return default + timedelta(microseconds=id(sid))
+            except SidsNotFound:
+                return default
+            # Default is used when the asset has no auto close date,
+            # and is set to a time after the simulation ends, so that the
+            # relevant asset isn't removed from the universe at all
+            # (at least not for this reason).
+            return asset.auto_close_date or default
+
+        self._get_asset_close = _get_asset_close_date
+
         # The algorithm's data as of our most recent event.
-        # We want an object that will have empty objects as default
-        # values on missing keys.
-        self.current_data = BarData()
+        # Maintain sids in order by asset close date, so that we can more
+        # efficiently remove them when their times come...
+        self.current_data = BarData(SortedDict(self._get_asset_close))
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
-        self.previous_dt = self.algo_start
 
         # =============
         # Logging Setup
@@ -97,14 +120,15 @@ class AlgorithmSimulator(object):
             self._call_before_trading_start(mkt_open)
 
             for date, snapshot in stream_in:
-                expired_sids = self.env.asset_finder.lookup_expired_futures(
-                    start=self.previous_dt, end=date)
-                self.previous_dt = date
+
                 self.simulation_dt = date
                 self.on_dt_changed(date)
 
-                # removing expired futures
-                for sid in expired_sids:
+                closed = list(takewhile(
+                    lambda asset_id: self._get_asset_close(asset_id) < date,
+                    self.current_data
+                ))
+                for sid in closed:
                     try:
                         del self.current_data[sid]
                     except KeyError:
