@@ -603,4 +603,12 @@ class BcolzMinuteBarReader(object):
         The position of the given minute in the list of all trading minutes
         since market open on the first trading day.
         """
-        return self._minute_index.get_loc(minute_dt)
+        try:
+            return self._minute_index.get_loc(minute_dt)
+        except KeyError:
+            pos = self._minute_index.searchsorted(minute_dt) - 1
+            if pos < 0:
+                raise
+
+            return pos
+
