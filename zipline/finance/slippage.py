@@ -99,7 +99,8 @@ class VolumeShareSlippage(SlippageModel):
 
     def process_order(self, trade_bar, order):
 
-        max_volume = self.volume_limit * trade_bar.volume
+        volume = trade_bar.volume
+        max_volume = self.volume_limit * volume
 
         # price impact accounts for the total volume of transactions
         # created against the current minute bar
@@ -119,7 +120,7 @@ class VolumeShareSlippage(SlippageModel):
         # total amount will be used to calculate price impact
         total_volume = self.volume_for_bar + cur_volume
 
-        volume_share = min(total_volume / trade_bar.volume,
+        volume_share = min(total_volume / volume,
                            self.volume_limit)
 
         simulated_impact = volume_share ** 2 \
