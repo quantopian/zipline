@@ -749,11 +749,18 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
                 "low": lows,
                 "close": closes,
                 "volume": volumes,
-                "minute": minutes
-            }, index=minutes)
+                "dt": minutes
+            }).set_index("dt")
 
-        MinuteBarWriterFromDataFrames(pd.Timestamp('2002-01-02', tz='UTC')).\
-            write(tempdir.path, assets)
+        write_bcolz_minute_data(
+            env,
+            env.days_in_range(
+                sim_params.first_open,
+                sim_params.last_close
+            ),
+            tempdir.path,
+            assets
+        )
 
         equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
