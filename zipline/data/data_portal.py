@@ -95,12 +95,8 @@ class DataPortal(object):
         self._first_trading_day = None
 
         if self._equity_minute_reader is not None:
-            try:
-                self.MINUTE_PRICE_ADJUSTMENT_FACTOR = \
-                    self._equity_minute_reader._ohlc_inverse
-            except:
-                import pdb; pdb.set_trace()
-                z = 5
+            self.MINUTE_PRICE_ADJUSTMENT_FACTOR = \
+                self._equity_minute_reader._ohlc_inverse
 
         # get the first trading day from our readers.
         if self._equity_daily_reader is not None:
