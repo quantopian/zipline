@@ -47,8 +47,6 @@ from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
-import zipline.protocol as zp
-from zipline.protocol import Event
 from zipline.utils.test_utils import create_data_portal_from_trade_history
 
 logger = logging.getLogger('Test Perf Tracking')
@@ -132,24 +130,9 @@ def create_txn(trade_bar, price, amount):
     return create_transaction(trade_bar, mock_order, price, amount)
 
 
-def benchmark_events_in_range(sim_params, env):
-    return [
-        Event({'dt': dt,
-               'returns': ret,
-               'type': zp.DATASOURCE_TYPE.BENCHMARK,
-               # We explicitly rely on the behavior that benchmarks sort before
-               # any other events.
-               'source_id': '1Abenchmarks'})
-        for dt, ret in env.benchmark_returns.iteritems()
-        if dt.date() >= sim_params.period_start.date() and
-        dt.date() <= sim_params.period_end.date()
-    ]
-
-
 def calculate_results(sim_params,
                       env,
                       tempdir,
-                      benchmark_events,
                       trade_events,
                       adjustment_reader,
                       splits=None,
@@ -280,8 +263,6 @@ class TestSplitPerformance(unittest.TestCase):
 
         setup_env_data(cls.env, cls.sim_params, [1])
 
-        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
-                                                         cls.env)
         cls.tempdir = TempDirectory()
 
     @classmethod
@@ -312,7 +293,6 @@ class TestSplitPerformance(unittest.TestCase):
 
         results = calculate_results(self.sim_params, self.env,
                                     self.tempdir,
-                                    self.benchmark_events,
                                     {1: events},
                                     NullAdjustmentReader(),
                                     txns=txns, splits=splits)
@@ -390,8 +370,6 @@ class TestCommissionEvents(unittest.TestCase):
                                                       capital_base=10e3)
         setup_env_data(cls.env, cls.sim_params, [0, 1, 133])
 
-        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
-                                                         cls.env)
         cls.tempdir = TempDirectory()
 
     @classmethod
@@ -445,7 +423,6 @@ class TestCommissionEvents(unittest.TestCase):
         results = calculate_results(self.sim_params,
                                     self.env,
                                     self.tempdir,
-                                    self.benchmark_events,
                                     {1: trade_events},
                                     NullAdjustmentReader(),
                                     txns=txns,
@@ -511,7 +488,6 @@ class TestCommissionEvents(unittest.TestCase):
         results = calculate_results(self.sim_params,
                                     self.env,
                                     self.tempdir,
-                                    self.benchmark_events,
                                     {1: events},
                                     NullAdjustmentReader(),
                                     txns=txns,
@@ -542,7 +518,6 @@ class TestCommissionEvents(unittest.TestCase):
         results = calculate_results(self.sim_params,
                                     self.env,
                                     self.tempdir,
-                                    self.benchmark_events,
                                     {1: events},
                                     NullAdjustmentReader(),
                                     commissions=commissions)
@@ -566,9 +541,6 @@ class TestDividendPerformance(unittest.TestCase):
                                                       capital_base=10e3)
 
         setup_env_data(cls.env, cls.sim_params, [1, 2])
-
-        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
-                                                         cls.env)
 
     @classmethod
     def tearDownClass(cls):
@@ -632,7 +604,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             adjustment_reader,
             txns=txns,
@@ -709,7 +680,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             events,
             adjustment_reader,
             txns=txns,
@@ -775,7 +745,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             adjustment_reader,
             txns=txns,
@@ -838,7 +807,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             adjustment_reader,
             txns=txns,
@@ -901,7 +869,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             txns=txns,
             adjustment_reader=adjustment_reader,
@@ -966,7 +933,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             txns=txns,
             adjustment_reader=adjustment_reader,
@@ -1029,7 +995,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             adjustment_reader,
             txns=txns,
@@ -1087,7 +1052,6 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             adjustment_reader,
         )
@@ -1158,7 +1122,6 @@ class TestDividendPerformance(unittest.TestCase):
             sim_params,
             self.env,
             self.tempdir,
-            self.benchmark_events,
             {1: events},
             adjustment_reader=adjustment_reader,
             txns=txns,
@@ -1198,9 +1161,6 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
 
         setup_env_data(cls.env, cls.sim_params, [1, 2])
 
-        cls.benchmark_events = benchmark_events_in_range(cls.sim_params,
-                                                         cls.env)
-
 
 class TestPositionPerformance(unittest.TestCase):
 
@@ -1215,9 +1175,6 @@ class TestPositionPerformance(unittest.TestCase):
         setup_env_data(self.env, self.sim_params, sids, futures_sids)
 
         self.finder = self.env.asset_finder
-
-        self.benchmark_events = benchmark_events_in_range(self.sim_params,
-                                                          self.env)
 
     def tearDown(self):
         self.tempdir.cleanup()
