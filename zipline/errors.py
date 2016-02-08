@@ -21,7 +21,10 @@ class ZiplineError(Exception):
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
-        self.message = str(self)
+
+    @lazyval
+    def message(self):
+        return str(self)
 
     def __str__(self):
         msg = self.msg.format(**self.kwargs)
