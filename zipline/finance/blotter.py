@@ -203,9 +203,7 @@ class Blotter(object):
 
         Parameters
         ----------
-        data_portal: zipline.data.DataPortal
-            The data portal to use for getting price and volume information
-            when calculating slippage.
+        bar_data: zipline._protocol.BarData
 
         Notes
         -----
