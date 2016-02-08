@@ -56,6 +56,9 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
 
         self._volume_for_bar = 0
 
+        if trade_bar.volume == 0:
+            return
+
         for order in current_orders:
 
             if order.open_amount == 0:
