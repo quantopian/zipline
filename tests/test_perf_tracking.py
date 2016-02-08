@@ -15,6 +15,7 @@
 
 from __future__ import division
 
+import copy
 from datetime import (
     datetime,
     timedelta,
@@ -42,7 +43,7 @@ import zipline.utils.math_utils as zp_math
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment
-from zipline.pipeline.loaders.synthetic import NullAdjustmentReader
+from zipline.protocol import BarData
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
@@ -131,9 +132,7 @@ def create_txn(trade_bar, price, amount):
 
 def calculate_results(sim_params,
                       env,
-                      tempdir,
-                      trade_events,
-                      adjustment_reader,
+                      data_portal,
                       splits=None,
                       txns=None,
                       commissions=None):
@@ -163,16 +162,6 @@ def calculate_results(sim_params,
     txns = txns or []
     splits = splits or {}
     commissions = commissions or {}
-
-    adjustment_reader = adjustment_reader or NullAdjustmentReader()
-
-    data_portal = create_data_portal_from_trade_history(
-        env,
-        tempdir,
-        sim_params,
-        trade_events,
-    )
-    data_portal._adjustment_reader = adjustment_reader
 
     perf_tracker = perf.PerformanceTracker(sim_params, env, data_portal)
 
@@ -282,7 +271,17 @@ class TestSplitPerformance(unittest.TestCase):
 
         # set up a long position in sid 1
         # 100 shares at $20 apiece = $2000 position
-        txns = [create_txn(events[0], 20, 100)]
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+
+        bar_data = BarData(data_portal,
+                           lambda: events[0].dt,
+                           'daily')
+        txns = [create_txn(bar_data[1], 20, 100)]
 
         # set up a split with ratio 3 occurring at the start of the second
         # day.
@@ -290,11 +289,11 @@ class TestSplitPerformance(unittest.TestCase):
             events[1].dt: [(1, 3)]
         }
 
-        results = calculate_results(self.sim_params, self.env,
-                                    self.tempdir,
-                                    {1: events},
-                                    NullAdjustmentReader(),
-                                    txns=txns, splits=splits)
+        results = calculate_results(self.sim_params,
+                                    self.env,
+                                    data_portal,
+                                    txns=txns,
+                                    splits=splits)
 
         # should have 33 shares (at $60 apiece) and $20 in cash
         self.assertEqual(2, len(results))
@@ -392,9 +391,19 @@ class TestCommissionEvents(unittest.TestCase):
         # PerDollar commission: 1.50, 3.00, 4.50 = $9.00
         # Total commission = $3.50 + $15.00 + $9.00 = $27.50
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: trade_events},
+        )
+
         # Create 3 transactions:  50, 100, 150 shares traded @ $20
         first_trade = trade_events[0]
-        transactions = [create_txn(first_trade, 20, i)
+        bar_data = BarData(data_portal,
+                           lambda: first_trade.dt,
+                           'daily')
+        transactions = [create_txn(bar_data[1], 20, i)
                         for i in [50, 100, 150]]
 
         # Create commission models and validate that produce expected
@@ -418,12 +427,10 @@ class TestCommissionEvents(unittest.TestCase):
         commissions[cash_adj_dt] = [cash_adjustment]
 
         # Insert a purchase order.
-        txns = [create_txn(trade_events[0], 20, 1)]
+        txns = [create_txn(bar_data[1], 20, 1)]
         results = calculate_results(self.sim_params,
                                     self.env,
-                                    self.tempdir,
-                                    {1: trade_events},
-                                    NullAdjustmentReader(),
+                                    data_portal,
                                     txns=txns,
                                     commissions=commissions)
 
@@ -471,11 +478,25 @@ class TestCommissionEvents(unittest.TestCase):
             env=self.env
         )
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+
+        bar_data_0 = BarData(data_portal,
+                             lambda: events[0].dt,
+                             'daily')
+        bar_data_1 = BarData(data_portal,
+                             lambda: events[1].dt,
+                             'daily')
+
         # Buy and sell the same sid so that we have a zero position by the
         # time of events[3].
         txns = [
-            create_txn(events[0], 20, 1),
-            create_txn(events[1], 20, -1),
+            create_txn(bar_data_0[1], 20, 1),
+            create_txn(bar_data_0[1], 20, -1),
         ]
 
         # Add a cash adjustment at the time of event[3].
@@ -486,9 +507,7 @@ class TestCommissionEvents(unittest.TestCase):
 
         results = calculate_results(self.sim_params,
                                     self.env,
-                                    self.tempdir,
-                                    {1: events},
-                                    NullAdjustmentReader(),
+                                    data_portal,
                                     txns=txns,
                                     commissions=commissions)
         # Validate that we lost 300 dollars from our cash pool.
@@ -508,6 +527,13 @@ class TestCommissionEvents(unittest.TestCase):
             env=self.env
         )
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+
         # Add a cash adjustment at the time of event[3].
         cash_adj_dt = events[3].dt
         commissions = {}
@@ -516,9 +542,7 @@ class TestCommissionEvents(unittest.TestCase):
 
         results = calculate_results(self.sim_params,
                                     self.env,
-                                    self.tempdir,
-                                    {1: events},
-                                    NullAdjustmentReader(),
+                                    data_portal,
                                     commissions=commissions)
         # Validate that we lost 300 dollars from our cash pool.
         self.assertEqual(results[-1]['cumulative_perf']['ending_cash'],
@@ -597,14 +621,24 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+
+        bar_data = BarData(data_portal,
+                           lambda: events[0].dt,
+                           'daily')
+        
         # Simulate a transaction being filled prior to the ex_date.
-        txns = [create_txn(events[0], 10.0, 100)]
+        txns = [create_txn(bar_data[1], 10.0, 100)]
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
-            adjustment_reader,
+            data_portal,
             txns=txns,
         )
 
@@ -673,14 +707,23 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends, stock_dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        txns = [create_txn(events[1][0], 10.0, 100)]
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            events,
+        )
+        data_portal._adjustment_reader = adjustment_reader
+        bar_data = BarData(data_portal,
+                           lambda: events[1][0].dt,
+                           'daily')
+
+        txns = [create_txn(bar_data[1], 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            events,
-            adjustment_reader,
+            data_portal,
             txns=txns,
         )
 
@@ -737,15 +780,23 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+        bar_data = BarData(data_portal,
+                           lambda: events[1].dt,
+                           'daily')
         # Simulate a transaction being filled on the ex_date.
-        txns = [create_txn(events[1], 10.0, 100)]
+        txns = [create_txn(bar_data[1], 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
-            adjustment_reader,
+            data_portal,
             txns=txns,
         )
 
@@ -798,16 +849,29 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        buy_txn = create_txn(events[0], 10.0, 100)
-        sell_txn = create_txn(events[2], 10.0, -100)
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+
+        buy_bar_data = BarData(data_portal,
+                               lambda: events[0].dt,
+                               'daily')
+        sell_bar_data = BarData(data_portal,
+                                lambda: events[2].dt,
+                                'daily')
+
+        buy_txn = create_txn(buy_bar_data[1], 10.0, 100)
+        sell_txn = create_txn(sell_bar_data[1], 10.0, -100)
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
-            adjustment_reader,
+            data_portal,
             txns=txns,
         )
 
@@ -860,17 +924,29 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        buy_txn = create_txn(events[1], 10.0, 100)
-        sell_txn = create_txn(events[2], 10.0, -100)
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+        buy_bar_data = BarData(data_portal,
+                               lambda: events[1].dt,
+                               'daily')
+        sell_bar_data = BarData(data_portal,
+                               lambda: events[2].dt,
+                               'daily')
+
+        buy_txn = create_txn(buy_bar_data[1], 10.0, 100)
+        sell_txn = create_txn(sell_bar_data[1], 10.0, -100)
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
+            data_portal,
             txns=txns,
-            adjustment_reader=adjustment_reader,
         )
 
         self.assertEqual(len(results), 6)
@@ -926,15 +1002,25 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        txns = [create_txn(events[1], 10.0, 100)]
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+
+        bar_data = BarData(data_portal,
+                           lambda: events[1].dt,
+                           'daily')
+
+        txns = [create_txn(bar_data[1], 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
+            data_portal,
             txns=txns,
-            adjustment_reader=adjustment_reader,
         )
 
         self.assertEqual(len(results), 6)
@@ -988,14 +1074,23 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
-        txns = [create_txn(events[1], 10.0, -100)]
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+        bar_data = BarData(data_portal,
+                           lambda: events[1].dt,
+                           'daily')
+
+        txns = [create_txn(bar_data[1], 10.0, -100)]
 
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
-            adjustment_reader,
+            data_portal,
             txns=txns,
         )
 
@@ -1047,12 +1142,18 @@ class TestDividendPerformance(unittest.TestCase):
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            self.sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+
         results = calculate_results(
             self.sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
-            adjustment_reader,
+            data_portal,
         )
 
         self.assertEqual(len(results), 6)
@@ -1115,14 +1216,23 @@ class TestDividendPerformance(unittest.TestCase):
         sim_params.period_end = events[-1].dt
         sim_params.update_internal_from_env(self.env)
 
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.tempdir,
+            sim_params,
+            {1: events},
+        )
+        data_portal._adjustment_reader = adjustment_reader
+        bar_data = BarData(data_portal,
+                           lambda: events[0].dt,
+                           'daily')
+
         # Simulate a transaction being filled prior to the ex_date.
-        txns = [create_txn(events[0], 10.0, 100)]
+        txns = [create_txn(bar_data[1], 10.0, 100)]
         results = calculate_results(
             sim_params,
             self.env,
-            self.tempdir,
-            {1: events},
-            adjustment_reader=adjustment_reader,
+            data_portal,
             txns=txns,
         )
 
@@ -1207,15 +1317,18 @@ class TestPositionPerformance(unittest.TestCase):
             env=self.env
         )
 
-        txn1 = create_txn(trades_1[1], 10.0, 100)
-        txn2 = create_txn(trades_2[1], 10.0, -100)
-
         data_portal = create_data_portal_from_trade_history(
             self.env,
             self.tempdir,
             self.sim_params,
             {1: trades_1, 2: trades_2}
         )
+
+        bar_data = BarData(data_portal,
+                           lambda: trades_1[0].dt,
+                           'daily')
+        txn1 = create_txn(bar_data[1], 10.0, 100)
+        txn2 = create_txn(bar_data[2], 10.0, -100)
 
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
@@ -1309,8 +1422,11 @@ class TestPositionPerformance(unittest.TestCase):
             self.tempdir,
             self.sim_params,
             {1: trades})
+        bar_data = BarData(data_portal,
+                           lambda: trades[1].dt,
+                           'daily')
 
-        txn = create_txn(trades[1], 10.0, 1000)
+        txn = create_txn(bar_data[1], 10.0, 1000)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1402,8 +1518,10 @@ class TestPositionPerformance(unittest.TestCase):
             self.tempdir,
             self.sim_params,
             {1: trades})
-
-        txn = create_txn(trades[1], 10.0, 100)
+        bar_data = BarData(data_portal,
+                           lambda: trades[1].dt,
+                           'daily')
+        txn = create_txn(bar_data[1], 10.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1521,8 +1639,11 @@ single short-sale transaction"""
             self.tempdir,
             self.sim_params,
             {1: trades})
+        bar_data = BarData(data_portal,
+                           lambda: trades[1].dt,
+                           'daily')
 
-        txn = create_txn(trades[1], 10.0, -100)
+        txn = create_txn(bar_data[1], 10.0, -100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(
@@ -1736,6 +1857,8 @@ cost of sole txn in test"
             single buy transaction
         """
         self.create_environment_stuff()
+        sim_params = copy.copy(self.sim_params)
+        sim_params.data_frequency = 'minute'
 
         # post some trades in the market
         trades = factory.create_trade_history(
@@ -1743,7 +1866,7 @@ cost of sole txn in test"
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             oneday,
-            self.sim_params,
+            sim_params,
             env=self.env
         )
 
@@ -1753,8 +1876,11 @@ cost of sole txn in test"
             self.sim_params,
             {3: trades}
         )
+        bar_data = BarData(data_portal,
+                           lambda: trades[1].dt,
+                           'daily')
 
-        txn = create_txn(trades[1], 10.0, 1)
+        txn = create_txn(bar_data[3], 10.0, 1)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1873,10 +1999,12 @@ single short-sale transaction"""
             self.sim_params,
             {3: trades}
         )
-
+        bar_data = BarData(data_portal,
+                           lambda: trades[0].dt,
+                           'daily')
         trades_1 = trades[:-2]
 
-        txn = create_txn(trades[1], 10.0, -1)
+        txn = create_txn(bar_data[3], 10.0, -1)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -2120,12 +2248,19 @@ trade after cover"""
             self.sim_params,
             {1: trades})
 
+        short_bar_data = BarData(data_portal,
+                                 lambda: trades[1].dt,
+                                 'daily')
+
         short_txn = create_txn(
-            trades[1],
+            short_bar_data[1],
             10.0,
             -100,
         )
-        cover_txn = create_txn(trades[6], 7.0, 100)
+        cover_bar_data = BarData(data_portal,
+                                 lambda: trades[6].dt,
+                                 'daily')
+        cover_txn = create_txn(cover_bar_data[1], 7.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -2256,9 +2391,12 @@ shares in position"
         )
 
         down_tick = trades[-1]
+        down_tick_bar = BarData(data_portal,
+                                lambda: down_tick.dt,
+                                'daily')
 
         sale_txn = create_txn(
-            down_tick,
+            down_tick_bar[1],
             10.0,
             -100)
 
