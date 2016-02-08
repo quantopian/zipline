@@ -61,7 +61,7 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if order.open_amount == 0:
                 continue
 
-            order.check_triggers(trade_bar.price, trade_bar.dt)
+            order.check_triggers(trade_bar.price, trade_bar.current_dt)
             if not order.triggered:
                 continue
 

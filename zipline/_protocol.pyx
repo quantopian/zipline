@@ -142,3 +142,7 @@ cdef class SidView:
                 self.asset,
                 self.simulation_dt_func(),
                 self.data_frequency)
+
+    property current_dt:
+        def __get__(self):
+            return self.simulation_dt_func()
