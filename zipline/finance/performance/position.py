@@ -93,10 +93,6 @@ class Position(object):
         if self.sid != sid:
             raise Exception("updating split with the wrong sid!")
 
-        log.info("handling split for sid = " + str(sid) +
-                 ", ratio = " + str(ratio))
-        log.info("before split: " + str(self))
-
         # adjust the # of shares by the ratio
         # (if we had 100 shares, and the ratio is 3,
         #  we now have 33 shares)
