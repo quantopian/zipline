@@ -831,8 +831,6 @@ class DataPortal(object):
         except KeyError:
             start_idx = 0
 
-        end_date_to_use = min(minutes_for_window[-1], asset.end_date)
-
         try:
             end_idx = self._equity_minute_reader._find_position_of_minute(
                 minutes_for_window[-1]) + 1
