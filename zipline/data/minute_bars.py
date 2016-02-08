@@ -614,4 +614,3 @@ class BcolzMinuteBarReader(object):
                 raise
 
             return pos
-
