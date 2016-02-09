@@ -258,6 +258,19 @@ class PositionTracker(object):
             position = self.positions[sid]
 
         position.update(txn)
+
+        if position.amount == 0:
+            # if this position now has 0 shares, remove it from our internal
+            # bookkeeping.
+            del self.positions[sid]
+
+            try:
+                # if this position exists in our user-facing dictionary,
+                # remove it as well.
+                del self._positions_store[sid]
+            except KeyError:
+                pass
+
         self._update_asset(sid)
 
     def handle_commission(self, sid, cost):

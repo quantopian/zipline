@@ -350,7 +350,10 @@ class FinanceTestCase(TestCase):
             self.assertEqual(len(transactions), expected_txn_count)
 
             cumulative_pos = tracker.position_tracker.positions[sid]
-            self.assertEqual(total_volume, cumulative_pos.amount)
+            if total_volume == 0:
+                self.assertIsNone(cumulative_pos)
+            else:
+                self.assertEqual(total_volume, cumulative_pos.amount)
 
             # the open orders should not contain sid.
             oo = blotter.open_orders

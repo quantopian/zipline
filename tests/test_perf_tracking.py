@@ -2153,32 +2153,8 @@ trade after cover"""
 
         self.assertEqual(
             len(pp.positions),
-            1,
-            "should be just one position"
-        )
-
-        self.assertEqual(
-            pp.positions[1].sid,
-            short_txn.sid,
-            "position should be in security from the transaction"
-        )
-
-        self.assertEqual(
-            pp.positions[1].amount,
             0,
-            "should have a position of -100 shares"
-        )
-
-        self.assertEqual(
-            pp.positions[1].cost_basis,
-            0,
-            "a covered position should have a cost basis of 0"
-        )
-
-        self.assertEqual(
-            pp.positions[1].last_sale_price,
-            trades[-1].price,
-            "last sale should be price of last trade"
+            "should be zero positions"
         )
 
         self.assertEqual(
@@ -2377,10 +2353,15 @@ shares in position"
                                     self.sim_params.data_frequency)
         pp.position_tracker = pt
 
-        for txn, cb in zip(transactions, cost_bases):
+        for idx, (txn, cb) in enumerate(zip(transactions, cost_bases)):
             pt.execute_transaction(txn)
             pp.handle_execution(txn)
-            self.assertEqual(pp.positions[1].cost_basis, cb)
+
+            if idx == 2:
+                # buy 200, sell 100, sell 100 = 0 shares = no position
+                self.assertNotIn(1, pp.positions)
+            else:
+                self.assertEqual(pp.positions[1].cost_basis, cb)
 
         pp.calculate_performance()
 
