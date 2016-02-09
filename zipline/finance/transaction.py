@@ -71,7 +71,7 @@ def create_transaction(trade_bar, order, price, amount):
     transaction = Transaction(
         sid=trade_bar.sid,
         amount=int(amount),
-        dt=trade_bar.dt,
+        dt=trade_bar.current_dt,
         price=price,
         order_id=order.id
     )
