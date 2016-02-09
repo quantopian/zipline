@@ -51,6 +51,7 @@ from six import (
 )
 
 from zipline.utils.input_validation import coerce_string, preprocess
+from zipline.utils.sqlite_utils import group_into_chunks
 
 from ._equities import _compute_row_slices, _read_bcolz_data
 from ._adjustments import load_adjustments_from_sqlite
@@ -1011,36 +1012,42 @@ class SQLiteAdjustmentReader(object):
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
 
-        query = UNPAID_QUERY_TEMPLATE.format(",".join(['?' for _ in assets]))
-        t = (seconds,) + tuple(map(lambda x: int(x), assets))
-
-        c.execute(query, t)
-
-        rows = c.fetchall()
-        c.close()
         divs = []
-        for row in rows:
-            div = Dividend(
-                row[0], row[1], Timestamp(row[2], unit='s', tz='UTC'))
-            divs.append(div)
+        for chunk in group_into_chunks(assets):
+            query = UNPAID_QUERY_TEMPLATE.format(
+                ",".join(['?' for _ in chunk]))
+            t = (seconds,) + tuple(map(lambda x: int(x), chunk))
+
+            c.execute(query, t)
+
+            rows = c.fetchall()
+            for row in rows:
+                div = Dividend(
+                    row[0], row[1], Timestamp(row[2], unit='s', tz='UTC'))
+                divs.append(div)
+        c.close()
+
         return divs
 
     def get_stock_dividends_with_ex_date(self, assets, date):
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
 
-        query = UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE.format(
-            ",".join(['?' for _ in assets]))
-        t = (seconds,) + tuple(map(lambda x: int(x), assets))
+        stock_divs = []
+        for chunk in group_into_chunks(assets):
+            query = UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE.format(
+                ",".join(['?' for _ in chunk]))
+            t = (seconds,) + tuple(map(lambda x: int(x), chunk))
 
-        c.execute(query, t)
+            c.execute(query, t)
 
-        rows = c.fetchall()
+            rows = c.fetchall()
+
+            for row in rows:
+                stock_div = StockDividend(
+                    row[0], row[1], row[2],
+                    Timestamp(row[3], unit='s', tz='UTC'))
+                stock_divs.append(stock_div)
         c.close()
 
-        stock_divs = []
-        for row in rows:
-            stock_div = StockDividend(
-                row[0], row[1], row[2], Timestamp(row[3], unit='s', tz='UTC'))
-            stock_divs.append(stock_div)
         return stock_divs
