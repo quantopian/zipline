@@ -51,7 +51,6 @@ from zipline.utils.test_utils import create_data_portal_from_trade_history
 
 logger = logging.getLogger('Test Perf Tracking')
 
-onesec = timedelta(seconds=1)
 oneday = timedelta(days=1)
 tradingday = timedelta(hours=6, minutes=30)
 
@@ -2007,10 +2006,10 @@ single short-sale transaction"""
 
         # now run a performance period encompassing the entire trade sample.
         ptTotal = perf.PositionTracker(self.env.asset_finder, data_portal,
-                                  self.sim_params.data_frequency)
+                                       self.sim_params.data_frequency)
         ppTotal = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency,
-                                    data_portal)
+                                         self.sim_params.data_frequency,
+                                         data_portal)
         ppTotal.position_tracker = ptTotal
 
         for trade in trades_1:
@@ -2110,7 +2109,7 @@ trade after cover"""
             1,
             [10, 10, 10, 11, 9, 8, 7, 8, 9, 10],
             [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
-            onesec,
+            oneday,
             self.sim_params,
             env=self.env
         )
@@ -2357,7 +2356,7 @@ shares in position"
             1,
             [10, 9, 11, 8, 9, 12, 13, 14],
             [200, -100, -100, 100, -300, 100, 500, 400],
-            onesec,
+            oneday,
             self.sim_params,
             self.env
         )
