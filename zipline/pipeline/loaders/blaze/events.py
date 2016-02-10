@@ -16,7 +16,6 @@ from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
 
 
-
 class BlazeEventsCalendarLoader(PipelineLoader):
     """An abstract pipeline loader for the events datasets that loads
     data from a blaze expression.
@@ -33,7 +32,10 @@ class BlazeEventsCalendarLoader(PipelineLoader):
         The time to use for the data query cutoff.
     data_query_tz : tzinfo or str
         The timezeone to use for the data query cutoff.
-
+    dataset : DataSet
+        The DataSet object for which this loader loads data.
+    concrete_loader :
+        The concrete loader to use for loading data into specified columns.
     Notes
     -----
     The expression should have a tabular dshape of::
@@ -60,7 +62,7 @@ class BlazeEventsCalendarLoader(PipelineLoader):
                  data_query_time=None,
                  data_query_tz=None,
                  dataset=None,
-                 loader=None):
+                 concrete_loader=None):
         dshape = expr.dshape
 
         if not istabular(dshape):
@@ -78,7 +80,7 @@ class BlazeEventsCalendarLoader(PipelineLoader):
         check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
-        self._loader = loader
+        self._concrete_loader = concrete_loader
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         data_query_time = self._data_query_time
@@ -110,7 +112,7 @@ class BlazeEventsCalendarLoader(PipelineLoader):
                 ts_field=TS_FIELD_NAME,
             )
         gb = raw.groupby(SID_FIELD_NAME)
-        return self._loader(
+        return self._concrete_loader(
             dates,
             self.prepare_data(raw, gb),
             dataset=self._dataset,

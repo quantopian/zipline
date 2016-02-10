@@ -27,9 +27,9 @@ class BusinessDaysSincePreviousEvents(Factor):
     This doesn't use trading days for symmetry with
     BusinessDaysUntilNextEarnings.
 
-    Assets which announced or will announce the event today will produce a value
-    of 0.0.  Assets that announced the event on the previous business day will
-    produce a value of 1.0.
+    Assets which announced or will announce the event today will produce a
+    value of 0.0. Assets that announced the event on the previous business
+    day will produce a value of 1.0.
 
     Assets for which the event date is `NaT` will produce a value of `NaN`.
     """
@@ -108,14 +108,16 @@ class BusinessDaysSincePreviousEarnings(BusinessDaysSincePreviousEvents):
     inputs = [EarningsCalendar.previous_announcement]
 
 
-class BusinessDaysSincePreviousCashBuybackAuth(BusinessDaysSincePreviousEvents):
+class BusinessDaysSincePreviousCashBuybackAuth(
+    BusinessDaysSincePreviousEvents
+):
     """
     Factor returning the number of **business days** (not trading days!) since
     the most recent cash buyback authorization for each asset.
 
     See Also
     --------
-    zipline.pipeline.factors.BusinessDaysUntilNextEarnings
+    zipline.pipeline.factors.BusinessDaysSincePreviousCashBuybackAuth
     """
     inputs = [CashBuybackAuthorizations.previous_announcement_date]
 
@@ -130,6 +132,6 @@ class BusinessDaysSincePreviousShareBuybackAuth(
 
     See Also
     --------
-    zipline.pipeline.factors.BusinessDaysUntilNextEarnings
+    zipline.pipeline.factors.BusinessDaysSincePreviousShareBuybackAuth
     """
     inputs = [ShareBuybackAuthorizations.previous_announcement_date]

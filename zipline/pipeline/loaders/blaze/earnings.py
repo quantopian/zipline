@@ -24,6 +24,10 @@ class BlazeEarningsCalendarLoader(BlazeEventsCalendarLoader):
         The time to use for the data query cutoff.
     data_query_tz : tzinfo or str
         The timezeone to use for the data query cutoff.
+    dataset: DataSet
+        The DataSet object for which this loader loads data.
+    loader: EventsLoader
+        The reference loader to use for this dataset.
 
     Notes
     -----

@@ -2,8 +2,8 @@
 Reference implementation for EarningsCalendar loaders.
 """
 
-from events import EventsLoader
 from ..data.earnings import EarningsCalendar
+from events import EventsLoader
 from zipline.utils.memoize import lazyval
 
 ANNOUNCEMENT_FIELD_NAME = "announcement_date"

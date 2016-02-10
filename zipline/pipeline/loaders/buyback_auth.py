@@ -2,30 +2,26 @@
 Reference implementation for EarningsCalendar loaders.
 """
 
-from ..data.buyback_auth import CashBuybackAuthorizations, \
+from ..data.buyback_auth import (
+    CashBuybackAuthorizations,
     ShareBuybackAuthorizations
+)
 from events import EventsLoader
 from zipline.utils.memoize import lazyval
 
 
 BUYBACK_ANNOUNCEMENT_FIELD_NAME = 'buyback_dates'
 SHARE_COUNT_FIELD_NAME = 'share_counts'
-VALUE_FIELD_NAME = 'values'
+CASH_FIELD_NAME = 'cash'
 
 
-# TODO:  split into 2 datasets - or just think about how to generalize since
-# we will often have cases where we have a knowledge date and, optionally,
-# a value for that event; having no value (like earnings) is a special case.
 class CashBuybackAuthorizationsLoader(EventsLoader):
     """
     Reference loader for
-    :class:`zipline.pipeline.data.earnings.BuybackAuthorizations`.
-
-    Does not currently support adjustments to the dates of known buyback
-    authorizations.
+    :class:`zipline.pipeline.data.earnings.CashBuybackAuthorizations`.
 
     events_by_sid: dict[sid -> pd.DataFrame(knowledge date,
-    event date, value)]
+    event date, cash value)]
 
     """
 
@@ -41,7 +37,6 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
             dataset=dataset
         )
 
-
     def get_loader(self, column):
         """dispatch to the loader for ``column``.
         """
@@ -52,13 +47,12 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
         else:
             raise ValueError("Don't know how to load column '%s'." % column)
 
-
     @lazyval
     def previous_buyback_value_loader(self):
         return self._previous_event_value_loader(
             self.dataset.previous_value,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-            VALUE_FIELD_NAME
+            CASH_FIELD_NAME
         )
 
     @lazyval
@@ -72,13 +66,13 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
 class ShareBuybackAuthorizationsLoader(EventsLoader):
     """
     Reference loader for
-    :class:`zipline.pipeline.data.earnings.BuybackAuthorizations`.
+    :class:`zipline.pipeline.data.earnings.ShareBuybackAuthorizations`.
 
     Does not currently support adjustments to the dates of known buyback
     authorizations.
 
     events_by_sid: dict[sid -> pd.DataFrame(knowledge date,
-    event date, value)]
+    event date, share value)]
 
     """
 
@@ -94,7 +88,6 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
             dataset=dataset
         )
 
-
     def get_loader(self, column):
         """dispatch to the loader for ``column``.
         """
@@ -104,7 +97,6 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
             return self.previous_event_date_loader
         else:
             raise ValueError("Don't know how to load column '%s'." % column)
-
 
     @lazyval
     def previous_buyback_share_count_loader(self):
