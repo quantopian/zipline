@@ -1074,8 +1074,6 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # straddling both splits
         # FIXME finish tests
 
-
-
 #     # FIXME daily history tests
 #     # - splits, adjustments, mergers
 #     # - window end after asset end
@@ -1083,4 +1081,3 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 #
 #
 #     # FIXME futures tests
-

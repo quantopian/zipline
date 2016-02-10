@@ -488,9 +488,6 @@ class TestCommissionEvents(unittest.TestCase):
         bar_data_0 = BarData(data_portal,
                              lambda: events[0].dt,
                              'daily')
-        bar_data_1 = BarData(data_portal,
-                             lambda: events[1].dt,
-                             'daily')
 
         # Buy and sell the same sid so that we have a zero position by the
         # time of events[3].
@@ -632,7 +629,7 @@ class TestDividendPerformance(unittest.TestCase):
         bar_data = BarData(data_portal,
                            lambda: events[0].dt,
                            'daily')
-        
+
         # Simulate a transaction being filled prior to the ex_date.
         txns = [create_txn(bar_data[1], 10.0, 100)]
         results = calculate_results(
@@ -935,8 +932,8 @@ class TestDividendPerformance(unittest.TestCase):
                                lambda: events[1].dt,
                                'daily')
         sell_bar_data = BarData(data_portal,
-                               lambda: events[2].dt,
-                               'daily')
+                                lambda: events[2].dt,
+                                'daily')
 
         buy_txn = create_txn(buy_bar_data[1], 10.0, 100)
         sell_txn = create_txn(sell_bar_data[1], 10.0, -100)

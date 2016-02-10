@@ -25,7 +25,6 @@ import numpy as np
 import pandas as pd
 
 from zipline.assets import Equity, Future
-from zipline.sources import DataPanelSource
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.control_flow import nullctx
 from zipline.utils.test_utils import (
@@ -60,7 +59,6 @@ from zipline.test_algorithms import (
     TestTargetAlgorithm,
     TestTargetPercentAlgorithm,
     TestTargetValueAlgorithm,
-    TestRemoveDataAlgo,
     SetLongOnlyAlgorithm,
     SetAssetDateBoundsAlgorithm,
     SetMaxPositionSizeAlgorithm,
