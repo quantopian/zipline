@@ -174,6 +174,29 @@ class SlippageTestCase(TestCase):
             # TODO: Make expected_txn an Transaction object and ensure there
             # is a __eq__ for that class.
             self.assertEquals(expected_txn, txn.__dict__)
+
+            open_orders = [
+                Order(
+                    dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
+                    amount=100,
+                    filled=0,
+                    sid=133
+                )
+            ]
+
+            # Set bar_data to be a minute ahead of last trade.
+            # Volume share slippage should not execute when there is no trade.
+            bar_data = BarData(data_portal,
+                               lambda: self.minutes[1],
+                               'minute')
+
+            orders_txns = list(slippage_model.simulate(
+                bar_data[133],
+                open_orders,
+            ))
+
+            self.assertEquals(len(orders_txns), 0)
+
         finally:
             tempdir.cleanup()
 
