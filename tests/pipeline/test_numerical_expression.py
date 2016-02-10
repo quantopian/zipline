@@ -1,3 +1,4 @@
+from itertools import permutations
 from operator import (
     add,
     ge,
@@ -498,15 +499,20 @@ class NumericalExpressionTestCase(TestCase):
         self.check_output(eye_filter, eye_mask)
         self.check_output(first_row_filter, first_row_mask)
 
-        def gen_boolops(a, b, c):
-            yield (a & b) & c
-            yield (a & b) | c
-            yield (a | b) & c
-            yield (a | b) | c
-            yield a & (b & c)
-            yield a & (b | c)
-            yield a | (b & c)
-            yield a | (b | c)
+        def gen_boolops(x, y, z):
+            """
+            Generate all possible interleavings of & and | between all possible
+            orderings of x, y, and z.
+            """
+            for a, b, c in permutations([x, y, z]):
+                yield (a & b) & c
+                yield (a & b) | c
+                yield (a | b) & c
+                yield (a | b) | c
+                yield a & (b & c)
+                yield a & (b | c)
+                yield a | (b & c)
+                yield a | (b | c)
 
         exprs = gen_boolops(eye_filter, custom_filter, first_row_filter)
         arrays = gen_boolops(eye_mask, custom_filter_mask, first_row_mask)
