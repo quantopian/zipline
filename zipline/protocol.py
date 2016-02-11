@@ -25,6 +25,7 @@ from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
+from zipline.assets import Equity
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -525,7 +526,10 @@ class BarData(object):
         self._data[name] = value
 
     def __getitem__(self, name):
-        return self._data[name]
+        if isinstance(name,Equity):
+            return self._data[name.sid]
+        else:
+            return self._data[name]
 
     def __delitem__(self, name):
         del self._data[name]
