@@ -137,8 +137,7 @@ _notNaT = make_datetime64D(0)
 
 def busday_count_mask_NaT(begindates,
                           enddates,
-                          out=None,
-                          NaT=NaTD):
+                          out=None):
     """
     Simple of numpy.busday_count that returns `float` arrays rather than int
     arrays, and handles `NaT`s by returning `NaN`s where the inputs were `NaT`.
@@ -153,8 +152,8 @@ def busday_count_mask_NaT(begindates,
     if out is None:
         out = empty(broadcast(begindates, enddates).shape, dtype=float)
 
-    beginmask = (begindates == NaT)
-    endmask = (enddates == NaT)
+    beginmask = (begindates == NaTD)
+    endmask = (enddates == NaTD)
 
     out = busday_count(
         # Temporarily fill in non-NaT values.
