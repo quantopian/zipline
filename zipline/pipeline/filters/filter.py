@@ -124,6 +124,13 @@ class Filter(CompositeTerm):
             for op in FILTER_BINOPS
         }
     )
+    clsdict.update(
+        {
+            method_name_for_op(op, commute=True): binary_operator(op)
+            for op in FILTER_BINOPS
+        }
+    )
+
     __invert__ = unary_operator('~')
 
     def _validate(self):

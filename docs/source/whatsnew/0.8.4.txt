@@ -130,6 +130,9 @@ Bug Fixes
 * Fixed issues around KeyErrors coming from history and BarData on 32-bit
   python, where Assets did not compare properly with int64s (:issue:`959`).
 
+* Fixed a bug where boolean operators were not properly implemented on
+  :class:~zipline.pipeline.Filter` (:issue:`991`).
+
 
 Performance
 ~~~~~~~~~~~
