@@ -34,7 +34,7 @@
 # )
 # from zipline.data.future_pricing import FutureMinuteReader
 # from zipline.data.us_equity_pricing import BcolzDailyBarReader
-# from zipline.data.minute_bars import BcolzMinuteBarReader, BcolzMinuteBarWriter, \
+# from zipline.data.minute_bars import BcolzMinuteBarReader, BcolzMinuteBarWriter, \  # noqa
 #     US_EQUITIES_MINUTES_PER_DAY
 # from zipline.utils.tradingcalendar import trading_days
 # from zipline.finance.trading import (
@@ -157,7 +157,7 @@
 #
 #             cls.futures_start_dates = {
 #                 cls.FUTURE_ASSET: pd.Timestamp("2015-11-23 20:11", tz='UTC'),
-#                 cls.FUTURE_ASSET2: pd.Timestamp("2014-03-19 13:31", tz='UTC'),
+#                 cls.FUTURE_ASSET2: pd.Timestamp("2014-03-19 13:31", tz='UTC'), # noqa
 #                 cls.FUTURE_ASSET3: pd.Timestamp("2014-03-19 13:31", tz='UTC')
 #             }
 #
@@ -279,7 +279,7 @@
 #         cls.tempdir.cleanup()
 #
 #     @classmethod
-#     def create_fake_futures_minute_data(cls, tempdir, asset, start_dt, end_dt,
+#     def create_fake_futures_minute_data(cls, tempdir, asset, start_dt, end_dt, # noqa
 #                                         gap_start_dt=None, gap_end_dt=None):
 #         num_minutes = int((end_dt - start_dt).total_seconds() / 60)
 #
@@ -297,13 +297,13 @@
 #             "low": np.array(zeroes_buffer +
 #                             list(range(20000, 20000 + num_minutes))) * 1000,
 #             "close": np.array(zeroes_buffer +
-#                               list(range(30000, 30000 + num_minutes))) * 1000,
+#                               list(range(30000, 30000 + num_minutes))) * 1000, # noqa
 #             "volume": np.array(zeroes_buffer +
 #                                list(range(40000, 40000 + num_minutes)))
 #         })
 #
 #         if gap_start_dt and gap_end_dt:
-#             minutes = pd.date_range(normalize_date(start_dt), end_dt, freq='T')
+#             minutes = pd.date_range(normalize_date(start_dt), end_dt, freq='T') # noqa
 #             gap_start_ix = minutes.get_loc(gap_start_dt)
 #             gap_end_ix = minutes.get_loc(gap_end_dt)
 #             future_df.iloc[gap_start_ix:gap_end_ix, :] = 0
@@ -481,7 +481,7 @@
 #     #         test_algo.initialize()
 #
 #     # def test_minute_basic_functionality(self):
-#     #     # get a 5-bar minute history from the very end of the available data
+#     #     # get a 5-bar minute history from the very end of the available data # noqa
 #     #     window = self.data_portal.get_history_window(
 #     #         [1],
 #     #         pd.Timestamp("2014-03-21 18:23:00+00:00", tz='UTC'),
@@ -706,7 +706,7 @@
 #         tempdir = TempDirectory()
 #
 #         try:
-#             equities_tempdir = os.path.join(tempdir.path, 'equity', 'minutes')
+#             equities_tempdir = os.path.join(tempdir.path, 'equity', 'minutes') # noqa
 #             os.makedirs(equities_tempdir)
 #
 #             write_bcolz_minute_data_from_csvs(
@@ -765,7 +765,7 @@
 #                      27132.664, 27131.307, 27133.978, 27132.779, 27134.476]
 #
 #         for i in range(0, 20):
-#             self.assertAlmostEquals(window.iloc[i].loc[self.IBM], reference[i])
+#             self.assertAlmostEquals(window.iloc[i].loc[self.IBM], reference[i]) # noqa
 #
 #     def test_minute_merger(self):
 #         def check(field, ref):
@@ -849,7 +849,7 @@
 #         # 2002-01-02 14:43:00+00:00  125.392
 #         # 2002-01-02 14:44:00+00:00  125.392
 #
-#         vals = [126.183, 125.648, 126.016, 127.918, 126.423, 129.825, 125.392]
+#         vals = [126.183, 125.648, 126.016, 127.918, 126.423, 129.825, 125.392] # noqa
 #         for idx, val in enumerate(vals):
 #             self.assertEqual(ffill_window.iloc[2 * idx].loc[4], val)
 #             self.assertEqual(ffill_window.iloc[(2 * idx) + 1].loc[4], val)
@@ -869,7 +869,7 @@
 #             idx1 = 2 * idx
 #             idx2 = idx1 + 1
 #             self.assertEqual(really_no_ffill_window.iloc[idx1].loc[4], val)
-#             self.assertTrue(np.isnan(really_no_ffill_window.iloc[idx2].loc[4]))
+#             self.assertTrue(np.isnan(really_no_ffill_window.iloc[idx2].loc[4])) # noqa
 #
 #     def test_daily_functionality(self):
 #         # 9 daily bars
@@ -884,11 +884,11 @@
 #         # 2014-03-20,183999.0,186742.0,183630.0,186540.0,300
 #
 #         # 5 one-minute bars that will be aggregated
-#         # 2014-03-21 13:31:00+00:00,185422401,185426332,185413974,185420153,304
-#         # 2014-03-21 13:32:00+00:00,185422402,185424165,185417717,185420941,300
-#         # 2014-03-21 13:33:00+00:00,185422403,185430663,185419420,185425041,303
-#         # 2014-03-21 13:34:00+00:00,185422403,185431290,185417079,185424184,302
-#         # 2014-03-21 13:35:00+00:00,185422405,185430210,185416293,185423251,302
+#         # 2014-03-21 13:31:00+00:00,185422401,185426332,185413974,185420153,304 # noqa
+#         # 2014-03-21 13:32:00+00:00,185422402,185424165,185417717,185420941,300 # noqa
+#         # 2014-03-21 13:33:00+00:00,185422403,185430663,185419420,185425041,303 # noqa
+#         # 2014-03-21 13:34:00+00:00,185422403,185431290,185417079,185424184,302 # noqa
+#         # 2014-03-21 13:35:00+00:00,185422405,185430210,185416293,185423251,302 # noqa
 #
 #         def run_query(field, values):
 #             window = self.data_portal.get_history_window(
@@ -978,7 +978,7 @@
 #                 else:
 #                     self.assertTrue(np.isnan(window.iloc[5].loc[self.AAPL]))
 #
-#         # 2014-06-04,637.4400099999999,647.8899690000001,636.110046,644.819992,p
+#         # 2014-06-04,637.4400099999999,647.8899690000001,636.110046,644.819992 # noqa
 #         # 2014-06-05,646.20005,649.370003,642.610008,647.349983,75951400
 #         # 2014-06-06,649.900002,651.259979,644.469971,645.570023,87484600
 #         # 2014-06-09,92.699997,93.879997,91.75,93.699997,75415000
@@ -1491,7 +1491,7 @@
 #     def create_fake_minute_data(cls, tempdir):
 #         resources = {
 #             cls.GS:
-#                 join(TEST_MINUTE_RESOURCE_PATH, 'IBM_minute.csv.gz')  # unused
+#                 join(TEST_MINUTE_RESOURCE_PATH, 'IBM_minute.csv.gz')
 #         }
 #
 #         equities_tempdir = os.path.join(tempdir.path, 'equity', 'minutes')

@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from pandas import isnull
 from six import with_metaclass, string_types, viewkeys
-from six.moves import map as imap, range
+from six.moves import map as imap
 import sqlalchemy as sa
 
 from zipline.errors import (

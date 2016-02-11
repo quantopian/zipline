@@ -1016,7 +1016,15 @@ class DataPortal(object):
         day_slice = days_in_window.slice_indexer(start_date, end_date)
         active_days = days_in_window[day_slice]
 
-        if active_days.shape[0]:
+        if len(active_days) == 0:
+            return return_array
+
+        if active_days[-1] == end_date:
+            # since we don't have data for the last day, don't try to get it
+            day_slice = slice(day_slice.start, day_slice.stop - 1)
+            active_days = days_in_window[day_slice]
+
+        if len(active_days) > 0:
             data = self._equity_daily_reader.history_window(field,
                                                             active_days[0],
                                                             active_days[-1],
