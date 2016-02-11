@@ -5,6 +5,7 @@ from datetime import datetime
 import pytz
 
 from zipline.algorithm import TradingAlgorithm
+from zipline.api import history
 from zipline.utils.factory import load_from_yahoo
 from zipline.finance import commission
 
@@ -33,7 +34,6 @@ def initialize(algo, eps=1, window_length=5):
     algo.init = True
     algo.days = 0
     algo.window_length = window_length
-    algo.add_transform('mavg', 5)
 
     algo.set_commission(commission.PerShare(cost=0))
 
@@ -54,10 +54,15 @@ def handle_data(algo, data):
     b = np.zeros(m)
 
     # find relative moving average price for each asset
+    # TODO: Use arrays.
+    mavgs = {}
+    for sid in algo.sids:
+        mavg = history(sid, algo.window_length, '1d', 'price').mean()
+        mavgs[sid] = mavg
     for i, sid in enumerate(algo.sids):
         price = data[sid].price
         # Relative mean deviation
-        x_tilde[i] = data[sid].mavg(algo.window_length) / price
+        x_tilde[i] = mavgs[sid] / price
 
     ###########################
     # Inside of OLMAR (algo 2)

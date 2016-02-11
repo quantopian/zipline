@@ -136,9 +136,7 @@ class FetcherTestCase(TestCase):
             data_frequency=data_frequency
         )
 
-        results = test_algo.run(
-            data_portal=FetcherDataPortal(self.env)
-        )
+        results = test_algo.run(FetcherDataPortal(self.env))
 
         return results
 

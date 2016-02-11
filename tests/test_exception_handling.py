@@ -73,7 +73,7 @@ class ExceptionTestCase(TestCase):
                                   env=self.env)
 
         with self.assertRaises(Exception) as ctx:
-            algo.run(data_portal=self.data_portal)
+            algo.run(self.data_portal)
 
         self.assertEqual(str(ctx.exception), 'Algo exception in handle_data')
 
@@ -83,7 +83,7 @@ class ExceptionTestCase(TestCase):
                                   env=self.env)
 
         with self.assertRaises(ZeroDivisionError):
-            algo.run(data_portal=self.data_portal)
+            algo.run(self.data_portal)
 
     def test_set_portfolio(self):
         """
@@ -94,4 +94,4 @@ class ExceptionTestCase(TestCase):
                                      env=self.env)
 
         with self.assertRaises(AttributeError):
-            algo.run(data_portal=self.data_portal)
+            algo.run(self.data_portal)

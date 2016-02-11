@@ -52,7 +52,7 @@ class TestTradeSimulation(TestCase):
         with patch.object(BenchmarkSource, "get_value",
                           self.fake_minutely_benchmark):
             algo = NoopAlgorithm(sim_params=params)
-            algo.run(data_portal=FakeDataPortal())
+            algo.run(FakeDataPortal())
             self.assertEqual(algo.perf_tracker.day_count, 1.0)
 
     @parameterized.expand([('%s_%s_%s' % (num_days, freq, emission_rate),
@@ -73,7 +73,7 @@ class TestTradeSimulation(TestCase):
         with patch.object(BenchmarkSource, "get_value",
                           self.fake_minutely_benchmark):
             algo = BeforeTradingAlgorithm(sim_params=params)
-            algo.run(data_portal=FakeDataPortal())
+            algo.run(FakeDataPortal())
 
             self.assertEqual(algo.perf_tracker.day_count, num_days)
 

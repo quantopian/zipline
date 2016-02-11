@@ -1134,7 +1134,7 @@ def handle_data(context, data):
                 [0], self.sim_params, self.env)
             data_portal = create_data_portal_from_trade_history(
                 self.env, tempdir, self.sim_params, {0: trades})
-            results = test_algo.run(data_portal=data_portal)
+            results = test_algo.run(data_portal)
 
             all_txns = [
                 val for sublist in results["transactions"].tolist()
