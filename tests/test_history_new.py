@@ -419,7 +419,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
                 # very beginning of asset3's data
                 self.assertTrue(np.isnan(window2[i]))
             else:
-                self.assertEqual(window2[i], (i + 1) / 10)
+                self.assertEqual(window2[i], (i + 1) // 10)
 
         # ffill on price, but craft window in a way that the beginning of
         # the window has no data, but there is data before that (outside the
@@ -982,7 +982,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 # 10 more leading NaNs because we had 0 as the first 9 prices
                 self.assertTrue(np.isnan(window2[i]))
             else:
-                self.assertEqual(window2[i], (i - 29) / 10)
+                self.assertEqual(window2[i], (i - 29) // 10)
 
         # ffill on price, but craft window in a way that the beginning of
         # the window has no data, but there is data before that (outside the

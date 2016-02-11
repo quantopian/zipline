@@ -674,7 +674,7 @@ def write_bcolz_minute_data(env, days, path, df_dict):
         US_EQUITIES_MINUTES_PER_DAY
     )
 
-    for sid, df in df_dict.iteritems():
+    for sid, df in iteritems(df_dict):
         writer.write(sid, df)
 
 
