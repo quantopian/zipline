@@ -34,6 +34,8 @@ bottleneck==1.0.0
 
 contextlib2==0.4.0
 
+# networkx requires decorator
+decorator==4.0.0
 # Graph algorithms used by zipline.pipeline
 networkx==1.9.1
 
