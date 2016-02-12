@@ -18,6 +18,10 @@ cdef class BarData:
     cdef object simulation_dt_func
     cdef object data_frequency
     cdef dict _views
+    cdef object _get_equity_price_view(BarData, object)
+    cdef object _create_sid_view(BarData, object)
+    cdef object _is_stale_for_asset(BarData, object, object, object)
+    cdef object _can_trade_for_asset(BarData, object, object, object)
 
 cdef class SidView:
     cdef object asset

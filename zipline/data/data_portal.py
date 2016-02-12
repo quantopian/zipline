@@ -35,16 +35,17 @@ from zipline.errors import (
 
 log = Logger('DataPortal')
 
-BASE_FIELDS = {
-    'open': 'open',
-    'open_price': 'open',
-    'high': 'high',
-    'low': 'low',
-    'close': 'close',
-    'close_price': 'close',
-    'volume': 'volume',
-    'price': 'close'
-}
+BASE_FIELDS = frozenset([
+    "open", "high", "low", "close", "volume", "price", "last_traded"
+])
+
+OHLCV_FIELDS = frozenset([
+    "open", "high", "low", "close", "volume"
+])
+
+OHLCVP_FIELDS = frozenset([
+    "open", "high", "low", "close", "volume", "price"
+])
 
 HISTORY_FREQUENCIES = set(["1m", "1d"])
 
@@ -271,9 +272,8 @@ class DataPortal(object):
             The asset whose data is desired.
 
         field: string
-            The desired field of the asset.  Valid values are "open",
-            "open_price", "high", "low", "close", "close_price", "volume", and
-            "price".
+            The desired field of the asset.  Valid values are "open", "high",
+            "low", "close", "volume", "price", and "last_traded".
 
         dt: pd.Timestamp
             The timestamp for the desired value.
@@ -286,41 +286,45 @@ class DataPortal(object):
         -------
         The value of the desired field at the desired time.
         """
-        extra_source_val = self._check_extra_sources(
-            asset,
-            field,
-            dt,
-        )
+        # extra_source_val = self._check_extra_sources(
+        #     asset,
+        #     field,
+        #     dt,
+        # )
+        #
+        # if extra_source_val is not None:
+        #     return extra_source_val
+        #
+        # if field not in BASE_FIELDS:
+        #     raise KeyError("Invalid column: " + str(field))
 
-        if extra_source_val is not None:
-            return extra_source_val
+        # if isinstance(asset, int):
+        #     asset = self._asset_finder.retrieve_asset(asset)
 
-        if field not in BASE_FIELDS:
-            raise KeyError("Invalid column: " + str(field))
-
-        column_to_use = BASE_FIELDS[field]
-
-        if isinstance(asset, int):
-            asset = self._asset_finder.retrieve_asset(asset)
-
-        # FIXME: This try/except should be removed when assets are correctly
-        # removed from portfolio.
-        try:
-            self._check_is_currently_alive(asset, dt)
-        except NoTradeDataAvailableTooLate:
-            return 0
+        if dt < asset.start_date or dt >= asset.end_date:
+            if field == "volume":
+                return 0
+            elif field != "last_traded":
+                return np.NaN
 
         if data_frequency == "daily":
             day_to_use = dt
             day_to_use = normalize_date(day_to_use)
-            return self._get_daily_data(asset, column_to_use, day_to_use)
+            return self._get_daily_data(asset, field, day_to_use)
         else:
             if isinstance(asset, Future):
                 return self._get_minute_spot_value_future(
-                    asset, column_to_use, dt)
+                    asset, field, dt)
             else:
-                return self._get_minute_spot_value(
-                    asset, column_to_use, dt)
+                if field == "last_traded":
+                    return self._equity_minute_reader.get_last_traded_dt(
+                        asset, dt
+                    )
+                elif field == "price":
+                    return self._get_minute_spot_value(asset, "close", dt,
+                                                       True)
+                else:
+                    return self._get_minute_spot_value(asset, field, dt)
 
     def _get_adjusted_value(self, asset, field, dt,
                             perspective_dt,
@@ -429,24 +433,25 @@ class DataPortal(object):
         else:
             return result
 
-    def _get_minute_spot_value(self, asset, column, dt):
+    def _get_minute_spot_value(self, asset, column, dt, ffill=False):
         result = self._equity_minute_reader.get_value(
-            asset.sid,
-            dt,
-            column
+            asset.sid, dt, column
         )
 
-        if result > 0 or column == "volume":
-            return result
+        if result == 0 or np.isnan(result):
+            if column == "volume":
+                return 0
 
-        # didn't find a trade on this dt, so have to go find the last traded
-        # dt
+            if not ffill:
+                return np.nan
+
+        # we are looking for price, and didn't find one. have to go hunting.
         last_traded_dt = \
             self._equity_minute_reader.get_last_traded_dt(asset, dt)
 
         if last_traded_dt is pd.NaT:
             # no last traded dt, bail
-            return 0
+            return np.nan
 
         # get the value as of the last traded dt
         result = self._equity_minute_reader.get_value(
@@ -456,22 +461,46 @@ class DataPortal(object):
         )
 
         if np.isnan(result):
-            return 0
+            return np.nan
 
         # adjust if needed
         return self._get_adjusted_value(asset, column, last_traded_dt, dt,
                                         "minute", spot_value=result)
 
     def _get_daily_data(self, asset, column, dt):
-        while True:
+        if column == "last_traded":
+            last_traded_dt = \
+                self._equity_daily_reader.get_last_traded_dt(asset, dt)
+
+            if pd.isnull(last_traded_dt):
+                return pd.NaT
+            else:
+                return last_traded_dt
+        elif column in OHLCV_FIELDS:
+            # don't forward fill
             try:
-                value = self._equity_daily_reader.spot_price(asset, dt, column)
-                if value != -1:
-                    return value
+                val = self._equity_daily_reader.spot_price(asset, dt, column)
+                if val == -1:
+                    if column == "volume":
+                        return 0
+                    else:
+                        return np.nan
                 else:
-                    dt -= tradingcalendar.trading_day
+                    return val
             except NoDataOnDate:
-                return 0
+                return np.nan
+        elif column == "price":
+            while True:
+                try:
+                    value = self._equity_daily_reader.spot_price(
+                        asset, dt, "close"
+                    )
+                    if value != -1:
+                        return value
+                    else:
+                        dt -= tradingcalendar.trading_day
+                except NoDataOnDate:
+                    return np.nan
 
     @remember_last
     def _get_days_for_window(self, end_date, bar_count):
@@ -717,27 +746,28 @@ class DataPortal(object):
         -------
         A dataframe containing the requested data.
         """
-        try:
-            field_to_use = BASE_FIELDS[field]
-        except KeyError:
-            raise ValueError("Invalid history field: " + str(field))
-
-        # sanity check in case sids were passed in
-        assets = np.array([
-            (self.env.asset_finder.retrieve_asset(asset) if
-             isinstance(asset, int) else asset) for asset in assets])
+        if field not in OHLCVP_FIELDS:
+            raise ValueError("Invalid field: {0}").format(field)
 
         if frequency == "1d":
-            df = self._get_history_daily_window(assets, end_dt, bar_count,
-                                                field_to_use)
+            if field == "price":
+                df = self._get_history_daily_window(assets, end_dt, bar_count,
+                                                    "close")
+            else:
+                df = self._get_history_daily_window(assets, end_dt, bar_count,
+                                                    field)
         elif frequency == "1m":
-            df = self._get_history_minute_window(assets, end_dt, bar_count,
-                                                 field_to_use)
+            if field == "price":
+                df = self._get_history_minute_window(assets, end_dt, bar_count,
+                                                     "close")
+            else:
+                df = self._get_history_minute_window(assets, end_dt, bar_count,
+                                                     field)
         else:
             raise ValueError("Invalid frequency: {0}".format(frequency))
 
-        # forward-fill if needed
-        if field == "price" and ffill:
+        # forward-fill price
+        if field == "price":
             if frequency == "1m":
                 data_frequency = 'minute'
             elif frequency == "1d":
@@ -766,6 +796,13 @@ class DataPortal(object):
                 df.iloc[0, missing_loc] = previous_value
 
             df.fillna(method='ffill', inplace=True)
+
+            for asset in df.columns:
+                if df.index[-1] >= asset.end_date:
+                    # if the window extends past the asset's end date, set
+                    # all post-end-date values to NaN in that asset's series
+                    series = df[asset]
+                    series[series.index >= asset.end_date] = np.NaN
 
         return df
 
@@ -1017,7 +1054,8 @@ class DataPortal(object):
         else:
             return_array = np.zeros((bar_count,))
 
-        return_array[:] = np.NAN
+        if field != "volume":
+            return_array[:] = np.NAN
 
         start_date = self._get_asset_start_date(asset)
         end_date = self._get_asset_end_date(asset)

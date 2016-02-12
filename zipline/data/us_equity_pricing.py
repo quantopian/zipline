@@ -528,6 +528,16 @@ class BcolzDailyBarReader(DailyBarReader):
     def get_last_traded_dt(self, asset, day):
         volumes = self._spot_col('volume')
         search_day = day
+
+        if search_day >= asset.end_date:
+            # move to the last day before the asset end date
+            try:
+                search_day = self._calendar[
+                    self._calendar.get_loc(asset.end_date) - 1
+                ]
+            except KeyError:
+                search_day = self._calendar[-1]
+
         while True:
             try:
                 ix = self.sid_day_index(asset, search_day)
