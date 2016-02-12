@@ -15,7 +15,6 @@
 
 from __future__ import division
 
-import numpy as np
 import pandas as pd
 import re
 
@@ -284,59 +283,3 @@ class HistorySpec(object):
 
     def __repr__(self):
         return ''.join([self.__class__.__name__, "('", self.key_str, "')"])
-
-
-def days_index_at_dt(history_spec, algo_dt, env):
-    """
-    Get the index of a frame to be used for a get_history call with daily
-    frequency.
-    """
-    # Get the previous (bar_count - 1) days' worth of market closes.
-    day_delta = (history_spec.bar_count - 1) * history_spec.frequency.num
-    market_closes = env.open_close_window(
-        algo_dt,
-        day_delta,
-        offset=(-day_delta),
-        step=history_spec.frequency.num,
-    ).market_close
-
-    if history_spec.frequency.data_frequency == 'daily':
-        market_closes = market_closes.apply(pd.tslib.normalize_date)
-
-    # Append the current algo_dt as the last index value.
-    # Using the 'rawer' numpy array values here because of a bottleneck
-    # that appeared when using DatetimeIndex
-    return np.append(market_closes.values, algo_dt)
-
-
-def minutes_index_at_dt(history_spec, algo_dt, env):
-    """
-    Get the index of a frame to be used for a get_history_call with minutely
-    frequency.
-    """
-    # TODO: This is almost certainly going to be too slow for production.
-    return env.market_minute_window(
-        algo_dt,
-        history_spec.bar_count,
-        step=-1,
-    )[::-1]
-
-
-def index_at_dt(history_spec, algo_dt, env):
-    """
-    Returns index of a frame returned by get_history() with the given
-    history_spec and algo_dt.
-
-    The resulting index will have @history_spec.bar_count bars, increasing in
-    units of @history_spec.frequency, terminating at the given @algo_dt.
-
-    Note: The last bar of the returned frame represents an as-of-yet incomplete
-    time window, so the delta between the last and second-to-last bars is
-    usually always less than `@history_spec.frequency` for frequencies greater
-    than 1m.
-    """
-    frequency = history_spec.frequency
-    if frequency.unit_str == 'd':
-        return days_index_at_dt(history_spec, algo_dt, env)
-    elif frequency.unit_str == 'm':
-        return minutes_index_at_dt(history_spec, algo_dt, env)

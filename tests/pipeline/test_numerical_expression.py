@@ -76,9 +76,9 @@ class NumericalExpressionTestCase(TestCase):
         self.h = H()
         self.d = DateFactor()
         self.fake_raw_data = {
-            self.f: full((5, 5), 3),
-            self.g: full((5, 5), 2),
-            self.h: full((5, 5), 1),
+            self.f: full((5, 5), 3, float),
+            self.g: full((5, 5), 2, float),
+            self.h: full((5, 5), 1, float),
             self.d: full((5, 5), 0, dtype='datetime64[ns]'),
         }
         self.mask = DataFrame(True, index=self.dates, columns=self.assets)
@@ -94,7 +94,7 @@ class NumericalExpressionTestCase(TestCase):
 
     def check_constant_output(self, expr, expected):
         self.assertFalse(isnan(expected))
-        return self.check_output(expr, full((5, 5), expected))
+        return self.check_output(expr, full((5, 5), expected, float))
 
     def test_validate_good(self):
         f = self.f
@@ -435,9 +435,9 @@ class NumericalExpressionTestCase(TestCase):
     def test_comparisons(self):
         f, g, h = self.f, self.g, self.h
         self.fake_raw_data = {
-            f: arange(25).reshape(5, 5),
-            g: arange(25).reshape(5, 5) - eye(5),
-            h: full((5, 5), 5),
+            f: arange(25, dtype=float).reshape(5, 5),
+            g: arange(25, dtype=float).reshape(5, 5) - eye(5),
+            h: full((5, 5), 5, dtype=float),
         }
         f_data = self.fake_raw_data[f]
         g_data = self.fake_raw_data[g]
@@ -479,9 +479,9 @@ class NumericalExpressionTestCase(TestCase):
         )
 
         self.fake_raw_data = {
-            f: arange(25).reshape(5, 5),
-            g: arange(25).reshape(5, 5) - eye(5),
-            h: full((5, 5), 5),
+            f: arange(25, dtype=float).reshape(5, 5),
+            g: arange(25, dtype=float).reshape(5, 5) - eye(5),
+            h: full((5, 5), 5, dtype=float),
             custom_filter: custom_filter_mask,
         }
 

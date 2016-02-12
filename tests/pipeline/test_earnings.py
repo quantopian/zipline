@@ -26,7 +26,7 @@ from zipline.pipeline.loaders.blaze import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.utils.numpy_utils import make_datetime64D, np_NaT
+from zipline.utils.numpy_utils import make_datetime64D, NaTD
 from zipline.utils.test_utils import (
     make_simple_equity_info,
     tmp_asset_finder,
@@ -234,7 +234,7 @@ class EarningsCalendarLoaderTestCase(TestCase):
 
         # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
         # We fill these entries with NaNs later.
-        whereNaT = raw_announce_dates == np_NaT
+        whereNaT = raw_announce_dates == NaTD
         raw_announce_dates[whereNaT] = make_datetime64D(0)
 
         # The abs call here makes it so that we can use this function to
@@ -260,7 +260,7 @@ class EarningsCalendarLoaderTestCase(TestCase):
             '2014-01-10',
             '2014-01-15',
             '2014-01-20',
-        ]),
+        ], utc=True),
     ))
     def test_compute_earnings(self, dates):
 
@@ -296,10 +296,12 @@ class EarningsCalendarLoaderTestCase(TestCase):
         assert_series_equal(
             computed_next.isnull(),
             computed_next_busday_offset.isnull(),
+            check_names=False,
         )
         assert_series_equal(
             computed_previous.isnull(),
             computed_previous_busday_offset.isnull(),
+            check_names=False,
         )
 
         for sid in self.sids:
@@ -308,24 +310,28 @@ class EarningsCalendarLoaderTestCase(TestCase):
                 computed_next.xs(sid, level=1),
                 expected_next(sid),
                 sid,
+                check_names=False,
             )
 
             assert_series_equal(
                 computed_previous.xs(sid, level=1),
                 expected_previous(sid),
                 sid,
+                check_names=False,
             )
 
             assert_series_equal(
                 computed_next_busday_offset.xs(sid, level=1),
                 expected_next_busday_offset(sid),
                 sid,
+                check_names=False,
             )
 
             assert_series_equal(
                 computed_previous_busday_offset.xs(sid, level=1),
                 expected_previous_busday_offset(sid),
                 sid,
+                check_names=False,
             )
 
 

@@ -52,6 +52,19 @@ asset_infos = (
 with_extra_sid = parameterized.expand(asset_infos)
 
 
+def _utc_localize_index_level_0(df):
+    """``tz_localize`` the first level of a multiindexed dataframe to utc.
+
+    Mutates df in place.
+    """
+    idx = df.index
+    df.index = pd.MultiIndex.from_product(
+        (idx.levels[0].tz_localize('utc'), idx.levels[1]),
+        names=idx.names,
+    )
+    return df
+
+
 class BlazeToPipelineTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -315,7 +328,11 @@ class BlazeToPipelineTestCase(TestCase):
                 finder,
             ).run_pipeline(p, dates[0], dates[-1])
 
-        assert_frame_equal(result, expected, check_dtype=False)
+        assert_frame_equal(
+            result,
+            _utc_localize_index_level_0(expected),
+            check_dtype=False,
+        )
 
     def test_custom_query_time_tz(self):
         df = self.df.copy()
@@ -345,7 +362,7 @@ class BlazeToPipelineTestCase(TestCase):
         expected = df.drop('asof_date', axis=1)
         expected['timestamp'] = expected['timestamp'].dt.normalize().astype(
             'datetime64[ns]',
-        )
+        ).dt.tz_localize('utc')
         expected.ix[3:5, 'timestamp'] += timedelta(days=1)
         expected.set_index(['timestamp', 'sid'], inplace=True)
         expected.index = pd.MultiIndex.from_product((
@@ -615,41 +632,26 @@ class BlazeToPipelineTestCase(TestCase):
         df['other'] = df.value + 1
         fields = OrderedDict(self.macro_dshape.measure.fields)
         fields['other'] = fields['value']
-        expr = bz.Data(df, name='expr', dshape=var * Record(fields))
-        loader = BlazeLoader()
-        ds = from_blaze(
-            expr,
-            loader=loader,
-            no_deltas_rule=no_deltas_rules.ignore,
-        )
-        p = Pipeline()
-        p.add(ds.value.latest, 'value')
-        p.add(ds.other.latest, 'other')
-        dates = self.dates
 
         asset_info = asset_infos[0][0]
         with tmp_asset_finder(equities=asset_info) as finder:
-            result = SimplePipelineEngine(
-                loader,
-                dates,
+            expected = pd.DataFrame(
+                np.array([[0, 1],
+                          [1, 2],
+                          [2, 3]]).repeat(3, axis=0),
+                index=pd.MultiIndex.from_product((
+                    df.timestamp,
+                    finder.retrieve_all(asset_info.index),
+                )),
+                columns=('value', 'other'),
+            ).sort_index(axis=1)
+            self._test_id(
+                df,
+                var * Record(fields),
+                expected,
                 finder,
-            ).run_pipeline(p, dates[0], dates[-1])
-
-        expected = pd.DataFrame(
-            np.array([[0, 1],
-                      [1, 2],
-                      [2, 3]]).repeat(3, axis=0),
-            index=pd.MultiIndex.from_product((
-                df.timestamp,
-                finder.retrieve_all(asset_info.index),
-            )),
-            columns=('value', 'other'),
-        ).sort_index(axis=1)
-        assert_frame_equal(
-            result,
-            expected.sort_index(axis=1),
-            check_dtype=False,
-        )
+                ('value', 'other'),
+            )
 
     def test_id_take_last_in_group(self):
         T = pd.Timestamp
@@ -804,7 +806,7 @@ class BlazeToPipelineTestCase(TestCase):
 
         assert_frame_equal(
             result,
-            expected_output,
+            _utc_localize_index_level_0(expected_output),
             check_dtype=False,
         )
 

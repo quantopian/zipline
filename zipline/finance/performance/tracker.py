@@ -70,6 +70,7 @@ from pandas.tseries.tools import normalize_date
 import zipline.finance.risk as risk
 from . period import PerformancePeriod
 
+from zipline.utils.pandas_utils import sort_values
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -200,9 +201,9 @@ class PerformanceTracker(object):
         )
         self._dividend_count += len(new_dividends)
 
-        self.dividend_frame = pd.concat(
+        self.dividend_frame = sort_values(pd.concat(
             [self.dividend_frame, new_dividends]
-        ).sort(['pay_date', 'ex_date']).set_index('id', drop=False)
+        ), ['pay_date', 'ex_date']).set_index('id', drop=False)
 
     def initialize_dividends_from_other(self, other):
         """

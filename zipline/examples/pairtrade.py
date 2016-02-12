@@ -32,8 +32,8 @@ def ols_transform(data, sid1, sid2):
     """Computes regression coefficient (slope and intercept)
     via Ordinary Least Squares between two SIDs.
     """
-    p0 = data.price[sid1]
-    p1 = sm.add_constant(data.price[sid2], prepend=True)
+    p0 = data.price[sid1].values
+    p1 = sm.add_constant(data.price[sid2].values, prepend=True)
     slope, intercept = sm.OLS(p0, p1).fit().params
 
     return slope, intercept

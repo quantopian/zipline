@@ -23,7 +23,11 @@ from zipline.pipeline.factors import (
     RSI,
 )
 from zipline.utils.test_utils import check_allclose, check_arrays
-from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype, np_NaT
+from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
+    float64_dtype,
+    NaTns,
+)
 
 from .base import BasePipelineTestCase
 
@@ -309,7 +313,7 @@ class FactorTestCase(BasePipelineTestCase):
         mask = eyemask if use_mask else nomask
         if set_missing:
             asfloat[:, 2] = nan
-            asdatetime[:, 2] = np_NaT
+            asdatetime[:, 2] = NaTns
 
         float_result = masked_rankdata_2d(
             data=asfloat,
@@ -321,7 +325,7 @@ class FactorTestCase(BasePipelineTestCase):
         datetime_result = masked_rankdata_2d(
             data=asdatetime,
             mask=mask,
-            missing_value=np_NaT,
+            missing_value=NaTns,
             method=method,
             ascending=True,
         )
