@@ -619,23 +619,23 @@ class PanelDailyBarReader(DailyBarReader):
     first_trading_day : pd.Timestamp
         The first trading day in the dataset.
     """
-    def __init__(self, panel):
+    def __init__(self, calendar, panel):
         panel = panel.copy()
         if 'volume' not in panel.items:
             # Fake volume if it does not exist.
             panel.loc[:, :, 'volume'] = int(1e9)
 
         self.first_trading_day = panel.major_axis[0]
-        self._calendar = panel.major_axis
+        self._calendar = calendar
 
         self.panel = panel
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         col_names = [col.name for col in columns]
-        data = self.panel[assets, start_date:end_date, col_names].values
-        if len(data.shape) == 2:
-            data = [data]
-        return data
+        cal = self._calendar
+        index = cal[cal.slice_indexer(start_date, end_date)]
+        result = self.panel.loc[assets, start_date:end_date, col_names]
+        return result.reindex_axis(index, 1).values
 
     def spot_price(self, sid, day, colname):
         """
