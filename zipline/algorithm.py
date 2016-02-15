@@ -498,7 +498,8 @@ class TradingAlgorithm(object):
                 if equities:
                     from zipline.data.us_equity_pricing import \
                         PanelDailyBarReader
-                    equity_daily_reader = PanelDailyBarReader(copy_panel)
+                    equity_daily_reader = PanelDailyBarReader(
+                        self.trading_environment.trading_days, copy_panel)
                 else:
                     equity_daily_reader = None
                 self.data_portal = DataPortal(

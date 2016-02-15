@@ -1041,6 +1041,16 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 
             np.testing.assert_array_equal(window1, [2])
 
+            window1_volume = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp("2015-01-05", tz='UTC'),
+                1,
+                "1d",
+                "volume"
+            )[asset]
+
+            np.testing.assert_array_equal(window1_volume, [200])
+
             # straddling the first event
             window2 = self.data_portal.get_history_window(
                 [asset],
@@ -1053,6 +1063,16 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             # first value should be halved, second value unadjusted
             np.testing.assert_array_equal([1, 3], window2)
 
+            window2_volume = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp("2015-01-06", tz='UTC'),
+                2,
+                "1d",
+                "volume"
+            )[asset]
+
+            np.testing.assert_array_equal(window2_volume, [100, 300])
+
             # straddling both events
             window3 = self.data_portal.get_history_window(
                 [asset],
@@ -1063,6 +1083,16 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             )[asset]
 
             np.testing.assert_array_equal([0.5, 1.5, 4], window3)
+
+            window3_volume = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp("2015-01-07", tz='UTC'),
+                3,
+                "1d",
+                "volume"
+            )[asset]
+
+            np.testing.assert_array_equal(window3_volume, [50, 150, 400])
 
     def test_daily_dividends(self):
         # self.DIVIDEND_ASSET had dividends on 1/6 and 1/7

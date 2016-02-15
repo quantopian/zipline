@@ -25,7 +25,7 @@ from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import NoDataOnDate
-from zipline.pipeline.data.equity_pricing import USEquityPricing
+from zipline.data.us_equity_loader import USEquityHistoryLoader
 
 from zipline.utils import tradingcalendar
 from zipline.utils.memoize import remember_last
@@ -90,6 +90,11 @@ class DataPortal(object):
         self._extra_source_df = None
 
         self._equity_daily_reader = equity_daily_reader
+        if self._equity_daily_reader is not None:
+            self._equity_history_loader = USEquityHistoryLoader(
+                self._equity_daily_reader,
+                self._adjustment_reader
+            )
         self._equity_minute_reader = equity_minute_reader
         self._future_daily_reader = future_daily_reader
         self._future_minute_reader = future_minute_reader
@@ -1069,19 +1074,9 @@ class DataPortal(object):
         if self._equity_daily_reader_array_keys[field] == key:
             return self._equity_daily_reader_array_data[field]
         else:
-            col = getattr(USEquityPricing, field)
-            data = self._equity_daily_reader.load_raw_arrays(
-                [col],
-                dts[0],
-                dts[-1],
-                assets)[0]
-            for i, asset in enumerate(assets):
-                self._apply_all_adjustments(
-                    data[:, i],
-                    asset,
-                    dts,
-                    field,
-                )
+            data = self._equity_history_loader.history(assets,
+                                                       dts,
+                                                       field)
             self._equity_daily_reader_array_keys[field] = key
             self._equity_daily_reader_array_data[field] = data
             return data
