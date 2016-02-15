@@ -31,6 +31,7 @@ from six import (
 )
 
 
+from zipline.data.data_portal import DataPortal
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     HistoryInInitialize,
@@ -69,7 +70,7 @@ from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
-from zipline.assets import Asset, Future
+from zipline.assets import Asset, Equity, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline.engine import (
@@ -459,7 +460,7 @@ class TradingAlgorithm(object):
         """
         return self._create_generator(self.sim_params)
 
-    def run(self, data_portal=None):
+    def run(self, data=None, overwrite_sim_params=True):
         """Run the algorithm.
 
         :Arguments:
@@ -470,7 +471,49 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
-        self.data_portal = data_portal
+        if isinstance(data, DataPortal):
+            self.data_portal = data
+        else:
+            if isinstance(data, pd.DataFrame):
+                # If a DataFrame is passed. Promote it to a Panel.
+                # The reader will fake volume values.
+                data = pd.Panel({'close': data.copy()})
+                data = data.swapaxes(0, 2)
+
+            if isinstance(data, pd.Panel):
+                copy_panel = data.copy()
+                copy_panel.items = self._write_and_map_id_index_to_sids(
+                    copy_panel.items, copy_panel.major_axis[0],
+                )
+                assets = self.trading_environment.asset_finder.retrieve_all(
+                    copy_panel.items)
+                equities = []
+                futures = []
+                for asset in assets:
+                    if isinstance(asset, Equity):
+                        equities.append(asset)
+                    elif isinstance(asset, Future):
+                        futures.append(asset)
+                if equities:
+                    from zipline.data.us_equity_pricing import \
+                        PanelDailyBarReader
+                    equity_daily_reader = PanelDailyBarReader(copy_panel)
+                else:
+                    equity_daily_reader = None
+                self.data_portal = DataPortal(
+                    self.trading_environment,
+                    equity_daily_reader=equity_daily_reader)
+
+                # For compatibility with existing examples allow start/end
+                # to be inferred.
+                if overwrite_sim_params:
+                    self.sim_params.period_start = data.major_axis[0]
+                    self.sim_params.period_end = data.major_axis[-1]
+                    # Changing period_start and period_close might require
+                    # updating of first_open and last_close.
+                    self.sim_params.update_internal_from_env(
+                        env=self.trading_environment
+                    )
 
         # Force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.

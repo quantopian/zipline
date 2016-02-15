@@ -225,7 +225,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(AttachPipelineAfterInitialize):
-            algo.run(data_portal=self.data_portal)
+            algo.run(self.data_portal)
 
         def barf(context, data):
             raise AssertionError("Shouldn't make it past before_trading_start")
@@ -242,7 +242,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(AttachPipelineAfterInitialize):
-            algo.run(data_portal=self.data_portal)
+            algo.run(self.data_portal)
 
     def test_pipeline_output_after_initialize(self):
         """
@@ -271,7 +271,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(PipelineOutputDuringInitialize):
-            algo.run(data_portal=self.data_portal)
+            algo.run(self.data_portal)
 
     def test_get_output_nonexistent_pipeline(self):
         """
@@ -299,7 +299,7 @@ class ClosesOnly(TestCase):
         )
 
         with self.assertRaises(NoSuchPipeline):
-            algo.run(data_portal=self.data_portal)
+            algo.run(self.data_portal)
 
     @parameterized.expand([('default', None),
                            ('day', 1),
@@ -349,7 +349,7 @@ class ClosesOnly(TestCase):
         )
 
         # Run for a week in the middle of our data.
-        algo.run(data_portal=self.data_portal)
+        algo.run(self.data_portal)
 
 
 class MockDailyBarSpotReader(object):
@@ -591,4 +591,4 @@ class PipelineAlgorithmTestCase(TestCase):
             env=self.env,
         )
 
-        algo.run(data_portal=FakeDataPortal())
+        algo.run(FakeDataPortal())

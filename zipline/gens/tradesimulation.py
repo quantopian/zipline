@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from contextlib2 import ExitStack
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
 from zipline.protocol import BarData
@@ -175,7 +176,9 @@ class AlgorithmSimulator(object):
             algo.perf_tracker.all_benchmark_returns[date] = \
                 self.benchmark_source.get_value(date)
 
-        with self.processor, ZiplineAPI(self.algo):
+        with ExitStack() as stack:
+            stack.enter_context(self.processor)
+            stack.enter_context(ZiplineAPI(self.algo))
             for dt, action in self.clock:
                 if action == BAR:
                     every_bar(dt)
@@ -184,6 +187,7 @@ class AlgorithmSimulator(object):
                 elif action == DAY_END:
                     # End of the day.
                     handle_benchmark(normalize_date(dt))
+
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == MINUTE_END:
                     handle_benchmark(dt)

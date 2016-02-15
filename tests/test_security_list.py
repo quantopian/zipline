@@ -241,7 +241,7 @@ class SecurityListTestCase(TestCase):
                                           sim_params=sim_params,
                                           env=self.env)
         with self.assertRaises(TradingControlViolation) as ctx:
-            algo.run(data_portal=data_portal)
+            algo.run(data_portal)
 
         self.check_algo_exception(algo, ctx, 0)
 

@@ -44,6 +44,8 @@ from pandas import (
     DatetimeIndex,
     read_csv,
     Timestamp,
+    NaT,
+    isnull,
 )
 from six import (
     iteritems,
@@ -324,7 +326,24 @@ class DailyBarWriterFromCSVs(BcolzDailyBarWriter):
             )
 
 
-class BcolzDailyBarReader(object):
+class DailyBarReader(with_metaclass(ABCMeta)):
+    """
+    Reader for OHCLV pricing data at a daily frequency.
+    """
+    @abstractmethod
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        pass
+
+    @abstractmethod
+    def history_window(self, column, start_date, end_date, asset):
+        pass
+
+    @abstractmethod
+    def spot_price(self, sid, day, colname):
+        pass
+
+
+class BcolzDailyBarReader(DailyBarReader):
     """
     Reader for raw pricing data written by BcolzDailyOHLCVWriter.
 
@@ -583,6 +602,105 @@ class BcolzDailyBarReader(object):
             return price * 0.001
         else:
             return price
+
+
+class PanelDailyBarReader(DailyBarReader):
+    """
+    Reader for data passed as Panel.
+
+    DataPanel Structure
+    -------
+    items : Int64Index, asset identifiers
+    major_axis : DatetimeIndex, days provided by the Panel.
+    minor_axis : ['open', 'high', 'low', 'close', 'volume']
+
+    Attributes
+    ----------
+    The table with which this loader interacts contains the following
+    attributes:
+
+    panel : pd.Panel
+        The panel from which to read OHLCV data.
+    first_trading_day : pd.Timestamp
+        The first trading day in the dataset.
+    """
+    def __init__(self, panel):
+        panel = panel.copy()
+        if 'volume' not in panel.items:
+            # Fake volume if it does not exist.
+            panel.loc[:, :, 'volume'] = int(1e9)
+
+        self.first_trading_day = panel.major_axis[0]
+
+        self.panel = panel
+
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        # TODO: Implementing will enable pipeline with a Panel input.
+        raise NotImplementedError()
+
+    def history_window(self, column, start_date, end_date, sid):
+        """
+        Parameters
+        ----------
+        column : str
+            The column to retrieve, ('open', 'high', 'low', 'close', 'volume')
+        start_date : datetime64-like
+            Midnight of the day for first date in the window.
+        end_date : datetime64-like
+            Midnight of the day for end date in the window.
+        sid : int
+           Asset identifier for the asset requested.
+
+        Returns
+        -------
+        pd.Series
+           DatetimeIndex to float mapping for the requested window.
+        """
+        return self.panel[sid, start_date:end_date, column]
+
+    def spot_price(self, sid, day, colname):
+        """
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        day : datetime64-like
+            Midnight of the day for which data is requested.
+        colname : string
+            The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
+
+        Returns
+        -------
+        float
+            The spot price for colname of the given sid on the given day.
+            Raises a NoDataOnDate exception if the given day and sid is before
+            or after the date range of the equity.
+            Returns -1 if the day is within the date range, but the price is
+            0.
+        """
+        return self.panel[sid, day, colname]
+
+    def get_last_traded_dt(self, sid, dt):
+        """
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        dt : datetime64-like
+            Midnight of the day for which data is requested.
+
+        Returns
+        -------
+        pd.Timestamp : The last know dt for the asset and dt;
+                       NaT if no trade is found before the given dt.
+        """
+        while dt in self.panel.major_axis:
+            freq = self.panel.major_axis.freq
+            if not isnull(self.panel.loc[sid, dt, 'close']):
+                return dt
+            dt -= freq
+        else:
+            return NaT
 
 
 class SQLiteAdjustmentWriter(object):

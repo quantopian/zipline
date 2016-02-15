@@ -22,15 +22,10 @@ its shares once the averages cross again (indicating downwards
 momentum).
 """
 
-from zipline.api import order_target, record, symbol, history, add_history
+from zipline.api import order_target, record, symbol, history
 
 
 def initialize(context):
-    # Register 2 histories that track daily prices,
-    # one with a 100 window and one with a 300 day window
-    add_history(100, '1d', 'price')
-    add_history(300, '1d', 'price')
-
     context.sym = symbol('AAPL')
 
     context.i = 0
@@ -45,8 +40,8 @@ def handle_data(context, data):
     # Compute averages
     # history() has to be called with the same params
     # from above and returns a pandas dataframe.
-    short_mavg = history(100, '1d', 'price').mean()
-    long_mavg = history(300, '1d', 'price').mean()
+    short_mavg = history([context.sym], 100, '1d', 'price').mean()
+    long_mavg = history([context.sym], 300, '1d', 'price').mean()
 
     # Trading logic
     if short_mavg[context.sym] > long_mavg[context.sym]:
