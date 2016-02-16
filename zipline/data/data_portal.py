@@ -27,6 +27,7 @@ from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import NoDataOnDate
 
 from zipline.utils import tradingcalendar
+from zipline.utils.memoize import remember_last
 from zipline.errors import (
     NoTradeDataAvailableTooEarly,
     NoTradeDataAvailableTooLate
@@ -472,15 +473,19 @@ class DataPortal(object):
             except NoDataOnDate:
                 return 0
 
+    @remember_last
+    def _get_days_for_window(self, end_date, bar_count):
+        day_idx = tradingcalendar.trading_days.searchsorted(end_date)
+        return tradingcalendar.trading_days[
+            (day_idx - bar_count + 1):(day_idx + 1)]
+
     def _get_history_daily_window(self, assets, end_dt, bar_count,
                                   field_to_use):
         """
         Internal method that returns a dataframe containing history bars
         of daily frequency for the given sids.
         """
-        day_idx = tradingcalendar.trading_days.searchsorted(end_dt.date())
-        days_for_window = tradingcalendar.trading_days[
-            (day_idx - bar_count + 1):(day_idx + 1)]
+        days_for_window = self._get_days_for_window(end_dt.date(), bar_count)
 
         if len(assets) == 0:
             return pd.DataFrame(None,
@@ -562,6 +567,10 @@ class DataPortal(object):
 
         return data
 
+    @remember_last
+    def _get_market_minutes_for_day(self, end_date):
+        return self.env.market_minutes_for_day(pd.Timestamp(end_date))
+
     def _get_history_daily_window_equity(self, asset, days_for_window,
                                          end_dt, field_to_use):
         ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
@@ -581,11 +590,10 @@ class DataPortal(object):
                 extra_slot=False
             )
         else:
+            all_minutes_for_day = self._get_market_minutes_for_day(
+                end_dt.date())
             # for the last day of the desired window, use minute
             # data and aggregate it.
-            all_minutes_for_day = self.env.market_minutes_for_day(
-                pd.Timestamp(end_dt.date()))
-
             last_minute_idx = all_minutes_for_day.searchsorted(end_dt)
 
             # these are the minutes for the partial day
