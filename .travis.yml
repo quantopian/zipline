@@ -1,8 +1,5 @@
 language: python
 sudo: false
-cache:
-  directories:
-    - $HOME/.cache/pip
 matrix:
   fast_finish: true
   include:
