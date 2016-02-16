@@ -9,7 +9,7 @@ from zipline.utils.factory import load_from_yahoo
 from zipline.finance import commission
 
 zipline_logging = logbook.NestedSetup([
-    logbook.NullHandler(level=logbook.DEBUG, bubble=True),
+    logbook.NullHandler(),
     logbook.StreamHandler(sys.stdout, level=logbook.INFO),
     logbook.StreamHandler(sys.stderr, level=logbook.ERROR),
 ])
