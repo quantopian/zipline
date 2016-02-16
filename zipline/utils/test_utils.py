@@ -18,7 +18,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
 from pandas.tseries.offsets import MonthBegin
 from six import iteritems, itervalues
-from six.moves import filter
+from six.moves import filter, map
 from sqlalchemy import create_engine
 from toolz import concat
 
@@ -260,10 +260,10 @@ def chrange(start, stop):
 
     Example
     -------
-    >>> list(chrange('A', 'C'))
+    >>> chrange('A', 'C')
     ['A', 'B', 'C']
     """
-    return map(chr, range(ord(start), ord(stop) + 1))
+    return list(map(chr, range(ord(start), ord(stop) + 1)))
 
 
 def make_rotating_equity_info(num_assets,
