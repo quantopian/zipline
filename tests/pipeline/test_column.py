@@ -38,7 +38,7 @@ class LatestTestCase(TestCase):
         return DataFrame(
             loader.values(column.dtype, self.calendar, self.sids)[slice_],
             index=self.calendar[slice_],
-            columns=self.sids,
+            columns=self.assets,
         )
 
     def test_latest(self):
