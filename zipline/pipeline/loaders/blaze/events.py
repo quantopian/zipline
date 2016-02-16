@@ -119,4 +119,4 @@ class BlazeEventsCalendarLoader(PipelineLoader):
         ).load_adjusted_array(columns, dates, assets, mask)
 
     def prepare_data(self, raw, gb):
-        return {sid: raw.loc[group] for sid, group in gb.groups.iteritems()}
+        return {sid: raw.loc[group] for sid, group in gb.groups.items()}

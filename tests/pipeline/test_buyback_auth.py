@@ -119,7 +119,7 @@ def zip_with_dates(index_dates, dts):
     return pd.Series(pd.to_datetime(dts), index=index_dates)
 
 
-class BuybackAuthLoaderCommonTest:
+class BuybackAuthLoaderCommonTest(object):
     """
     Tests for loading the buyback authorization announcement data.
     """
@@ -294,8 +294,8 @@ class CashBuybackAuthLoaderTestCase(TestCase, BuybackAuthLoaderCommonTest):
             #  until 15?
             A: zip_with_floats_dates(
                 ['NaN'] * num_days_between(dates, None, '2014-01-14') +
-               [10] * num_days_between_dates('2014-01-15', '2014-01-19') +
-               [20] * num_days_between_dates('2014-01-20', None)
+                [10] * num_days_between_dates('2014-01-15', '2014-01-19') +
+                [20] * num_days_between_dates('2014-01-20', None)
             ),
             B: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-14') +

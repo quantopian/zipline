@@ -1,5 +1,3 @@
-from abc import abstractmethod
-
 import numpy as np
 import pandas as pd
 from six import iteritems
@@ -65,7 +63,7 @@ class EventsLoader(PipelineLoader):
                     raise ValueError(
                         "Got DatetimeIndex for sid %d.\n"
                         "Pass `infer_timestamps=True` to use the first date in"
-                        " `all_dates` as implicit timestamp."% k
+                        " `all_dates` as implicit timestamp." % k
                     )
                 self.events_by_sid[k] = pd.DataFrame(v)
                 v.index = [dates[0]] * len(v)
@@ -76,7 +74,7 @@ class EventsLoader(PipelineLoader):
                         raise ValueError(
                             "Got DataFrame without a '%s' column for sid %d.\n"
                             "Pass `infer_timestamps=True` to use the first "
-                            "date in `all_dates` as implicit timestamp."%
+                            "date in `all_dates` as implicit timestamp." %
                             (TS_FIELD_NAME, k)
                         )
                     self.events_by_sid[k] = v = v.copy()
@@ -85,7 +83,7 @@ class EventsLoader(PipelineLoader):
                     self.events_by_sid[k] = v.set_index(TS_FIELD_NAME)
             else:
                 raise ValueError("Data for sid %s must be in DataFrame, "
-                                 "Series, or DatetimeIndex."% k)
+                                 "Series, or DatetimeIndex." % k)
             # Once data is in a DF, make sure columns are correct.
             cols_except_ts = (set(v.columns.values) -
                               {TS_FIELD_NAME} -
@@ -150,9 +148,7 @@ class EventsLoader(PipelineLoader):
                 event_date_field_name,
                 value_field_name,
                 previous_value_field.dtype,
-                # TODO: need to get actual name/method to use to get missing
-                # value
-                None
+                previous_value_field.missing_value
             ),
             adjustments=None,
         )

@@ -6,7 +6,7 @@ from ..data.buyback_auth import (
     CashBuybackAuthorizations,
     ShareBuybackAuthorizations
 )
-from events import EventsLoader
+from .events import EventsLoader
 from zipline.utils.memoize import lazyval
 
 

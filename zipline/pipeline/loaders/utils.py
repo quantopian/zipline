@@ -1,7 +1,6 @@
 import datetime
 
 import numpy as np
-from numpy import NaN
 import pandas as pd
 from six import iteritems
 from six.moves import zip
@@ -125,14 +124,9 @@ def previous_value(date_index, events_by_sid, event_date_field, value_field,
     next_date_frame
     """
     sids = list(events_by_sid)
-    # TODO: generalize; need to use dtype of column and missing value for that
-    # column; so pass
-    # in the pipeline column's attributes for these (replace NaN and dtype
-    # below)
     out = np.full(
         (len(date_index), len(sids)),
-        # TODO; replace with missing_value
-        NaN,
+        missing_value,
         dtype=value_field_dtype
     )
     d_n = date_index[-1].asm8
