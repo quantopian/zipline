@@ -10,6 +10,7 @@ from .frame import DataFrameLoader
 from .utils import next_date_frame, previous_date_frame, previous_value
 
 TS_FIELD_NAME = "timestamp"
+SID_FIELD_NAME = "sid"
 
 
 class EventsLoader(PipelineLoader):
@@ -32,18 +33,21 @@ class EventsLoader(PipelineLoader):
         If the DataFrames do not contain a "timestamp" column, we assume we
         knew about the event on all prior dates.  This mode is only supported
         if ``infer_timestamp`` is explicitly passed as a truthy value.
-
     infer_timestamps : bool, optional
         Whether to allow omitting the "timestamp" column.
+    dataset : DataSet
+        The DataSet object for which this loader loads data.
+    expected_cols : frozenset
+        Set of expected columns for the dataset, without timestamp.
     """
 
     def __init__(self,
                  all_dates,
                  events_by_sid,
                  infer_timestamps=False,
-                 dataset=None):
+                 dataset=None,
+                 expected_cols=frozenset()):
         self.all_dates = all_dates
-
         # Do not modify the original in place, since it may be used for other
         #  purposes.
         self.events_by_sid = (
@@ -52,24 +56,52 @@ class EventsLoader(PipelineLoader):
         dates = self.all_dates.values
 
         for k, v in iteritems(events_by_sid):
-            if "timestamp" not in v.columns:
+            # First, must convert to DataFrame.
+            if isinstance(v, pd.Series):
+                # If Series was passed, DateTime index is assumed.
+                self.events_by_sid[k] = pd.DataFrame(v)
+            elif isinstance(v, pd.DatetimeIndex):
                 if not infer_timestamps:
                     raise ValueError(
-                        "Got DataFrame without a 'timestamp' column for "
-                        "sid %d.\n"
+                        "Got DatetimeIndex for sid %d.\n"
                         "Pass `infer_timestamps=True` to use the first date in"
-                        " `all_dates` as implicit timestamp."
+                        " `all_dates` as implicit timestamp."% k
                     )
-                self.events_by_sid[k] = v = v.copy()
+                self.events_by_sid[k] = pd.DataFrame(v)
                 v.index = [dates[0]] * len(v)
+            # Already a DataFrame
+            elif isinstance(v, pd.DataFrame):
+                if TS_FIELD_NAME not in v.columns:
+                    if not infer_timestamps:
+                        raise ValueError(
+                            "Got DataFrame without a '%s' column for sid %d.\n"
+                            "Pass `infer_timestamps=True` to use the first "
+                            "date in `all_dates` as implicit timestamp."%
+                            (TS_FIELD_NAME, k)
+                        )
+                    self.events_by_sid[k] = v = v.copy()
+                    v.index = [dates[0]] * len(v)
+                else:
+                    self.events_by_sid[k] = v.set_index(TS_FIELD_NAME)
             else:
-                self.events_by_sid[k] = v.set_index("timestamp")
-
+                raise ValueError("Data for sid %s must be in DataFrame, "
+                                 "Series, or DatetimeIndex."% k)
+            # Once data is in a DF, make sure columns are correct.
+            cols_except_ts = (set(v.columns.values) -
+                              {TS_FIELD_NAME} -
+                              {SID_FIELD_NAME})
+            # Check that all columns other than timestamp are as expected.
+            if cols_except_ts != expected_cols:
+                raise ValueError(
+                    "Expected columns %s for sid %s but got columns %s." %
+                    (expected_cols, k, v.columns.values)
+                )
         self.dataset = dataset
 
-    @abstractmethod
-    def get_loader(self):
-        raise NotImplementedError("Must implement 'get_loader'.")
+    def get_loader(self, column):
+        if column in self.dataset.columns:
+            return getattr(self, "%s_loader" % column.name)
+        raise ValueError("Don't know how to load column '%s'." % column)
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         return merge(

@@ -32,7 +32,7 @@ from zipline.pipeline.loaders.blaze import (
     TS_FIELD_NAME,
     CASH_FIELD_NAME
 )
-from zipline.utils.numpy_utils import make_datetime64D, np_NaT
+from zipline.utils.numpy_utils import make_datetime64D, NaTD
 from zipline.utils.test_utils import (
     gen_calendars,
     make_simple_equity_info,
@@ -217,7 +217,7 @@ class BuybackAuthLoaderCommonTest:
 
         # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
         # We fill these entries with NaNs later.
-        whereNaT = raw_announce_dates == np_NaT
+        whereNaT = raw_announce_dates == NaTD
         raw_announce_dates[whereNaT] = make_datetime64D(0)
 
         # The abs call here makes it so that we can use this function to
@@ -260,8 +260,6 @@ class CashBuybackAuthLoaderTestCase(TestCase, BuybackAuthLoaderCommonTest):
     """
     Test for cash buyback authorizations dataset.
     """
-    buyback_authorizations = {sid: df.drop(SHARE_COUNT_FIELD_NAME, 1)
-                              for sid, df in iteritems(buyback_authorizations)}
     pipeline_columns = {
         'previous_buyback_cash':
             CashBuybackAuthorizations.previous_value.latest,
@@ -278,7 +276,9 @@ class CashBuybackAuthLoaderTestCase(TestCase, BuybackAuthLoaderCommonTest):
             tmp_asset_finder(equities=equity_info),
         )
         cls.cols = {}
-        cls.buyback_authorizations = buyback_authorizations
+        cls.buyback_authorizations = {sid: df.drop(SHARE_COUNT_FIELD_NAME, 1)
+                                      for sid, df in
+                                      iteritems(buyback_authorizations)}
         cls.loader_type = CashBuybackAuthorizationsLoader
 
     @classmethod
@@ -325,8 +325,6 @@ class ShareBuybackAuthLoaderTestCase(BuybackAuthLoaderCommonTest, TestCase):
     """
     Test for share buyback authorizations dataset.
     """
-    buyback_authorizations = {sid: df.drop(CASH_FIELD_NAME, 1)
-                              for sid, df in iteritems(buyback_authorizations)}
     pipeline_columns = {
         'previous_buyback_share_count':
             ShareBuybackAuthorizations.previous_share_count.latest,
@@ -343,7 +341,9 @@ class ShareBuybackAuthLoaderTestCase(BuybackAuthLoaderCommonTest, TestCase):
             tmp_asset_finder(equities=equity_info),
         )
         cls.cols = {}
-        cls.buyback_authorizations = buyback_authorizations
+        cls.buyback_authorizations = {sid: df.drop(CASH_FIELD_NAME, 1)
+                                      for sid, df in
+                                      iteritems(buyback_authorizations)}
         cls.loader_type = ShareBuybackAuthorizationsLoader
 
     @classmethod
@@ -386,23 +386,6 @@ class ShareBuybackAuthLoaderTestCase(BuybackAuthLoaderCommonTest, TestCase):
         self._test_compute_buyback_auth(dates)
 
 
-def mapping_to_df(mapping):
-    return (bz.Data(pd.concat(
-        pd.DataFrame({
-            BUYBACK_ANNOUNCEMENT_FIELD_NAME:
-                frame[BUYBACK_ANNOUNCEMENT_FIELD_NAME],
-            SHARE_COUNT_FIELD_NAME:
-                frame[SHARE_COUNT_FIELD_NAME],
-            CASH_FIELD_NAME:
-                frame[CASH_FIELD_NAME],
-            TS_FIELD_NAME:
-                frame[TS_FIELD_NAME],
-            SID_FIELD_NAME: sid,
-        })
-        for sid, frame in iteritems(mapping)
-    ).reset_index(drop=True)),)
-
-
 class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):
     """ Test case for loading via blaze.
     """
@@ -416,7 +399,18 @@ class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):
             BlazeCashBuybackAuthLoaderTestCase,
             self,
         ).loader_args(dates)
-        return mapping_to_df(mapping)
+        return (bz.Data(pd.concat(
+            pd.DataFrame({
+                BUYBACK_ANNOUNCEMENT_FIELD_NAME:
+                    frame[BUYBACK_ANNOUNCEMENT_FIELD_NAME],
+                CASH_FIELD_NAME:
+                    frame[CASH_FIELD_NAME],
+                TS_FIELD_NAME:
+                    frame[TS_FIELD_NAME],
+                SID_FIELD_NAME: sid,
+            })
+            for sid, frame in iteritems(mapping)
+        ).reset_index(drop=True)),)
 
 
 class BlazeShareBuybackAuthLoaderTestCase(ShareBuybackAuthLoaderTestCase):
@@ -432,7 +426,18 @@ class BlazeShareBuybackAuthLoaderTestCase(ShareBuybackAuthLoaderTestCase):
             BlazeShareBuybackAuthLoaderTestCase,
             self,
         ).loader_args(dates)
-        return mapping_to_df(mapping)
+        return (bz.Data(pd.concat(
+            pd.DataFrame({
+                BUYBACK_ANNOUNCEMENT_FIELD_NAME:
+                    frame[BUYBACK_ANNOUNCEMENT_FIELD_NAME],
+                SHARE_COUNT_FIELD_NAME:
+                    frame[SHARE_COUNT_FIELD_NAME],
+                TS_FIELD_NAME:
+                    frame[TS_FIELD_NAME],
+                SID_FIELD_NAME: sid,
+            })
+            for sid, frame in iteritems(mapping)
+        ).reset_index(drop=True)),)
 
 
 class BlazeShareBuybackAuthLoaderNotInteractiveTestCase(
@@ -458,20 +463,24 @@ class BlazeCashBuybackAuthLoaderNotInteractiveTestCase(
         ).loader_args(dates)
         return swap_resources_into_scope(bound_expr, {})
 
+dtx = pd.date_range('2014-01-01', '2014-01-10')
+
 
 class BuybackAuthLoaderInferTimestampTestCase(TestCase):
-    @parameterized.expand([[CashBuybackAuthorizationsLoader],
-                           [ShareBuybackAuthorizationsLoader]])
-    def test_infer_timestamp(self, loader):
-        dtx = pd.date_range('2014-01-01', '2014-01-10')
+    # 'fields' needs to match expected fields for the given loader to
+    # satisfy column check in constructor.
+    @parameterized.expand([[CashBuybackAuthorizationsLoader,
+                            {BUYBACK_ANNOUNCEMENT_FIELD_NAME: dtx,
+                             CASH_FIELD_NAME: [0] * 10}],
+                           [ShareBuybackAuthorizationsLoader,
+                            {BUYBACK_ANNOUNCEMENT_FIELD_NAME: dtx,
+                             SHARE_COUNT_FIELD_NAME: [0] * 10}]])
+    def test_infer_timestamp(self, loader, fields):
         events_by_sid = {
             # No timestamp column - should index by first given date
-            0: pd.DataFrame({BUYBACK_ANNOUNCEMENT_FIELD_NAME: dtx}),
+            0: pd.DataFrame(fields),
             # timestamp column exists - should index by it
-            1: pd.DataFrame(
-                {BUYBACK_ANNOUNCEMENT_FIELD_NAME: dtx,
-                 TS_FIELD_NAME: dtx}
-            )
+            1: pd.DataFrame(dict(fields, **{TS_FIELD_NAME: dtx}))
         }
         loader = loader(
             dtx,

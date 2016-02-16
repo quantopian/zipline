@@ -42,7 +42,7 @@ class BusinessDaysSincePreviousEvents(Factor):
         announce_dates = arrays[0].astype(datetime64D_dtype)
 
         # Set masked values to NaT.
-        announce_dates[~mask] = np_NaT
+        announce_dates[~mask] = NaTD
 
         # Convert row labels into a column vector for broadcasted comparison.
         reference_dates = dates.values.astype(datetime64D_dtype)[:, newaxis]

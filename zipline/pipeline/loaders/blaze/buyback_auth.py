@@ -32,7 +32,7 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
         The timezeone to use for the data query cutoff.
     dataset: DataSet
         The DataSet object for which this loader loads data.
-    loader: EventsLoader
+    concrete_loader: EventsLoader
         The reference loader to use for this dataset.
 
     Notes
@@ -74,7 +74,7 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                  data_query_time=None,
                  data_query_tz=None,
                  dataset=CashBuybackAuthorizations,
-                 loader=CashBuybackAuthorizationsLoader,
+                 concrete_loader=CashBuybackAuthorizationsLoader,
                  **kwargs):
         super(
             BlazeCashBuybackAuthorizationsLoader, self
@@ -84,7 +84,7 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                    data_query_time=data_query_time,
                    data_query_tz=data_query_tz,
                    dataset=dataset,
-                   loader=loader,
+                   concrete_loader=concrete_loader,
                    **kwargs)
 
 
@@ -106,7 +106,7 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
         The timezeone to use for the data query cutoff.
     dataset: DataSet
         The DataSet object for which this loader loads data.
-    loader: EventsLoader
+    concrete_loader: EventsLoader
         The reference loader to use for this dataset.
 
     Notes
@@ -148,7 +148,7 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                  data_query_time=None,
                  data_query_tz=None,
                  dataset=ShareBuybackAuthorizations,
-                 loader=ShareBuybackAuthorizationsLoader,
+                 concrete_loader=ShareBuybackAuthorizationsLoader,
                  **kwargs):
         super(
             BlazeShareBuybackAuthorizationsLoader, self
@@ -158,5 +158,5 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                    data_query_time=data_query_time,
                    data_query_tz=data_query_tz,
                    dataset=dataset,
-                   loader=loader,
+                   concrete_loader=concrete_loader,
                    **kwargs)

@@ -26,7 +26,7 @@ class BlazeEarningsCalendarLoader(BlazeEventsCalendarLoader):
         The timezeone to use for the data query cutoff.
     dataset: DataSet
         The DataSet object for which this loader loads data.
-    loader: EventsLoader
+    concrete_loader: EventsLoader
         The reference loader to use for this dataset.
 
     Notes
@@ -66,10 +66,11 @@ class BlazeEarningsCalendarLoader(BlazeEventsCalendarLoader):
                  data_query_time=None,
                  data_query_tz=None,
                  dataset=EarningsCalendar,
-                 loader=EarningsCalendarLoader,
+                 concrete_loader=EarningsCalendarLoader,
                  **kwargs):
         super(
             BlazeEarningsCalendarLoader, self
-        ).__init__(expr, dataset=dataset, loader=loader, resources=resources,
-                   odo_kwargs=odo_kwargs, data_query_time=data_query_time,
+        ).__init__(expr, dataset=dataset, concrete_loader=concrete_loader,
+                   resources=resources, odo_kwargs=odo_kwargs,
+                   data_query_time=data_query_time,
                    data_query_tz=data_query_tz, **kwargs)

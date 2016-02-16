@@ -6,7 +6,7 @@ import pandas as pd
 from six import iteritems
 from six.moves import zip
 
-from zipline.utils.numpy_utils import NaTns
+from zipline.utils.numpy_utils import NaTns, NaTD
 
 
 def next_date_frame(dates, events_by_sid):
@@ -83,7 +83,7 @@ def previous_date_frame(date_index, events_by_sid):
     next_date_frame
     """
     sids = list(events_by_sid)
-    out = np.full((len(date_index), len(sids)), np_NaT, dtype='datetime64[ns]')
+    out = np.full((len(date_index), len(sids)), NaTD, dtype='datetime64[ns]')
     d_n = date_index[-1].asm8
     for col_idx, sid in enumerate(sids):
         # events_by_sid[sid] is Series mapping knowledge_date to actual

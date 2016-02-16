@@ -24,31 +24,25 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
     event date, cash value)]
 
     """
+    expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+                               CASH_FIELD_NAME])
 
     def __init__(self,
                  all_dates,
                  events_by_sid,
                  infer_timestamps=False,
-                 dataset=CashBuybackAuthorizations):
+                 dataset=CashBuybackAuthorizations,
+                 expected_cols=expected_cols):
         super(CashBuybackAuthorizationsLoader, self).__init__(
             all_dates,
             events_by_sid,
             infer_timestamps=infer_timestamps,
-            dataset=dataset
+            dataset=dataset,
+            expected_cols=expected_cols,
         )
 
-    def get_loader(self, column):
-        """dispatch to the loader for ``column``.
-        """
-        if column is self.dataset.previous_value:
-            return self.previous_buyback_value_loader
-        elif column is self.dataset.previous_announcement_date:
-            return self.previous_event_date_loader
-        else:
-            raise ValueError("Don't know how to load column '%s'." % column)
-
     @lazyval
-    def previous_buyback_value_loader(self):
+    def previous_value_loader(self):
         return self._previous_event_value_loader(
             self.dataset.previous_value,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
@@ -56,7 +50,7 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
         )
 
     @lazyval
-    def previous_event_date_loader(self):
+    def previous_announcement_date_loader(self):
         return self._previous_event_date_loader(
             self.dataset.previous_announcement_date,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
@@ -75,31 +69,25 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
     event date, share value)]
 
     """
+    expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+                               SHARE_COUNT_FIELD_NAME])
 
     def __init__(self,
                  all_dates,
                  events_by_sid,
                  infer_timestamps=False,
-                 dataset=ShareBuybackAuthorizations):
+                 dataset=ShareBuybackAuthorizations,
+                 expected_cols=expected_cols):
         super(ShareBuybackAuthorizationsLoader, self).__init__(
             all_dates,
             events_by_sid,
             infer_timestamps=infer_timestamps,
-            dataset=dataset
+            dataset=dataset,
+            expected_cols=expected_cols,
         )
 
-    def get_loader(self, column):
-        """dispatch to the loader for ``column``.
-        """
-        if column is self.dataset.previous_share_count:
-            return self.previous_buyback_share_count_loader
-        elif column is self.dataset.previous_announcement_date:
-            return self.previous_event_date_loader
-        else:
-            raise ValueError("Don't know how to load column '%s'." % column)
-
     @lazyval
-    def previous_buyback_share_count_loader(self):
+    def previous_share_count_loader(self):
         return self._previous_event_value_loader(
             self.dataset.previous_share_count,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
@@ -107,7 +95,7 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
         )
 
     @lazyval
-    def previous_event_date_loader(self):
+    def previous_announcement_date_loader(self):
         return self._previous_event_date_loader(
             self.dataset.previous_announcement_date,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
