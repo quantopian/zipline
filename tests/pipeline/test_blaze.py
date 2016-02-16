@@ -31,7 +31,11 @@ from zipline.pipeline.loaders.blaze.core import (
     NonPipelineField,
     no_deltas_rules,
 )
-from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.numpy_utils import (
+    float64_dtype,
+    int64_dtype,
+    repeat_last_axis,
+)
 from zipline.utils.test_utils import tmp_asset_finder, make_simple_equity_info
 
 
@@ -73,7 +77,8 @@ class BlazeToPipelineTestCase(TestCase):
         cls.sids = sids = ord('A'), ord('B'), ord('C')
         cls.df = df = pd.DataFrame({
             'sid': sids * 3,
-            'value': (0, 1, 2, 1, 2, 3, 2, 3, 4),
+            'value': (0., 1., 2., 1., 2., 3., 2., 3., 4.),
+            'int_value': (0, 1, 2, 1, 2, 3, 2, 3, 4),
             'asof_date': dates,
             'timestamp': dates,
         })
@@ -81,6 +86,7 @@ class BlazeToPipelineTestCase(TestCase):
         var * {
             sid: ?int64,
             value: ?float64,
+            int_value: ?int64,
             asof_date: datetime,
             timestamp: datetime
         }
@@ -91,6 +97,7 @@ class BlazeToPipelineTestCase(TestCase):
         cls.macro_dshape = var * Record(dshape_)
 
         cls.garbage_loader = BlazeLoader()
+        cls.missing_values = {'int_value': 0}
 
     def test_tabular(self):
         name = 'expr'
@@ -99,15 +106,20 @@ class BlazeToPipelineTestCase(TestCase):
             expr,
             loader=self.garbage_loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         self.assertEqual(ds.__name__, name)
         self.assertTrue(issubclass(ds, DataSet))
-        self.assertEqual(
-            {c.name: c.dtype for c in ds.columns},
-            {'sid': np.int64, 'value': np.float64},
-        )
 
-        for field in ('timestamp', 'asof_date'):
+        self.assertIs(ds.value.dtype, float64_dtype)
+        self.assertIs(ds.int_value.dtype, int64_dtype)
+
+        self.assertTrue(np.isnan(ds.value.missing_value))
+        self.assertEqual(ds.int_value.missing_value, 0)
+
+        invalid_type_fields = ('asof_date',)
+
+        for field in invalid_type_fields:
             with self.assertRaises(AttributeError) as e:
                 getattr(ds, field)
             self.assertIn("'%s'" % field, str(e.exception))
@@ -119,6 +131,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ),
             ds,
         )
@@ -130,10 +143,11 @@ class BlazeToPipelineTestCase(TestCase):
             expr.value,
             loader=self.garbage_loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         self.assertEqual(value.name, 'value')
         self.assertIsInstance(value, BoundColumn)
-        self.assertEqual(value.dtype, np.float64)
+        self.assertIs(value.dtype, float64_dtype)
 
         # test memoization
         self.assertIs(
@@ -141,6 +155,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr.value,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ),
             value,
         )
@@ -149,6 +164,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ).value,
             value,
         )
@@ -159,6 +175,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ),
             value.dataset,
         )
@@ -195,7 +212,11 @@ class BlazeToPipelineTestCase(TestCase):
             )),
         )
         loader = BlazeLoader()
-        ds = from_blaze(expr.ds, loader=loader)
+        ds = from_blaze(
+            expr.ds,
+            loader=loader,
+            missing_values=self.missing_values,
+        )
         self.assertEqual(len(loader), 1)
         exprdata = loader[ds]
         self.assertTrue(exprdata.expr.isidentical(expr.ds))
@@ -210,6 +231,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=loader,
                 no_deltas_rule=no_deltas_rules.warn,
+                missing_values=self.missing_values,
             )
         self.assertEqual(len(ws), 1)
         w = ws[0].message
@@ -281,6 +303,7 @@ class BlazeToPipelineTestCase(TestCase):
             expr_with_add,
             deltas=None,
             loader=self.garbage_loader,
+            missing_values=self.missing_values,
         )
 
         with self.assertRaises(TypeError):
@@ -288,6 +311,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr.value + 1,  # put an Add in the column
                 deltas=None,
                 loader=self.garbage_loader,
+                missing_values=self.missing_values,
             )
 
         deltas = bz.Data(
@@ -299,6 +323,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr_with_add,
                 deltas=deltas,
                 loader=self.garbage_loader,
+                missing_values=self.missing_values,
             )
 
         with self.assertRaises(TypeError):
@@ -306,6 +331,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr.value + 1,
                 deltas=deltas,
                 loader=self.garbage_loader,
+                missing_values=self.missing_values,
             )
 
     def _test_id(self, df, dshape, expected, finder, add):
@@ -315,6 +341,7 @@ class BlazeToPipelineTestCase(TestCase):
             expr,
             loader=loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         p = Pipeline()
         for a in add:
@@ -347,9 +374,11 @@ class BlazeToPipelineTestCase(TestCase):
             expr,
             loader=loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         p = Pipeline()
         p.add(ds.value.latest, 'value')
+        p.add(ds.int_value.latest, 'int_value')
         dates = self.dates
 
         with tmp_asset_finder() as finder:
@@ -405,7 +434,9 @@ class BlazeToPipelineTestCase(TestCase):
                 expected.index.levels[0],
                 finder.retrieve_all(expected.index.levels[1]),
             ))
-            self._test_id(self.df, self.dshape, expected, finder, ('value',))
+            self._test_id(
+                self.df, self.dshape, expected, finder, ('int_value', 'value',)
+            )
 
     def test_id_ffill_out_of_window(self):
         """
@@ -512,7 +543,7 @@ class BlazeToPipelineTestCase(TestCase):
                 var * Record(fields),
                 expected,
                 finder,
-                ('value', 'other'),
+                ('value', 'int_value', 'other'),
             )
 
     def test_id_macro_dataset(self):
@@ -782,6 +813,7 @@ class BlazeToPipelineTestCase(TestCase):
             deltas,
             loader=loader,
             no_deltas_rule=no_deltas_rules.raise_,
+            missing_values=self.missing_values,
         )
         p = Pipeline()
 

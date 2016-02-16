@@ -81,12 +81,16 @@ class USEquityPricingLoader(PipelineLoader):
             dates,
             assets,
         )
-        adjusted_arrays = [
-            AdjustedArray(raw_array, mask, col_adjustments)
-            for raw_array, col_adjustments in zip(raw_arrays, adjustments)
-        ]
 
-        return dict(zip(columns, adjusted_arrays))
+        out = {}
+        for c, c_raw, c_adjs in zip(columns, raw_arrays, adjustments):
+            out[c] = AdjustedArray(
+                c_raw.astype(c.dtype),
+                mask,
+                c_adjs,
+                c.missing_value,
+            )
+        return out
 
 
 def _shift_dates(dates, start_date, end_date, shift):

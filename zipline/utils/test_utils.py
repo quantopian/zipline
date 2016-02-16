@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from functools import wraps
+from inspect import getargspec
 from itertools import (
     combinations,
     count,
@@ -17,7 +18,7 @@ from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
 from pandas.tseries.offsets import MonthBegin
 from six import iteritems, itervalues
-from six.moves import filter
+from six.moves import filter, map
 from sqlalchemy import create_engine
 from toolz import concat
 
@@ -25,6 +26,8 @@ from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.finance.order import ORDER_STATUS
+from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.tradingcalendar import trading_days
 
@@ -236,6 +239,31 @@ def all_subindices(index):
         index[start:stop]
         for start, stop in product_upper_triangle(range(len(index) + 1))
     )
+
+
+def chrange(start, stop):
+    """
+    Construct an iterable of length-1 strings beginning with `start` and ending
+    with `stop`.
+
+    Parameters
+    ----------
+    start : str
+        The first character.
+    stop : str
+        The last character.
+
+    Returns
+    -------
+    chars: iterable[str]
+        Iterable of strings beginning with start and ending with stop.
+
+    Example
+    -------
+    >>> chrange('A', 'C')
+    ['A', 'B', 'C']
+    """
+    return list(map(chr, range(ord(start), ord(stop) + 1)))
 
 
 def make_rotating_equity_info(num_assets,
@@ -539,13 +567,18 @@ class SubTestFailures(AssertionError):
 
 
 def subtest(iterator, *_names):
-    """Construct a subtest in a unittest.
+    """
+    Construct a subtest in a unittest.
 
-    This works by decorating a function as a subtest. The test will be run
-    by iterating over the ``iterator`` and *unpacking the values into the
-    function. If any of the runs fail, the result will be put into a set and
-    the rest of the tests will be run. Finally, if any failed, all of the
-    results will be dumped as one failure.
+    Consider using ``zipline.utils.test_utils.parameter_space`` when subtests
+    are constructed over a single input or over the cross-product of multiple
+    inputs.
+
+    ``subtest`` works by decorating a function as a subtest. The decorated
+    function will be run by iterating over the ``iterator`` and *unpacking the
+    values into the function. If any of the runs fail, the result will be put
+    into a set and the rest of the tests will be run. Finally, if any failed,
+    all of the results will be dumped as one failure.
 
     Parameters
     ----------
@@ -587,6 +620,10 @@ def subtest(iterator, *_names):
 
     We cannot use ``unittest2.TestCase.subTest`` because nose, pytest, and
     nose2 do not support ``addSubTest``.
+
+    See Also
+    --------
+    zipline.utils.test_utils.parameter_space
     """
     def dec(f):
         @wraps(f)
@@ -664,3 +701,89 @@ def gen_calendars(start, stop, critical_dates):
 
     # Also test with the trading calendar.
     yield (trading_days[trading_days.slice_indexer(start, stop)],)
+
+
+@contextmanager
+def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
+    """
+    A contextManager that yields a SimplePipelineEngine holding a reference to
+    an AssetFinder generated via tmp_asset_finder.
+
+    Parameters
+    ----------
+    calendar : pd.DatetimeIndex
+        Calendar to pass to the constructed PipelineEngine.
+    sids : iterable[int]
+        Sids to use for the temp asset finder.
+    random_seed : int
+        Integer used to seed instances of SeededRandomLoader.
+    symbols : iterable[str], optional
+        Symbols for constructed assets. Forwarded to make_simple_equity_info.
+    """
+    equity_info = make_simple_equity_info(
+        sids=sids,
+        start_date=calendar[0],
+        end_date=calendar[-1],
+        symbols=symbols,
+    )
+
+    loader = make_seeded_random_loader(random_seed, calendar, sids)
+    get_loader = lambda column: loader
+
+    with tmp_asset_finder(equities=equity_info) as finder:
+        yield SimplePipelineEngine(get_loader, calendar, finder)
+
+
+def parameter_space(**params):
+    """
+    Wrapper around subtest that allows passing keywords mapping names to
+    iterables of values.
+
+    The decorated test function will be called with the cross-product of all
+    possible inputs
+
+    Usage
+    -----
+    >>> from unittest import TestCase
+    >>> class SomeTestCase(TestCase):
+    ...     @parameter_space(x=[1, 2], y=[2, 3])
+    ...     def test_some_func(self, x, y):
+    ...         # Will be called with every possible combination of x and y.
+    ...         self.assertEqual(somefunc(x, y), expected_result(x, y))
+
+    See Also
+    --------
+    zipline.utils.test_utils.subtest
+    """
+    def decorator(f):
+
+        argspec = getargspec(f)
+        if argspec.varargs:
+            raise AssertionError("parameter_space() doesn't support *args")
+        if argspec.keywords:
+            raise AssertionError("parameter_space() doesn't support **kwargs")
+        if argspec.defaults:
+            raise AssertionError("parameter_space() doesn't support defaults.")
+
+        # Skip over implicit self.
+        argnames = argspec.args
+        if argnames[0] == 'self':
+            argnames = argnames[1:]
+
+        extra = set(params) - set(argnames)
+        if extra:
+            raise AssertionError(
+                "Keywords %s supplied to parameter_space() are "
+                "not in function signature." % extra
+            )
+
+        unspecified = set(argnames) - set(params)
+        if unspecified:
+            raise AssertionError(
+                "Function arguments %s were not "
+                "supplied to parameter_space()." % extra
+            )
+
+        param_sets = product(*(params[name] for name in argnames))
+        return subtest(param_sets, *argnames)(f)
+    return decorator

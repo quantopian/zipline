@@ -15,8 +15,14 @@ from toolz import flip
 
 uint8_dtype = dtype('uint8')
 bool_dtype = dtype('bool')
+
 int64_dtype = dtype('int64')
+
+float32_dtype = dtype('float32')
 float64_dtype = dtype('float64')
+
+complex128_dtype = dtype('complex128')
+
 datetime64D_dtype = dtype('datetime64[D]')
 datetime64ns_dtype = dtype('datetime64[ns]')
 
@@ -33,16 +39,27 @@ NaTD = NaT_for_dtype(datetime64D_dtype)
 
 
 _FILLVALUE_DEFAULTS = {
+    bool_dtype: False,
+    float32_dtype: nan,
     float64_dtype: nan,
     datetime64ns_dtype: NaTns,
 }
 
 
-def default_fillvalue_for_dtype(dtype):
+class NoDefaultMissingValue(Exception):
+    pass
+
+
+def default_missing_value_for_dtype(dtype):
     """
     Get the default fill value for `dtype`.
     """
-    return _FILLVALUE_DEFAULTS[dtype]
+    try:
+        return _FILLVALUE_DEFAULTS[dtype]
+    except KeyError:
+        raise NoDefaultMissingValue(
+            "No default value registered for dtype %s." % dtype
+        )
 
 
 def repeat_first_axis(array, count):

@@ -38,6 +38,7 @@ from zipline.utils.numpy_utils import (
     bool_dtype,
     datetime64ns_dtype,
     float64_dtype,
+    int64_dtype,
 )
 from zipline.utils.preprocess import preprocess
 
@@ -303,7 +304,7 @@ def function_application(func):
     return mathfunc
 
 
-FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype])
+FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
 class Factor(CompositeTerm):
