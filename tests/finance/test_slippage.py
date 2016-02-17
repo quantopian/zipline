@@ -93,6 +93,8 @@ class SlippageTestCase(TestCase):
             }
         })
 
+        cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
+
         cls.data_portal = DataPortal(
             cls.env,
             equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
@@ -151,7 +153,8 @@ class SlippageTestCase(TestCase):
                                'minute')
 
             orders_txns = list(slippage_model.simulate(
-                bar_data[133],
+                bar_data,
+                self.ASSET133,
                 open_orders,
             ))
 
@@ -191,7 +194,8 @@ class SlippageTestCase(TestCase):
                                'minute')
 
             orders_txns = list(slippage_model.simulate(
-                bar_data[133],
+                bar_data,
+                self.ASSET133,
                 open_orders,
             ))
 
@@ -219,7 +223,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -240,7 +245,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -261,7 +267,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -299,7 +306,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -320,7 +328,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -341,7 +350,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -532,7 +542,8 @@ class SlippageTestCase(TestCase):
                                    lambda: dt,
                                    'minute')
                 _, txn = next(slippage_model.simulate(
-                    bar_data[133],
+                    bar_data,
+                    self.ASSET133,
                     [order],
                 ))
             except StopIteration:
@@ -568,7 +579,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -579,7 +591,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -601,7 +614,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -612,7 +626,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -634,7 +649,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -645,7 +661,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -680,7 +697,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -691,7 +709,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -713,7 +732,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -724,7 +744,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -746,7 +767,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 
@@ -757,7 +779,8 @@ class SlippageTestCase(TestCase):
                            self.sim_params.data_frequency)
 
         orders_txns = list(slippage_model.simulate(
-            bar_data[133],
+            bar_data,
+            self.ASSET133,
             open_orders,
         ))
 

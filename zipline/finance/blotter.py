@@ -33,13 +33,18 @@ log = Logger('Blotter')
 
 
 class Blotter(object):
-    def __init__(self, data_frequency,
+    def __init__(self, data_frequency, asset_finder,
                  slippage_func=None, commission=None):
         # these orders are aggregated by sid
         self.open_orders = defaultdict(list)
 
         # keep a dict of orders by their own id
         self.orders = {}
+
+        # all our legacy order management code works with integer sids.
+        # this lets us convert those to assets when needed.  ideally, we'd just
+        # revamp all the legacy code to work with assets.
+        self.asset_finder = asset_finder
 
         # holding orders that have come in since the last event.
         self.new_orders = []
@@ -227,10 +232,14 @@ class Blotter(object):
         closed_orders = []
         transactions = []
 
-        for asset, asset_orders in iteritems(self.open_orders):
-            trade_bar = bar_data[asset]
+        assets = self.asset_finder.retrieve_all(self.open_orders.keys())
+        asset_dict = {asset.sid: asset for asset in assets}
 
-            for order, txn in self.slippage_func(trade_bar, asset_orders):
+        for sid, asset_orders in iteritems(self.open_orders):
+            asset = asset_dict[sid]
+
+            for order, txn in \
+                    self.slippage_func(bar_data, asset, asset_orders):
                 direction = math.copysign(1, txn.amount)
                 per_share, total_commission = self.commission.calculate(txn)
                 txn.price += per_share * direction

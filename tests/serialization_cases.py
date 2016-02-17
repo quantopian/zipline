@@ -5,7 +5,7 @@ import nose.tools as nt
 import pandas.util.testing as tm
 import pandas as pd
 
-from zipline.finance.blotter import Blotter, Order
+from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.performance.position import Position
 from zipline.finance.performance.position_tracker import PositionTracker
@@ -59,7 +59,7 @@ returns = factory.create_returns_from_list(
 def object_serialization_cases(skip_daily=False):
     # Wrapped in a function to recreate DI objects.
     cases = [
-        (Blotter, ('minute',), {}, 'repr'),
+        # (Blotter, ('minute',), {}, 'repr'),
         (Order, (datetime.datetime(2013, 6, 19), 8554, 100), {}, 'dict'),
         (PerShare, (), {}, 'dict'),
         (PerTrade, (), {}, 'dict'),

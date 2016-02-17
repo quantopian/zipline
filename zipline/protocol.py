@@ -19,10 +19,9 @@ import pandas as pd
 from .utils.enum import enum
 
 from zipline._protocol import BarData as _BarData
+
 BarData = _BarData
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
+from zipline.utils.serialization_utils import VERSION_LABEL
 
 # Datasource type should completely determine the other fields of a
 # message with its type.

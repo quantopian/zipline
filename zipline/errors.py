@@ -177,6 +177,13 @@ class UnsupportedOrderParameters(ZiplineError):
     msg = "{msg}"
 
 
+class CannotOrderDelistedAsset(ZiplineError):
+    """
+    Raised if an order is for a delisted asset.
+    """
+    msg = "{msg}"
+
+
 class BadOrderParameters(ZiplineError):
     """
     Raised if any impossible parameters (nan, negative limit/stop)

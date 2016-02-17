@@ -35,16 +35,38 @@ class BenchmarkSource(object):
 
             self._validate_benchmark()
 
-        self.precalculated_series = \
-            self._initialize_precalculated_series(
-                self.benchmark_sid,
-                self.env,
-                self.trading_days,
-                self.data_portal
-            )
+            self._precalculated_series = \
+                self._initialize_precalculated_series(
+                    self.benchmark_asset,
+                    self.env,
+                    self.trading_days,
+                    self.data_portal
+                )
+        else:
+            # get benchmark info from trading environment, which defaults to
+            # downloading data from Yahoo.
+            daily_series = \
+                env.benchmark_returns[trading_days[0]:trading_days[-1]]
+
+            if self.emission_rate == "minute":
+                # we need to take the env's benchmark returns, which are daily,
+                # and resample them to minute
+                minutes = env.minutes_for_days_in_range(
+                    start=trading_days[0],
+                    end=trading_days[-1]
+                )
+
+                minute_series = daily_series.reindex(
+                    index=minutes,
+                    method="ffill"
+                )
+
+                self._precalculated_series = minute_series
+            else:
+                self._precalculated_series = daily_series
 
     def get_value(self, dt):
-        return self.precalculated_series.loc[dt]
+        return self._precalculated_series.loc[dt]
 
     def _validate_benchmark(self):
         # check if this security has a stock dividend.  if so, raise an
@@ -76,7 +98,7 @@ class BenchmarkSource(object):
                 end_dt=self.benchmark_asset.end_date
             )
 
-    def _initialize_precalculated_series(self, sid, env, trading_days,
+    def _initialize_precalculated_series(self, asset, env, trading_days,
                                          data_portal):
         """
         Internal method that precalculates the benchmark return series for
@@ -84,7 +106,7 @@ class BenchmarkSource(object):
 
         Parameters
         ----------
-        sid: (int) Asset to use
+        asset:  Asset to use
 
         env: TradingEnvironment
 
@@ -110,74 +132,52 @@ class BenchmarkSource(object):
         A pd.Series, indexed by trading day, whose values represent the %
         change from close to close.
         """
-        if sid is None:
-            # get benchmark info from trading environment, which defaults to
-            # downloading data from Yahoo.
-            daily_series = \
-                env.benchmark_returns[trading_days[0]:trading_days[-1]]
-
-            if self.emission_rate == "minute":
-                # we need to take the env's benchmark returns, which are daily,
-                # and resample them to minute
-                minutes = env.minutes_for_days_in_range(
-                    start=trading_days[0],
-                    end=trading_days[-1]
-                )
-
-                minute_series = daily_series.reindex(
-                    index=minutes,
-                    method="ffill"
-                )
-
-                return minute_series
-            else:
-                return daily_series
-        elif self.emission_rate == "minute":
+        if self.emission_rate == "minute":
             minutes = env.minutes_for_days_in_range(self.trading_days[0],
                                                     self.trading_days[-1])
             benchmark_series = data_portal.get_history_window(
-                [sid],
+                [asset],
                 minutes[-1],
                 bar_count=len(minutes) + 1,
                 frequency="1m",
                 field="price",
                 ffill=True
-            )[sid]
+            )[asset]
 
             return benchmark_series.pct_change()[1:]
         else:
-            start_date = env.asset_finder.retrieve_asset(sid).start_date
+            start_date = self.benchmark_asset.start_date
             if start_date < trading_days[0]:
                 # get the window of close prices for benchmark_sid from the
                 # last trading day of the simulation, going up to one day
                 # before the simulation start day (so that we can get the %
                 # change on day 1)
                 benchmark_series = data_portal.get_history_window(
-                    [sid],
+                    [asset],
                     trading_days[-1],
                     bar_count=len(trading_days) + 1,
                     frequency="1d",
                     field="price",
                     ffill=True
-                )[sid]
+                )[asset]
                 return benchmark_series.pct_change()[1:]
             elif start_date == trading_days[0]:
                 # Attempt to handle case where stock data starts on first
                 # day, in this case use the open to close return.
                 benchmark_series = data_portal.get_history_window(
-                    [sid],
+                    [asset],
                     trading_days[-1],
                     bar_count=len(trading_days),
                     frequency="1d",
                     field="price",
                     ffill=True
-                )[sid]
+                )[asset]
 
                 # get a minute history window of the first day
                 first_open = data_portal.get_spot_value(
-                    sid, 'open', trading_days[0], 'daily')
+                    asset, 'open', trading_days[0], 'daily')
                 first_close = data_portal.get_spot_value(
-                    sid, 'close', trading_days[0], 'daily')
+                    asset, 'close', trading_days[0], 'daily')
 
                 first_day_return = (first_close - first_open) / first_open
 

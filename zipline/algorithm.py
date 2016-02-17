@@ -47,7 +47,7 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
-)
+    CannotOrderDelistedAsset)
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
@@ -234,9 +234,10 @@ class TradingAlgorithm(object):
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
             self.blotter = Blotter(
-                slippage_func=VolumeShareSlippage(),
-                commission=PerShare(),
                 data_frequency=self.data_frequency,
+                asset_finder=self.asset_finder,
+                slippage_func=VolumeShareSlippage(),
+                commission=PerShare()
             )
 
         # The symbol lookup date specifies the date to use when resolving
@@ -786,7 +787,20 @@ class TradingAlgorithm(object):
         Calculates how many shares/contracts to order based on the type of
         asset being ordered.
         """
+
+        if self.datetime >= asset.end_date:
+            raise CannotOrderDelistedAsset(
+                msg="Cannot order {0}, as it stopped trading on {1}.".format(
+                    asset.symbol, asset.end_date
+                )
+            )
         last_price = self.trading_client.current_data[asset].price
+
+        if np.isnan(last_price):
+            raise CannotOrderDelistedAsset(
+                msg="Cannot order {0}, as there is no last "
+                    "price for it.".format(asset.symbol)
+            )
 
         if tolerant_equals(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(
@@ -805,7 +819,7 @@ class TradingAlgorithm(object):
         return value / (last_price * value_multiplier)
 
     @api_method
-    def order(self, sid, amount,
+    def order(self, asset, amount,
               limit_price=None,
               stop_price=None,
               style=None):
@@ -818,7 +832,7 @@ class TradingAlgorithm(object):
         amount = int(round_if_near_integer(amount))
 
         # Raises a ZiplineError if invalid parameters are detected.
-        self.validate_order_params(sid,
+        self.validate_order_params(asset,
                                    amount,
                                    limit_price,
                                    stop_price,
@@ -829,7 +843,7 @@ class TradingAlgorithm(object):
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(sid, amount, style)
+        return self.blotter.order(asset, amount, style)
 
     def validate_order_params(self,
                               asset,

@@ -204,7 +204,7 @@ class AssetFinder(object):
 
         Parameters
         ----------
-        sids : interable of int
+        sids : iterable of int
             Assets to retrieve.
         default_none : bool
             If True, return None for failed lookups.
