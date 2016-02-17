@@ -11,7 +11,7 @@ from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment
 from zipline.protocol import BarData
 from zipline.utils.test_utils import write_minute_data_for_asset, \
-    create_daily_df_for_asset, DailyBarWriterFromDataFrames, assert_same
+    create_daily_df_for_asset, DailyBarWriterFromDataFrames
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -27,6 +27,17 @@ field_info = {
 
 
 class TestBarDataBase(TestCase):
+    def assert_same(self, val1, val2):
+        try:
+            self.assertEqual(val1, val2)
+        except AssertionError:
+            if val1 is pd.NaT:
+                self.assertTrue(val2 is pd.NaT)
+            elif np.isnan(val1):
+                self.assertTrue(np.isnan(val2))
+            else:
+                raise
+
     def check_internal_consistency(self, bar_data):
         df = bar_data.spot_value([self.ASSET1, self.ASSET2], ALL_FIELDS)
 
@@ -43,14 +54,14 @@ class TestBarDataBase(TestCase):
 
             # make sure all the different query forms are internally
             # consistent
-            assert_same(multi_asset_series[self.ASSET1], asset1_value)
-            assert_same(multi_asset_series[self.ASSET2], asset2_value)
+            self.assert_same(multi_asset_series[self.ASSET1], asset1_value)
+            self.assert_same(multi_asset_series[self.ASSET2], asset2_value)
 
-            assert_same(df.loc[self.ASSET1][field], asset1_value)
-            assert_same(df.loc[self.ASSET2][field], asset2_value)
+            self.assert_same(df.loc[self.ASSET1][field], asset1_value)
+            self.assert_same(df.loc[self.ASSET2][field], asset2_value)
 
-            assert_same(asset1_multi_field[field], asset1_value)
-            assert_same(asset2_multi_field[field], asset2_value)
+            self.assert_same(asset1_multi_field[field], asset1_value)
+            self.assert_same(asset2_multi_field[field], asset2_value)
 
 
 class TestMinuteBarData(TestBarDataBase):
