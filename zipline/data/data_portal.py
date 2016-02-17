@@ -366,7 +366,7 @@ class DataPortal(object):
                 asset, self._splits_dict, "SPLITS"
             )
             for adj_dt, adj in split_adjustments:
-                if adj_dt >= dt:
+                if dt <= adj_dt <= perspective_dt:
                     if field != 'volume':
                         adjs.append(adj)
                     else:
@@ -379,7 +379,7 @@ class DataPortal(object):
                     asset, self._mergers_dict, "MERGERS"
                 )
                 for adj_dt, adj in merger_adjustments:
-                    if adj_dt >= dt:
+                    if dt <= adj_dt <= perspective_dt:
                         adjs.append(adj)
                     if adj_dt >= perspective_dt:
                         break
@@ -387,7 +387,7 @@ class DataPortal(object):
                     asset, self._dividends_dict, "DIVIDENDS",
                 )
                 for adj_dt, adj in div_adjustments:
-                    if adj_dt < dt:
+                    if dt <= adj_dt <= perspective_dt:
                         adjs.append(adj)
                     if adj_dt >= perspective_dt:
                         break
@@ -459,7 +459,11 @@ class DataPortal(object):
         if np.isnan(result):
             return np.nan
 
-        # adjust if needed
+        if dt == last_traded_dt or dt.date() == last_traded_dt.date():
+            return result
+
+        # the value we found came from a different day, so we have to adjust
+        # the data if there are any adjustments on that day barrier
         return self._get_adjusted_value(asset, column, last_traded_dt, dt,
                                         "minute", spot_value=result)
 
@@ -486,15 +490,23 @@ class DataPortal(object):
             except NoDataOnDate:
                 return np.nan
         elif column == "price":
+            found_dt = dt
             while True:
                 try:
                     value = self._equity_daily_reader.spot_price(
-                        asset, dt, "close"
+                        asset, found_dt, "close"
                     )
                     if value != -1:
-                        return value
+                        if dt == found_dt:
+                            return value
+                        else:
+                            # adjust if needed
+                            return self._get_adjusted_value(
+                                asset, column, found_dt, dt, "minute",
+                                spot_value=value
+                            )
                     else:
-                        dt -= tradingcalendar.trading_day
+                        found_dt -= tradingcalendar.trading_day
                 except NoDataOnDate:
                     return np.nan
 
