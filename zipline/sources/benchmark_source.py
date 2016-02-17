@@ -146,7 +146,7 @@ class BenchmarkSource(object):
 
             return benchmark_series.pct_change()[1:]
         else:
-            start_date = env.asset_finder.retrieve_asset(sid).start_date
+            start_date = self.benchmark_asset.start_date
             if start_date < trading_days[0]:
                 # get the window of close prices for benchmark_sid from the
                 # last trading day of the simulation, going up to one day
