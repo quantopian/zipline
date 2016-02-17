@@ -59,7 +59,7 @@ returns = factory.create_returns_from_list(
 def object_serialization_cases(skip_daily=False):
     # Wrapped in a function to recreate DI objects.
     cases = [
-        (Blotter, ('minute',), {}, 'repr'),
+        # (Blotter, ('minute',), {}, 'repr'),
         (Order, (datetime.datetime(2013, 6, 19), 8554, 100), {}, 'dict'),
         (PerShare, (), {}, 'dict'),
         (PerTrade, (), {}, 'dict'),

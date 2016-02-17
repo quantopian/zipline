@@ -272,7 +272,7 @@ class FinanceTestCase(TestCase):
             else:
                 slippage_func = None
 
-            blotter = Blotter(sim_params.data_frequency,
+            blotter = Blotter(sim_params.data_frequency, self.env.asset_finder,
                               slippage_func)
 
             env.write_data(equities_data={
@@ -362,7 +362,7 @@ class FinanceTestCase(TestCase):
             tempdir.cleanup()
 
     def test_blotter_processes_splits(self):
-        blotter = Blotter('daily',
+        blotter = Blotter('daily', self.env.asset_finder,
                           slippage_func=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,

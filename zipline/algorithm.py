@@ -234,9 +234,10 @@ class TradingAlgorithm(object):
         self.blotter = kwargs.pop('blotter', None)
         if not self.blotter:
             self.blotter = Blotter(
-                slippage_func=VolumeShareSlippage(),
-                commission=PerShare(),
                 data_frequency=self.data_frequency,
+                asset_finder=self.asset_finder,
+                slippage_func=VolumeShareSlippage(),
+                commission=PerShare()
             )
 
         # The symbol lookup date specifies the date to use when resolving

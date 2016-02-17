@@ -21,7 +21,9 @@ from zipline.assets import Asset
 
 cdef class BarData:
     """
-    Holds the event data for all sids for a given dt.
+    Provides methods to access spot value or history windows of price data.
+    Also provides some utility methods to determine if an asset is alive,
+    has recent trade data, etc.
 
     This is what is passed as `data` to the `handle_data` function.
     """
@@ -371,13 +373,15 @@ cdef class BarData:
     def __getitem__(self, name):
         return self._get_equity_price_view(name)
 
+    property current_dt:
+        def __get__(self):
+            return self.simulation_dt_func()
+
     @property
     def fetcher_assets(self):
         return self.data_portal.get_fetcher_assets(
             normalize_date(self.simulation_dt_func())
         )
-
-
 
 
 cdef class SidView:
