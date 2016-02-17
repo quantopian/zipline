@@ -409,6 +409,12 @@ cdef class SidView:
         self.data_frequency = data_frequency
 
     def __getattr__(self, column):
+        # backwards compatibility code for Q1 API
+        if column == "close_price":
+            column = "close"
+        elif column == "open_price":
+            column = "open"
+
         return self.data_portal.get_spot_value(
             self.asset,
             column,
