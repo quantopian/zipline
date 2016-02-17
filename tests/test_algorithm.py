@@ -41,7 +41,7 @@ from zipline.errors import (
     SymbolNotFound,
     RootSymbolNotFound,
     UnsupportedDatetimeFormat,
-)
+    CannotOrderDelistedAsset)
 from zipline.test_algorithms import (
     access_account_in_init,
     access_portfolio_in_init,
@@ -706,7 +706,7 @@ class TestTransformAlgorithm(TestCase):
         for sid in cls.sids:
             equities_metadata[sid] = {
                 'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end
+                'end_date': cls.env.next_trading_day(cls.sim_params.period_end)
             }
 
         cls.env.write_data(equities_data=equities_metadata,
@@ -961,7 +961,7 @@ class TestAlgoScript(TestCase):
         for sid in cls.sids:
             equities_metadata[sid] = {
                 'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end
+                'end_date': cls.env.next_trading_day(cls.sim_params.period_end)
             }
 
             if sid == 3:
@@ -1205,6 +1205,50 @@ def handle_data(context, data):
         )
         test_algo.run(self.data_portal)
 
+    def test_order_dead_asset(self):
+        # after asset 0 is dead
+        params = SimulationParameters(
+            period_start=pd.Timestamp("2007-01-03", tz='UTC'),
+            period_end=pd.Timestamp("2007-01-05", tz='UTC'),
+            env=self.env
+        )
+
+        # order method shouldn't blow up
+        test_algo = TradingAlgorithm(
+            script="""
+from zipline.api import order, sid
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    order(sid(0), 10)
+        """,
+            sim_params=params,
+            env=self.env
+        )
+
+        test_algo.run(self.data_portal)
+
+        # order_value and order_percent should blow up
+        for order_str in ["order_value", "order_percent"]:
+            test_algo = TradingAlgorithm(
+                script="""
+from zipline.api import order_percent, order_value, sid
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    {0}(sid(0), 10)
+        """.format(order_str),
+                sim_params=params,
+                env=self.env
+            )
+
+        with self.assertRaises(CannotOrderDelistedAsset):
+            test_algo.run(self.data_portal)
+
     def test_order_in_init(self):
         """
         Test that calling order in initialize
@@ -1323,7 +1367,7 @@ class TestTradingControls(TestCase):
         cls.env.write_data(equities_data={
             133: {
                 'start_date': cls.sim_params.period_start,
-                'end_date': cls.sim_params.period_end
+                'end_date': cls.env.next_trading_day(cls.sim_params.period_end)
             }
         })
 

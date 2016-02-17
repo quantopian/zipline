@@ -703,18 +703,6 @@ def write_minute_data_for_asset(env, writer, start_dt, end_dt, sid,
     writer.write(sid, df)
 
 
-def assert_same(self, val1, val2):
-    try:
-        self.assertEqual(val1, val2)
-    except AssertionError:
-        if val1 is pd.NaT:
-            self.assertTrue(val2 is pd.NaT)
-        elif np.isnan(val1):
-            self.assertTrue(np.isnan(val2))
-        else:
-            raise
-
-
 def create_daily_df_for_asset(env, start_day, end_day, interval=1):
     days = env.days_in_range(start_day, end_day)
     days_count = len(days)

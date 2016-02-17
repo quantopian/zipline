@@ -58,7 +58,9 @@ class BlotterTestCase(TestCase):
         cls.env.write_data(equities_data={
             24: {
                 'start_date': cls.sim_params.trading_days[0],
-                'end_date': cls.sim_params.trading_days[-1]
+                'end_date': cls.env.next_trading_day(
+                    cls.sim_params.trading_days[-1]
+                )
             }
         })
 
