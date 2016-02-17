@@ -719,7 +719,7 @@ def create_daily_df_for_asset(env, start_day, end_day, interval=1):
 
     if interval > 1:
         # only keep every 'interval' rows
-        for idx, minute in enumerate(days_arr):
+        for idx, _ in enumerate(days_arr):
             if (idx + 1) % interval != 0:
                 df["open"].iloc[idx] = 0
                 df["high"].iloc[idx] = 0

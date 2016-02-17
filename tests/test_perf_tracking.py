@@ -43,7 +43,6 @@ import zipline.utils.math_utils as zp_math
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment
-from zipline.protocol import BarData
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
@@ -396,9 +395,6 @@ class TestCommissionEvents(unittest.TestCase):
 
         # Create 3 transactions:  50, 100, 150 shares traded @ $20
         first_trade = trade_events[0]
-        price = data_portal.get_spot_value(
-            first_trade.sid, "price", first_trade.dt, "daily"
-        )
         transactions = [create_txn(first_trade.sid, first_trade.dt, 20, i)
                         for i in [50, 100, 150]]
 
@@ -440,7 +436,7 @@ class TestCommissionEvents(unittest.TestCase):
         account = results[1]['account']
         self.assertEqual(float('inf'), account['day_trades_remaining'])
         np.testing.assert_allclose(0.001, account['leverage'], rtol=1e-3,
-                                  atol=1e-4)
+                                   atol=1e-4)
         np.testing.assert_allclose(9680, account['regt_equity'], rtol=1e-3)
         self.assertEqual(float('inf'), account['regt_margin'])
         np.testing.assert_allclose(9680, account['available_funds'],
@@ -617,10 +613,6 @@ class TestDividendPerformance(unittest.TestCase):
             {1: events},
         )
         data_portal._adjustment_reader = adjustment_reader
-
-        bar_data = BarData(data_portal,
-                           lambda: events[0].dt,
-                           'daily')
 
         # Simulate a transaction being filled prior to the ex_date.
         txns = [create_txn(1, events[0].dt, 10.0, 100)]

@@ -232,9 +232,14 @@ class Blotter(object):
         closed_orders = []
         transactions = []
 
+        assets = self.asset_finder.retrieve_all(self.open_orders.keys())
+        asset_dict = {asset.sid: asset for asset in assets}
+
         for sid, asset_orders in iteritems(self.open_orders):
-            asset = self.asset_finder.retrieve_asset(sid)
-            for order, txn in self.slippage_func(bar_data, asset, asset_orders):
+            asset = asset_dict[sid]
+
+            for order, txn in \
+                    self.slippage_func(bar_data, asset, asset_orders):
                 direction = math.copysign(1, txn.amount)
                 per_share, total_commission = self.commission.calculate(txn)
                 txn.price += per_share * direction

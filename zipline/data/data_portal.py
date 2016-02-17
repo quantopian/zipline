@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -434,12 +434,11 @@ class DataPortal(object):
             asset.sid, dt, column
         )
 
-        if result == 0 or np.isnan(result):
-            if column == "volume":
+        if column == "volume":
+            if result == 0:
                 return 0
-
-            if not ffill:
-                return np.nan
+        elif not ffill and np.isnan(result):
+            return np.nan
 
         # we are looking for price, and didn't find one. have to go hunting.
         last_traded_dt = \
@@ -1063,6 +1062,7 @@ class DataPortal(object):
             return_array = np.zeros((bar_count,))
 
         if field != "volume":
+            # volumes default to 0, so we don't need to put NaNs in the array
             return_array[:] = np.NAN
 
         start_date = self._get_asset_start_date(asset)

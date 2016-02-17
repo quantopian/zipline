@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 from pandas.tslib import normalize_date
 import pandas as pd
 import numpy as np
+
+from cpython cimport bool
 
 from zipline.assets import Asset
 
@@ -85,7 +87,8 @@ cdef class BarData:
         """
         Returns the spot value of the given assets for the given fields
         at the current simulation time.  Spot values are the as-traded price
-        and are not adjusted for any events like splits or dividends.
+        and are usually not adjusted for events like splits or dividends (see
+        notes for more information).
 
         Parameters
         ----------
@@ -96,7 +99,7 @@ cdef class BarData:
 
         Returns
         -------
-        Float, pandas Series, or pandas DataFrame.  See notes
+        Scalar, pandas Series, or pandas DataFrame.  See notes
         below.
 
         Notes
@@ -117,13 +120,14 @@ cdef class BarData:
         fields, filled with the scalar values for each asset for each field.
 
         "price" returns the last known close price of the asset.  If there is
-        no last known value, NaN is returned.  If a value is found, and we
+        no last known value (either because the asset has never traded, or
+        because it has delisted) NaN is returned.  If a value is found, and we
         had to cross an adjustment boundary (split, dividend, etc) to get it,
         the value is adjusted before being returned.
 
         "last_traded" returns the date of the last trade event of the asset,
         even if the asset has stopped trading. If there is no last known value,
-        NaT is returned.
+        pd.NaT is returned.
 
         "volume" returns the trade volume for the current simulation time.  If
         there is no trade this minute, 0 is returned.
@@ -133,11 +137,15 @@ cdef class BarData:
         returned.
         """
         if isinstance(assets, Asset):
+            asset = assets
+
             if isinstance(fields, str):
+                field = fields
+
                 # return scalar value
                 return self.data_portal.get_spot_value(
-                    assets,
-                    fields,
+                    asset,
+                    field,
                     self.simulation_dt_func(),
                     self.data_frequency
                 )
@@ -146,7 +154,7 @@ cdef class BarData:
                 # return a Series indexed by field
                 return pd.Series(data={
                     field: self.data_portal.get_spot_value(
-                        assets,
+                        asset,
                         field,
                         self.simulation_dt_func(),
                         self.data_frequency)
@@ -154,12 +162,14 @@ cdef class BarData:
                 }, index=fields, name=assets.symbol)
         else:
             if isinstance(fields, str):
+                field = fields
+
                 # assume assets is iterable
                 # return a Series indexed by asset
                 return pd.Series(data={
                     asset: self.data_portal.get_spot_value(
                         asset,
-                        fields,
+                        field,
                         self.simulation_dt_func(),
                         self.data_frequency)
                     for asset in assets
@@ -207,17 +217,16 @@ cdef class BarData:
                 for asset in assets
             })
 
-    cdef _can_trade_for_asset(self, asset, dt, data_portal):
-        if asset.start_date > dt:
-            return False
+    cdef bool _can_trade_for_asset(self, asset, dt, data_portal):
+        if asset.start_date <= dt <= asset.end_date:
+            # is there a last price?
+            return not np.isnan(
+                data_portal.get_spot_value(
+                    asset, "price", dt, self.data_frequency
+                )
+            )
 
-        if asset.end_date < dt:
-            return False
-
-        # is there a last price?
-        return not np.isnan(
-            data_portal.get_spot_value(asset, "price", dt, self.data_frequency)
-        )
+        return False
 
     def is_stale(self, assets):
         """
@@ -245,23 +254,22 @@ cdef class BarData:
                 for asset in assets
             })
 
-    cdef _is_stale_for_asset(self, asset, dt, data_portal):
+    cdef bool _is_stale_for_asset(self, asset, dt, data_portal):
         if asset.start_date > dt:
             return False
 
         if asset.end_date <= dt:
             return False
 
-        current_val = data_portal.get_spot_value(asset, "close", dt,
-                                                 self.data_frequency)
+        current_volume = data_portal.get_spot_value(asset, "volume", dt,
+                                                     self.data_frequency)
 
-        if not np.isnan(current_val):
+        if current_volume > 0:
             # found a current value, so we know this asset is not stale.
             return False
         else:
-            # if we don't have a current val, we need to distinguish between
-            # if this asset has ever traded (stale = True) or has never traded
-            # (stale = False)
+            # we need to distinguish between if this asset has ever traded
+            # (stale = True) or has never traded (stale = False)
             last_traded_dt = \
                 data_portal.get_spot_value(asset, "last_traded", dt,
                                            self.data_frequency)
@@ -291,7 +299,7 @@ cdef class BarData:
 
         Returns
         -------
-        series or DataFrame or Panel, depending on the dimensionality of
+        Series or DataFrame or Panel, depending on the dimensionality of
             the 'assets' and 'fields' parameters.
 
             If single asset and field are passed in, the returned Series is

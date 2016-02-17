@@ -797,7 +797,10 @@ class TradingAlgorithm(object):
         last_price = self.trading_client.current_data[asset].price
 
         if np.isnan(last_price):
-            raise
+            raise CannotOrderDelistedAsset(
+                msg="Cannot order {0}, as there is no last "
+                    "price for it.".format(asset.symbol)
+            )
 
         if tolerant_equals(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(

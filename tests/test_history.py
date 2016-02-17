@@ -301,7 +301,7 @@ class HistoryTestCaseBase(TestCase):
                 # then 21, etc.  for idx 9 to 19, value_for_asset3 should
                 # be a baseline of 11 (then adjusted for the individual
                 # field), thus the rounding down to the nearest 10.
-                value_for_asset3 = (((idx + 1) / 10) * 10) + \
+                value_for_asset3 = (((idx + 1) // 10) * 10) + \
                     MINUTE_FIELD_INFO[field] + 1
 
                 if field in OHLC:
@@ -348,7 +348,7 @@ class HistoryTestCaseBase(TestCase):
                     first_part = asset3_series[0:-position_from_end]
                     second_part = asset3_series[-position_from_end:]
 
-                    decile_count = ((idx + 1) / 10)
+                    decile_count = ((idx + 1) // 10)
 
                     # in our test data, asset3 prices will be nine NaNs,
                     # then ten 11s, ten 21s, ten 31s...

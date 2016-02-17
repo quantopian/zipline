@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from cpython cimport bool
+
 cdef class BarData:
     cdef object data_portal
     cdef object simulation_dt_func
@@ -20,8 +22,8 @@ cdef class BarData:
     cdef dict _views
     cdef object _get_equity_price_view(BarData, object)
     cdef object _create_sid_view(BarData, object)
-    cdef object _is_stale_for_asset(BarData, object, object, object)
-    cdef object _can_trade_for_asset(BarData, object, object, object)
+    cdef bool _is_stale_for_asset(BarData, object, object, object)
+    cdef bool _can_trade_for_asset(BarData, object, object, object)
 
 cdef class SidView:
     cdef object asset

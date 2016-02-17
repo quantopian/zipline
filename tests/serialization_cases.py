@@ -5,7 +5,7 @@ import nose.tools as nt
 import pandas.util.testing as tm
 import pandas as pd
 
-from zipline.finance.blotter import Blotter, Order
+from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.performance.position import Position
 from zipline.finance.performance.position_tracker import PositionTracker
