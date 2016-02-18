@@ -577,13 +577,9 @@ class BcolzMinuteBarReader(object):
         if dt < start_date:
             return -1
 
-        asset_start_pos = \
-            self._find_position_of_minute(
-                max(asset.start_date, self._minute_index[0]))
-
         minute_pos = min(self._find_position_of_minute(dt), len(volumes) - 1)
 
-        while minute_pos >= asset_start_pos:
+        while minute_pos >= 0:
             dt = _minute_index[minute_pos]
             if dt < start_date:
                 return -1
