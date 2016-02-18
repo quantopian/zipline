@@ -1,5 +1,5 @@
 """
-Tests for the reference loader for EarningsCalendar.
+Tests for the reference loader for Buyback Authorizations.
 """
 from functools import partial
 from unittest import TestCase
@@ -103,7 +103,7 @@ param_dates = list(gen_calendars(
         '2014-01-10',
         '2014-01-15',
         '2014-01-20',
-    ]),
+    ], utc=True),
 ))
 
 
@@ -253,7 +253,7 @@ class BuybackAuthLoaderCommonTest(object):
             for col_name in self.cols.keys():
                 assert_series_equal(result[col_name].xs(sid, level=1),
                                     self.cols[col_name][sid],
-                                    sid)
+                                    check_names=False)
 
 
 class CashBuybackAuthLoaderTestCase(TestCase, BuybackAuthLoaderCommonTest):

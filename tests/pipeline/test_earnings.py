@@ -392,11 +392,11 @@ class EarningsCalendarLoaderInferTimestampTestCase(TestCase):
                       name=ANNOUNCEMENT_FIELD_NAME),
         )
         assert_series_equal(
-            loader.events_by_sid[1].loc[:, ANNOUNCEMENT_FIELD_NAME],
+            loader.events_by_sid[1][ANNOUNCEMENT_FIELD_NAME],
             pd.Series(
-                index=announcement_dates[1].loc[:, TS_FIELD_NAME],
+                index=announcement_dates[1][TS_FIELD_NAME],
                 data=np.array(
-                    announcement_dates[1].loc[:, ANNOUNCEMENT_FIELD_NAME]
+                    announcement_dates[1][ANNOUNCEMENT_FIELD_NAME]
                 ),
                 name=ANNOUNCEMENT_FIELD_NAME
             )
