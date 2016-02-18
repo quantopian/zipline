@@ -71,7 +71,6 @@ class DataPortal(object):
             'close': {},
             'volume': {},
             'sid': {},
-            'dt': {},
         }
 
         self._adjustment_reader = adjustment_reader
