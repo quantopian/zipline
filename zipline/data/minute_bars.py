@@ -577,15 +577,23 @@ class BcolzMinuteBarReader(object):
         if dt < start_date:
             return -1
 
+        asset_start_pos = \
+            self._find_position_of_minute(
+                max(asset.start_date, self._minute_index[0]))
+
         minute_pos = min(self._find_position_of_minute(dt), len(volumes) - 1)
 
-        while True:
+        while minute_pos >= asset_start_pos:
             dt = _minute_index[minute_pos]
             if dt < start_date:
                 return -1
             if volumes[minute_pos] != 0:
                 return minute_pos
             minute_pos -= 1
+
+        # we've gone to the beginning of this asset's range, and still haven't
+        # found a trade event
+        return -1
 
     @remember_last
     def _find_position_of_minute(self, minute_dt):
