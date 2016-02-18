@@ -872,50 +872,54 @@ class BlazeLoader(dict):
             data_query_tz,
         )
 
-        def where(e, column):
+        def where(e):
             """Create the query to run against the resources.
 
             Parameters
             ----------
             e : Expr
                 The baseline or deltas expression.
-            column : BoundColumn
-                The column to query for.
 
             Returns
             -------
             q : Expr
-                The query to run for the given column.
+                The query to run.
             """
-            colname = column.name
-            pred = e[TS_FIELD_NAME] <= lower_dt
-            schema = e[colname].schema.measure
-            if isinstance(schema, Option):
-                pred &= e[colname].notnull()
-                schema = schema.ty
-            if schema in floating:
-                pred &= ~e[colname].isnan()
-            filtered = e[pred]
-            lower = filtered.timestamp.max()
+            def lower_for_col(column):
+                pred = e[TS_FIELD_NAME] <= lower_dt
+                colname = column.name
+                schema = e[colname].schema.measure
+                if isinstance(schema, Option):
+                    pred &= e[colname].notnull()
+                    schema = schema.ty
+                if schema in floating:
+                    pred &= ~e[colname].isnan()
 
-            if have_sids:
-                # If we have sids, then we need to take the earliest of the
-                # greatest date that has a non-null value by sid.
-                lower = bz.by(
-                    filtered[SID_FIELD_NAME],
-                    timestamp=lower,
-                ).timestamp.min()
+                filtered = e[pred]
+                lower = filtered[TS_FIELD_NAME].max()
+                if have_sids:
+                    # If we have sids, then we need to take the earliest of the
+                    # greatest date that has a non-null value by sid.
+                    lower = bz.by(
+                        filtered[SID_FIELD_NAME],
+                        timestamp=lower,
+                    ).timestamp.min()
+                return lower
 
-            lower = odo(lower, pd.Timestamp)
+            lower = odo(
+                reduce(
+                    bz.least,
+                    map(lower_for_col, columns),
+                ),
+                pd.Timestamp,
+                **odo_kwargs
+            )
             if lower is pd.NaT:
-                # If there is no lower date, just query for data in he date
-                # range. It must all be null anyways.
                 lower = lower_dt
-
             return e[
                 (e[TS_FIELD_NAME] >= lower) &
                 (e[TS_FIELD_NAME] <= upper_dt)
-            ][added_query_fields + [colname]]
+            ][added_query_fields + list(map(getname, columns))]
 
         def collect_expr(e):
             """Execute and merge all of the per-column subqueries.
@@ -935,13 +939,9 @@ class BlazeLoader(dict):
             This can return more data than needed. The in memory reindex will
             handle this.
             """
-            return sort_values(reduce(
-                partial(pd.merge, on=added_query_fields, how='outer'),
-                (
-                    odo(where(e, column), pd.DataFrame, **odo_kwargs)
-                    for column in columns
-                ),
-            ), TS_FIELD_NAME)  # sort for the groupby later
+            df = odo(where(e), pd.DataFrame, **odo_kwargs)
+            df.sort(TS_FIELD_NAME, inplace=True)  # sort for the groupby later
+            return df
 
         materialized_expr = collect_expr(expr)
         materialized_deltas = (
