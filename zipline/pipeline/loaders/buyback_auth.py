@@ -10,8 +10,8 @@ from .events import EventsLoader
 from zipline.utils.memoize import lazyval
 
 
-BUYBACK_ANNOUNCEMENT_FIELD_NAME = 'buyback_dates'
-SHARE_COUNT_FIELD_NAME = 'share_counts'
+BUYBACK_ANNOUNCEMENT_FIELD_NAME = 'buyback_date'
+SHARE_COUNT_FIELD_NAME = 'share_count'
 CASH_FIELD_NAME = 'cash'
 
 
@@ -24,22 +24,22 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
     event date, cash value)]
 
     """
-    expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-                               CASH_FIELD_NAME])
 
     def __init__(self,
                  all_dates,
                  events_by_sid,
                  infer_timestamps=False,
-                 dataset=CashBuybackAuthorizations,
-                 expected_cols=expected_cols):
+                 dataset=CashBuybackAuthorizations):
         super(CashBuybackAuthorizationsLoader, self).__init__(
             all_dates,
             events_by_sid,
             infer_timestamps=infer_timestamps,
             dataset=dataset,
-            expected_cols=expected_cols,
         )
+
+    @property
+    def expected_cols(self):
+        return frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME, CASH_FIELD_NAME])
 
     @lazyval
     def previous_value_loader(self):
@@ -69,22 +69,24 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
     event date, share value)]
 
     """
-    expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-                               SHARE_COUNT_FIELD_NAME])
 
     def __init__(self,
                  all_dates,
                  events_by_sid,
                  infer_timestamps=False,
-                 dataset=ShareBuybackAuthorizations,
-                 expected_cols=expected_cols):
+                 dataset=ShareBuybackAuthorizations):
         super(ShareBuybackAuthorizationsLoader, self).__init__(
             all_dates,
             events_by_sid,
             infer_timestamps=infer_timestamps,
             dataset=dataset,
-            expected_cols=expected_cols,
         )
+
+    @property
+    def expected_cols(self):
+        return frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+                          SHARE_COUNT_FIELD_NAME])
+
 
     @lazyval
     def previous_share_count_loader(self):

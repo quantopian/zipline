@@ -1,3 +1,5 @@
+import abc
+
 from datashape import istabular
 
 from .core import (
@@ -34,8 +36,6 @@ class BlazeEventsCalendarLoader(PipelineLoader):
         The timezeone to use for the data query cutoff.
     dataset : DataSet
         The DataSet object for which this loader loads data.
-    concrete_loader :
-        The concrete loader to use for loading data into specified columns.
     Notes
     -----
     The expression should have a tabular dshape of::
@@ -61,8 +61,7 @@ class BlazeEventsCalendarLoader(PipelineLoader):
                  odo_kwargs=None,
                  data_query_time=None,
                  data_query_tz=None,
-                 dataset=None,
-                 concrete_loader=None):
+                 dataset=None):
         dshape = expr.dshape
 
         if not istabular(dshape):
@@ -80,7 +79,10 @@ class BlazeEventsCalendarLoader(PipelineLoader):
         check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
-        self._concrete_loader = concrete_loader
+
+    @abc.abstractproperty
+    def concrete_loader(self):
+        raise NotImplementedError("Must specify `concrete_loader`.")
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         data_query_time = self._data_query_time
@@ -112,7 +114,7 @@ class BlazeEventsCalendarLoader(PipelineLoader):
                 ts_field=TS_FIELD_NAME,
             )
         gb = raw.groupby(SID_FIELD_NAME)
-        return self._concrete_loader(
+        return self.concrete_loader(
             dates,
             self.prepare_data(raw, gb),
             dataset=self._dataset,

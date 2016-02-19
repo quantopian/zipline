@@ -74,7 +74,6 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                  data_query_time=None,
                  data_query_tz=None,
                  dataset=CashBuybackAuthorizations,
-                 concrete_loader=CashBuybackAuthorizationsLoader,
                  **kwargs):
         super(
             BlazeCashBuybackAuthorizationsLoader, self
@@ -84,8 +83,11 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                    data_query_time=data_query_time,
                    data_query_tz=data_query_tz,
                    dataset=dataset,
-                   concrete_loader=concrete_loader,
                    **kwargs)
+
+    @property
+    def concrete_loader(self):
+        return CashBuybackAuthorizationsLoader
 
 
 class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
@@ -141,6 +143,7 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
         SHARE_COUNT_FIELD_NAME,
     })
 
+
     def __init__(self,
                  expr,
                  resources=None,
@@ -148,7 +151,6 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                  data_query_time=None,
                  data_query_tz=None,
                  dataset=ShareBuybackAuthorizations,
-                 concrete_loader=ShareBuybackAuthorizationsLoader,
                  **kwargs):
         super(
             BlazeShareBuybackAuthorizationsLoader, self
@@ -158,5 +160,8 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
                    data_query_time=data_query_time,
                    data_query_tz=data_query_tz,
                    dataset=dataset,
-                   concrete_loader=concrete_loader,
                    **kwargs)
+
+    @property
+    def concrete_loader(self):
+        return ShareBuybackAuthorizationsLoader

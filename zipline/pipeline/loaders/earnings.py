@@ -10,16 +10,17 @@ ANNOUNCEMENT_FIELD_NAME = "announcement_date"
 
 
 class EarningsCalendarLoader(EventsLoader):
-    expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME])
 
     def __init__(self, all_dates, events_by_sid,
                  infer_timestamps=False,
-                 dataset=EarningsCalendar,
-                 expected_cols=expected_cols):
+                 dataset=EarningsCalendar):
         super(EarningsCalendarLoader, self).__init__(
             all_dates, events_by_sid, infer_timestamps, dataset=dataset,
-            expected_cols=expected_cols
         )
+
+    @property
+    def expected_cols(self):
+        return frozenset([ANNOUNCEMENT_FIELD_NAME])
 
     @lazyval
     def next_announcement_loader(self):
