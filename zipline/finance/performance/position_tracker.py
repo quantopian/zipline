@@ -432,13 +432,14 @@ class PositionTracker(object):
     def sync_last_sale_prices(self, dt):
         data_portal = self._data_portal
         for asset, position in iteritems(self.positions):
-            if dt >= asset.end_date:
-                # if the asset no longer exists, yet we somehow are being
-                # asked for the last price, we want 0 instead of NaN.
-                position.last_sale_price = 0
-            else:
-                position.last_sale_price = data_portal.get_spot_value(
-                    asset, 'price', dt, self.data_frequency)
+            last_sale_price = data_portal.get_spot_value(
+                asset, 'price', dt, self.data_frequency
+            )
+
+            if np.isnan(last_sale_price):
+                last_sale_price = 0
+
+            position.last_sale_price = last_sale_price
 
     def stats(self):
         amounts = []
