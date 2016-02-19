@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,24 +64,21 @@ class Position(object):
         Register the number of shares we held at this dividend's ex date so
         that we can pay out the correct amount on the dividend's pay date.
         """
-        out = {}
-
-        out['amount'] = self.amount * dividend.amount
-        return out
+        return {
+            'amount': self.amount * dividend.amount
+        }
 
     def earn_stock_dividend(self, stock_dividend):
         """
         Register the number of shares we held at this dividend's ex date so
         that we can pay out the correct amount on the dividend's pay date.
         """
-        out = {}
-
-        # stock dividend
-        out['payment_sid'] = stock_dividend.payment_sid
-        out['share_count'] = floor(
-            self.amount * float(stock_dividend.ratio))
-
-        return out
+        return {
+            'payment_asset': stock_dividend.payment_asset,
+            'share_count': floor(
+                self.amount * float(stock_dividend.ratio)
+            )
+        }
 
     def handle_split(self, sid, ratio):
         """

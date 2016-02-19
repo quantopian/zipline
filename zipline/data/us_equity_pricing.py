@@ -1086,7 +1086,7 @@ SELECT sid, amount, pay_date from dividend_payouts
 WHERE ex_date=? AND sid IN ({0})
 """
 
-Dividend = namedtuple('Dividend', ['sid', 'amount', 'pay_date'])
+Dividend = namedtuple('Dividend', ['asset', 'amount', 'pay_date'])
 
 UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE = """
 SELECT sid, payment_sid, ratio, pay_date from stock_dividend_payouts
@@ -1095,7 +1095,7 @@ WHERE ex_date=? AND sid IN ({0})
 
 StockDividend = namedtuple(
     'StockDividend',
-    ['sid', 'payment_sid', 'ratio', 'pay_date'])
+    ['asset', 'payment_asset', 'ratio', 'pay_date'])
 
 
 class SQLiteAdjustmentReader(object):
@@ -1134,7 +1134,7 @@ class SQLiteAdjustmentReader(object):
                 for adjustment in
                 adjustments_for_sid]
 
-    def get_dividends_with_ex_date(self, assets, date):
+    def get_dividends_with_ex_date(self, assets, date, asset_finder):
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
 
@@ -1149,13 +1149,14 @@ class SQLiteAdjustmentReader(object):
             rows = c.fetchall()
             for row in rows:
                 div = Dividend(
-                    row[0], row[1], Timestamp(row[2], unit='s', tz='UTC'))
+                    asset_finder.retrieve_asset(row[0]),
+                    row[1], Timestamp(row[2], unit='s', tz='UTC'))
                 divs.append(div)
         c.close()
 
         return divs
 
-    def get_stock_dividends_with_ex_date(self, assets, date):
+    def get_stock_dividends_with_ex_date(self, assets, date, asset_finder):
         seconds = date.value / int(1e9)
         c = self.conn.cursor()
 
@@ -1171,7 +1172,9 @@ class SQLiteAdjustmentReader(object):
 
             for row in rows:
                 stock_div = StockDividend(
-                    row[0], row[1], row[2],
+                    asset_finder.retrieve_asset(row[0]),    # asset
+                    asset_finder.retrieve_asset(row[1]),    # payment_asset
+                    row[2],
                     Timestamp(row[3], unit='s', tz='UTC'))
                 stock_divs.append(stock_div)
         c.close()
