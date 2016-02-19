@@ -206,7 +206,8 @@ def extras_requires(conda_format=False):
     }
 
 
-def module_requirements(requirements_path, module_names, strict_bounds):
+def module_requirements(requirements_path, module_names, strict_bounds,
+                        conda_format=False):
     module_names = set(module_names)
     found = set()
     module_lines = []
@@ -219,6 +220,8 @@ def module_requirements(requirements_path, module_names, strict_bounds):
         name = match.group(1)
         if name in module_names:
             found.add(name)
+            if conda_format:
+                line = _conda_format(line)
             module_lines.append(line)
 
     if found != module_names:
@@ -232,7 +235,8 @@ conda_build = os.path.basename(sys.argv[0]) == 'conda-build'
 setup_requires = module_requirements(
     'etc/requirements.txt',
     ('Cython', 'numpy'),
-    strict_bounds=False,
+    strict_bounds=conda_build,
+    conda_format=conda_build,
 )
 
 setup(
