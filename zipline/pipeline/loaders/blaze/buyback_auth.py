@@ -11,10 +11,10 @@ from zipline.pipeline.loaders.buyback_auth import (
     ShareBuybackAuthorizationsLoader,
     SHARE_COUNT_FIELD_NAME
 )
-from .events import BlazeEventsCalendarLoader
+from .events import BlazeEventsLoader
 
 
-class BlazeCashBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
+class BlazeCashBuybackAuthorizationsLoader(BlazeEventsLoader):
     """A pipeline loader for the ``CashBuybackAuthorizations`` dataset that loads
     data from a blaze expression.
 
@@ -90,7 +90,7 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
         return CashBuybackAuthorizationsLoader
 
 
-class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
+class BlazeShareBuybackAuthorizationsLoader(BlazeEventsLoader):
     """A pipeline loader for the ``ShareBuybackAuthorizations`` dataset that loads
     data from a blaze expression.
 
@@ -142,7 +142,6 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsCalendarLoader):
         BUYBACK_ANNOUNCEMENT_FIELD_NAME,
         SHARE_COUNT_FIELD_NAME,
     })
-
 
     def __init__(self,
                  expr,

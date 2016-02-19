@@ -18,7 +18,7 @@ from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
 
 
-class BlazeEventsCalendarLoader(PipelineLoader):
+class BlazeEventsLoader(PipelineLoader):
     """An abstract pipeline loader for the events datasets that loads
     data from a blaze expression.
 
@@ -82,7 +82,7 @@ class BlazeEventsCalendarLoader(PipelineLoader):
 
     @abc.abstractproperty
     def concrete_loader(self):
-        raise NotImplementedError("Must specify `concrete_loader`.")
+        pass
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         data_query_time = self._data_query_time

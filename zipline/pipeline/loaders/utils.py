@@ -8,7 +8,7 @@ from six.moves import zip
 from zipline.utils.numpy_utils import NaTns, NaTD
 
 
-def next_date_frame(dates, events_by_sid):
+def next_date_frame(dates, events_by_sid, event_date_field_name):
     """
     Make a DataFrame representing the simulated next known date for an event.
 
@@ -20,6 +20,9 @@ def next_date_frame(dates, events_by_sid):
         Dict mapping sids to a series of dates. Each k:v pair of the series
         represents the date we learned of the event mapping to the date the
         event will occur.
+    event_date_field_name : str
+        The name of the date field that marks when the event occurred.
+
     Returns
     -------
     next_events: pd.DataFrame
@@ -37,7 +40,8 @@ def next_date_frame(dates, events_by_sid):
         equity: np.full_like(dates, NaTns) for equity in events_by_sid
     }
     raw_dates = dates.values
-    for equity, event_dates in iteritems(events_by_sid):
+    for equity, df in iteritems(events_by_sid):
+        event_dates = df[event_date_field_name]
         data = cols[equity]
         if not event_dates.index.is_monotonic_increasing:
             event_dates = event_dates.sort_index()
@@ -56,7 +60,7 @@ def next_date_frame(dates, events_by_sid):
     return pd.DataFrame(index=dates, data=cols)
 
 
-def previous_date_frame(date_index, events_by_sid):
+def previous_date_frame(date_index, events_by_sid, event_date_field_name):
     """
     Make a DataFrame representing simulated next earnings date_index.
 
@@ -64,18 +68,20 @@ def previous_date_frame(date_index, events_by_sid):
     ----------
     date_index : DatetimeIndex.
         The index of the returned DataFrame.
-    events_by_sid : dict[int -> DatetimeIndex]
-        Dict mapping sids to a series of dates. Each k:v pair of the series
-        represents the date we learned of the event mapping to the date the
-        event will occur.
+    events_by_sid : dict[int -> pd.DataFrame]
+        Dict mapping sids to a DataFrame. The index of the DataFrame
+        represents the date we learned of the event mapping to the event
+        data.
+    event_date_field_name : str
+        The name of the date field that marks when the event occurred.
 
     Returns
     -------
     previous_events: pd.DataFrame
         A DataFrame where each column is a security from `events_by_sid` where
-        the values are the dates of the previous event that occured on the date
-        of the index. Entries falling before the first date will have `NaT` as
-        the result in the output.
+        the values are the dates of the previous event that occurred on the
+        date of the index. Entries falling before the first date will have
+        `NaT` as the result in the output.
 
     See Also
     --------
@@ -88,7 +94,7 @@ def previous_date_frame(date_index, events_by_sid):
         # events_by_sid[sid] is Series mapping knowledge_date to actual
         # event_date.  We don't care about the knowledge date for
         # computing previous earnings.
-        values = events_by_sid[sid].values
+        values = events_by_sid[sid][event_date_field_name].values
         values = values[values <= d_n]
         out[date_index.searchsorted(values), col_idx] = values
 

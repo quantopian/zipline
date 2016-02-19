@@ -365,39 +365,3 @@ class BlazeEarningsCalendarLoaderNotInteractiveTestCase(
             self,
         ).loader_args(dates)
         return swap_resources_into_scope(bound_expr, {})
-
-
-class EarningsCalendarLoaderInferTimestampTestCase(TestCase):
-    def test_infer_timestamp(self):
-        dtx = pd.date_range('2014-01-01', '2014-01-10')
-        announcement_dates = {
-            0: pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx}),
-            1: pd.DataFrame(
-                {TS_FIELD_NAME: dtx, ANNOUNCEMENT_FIELD_NAME: dtx}
-            ),
-        }
-        loader = EarningsCalendarLoader(
-            dtx,
-            announcement_dates,
-            infer_timestamps=True,
-        )
-        self.assertEqual(
-            loader.events_by_sid.keys(),
-            announcement_dates.keys(),
-        )
-        assert_series_equal(
-            loader.events_by_sid[0].loc[:, ANNOUNCEMENT_FIELD_NAME],
-            pd.Series(index=[dtx[0]] * 10,
-                      data=dtx,
-                      name=ANNOUNCEMENT_FIELD_NAME),
-        )
-        assert_series_equal(
-            loader.events_by_sid[1][ANNOUNCEMENT_FIELD_NAME],
-            pd.Series(
-                index=announcement_dates[1][TS_FIELD_NAME],
-                data=np.array(
-                    announcement_dates[1][ANNOUNCEMENT_FIELD_NAME]
-                ),
-                name=ANNOUNCEMENT_FIELD_NAME
-            )
-        )

@@ -5,10 +5,10 @@ from .core import (
 )
 from zipline.pipeline.data import EarningsCalendar
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
-from .events import BlazeEventsCalendarLoader
+from .events import BlazeEventsLoader
 
 
-class BlazeEarningsCalendarLoader(BlazeEventsCalendarLoader):
+class BlazeEarningsCalendarLoader(BlazeEventsLoader):
     """A pipeline loader for the ``EarningsCalendar`` dataset that loads
     data from a blaze expression.
 

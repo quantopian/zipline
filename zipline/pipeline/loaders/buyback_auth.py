@@ -87,7 +87,6 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
         return frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
                           SHARE_COUNT_FIELD_NAME])
 
-
     @lazyval
     def previous_share_count_loader(self):
         return self._previous_event_value_loader(
