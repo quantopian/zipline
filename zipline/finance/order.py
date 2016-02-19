@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class Order(object):
                  commission=None, id=None):
         """
         @dt - datetime.datetime that the order was placed
-        @sid - stock sid of the order
+        @sid - asset for the order.  called sid for historical reasons.
         @amount - the number of shares to buy/sell
                   a positive sign indicates a buy
                   a negative sign indicates a sell

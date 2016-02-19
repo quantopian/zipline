@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,12 +58,14 @@ Performance Tracking
 """
 
 from __future__ import division
+
 import logbook
 from six import iteritems
 from datetime import datetime
 
 import pandas as pd
 from pandas.tseries.tools import normalize_date
+
 from zipline.finance.performance.period import PerformancePeriod
 
 import zipline.finance.risk as risk
@@ -301,13 +303,21 @@ class PerformanceTracker(object):
         # Dividends whose ex_date is the next trading day.  We need to check if
         # we own any of these stocks so we know to pay them out when the pay
         # date comes.
+
         if held_sids:
-            dividends_earnable = self._adjustment_reader.\
-                get_dividends_with_ex_date(held_sids, next_trading_day)
+            asset_finder = self.env.asset_finder
+
+            cash_dividends = self._adjustment_reader.\
+                get_dividends_with_ex_date(held_sids, next_trading_day,
+                                           asset_finder)
             stock_dividends = self._adjustment_reader.\
-                get_stock_dividends_with_ex_date(held_sids, next_trading_day)
-            position_tracker.earn_dividends(dividends_earnable,
-                                            stock_dividends)
+                get_stock_dividends_with_ex_date(held_sids, next_trading_day,
+                                                 asset_finder)
+
+            position_tracker.earn_dividends(
+                cash_dividends,
+                stock_dividends
+            )
 
         net_cash_payment = position_tracker.pay_dividends(next_trading_day)
         if not net_cash_payment:

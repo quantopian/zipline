@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import pandas as pd
 import numpy as np
 from six.moves import range, zip
 
+from zipline.assets import Asset
 from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     SQLiteAdjustmentReader,
@@ -120,12 +121,15 @@ def check_account(account,
                                account['net_liquidation'], rtol=1e-3)
 
 
-def create_txn(sid, dt, price, amount):
+def create_txn(asset, dt, price, amount):
     """
     Create a fake transaction to be filled and processed prior to the execution
     of a given trade event.
     """
-    mock_order = Order(dt, sid, amount, id=None)
+    if not isinstance(asset, Asset):
+        raise ValueError("pass an asset to create_txn")
+
+    mock_order = Order(dt, asset, amount, id=None)
     return create_transaction(mock_order, dt, price, amount)
 
 
@@ -166,7 +170,6 @@ def calculate_results(sim_params,
     results = []
 
     for date in sim_params.trading_days:
-
         for txn in filter(lambda txn: txn.dt == date, txns):
             # Process txns for this date.
             perf_tracker.process_transaction(txn)
@@ -250,6 +253,7 @@ class TestSplitPerformance(unittest.TestCase):
         setup_env_data(cls.env, cls.sim_params, [1])
 
         cls.tempdir = TempDirectory()
+        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
 
     @classmethod
     def tearDownClass(cls):
@@ -257,7 +261,7 @@ class TestSplitPerformance(unittest.TestCase):
 
     def test_split_long_position(self):
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             # TODO: Should we provide adjusted prices in the tests, or provide
             # raw prices and adjust via DataPortal?
             [20, 60],
@@ -276,7 +280,7 @@ class TestSplitPerformance(unittest.TestCase):
             {1: events},
         )
 
-        txns = [create_txn(1, events[0].dt, 20, 100)]
+        txns = [create_txn(self.asset1, events[0].dt, 20, 100)]
 
         # set up a split with ratio 3 occurring at the start of the second
         # day.
@@ -365,13 +369,15 @@ class TestCommissionEvents(unittest.TestCase):
 
         cls.tempdir = TempDirectory()
 
+        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
+
     @classmethod
     def tearDownClass(cls):
         cls.tempdir.cleanup()
 
     def test_commission_event(self):
         trade_events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
@@ -462,7 +468,7 @@ class TestCommissionEvents(unittest.TestCase):
         Ensure no div-by-zero errors.
         """
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
@@ -480,8 +486,8 @@ class TestCommissionEvents(unittest.TestCase):
         # Buy and sell the same sid so that we have a zero position by the
         # time of events[3].
         txns = [
-            create_txn(1, events[0].dt, 20, 1),
-            create_txn(1, events[0].dt, 20, -1)
+            create_txn(self.asset1, events[0].dt, 20, 1),
+            create_txn(self.asset1, events[0].dt, 20, -1)
         ]
 
         # Add a cash adjustment at the time of event[3].
@@ -504,7 +510,7 @@ class TestCommissionEvents(unittest.TestCase):
         Ensure no position-not-found or sid-not-found errors.
         """
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
@@ -522,7 +528,8 @@ class TestCommissionEvents(unittest.TestCase):
         # Add a cash adjustment at the time of event[3].
         cash_adj_dt = events[3].dt
         commissions = {}
-        cash_adjustment = factory.create_commission(1, 300.0, cash_adj_dt)
+        cash_adjustment = factory.create_commission(self.asset1,
+                                                    300.0, cash_adj_dt)
         commissions[cash_adj_dt] = [cash_adjustment]
 
         results = calculate_results(self.sim_params,
@@ -550,6 +557,9 @@ class TestDividendPerformance(unittest.TestCase):
 
         setup_env_data(cls.env, cls.sim_params, [1, 2])
 
+        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
+        cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
+
     @classmethod
     def tearDownClass(cls):
         del cls.env
@@ -573,7 +583,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_long_position_receives_dividend(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -615,7 +625,7 @@ class TestDividendPerformance(unittest.TestCase):
         data_portal._adjustment_reader = adjustment_reader
 
         # Simulate a transaction being filled prior to the ex_date.
-        txns = [create_txn(1, events[0].dt, 10.0, 100)]
+        txns = [create_txn(self.asset1, events[0].dt, 10.0, 100)]
         results = calculate_results(
             self.sim_params,
             self.env,
@@ -643,9 +653,9 @@ class TestDividendPerformance(unittest.TestCase):
     def test_long_position_receives_stock_dividend(self):
         # post some trades in the market
         events = {}
-        for sid in (1, 2):
-            events[sid] = factory.create_trade_history(
-                sid,
+        for asset in [self.asset1, self.asset2]:
+            events[asset.sid] = factory.create_trade_history(
+                asset,
                 [10, 10, 10, 10, 10, 10],
                 [100, 100, 100, 100, 100, 100],
                 oneday,
@@ -694,8 +704,9 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             events,
         )
+
         data_portal._adjustment_reader = adjustment_reader
-        txns = [create_txn(1, events[1][0].dt, 10.0, 100)]
+        txns = [create_txn(self.asset1, events[1][0].dt, 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
@@ -724,7 +735,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_long_position_purchased_on_ex_date_receives_no_dividend(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -766,7 +777,7 @@ class TestDividendPerformance(unittest.TestCase):
         data_portal._adjustment_reader = adjustment_reader
 
         # Simulate a transaction being filled on the ex_date.
-        txns = [create_txn(1, events[1].dt, 10.0, 100)]
+        txns = [create_txn(self.asset1, events[1].dt, 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
@@ -791,7 +802,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_selling_before_dividend_payment_still_gets_paid(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -832,8 +843,8 @@ class TestDividendPerformance(unittest.TestCase):
         )
         data_portal._adjustment_reader = adjustment_reader
 
-        buy_txn = create_txn(1, events[0].dt, 10.0, 100)
-        sell_txn = create_txn(1, events[2].dt, 10.0, -100)
+        buy_txn = create_txn(self.asset1, events[0].dt, 10.0, 100)
+        sell_txn = create_txn(self.asset1, events[2].dt, 10.0, -100)
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
@@ -859,7 +870,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_buy_and_sell_before_ex(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -899,8 +910,8 @@ class TestDividendPerformance(unittest.TestCase):
             {1: events},
         )
         data_portal._adjustment_reader = adjustment_reader
-        buy_txn = create_txn(1, events[1].dt, 10.0, 100)
-        sell_txn = create_txn(1, events[2].dt, 10.0, -100)
+        buy_txn = create_txn(self.asset1, events[1].dt, 10.0, 100)
+        sell_txn = create_txn(self.asset1, events[2].dt, 10.0, -100)
         txns = [buy_txn, sell_txn]
 
         results = calculate_results(
@@ -925,7 +936,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_ending_before_pay_date(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -970,7 +981,7 @@ class TestDividendPerformance(unittest.TestCase):
             {1: events},
         )
         data_portal._adjustment_reader = adjustment_reader
-        txns = [create_txn(1, events[1].dt, 10.0, 100)]
+        txns = [create_txn(self.asset1, events[1].dt, 10.0, 100)]
 
         results = calculate_results(
             self.sim_params,
@@ -997,7 +1008,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_short_position_pays_dividend(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -1037,7 +1048,7 @@ class TestDividendPerformance(unittest.TestCase):
             {1: events},
         )
         data_portal._adjustment_reader = adjustment_reader
-        txns = [create_txn(1, events[1].dt, 10.0, -100)]
+        txns = [create_txn(self.asset1, events[1].dt, 10.0, -100)]
 
         results = calculate_results(
             self.sim_params,
@@ -1061,7 +1072,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_no_position_receives_no_dividend(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -1123,7 +1134,7 @@ class TestDividendPerformance(unittest.TestCase):
     def test_no_dividend_at_simulation_end(self):
         # post some trades in the market
         events = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 10, 10],
             [100, 100, 100, 100, 100],
             oneday,
@@ -1176,7 +1187,7 @@ class TestDividendPerformance(unittest.TestCase):
         )
         data_portal._adjustment_reader = adjustment_reader
         # Simulate a transaction being filled prior to the ex_date.
-        txns = [create_txn(1, events[0].dt, 10.0, 100)]
+        txns = [create_txn(self.asset1, events[0].dt, 10.0, 100)]
         results = calculate_results(
             sim_params,
             self.env,
@@ -1218,6 +1229,9 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
 
         setup_env_data(cls.env, cls.sim_params, [1, 2])
 
+        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
+        cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
+
 
 class TestPositionPerformance(unittest.TestCase):
 
@@ -1232,6 +1246,10 @@ class TestPositionPerformance(unittest.TestCase):
         setup_env_data(self.env, self.sim_params, sids, futures_sids)
 
         self.finder = self.env.asset_finder
+
+        self.asset1 = self.env.asset_finder.retrieve_asset(1)
+        self.asset2 = self.env.asset_finder.retrieve_asset(2)
+        self.asset3 = self.env.asset_finder.retrieve_asset(3)
 
     def tearDown(self):
         self.tempdir.cleanup()
@@ -1248,7 +1266,7 @@ class TestPositionPerformance(unittest.TestCase):
         self.create_environment_stuff()
 
         trades_1 = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 9],
             [100, 100, 100, 100],
             oneday,
@@ -1257,7 +1275,7 @@ class TestPositionPerformance(unittest.TestCase):
         )
 
         trades_2 = factory.create_trade_history(
-            2,
+            self.asset2,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             oneday,
@@ -1272,8 +1290,8 @@ class TestPositionPerformance(unittest.TestCase):
             {1: trades_1, 2: trades_2}
         )
 
-        txn1 = create_txn(1, trades_1[0].dt, 10.0, 100)
-        txn2 = create_txn(2, trades_1[0].dt, 10.0, -100)
+        txn1 = create_txn(self.asset1, trades_1[0].dt, 10.0, 100)
+        txn2 = create_txn(self.asset2, trades_1[0].dt, 10.0, -100)
 
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
@@ -1354,7 +1372,7 @@ class TestPositionPerformance(unittest.TestCase):
         self.create_environment_stuff()
 
         trades = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             oneday,
@@ -1367,7 +1385,7 @@ class TestPositionPerformance(unittest.TestCase):
             self.tempdir,
             self.sim_params,
             {1: trades})
-        txn = create_txn(1, trades[1].dt, 10.0, 1000)
+        txn = create_txn(self.asset1, trades[1].dt, 10.0, 1000)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1446,7 +1464,7 @@ class TestPositionPerformance(unittest.TestCase):
 
         # post some trades in the market
         trades = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             oneday,
@@ -1459,7 +1477,7 @@ class TestPositionPerformance(unittest.TestCase):
             self.tempdir,
             self.sim_params,
             {1: trades})
-        txn = create_txn(1, trades[1].dt, 10.0, 100)
+        txn = create_txn(self.asset1, trades[1].dt, 10.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1562,7 +1580,7 @@ single short-sale transaction"""
         self.create_environment_stuff(num_days=6)
 
         trades = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 11, 10, 9],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -1578,7 +1596,7 @@ single short-sale transaction"""
             self.sim_params,
             {1: trades})
 
-        txn = create_txn(1, trades[1].dt, 10.0, -100)
+        txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(
@@ -1797,7 +1815,7 @@ cost of sole txn in test"
 
         # post some trades in the market
         trades = factory.create_trade_history(
-            3,
+            self.asset3,
             [10, 10, 10, 11],
             [100, 100, 100, 100],
             oneday,
@@ -1812,7 +1830,7 @@ cost of sole txn in test"
             {3: trades}
         )
 
-        txn = create_txn(3, trades[1].dt, 10.0, 1)
+        txn = create_txn(self.asset3, trades[1].dt, 10.0, 1)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -1917,7 +1935,7 @@ single short-sale transaction"""
         self.create_environment_stuff(num_days=6)
 
         trades = factory.create_trade_history(
-            3,
+            self.asset3,
             [10, 10, 10, 11, 10, 9],
             [100, 100, 100, 100, 100, 100],
             oneday,
@@ -1933,7 +1951,7 @@ single short-sale transaction"""
         )
         trades_1 = trades[:-2]
 
-        txn = create_txn(3, trades[0].dt, 10.0, -1)
+        txn = create_txn(self.asset3, trades[0].dt, 10.0, -1)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -2163,7 +2181,7 @@ trade after cover"""
         self.create_environment_stuff(num_days=10)
 
         trades = factory.create_trade_history(
-            1,
+            self.asset1,
             [10, 10, 10, 11, 9, 8, 7, 8, 9, 10],
             [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
             oneday,
@@ -2177,8 +2195,8 @@ trade after cover"""
             self.sim_params,
             {1: trades})
 
-        short_txn = create_txn(1, trades[1].dt, 10.0, -100)
-        cover_txn = create_txn(1, trades[6].dt, 7.0, 100)
+        short_txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
+        cover_txn = create_txn(self.asset1, trades[6].dt, 7.0, 100)
         pt = perf.PositionTracker(self.env.asset_finder, data_portal,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
@@ -2250,7 +2268,7 @@ shares in position"
         self.create_environment_stuff(num_days=5)
 
         history_args = (
-            1,
+            self.asset1,
             [10, 11, 11, 12, 10],
             [100, 100, 100, 100, 100],
             oneday,
@@ -2309,7 +2327,7 @@ shares in position"
         )
 
         down_tick = trades[-1]
-        sale_txn = create_txn(1, down_tick.dt, 10.0, -100)
+        sale_txn = create_txn(self.asset1, down_tick.dt, 10.0, -100)
         pp.rollover()
 
         pt.execute_transaction(sale_txn)

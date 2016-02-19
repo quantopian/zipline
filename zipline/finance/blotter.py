@@ -292,8 +292,9 @@ class Blotter(object):
         return state_dict
 
     def __setstate__(self, state):
-
-        self.__init__(state.pop('data_frequency'))
+        # FIXME this doesn't work (passing in None assetfinder as second
+        # param), but srz/desrz code isn't used in prod. can fix later.
+        self.__init__(state.pop('data_frequency'), None)
 
         OLDEST_SUPPORTED_STATE = 1
         version = state.pop(VERSION_LABEL)

@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -306,20 +306,27 @@ class PositionTracker(object):
         Given a list of dividends whose ex_dates are all the next trading day,
         calculate and store the cash and/or stock payments to be paid on each
         dividend's pay date.
+
+        Parameters
+        ----------
+        dividends: iterable of (asset, amount, pay_date) namedtuples
+
+        stock_dividends: iterable of (asset, payment_asset, ratio, pay_date)
+            namedtuples.
         """
         for dividend in dividends:
             # Store the earned dividends so that they can be paid on the
             # dividends' pay_dates.
-            div_owed = self.positions[dividend.sid].earn_dividend(dividend)
+            div_owed = self.positions[dividend.asset].earn_dividend(dividend)
             try:
-                self._unpaid_dividends[dividend.pay_date].append(
-                    div_owed)
+                self._unpaid_dividends[dividend.pay_date].append(div_owed)
             except KeyError:
                 self._unpaid_dividends[dividend.pay_date] = [div_owed]
 
         for stock_dividend in stock_dividends:
-            div_owed = self.positions[stock_dividend.sid].earn_stock_dividend(
-                stock_dividend)
+            div_owed = \
+                self.positions[stock_dividend.asset].earn_stock_dividend(
+                    stock_dividend)
             try:
                 self._unpaid_stock_dividends[stock_dividend.pay_date].\
                     append(div_owed)
@@ -349,24 +356,24 @@ class PositionTracker(object):
 
         # Add stock for any stock dividends paid.  Again, the values here may
         # be negative in the case of short positions.
-
         try:
             stock_payments = self._unpaid_stock_dividends[next_trading_day]
         except:
             stock_payments = []
 
         for stock_payment in stock_payments:
-            stock = stock_payment['payment_sid']
+            payment_asset = stock_payment['payment_asset']
             share_count = stock_payment['share_count']
             # note we create a Position for stock dividend if we don't
             # already own the asset
-            if stock in self.positions:
-                position = self.positions[stock]
+            if payment_asset in self.positions:
+                position = self.positions[payment_asset]
             else:
-                position = self.positions[stock] = Position(stock)
+                position = self.positions[payment_asset] = \
+                    Position(payment_asset)
 
             position.amount += share_count
-            self._update_asset(stock)
+            self._update_asset(payment_asset)
 
         return net_cash_payment
 
@@ -424,9 +431,14 @@ class PositionTracker(object):
 
     def sync_last_sale_prices(self, dt):
         data_portal = self._data_portal
-        for sid, position in iteritems(self.positions):
-            position.last_sale_price = data_portal.get_spot_value(
-                sid, 'close', dt, self.data_frequency)
+        for asset, position in iteritems(self.positions):
+            if dt >= asset.end_date:
+                # if the asset no longer exists, yet we somehow are being
+                # asked for the last price, we want 0 instead of NaN.
+                position.last_sale_price = 0
+            else:
+                position.last_sale_price = data_portal.get_spot_value(
+                    asset, 'price', dt, self.data_frequency)
 
     def stats(self):
         amounts = []
