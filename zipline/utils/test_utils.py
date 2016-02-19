@@ -347,6 +347,91 @@ def make_simple_equity_info(sids, start_date, end_date, symbols=None):
     )
 
 
+def make_jagged_equity_info(num_assets,
+                            start_date,
+                            first_end,
+                            frequency,
+                            periods_between_ends):
+    """
+    Create a DataFrame representing assets that all begin at the same start
+    date, but have cascading end dates.
+
+    Parameters
+    ----------
+    num_assets : int
+        How many assets to create.
+    start_date : pd.Timestamp
+        The start date for all the assets.
+    first_end : pd.Timestamp
+        The date at which the first equity will end.
+    frequency : str or pd.tseries.offsets.Offset (e.g. trading_day)
+        Frequency used to interpret the next argument.
+    periods_between_ends : int
+        Starting after the first end date, end each asset every
+        `frequency` * `periods_between_ends`.
+
+    Returns
+    -------
+    info : pd.DataFrame
+        DataFrame representing newly-created assets.
+    """
+    return pd.DataFrame(
+        {
+            'symbol': [chr(ord('A') + i) for i in range(num_assets)],
+            'start_date': start_date,
+            'end_date': pd.date_range(
+                first_end,
+                freq=(periods_between_ends * frequency),
+                periods=num_assets,
+            ),
+            'exchange': 'TEST',
+        },
+        index=range(num_assets),
+    )
+
+def make_trade_panel_for_asset_info(dates,
+                                    asset_info,
+                                    price_start,
+                                    price_step_by_date,
+                                    price_step_by_sid,
+                                    volume_start,
+                                    volume_step_by_date,
+                                    volume_step_by_sid):
+    """
+    Convert an asset info frame into a panel of trades, writing NaNs for
+    locations where assets did not exist.
+    """
+    sids = list(asset_info.index)
+
+    price_sid_deltas = np.arange(len(sids), dtype=float) * price_step_by_sid
+    price_date_deltas = np.arange(len(dates), dtype=float) * price_step_by_date
+    prices = (price_sid_deltas + price_date_deltas[:, None]) + price_start
+
+    volume_sid_deltas = np.arange(len(sids)) * volume_step_by_sid
+    volume_date_deltas = np.arange(len(dates)) * volume_step_by_date
+    volumes = (volume_sid_deltas + volume_date_deltas[:, None]) + volume_start
+
+    for j, sid in enumerate(sids):
+        start_date, end_date = asset_info.loc[sid, ['start_date', 'end_date']]
+        # Normalize here so the we still generate non-NaN values on the minutes
+        # for an asset's last trading day.
+        for i, date in enumerate(dates.normalize()):
+            if not (start_date <= date <= end_date):
+                prices[i, j] = np.nan
+                volumes[i, j] = 0
+
+    # Legacy panel sources use a flipped convention from what we return
+    # elsewhere.
+    return pd.Panel(
+        {
+            'price': prices,
+            'volume': volumes,
+        },
+        major_axis=dates,
+        minor_axis=sids,
+    ).transpose(2, 1, 0)
+
+
 def make_future_info(first_sid,
                      root_symbols,
                      years,
