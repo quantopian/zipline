@@ -6,26 +6,26 @@ from toolz import merge
 from .base import PipelineLoader
 from .frame import DataFrameLoader
 from .utils import next_date_frame, previous_date_frame, previous_value
+from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME
 
-WRONG_COLS_ERROR = "Expected columns %s for sid %s but got columns %s."
+WRONG_COLS_ERROR = "Expected columns {expected_columns} for sid {sid} but " \
+                   "got columns {resulting_columns}."
 
-BAD_DATA_FORMAT_ERROR = ("Data for sid %s must be in DataFrame, "
+BAD_DATA_FORMAT_ERROR = ("Data for sid {sid} must be in DataFrame, "
                          "Series, or DatetimeIndex.")
 
-SERIES_NO_DTINDEX_ERROR = ("Got Series for sid %d, but index was not "
+SERIES_NO_DTINDEX_ERROR = ("Got Series for sid {sid}, but index was not "
                            "DatetimeIndex.")
 
-DTINDEX_NOT_INFER_TS_ERROR = ("Got DatetimeIndex for sid %d.\n"
+DTINDEX_NOT_INFER_TS_ERROR = ("Got DatetimeIndex for sid {sid}.\n"
                               "Pass `infer_timestamps=True` to use the first "
                               "date in `all_dates` as implicit timestamp.")
 
-DF_NO_TS_NOT_INFER_TS_ERROR = ("Got DataFrame without a '%r' column for sid "
-                               "%d.\nPass `infer_timestamps=True` to use the "
+DF_NO_TS_NOT_INFER_TS_ERROR = ("Got DataFrame without a '{"
+                               "timestamp_column_name}' column for sid {sid}."
+                               "\nPass `infer_timestamps=True` to use the "
                                "first date in `all_dates` as implicit "
                                "timestamp.")
-
-TS_FIELD_NAME = "timestamp"
-SID_FIELD_NAME = "sid"
 
 
 class EventsLoader(PipelineLoader):
@@ -38,8 +38,7 @@ class EventsLoader(PipelineLoader):
     ----------
     all_dates : pd.DatetimeIndex
         Index of dates for which we can serve queries.
-    events_by_sid : dict[int -> pd.DataFrame], dict[int -> pd.Series],
-    or dict[int -> pd.DatetimeIndex]
+    events_by_sid : dict[int -> pd.DataFrame or pd.Series or pd.DatetimeIndex]
         Dict mapping sids to objects representing dates on which earnings
         occurred.
 
@@ -65,13 +64,12 @@ class EventsLoader(PipelineLoader):
         Whether to allow omitting the "timestamp" column.
     dataset : DataSet
         The DataSet object for which this loader loads data.
-    expected_cols : frozenset
-        Set of expected columns for the dataset, without timestamp.
+
     """
 
     @abc.abstractproperty
     def expected_cols(self):
-        pass
+        raise NotImplemented('expected_cols')
 
     def __init__(self,
                  all_dates,
@@ -91,13 +89,13 @@ class EventsLoader(PipelineLoader):
             if isinstance(v, pd.Series):
                 if not isinstance(v.index, pd.DatetimeIndex):
                     raise ValueError(
-                        SERIES_NO_DTINDEX_ERROR % k
+                        SERIES_NO_DTINDEX_ERROR.format(sid=k)
                     )
                 self.events_by_sid[k] = v = pd.DataFrame(v)
             elif isinstance(v, pd.DatetimeIndex):
                 if not infer_timestamps:
                     raise ValueError(
-                        DTINDEX_NOT_INFER_TS_ERROR % k
+                        DTINDEX_NOT_INFER_TS_ERROR.format(sid=k)
                     )
                 self.events_by_sid[k] = v = pd.DataFrame(
                     v, index=[dates[0]] * len(v)
@@ -107,15 +105,17 @@ class EventsLoader(PipelineLoader):
                 if TS_FIELD_NAME not in v.columns:
                     if not infer_timestamps:
                         raise ValueError(
-                            DF_NO_TS_NOT_INFER_TS_ERROR %
-                            (TS_FIELD_NAME, k)
+                            DF_NO_TS_NOT_INFER_TS_ERROR.format(
+                                timestamp_column_name=TS_FIELD_NAME,
+                                sid=k
+                            )
                         )
                     self.events_by_sid[k] = v = v.copy()
                     v.index = [dates[0]] * len(v)
                 else:
                     self.events_by_sid[k] = v.set_index(TS_FIELD_NAME)
             else:
-                raise ValueError(BAD_DATA_FORMAT_ERROR % k)
+                raise ValueError(BAD_DATA_FORMAT_ERROR.format(sid=k))
             # Once data is in a DF, make sure columns are correct.
             cols_except_ts = (set(v.columns) -
                               {TS_FIELD_NAME} -
@@ -123,8 +123,11 @@ class EventsLoader(PipelineLoader):
             # Check that all columns other than timestamp are as expected.
             if cols_except_ts != self.expected_cols:
                 raise ValueError(
-                    WRONG_COLS_ERROR %
-                    (self.expected_cols, k, v.columns.values)
+                    WRONG_COLS_ERROR .format(
+                        expected_columns=self.expected_cols,
+                        sid=k,
+                        resulting_columns=v.columns.values
+                    )
                 )
         self.dataset = dataset
 

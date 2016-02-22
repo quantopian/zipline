@@ -1,7 +1,7 @@
-from .core import (
+from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
+    SID_FIELD_NAME,
     TS_FIELD_NAME,
-    SID_FIELD_NAME
 )
 from zipline.pipeline.data import EarningsCalendar
 from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
@@ -26,8 +26,6 @@ class BlazeEarningsCalendarLoader(BlazeEventsLoader):
         The timezeone to use for the data query cutoff.
     dataset: DataSet
         The DataSet object for which this loader loads data.
-    concrete_loader: EventsLoader
-        The reference loader to use for this dataset.
 
     Notes
     -----

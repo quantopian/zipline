@@ -2,14 +2,16 @@ from .core import (
     TS_FIELD_NAME,
     SID_FIELD_NAME,
 )
+from zipline.pipeline.common import (
+    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+    CASH_FIELD_NAME,
+    SHARE_COUNT_FIELD_NAME
+)
 from zipline.pipeline.data import (CashBuybackAuthorizations,
                                    ShareBuybackAuthorizations)
 from zipline.pipeline.loaders.buyback_auth import (
-    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
     CashBuybackAuthorizationsLoader,
-    CASH_FIELD_NAME,
     ShareBuybackAuthorizationsLoader,
-    SHARE_COUNT_FIELD_NAME
 )
 from .events import BlazeEventsLoader
 

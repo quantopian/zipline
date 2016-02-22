@@ -1,5 +1,5 @@
 """
-Reference implementation for EarningsCalendar loaders.
+Reference implementation for buyback auth loaders.
 """
 
 from ..data.buyback_auth import (
@@ -7,18 +7,18 @@ from ..data.buyback_auth import (
     ShareBuybackAuthorizations
 )
 from .events import EventsLoader
+from zipline.pipeline.common import (
+    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+    CASH_FIELD_NAME,
+    SHARE_COUNT_FIELD_NAME
+)
 from zipline.utils.memoize import lazyval
-
-
-BUYBACK_ANNOUNCEMENT_FIELD_NAME = 'buyback_date'
-SHARE_COUNT_FIELD_NAME = 'share_count'
-CASH_FIELD_NAME = 'cash'
 
 
 class CashBuybackAuthorizationsLoader(EventsLoader):
     """
     Reference loader for
-    :class:`zipline.pipeline.data.earnings.CashBuybackAuthorizations`.
+    :class:`zipline.pipeline.data.CashBuybackAuthorizations`.
 
     events_by_sid: dict[sid -> pd.DataFrame(knowledge date,
     event date, cash value)]
@@ -60,13 +60,13 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
 class ShareBuybackAuthorizationsLoader(EventsLoader):
     """
     Reference loader for
-    :class:`zipline.pipeline.data.earnings.ShareBuybackAuthorizations`.
+    :class:`zipline.pipeline.data.ShareBuybackAuthorizations`.
 
     Does not currently support adjustments to the dates of known buyback
     authorizations.
 
     events_by_sid: dict[sid -> pd.DataFrame(knowledge date,
-    event date, share value)]
+     event date, share value)]
 
     """
 

@@ -3,12 +3,14 @@ import abc
 from datashape import istabular
 
 from .core import (
-    TS_FIELD_NAME,
-    SID_FIELD_NAME,
     bind_expression_to_resources,
     ffill_query_in_range,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
+from zipline.pipeline.common import (
+    SID_FIELD_NAME,
+    TS_FIELD_NAME,
+)
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
     normalize_data_query_bounds,
@@ -36,6 +38,7 @@ class BlazeEventsLoader(PipelineLoader):
         The timezeone to use for the data query cutoff.
     dataset : DataSet
         The DataSet object for which this loader loads data.
+
     Notes
     -----
     The expression should have a tabular dshape of::
@@ -47,7 +50,7 @@ class BlazeEventsLoader(PipelineLoader):
 
     And other dataset-specific fields, where each row of the table is a
     record including the sid to identify the company, the timestamp where we
-    learned about the announcement, and the date when the earnings will be
+    learned about the announcement, and the date when the earnings will be z
     announced.
 
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
@@ -82,7 +85,7 @@ class BlazeEventsLoader(PipelineLoader):
 
     @abc.abstractproperty
     def concrete_loader(self):
-        pass
+        NotImplementedError('concrete_loader')
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         data_query_time = self._data_query_time

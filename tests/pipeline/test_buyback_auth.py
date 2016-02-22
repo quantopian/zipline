@@ -12,8 +12,19 @@ import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_series_equal
 from six import iteritems
+from tests.pipeline.test_events import param_dates, EventLoaderCommonTest
 
 from zipline.pipeline import Pipeline
+from zipline.pipeline.common import(
+    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+    CASH_FIELD_NAME,
+    DAYS_SINCE_PREV,
+    PREVIOUS_BUYBACK_ANNOUNCEMENT,
+    PREVIOUS_BUYBACK_CASH,
+    PREVIOUS_BUYBACK_SHARE_COUNT,
+    SHARE_COUNT_FIELD_NAME,
+    SID_FIELD_NAME,
+    TS_FIELD_NAME)
 from zipline.pipeline.data import (CashBuybackAuthorizations,
                                    ShareBuybackAuthorizations)
 from zipline.pipeline.engine import SimplePipelineEngine
@@ -26,11 +37,6 @@ from zipline.pipeline.loaders.buyback_auth import \
 from zipline.pipeline.loaders.blaze import (
     BlazeCashBuybackAuthorizationsLoader,
     BlazeShareBuybackAuthorizationsLoader,
-    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-    SHARE_COUNT_FIELD_NAME,
-    SID_FIELD_NAME,
-    TS_FIELD_NAME,
-    CASH_FIELD_NAME
 )
 from zipline.utils.numpy_utils import make_datetime64D, NaTD
 from zipline.utils.test_utils import (
@@ -41,34 +47,26 @@ from zipline.utils.test_utils import (
 )
 
 
-sids = A, B, C, D, E = range(5)
-
-equity_info = make_simple_equity_info(
-    sids,
-    start_date=pd.Timestamp('2013-01-01', tz='UTC'),
-    end_date=pd.Timestamp('2015-01-01', tz='UTC'),
-)
-
-buyback_authorizations = {
-    # K1--K2--A1--A2--SC1--SC2--V1--V2.
-    A: pd.DataFrame({
-        "timestamp": pd.to_datetime(['2014-01-05', '2014-01-10']),
+buyback_authorizations = [
+    # K1--K2--A1--A2.
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
         BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-15',
                                                          '2014-01-20']),
         SHARE_COUNT_FIELD_NAME: [1, 15],
         CASH_FIELD_NAME: [10, 20]
     }),
-    # K1--K2--E2--E1.
-    B: pd.DataFrame({
-        "timestamp": pd.to_datetime(['2014-01-05', '2014-01-10']),
+    # K1--K2--A2--A1.
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
         BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([
             '2014-01-20', '2014-01-15'
         ]),
         SHARE_COUNT_FIELD_NAME: [7, 13], CASH_FIELD_NAME: [10, 22]
     }),
-    # K1--E1--K2--E2.
-    C: pd.DataFrame({
-        "timestamp": pd.to_datetime(['2014-01-05', '2014-01-15']),
+    # K1--A1--K2--A2.
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
         BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([
             '2014-01-10', '2014-01-20'
         ]),
@@ -76,196 +74,34 @@ buyback_authorizations = {
         CASH_FIELD_NAME: [4, 7]
     }),
     # K1 == K2.
-    D: pd.DataFrame({
-        "timestamp": pd.to_datetime(['2014-01-05'] * 2),
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
         BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([
             '2014-01-10', '2014-01-15'
         ]),
         SHARE_COUNT_FIELD_NAME: [6, 23],
         CASH_FIELD_NAME: [1, 2]
     }),
-    E: pd.DataFrame(
-        columns=["timestamp",
+    pd.DataFrame(
+        columns=[TS_FIELD_NAME,
                  BUYBACK_ANNOUNCEMENT_FIELD_NAME,
                  SHARE_COUNT_FIELD_NAME,
                  CASH_FIELD_NAME],
         dtype='datetime64[ns]'
     ),
-}
-
-# Must be a list - can't use generator since this needs to be used more than
-# once.
-param_dates = list(gen_calendars(
-    '2014-01-01',
-    '2014-01-31',
-    critical_dates=pd.to_datetime([
-        '2014-01-05',
-        '2014-01-10',
-        '2014-01-15',
-        '2014-01-20',
-    ], utc=True),
-))
+]
 
 
-def zip_with_floats(dates, flts):
-    return pd.Series(flts, index=dates).astype('float')
-
-
-def num_days_between(dates, start_date, end_date):
-    return num_days_in_range(dates, start_date, end_date)
-
-
-def zip_with_dates(index_dates, dts):
-    return pd.Series(pd.to_datetime(dts), index=index_dates)
-
-
-class BuybackAuthLoaderCommonTest(object):
-    """
-    Tests for loading the buyback authorization announcement data.
-    """
-
-    def loader_args(self, dates):
-        """Construct the base buyback authorizations object to pass to the
-        loader.
-
-        Parameters
-        ----------
-        dates : pd.DatetimeIndex
-            The dates we can serve.
-
-        Returns
-        -------
-        args : tuple[any]
-            The arguments to forward to the loader positionally.
-        """
-        return dates, self.buyback_authorizations
-
-    def setup_engine(self, dates):
-        """
-        Make a Pipeline Enigne object based on the given dates.
-        """
-        loader = self.loader_type(*self.loader_args(dates))
-        return SimplePipelineEngine(lambda _: loader, dates, self.finder)
-
-    def setup_expected_cols(self, dates):
-        """
-        Make expectation functions for the given dates calendar.
-
-        This exists to make it easy to test our various cases with critical
-        dates missing from the calendar.
-        """
-        num_days_between_for_dates = partial(num_days_between, dates)
-        zip_with_dates_for_dates = partial(zip_with_dates, dates)
-        _expected_previous_buyback_announcement = pd.DataFrame({
-            A: zip_with_dates_for_dates(
-                ['NaT'] * num_days_between_for_dates(None, '2014-01-14') +
-                ['2014-01-15'] * num_days_between_for_dates('2014-01-15',
-                                                            '2014-01-19') +
-                ['2014-01-20'] * num_days_between_for_dates('2014-01-20',
-                                                            None),
-            ),
-            B: zip_with_dates_for_dates(
-                ['NaT'] * num_days_between_for_dates(None, '2014-01-14') +
-                ['2014-01-15'] * num_days_between_for_dates('2014-01-15',
-                                                            '2014-01-19') +
-                ['2014-01-20'] * num_days_between_for_dates('2014-01-20',
-                                                            None),
-            ),
-            C: zip_with_dates_for_dates(
-                ['NaT'] * num_days_between_for_dates(None, '2014-01-09') +
-                ['2014-01-10'] * num_days_between_for_dates('2014-01-10',
-                                                            '2014-01-19') +
-                ['2014-01-20'] * num_days_between_for_dates('2014-01-20',
-                                                            None),
-            ),
-            D: zip_with_dates_for_dates(
-                ['NaT'] * num_days_between_for_dates(None, '2014-01-09') +
-                ['2014-01-10'] * num_days_between_for_dates('2014-01-10',
-                                                            '2014-01-14') +
-                ['2014-01-15'] * num_days_between_for_dates('2014-01-15',
-                                                            None),
-            ),
-            E: zip_with_dates_for_dates(['NaT'] * len(dates)),
-        }, index=dates)
-
-        _expected_previous_busday_offsets = self._compute_busday_offsets(
-            _expected_previous_buyback_announcement
-        )
-
-        # Common cols for buyback authorization datasets are announcement
-        # date and days since previous.
-        self.cols[
-            'previous_buyback_announcement'
-        ] = _expected_previous_buyback_announcement
-        self.cols['days_since_prev'] = _expected_previous_busday_offsets
-
-    @staticmethod
-    def _compute_busday_offsets(announcement_dates):
-        """
-        Compute expected business day offsets from a DataFrame of announcement
-        dates.
-        """
-        # Column-vector of dates on which factor `compute` will be called.
-        raw_call_dates = announcement_dates.index.values.astype(
-            'datetime64[D]'
-        )[:, None]
-
-        # 2D array of dates containining expected nexg announcement.
-        raw_announce_dates = (
-            announcement_dates.values.astype('datetime64[D]')
-        )
-
-        # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
-        # We fill these entries with NaNs later.
-        whereNaT = raw_announce_dates == NaTD
-        raw_announce_dates[whereNaT] = make_datetime64D(0)
-
-        # The abs call here makes it so that we can use this function to
-        # compute offsets for both next and previous earnings (previous
-        # earnings offsets come back negative).
-        expected = abs(np.busday_count(
-            raw_call_dates,
-            raw_announce_dates
-        ).astype(float))
-
-        expected[whereNaT] = np.nan
-        return pd.DataFrame(
-            data=expected,
-            columns=announcement_dates.columns,
-            index=announcement_dates.index,
-        )
-
-    def _test_compute_buyback_auth(self, dates):
-        engine = self.setup_engine(dates)
-        self.setup_expected_cols(dates)
-
-        pipe = Pipeline(
-            columns=self.pipeline_columns
-        )
-
-        result = engine.run_pipeline(
-            pipe,
-            start_date=dates[0],
-            end_date=dates[-1],
-        )
-
-        for sid in sids:
-            for col_name in self.cols.keys():
-                assert_series_equal(result[col_name].xs(sid, level=1),
-                                    self.cols[col_name][sid],
-                                    check_names=False)
-
-
-class CashBuybackAuthLoaderTestCase(TestCase, BuybackAuthLoaderCommonTest):
+class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonTest):
     """
     Test for cash buyback authorizations dataset.
     """
     pipeline_columns = {
-        'previous_buyback_cash':
+        ('%s' % PREVIOUS_BUYBACK_CASH):
             CashBuybackAuthorizations.previous_value.latest,
-        'previous_buyback_announcement':
+        PREVIOUS_BUYBACK_ANNOUNCEMENT:
             CashBuybackAuthorizations.previous_announcement_date.latest,
-        'days_since_prev':
+        DAYS_SINCE_PREV:
             BusinessDaysSincePreviousCashBuybackAuth(),
     }
 
@@ -273,12 +109,11 @@ class CashBuybackAuthLoaderTestCase(TestCase, BuybackAuthLoaderCommonTest):
     def setUpClass(cls):
         cls._cleanup_stack = stack = ExitStack()
         cls.finder = stack.enter_context(
-            tmp_asset_finder(equities=equity_info),
+            tmp_asset_finder(equities=cls.equity_info),
         )
         cls.cols = {}
-        cls.buyback_authorizations = {sid: df.drop(SHARE_COUNT_FIELD_NAME, 1)
-                                      for sid, df in
-                                      iteritems(buyback_authorizations)}
+        cls.dataset = {sid: df.drop(SHARE_COUNT_FIELD_NAME, 1)
+                       for sid, df in enumerate(buyback_authorizations)}
         cls.loader_type = CashBuybackAuthorizationsLoader
 
     @classmethod
@@ -286,51 +121,53 @@ class CashBuybackAuthLoaderTestCase(TestCase, BuybackAuthLoaderCommonTest):
         cls._cleanup_stack.close()
 
     def setup(self, dates):
-        zip_with_floats_dates = partial(zip_with_floats, dates)
-        num_days_between_dates = partial(num_days_between, dates)
-        super(CashBuybackAuthLoaderTestCase, self).setup_expected_cols(dates)
+        zip_with_floats_dates = partial(self.zip_with_floats, dates)
+        num_days_between_dates = partial(self.num_days_between, dates)
         _expected_previous_cash = pd.DataFrame({
             # TODO if the next knowledge date is 10, why is the range
             #  until 15?
-            A: zip_with_floats_dates(
-                ['NaN'] * num_days_between(dates, None, '2014-01-14') +
+            0: zip_with_floats_dates(
+                ['NaN'] * num_days_between_dates(None, '2014-01-14') +
                 [10] * num_days_between_dates('2014-01-15', '2014-01-19') +
                 [20] * num_days_between_dates('2014-01-20', None)
             ),
-            B: zip_with_floats_dates(
+            1: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-14') +
                 [22] * num_days_between_dates('2014-01-15', '2014-01-19') +
                 [10] * num_days_between_dates('2014-01-20', None)
             ),
-            C: zip_with_floats_dates(
+            2: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-09') +
                 [4] * num_days_between_dates('2014-01-10', '2014-01-19') +
                 [7] * num_days_between_dates('2014-01-20', None)
             ),
-            D: zip_with_floats_dates(
+            3: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-09') +
                 [1] * num_days_between_dates('2014-01-10', '2014-01-14') +
                 [2] * num_days_between_dates('2014-01-15', None)
             ),
-            E: zip_with_floats_dates(['NaN'] * len(dates)),
+            4: zip_with_floats_dates(['NaN'] * len(dates)),
         }, index=dates)
-        self.cols['previous_buyback_cash'] = _expected_previous_cash
+        self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT] = self.get_expected_previous(
+            dates)
+        self.cols[PREVIOUS_BUYBACK_CASH] = _expected_previous_cash
+
 
     @parameterized.expand(param_dates)
     def test_compute_cash_buyback_auth(self, dates):
         self._test_compute_buyback_auth(dates)
 
 
-class ShareBuybackAuthLoaderTestCase(BuybackAuthLoaderCommonTest, TestCase):
+class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
     """
     Test for share buyback authorizations dataset.
     """
     pipeline_columns = {
-        'previous_buyback_share_count':
+        ('%s' % PREVIOUS_BUYBACK_SHARE_COUNT):
             ShareBuybackAuthorizations.previous_share_count.latest,
-        'previous_buyback_announcement':
+        ('%s' % PREVIOUS_BUYBACK_ANNOUNCEMENT):
             ShareBuybackAuthorizations.previous_announcement_date.latest,
-        'days_since_prev':
+        DAYS_SINCE_PREV:
             BusinessDaysSincePreviousShareBuybackAuth(),
     }
 
@@ -338,12 +175,12 @@ class ShareBuybackAuthLoaderTestCase(BuybackAuthLoaderCommonTest, TestCase):
     def setUpClass(cls):
         cls._cleanup_stack = stack = ExitStack()
         cls.finder = stack.enter_context(
-            tmp_asset_finder(equities=equity_info),
+            tmp_asset_finder(equities=cls.equity_info),
         )
         cls.cols = {}
-        cls.buyback_authorizations = {sid: df.drop(CASH_FIELD_NAME, 1)
+        cls.dataset = {sid: df.drop(CASH_FIELD_NAME, 1)
                                       for sid, df in
-                                      iteritems(buyback_authorizations)}
+                                      enumerate(buyback_authorizations)}
         cls.loader_type = ShareBuybackAuthorizationsLoader
 
     @classmethod
@@ -351,35 +188,36 @@ class ShareBuybackAuthLoaderTestCase(BuybackAuthLoaderCommonTest, TestCase):
         cls._cleanup_stack.close()
 
     def setup(self, dates):
-        zip_with_floats_dates = partial(zip_with_floats, dates)
-        num_days_between_dates = partial(num_days_between, dates)
-        super(ShareBuybackAuthLoaderTestCase, self).setup_expected_cols(dates)
+        zip_with_floats_dates = partial(self.zip_with_floats, dates)
+        num_days_between_dates = partial(self.num_days_between, dates)
         _expected_previous_buyback_share_count = pd.DataFrame({
-            A: zip_with_floats_dates(
+            0: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-14') +
                 [1] * num_days_between_dates('2014-01-15', '2014-01-19') +
                 [15] * num_days_between_dates('2014-01-20', None)
             ),
-            B: zip_with_floats_dates(
+            1: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-14') +
                 [13] * num_days_between_dates('2014-01-15', '2014-01-19') +
                 [7] * num_days_between_dates('2014-01-20', None)
             ),
-            C: zip_with_floats_dates(
+            2: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-09') +
                 [3] * num_days_between_dates('2014-01-10', '2014-01-19') +
                 [1] * num_days_between_dates('2014-01-20', None)
             ),
-            D: zip_with_floats_dates(
+            3: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-09') +
                 [6] * num_days_between_dates('2014-01-10', '2014-01-14') +
                 [23] * num_days_between_dates('2014-01-15', None)
             ),
-            E: zip_with_floats_dates(['NaN'] * len(dates)),
+            4: zip_with_floats_dates(['NaN'] * len(dates)),
         }, index=dates)
         self.cols[
-            'previous_buyback_share_count'
+            PREVIOUS_BUYBACK_SHARE_COUNT
         ] = _expected_previous_buyback_share_count
+        self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT] = \
+            self.get_expected_previous(dates)
 
     @parameterized.expand(param_dates)
     def test_compute_share_buyback_auth(self, dates):
