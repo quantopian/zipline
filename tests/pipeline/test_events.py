@@ -26,7 +26,9 @@ from zipline.pipeline.loaders.events import (
     WRONG_COLS_ERROR,
 )
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import datetime64ns_dtype, NaTD, make_datetime64D
+from zipline.utils.numpy_utils import (datetime64ns_dtype,
+                                       NaTD,
+                                       make_datetime64D)
 from zipline.utils.test_utils import gen_calendars, num_days_in_range, \
     make_simple_equity_info
 
@@ -153,25 +155,42 @@ class EventLoaderTestCase(TestCase):
             expected,
         )
 
-    @parameterized.expand([
-        # DataFrame without timestamp column and infer_timestamps = True
-        [pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx}),
-         False,
-         DF_NO_TS_NOT_INFER_TS_ERROR.format(
-             timestamp_column_name=TS_FIELD_NAME,
-             sid=0
-         )
-         ],
-        # DatetimeIndex with infer_timestamps = False
-        [pd.DatetimeIndex(dtx, name=ANNOUNCEMENT_FIELD_NAME), False,
-         DTINDEX_NOT_INFER_TS_ERROR.format(sid=0)],
-        # Series with DatetimeIndex as index and infer_timestamps = False
-        [pd.Series(dtx, name=ANNOUNCEMENT_FIELD_NAME), False,
-         SERIES_NO_DTINDEX_ERROR.format(sid=0)],
-        # Some other data structure that is not expected
-        [dtx, False, BAD_DATA_FORMAT_ERROR.format(sid=0)],
-        [dtx, True, BAD_DATA_FORMAT_ERROR.format(sid=0)]
-    ])
+    @parameterized.expand(
+        [
+            # DataFrame without timestamp column and infer_timestamps = True
+            [
+                pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx}),
+                False,
+                DF_NO_TS_NOT_INFER_TS_ERROR.format(
+                    timestamp_column_name=TS_FIELD_NAME,
+                    sid=0
+                )
+            ],
+            # DatetimeIndex with infer_timestamps = False
+            [
+                pd.DatetimeIndex(dtx, name=ANNOUNCEMENT_FIELD_NAME),
+                False,
+                DTINDEX_NOT_INFER_TS_ERROR.format(sid=0)
+            ],
+            # Series with DatetimeIndex as index and infer_timestamps = False
+            [
+                pd.Series(dtx, name=ANNOUNCEMENT_FIELD_NAME),
+                False,
+                SERIES_NO_DTINDEX_ERROR.format(sid=0)
+            ],
+            # Some other data structure that is not expected
+            [
+                dtx,
+                False,
+                BAD_DATA_FORMAT_ERROR.format(sid=0)
+            ],
+            [
+                dtx,
+                True,
+                BAD_DATA_FORMAT_ERROR.format(sid=0)
+            ]
+        ]
+    )
     def test_bad_conversion_to_df(self, df, infer_timestamps, msg):
         events_by_sid = {0: df}
         assert_loader_error(events_by_sid, ValueError, msg,
@@ -204,14 +223,6 @@ class BlazeEventLoaderTestCase(TestCase):
             TestCase.assertTrue(ABSTRACT_METHODS_ERROR in context.exception)
 
 
-
-
-
-
-
-##########################
-
-
 # Must be a list - can't use generator since this needs to be used more than
 # once.
 param_dates = list(gen_calendars(
@@ -237,14 +248,11 @@ class EventLoaderCommonTest(object):
     def zip_with_floats(self, dates, flts):
         return pd.Series(flts, index=dates).astype('float')
 
-
     def num_days_between(self, dates, start_date, end_date):
         return num_days_in_range(dates, start_date, end_date)
 
-
     def zip_with_dates(self, index_dates, dts):
         return pd.Series(pd.to_datetime(dts), index=index_dates)
-
 
     def loader_args(self, dates):
         """Construct the base  object to pass to the loader.
@@ -268,7 +276,59 @@ class EventLoaderCommonTest(object):
         loader = self.loader_type(*self.loader_args(dates))
         return SimplePipelineEngine(lambda _: loader, dates, self.finder)
 
-    def get_expected_previous(self, dates):
+    def get_expected_next_event_dates(self, dates):
+        num_days_between_for_dates = partial(self.num_days_between, dates)
+        zip_with_dates_for_dates = partial(self.zip_with_dates, dates)
+        return pd.DataFrame({
+            0: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-15'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-15') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-16', '2014-01-20') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-21', None)
+            ),
+            1: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-09') +
+                ['2014-01-15'] *
+                num_days_between_for_dates('2014-01-10', '2014-01-15') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-16', '2014-01-20') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-21', None)
+            ),
+            2: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-10'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-10') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-11', '2014-01-14') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-15', '2014-01-20') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-21', None)
+            ),
+            3: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-10'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-10') +
+                ['2014-01-15'] *
+                num_days_between_for_dates('2014-01-11', '2014-01-15') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-16', None)
+            ),
+            4: zip_with_dates_for_dates(['NaT'] *
+                                        len(dates)),
+        }, index=dates)
+
+    def get_expected_previous_event_dates(self, dates):
         num_days_between_for_dates = partial(self.num_days_between, dates)
         zip_with_dates_for_dates = partial(self.zip_with_dates, dates)
         return pd.DataFrame({
@@ -339,7 +399,7 @@ class EventLoaderCommonTest(object):
             index=announcement_dates.index,
         )
 
-    def _test_compute_buyback_auth(self, dates):
+    def _test_compute(self, dates):
         engine = self.setup_engine(dates)
         self.setup(dates)
 
@@ -358,7 +418,3 @@ class EventLoaderCommonTest(object):
                 assert_series_equal(result[col_name].xs(sid, level=1),
                                     self.cols[col_name][sid],
                                     check_names=False)
-
-
-
-

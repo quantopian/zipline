@@ -35,35 +35,35 @@ from zipline.utils.test_utils import (
 )
 
 earnings_dates = [
-            # K1--K2--E1--E2.
-            pd.DataFrame({
-                TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-15',
-                                                         '2014-01-20'])
-            }),
-            # K1--K2--E2--E1.
-            pd.DataFrame({
-                TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-20',
-                                                         '2014-01-15'])
-            }),
-            # K1--E1--K2--E2.
-            pd.DataFrame({
-                TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
-                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
-                                                         '2014-01-20'])
-            }),
-            # K1 == K2.
-            pd.DataFrame({
-                TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
-                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
-                                                         '2014-01-15'])
-            }),
-            pd.DataFrame({
-                TS_FIELD_NAME: pd.to_datetime([]),
-                ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([])
-            })
-        ]
+    # K1--K2--E1--E2.
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-15',
+                                                 '2014-01-20'])
+    }),
+    # K1--K2--E2--E1.
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-20',
+                                                 '2014-01-15'])
+    }),
+    # K1--E1--K2--E2.
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
+                                                 '2014-01-20'])
+    }),
+    # K1 == K2.
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
+                                                 '2014-01-15'])
+    }),
+    pd.DataFrame({
+        TS_FIELD_NAME: pd.to_datetime([]),
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([])
+    })
+]
 
 
 class EarningsCalendarLoaderTestCase(TestCase, EventLoaderCommonTest):
@@ -97,11 +97,12 @@ class EarningsCalendarLoaderTestCase(TestCase, EventLoaderCommonTest):
     def tearDownClass(cls):
         cls._cleanup_stack.close()
 
-
     def setup(self, dates):
         _expected_next_announce = self.get_expected_next_event_dates(dates)
 
-        _expected_previous_announce = self.get_expected_previous_event_dates(dates)
+        _expected_previous_announce = self.get_expected_previous_event_dates(
+            dates
+        )
 
         _expected_next_busday_offsets = self._compute_busday_offsets(
             _expected_next_announce
@@ -146,7 +147,8 @@ class BlazeEarningsCalendarLoaderNotInteractiveTestCase(
     """
     @classmethod
     def setUpClass(cls):
-        super(BlazeEarningsCalendarLoaderNotInteractiveTestCase, cls).setUpClass()
+        super(BlazeEarningsCalendarLoaderNotInteractiveTestCase,
+              cls).setUpClass()
         cls.loader_type = BlazeEarningsCalendarLoader
 
     def loader_args(self, dates):

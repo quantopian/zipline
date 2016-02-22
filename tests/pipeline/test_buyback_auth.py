@@ -8,13 +8,10 @@ import blaze as bz
 from blaze.compute.core import swap_resources_into_scope
 from contextlib2 import ExitStack
 from nose_parameterized import parameterized
-import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_series_equal
 from six import iteritems
 from tests.pipeline.test_events import param_dates, EventLoaderCommonTest
 
-from zipline.pipeline import Pipeline
 from zipline.pipeline.common import(
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
     CASH_FIELD_NAME,
@@ -27,7 +24,6 @@ from zipline.pipeline.common import(
     TS_FIELD_NAME)
 from zipline.pipeline.data import (CashBuybackAuthorizations,
                                    ShareBuybackAuthorizations)
-from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors.events import (
     BusinessDaysSincePreviousCashBuybackAuth,
     BusinessDaysSincePreviousShareBuybackAuth
@@ -38,11 +34,7 @@ from zipline.pipeline.loaders.blaze import (
     BlazeCashBuybackAuthorizationsLoader,
     BlazeShareBuybackAuthorizationsLoader,
 )
-from zipline.utils.numpy_utils import make_datetime64D, NaTD
 from zipline.utils.test_utils import (
-    gen_calendars,
-    make_simple_equity_info,
-    num_days_in_range,
     tmp_asset_finder,
 )
 
@@ -97,7 +89,7 @@ class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonTest):
     Test for cash buyback authorizations dataset.
     """
     pipeline_columns = {
-        ('%s' % PREVIOUS_BUYBACK_CASH):
+        (PREVIOUS_BUYBACK_CASH):
             CashBuybackAuthorizations.previous_value.latest,
         PREVIOUS_BUYBACK_ANNOUNCEMENT:
             CashBuybackAuthorizations.previous_announcement_date.latest,
@@ -124,8 +116,6 @@ class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonTest):
         zip_with_floats_dates = partial(self.zip_with_floats, dates)
         num_days_between_dates = partial(self.num_days_between, dates)
         _expected_previous_cash = pd.DataFrame({
-            # TODO if the next knowledge date is 10, why is the range
-            #  until 15?
             0: zip_with_floats_dates(
                 ['NaN'] * num_days_between_dates(None, '2014-01-14') +
                 [10] * num_days_between_dates('2014-01-15', '2014-01-19') +
@@ -148,14 +138,16 @@ class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonTest):
             ),
             4: zip_with_floats_dates(['NaN'] * len(dates)),
         }, index=dates)
-        self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT] = self.get_expected_previous(
-            dates)
+        self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT] = \
+            self.get_expected_previous_event_dates(dates)
         self.cols[PREVIOUS_BUYBACK_CASH] = _expected_previous_cash
-
+        self.cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
+            self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
+        )
 
     @parameterized.expand(param_dates)
     def test_compute_cash_buyback_auth(self, dates):
-        self._test_compute_buyback_auth(dates)
+        self._test_compute(dates)
 
 
 class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
@@ -163,9 +155,9 @@ class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
     Test for share buyback authorizations dataset.
     """
     pipeline_columns = {
-        ('%s' % PREVIOUS_BUYBACK_SHARE_COUNT):
+        PREVIOUS_BUYBACK_SHARE_COUNT:
             ShareBuybackAuthorizations.previous_share_count.latest,
-        ('%s' % PREVIOUS_BUYBACK_ANNOUNCEMENT):
+        PREVIOUS_BUYBACK_ANNOUNCEMENT:
             ShareBuybackAuthorizations.previous_announcement_date.latest,
         DAYS_SINCE_PREV:
             BusinessDaysSincePreviousShareBuybackAuth(),
@@ -179,8 +171,8 @@ class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
         )
         cls.cols = {}
         cls.dataset = {sid: df.drop(CASH_FIELD_NAME, 1)
-                                      for sid, df in
-                                      enumerate(buyback_authorizations)}
+                       for sid, df in
+                       enumerate(buyback_authorizations)}
         cls.loader_type = ShareBuybackAuthorizationsLoader
 
     @classmethod
@@ -217,11 +209,14 @@ class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
             PREVIOUS_BUYBACK_SHARE_COUNT
         ] = _expected_previous_buyback_share_count
         self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT] = \
-            self.get_expected_previous(dates)
+            self.get_expected_previous_event_dates(dates)
+        self.cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
+            self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
+        )
 
     @parameterized.expand(param_dates)
     def test_compute_share_buyback_auth(self, dates):
-        self._test_compute_buyback_auth(dates)
+        self._test_compute(dates)
 
 
 class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):
