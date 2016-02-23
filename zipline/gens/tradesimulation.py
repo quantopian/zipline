@@ -443,11 +443,15 @@ class AlgorithmSimulator(object):
         # Remove positions in any sids that have reached their auto_close date.
         to_clear = []
         finder = algo.asset_finder
-        position_assets = finder.retrieve_all(list(algo.portfolio.positions))
-        for asset in position_assets:
+        perf_tracker = algo.perf_tracker
+        nonempty_position_assets = finder.retrieve_all(
+            # get_nonempty_position_sids us just the non-empty positions, and
+            # also avoids an unnecessary re-compuation of the portfolio.
+            perf_tracker.position_tracker.get_nonempty_position_sids()
+        )
+        for asset in nonempty_position_assets:
             if past_auto_close_date(asset):
                 to_clear.append(asset)
-        perf_tracker = algo.perf_tracker
         for close_event in map(create_close_position_event, to_clear):
             perf_tracker.process_close_position(close_event)
 
