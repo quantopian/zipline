@@ -169,7 +169,11 @@ Maintenance and Refactorings
 * Asset databases now contain version information to ensure compatibility
   with current Zipline version (:issue:`815`).
 
-* Upgrade requests version to 2.9.1.
+* Upgrade ``requests`` version to 2.9.1 (:commit:`2ee40db`)
+
+* Upgrade ``logbook`` version to 0.12.5 (:commit:`11465d9`).
+
+* Upgrade ``Cython`` version to 0.23.4 (:commit:`5f49fa2`).
 
 Build
 ~~~~~
@@ -181,6 +185,7 @@ Build
 * Fixed conda build, which now uses git source as its source and reads
   requirements using setup.py, instead of copying them and letting them get out
   of sync (:issue:`937`).
+* Require ``setuptools`` > 18.0 (:issue:`951`).
 
 Documentation
 ~~~~~~~~~~~~~
