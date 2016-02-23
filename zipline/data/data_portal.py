@@ -25,6 +25,7 @@ from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import NoDataOnDate
+from zipline.pipeline.data.equity_pricing import USEquityPricing
 
 from zipline.utils import tradingcalendar
 from zipline.utils.memoize import remember_last
@@ -106,6 +107,26 @@ class DataPortal(object):
         elif self._equity_minute_reader is not None:
             self._first_trading_day = \
                 self._equity_minute_reader.first_trading_day
+
+        # The `equity_daily_reader_array` lookups provide lru cache of 1 for
+        # daily history reads from the daily_reader.
+        # `last_remembered` or lru_cache can not be used, because the inputs
+        # to the function are not hashable types, and the order of the assets
+        # iterable needs to be preserved.
+        # The function that implements the cache will insert a value for the
+        # given field of (frozenset(assets), start_dt, end_dt).
+        #
+        # This is  optimized for algorithms that call history once per field
+        # in handle_data or a scheduled function.
+        self._equity_daily_reader_array_keys = {
+            'open': None,
+            'high': None,
+            'low': None,
+            'close': None,
+            'volume': None,
+            'price': None
+        }
+        self._equity_daily_reader_array_data = {}
 
     def handle_extra_source(self, source_df, sim_params):
         """
@@ -527,20 +548,26 @@ class DataPortal(object):
                                 index=days_for_window,
                                 columns=None)
 
-        data = []
+        future_data = []
+        eq_assets = []
 
         for asset in assets:
             if isinstance(asset, Future):
-                data.append(self._get_history_daily_window_future(
+                future_data.append(self._get_history_daily_window_future(
                     asset, days_for_window, end_dt, field_to_use
                 ))
             else:
-                data.append(self._get_history_daily_window_equity(
-                    asset, days_for_window, end_dt, field_to_use
-                ))
-
+                eq_assets.append(asset)
+        eq_data = self._get_history_daily_window_equities(
+            eq_assets, days_for_window, end_dt, field_to_use
+        )
+        if future_data:
+            # TODO: This case appears to be uncovered by testing.
+            data = np.concatenate(eq_data, np.array(future_data).T)
+        else:
+            data = eq_data
         return pd.DataFrame(
-            np.array(data).T,
+            data,
             index=days_for_window,
             columns=assets
         )
@@ -606,20 +633,17 @@ class DataPortal(object):
     def _get_market_minutes_for_day(self, end_date):
         return self.env.market_minutes_for_day(pd.Timestamp(end_date))
 
-    def _get_history_daily_window_equity(self, asset, days_for_window,
-                                         end_dt, field_to_use):
+    def _get_history_daily_window_equities(
+            self, assets, days_for_window, end_dt, field_to_use):
         ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
 
-        # get the start and end dates for this sid
-        end_date = self._get_asset_end_date(asset)
-
-        if ends_at_midnight or (days_for_window[-1] > end_date):
+        if ends_at_midnight:
             # two cases where we use daily data for the whole range:
             # 1) the history window ends at midnight utc.
             # 2) the last desired day of the window is after the
             # last trading day, use daily data for the whole range.
-            return self._get_daily_window_for_sid(
-                asset,
+            return self._get_daily_window_for_sids(
+                assets,
                 field_to_use,
                 days_for_window,
                 extra_slot=False
@@ -635,14 +659,14 @@ class DataPortal(object):
             minutes_for_partial_day =\
                 all_minutes_for_day[0:(last_minute_idx + 1)]
 
-            daily_data = self._get_daily_window_for_sid(
-                asset,
+            daily_data = self._get_daily_window_for_sids(
+                assets,
                 field_to_use,
                 days_for_window[0:-1]
             )
 
-            minute_data = self._get_minute_window_for_equity(
-                asset,
+            minute_data = self._get_minute_window_for_equities(
+                assets,
                 field_to_use,
                 minutes_for_partial_day
             )
@@ -843,8 +867,10 @@ class DataPortal(object):
             return self._get_minute_window_for_future(asset, field,
                                                       minutes_for_window)
         else:
-            return self._get_minute_window_for_equity(asset, field,
-                                                      minutes_for_window)
+            # TODO: Make caller accept assets.
+            window = self._get_minute_window_for_equities([asset], field,
+                                                          minutes_for_window)
+            return window[:, 0]
 
     def _get_minute_window_for_future(self, asset, field, minutes_for_window):
         # THIS IS TEMPORARY.  For now, we are only exposing futures within
@@ -865,16 +891,13 @@ class DataPortal(object):
         # no adjustments for futures, yay.
         return return_data
 
-    def _get_minute_window_for_equity(self, asset, field, minutes_for_window):
+    def _get_minute_window_for_equities(
+            self, assets, field, minutes_for_window):
         # each sid's minutes are stored in a bcolz file
         # the bcolz file has 390 bars per day, regardless
         # of when the asset started trading and regardless of half days.
         # for a half day, the second half is filled with zeroes.
         # all the minutely bcolz files start on the same day.
-
-        # find the position of start_dt in the entire timeline, go back
-        # bar_count bars, and that's the unadjusted data
-        raw_data = self._equity_minute_reader._open_minute_file(field, asset)
 
         try:
             start_idx = self._equity_minute_reader._find_position_of_minute(
@@ -890,61 +913,70 @@ class DataPortal(object):
 
         if end_idx == 0:
             # No data to return for minute window.
-            return np.full(len(minutes_for_window), np.nan)
-
-        return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
-
-        data_to_copy = raw_data[start_idx:end_idx]
+            return np.full((len(minutes_for_window), len(assets), np.nan))
 
         num_minutes = len(minutes_for_window)
 
-        # data_to_copy contains all the zeros (from 1pm to 4pm of an early
-        # close).  num_minutes is the number of actual trading minutes.  if
-        # these two have different lengths, that means that we need to trim
-        # away data due to early closes.
-        if len(data_to_copy) != num_minutes:
-            # get a copy of the minutes in Eastern time, since we depend on
-            # an early close being at 1pm Eastern.
-            eastern_minutes = minutes_for_window.tz_convert("US/Eastern")
+        return_data = np.zeros((len(minutes_for_window), len(assets)),
+                               dtype=np.float64)
 
-            # accumulate a list of indices of the last minute of an early
-            # close day.  For example, if data_to_copy starts at 12:55 pm, and
-            # there are five minutes of real data before 180 zeroes, we would
-            # put 5 into last_minute_idx_of_early_close_day, because the fifth
-            # minute is the last "real" minute of the day.
-            last_minute_idx_of_early_close_day = []
-            for minute_idx, minute_dt in enumerate(eastern_minutes):
-                if minute_idx == (num_minutes - 1):
-                    break
+        for i, asset in enumerate(assets):
+            # find the position of start_dt in the entire timeline, go back
+            # bar_count bars, and that's the unadjusted data
+            raw_data = self._equity_minute_reader._open_minute_file(
+                field, asset)
 
-                if minute_dt.hour == 13 and minute_dt.minute == 0:
-                    next_minute = eastern_minutes[minute_idx + 1]
-                    if next_minute.hour != 13:
-                        # minute_dt is the last minute of an early close day
-                        last_minute_idx_of_early_close_day.append(minute_idx)
+            data_to_copy = raw_data[start_idx:end_idx]
 
-            # spin through the list of early close markers, and use them to
-            # chop off 180 minutes at a time from data_to_copy.
-            for idx, early_close_minute_idx in \
-                    enumerate(last_minute_idx_of_early_close_day):
-                early_close_minute_idx -= (180 * idx)
-                data_to_copy = np.delete(
-                    data_to_copy,
-                    range(
-                        early_close_minute_idx + 1,
-                        early_close_minute_idx + 181
+            # data_to_copy contains all the zeros (from 1pm to 4pm of an early
+            # close).  num_minutes is the number of actual trading minutes.  if
+            # these two have different lengths, that means that we need to trim
+            # away data due to early closes.
+            if len(data_to_copy) != num_minutes:
+                # get a copy of the minutes in Eastern time, since we depend on
+                # an early close being at 1pm Eastern.
+                eastern_minutes = minutes_for_window.tz_convert("US/Eastern")
+
+                # accumulate a list of indices of the last minute of an early
+                # close day.  For example, if data_to_copy starts at 12:55 pm,
+                # and there are five minutes of real data before 180 zeroes,
+                # we would put 5 into last_minute_idx_of_early_close_day,
+                # because the fifth minute is the last "real" minute of
+                # the day.
+                last_minute_idx_of_early_close_day = []
+                for minute_idx, minute_dt in enumerate(eastern_minutes):
+                    if minute_idx == (num_minutes - 1):
+                        break
+
+                    if minute_dt.hour == 13 and minute_dt.minute == 0:
+                        next_minute = eastern_minutes[minute_idx + 1]
+                        if next_minute.hour != 13:
+                            # minute_dt is the last minute of an early close
+                            # day
+                            last_minute_idx_of_early_close_day.append(
+                                minute_idx)
+
+                # spin through the list of early close markers, and use them to
+                # chop off 180 minutes at a time from data_to_copy.
+                for idx, early_close_minute_idx in enumerate(
+                        last_minute_idx_of_early_close_day):
+                    early_close_minute_idx -= (180 * idx)
+                    data_to_copy = np.delete(
+                        data_to_copy,
+                        range(
+                            early_close_minute_idx + 1,
+                            early_close_minute_idx + 181
+                        )
                     )
-                )
 
-        return_data[0:len(data_to_copy)] = data_to_copy
-
-        self._apply_all_adjustments(
-            return_data,
-            asset,
-            minutes_for_window,
-            field,
-            self.MINUTE_PRICE_ADJUSTMENT_FACTOR
-        )
+            return_data[0:len(data_to_copy), i] = data_to_copy
+            self._apply_all_adjustments(
+                return_data[:, i],
+                asset,
+                minutes_for_window,
+                field,
+                self.MINUTE_PRICE_ADJUSTMENT_FACTOR
+            )
 
         return return_data
 
@@ -1020,8 +1052,33 @@ class DataPortal(object):
 
         np.around(data, 3, out=data)
 
-    def _get_daily_window_for_sid(self, asset, field, days_in_window,
-                                  extra_slot=True):
+    def _equity_daily_reader_arrays(self, field, dts, assets):
+        # Temporary cache shim before loader is pulled in.
+        # Custom memoization, because of unhashable types.
+        assets_key = frozenset(assets)
+        key = (field, dts[0], dts[-1], assets_key)
+        if self._equity_daily_reader_array_keys[field] == key:
+            return self._equity_daily_reader_array_data[field]
+        else:
+            col = getattr(USEquityPricing, field)
+            data = self._equity_daily_reader.load_raw_arrays(
+                [col],
+                dts[0],
+                dts[-1],
+                assets)[0]
+            for i, asset in enumerate(assets):
+                self._apply_all_adjustments(
+                    data[:, i],
+                    asset,
+                    dts,
+                    field,
+                )
+            self._equity_daily_reader_array_keys[field] = key
+            self._equity_daily_reader_array_data[field] = data
+            return data
+
+    def _get_daily_window_for_sids(
+            self, assets, field, days_in_window, extra_slot=True):
         """
         Internal method that gets a window of adjusted daily data for a sid
         and specified date range.  Used to support the history API method for
@@ -1056,40 +1113,22 @@ class DataPortal(object):
         bar_count = len(days_in_window)
         # create an np.array of size bar_count
         if extra_slot:
-            return_array = np.zeros((bar_count + 1,))
+            return_array = np.zeros((bar_count + 1, len(assets)))
         else:
-            return_array = np.zeros((bar_count,))
+            return_array = np.zeros((bar_count, len(assets)))
 
         if field != "volume":
             # volumes default to 0, so we don't need to put NaNs in the array
             return_array[:] = np.NAN
 
-        start_date = self._get_asset_start_date(asset)
-        end_date = self._get_asset_end_date(asset)
-        day_slice = days_in_window.slice_indexer(start_date, end_date)
-        active_days = days_in_window[day_slice]
+        data = self._equity_daily_reader_arrays(field,
+                                                days_in_window,
+                                                assets)
 
-        if len(active_days) == 0:
-            return return_array
-
-        if active_days[-1] == end_date:
-            # since we don't have data for the last day, don't try to get it
-            day_slice = slice(day_slice.start, day_slice.stop - 1)
-            active_days = days_in_window[day_slice]
-
-        if len(active_days) > 0:
-            data = self._equity_daily_reader.history_window(field,
-                                                            active_days[0],
-                                                            active_days[-1],
-                                                            asset)
-            return_array[day_slice] = data
-            self._apply_all_adjustments(
-                return_array,
-                asset,
-                active_days,
-                field,
-            )
-
+        if extra_slot:
+            return_array[:len(return_array) - 1, :] = data
+        else:
+            return_array[:len(data)] = data
         return return_array
 
     @staticmethod

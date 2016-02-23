@@ -335,10 +335,6 @@ class DailyBarReader(with_metaclass(ABCMeta)):
         pass
 
     @abstractmethod
-    def history_window(self, column, start_date, end_date, asset):
-        pass
-
-    @abstractmethod
     def spot_price(self, sid, day, colname):
         pass
 
@@ -490,15 +486,6 @@ class BcolzDailyBarReader(DailyBarReader):
             offsets,
         )
 
-    def history_window(self, column, start_date, end_date, asset):
-        start_idx = self.sid_day_index(asset, start_date)
-        end_idx = self.sid_day_index(asset, end_date) + 1
-        col = self._spot_col(column)
-        window = col[start_idx:end_idx]
-        if column != 'volume':
-            window = window.astype(float64) * self.PRICE_ADJUSTMENT_FACTOR
-        return window
-
     @property
     def first_trading_day(self):
         return self._first_trading_day
@@ -639,32 +626,16 @@ class PanelDailyBarReader(DailyBarReader):
             panel.loc[:, :, 'volume'] = int(1e9)
 
         self.first_trading_day = panel.major_axis[0]
+        self._calendar = panel.major_axis
 
         self.panel = panel
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
-        # TODO: Implementing will enable pipeline with a Panel input.
-        raise NotImplementedError()
-
-    def history_window(self, column, start_date, end_date, sid):
-        """
-        Parameters
-        ----------
-        column : str
-            The column to retrieve, ('open', 'high', 'low', 'close', 'volume')
-        start_date : datetime64-like
-            Midnight of the day for first date in the window.
-        end_date : datetime64-like
-            Midnight of the day for end date in the window.
-        sid : int
-           Asset identifier for the asset requested.
-
-        Returns
-        -------
-        pd.Series
-           DatetimeIndex to float mapping for the requested window.
-        """
-        return self.panel[sid, start_date:end_date, column]
+        col_names = [col.name for col in columns]
+        data = self.panel[assets, start_date:end_date, col_names].values
+        if len(data.shape) == 2:
+            data = [data]
+        return data
 
     def spot_price(self, sid, day, colname):
         """
