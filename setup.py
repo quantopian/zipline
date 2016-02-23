@@ -239,8 +239,13 @@ setup_requires = module_requirements(
     conda_format=conda_build,
 )
 
+conditional_arguments = {
+    'setup_requires' if not conda_build else 'build_requires': setup_requires,
+}
+
 setup(
     name='zipline',
+    url="http://zipline.io",
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     description='A backtester for financial algorithms.',
@@ -266,7 +271,5 @@ setup(
     ],
     install_requires=install_requires(conda_format=conda_build),
     extras_require=extras_requires(conda_format=conda_build),
-    setup_requires=setup_requires if not conda_build else [],
-    build_requires=setup_requires,
-    url="http://zipline.io",
+    **conditional_arguments
 )
