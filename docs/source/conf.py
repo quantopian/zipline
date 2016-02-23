@@ -20,7 +20,10 @@ extensions = [
 ]
 
 
-extlinks = dict(issue=('https://github.com/quantopian/zipline/issues/%s', '#'))
+extlinks = {
+    'issue': ('https://github.com/quantopian/zipline/issues/%s', '#'),
+    'commit': ('https://github.com/quantopian/zipline/commit/%s', ''),
+}
 
 # -- Docstrings ---------------------------------------------------------------
 
@@ -38,7 +41,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Zipline'
-copyright = u'2015, Quantopian Inc.'
+copyright = u'2016, Quantopian Inc.'
 
 # The full version, including alpha/beta/rc tags.
 release = version
@@ -75,7 +78,7 @@ html_static_path = ['.static']
 html_use_index = True
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
-html_show_sphinx = False
+html_show_sphinx = True
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
 html_show_copyright = True
