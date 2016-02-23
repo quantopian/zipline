@@ -52,7 +52,7 @@ def handle_data(context, data):
         order_target(context.sym, 0)
 
     # Save values for later inspection
-    record(AAPL=data[context.sym].price,
+    record(AAPL=data.current(context.sym, "price"),
            short_mavg=short_mavg[context.sym],
            long_mavg=long_mavg[context.sym])
 

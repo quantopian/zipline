@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from copy import copy
 
 import pytz
@@ -106,6 +107,7 @@ from zipline.gens.sim_engine import (
     DailySimulationClock,
 )
 from zipline.sources.benchmark_source import BenchmarkSource
+from zipline.zipline_deprecation_warning import ZiplineDeprecationWarning
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -439,18 +441,24 @@ class TradingAlgorithm(object):
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
             self.initialized = True
 
-        self.trading_client = self._create_trading_client(sim_params)
-
-        return self.trading_client.transform()
-
-    def _create_trading_client(self, sim_params):
-        return AlgorithmSimulator(
+        self.trading_client = AlgorithmSimulator(
             self,
             sim_params,
             self.data_portal,
             self._create_clock(),
-            self._create_benchmark_source()
+            self._create_benchmark_source(),
+            universe_func=self._calculate_universe
         )
+
+        return self.trading_client.transform()
+
+    def _calculate_universe(self):
+        # this exists to provide backwards compatibility for older,
+        # deprecated APIs, particularly around the iterability of
+        # BarData (ie, 'for sid in data).
+
+        # our universe is all the assets passed into `run`.
+        return self._assets_from_source
 
     def get_generator(self):
         """
@@ -471,8 +479,21 @@ class TradingAlgorithm(object):
               Daily performance metrics such as returns, alpha etc.
 
         """
+        self._assets_from_source = []
+
         if isinstance(data, DataPortal):
             self.data_portal = data
+
+            # define the universe as all the assets in the assetfinder
+            # This is not great, because multiple runs can accumulate assets
+            # in the assetfinder, but it's better than spending time adding
+            # functionality in the dataportal to report all the assets it
+            # knows about.
+            self._assets_from_source = \
+                self.trading_environment.asset_finder.retrieve_all(
+                    self.trading_environment.asset_finder.sids
+                )
+
         else:
             if isinstance(data, pd.DataFrame):
                 # If a DataFrame is passed. Promote it to a Panel.
@@ -485,16 +506,15 @@ class TradingAlgorithm(object):
                 copy_panel.items = self._write_and_map_id_index_to_sids(
                     copy_panel.items, copy_panel.major_axis[0],
                 )
-                assets = self.trading_environment.asset_finder.retrieve_all(
-                    copy_panel.items)
+                self._assets_from_source = \
+                    self.trading_environment.asset_finder.retrieve_all(
+                        copy_panel.items
+                    )
                 equities = []
-                futures = []
-                for asset in assets:
+                for asset in self._assets_from_source:
                     if isinstance(asset, Equity):
                         equities.append(asset)
-                    elif isinstance(asset, Future):
-                        futures.append(asset)
-                if equities:
+                if self._equities:
                     from zipline.data.us_equity_pricing import \
                         PanelDailyBarReader
                     equity_daily_reader = PanelDailyBarReader(
@@ -1145,11 +1165,14 @@ class TradingAlgorithm(object):
 
     @api_method
     @require_initialized(HistoryInInitialize())
-    def history(self, assets, bar_count, frequency, field, ffill=True):
-        try:
-            assets = list(assets)
-        except TypeError:
-            assets = [assets]
+    def history(self, bar_count, frequency, field, ffill=True):
+        warnings.warn(
+            "The `history` method is deprecated.  Use `data.history` instead.",
+            category=ZiplineDeprecationWarning,
+            stacklevel=4
+        )
+
+        assets = self._calculate_universe()
 
         return self.data_portal.get_history_window(
             assets,

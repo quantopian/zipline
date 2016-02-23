@@ -60,7 +60,7 @@ def handle_data(algo, data):
         mavg = history(sid, algo.window_length, '1d', 'price').mean()
         mavgs[sid] = mavg
     for i, sid in enumerate(algo.sids):
-        price = data[sid].price
+        price = data.current(sid, "price")
         # Relative mean deviation
         x_tilde[i] = mavgs[sid] / price
 
@@ -106,7 +106,7 @@ def rebalance_portfolio(algo, data, desired_port):
 
     for i, sid in enumerate(algo.sids):
         current_amount[i] = algo.portfolio.positions[sid].amount
-        prices[i] = data[sid].price
+        prices[i] = data.current(sid, "price")
 
     desired_amount = np.round(desired_port * positions_value / prices)
 

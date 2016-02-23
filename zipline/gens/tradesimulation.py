@@ -35,7 +35,8 @@ class AlgorithmSimulator(object):
         'daily': 'daily_perf'
     }
 
-    def __init__(self, algo, sim_params, data_portal, clock, benchmark_source):
+    def __init__(self, algo, sim_params, data_portal, clock, benchmark_source,
+                 universe_func):
 
         # ==============
         # Simulation
@@ -58,7 +59,7 @@ class AlgorithmSimulator(object):
         # The algorithm's data as of our most recent event.
         # We want an object that will have empty objects as default
         # values on missing keys.
-        self.current_data = self._create_bar_data()
+        self.current_data = self._create_bar_data(universe_func)
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -83,11 +84,12 @@ class AlgorithmSimulator(object):
     def get_simulation_dt(self):
         return self.simulation_dt
 
-    def _create_bar_data(self):
+    def _create_bar_data(self, universe_func):
         return BarData(
             data_portal=self.data_portal,
             simulation_dt_func=self.get_simulation_dt,
             data_frequency=self.sim_params.data_frequency,
+            universe_func=universe_func
         )
 
     def transform(self):
