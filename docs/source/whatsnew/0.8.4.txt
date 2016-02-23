@@ -22,6 +22,9 @@ Highlights
   ``BoundColumn.latest`` now returns a proper ``Filter`` object when the column
   is of dtype ``bool``.
 
+* Zipline now supports ``numpy`` 1.10, ``pandas`` 0.17, and ``scipy`` 0.16
+  (:issue:`969`).
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -75,8 +78,8 @@ Enhancements
   preprocessor functions to explicitly allow ``None`` (:issue:`947`).
 
 * Added :func:`~zipline.utils.input_validation.ensure_timezone` to allow string
-  arguments to get converted into ``datetime.tzinfo`` objects. This also allows
-  ``tzinfo`` objects to be passed directly (:issue:`947`).
+  arguments to get converted into :class:`datetime.tzinfo` objects. This also
+  allows ``tzinfo`` objects to be passed directly (:issue:`947`).
 
 * Added two optional arguments, ``data_query_time`` and ``data_query_tz`` to
   :class:`~zipline.pipeline.loaders.blaze.core.BlazeLoader` and
@@ -120,7 +123,7 @@ Bug Fixes
   us to think that the object was not empty even when it was (:issue:`826`).
 
 * Fixes an error raised in calculating beta when benchmark data were sparse.
-  Instead `numpy.nan` is returned (:issue:`859`).
+  Instead :data:`numpy.nan` is returned (:issue:`859`).
 
 * Fixed an issue pickling :func:`~zipline.utils.sentinel.sentinel` objects
   (:issue:`872`).
@@ -139,7 +142,7 @@ Bug Fixes
   This would map the same symbol to two different sids (:issue:`942`).
 
 * Fixed an issue where the
-  :class:"`~zipline.finance.performance.period.PerformancePeriod` incorrectly
+  :class:`~zipline.finance.performance.period.PerformancePeriod` incorrectly
   reported the total_positions_value when creating a
   :class:`~zipline.protocol.Account` (:issue:`950`).
 
@@ -147,8 +150,10 @@ Bug Fixes
   python, where Assets did not compare properly with int64s (:issue:`959`).
 
 * Fixed a bug where boolean operators were not properly implemented on
-  :class:~zipline.pipeline.Filter` (:issue:`991`).
+  :class:`~zipline.pipeline.Filter` (:issue:`991`).
 
+* Installation of zipline no longer downgrades numpy to 1.9.2 silently and
+  unconditionally (:issue:`969`).
 
 Performance
 ~~~~~~~~~~~
@@ -204,7 +209,7 @@ Miscellaneous
 * Added a :meth:`~zipline.pipeline.pipeline.Pipeline.show_graph` method to render
   a Pipeline as an image (:issue:`836`).
 * Adds :func:`~zipline.utils.test_utils.subtest` decorator for creating subtests
-  without ``nose_parameterized.expand`` which bloats the test output
+  without :func:`nose_parameterized.expand` which bloats the test output
   (:issue:`833`).
 * Limits timer report in test output to 15 longest tests (:issue:`838`).
 * Treasury and benchmark downloads will now wait up to an hour to download
