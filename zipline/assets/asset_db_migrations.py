@@ -101,9 +101,37 @@ def _downgrade_v1_to_v0(op, version_info_table):
 
     write_version_info(version_info_table, 0)
 
+
+def _downgrade_v2_to_v1(op, version_info_table):
+    """
+    Downgrade assets db by removing the 'auto_close_date' column.
+    """
+    version_info_table.delete().execute()
+
+    # Drop indices before batch
+    # This is to prevent index collision when creating the temp table
+    op.drop_index('ix_equities_fuzzy_symbol')
+    op.drop_index('ix_equities_company_symbol')
+
+    # Execute batch op to allow column modification in SQLite
+    with op.batch_alter_table('equities') as batch_op:
+
+        batch_op.drop_column('auto_close_date')
+
+    # Recreate indices after batch
+    op.create_index('ix_equities_fuzzy_symbol',
+                    table_name='equities',
+                    columns=['fuzzy_symbol'])
+    op.create_index('ix_equities_company_symbol',
+                    table_name='equities',
+                    columns=['company_symbol'])
+
+    write_version_info(version_info_table, 1)
+
 # This dict contains references to downgrade methods that can be applied to an
 # assets db. The resulting db's version is the key.
 # e.g. The method at key '0' is the downgrade method from v1 to v0
 _downgrade_methods = {
     0: _downgrade_v1_to_v0,
+    1: _downgrade_v2_to_v1,
 }

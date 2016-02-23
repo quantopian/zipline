@@ -45,6 +45,7 @@ _equities_defaults = {
     'start_date': 0,
     'end_date': 2 ** 62 - 1,
     'first_traded': None,
+    'auto_close_date': None,
     'exchange': None,
 }
 
@@ -403,7 +404,8 @@ class AssetDBWriter(with_metaclass(ABCMeta)):
             equities_output.fuzzy_symbol.str.upper()
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
-        for date_col in ('start_date', 'end_date', 'first_traded'):
+        for date_col in ('start_date', 'end_date', 'first_traded',
+                         'auto_close_date'):
             equities_output[date_col] = \
                 self.dt_to_epoch_ns(equities_output[date_col])
 

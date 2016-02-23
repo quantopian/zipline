@@ -127,6 +127,23 @@ class Blotter(object):
             # along with newly placed orders.
             self.new_orders.append(cur_order)
 
+    def cancel_all(self, sid):
+        """
+        Cancel all open orders for a given sid.
+        """
+        # (sadly) open_orders is a defaultdict, so this will always succeed.
+        orders = self.open_orders[sid]
+
+        # We're making a copy here because `cancel` mutates the list of open
+        # orders in place.  The right thing to do here would be to make
+        # self.open_orders no longer a defaultdict.  If we do that, then we
+        # should just remove the orders once here and be done with the matter.
+        for order in orders[:]:
+            self.cancel(order.id)
+
+        assert not orders
+        del self.open_orders[sid]
+
     def reject(self, order_id, reason=''):
         """
         Mark the given order as 'rejected', which is functionally similar to

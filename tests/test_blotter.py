@@ -65,6 +65,40 @@ class BlotterTestCase(TestCase):
         self.assertEqual(result.limit, expected_lmt)
         self.assertEqual(result.stop, expected_stp)
 
+    def test_cancel(self):
+        blotter = Blotter()
+
+        oid_1 = blotter.order(24, 100, MarketOrder())
+        oid_2 = blotter.order(24, 200, MarketOrder())
+        oid_3 = blotter.order(24, 300, MarketOrder())
+
+        # Create an order for another asset to verify that we don't remove it
+        # when we do cancel_all on 24.
+        blotter.order(25, 150, MarketOrder())
+
+        self.assertEqual(len(blotter.open_orders), 2)
+        self.assertEqual(len(blotter.open_orders[24]), 3)
+        self.assertEqual(
+            [o.amount for o in blotter.open_orders[24]],
+            [100, 200, 300],
+        )
+
+        blotter.cancel(oid_2)
+        self.assertEqual(len(blotter.open_orders), 2)
+        self.assertEqual(len(blotter.open_orders[24]), 2)
+        self.assertEqual(
+            [o.amount for o in blotter.open_orders[24]],
+            [100, 300],
+        )
+        self.assertEqual(
+            [o.id for o in blotter.open_orders[24]],
+            [oid_1, oid_3],
+        )
+
+        blotter.cancel_all(24)
+        self.assertEqual(len(blotter.open_orders), 1)
+        self.assertEqual(list(blotter.open_orders), [25])
+
     def test_order_rejection(self):
         blotter = Blotter()
         # Reject a nonexistent order -> no order appears in new_order,
