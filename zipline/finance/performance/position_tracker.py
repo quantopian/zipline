@@ -335,6 +335,9 @@ class PositionTracker(object):
                 positions.append(pos.to_dict())
         return positions
 
+    def get_nonempty_position_sids(self):
+        return [sid for sid, pos in iteritems(self.positions) if pos.amount]
+
     def stats(self):
         amounts = []
         last_sale_prices = []
