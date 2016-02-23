@@ -84,12 +84,17 @@ try:
 except ImportError:
     from collections import OrderedDict
 
+import itertools
 from six import itervalues, iteritems
 
 import zipline.protocol as zp
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
+)
+from zipline.finance.cancel_policy import (
+    EODCancel,
+    NeverCancel
 )
 
 log = logbook.Logger('Performance')
@@ -101,6 +106,10 @@ PeriodStats = namedtuple('PeriodStats',
                           'gross_leverage',
                           'net_leverage'])
 
+CANCEL_POLICY_MAPPING = dict(zip([
+    NeverCancel,
+    EODCancel
+], itertools.count()))
 
 def calc_net_liquidation(ending_cash, long_value, short_value):
     return ending_cash + long_value + short_value
@@ -411,6 +420,11 @@ class PerformancePeriod(object):
                     orders = []
             else:
                 orders = [x.to_dict() for x in itervalues(self.orders_by_id)]
+
+            for order in orders:
+                order['cancel_policy'] = \
+                    CANCEL_POLICY_MAPPING[order['cancel_policy'].__class__]
+
             rval['orders'] = orders
 
         return rval

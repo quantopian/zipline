@@ -18,12 +18,13 @@ from logbook import Logger
 from collections import defaultdict
 
 import pandas as pd
-from six import iteritems
+from six import iteritems, itervalues
 
 from zipline.finance.order import Order
 
 from zipline.finance.slippage import VolumeShareSlippage
 from zipline.finance.commission import PerShare
+from zipline.finance.cancel_policy import NeverCancel
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -77,7 +78,8 @@ class Blotter(object):
     def set_date(self, dt):
         self.current_dt = dt
 
-    def order(self, sid, amount, style, order_id=None):
+    def order(self, sid, amount, style, cancel_policy=NeverCancel(),
+              order_id=None):
 
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
@@ -106,6 +108,7 @@ class Blotter(object):
             dt=self.current_dt,
             sid=sid,
             amount=amount,
+            cancel_policy=cancel_policy,
             stop=style.get_stop_price(is_buy),
             limit=style.get_limit_price(is_buy),
             id=order_id
@@ -152,6 +155,12 @@ class Blotter(object):
 
         assert not orders
         del self.open_orders[asset]
+
+    def execute_cancel_policy(self, dt, event):
+        for orders_by_sid in itervalues(self.open_orders):
+            for order in orders_by_sid:
+                if order.should_cancel(dt, event):
+                    self.cancel(order.id)
 
     def reject(self, order_id, reason=''):
         """

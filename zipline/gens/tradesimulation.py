@@ -111,6 +111,10 @@ class AlgorithmSimulator(object):
 
         algo.perf_tracker.position_tracker.data_portal = data_portal
 
+        def execute_cancel_policy(dt_to_use, event):
+            blotter = algo.blotter
+            blotter.execute_cancel_policy(dt_to_use, event)
+
         def every_bar(dt_to_use):
             # called every tick (minute or day).
 
@@ -192,6 +196,10 @@ class AlgorithmSimulator(object):
             stack.enter_context(self.processor)
             stack.enter_context(ZiplineAPI(self.algo))
             for dt, action in self.clock:
+
+                if algo.data_frequency == 'minute':
+                    execute_cancel_policy(dt, action)
+
                 if action == BAR:
                     every_bar(dt)
                 elif action == DAY_START:

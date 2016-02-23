@@ -70,6 +70,7 @@ from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
+from zipline.finance.cancel_policy import EODCancel
 from zipline.assets import Asset, Equity, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
@@ -240,6 +241,9 @@ class TradingAlgorithm(object):
                 slippage_func=VolumeShareSlippage(),
                 commission=PerShare()
             )
+
+        # Cancel open orders at end of day by default
+        self.cancel_policy = EODCancel(warn_on_cancel=True)
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
@@ -863,7 +867,7 @@ class TradingAlgorithm(object):
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(asset, amount, style)
+        return self.blotter.order(asset, amount, style, self.cancel_policy)
 
     def validate_order_params(self,
                               asset,
@@ -1039,6 +1043,10 @@ class TradingAlgorithm(object):
         if self.initialized:
             raise SetCommissionPostInit()
         self.blotter.commission = commission
+
+    @api_method
+    def set_cancel_policy(self, cancel_policy):
+        self.blotter.cancel_policy = cancel_policy
 
     @api_method
     def set_symbol_lookup_date(self, dt):
