@@ -916,6 +916,8 @@ class DataPortal(object):
             return np.full((len(minutes_for_window), len(assets), np.nan))
 
         num_minutes = len(minutes_for_window)
+        start_date = normalize_date(minutes_for_window[0])
+        end_date = normalize_date(minutes_for_window[-1])
 
         return_data = np.zeros((len(minutes_for_window), len(assets)),
                                dtype=np.float64)
@@ -970,13 +972,20 @@ class DataPortal(object):
                     )
 
             return_data[0:len(data_to_copy), i] = data_to_copy
-            self._apply_all_adjustments(
-                return_data[:, i],
-                asset,
-                minutes_for_window,
-                field,
-                self.MINUTE_PRICE_ADJUSTMENT_FACTOR
-            )
+            if start_date != end_date:
+                self._apply_all_adjustments(
+                    return_data[:, i],
+                    asset,
+                    minutes_for_window,
+                    field,
+                    self.MINUTE_PRICE_ADJUSTMENT_FACTOR
+                )
+
+        if start_date == end_date:
+            if field != 'volume':
+                # TODO: Use reader for this value.
+                return_data[return_data == 0] = np.nan
+                return_data *= self.MINUTE_PRICE_ADJUSTMENT_FACTOR
 
         return return_data
 
