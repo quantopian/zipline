@@ -55,16 +55,16 @@ class TestBarDataBase(TestCase):
                 raise
 
     def check_internal_consistency(self, bar_data):
-        df = bar_data.spot_value([self.ASSET1, self.ASSET2], ALL_FIELDS)
+        df = bar_data.current([self.ASSET1, self.ASSET2], ALL_FIELDS)
 
-        asset1_multi_field = bar_data.spot_value(self.ASSET1, ALL_FIELDS)
-        asset2_multi_field = bar_data.spot_value(self.ASSET2, ALL_FIELDS)
+        asset1_multi_field = bar_data.current(self.ASSET1, ALL_FIELDS)
+        asset2_multi_field = bar_data.current(self.ASSET2, ALL_FIELDS)
 
         for field in ALL_FIELDS:
-            asset1_value = bar_data.spot_value(self.ASSET1, field)
-            asset2_value = bar_data.spot_value(self.ASSET2, field)
+            asset1_value = bar_data.current(self.ASSET1, field)
+            asset2_value = bar_data.current(self.ASSET2, field)
 
-            multi_asset_series = bar_data.spot_value(
+            multi_asset_series = bar_data.current(
                 [self.ASSET1, self.ASSET2], field
             )
 
@@ -192,7 +192,7 @@ class TestMinuteBarData(TestBarDataBase):
 
             for field in ALL_FIELDS:
                 for asset in self.ASSETS:
-                    asset_value = bar_data.spot_value(asset, field)
+                    asset_value = bar_data.current(asset, field)
 
                     if field in OHLCP:
                         self.assertTrue(np.isnan(asset_value))
@@ -240,8 +240,8 @@ class TestMinuteBarData(TestBarDataBase):
                     self.assertTrue(bar_data.is_stale(self.ASSET2))
 
             for field in ALL_FIELDS:
-                asset1_value = bar_data.spot_value(self.ASSET1, field)
-                asset2_value = bar_data.spot_value(self.ASSET2, field)
+                asset1_value = bar_data.current(self.ASSET1, field)
+                asset2_value = bar_data.current(self.ASSET2, field)
 
                 # now check the actual values
                 if idx == 0 and field == "low":
@@ -311,7 +311,7 @@ class TestMinuteBarData(TestBarDataBase):
 
             for field in ALL_FIELDS:
                 for asset in self.ASSETS:
-                    asset_value = bar_data.spot_value(asset, field)
+                    asset_value = bar_data.current(asset, field)
 
                     if field in OHLCP:
                         self.assertTrue(np.isnan(asset_value))
@@ -343,7 +343,7 @@ class TestMinuteBarData(TestBarDataBase):
             bar_data = BarData(self.data_portal, lambda: minute, "minute")
             self.assertEqual(
                 idx + 1,
-                bar_data.spot_value(self.SPLIT_ASSET, "price")
+                bar_data.current(self.SPLIT_ASSET, "price")
             )
 
     def test_spot_price_is_adjusted_if_needed(self):
@@ -356,7 +356,7 @@ class TestMinuteBarData(TestBarDataBase):
             bar_data = BarData(self.data_portal, lambda: minute, "minute")
             self.assertEqual(
                 380,
-                bar_data.spot_value(self.ILLIQUID_SPLIT_ASSET, "price")
+                bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
             )
 
         bar_data = BarData(
@@ -365,7 +365,7 @@ class TestMinuteBarData(TestBarDataBase):
 
         self.assertEqual(
             390,
-            bar_data.spot_value(self.ILLIQUID_SPLIT_ASSET, "price")
+            bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
         )
 
         for idx, minute in enumerate(day1_minutes[0:9]):
@@ -374,7 +374,7 @@ class TestMinuteBarData(TestBarDataBase):
             # should be half of 390, due to the split
             self.assertEqual(
                 195,
-                bar_data.spot_value(self.ILLIQUID_SPLIT_ASSET, "price")
+                bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
             )
 
 
@@ -472,7 +472,7 @@ class TestDailyBarData(TestBarDataBase):
 
         for field in ALL_FIELDS:
             for asset in self.ASSETS:
-                asset_value = bar_data.spot_value(asset, field)
+                asset_value = bar_data.current(asset, field)
 
                 if field in OHLCP:
                     self.assertTrue(np.isnan(asset_value))
@@ -495,22 +495,22 @@ class TestDailyBarData(TestBarDataBase):
         # because there has never been a trade bar yet
         self.assertFalse(bar_data.is_stale(self.ASSET2))
 
-        self.assertEqual(3, bar_data.spot_value(self.ASSET1, "open"))
-        self.assertEqual(4, bar_data.spot_value(self.ASSET1, "high"))
-        self.assertEqual(1, bar_data.spot_value(self.ASSET1, "low"))
-        self.assertEqual(2, bar_data.spot_value(self.ASSET1, "close"))
-        self.assertEqual(200, bar_data.spot_value(self.ASSET1, "volume"))
-        self.assertEqual(2, bar_data.spot_value(self.ASSET1, "price"))
+        self.assertEqual(3, bar_data.current(self.ASSET1, "open"))
+        self.assertEqual(4, bar_data.current(self.ASSET1, "high"))
+        self.assertEqual(1, bar_data.current(self.ASSET1, "low"))
+        self.assertEqual(2, bar_data.current(self.ASSET1, "close"))
+        self.assertEqual(200, bar_data.current(self.ASSET1, "volume"))
+        self.assertEqual(2, bar_data.current(self.ASSET1, "price"))
         self.assertEqual(self.days[0],
-                         bar_data.spot_value(self.ASSET1, "last_traded"))
+                         bar_data.current(self.ASSET1, "last_traded"))
 
         for field in OHLCP:
-            self.assertTrue(np.isnan(bar_data.spot_value(self.ASSET2, field)),
+            self.assertTrue(np.isnan(bar_data.current(self.ASSET2, field)),
                             field)
 
-        self.assertEqual(0, bar_data.spot_value(self.ASSET2, "volume"))
+        self.assertEqual(0, bar_data.current(self.ASSET2, "volume"))
         self.assertTrue(
-            bar_data.spot_value(self.ASSET2, "last_traded") is pd.NaT
+            bar_data.current(self.ASSET2, "last_traded") is pd.NaT
         )
 
     def test_fully_active_day(self):
@@ -522,15 +522,15 @@ class TestDailyBarData(TestBarDataBase):
             self.assertTrue(bar_data.can_trade(asset))
             self.assertFalse(bar_data.is_stale(asset))
 
-            self.assertEqual(4, bar_data.spot_value(asset, "open"))
-            self.assertEqual(5, bar_data.spot_value(asset, "high"))
-            self.assertEqual(2, bar_data.spot_value(asset, "low"))
-            self.assertEqual(3, bar_data.spot_value(asset, "close"))
-            self.assertEqual(300, bar_data.spot_value(asset, "volume"))
-            self.assertEqual(3, bar_data.spot_value(asset, "price"))
+            self.assertEqual(4, bar_data.current(asset, "open"))
+            self.assertEqual(5, bar_data.current(asset, "high"))
+            self.assertEqual(2, bar_data.current(asset, "low"))
+            self.assertEqual(3, bar_data.current(asset, "close"))
+            self.assertEqual(300, bar_data.current(asset, "volume"))
+            self.assertEqual(3, bar_data.current(asset, "price"))
             self.assertEqual(
                 self.days[1],
-                bar_data.spot_value(asset, "last_traded")
+                bar_data.current(asset, "last_traded")
             )
 
     def test_after_assets_dead(self):
@@ -543,11 +543,11 @@ class TestDailyBarData(TestBarDataBase):
             self.assertFalse(bar_data.is_stale(asset))
 
             for field in OHLCP:
-                self.assertTrue(np.isnan(bar_data.spot_value(asset, field)))
+                self.assertTrue(np.isnan(bar_data.current(asset, field)))
 
-            self.assertEqual(0, bar_data.spot_value(asset, "volume"))
+            self.assertEqual(0, bar_data.current(asset, "volume"))
 
-            last_traded_dt = bar_data.spot_value(asset, "last_traded")
+            last_traded_dt = bar_data.current(asset, "last_traded")
 
             if asset == self.ASSET1:
                 self.assertEqual(self.days[-2], last_traded_dt)
@@ -570,21 +570,21 @@ class TestDailyBarData(TestBarDataBase):
 
         # ... but that's it's not applied when using spot value
         bar_data = BarData(self.data_portal, lambda: self.days[0], "daily")
-        self.assertEqual(2, bar_data.spot_value(self.SPLIT_ASSET, "price"))
+        self.assertEqual(2, bar_data.current(self.SPLIT_ASSET, "price"))
 
         bar_data = BarData(self.data_portal, lambda: self.days[1], "daily")
-        self.assertEqual(3, bar_data.spot_value(self.SPLIT_ASSET, "price"))
+        self.assertEqual(3, bar_data.current(self.SPLIT_ASSET, "price"))
 
         # ... except when we have to forward fill across a day boundary
         # ILLIQUID_ASSET has no data on days 0 and 2, and a split on day 2
         bar_data = BarData(self.data_portal, lambda: self.days[1], "daily")
         self.assertEqual(
-            3, bar_data.spot_value(self.ILLIQUID_SPLIT_ASSET, "price")
+            3, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
         )
 
         bar_data = BarData(self.data_portal, lambda: self.days[2], "daily")
 
         # 3 (price from previous day) * 0.5 (split ratio)
         self.assertEqual(
-            1.5, bar_data.spot_value(self.ILLIQUID_SPLIT_ASSET, "price")
+            1.5, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
         )

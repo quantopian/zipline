@@ -54,12 +54,12 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
 
     def simulate(self, bar_data, asset, orders_for_asset):
         self._volume_for_bar = 0
-        volume = bar_data.spot_value(asset, "volume")
+        volume = bar_data.current(asset, "volume")
 
         if volume == 0:
             return
 
-        price = bar_data.spot_value(asset, "price")
+        price = bar_data.current(asset, "price")
         dt = bar_data.current_dt
 
         for order in orders_for_asset:

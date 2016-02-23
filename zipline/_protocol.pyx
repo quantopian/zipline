@@ -83,10 +83,10 @@ cdef class BarData:
             self.data_frequency
         )
 
-    def spot_value(self, assets, fields):
+    def current(self, assets, fields):
         """
-        Returns the spot value of the given assets for the given fields
-        at the current simulation time.  Spot values are the as-traded price
+        Returns the current value of the given assets for the given fields
+        at the current simulation time.  Current values are the as-traded price
         and are usually not adjusted for events like splits or dividends (see
         notes for more information).
 
