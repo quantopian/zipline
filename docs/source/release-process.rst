@@ -18,13 +18,11 @@ Edit the release date field to be today's date in the format:
    <month> <day>, <year>
 
 
-then include this file in ``docs/source/releases.rst``. New releases should
-appear at the top. The syntax for this is:
-
-::
-
-   .. include:: whatsnew/<version>.txt
-
+for example, November 6, 2015.
+Remove the active development warning from the whatsnew, since it will no
+longer be pending release.
+Update the title of the release from "Development" to "Release x.x.x" and
+update the underline of the title to match the title's width.
 
 Updating the ``__version__``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,3 +191,19 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
    $ git push origin gh-pages
 
 `zipline.io <http://www.zipline.io/index.html>`__ will update in a few moments.
+
+Next Commit
+~~~~~~~~~~~
+
+Push a new commit post-release that adds the whatsnew for the next release,
+which should be titled according to a micro version increment. If that next
+release turns out to be a major/minor version increment, the file can be
+renamed when that's decided. You can use ``docs/source/whatsnew/skeleton.txt``
+as a template for the new file.
+
+Include the whatsnew file in ``docs/source/releases.rst``. New releases should
+appear at the top. The syntax for this is:
+
+::
+
+   .. include:: whatsnew/<version>.txt
