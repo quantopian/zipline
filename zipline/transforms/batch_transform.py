@@ -34,6 +34,7 @@ from six import (
 
 from zipline.utils.algo_instance import get_algo_instance
 from zipline.utils.data import MutableIndexRollingPanel
+from zipline.utils.deprecate import deprecated
 from zipline.protocol import Event
 
 log = logbook.Logger('BatchTransform')
@@ -151,6 +152,8 @@ class BatchTransform(object):
 
     """
 
+    @deprecated(msg="Batch transforms are deprecated and will be removed"
+                    " in a future release. Please use 'history' instead.")
     def __init__(self,
                  func=None,
                  refresh_period=0,
@@ -161,7 +164,6 @@ class BatchTransform(object):
                  compute_only_full=True,
                  bars='daily',
                  downsample=False):
-
         """Instantiate new batch_transform object.
 
         :Arguments:
@@ -488,9 +490,9 @@ class BatchTransform(object):
 
 def batch_transform(func):
     """Decorator function to use instead of inheriting from BatchTransform.
+
     For an example on how to use this, see the doc string of BatchTransform.
     """
-
     @functools.wraps(func)
     def create_window(*args, **kwargs):
         # passes the user defined function to BatchTransform which it

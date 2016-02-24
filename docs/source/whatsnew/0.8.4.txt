@@ -25,6 +25,9 @@ Highlights
 * Zipline now supports ``numpy`` 1.10, ``pandas`` 0.17, and ``scipy`` 0.16
   (:issue:`969`).
 
+* Batch transforms have been deprecated and will be removed in a future release.
+  Using ``history`` is recommended as an alternative.
+
 Enhancements
 ~~~~~~~~~~~~
 
