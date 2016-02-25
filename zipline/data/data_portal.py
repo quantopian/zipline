@@ -777,7 +777,7 @@ class DataPortal(object):
         A dataframe containing the requested data.
         """
         if field not in OHLCVP_FIELDS:
-            raise ValueError("Invalid field: {0}").format(field)
+            raise ValueError("Invalid field: {0}".format(field))
 
         if frequency == "1d":
             if field == "price":
