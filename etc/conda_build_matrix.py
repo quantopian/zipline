@@ -43,11 +43,18 @@ def mkargs(py_version, npy_version, output=False):
     help='Upload the last built packages without rebuilding.',
 )
 @click.option(
+    '--allow-partial-uploads',
+    is_flag=True,
+    default=False,
+    help='Upload any packages that were built even if some of the builds'
+    ' failed.',
+)
+@click.option(
     '--user',
     default='quantopian',
     help='The anaconda account to upload to.',
 )
-def main(upload, upload_only, user):
+def main(upload, upload_only, allow_partial_uploads, user):
     if upload_only:
         # if you are only uploading you shouldn't need to specify both flags
         upload = True
@@ -73,12 +80,25 @@ def main(upload, upload_only, user):
                     npy_version,
                     err.decode('utf-8'),
                 ))
-        elif upload:
-            files.append(subprocess.Popen(
-                **mkargs(py_version, npy_version, output=True)
-            ).communicate()[0].decode('utf-8').strip())
+                # don't add the filename to the upload list if the build
+                # fails
+                continue
 
-    if not status and upload:
+        if upload:
+            p = subprocess.Popen(
+                **mkargs(py_version, npy_version, output=True)
+            )
+            out, err = p.communicate()
+            if p.returncode:
+                status = 1
+                print(
+                    'failed to get the output name for python=%s numpy=%s\n'
+                    '%s' % (py_version, npy_version, err.decode('utf-8')),
+                )
+            else:
+                files.append(out.decode('utf-8').strip())
+
+    if (not status or allow_partial_uploads) and upload:
         for f in files:
             p = subprocess.Popen(
                 ['anaconda', 'upload', '-u', user, f],
@@ -87,6 +107,9 @@ def main(upload, upload_only, user):
             )
             out, err = p.communicate()
             if p.returncode:
+                # only change the status to failure if we are not allowing
+                # partial uploads
+                status |= not allow_partial_uploads
                 print('failed to upload: %s\n%s' % (f, err.decode('utf-8')))
     return status
 
