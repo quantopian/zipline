@@ -101,6 +101,13 @@ Enhancements
 * It is also now possible to specify custom ``missing_value`` values for
   ``float``, ``datetime``, and ``bool`` Pipeline terms. (:issue:`962`)
 
+* Added auto-close support for equities. Any positions held in an equity that
+  reaches its ``auto_close_date`` will be liquidated for cash according to the
+  equity's last sale price. Furthermore, any open orders for that equity will
+  be canceled. Both futures and equities are now auto-closed on the morning of
+  their ``auto_close_date``, immediately prior to ``before_trading_start``.
+  (:issue:`982`)
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
