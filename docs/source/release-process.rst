@@ -139,32 +139,9 @@ Now that we have tested locally and on PyPI test, it is time to upload to PyPI:
 ``bdist``
 ^^^^^^^^^
 
-.. note::
-
-   If you are running on GNU/Linux, then you cannot upload any binary wheels.
-
-First, build the wheels locally with:
-
-.. code-block:: bash
-
-   $ python setup.py bdist_wheel
-
-
-Just like the ``sdist``, we need to ``cd`` into a clean directory and use a
-clean virtualenv. Then, test that the wheel was built successfully with:
-
-.. code-block:: bash
-
-   $ pip install <zipline_root>/dist/<wheel_name>
-   $ python -c 'import zipline;print(zipline.__version__)'
-
-The version number should be the same as the version you are releasing.
-We must repeat this process for both python 2 and 3.
-Once you have tested the package, it can be uploaded to PyPI with:
-
-.. code-block:: bash
-
-   $ python setup.py bdist_wheel upload
+Because zipline now supports multiple versions of numpy, we're not building
+binary wheels, since they are not tagged with the version of numpy with which
+they were compiled.
 
 Documentation
 ~~~~~~~~~~~~~
