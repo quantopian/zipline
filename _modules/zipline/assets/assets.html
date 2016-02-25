@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.assets.assets &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.assets.assets &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -238,11 +241,13 @@
     <span class="n">Asset</span><span class="p">,</span> <span class="n">Equity</span><span class="p">,</span> <span class="n">Future</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.assets.asset_writer</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">split_delimited_symbol</span><span class="p">,</span>
     <span class="n">check_version_info</span><span class="p">,</span>
-    <span class="n">ASSET_DB_VERSION</span><span class="p">,</span>
+    <span class="n">split_delimited_symbol</span><span class="p">,</span>
     <span class="n">asset_db_table_names</span><span class="p">,</span>
-    <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span>
+    <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.assets.asset_db_schema</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ASSET_DB_VERSION</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">invert</span>
 
@@ -645,9 +650,9 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">share_class_symbol</span> <span class="o">==</span>
                 <span class="n">share_class_symbol</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">start_date</span> <span class="o">&lt;=</span> <span class="n">ad_value</span><span class="p">),</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">candidates</span>
 
     <span class="k">def</span> <span class="nf">_get_best_candidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">):</span>
@@ -830,16 +835,26 @@
                         <span class="p">)</span>
                     <span class="p">)</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
-                    <span class="c"># Sort using expiration_date if valid. If it&#39;s NaT,</span>
-                    <span class="c"># use notice_date instead.</span>
+                    <span class="c"># If both dates exist sort using minimum of</span>
+                    <span class="c"># expiration_date and notice_date</span>
+                    <span class="c"># else if one is NaT use the other.</span>
                     <span class="n">sa</span><span class="o">.</span><span class="n">case</span><span class="p">(</span>
                         <span class="p">[</span>
                             <span class="p">(</span>
                                 <span class="n">fc_cols</span><span class="o">.</span><span class="n">expiration_date</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
                                 <span class="n">fc_cols</span><span class="o">.</span><span class="n">notice_date</span>
+                            <span class="p">),</span>
+                            <span class="p">(</span>
+                                <span class="n">fc_cols</span><span class="o">.</span><span class="n">notice_date</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                <span class="n">fc_cols</span><span class="o">.</span><span class="n">expiration_date</span>
                             <span class="p">)</span>
                         <span class="p">],</span>
-                        <span class="n">else_</span><span class="o">=</span><span class="n">fc_cols</span><span class="o">.</span><span class="n">expiration_date</span>
+                        <span class="n">else_</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">sa</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">min</span><span class="p">(</span>
+                                <span class="n">fc_cols</span><span class="o">.</span><span class="n">notice_date</span><span class="p">,</span>
+                                <span class="n">fc_cols</span><span class="o">.</span><span class="n">expiration_date</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
                     <span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">()</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
             <span class="p">))</span>
@@ -1103,6 +1118,7 @@
 <span class="sd">    into memory and overrides the methods that lookup_symbol uses to look up</span>
 <span class="sd">    those equities.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">AssetFinderCachedEquities</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_symbol_hashed_equities</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1245,9 +1261,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -1265,7 +1282,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

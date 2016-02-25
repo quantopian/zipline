@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline Release Process &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>Zipline Release Process &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="index.html"/>
         <link rel="prev" title="API Reference" href="appendix.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -214,11 +217,11 @@ Edit the release date field to be today&#8217;s date in the format:</p>
 <div class="highlight-python"><div class="highlight"><pre>&lt;month&gt; &lt;day&gt;, &lt;year&gt;
 </pre></div>
 </div>
-<p>then include this file in <code class="docutils literal"><span class="pre">docs/source/releases.rst</span></code>. New releases should
-appear at the top. The syntax for this is:</p>
-<div class="highlight-python"><div class="highlight"><pre>.. include:: whatsnew/&lt;version&gt;.txt
-</pre></div>
-</div>
+<p>for example, November 6, 2015.
+Remove the active development warning from the whatsnew, since it will no
+longer be pending release.
+Update the title of the release from &#8220;Development&#8221; to &#8220;Release x.x.x&#8221; and
+update the underline of the title to match the title&#8217;s width.</p>
 </div>
 <div class="section" id="updating-the-version">
 <h2>Updating the <code class="docutils literal"><span class="pre">__version__</span></code><a class="headerlink" href="#updating-the-version" title="Permalink to this headline">¶</a></h2>
@@ -307,26 +310,9 @@ number.</p>
 </div>
 <div class="section" id="bdist">
 <h3><code class="docutils literal"><span class="pre">bdist</span></code><a class="headerlink" href="#bdist" title="Permalink to this headline">¶</a></h3>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">If you are running on GNU/Linux, then you cannot upload any binary wheels.</p>
-</div>
-<p>First, build the wheels locally with:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python setup.py bdist_wheel
-</pre></div>
-</div>
-<p>Just like the <code class="docutils literal"><span class="pre">sdist</span></code>, we need to <code class="docutils literal"><span class="pre">cd</span></code> into a clean directory and use a
-clean virtualenv. Then, test that the wheel was built successfully with:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>pip install &lt;zipline_root&gt;/dist/&lt;wheel_name&gt;
-<span class="nv">$ </span>python -c <span class="s1">&#39;import zipline;print(zipline.__version__)&#39;</span>
-</pre></div>
-</div>
-<p>The version number should be the same as the version you are releasing.
-We must repeat this process for both python 2 and 3.
-Once you have tested the package, it can be uploaded to PyPI with:</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python setup.py bdist_wheel upload
-</pre></div>
-</div>
+<p>Because zipline now supports multiple versions of numpy, we&#8217;re not building
+binary wheels, since they are not tagged with the version of numpy with which
+they were compiled.</p>
 </div>
 </div>
 <div class="section" id="documentation">
@@ -348,6 +334,35 @@ the docs look correct.</p>
 </div>
 <p><a class="reference external" href="http://www.zipline.io/index.html">zipline.io</a> will update in a few moments.</p>
 </div>
+<div class="section" id="uploading-conda-packages">
+<h2>Uploading conda packages<a class="headerlink" href="#uploading-conda-packages" title="Permalink to this headline">¶</a></h2>
+<p>To build the conda packages for zipline run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python etc/conda_build_matrix.py
+</pre></div>
+</div>
+<p>If all of the builds succeed, then this will not print anything and exit with
+<code class="docutils literal"><span class="pre">EXIT_SUCCESS</span></code>. If there are build issues, we must address them and decide
+what to do.</p>
+<p>Once all of the builds in the matrix pass, we can upload them to anaconda with:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python etc/conda_build_matrix.py --upload
+</pre></div>
+</div>
+<p>If you would like to test this command by uploading to a different user, this
+may be specified with the <code class="docutils literal"><span class="pre">--user</span></code> flag.</p>
+</div>
+<div class="section" id="next-commit">
+<h2>Next Commit<a class="headerlink" href="#next-commit" title="Permalink to this headline">¶</a></h2>
+<p>Push a new commit post-release that adds the whatsnew for the next release,
+which should be titled according to a micro version increment. If that next
+release turns out to be a major/minor version increment, the file can be
+renamed when that&#8217;s decided. You can use <code class="docutils literal"><span class="pre">docs/source/whatsnew/skeleton.txt</span></code>
+as a template for the new file.</p>
+<p>Include the whatsnew file in <code class="docutils literal"><span class="pre">docs/source/releases.rst</span></code>. New releases should
+appear at the top. The syntax for this is:</p>
+<div class="highlight-python"><div class="highlight"><pre>.. include:: whatsnew/&lt;version&gt;.txt
+</pre></div>
+</div>
+</div>
 </div>
 
 
@@ -366,9 +381,10 @@ the docs look correct.</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -386,7 +402,7 @@ the docs look correct.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

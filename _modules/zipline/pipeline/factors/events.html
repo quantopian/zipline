@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.events &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.pipeline.factors.events &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -206,7 +209,7 @@
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">newaxis</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.data.earnings</span> <span class="kn">import</span> <span class="n">EarningsCalendar</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">np_NaT</span><span class="p">,</span>
+    <span class="n">NaTD</span><span class="p">,</span>
     <span class="n">busday_count_mask_NaT</span><span class="p">,</span>
     <span class="n">datetime64D_dtype</span><span class="p">,</span>
     <span class="n">float64_dtype</span><span class="p">,</span>
@@ -249,7 +252,7 @@
         <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
 
         <span class="c"># Set masked values to NaT.</span>
-        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np_NaT</span>
+        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
 
         <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
         <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
@@ -285,7 +288,7 @@
         <span class="n">announce_dates</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)</span>
 
         <span class="c"># Set masked values to NaT.</span>
-        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">np_NaT</span>
+        <span class="n">announce_dates</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">NaTD</span>
 
         <span class="c"># Convert row labels into a column vector for broadcasted comparison.</span>
         <span class="n">reference_dates</span> <span class="o">=</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">datetime64D_dtype</span><span class="p">)[:,</span> <span class="n">newaxis</span><span class="p">]</span>
@@ -300,9 +303,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -320,7 +324,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

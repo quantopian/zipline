@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.assets.asset_writer &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.assets.asset_writer &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +231,11 @@
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">SidAssignmentError</span><span class="p">,</span> <span class="n">AssetDBVersionError</span>
 <span class="kn">from</span> <span class="nn">zipline.assets._assets</span> <span class="kn">import</span> <span class="n">Asset</span>
+<span class="kn">from</span> <span class="nn">zipline.assets.asset_db_schema</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">generate_asset_db_metadata</span><span class="p">,</span>
+    <span class="n">asset_db_table_names</span><span class="p">,</span>
+    <span class="n">ASSET_DB_VERSION</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span> <span class="o">=</span> <span class="mi">999</span>
 
@@ -241,6 +249,7 @@
     <span class="s">&#39;start_date&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
     <span class="s">&#39;end_date&#39;</span><span class="p">:</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">62</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
     <span class="s">&#39;first_traded&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s">&#39;auto_close_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
     <span class="s">&#39;exchange&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
 <span class="p">}</span>
 
@@ -256,7 +265,8 @@
     <span class="s">&#39;notice_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
     <span class="s">&#39;expiration_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
     <span class="s">&#39;auto_close_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-    <span class="s">&#39;contract_multiplier&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s">&#39;tick_size&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="s">&#39;multiplier&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="c"># Default values for the exchanges DataFrame</span>
@@ -365,12 +375,6 @@
     <span class="k">return</span> <span class="n">output</span>
 
 
-<span class="c"># Define a version number for the database generated by these writers</span>
-<span class="c"># Increment this version number any time a breaking change is made to the</span>
-<span class="c"># schema and readers of the database</span>
-<span class="n">ASSET_DB_VERSION</span> <span class="o">=</span> <span class="mi">0</span>
-
-
 <span class="k">def</span> <span class="nf">check_version_info</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">expected_version</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks for a version value in the version table.</span>
@@ -414,143 +418,6 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">sa</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;version&#39;</span><span class="p">:</span> <span class="n">version_value</span><span class="p">})</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
-
-
-<span class="c"># A list of the names of all tables in the assets db</span>
-<span class="n">asset_db_table_names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;version_info&#39;</span><span class="p">,</span> <span class="s">&#39;equities&#39;</span><span class="p">,</span> <span class="s">&#39;futures_exchanges&#39;</span><span class="p">,</span>
-                        <span class="s">&#39;futures_root_symbols&#39;</span><span class="p">,</span> <span class="s">&#39;futures_contracts&#39;</span><span class="p">,</span>
-                        <span class="s">&#39;asset_router&#39;</span><span class="p">]</span>
-
-
-<span class="k">def</span> <span class="nf">_equities_table_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span>
-        <span class="s">&#39;equities&#39;</span><span class="p">,</span>
-        <span class="n">metadata</span><span class="p">,</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
-            <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;company_symbol&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">True</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;share_class_symbol&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;fuzzy_symbol&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">True</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;asset_name&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;end_date&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;first_traded&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;exchange&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-    <span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_futures_exchanges_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span>
-        <span class="s">&#39;futures_exchanges&#39;</span><span class="p">,</span>
-        <span class="n">metadata</span><span class="p">,</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;exchange&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span>
-            <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;timezone&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-    <span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_futures_root_symbols_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">futures_exchanges</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span>
-        <span class="s">&#39;futures_root_symbols&#39;</span><span class="p">,</span>
-        <span class="n">metadata</span><span class="p">,</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;root_symbol&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span>
-            <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;root_symbol_id&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;sector&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;description&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;exchange&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">futures_exchanges</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">exchange</span><span class="p">),</span>
-        <span class="p">),</span>
-    <span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_futures_contracts_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">futures_root_symbols</span><span class="p">,</span>
-                              <span class="n">futures_exchanges</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span>
-        <span class="s">&#39;futures_contracts&#39;</span><span class="p">,</span>
-        <span class="n">metadata</span><span class="p">,</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
-            <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span> <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">True</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;root_symbol&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">futures_root_symbols</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">root_symbol</span><span class="p">),</span>
-            <span class="n">index</span><span class="o">=</span><span class="bp">True</span>
-        <span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;asset_name&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;end_date&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;first_traded&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;exchange&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">futures_exchanges</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">exchange</span><span class="p">),</span>
-        <span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;notice_date&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;expiration_date&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;auto_close_date&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;contract_multiplier&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Float</span><span class="p">),</span>
-    <span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_asset_router_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span>
-        <span class="s">&#39;asset_router&#39;</span><span class="p">,</span>
-        <span class="n">metadata</span><span class="p">,</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;sid&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
-            <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="s">&#39;asset_type&#39;</span><span class="p">,</span> <span class="n">sa</span><span class="o">.</span><span class="n">Text</span><span class="p">),</span>
-    <span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">_version_table_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span>
-        <span class="s">&#39;version_info&#39;</span><span class="p">,</span>
-        <span class="n">metadata</span><span class="p">,</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;id&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
-            <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-            <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span>
-            <span class="s">&#39;version&#39;</span><span class="p">,</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">Integer</span><span class="p">,</span>
-            <span class="n">unique</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-            <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="c"># This constraint ensures a single entry in this table</span>
-        <span class="n">sa</span><span class="o">.</span><span class="n">CheckConstraint</span><span class="p">(</span><span class="s">&#39;id &lt;= 1&#39;</span><span class="p">),</span>
-    <span class="p">)</span>
 
 
 <div class="viewcode-block" id="AssetDBWriter"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.asset_writer.AssetDBWriter">[docs]</a><span class="k">class</span> <span class="nc">AssetDBWriter</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span>
@@ -681,23 +548,12 @@
 <span class="sd">        constraints : bool, optional</span>
 <span class="sd">            If True, create SQL ForeignKey and PrimaryKey constraints.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">metadata</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">MetaData</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+        <span class="n">tables_already_exist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_for_tables</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">generate_asset_db_metadata</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
 
-        <span class="n">tables_already_exist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_for_tables</span><span class="p">(</span><span class="n">engine</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">asset_db_table_names</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_name</span><span class="p">,</span> <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="n">table_name</span><span class="p">])</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">equities</span> <span class="o">=</span> <span class="n">_equities_table_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">futures_exchanges</span> <span class="o">=</span> <span class="n">_futures_exchanges_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">futures_root_symbols</span> <span class="o">=</span> <span class="n">_futures_root_symbols_schema</span><span class="p">(</span>
-            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
-            <span class="n">futures_exchanges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">futures_exchanges</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">futures_contracts</span> <span class="o">=</span> <span class="n">_futures_contracts_schema</span><span class="p">(</span>
-            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
-            <span class="n">futures_root_symbols</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">futures_root_symbols</span><span class="p">,</span>
-            <span class="n">futures_exchanges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">futures_exchanges</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">asset_router</span> <span class="o">=</span> <span class="n">_asset_router_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">version_info</span> <span class="o">=</span> <span class="n">_version_table_schema</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
         <span class="c"># Create the SQL tables if they do not already exist.</span>
         <span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="n">checkfirst</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
@@ -752,7 +608,8 @@
             <span class="n">equities_output</span><span class="o">.</span><span class="n">fuzzy_symbol</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
 
         <span class="c"># Convert date columns to UNIX Epoch integers (nanoseconds)</span>
-        <span class="k">for</span> <span class="n">date_col</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;end_date&#39;</span><span class="p">,</span> <span class="s">&#39;first_traded&#39;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">date_col</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;end_date&#39;</span><span class="p">,</span> <span class="s">&#39;first_traded&#39;</span><span class="p">,</span>
+                         <span class="s">&#39;auto_close_date&#39;</span><span class="p">):</span>
             <span class="n">equities_output</span><span class="p">[</span><span class="n">date_col</span><span class="p">]</span> <span class="o">=</span> \
                 <span class="bp">self</span><span class="o">.</span><span class="n">dt_to_epoch_ns</span><span class="p">(</span><span class="n">equities_output</span><span class="p">[</span><span class="n">date_col</span><span class="p">])</span>
 
@@ -952,9 +809,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -972,7 +830,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

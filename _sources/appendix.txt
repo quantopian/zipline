@@ -66,7 +66,8 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
    :members:
 
-.. autofunction:: zipline.pipeline.factors.DollarVolume
+.. autoclass:: zipline.pipeline.factors.AverageDollarVolume
+   :members:
 
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
@@ -103,4 +104,10 @@ Asset Metadata
    :members:
 
 .. autoclass:: zipline.assets.assets.AssetConvertible
+   :members:
+
+Data API
+~~~~~~~~
+
+.. autoclass:: zipline.data.minute_bars.BcolzMinuteBarWriter
    :members:

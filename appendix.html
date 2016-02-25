@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>API Reference &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="index.html"/>
         <link rel="next" title="Zipline Release Process" href="release-process.html"/>
         <link rel="prev" title="Release Notes" href="releases.html"/> 
 
@@ -99,7 +99,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
@@ -137,10 +137,10 @@
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -149,6 +149,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Zipline Release Process</a><ul>
@@ -160,6 +161,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -215,7 +218,7 @@ currently-executing <a class="reference internal" href="#zipline.algorithm.Tradi
 
 <dl class="function">
 <dt id="zipline.api.add_transform">
-<code class="descclassname">zipline.api.</code><code class="descname">add_transform</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.add_transform" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">add_transform</code><span class="sig-paren">(</span><em>self</em>, <em>transform</em>, <em>days=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.add_transform" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ensures that the history container will have enough size to service
 a simple transform.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -240,40 +243,40 @@ This is not needed for &#8216;returns&#8217;.</p>
 
 <dl class="function">
 <dt id="zipline.api.schedule_function">
-<code class="descclassname">zipline.api.</code><code class="descname">schedule_function</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.schedule_function" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">schedule_function</code><span class="sig-paren">(</span><em>self</em>, <em>func</em>, <em>date_rule=None</em>, <em>time_rule=None</em>, <em>half_days=True</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.schedule_function" title="Permalink to this definition">¶</a></dt>
 <dd><p>Schedules a function to be called with some timed rules.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.record">
-<code class="descclassname">zipline.api.</code><code class="descname">record</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.record" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">record</code><span class="sig-paren">(</span><em>self</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.record" title="Permalink to this definition">¶</a></dt>
 <dd><p>Track and record local variable (i.e. attributes) each day.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.symbol">
-<code class="descclassname">zipline.api.</code><code class="descname">symbol</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.symbol" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">symbol</code><span class="sig-paren">(</span><em>self</em>, <em>symbol_str</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.symbol" title="Permalink to this definition">¶</a></dt>
 <dd><p>Default symbol lookup for any source that directly maps the
 symbol to the Asset (e.g. yahoo finance).</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.symbols">
-<code class="descclassname">zipline.api.</code><code class="descname">symbols</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.symbols" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">symbols</code><span class="sig-paren">(</span><em>self</em>, <em>*args</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.symbols" title="Permalink to this definition">¶</a></dt>
 <dd><p>Default symbols lookup for any source that directly maps the
 symbol to the Asset (e.g. yahoo finance).</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.sid">
-<code class="descclassname">zipline.api.</code><code class="descname">sid</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.sid" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">sid</code><span class="sig-paren">(</span><em>self</em>, <em>a_sid</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.sid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Default sid lookup for any source that directly maps the integer sid
 to the Asset.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.future_symbol">
-<code class="descclassname">zipline.api.</code><code class="descname">future_symbol</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_symbol" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">future_symbol</code><span class="sig-paren">(</span><em>self</em>, <em>symbol</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_symbol" title="Permalink to this definition">¶</a></dt>
 <dd><p>Lookup a futures contract with a given symbol.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -303,7 +306,7 @@ to the Asset.</p>
 
 <dl class="function">
 <dt id="zipline.api.future_chain">
-<code class="descclassname">zipline.api.</code><code class="descname">future_chain</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_chain" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">future_chain</code><span class="sig-paren">(</span><em>self</em>, <em>root_symbol</em>, <em>as_of_date=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_chain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Look up a future chain with the specified parameters.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -339,13 +342,13 @@ the primary contract, etc.</p>
 
 <dl class="function">
 <dt id="zipline.api.order">
-<code class="descclassname">zipline.api.</code><code class="descname">order</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">order</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>amount</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order" title="Permalink to this definition">¶</a></dt>
 <dd><p>Place an order using the specified parameters.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.order_value">
-<code class="descclassname">zipline.api.</code><code class="descname">order_value</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_value" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">order_value</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>value</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Place an order by desired value rather than desired number of shares.
 If the requested sid is found in the universe, the requested value is
 divided by its price to imply the number of shares to transact.
@@ -361,13 +364,13 @@ StopLimit order: order(sid, value, limit_price, stop_price)</p>
 
 <dl class="function">
 <dt id="zipline.api.get_datetime">
-<code class="descclassname">zipline.api.</code><code class="descname">get_datetime</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.get_datetime" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">get_datetime</code><span class="sig-paren">(</span><em>self</em>, <em>tz=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.get_datetime" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the simulation datetime.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.set_symbol_lookup_date">
-<code class="descclassname">zipline.api.</code><code class="descname">set_symbol_lookup_date</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_symbol_lookup_date" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">set_symbol_lookup_date</code><span class="sig-paren">(</span><em>self</em>, <em>dt</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_symbol_lookup_date" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the date for which symbols will be resolved to their sids
 (symbols may map to different firms or underlying assets at
 different times)</p>
@@ -375,7 +378,7 @@ different times)</p>
 
 <dl class="function">
 <dt id="zipline.api.order_percent">
-<code class="descclassname">zipline.api.</code><code class="descname">order_percent</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_percent" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">order_percent</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>percent</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_percent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Place an order in the specified asset corresponding to the given
 percent of the current portfolio value.</p>
 <p>Note that percent must expressed as a decimal (0.50 means 50%).</p>
@@ -383,7 +386,7 @@ percent of the current portfolio value.</p>
 
 <dl class="function">
 <dt id="zipline.api.order_target">
-<code class="descclassname">zipline.api.</code><code class="descname">order_target</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">order_target</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>target</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target" title="Permalink to this definition">¶</a></dt>
 <dd><p>Place an order to adjust a position to a target number of shares. If
 the position doesn&#8217;t already exist, this is equivalent to placing a new
 order. If the position does exist, this is equivalent to placing an
@@ -393,7 +396,7 @@ current number of shares.</p>
 
 <dl class="function">
 <dt id="zipline.api.order_target_value">
-<code class="descclassname">zipline.api.</code><code class="descname">order_target_value</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target_value" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">order_target_value</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>target</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target_value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Place an order to adjust a position to a target value. If
 the position doesn&#8217;t already exist, this is equivalent to placing a new
 order. If the position does exist, this is equivalent to placing an
@@ -405,7 +408,7 @@ is actually the target exposure, as Futures have no &#8216;value&#8217;.</p>
 
 <dl class="function">
 <dt id="zipline.api.order_target_percent">
-<code class="descclassname">zipline.api.</code><code class="descname">order_target_percent</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target_percent" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">order_target_percent</code><span class="sig-paren">(</span><em>self</em>, <em>sid</em>, <em>target</em>, <em>limit_price=None</em>, <em>stop_price=None</em>, <em>style=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.order_target_percent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Place an order to adjust a position to a target percent of the
 current portfolio value. If the position doesn&#8217;t already exist, this is
 equivalent to placing a new order. If the position does exist, this is
@@ -416,13 +419,13 @@ percent and the current percent.</p>
 
 <dl class="function">
 <dt id="zipline.api.set_max_leverage">
-<code class="descclassname">zipline.api.</code><code class="descname">set_max_leverage</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_leverage" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_leverage</code><span class="sig-paren">(</span><em>self</em>, <em>max_leverage=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_leverage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set a limit on the maximum leverage of the algorithm.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.set_max_position_size">
-<code class="descclassname">zipline.api.</code><code class="descname">set_max_position_size</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_position_size" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_position_size</code><span class="sig-paren">(</span><em>self</em>, <em>sid=None</em>, <em>max_shares=None</em>, <em>max_notional=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_position_size" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set a limit on the number of shares and/or dollar value held for the
 given sid. Limits are treated as absolute values and are enforced at
 the time that the algo attempts to place an order for sid. This means
@@ -436,7 +439,7 @@ these limits, raise a TradingControlException.</p>
 
 <dl class="function">
 <dt id="zipline.api.set_max_order_size">
-<code class="descclassname">zipline.api.</code><code class="descname">set_max_order_size</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_order_size" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_order_size</code><span class="sig-paren">(</span><em>self</em>, <em>sid=None</em>, <em>max_shares=None</em>, <em>max_notional=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_order_size" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set a limit on the number of shares and/or dollar value of any single
 order placed for sid.  Limits are treated as absolute values and are
 enforced at the time that the algo attempts to place an order for sid.</p>
@@ -446,32 +449,32 @@ exceeding one of these limits, raise a TradingControlException.</p>
 
 <dl class="function">
 <dt id="zipline.api.set_max_order_count">
-<code class="descclassname">zipline.api.</code><code class="descname">set_max_order_count</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_order_count" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">set_max_order_count</code><span class="sig-paren">(</span><em>self</em>, <em>max_count</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_max_order_count" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set a limit on the number of orders that can be placed within the given
 time interval.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.set_do_not_order_list">
-<code class="descclassname">zipline.api.</code><code class="descname">set_do_not_order_list</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_do_not_order_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">set_do_not_order_list</code><span class="sig-paren">(</span><em>self</em>, <em>restricted_list</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_do_not_order_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set a restriction on which sids can be ordered.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.set_long_only">
-<code class="descclassname">zipline.api.</code><code class="descname">set_long_only</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_long_only" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">set_long_only</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.set_long_only" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set a rule specifying that this algorithm cannot take short positions.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.attach_pipeline">
-<code class="descclassname">zipline.api.</code><code class="descname">attach_pipeline</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.attach_pipeline" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">attach_pipeline</code><span class="sig-paren">(</span><em>self</em>, <em>pipeline</em>, <em>name</em>, <em>chunksize=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.attach_pipeline" title="Permalink to this definition">¶</a></dt>
 <dd><p>Register a pipeline to be computed at the start of each day.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="zipline.api.pipeline_output">
-<code class="descclassname">zipline.api.</code><code class="descname">pipeline_output</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.pipeline_output" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">pipeline_output</code><span class="sig-paren">(</span><em>self</em>, <em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.pipeline_output" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get the results of pipeline with name <cite>name</cite>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -847,7 +850,7 @@ pairs for which <cite>mask</cite> produces a value of False.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v0.16.1)"><code class="xref py py-obj docutils literal"><span class="pre">scipy.stats.rankdata</span></code></a>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.lib.rank.masked_rankdata_2d</span></code>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.factors.factor.Rank</span></code></p>
+<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v0.17.0)"><code class="xref py py-obj docutils literal"><span class="pre">scipy.stats.rankdata</span></code></a>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.lib.rank.masked_rankdata_2d</span></code>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.factors.factor.Rank</span></code></p>
 </div>
 <p class="rubric">Notes</p>
 <p>The default value for <cite>method</cite> is different from the default for
@@ -1230,11 +1233,12 @@ sequence:</p>
 </ul>
 </dd></dl>
 
-<dl class="function">
-<dt id="zipline.pipeline.factors.DollarVolume">
-<code class="descclassname">zipline.pipeline.factors.</code><code class="descname">DollarVolume</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#DollarVolume"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.DollarVolume" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a Factor computing the product of most recent close price and
-volume.</p>
+<dl class="class">
+<dt id="zipline.pipeline.factors.AverageDollarVolume">
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">AverageDollarVolume</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#AverageDollarVolume"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.AverageDollarVolume" title="Permalink to this definition">¶</a></dt>
+<dd><p>Average Daily Dollar Volume</p>
+<p><strong>Default Inputs:</strong> [USEquityPricing.close, USEquityPricing.volume]</p>
+<p><strong>Default Window Length:</strong> None</p>
 </dd></dl>
 
 <dl class="class">
@@ -1813,6 +1817,85 @@ Assets.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="data-api">
+<h2>Data API<a class="headerlink" href="#data-api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="zipline.data.minute_bars.BcolzMinuteBarWriter">
+<em class="property">class </em><code class="descclassname">zipline.data.minute_bars.</code><code class="descname">BcolzMinuteBarWriter</code><span class="sig-paren">(</span><em>first_trading_day</em>, <em>rootdir</em>, <em>market_opens</em>, <em>minutes_per_day</em>, <em>ohlc_ratio=1000</em>, <em>expectedlen=1474200</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class capable of writing minute OHLCV data to disk into bcolz format.</p>
+<p>Writes a bcolz directory for each individual sid, all contained within
+a root directory which also contains metadata about the entire dataset.</p>
+<p>Each individual asset&#8217;s data is stored as a bcolz table with a column for
+each pricing field: (open, high, low, close, volume)</p>
+<p>The open, high, low, and close columns are integers which are 1000 times
+the quoted price, so that the data can represented and stored as an
+np.uint32, supporting market prices quoted up to the thousands place.</p>
+<p>volume is a np.uint32 with no mutation of the tens place.</p>
+<p>The &#8216;index&#8217; for each individual asset are a repeating period of minutes of
+length <cite>minutes_per_day</cite> starting from each market open.
+The file format does not account for half-days.
+e.g.:
+2016-01-19 14:31
+2016-01-19 14:32
+...
+2016-01-19 20:59
+2016-01-19 21:00
+2016-01-20 14:31
+2016-01-20 14:32
+...
+2016-01-20 20:59
+2016-01-20 21:00</p>
+<p>All assets are written with a common &#8216;index&#8217;, sharing a common first
+trading day. Assets that do not begin trading until after the first trading
+day will have zeros for all pricing data up and until data is traded.</p>
+<p>&#8216;index&#8217; is in quotations, because bcolz does not provide an index. The
+format allows index-like behavior by writing each minute&#8217;s data into the
+corresponding position of the enumeration of the aforementioned datetime
+index.</p>
+<p>The datetimes which correspond to each position are written in the metadata
+as integer nanoseconds since the epoch into the <cite>minute_index</cite> key.</p>
+<dl class="method">
+<dt id="zipline.data.minute_bars.BcolzMinuteBarWriter.last_date_in_output_for_sid">
+<code class="descname">last_date_in_output_for_sid</code><span class="sig-paren">(</span><em>sid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter.last_date_in_output_for_sid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter.last_date_in_output_for_sid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zipline.data.minute_bars.BcolzMinuteBarWriter.pad">
+<code class="descname">pad</code><span class="sig-paren">(</span><em>sid</em>, <em>date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter.pad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter.pad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fill sid container with empty data through the specified date.</p>
+<p>e.g. if the date is two days after the last date in the sid&#8217;s existing
+output, 2 x <cite>minute_per_day</cite> worth of zeros will be added to the
+output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.data.minute_bars.BcolzMinuteBarWriter.sidpath">
+<code class="descname">sidpath</code><span class="sig-paren">(</span><em>sid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter.sidpath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter.sidpath" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zipline.data.minute_bars.BcolzMinuteBarWriter.write">
+<code class="descname">write</code><span class="sig-paren">(</span><em>sid</em>, <em>df</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter.write"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter.write" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the OHLCV data for the given sid.</p>
+<p>If there is no bcolz ctable yet created for the sid, create it.</p>
+<p>If the length of the bcolz ctable is not exactly to the date before
+the first day provided, fill the ctable with 0s up to that date.</p>
+<p>Writes in blocks of the size of the days times minutes per day.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.data.minute_bars.BcolzMinuteBarWriter.write_cols">
+<code class="descname">write_cols</code><span class="sig-paren">(</span><em>sid</em>, <em>dts</em>, <em>cols</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter.write_cols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter.write_cols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the OHLCV data for the given sid.</p>
+<p>If there is no bcolz ctable yet created for the sid, create it.</p>
+<p>If the length of the bcolz ctable is not exactly to the date before
+the first day provided, fill the ctable with 0s up to that date.</p>
+<p>Writes in blocks of the size of the days times minutes per day.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -1833,9 +1916,10 @@ Assets.</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -1853,7 +1937,7 @@ Assets.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

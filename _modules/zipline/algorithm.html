@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.algorithm &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.algorithm &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -240,11 +243,11 @@
     <span class="n">HistoryInInitialize</span><span class="p">,</span>
     <span class="n">NoSuchPipeline</span><span class="p">,</span>
     <span class="n">OrderDuringInitialize</span><span class="p">,</span>
-    <span class="n">OverrideCommissionPostInit</span><span class="p">,</span>
-    <span class="n">OverrideSlippagePostInit</span><span class="p">,</span>
     <span class="n">PipelineOutputDuringInitialize</span><span class="p">,</span>
     <span class="n">RegisterAccountControlPostInit</span><span class="p">,</span>
     <span class="n">RegisterTradingControlPostInit</span><span class="p">,</span>
+    <span class="n">SetCommissionPostInit</span><span class="p">,</span>
+    <span class="n">SetSlippagePostInit</span><span class="p">,</span>
     <span class="n">UnsupportedCommissionModel</span><span class="p">,</span>
     <span class="n">UnsupportedDatetimeFormat</span><span class="p">,</span>
     <span class="n">UnsupportedOrderParameters</span><span class="p">,</span>
@@ -760,15 +763,11 @@
 
         <span class="c"># The sids field of the source is the reference for the universe at</span>
         <span class="c"># the start of the run</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_current_universe</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sources</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">sids</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_current_universe</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+        <span class="n">sids</span> <span class="o">=</span> <span class="p">{</span><span class="n">sid</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sources</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">sids</span><span class="p">}</span>
         <span class="c"># Check that all sids from the source are accounted for in</span>
         <span class="c"># the AssetFinder. This retrieve call will raise an exception if the</span>
         <span class="c"># sid is not found.</span>
-        <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_universe</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_universe</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span><span class="n">sids</span><span class="p">))</span>
 
         <span class="c"># force a reset of the performance tracker, in case</span>
         <span class="c"># this is a repeat run of the algorithm.</span>
@@ -1060,7 +1059,7 @@
             <span class="k">return</span> <span class="mi">0</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">Future</span><span class="p">):</span>
-            <span class="n">value_multiplier</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">contract_multiplier</span>
+            <span class="n">value_multiplier</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">multiplier</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">value_multiplier</span> <span class="o">=</span> <span class="mi">1</span>
 
@@ -1273,7 +1272,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">slippage</span><span class="p">,</span> <span class="n">SlippageModel</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">UnsupportedSlippageModel</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">OverrideSlippagePostInit</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">SetSlippagePostInit</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">slippage</span> <span class="o">=</span> <span class="n">slippage</span>
 
     <span class="nd">@api_method</span>
@@ -1282,7 +1281,7 @@
             <span class="k">raise</span> <span class="n">UnsupportedCommissionModel</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">OverrideCommissionPostInit</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">SetCommissionPostInit</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">commission</span> <span class="o">=</span> <span class="n">commission</span>
 
     <span class="nd">@api_method</span>
@@ -1710,9 +1709,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -1730,7 +1730,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

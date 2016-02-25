@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.transforms.batch_transform &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.transforms.batch_transform &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -235,6 +238,7 @@
 
 <span class="kn">from</span> <span class="nn">zipline.utils.algo_instance</span> <span class="kn">import</span> <span class="n">get_algo_instance</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.data</span> <span class="kn">import</span> <span class="n">MutableIndexRollingPanel</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.deprecate</span> <span class="kn">import</span> <span class="n">deprecated</span>
 <span class="kn">from</span> <span class="nn">zipline.protocol</span> <span class="kn">import</span> <span class="n">Event</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">logbook</span><span class="o">.</span><span class="n">Logger</span><span class="p">(</span><span class="s">&#39;BatchTransform&#39;</span><span class="p">)</span>
@@ -352,6 +356,8 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="nd">@deprecated</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="s">&quot;Batch transforms are deprecated and will be removed&quot;</span>
+                    <span class="s">&quot; in a future release. Please use &#39;history&#39; instead.&quot;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">func</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">refresh_period</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
@@ -362,7 +368,6 @@
                  <span class="n">compute_only_full</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
                  <span class="n">bars</span><span class="o">=</span><span class="s">&#39;daily&#39;</span><span class="p">,</span>
                  <span class="n">downsample</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-
         <span class="sd">&quot;&quot;&quot;Instantiate new batch_transform object.</span>
 
 <span class="sd">        :Arguments:</span>
@@ -689,9 +694,9 @@
 
 <div class="viewcode-block" id="batch_transform"><a class="viewcode-back" href="../../../appendix.html#zipline.api.batch_transform">[docs]</a><span class="k">def</span> <span class="nf">batch_transform</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decorator function to use instead of inheriting from BatchTransform.</span>
+
 <span class="sd">    For an example on how to use this, see the doc string of BatchTransform.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="nd">@functools.wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">create_window</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="c"># passes the user defined function to BatchTransform which it</span>
@@ -709,9 +714,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -729,7 +735,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

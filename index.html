@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>Zipline &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="#"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="#"/>
         <link rel="next" title="Install" href="install.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -204,8 +207,7 @@
 <a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="version status" src="https://img.shields.io/pypi/pyversions/zipline.svg" /></a>
 <a class="reference external" href="https://pypi.python.org/pypi/zipline"><img alt="downloads" src="https://img.shields.io/pypi/dd/zipline.svg" /></a>
 <a class="reference external" href="https://travis-ci.org/quantopian/zipline"><img alt="build status" src="https://travis-ci.org/quantopian/zipline.png?branch=master" /></a>
-<a class="reference external" href="https://coveralls.io/r/quantopian/zipline"><img alt="Coverage Status" src="https://coveralls.io/repos/quantopian/zipline/badge.png" /></a>
-<a class="reference external" href="https://scrutinizer-ci.com/g/quantopian/zipline/"><img alt="Code quality" src="https://scrutinizer-ci.com/g/quantopian/zipline/badges/quality-score.png?b=master" /></a></p>
+<a class="reference external" href="https://coveralls.io/r/quantopian/zipline"><img alt="Coverage Status" src="https://coveralls.io/repos/quantopian/zipline/badge.png" /></a></p>
 <p>Zipline is a Pythonic algorithmic trading library. It is an event-driven
 system that supports both backtesting and live-trading.</p>
 <p>Zipline is currently used in production as the backtesting and live-trading
@@ -377,9 +379,10 @@ and analyze from within python.</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -397,7 +400,7 @@ and analyze from within python.</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

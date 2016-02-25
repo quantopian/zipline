@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.technical &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.pipeline.factors.technical &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -203,12 +206,6 @@
 <span class="sd">Technical Analysis Factors</span>
 <span class="sd">--------------------------</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">bottleneck</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">nanargmax</span><span class="p">,</span>
-    <span class="n">nanmax</span><span class="p">,</span>
-    <span class="n">nanmean</span><span class="p">,</span>
-    <span class="n">nansum</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="nb">abs</span><span class="p">,</span>
@@ -232,6 +229,12 @@
 <span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">ignore_nanwarnings</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">nanargmax</span><span class="p">,</span>
+    <span class="n">nanmax</span><span class="p">,</span>
+    <span class="n">nanmean</span><span class="p">,</span>
+    <span class="n">nansum</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
 
 
@@ -331,12 +334,18 @@
             <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">peak</span> <span class="o">-</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="n">data</span><span class="p">[</span><span class="n">end</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span>
 
 </div>
-<div class="viewcode-block" id="DollarVolume"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.DollarVolume">[docs]</a><span class="k">def</span> <span class="nf">DollarVolume</span><span class="p">():</span>
+<div class="viewcode-block" id="AverageDollarVolume"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.AverageDollarVolume">[docs]</a><span class="k">class</span> <span class="nc">AverageDollarVolume</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returns a Factor computing the product of most recent close price and</span>
-<span class="sd">    volume.</span>
+<span class="sd">    Average Daily Dollar Volume</span>
+
+<span class="sd">    **Default Inputs:** [USEquityPricing.close, USEquityPricing.volume]</span>
+
+<span class="sd">    **Default Window Length:** None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="o">.</span><span class="n">latest</span> <span class="o">*</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="o">.</span><span class="n">latest</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">,</span> <span class="n">volume</span><span class="p">):</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">close</span> <span class="o">*</span> <span class="n">volume</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
 </div>
 <span class="k">class</span> <span class="nc">_ExponentialWeightedFactor</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
@@ -376,7 +385,7 @@
 <span class="sd">        Return weighting vector for an exponential moving statistic on `length`</span>
 <span class="sd">        rows with a decay rate of `decay_rate`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">full</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">)</span> <span class="o">**</span> <span class="n">arange</span><span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">full</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">decay_rate</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="o">**</span> <span class="n">arange</span><span class="p">(</span><span class="n">length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">span</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
@@ -601,9 +610,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -621,7 +631,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

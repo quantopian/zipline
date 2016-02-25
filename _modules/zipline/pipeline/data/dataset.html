@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.data.dataset &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.pipeline.data.dataset &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -208,8 +211,16 @@
     <span class="n">with_metaclass</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">Term</span><span class="p">,</span> <span class="n">AssetExists</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Term</span><span class="p">,</span>
+    <span class="n">AssetExists</span><span class="p">,</span>
+    <span class="n">NotSpecified</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">ensure_dtype</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">bool_dtype</span><span class="p">,</span>
+    <span class="n">NoDefaultMissingValue</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.preprocess</span> <span class="kn">import</span> <span class="n">preprocess</span>
 
 
@@ -219,14 +230,65 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nd">@preprocess</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">ensure_dtype</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span> <span class="o">=</span> <span class="n">missing_value</span>
 
-    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Bind a column to a concrete dataset.</span>
+<span class="sd">        Bind a `Column` object to its name.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">BoundColumn</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_BoundColumnDescr</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_BoundColumnDescr</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Intermediate class that sits on `DataSet` objects and returns memoized</span>
+<span class="sd">    `BoundColumn` objects when requested.</span>
+
+<span class="sd">    This exists so that subclasses of DataSets don&#39;t share columns with their</span>
+<span class="sd">    parent classes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="c"># Validating and calculating default missing values here guarantees</span>
+        <span class="c"># that we fail quickly if the user passes an unsupporte dtype or fails</span>
+        <span class="c"># to provide a missing value for a dtype that requires one</span>
+        <span class="c"># (e.g. int64), but still enables us to provide an error message that</span>
+        <span class="c"># points to the name of the failing column.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span> <span class="o">=</span> <span class="n">Term</span><span class="o">.</span><span class="n">validate_dtype</span><span class="p">(</span>
+                <span class="n">termname</span><span class="o">=</span><span class="s">&quot;Column(name={name!r})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="n">NoDefaultMissingValue</span><span class="p">:</span>
+            <span class="c"># Re-raise with a more specific message.</span>
+            <span class="k">raise</span> <span class="n">NoDefaultMissingValue</span><span class="p">(</span>
+                <span class="s">&quot;Failed to create Column with name {name!r} and&quot;</span>
+                <span class="s">&quot; dtype {dtype} because no missing_value was provided</span><span class="se">\n\n</span><span class="s">&quot;</span>
+                <span class="s">&quot;Columns with dtype {dtype} require a missing_value.</span><span class="se">\n</span><span class="s">&quot;</span>
+                <span class="s">&quot;Please pass missing_value to Column() or use a different&quot;</span>
+                <span class="s">&quot; dtype.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">def</span> <span class="nf">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Produce a concrete BoundColumn object when accessed.</span>
+
+<span class="sd">        We don&#39;t bind to datasets at class creation time so that subclasses of</span>
+<span class="sd">        DataSets produce different BoundColumns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">BoundColumn</span><span class="p">(</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">owner</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">BoundColumn</span><span class="p">(</span><span class="n">Term</span><span class="p">):</span>
@@ -237,11 +299,12 @@
     <span class="n">extra_input_rows</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">missing_value</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">BoundColumn</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
             <span class="n">cls</span><span class="p">,</span>
             <span class="n">domain</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">domain</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
             <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="p">)</span>
@@ -276,8 +339,15 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">latest</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">Latest</span>
-        <span class="k">return</span> <span class="n">Latest</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">bool_dtype</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">Latest</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">Latest</span>
+        <span class="k">return</span> <span class="n">Latest</span><span class="p">(</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="p">,),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="s">&quot;{qualname}::{dtype}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -298,20 +368,26 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">):</span>
-        <span class="n">newtype</span> <span class="o">=</span> <span class="nb">type</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
-        <span class="n">_columns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">newtype</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="n">mcls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">mcls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dict_</span><span class="p">)</span>
+        <span class="c"># collect all of the column names that we inherit from our parents</span>
+        <span class="n">column_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
+            <span class="o">*</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="s">&#39;_column_names&#39;</span><span class="p">,</span> <span class="p">())</span> <span class="k">for</span> <span class="n">base</span> <span class="ow">in</span> <span class="n">bases</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="k">for</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">maybe_column</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">dict_</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_column</span><span class="p">,</span> <span class="n">Column</span><span class="p">):</span>
-                <span class="n">bound_column</span> <span class="o">=</span> <span class="n">maybe_column</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span> <span class="n">maybe_colname</span><span class="p">)</span>
-                <span class="nb">setattr</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">bound_column</span><span class="p">)</span>
-                <span class="n">_columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bound_column</span><span class="p">)</span>
+                <span class="c"># add column names defined on our class</span>
+                <span class="n">bound_column_descr</span> <span class="o">=</span> <span class="n">maybe_column</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span> <span class="n">maybe_colname</span><span class="p">,</span> <span class="n">bound_column_descr</span><span class="p">)</span>
+                <span class="n">column_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">maybe_colname</span><span class="p">)</span>
 
-        <span class="n">newtype</span><span class="o">.</span><span class="n">_columns</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">_columns</span><span class="p">)</span>
+        <span class="n">newtype</span><span class="o">.</span><span class="n">_column_names</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="n">column_names</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">newtype</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span>
+        <span class="k">return</span> <span class="nb">frozenset</span><span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">colname</span><span class="p">)</span> <span class="k">for</span> <span class="n">colname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_names</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__lt__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">id</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
@@ -320,7 +396,7 @@
         <span class="k">return</span> <span class="s">&#39;&lt;DataSet: </span><span class="si">%r</span><span class="s">&gt;&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">__name__</span>
 
 
-<span class="k">class</span> <span class="nc">DataSet</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">)):</span>
+<span class="k">class</span> <span class="nc">DataSet</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">DataSetMeta</span><span class="p">,</span> <span class="nb">object</span><span class="p">)):</span>
     <span class="n">domain</span> <span class="o">=</span> <span class="bp">None</span>
 </pre></div>
 
@@ -332,9 +408,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -352,7 +429,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

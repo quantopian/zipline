@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.filters.filter &mdash; Zipline v0.8.3+170.g8abef95 documentation</title>
+  <title>zipline.pipeline.filters.filter &mdash; Zipline 0.8.4 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline v0.8.3+170.g8abef95 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 0.8.4 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -98,7 +98,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#development">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
@@ -136,10 +136,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
@@ -159,6 +160,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#next-commit">Next Commit</a></li>
 </ul>
 </li>
 </ul>
@@ -325,6 +328,13 @@
             <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">FILTER_BINOPS</span>
         <span class="p">}</span>
     <span class="p">)</span>
+    <span class="n">clsdict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">method_name_for_op</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">commute</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span> <span class="n">binary_operator</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">FILTER_BINOPS</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
     <span class="n">__invert__</span> <span class="o">=</span> <span class="n">unary_operator</span><span class="p">(</span><span class="s">&#39;~&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -446,7 +456,53 @@
 
 <span class="k">class</span> <span class="nc">CustomFilter</span><span class="p">(</span><span class="n">PositiveWindowLengthMixin</span><span class="p">,</span> <span class="n">CustomTermMixin</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Filter analog to ``CustomFactor``.</span>
+<span class="sd">    Base class for user-defined Filters.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    inputs : iterable, optional</span>
+<span class="sd">        An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),</span>
+<span class="sd">        describing the data to load and pass to `self.compute`.  If this</span>
+<span class="sd">        argument is passed to the CustomFilter constructor, we look for a</span>
+<span class="sd">        class-level attribute named `inputs`.</span>
+<span class="sd">    window_length : int, optional</span>
+<span class="sd">        Number of rows to pass for each input.  If this argument is not passed</span>
+<span class="sd">        to the CustomFilter constructor, we look for a class-level attribute</span>
+<span class="sd">        named `window_length`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Users implementing their own Filters should subclass CustomFilter and</span>
+<span class="sd">    implement a method named `compute` with the following signature:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        def compute(self, today, assets, out, *inputs):</span>
+<span class="sd">           ...</span>
+
+<span class="sd">    On each simulation date, ``compute`` will be called with the current date,</span>
+<span class="sd">    an array of sids, an output array, and an input array for each expression</span>
+<span class="sd">    passed as inputs to the CustomFilter constructor.</span>
+
+<span class="sd">    The specific types of the values passed to `compute` are as follows::</span>
+
+<span class="sd">        today : np.datetime64[ns]</span>
+<span class="sd">            Row label for the last row of all arrays passed as `inputs`.</span>
+<span class="sd">        assets : np.array[int64, ndim=1]</span>
+<span class="sd">            Column labels for `out` and`inputs`.</span>
+<span class="sd">        out : np.array[bool, ndim=1]</span>
+<span class="sd">            Output array of the same shape as `assets`.  `compute` should write</span>
+<span class="sd">            its desired return values into `out`.</span>
+<span class="sd">        *inputs : tuple of np.array</span>
+<span class="sd">            Raw data arrays corresponding to the values of `self.inputs`.</span>
+
+<span class="sd">    See the documentation for</span>
+<span class="sd">    :class:`~zipline.pipeline.factors.factor.CustomFactor` for more details on</span>
+<span class="sd">    implementing a custom ``compute`` method.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    zipline.pipeline.factors.factor.CustomFactor</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ctx</span> <span class="o">=</span> <span class="n">nullctx</span><span class="p">()</span>
 </pre></div>
@@ -459,9 +515,10 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2015, Quantopian Inc..
+        &copy; Copyright 2016, Quantopian Inc..
     </p>
   </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
 
 </footer>
 
@@ -479,7 +536,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'v0.8.3+170.g8abef95',
+            VERSION:'0.8.4',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
