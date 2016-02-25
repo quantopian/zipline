@@ -57,6 +57,8 @@ class BlazeEarningsCalendarLoader(BlazeEventsLoader):
         ANNOUNCEMENT_FIELD_NAME,
     })
 
+    concrete_loader = EarningsCalendarLoader
+
     def __init__(self,
                  expr,
                  resources=None,
@@ -71,7 +73,3 @@ class BlazeEarningsCalendarLoader(BlazeEventsLoader):
                    resources=resources, odo_kwargs=odo_kwargs,
                    data_query_time=data_query_time,
                    data_query_tz=data_query_tz, **kwargs)
-
-    @property
-    def concrete_loader(self):
-        return EarningsCalendarLoader

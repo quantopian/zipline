@@ -7,10 +7,9 @@ from unittest import TestCase
 import blaze as bz
 from blaze.compute.core import swap_resources_into_scope
 from contextlib2 import ExitStack
-from nose_parameterized import parameterized
 import pandas as pd
 from six import iteritems
-from tests.pipeline.test_events import param_dates, EventLoaderCommonTest
+from tests.pipeline.test_events import EventLoaderCommonMixin, DATE_FIELD_NAME
 
 from zipline.pipeline.common import(
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
@@ -42,54 +41,53 @@ from zipline.utils.test_utils import (
 buyback_authorizations = [
     # K1--K2--A1--A2.
     pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-        BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-15',
-                                                         '2014-01-20']),
         SHARE_COUNT_FIELD_NAME: [1, 15],
         CASH_FIELD_NAME: [10, 20]
     }),
     # K1--K2--A2--A1.
     pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-        BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([
-            '2014-01-20', '2014-01-15'
-        ]),
-        SHARE_COUNT_FIELD_NAME: [7, 13], CASH_FIELD_NAME: [10, 22]
+        SHARE_COUNT_FIELD_NAME: [7, 13],
+        CASH_FIELD_NAME: [10, 22]
     }),
     # K1--A1--K2--A2.
     pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
-        BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([
-            '2014-01-10', '2014-01-20'
-        ]),
         SHARE_COUNT_FIELD_NAME: [3, 1],
         CASH_FIELD_NAME: [4, 7]
     }),
     # K1 == K2.
     pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
-        BUYBACK_ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([
-            '2014-01-10', '2014-01-15'
-        ]),
         SHARE_COUNT_FIELD_NAME: [6, 23],
         CASH_FIELD_NAME: [1, 2]
     }),
     pd.DataFrame(
-        columns=[TS_FIELD_NAME,
-                 BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-                 SHARE_COUNT_FIELD_NAME,
+        columns=[SHARE_COUNT_FIELD_NAME,
                  CASH_FIELD_NAME],
         dtype='datetime64[ns]'
     ),
 ]
 
 
-class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonTest):
+def create_buyback_auth_tst_frame(cases, field_to_drop):
+    buyback_auth_df = {
+        sid:
+            pd.concat([df, buyback_authorizations[sid]], axis=1).drop(
+                field_to_drop, 1)
+            for sid, df
+            in enumerate(case.rename(columns={DATE_FIELD_NAME:
+                                              BUYBACK_ANNOUNCEMENT_FIELD_NAME}
+                                     )
+                         for case in cases
+                         )
+            }
+    return buyback_auth_df
+
+
+class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
     """
     Test for cash buyback authorizations dataset.
     """
     pipeline_columns = {
-        (PREVIOUS_BUYBACK_CASH):
+        PREVIOUS_BUYBACK_CASH:
             CashBuybackAuthorizations.previous_value.latest,
         PREVIOUS_BUYBACK_ANNOUNCEMENT:
             CashBuybackAuthorizations.previous_announcement_date.latest,
@@ -104,8 +102,8 @@ class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonTest):
             tmp_asset_finder(equities=cls.equity_info),
         )
         cls.cols = {}
-        cls.dataset = {sid: df.drop(SHARE_COUNT_FIELD_NAME, 1)
-                       for sid, df in enumerate(buyback_authorizations)}
+        cls.dataset = create_buyback_auth_tst_frame(cls.event_dates_cases,
+                                                    SHARE_COUNT_FIELD_NAME)
         cls.loader_type = CashBuybackAuthorizationsLoader
 
     @classmethod
@@ -145,12 +143,8 @@ class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonTest):
             self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
         )
 
-    @parameterized.expand(param_dates)
-    def test_compute_cash_buyback_auth(self, dates):
-        self._test_compute(dates)
 
-
-class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
+class ShareBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
     """
     Test for share buyback authorizations dataset.
     """
@@ -170,9 +164,8 @@ class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
             tmp_asset_finder(equities=cls.equity_info),
         )
         cls.cols = {}
-        cls.dataset = {sid: df.drop(CASH_FIELD_NAME, 1)
-                       for sid, df in
-                       enumerate(buyback_authorizations)}
+        cls.dataset = create_buyback_auth_tst_frame(cls.event_dates_cases,
+                                                    CASH_FIELD_NAME)
         cls.loader_type = ShareBuybackAuthorizationsLoader
 
     @classmethod
@@ -213,10 +206,6 @@ class ShareBuybackAuthLoaderTestCase(EventLoaderCommonTest, TestCase):
         self.cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
             self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
         )
-
-    @parameterized.expand(param_dates)
-    def test_compute_share_buyback_auth(self, dates):
-        self._test_compute(dates)
 
 
 class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):

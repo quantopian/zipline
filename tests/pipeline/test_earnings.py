@@ -6,10 +6,9 @@ from unittest import TestCase
 import blaze as bz
 from blaze.compute.core import swap_resources_into_scope
 from contextlib2 import ExitStack
-from nose_parameterized import parameterized
 import pandas as pd
 from six import iteritems
-from tests.pipeline.test_events import EventLoaderCommonTest, param_dates
+from tests.pipeline.test_events import EventLoaderCommonMixin, DATE_FIELD_NAME
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
@@ -34,39 +33,8 @@ from zipline.utils.test_utils import (
     tmp_asset_finder,
 )
 
-earnings_dates = [
-    # K1--K2--E1--E2.
-    pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-15',
-                                                 '2014-01-20'])
-    }),
-    # K1--K2--E2--E1.
-    pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-20',
-                                                 '2014-01-15'])
-    }),
-    # K1--E1--K2--E2.
-    pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
-                                                 '2014-01-20'])
-    }),
-    # K1 == K2.
-    pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-10',
-                                                 '2014-01-15'])
-    }),
-    pd.DataFrame({
-        TS_FIELD_NAME: pd.to_datetime([]),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime([])
-    })
-]
 
-
-class EarningsCalendarLoaderTestCase(TestCase, EventLoaderCommonTest):
+class EarningsCalendarLoaderTestCase(TestCase, EventLoaderCommonMixin):
     """
     Tests for loading the earnings announcement data.
     """
@@ -86,7 +54,10 @@ class EarningsCalendarLoaderTestCase(TestCase, EventLoaderCommonTest):
             end_date=pd.Timestamp('2015-01-01', tz='UTC'),
         )
         cls.cols = {}
-        cls.dataset = {sid: df for sid, df in enumerate(earnings_dates)}
+        cls.dataset = {sid: df for sid, df in enumerate(
+            case.rename(
+                columns={DATE_FIELD_NAME: ANNOUNCEMENT_FIELD_NAME}
+            ) for case in cls.event_dates_cases)}
         cls.finder = stack.enter_context(
             tmp_asset_finder(equities=equity_info),
         )
@@ -114,10 +85,6 @@ class EarningsCalendarLoaderTestCase(TestCase, EventLoaderCommonTest):
         self.cols[NEXT_ANNOUNCEMENT] = _expected_next_announce
         self.cols[DAYS_TO_NEXT] = _expected_next_busday_offsets
         self.cols[DAYS_SINCE_PREV] = _expected_previous_busday_offsets
-
-    @parameterized.expand(param_dates)
-    def test_compute_earnings(self, dates):
-        self._test_compute(dates)
 
 
 class BlazeEarningsCalendarLoaderTestCase(EarningsCalendarLoaderTestCase):

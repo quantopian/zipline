@@ -3,11 +3,13 @@ Tests for setting up an EventsLoader and a BlazeEventsLoader.
 """
 from functools import partial
 from nose_parameterized import parameterized
+import re
+from unittest import TestCase
 
 import blaze as bz
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_series_equal, TestCase
+from pandas.util.testing import assert_series_equal
 from zipline.pipeline import SimplePipelineEngine, Pipeline
 
 from zipline.pipeline.common import (
@@ -18,21 +20,29 @@ from zipline.pipeline.common import (
 from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
 from zipline.pipeline.loaders.events import (
-    BAD_DATA_FORMAT_ERROR,
     DF_NO_TS_NOT_INFER_TS_ERROR,
     DTINDEX_NOT_INFER_TS_ERROR,
     EventsLoader,
     SERIES_NO_DTINDEX_ERROR,
     WRONG_COLS_ERROR,
+    WRONG_MANY_COL_DATA_FORMAT_ERROR,
+    WRONG_SINGLE_COL_DATA_FORMAT_ERROR
 )
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import (datetime64ns_dtype,
-                                       NaTD,
-                                       make_datetime64D)
-from zipline.utils.test_utils import gen_calendars, num_days_in_range, \
+from zipline.utils.numpy_utils import (
+    datetime64ns_dtype,
+    NaTD,
+    make_datetime64D
+)
+from zipline.utils.test_utils import (
+    gen_calendars,
+    num_days_in_range,
     make_simple_equity_info
+)
 
-ABSTRACT_METHODS_ERROR = 'abstract methods concrete_loader'
+ABSTRACT_CONCRETE_LOADER_ERROR = 'abstract methods concrete_loader'
+ABSTRACT_EXPECTED_COLS_ERROR = 'abstract methods expected_cols'
+DATE_FIELD_NAME = "event_date"
 
 
 class EventDataSet(DataSet):
@@ -40,6 +50,7 @@ class EventDataSet(DataSet):
 
 
 class EventDataSetLoader(EventsLoader):
+    expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME])
 
     def __init__(self,
                  all_dates,
@@ -52,10 +63,6 @@ class EventDataSetLoader(EventsLoader):
             infer_timestamps=infer_timestamps,
             dataset=dataset,
         )
-
-    @property
-    def expected_cols(self):
-        return frozenset([ANNOUNCEMENT_FIELD_NAME])
 
     @lazyval
     def previous_announcement_loader(self):
@@ -70,6 +77,12 @@ class EventDataSetLoader(EventsLoader):
             self.dataset.previous_announcement,
             ANNOUNCEMENT_FIELD_NAME,
         )
+
+
+# Test case just for catching an error when multiple columns are in the wrong
+#  data format, so no loader defined.
+class EventDataSetLoaderMultipleExpectedCols(EventsLoader):
+    expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME, "other_field"])
 
 
 class EventDataSetLoaderNoExpectedCols(EventsLoader):
@@ -90,32 +103,32 @@ class EventDataSetLoaderNoExpectedCols(EventsLoader):
 dtx = pd.date_range('2014-01-01', '2014-01-10')
 
 
-def assert_loader_error(events_by_sid, error, msg, infer_timestamps):
-    with TestCase.assertRaises(error) as context:
-        EventDataSetLoader(
-            dtx, events_by_sid, infer_timestamps=infer_timestamps,
-        )
-        TestCase.assertTrue(msg in context.exception)
-
-
 class EventLoaderTestCase(TestCase):
+    def assert_loader_error(self, events_by_sid, error, msg,
+                            infer_timestamps, loader):
+        with self.assertRaisesRegexp(error, re.escape(msg)):
+            loader(
+                dtx, events_by_sid, infer_timestamps=infer_timestamps,
+            )
 
     def test_no_expected_cols_defined(self):
         events_by_sid = {0: pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx})}
-        assert_loader_error(events_by_sid, TypeError, ABSTRACT_METHODS_ERROR,
-                            True)
+        self.assert_loader_error(events_by_sid, TypeError,
+                                 ABSTRACT_EXPECTED_COLS_ERROR,
+                                 True, EventDataSetLoaderNoExpectedCols)
 
     def test_wrong_cols(self):
         wrong_col_name = 'some_other_col'
         # Test wrong cols (cols != expected)
         events_by_sid = {0: pd.DataFrame({wrong_col_name: dtx})}
-        assert_loader_error(
+        self.assert_loader_error(
             events_by_sid, ValueError, WRONG_COLS_ERROR.format(
-                expected_columns=EventDataSetLoader.expected_cols,
+                expected_columns=list(EventDataSetLoader.expected_cols),
                 sid=0,
-                resulting_columns=wrong_col_name,
+                resulting_columns=[wrong_col_name],
             ),
-            True
+            True,
+            EventDataSetLoader
         )
 
     @parameterized.expand([
@@ -125,9 +138,9 @@ class EventLoaderTestCase(TestCase):
         [pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx,
                        TS_FIELD_NAME: dtx}), False],
         # DatetimeIndex with infer_timestamps = True
-        [pd.DatetimeIndex(dtx, name=ANNOUNCEMENT_FIELD_NAME), True],
+        [pd.DatetimeIndex(dtx), True],
         # Series with DatetimeIndex as index and infer_timestamps = False
-        [pd.Series(dtx, index=dtx, name=ANNOUNCEMENT_FIELD_NAME), False]
+        [pd.Series(dtx, index=dtx), False]
     ])
     def test_conversion_to_df(self, df, infer_timestamps):
 
@@ -164,37 +177,61 @@ class EventLoaderTestCase(TestCase):
                 DF_NO_TS_NOT_INFER_TS_ERROR.format(
                     timestamp_column_name=TS_FIELD_NAME,
                     sid=0
-                )
+                ),
+                EventDataSetLoader
             ],
             # DatetimeIndex with infer_timestamps = False
             [
                 pd.DatetimeIndex(dtx, name=ANNOUNCEMENT_FIELD_NAME),
                 False,
-                DTINDEX_NOT_INFER_TS_ERROR.format(sid=0)
+                DTINDEX_NOT_INFER_TS_ERROR.format(sid=0),
+                EventDataSetLoader
             ],
             # Series with DatetimeIndex as index and infer_timestamps = False
             [
                 pd.Series(dtx, name=ANNOUNCEMENT_FIELD_NAME),
                 False,
-                SERIES_NO_DTINDEX_ERROR.format(sid=0)
+                SERIES_NO_DTINDEX_ERROR.format(sid=0),
+                EventDataSetLoader
             ],
-            # Some other data structure that is not expected
+            # Below, 2 cases repeated for infer_timestamps = True and False.
+            # Shouldn't make a difference in the outcome.
+            # We expected 1 column but got a data structure other than a
+            # DataFrame, Series, or DatetimeIndex
             [
-                dtx,
-                False,
-                BAD_DATA_FORMAT_ERROR.format(sid=0)
-            ],
-            [
-                dtx,
+                [dtx],
                 True,
-                BAD_DATA_FORMAT_ERROR.format(sid=0)
+                WRONG_SINGLE_COL_DATA_FORMAT_ERROR.format(sid=0),
+                EventDataSetLoader
+            ],
+            # We expected multiple columns but got a data structure other
+            # than a DataFrame
+            [
+                [dtx, dtx],
+                True,
+                WRONG_MANY_COL_DATA_FORMAT_ERROR.format(sid=0),
+                EventDataSetLoaderMultipleExpectedCols
+            ],
+            [
+                [dtx],
+                False,
+                WRONG_SINGLE_COL_DATA_FORMAT_ERROR.format(sid=0),
+                EventDataSetLoader
+            ],
+            # We expected multiple columns but got a data structure other
+            # than a DataFrame
+            [
+                [dtx, dtx],
+                False,
+                WRONG_MANY_COL_DATA_FORMAT_ERROR.format(sid=0),
+                EventDataSetLoaderMultipleExpectedCols
             ]
         ]
     )
-    def test_bad_conversion_to_df(self, df, infer_timestamps, msg):
+    def test_bad_conversion_to_df(self, df, infer_timestamps, msg, loader):
         events_by_sid = {0: df}
-        assert_loader_error(events_by_sid, ValueError, msg,
-                            infer_timestamps=infer_timestamps)
+        self.assert_loader_error(events_by_sid, ValueError, msg,
+                                 infer_timestamps, loader)
 
 
 class BlazeEventDataSetLoaderNoConcreteLoader(BlazeEventsLoader):
@@ -212,7 +249,9 @@ class BlazeEventDataSetLoaderNoConcreteLoader(BlazeEventsLoader):
 class BlazeEventLoaderTestCase(TestCase):
     # Blaze loader: need to test failure if no concrete loader
     def test_no_concrete_loader_defined(self):
-        with TestCase.assertRaises(TypeError) as context:
+        with self.assertRaisesRegexp(
+                TypeError, re.escape(ABSTRACT_CONCRETE_LOADER_ERROR)
+        ):
             BlazeEventDataSetLoaderNoConcreteLoader(
                 bz.Data(
                     pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx,
@@ -220,7 +259,6 @@ class BlazeEventLoaderTestCase(TestCase):
                                   })
                 )
             )
-            TestCase.assertTrue(ABSTRACT_METHODS_ERROR in context.exception)
 
 
 # Must be a list - can't use generator since this needs to be used more than
@@ -237,13 +275,40 @@ param_dates = list(gen_calendars(
 ))
 
 
-class EventLoaderCommonTest(object):
+class EventLoaderCommonMixin(object):
     sids = A, B, C, D, E = range(5)
     equity_info = make_simple_equity_info(
         sids,
         start_date=pd.Timestamp('2013-01-01', tz='UTC'),
         end_date=pd.Timestamp('2015-01-01', tz='UTC'),
     )
+
+    event_dates_cases = [
+        # K1--K2--E1--E2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-15', '2014-01-20'])
+        }),
+        # K1--K2--E2--E1.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-20', '2014-01-15'])
+        }),
+        # K1--E1--K2--E2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-20'])
+        }),
+        # K1 == K2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-15'])
+        }),
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime([]),
+            DATE_FIELD_NAME: pd.to_datetime([])
+        })
+    ]
 
     def zip_with_floats(self, dates, flts):
         return pd.Series(flts, index=dates).astype('float')
@@ -399,7 +464,8 @@ class EventLoaderCommonTest(object):
             index=announcement_dates.index,
         )
 
-    def _test_compute(self, dates):
+    @parameterized.expand(param_dates)
+    def test_compute(self, dates):
         engine = self.setup_engine(dates)
         self.setup(dates)
 

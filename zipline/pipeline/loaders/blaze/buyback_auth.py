@@ -17,8 +17,8 @@ from .events import BlazeEventsLoader
 
 
 class BlazeCashBuybackAuthorizationsLoader(BlazeEventsLoader):
-    """A pipeline loader for the ``CashBuybackAuthorizations`` dataset that loads
-    data from a blaze expression.
+    """A pipeline loader for the ``CashBuybackAuthorizations`` dataset that
+    loads data from a blaze expression.
 
     Parameters
     ----------
@@ -34,8 +34,6 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsLoader):
         The timezeone to use for the data query cutoff.
     dataset: DataSet
         The DataSet object for which this loader loads data.
-    concrete_loader: EventsLoader
-        The reference loader to use for this dataset.
 
     Notes
     -----
@@ -69,6 +67,8 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsLoader):
         CASH_FIELD_NAME
     })
 
+    concrete_loader = CashBuybackAuthorizationsLoader
+
     def __init__(self,
                  expr,
                  resources=None,
@@ -87,14 +87,10 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsLoader):
                    dataset=dataset,
                    **kwargs)
 
-    @property
-    def concrete_loader(self):
-        return CashBuybackAuthorizationsLoader
-
 
 class BlazeShareBuybackAuthorizationsLoader(BlazeEventsLoader):
-    """A pipeline loader for the ``ShareBuybackAuthorizations`` dataset that loads
-    data from a blaze expression.
+    """A pipeline loader for the ``ShareBuybackAuthorizations`` dataset that
+    loads data from a blaze expression.
 
     Parameters
     ----------
@@ -110,8 +106,6 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsLoader):
         The timezeone to use for the data query cutoff.
     dataset: DataSet
         The DataSet object for which this loader loads data.
-    concrete_loader: EventsLoader
-        The reference loader to use for this dataset.
 
     Notes
     -----
@@ -145,6 +139,8 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsLoader):
         SHARE_COUNT_FIELD_NAME,
     })
 
+    concrete_loader = ShareBuybackAuthorizationsLoader
+
     def __init__(self,
                  expr,
                  resources=None,
@@ -162,7 +158,3 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsLoader):
                    data_query_tz=data_query_tz,
                    dataset=dataset,
                    **kwargs)
-
-    @property
-    def concrete_loader(self):
-        return ShareBuybackAuthorizationsLoader

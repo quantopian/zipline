@@ -6,13 +6,18 @@ from toolz import merge
 from .base import PipelineLoader
 from .frame import DataFrameLoader
 from .utils import next_date_frame, previous_date_frame, previous_value
-from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME
+from zipline.pipeline.common import TS_FIELD_NAME
 
 WRONG_COLS_ERROR = "Expected columns {expected_columns} for sid {sid} but " \
                    "got columns {resulting_columns}."
 
-BAD_DATA_FORMAT_ERROR = ("Data for sid {sid} must be in DataFrame, "
-                         "Series, or DatetimeIndex.")
+WRONG_SINGLE_COL_DATA_FORMAT_ERROR = ("Data for sid {sid} is expected to have "
+                                      "1 column and to be in a DataFrame, "
+                                      "Series, or DatetimeIndex.")
+
+WRONG_MANY_COL_DATA_FORMAT_ERROR = ("Data for sid {sid} is expected to have "
+                                    "more than 1 column and to be in a "
+                                    "DataFrame.")
 
 SERIES_NO_DTINDEX_ERROR = ("Got Series for sid {sid}, but index was not "
                            "DatetimeIndex.")
@@ -85,23 +90,8 @@ class EventsLoader(PipelineLoader):
         dates = self.all_dates.values
 
         for k, v in iteritems(events_by_sid):
-            # First, must convert to DataFrame.
-            if isinstance(v, pd.Series):
-                if not isinstance(v.index, pd.DatetimeIndex):
-                    raise ValueError(
-                        SERIES_NO_DTINDEX_ERROR.format(sid=k)
-                    )
-                self.events_by_sid[k] = v = pd.DataFrame(v)
-            elif isinstance(v, pd.DatetimeIndex):
-                if not infer_timestamps:
-                    raise ValueError(
-                        DTINDEX_NOT_INFER_TS_ERROR.format(sid=k)
-                    )
-                self.events_by_sid[k] = v = pd.DataFrame(
-                    v, index=[dates[0]] * len(v)
-                )
             # Already a DataFrame
-            elif isinstance(v, pd.DataFrame):
+            if isinstance(v, pd.DataFrame):
                 if TS_FIELD_NAME not in v.columns:
                     if not infer_timestamps:
                         raise ValueError(
@@ -114,21 +104,50 @@ class EventsLoader(PipelineLoader):
                     v.index = [dates[0]] * len(v)
                 else:
                     self.events_by_sid[k] = v.set_index(TS_FIELD_NAME)
-            else:
-                raise ValueError(BAD_DATA_FORMAT_ERROR.format(sid=k))
-            # Once data is in a DF, make sure columns are correct.
-            cols_except_ts = (set(v.columns) -
-                              {TS_FIELD_NAME} -
-                              {SID_FIELD_NAME})
-            # Check that all columns other than timestamp are as expected.
-            if cols_except_ts != self.expected_cols:
-                raise ValueError(
-                    WRONG_COLS_ERROR .format(
-                        expected_columns=self.expected_cols,
-                        sid=k,
-                        resulting_columns=v.columns.values
+                # Once data is in a DF, make sure columns are correct.
+                cols_except_ts = (set(v.columns) -
+                                  {TS_FIELD_NAME})
+
+                # Check that all columns other than timestamp are as expected.
+                if cols_except_ts != self.expected_cols:
+                    raise ValueError(
+                        WRONG_COLS_ERROR.format(
+                            expected_columns=list(self.expected_cols),
+                            sid=k,
+                            resulting_columns=v.columns.values
+                        )
                     )
+            # Not a DataFrame and we only expect 1 column
+            elif len(self.expected_cols) == 1:
+                # First, must convert to DataFrame.
+                if isinstance(v, pd.Series):
+                    if not isinstance(v.index, pd.DatetimeIndex):
+                        raise ValueError(
+                            SERIES_NO_DTINDEX_ERROR.format(sid=k)
+                        )
+                    self.events_by_sid[k] = pd.DataFrame({
+                        list(self.expected_cols)[0]: v})
+                elif isinstance(v, pd.DatetimeIndex):
+                    if not infer_timestamps:
+                        raise ValueError(
+                            DTINDEX_NOT_INFER_TS_ERROR.format(sid=k)
+                        )
+                    self.events_by_sid[k] = pd.DataFrame({
+                        list(self.expected_cols)[0]: v
+                    }, index=[dates[0]] * len(v))
+                else:
+                    # We expect 1 column, but we got something other than a
+                    # Series, DatetimeIndex, or DataFrame.
+                    raise ValueError(
+                        WRONG_SINGLE_COL_DATA_FORMAT_ERROR.format(sid=k)
+                    )
+            else:
+                # We expected multiple columns, but we got something other
+                # than a DataFrame.
+                raise ValueError(
+                    WRONG_MANY_COL_DATA_FORMAT_ERROR.format(sid=k)
                 )
+
         self.dataset = dataset
 
     def get_loader(self, column):

@@ -24,6 +24,8 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
     event date, cash value)]
 
     """
+    expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+                               CASH_FIELD_NAME])
 
     def __init__(self,
                  all_dates,
@@ -36,10 +38,6 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
             infer_timestamps=infer_timestamps,
             dataset=dataset,
         )
-
-    @property
-    def expected_cols(self):
-        return frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME, CASH_FIELD_NAME])
 
     @lazyval
     def previous_value_loader(self):
@@ -69,6 +67,8 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
      event date, share value)]
 
     """
+    expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+                               SHARE_COUNT_FIELD_NAME])
 
     def __init__(self,
                  all_dates,
@@ -81,11 +81,6 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
             infer_timestamps=infer_timestamps,
             dataset=dataset,
         )
-
-    @property
-    def expected_cols(self):
-        return frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-                          SHARE_COUNT_FIELD_NAME])
 
     @lazyval
     def previous_share_count_loader(self):
