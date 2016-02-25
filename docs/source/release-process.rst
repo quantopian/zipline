@@ -169,6 +169,28 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
 
 `zipline.io <http://www.zipline.io/index.html>`__ will update in a few moments.
 
+Uploading conda packages
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To build the conda packages for zipline run:
+
+.. code-block:: bash
+
+   $ python etc/conda_build_matrix.py
+
+If all of the builds succeed, then this will not print anything and exit with
+``EXIT_SUCCESS``. If there are build issues, we must address them and decide
+what to do.
+
+Once all of the builds in the matrix pass, we can upload them to anaconda with:
+
+.. code-block:: bash
+
+   $ python etc/conda_build_matrix.py --upload
+
+If you would like to test this command by uploading to a different user, this
+may be specified with the ``--user`` flag.
+
 Next Commit
 ~~~~~~~~~~~
 
