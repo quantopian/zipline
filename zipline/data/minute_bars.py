@@ -97,6 +97,11 @@ class BcolzMinuteBarMetadata(object):
                 raw_data['first_trading_day'], tz='UTC')
             minute_index = pd.to_datetime(raw_data['minute_index'],
                                           utc=True)
+            # TODO: Just write market minutes.
+            minute_index = np.array(
+                [x for i, x in enumerate(raw_data['minute_index'])
+                 if (i % 390) == 0], dtype='datetime64[ns]').astype(
+                'datetime64[m]')
             ohlc_ratio = raw_data['ohlc_ratio']
             return cls(first_trading_day, minute_index, ohlc_ratio)
 
@@ -567,12 +572,11 @@ class BcolzMinuteBarReader(object):
         minute_pos = self._find_last_traded_position(asset, dt)
         if minute_pos == -1:
             return pd.NaT
-        return self._minute_index[minute_pos]
+        return self._pos_to_minute(minute_pos)
 
     def _find_last_traded_position(self, asset, dt):
         volumes = self._open_minute_file('volume', asset)
         start_date = asset.start_date
-        _minute_index = self._minute_index
 
         if dt < start_date:
             return -1
@@ -580,7 +584,7 @@ class BcolzMinuteBarReader(object):
         minute_pos = min(self._find_position_of_minute(dt), len(volumes) - 1)
 
         while minute_pos >= 0:
-            dt = _minute_index[minute_pos]
+            dt = self._pos_to_minute(minute_pos)
             if dt < start_date:
                 return -1
             if volumes[minute_pos] != 0:
@@ -590,6 +594,12 @@ class BcolzMinuteBarReader(object):
         # we've gone to the beginning of this asset's range, and still haven't
         # found a trade event
         return -1
+
+    def _pos_to_minute(self, pos):
+        # TODO: Make configurable.
+        q, r = divmod(pos, 390)
+        minute = self._minute_index[q] + np.timedelta64(r, 'm')
+        return pd.Timestamp(minute, tz='UTC')
 
     @remember_last
     def _find_position_of_minute(self, minute_dt):
@@ -613,11 +623,10 @@ class BcolzMinuteBarReader(object):
         The position of the given minute in the list of all trading minutes
         since market open on the first trading day.
         """
-        try:
-            return self._minute_index.get_loc(minute_dt)
-        except KeyError:
-            pos = self._minute_index.searchsorted(minute_dt) - 1
-            if pos < 0:
-                raise
-
-            return pos
+        minute = minute_dt.asm8.astype('datetime64[m]')
+        # TODO: Get better structure for this.
+        mo_loc = np.searchsorted(self._minute_index, minute,
+                                 side='right') - 1
+        mo = self._minute_index[mo_loc]
+        delta = minute - mo
+        return mo_loc * 390 + delta.astype('int')
