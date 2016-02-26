@@ -395,9 +395,8 @@ def make_jagged_equity_info(num_assets,
                             periods_between_ends,
                             auto_close_delta):
     """
-    Create a DataFrame representing assets that all begin at the same start
+    Create a dictionary representing assets that all begin at the same start
     date, but have cascading end dates.
-
     Parameters
     ----------
     num_assets : int
@@ -411,46 +410,47 @@ def make_jagged_equity_info(num_assets,
     periods_between_ends : int
         Starting after the first end date, end each asset every
         `frequency` * `periods_between_ends`.
-
+    auto_close_delta : int
+        The constant delta that cascades the auto_close_date
     Returns
     -------
     info : pd.DataFrame
         DataFrame representing newly-created assets.
     """
-    frame = pd.DataFrame(
-        {
-            'symbol': [chr(ord('A') + i) for i in range(num_assets)],
+    equity_info = {}
+
+    for sid in range(num_assets):
+        equity_info[sid] = {
+            'symbol': chr(ord('A') + sid),
             'start_date': start_date,
-            'end_date': pd.date_range(
-                first_end,
-                freq=(periods_between_ends * frequency),
-                periods=num_assets,
-            ),
+            'end_date': first_end + sid * periods_between_ends * frequency,
             'exchange': 'TEST',
-        },
-        index=range(num_assets),
-    )
+            'auto_close_date':
+                auto_close_delta + first_end + sid * periods_between_ends *
+                frequency
+        }
 
-    # Explicitly pass None to disable setting the auto_close_date column.
-    if auto_close_delta is not None:
-        frame['auto_close_date'] = frame['end_date'] + auto_close_delta
-
-    return frame
+    return equity_info
 
 
-def make_trade_panel_for_asset_info(dates,
-                                    asset_info,
-                                    price_start,
-                                    price_step_by_date,
-                                    price_step_by_sid,
-                                    volume_start,
-                                    volume_step_by_date,
-                                    volume_step_by_sid):
+def make_trade_data_for_asset_info(dates,
+                                   asset_info,
+                                   price_start,
+                                   price_step_by_date,
+                                   price_step_by_sid,
+                                   volume_start,
+                                   volume_step_by_date,
+                                   volume_step_by_sid,
+                                   frequency,
+                                   writer=None):
     """
-    Convert an asset info frame into a panel of trades, writing NaNs for
-    locations where assets did not exist.
+    Convert the asset info dict to a dataframe of trade data for each sid, and
+    write to the writer if provided. Write NaNs for locations where assets did
+    not exist. Return a dict of the dataframes, keyed by sid.
     """
-    sids = list(asset_info.index)
+    trade_data = {}
+    sids = asset_info.keys()
+    date_field = 'day' if frequency == 'daily' else 'dt'
 
     price_sid_deltas = np.arange(len(sids), dtype=float) * price_step_by_sid
     price_date_deltas = np.arange(len(dates), dtype=float) * price_step_by_date
@@ -461,7 +461,8 @@ def make_trade_panel_for_asset_info(dates,
     volumes = (volume_sid_deltas + volume_date_deltas[:, None]) + volume_start
 
     for j, sid in enumerate(sids):
-        start_date, end_date = asset_info.loc[sid, ['start_date', 'end_date']]
+        start_date = asset_info[sid]['start_date']
+        end_date = asset_info[sid]['end_date']
         # Normalize here so the we still generate non-NaN values on the minutes
         # for an asset's last trading day.
         for i, date in enumerate(dates.normalize()):
@@ -469,16 +470,29 @@ def make_trade_panel_for_asset_info(dates,
                 prices[i, j] = np.nan
                 volumes[i, j] = 0
 
-    # Legacy panel sources use a flipped convention from what we return
-    # elsewhere.
-    return pd.Panel(
-        {
-            'price': prices,
-            'volume': volumes,
-        },
-        major_axis=dates,
-        minor_axis=sids,
-    ).transpose(2, 1, 0)
+        if frequency == 'daily':
+            dates_arr = [date.value for date in dates]
+        else:
+            dates_arr = dates
+
+        df = pd.DataFrame({
+            "open": prices[:, j],
+            "high": prices[:, j],
+            "low": prices[:, j],
+            "close": prices[:, j],
+            "volume": volumes[:, j],
+            date_field: dates_arr
+        })
+
+        if frequency == 'minute':
+            df = df.set_index(date_field)
+
+        if writer:
+            writer.write(sid, df)
+
+        trade_data[sid] = df
+
+    return trade_data
 
 
 def make_future_info(first_sid,

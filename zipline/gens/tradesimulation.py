@@ -15,7 +15,11 @@
 from contextlib2 import ExitStack
 from logbook import Logger, Processor
 from pandas.tslib import normalize_date
-from zipline.protocol import BarData
+from zipline.protocol import (
+    BarData,
+    Event,
+    DATASOURCE_TYPE
+)
 from zipline.utils.api_support import ZiplineAPI
 
 from zipline.gens.sim_engine import (
@@ -151,9 +155,18 @@ class AlgorithmSimulator(object):
             self.algo.performance_needs_update = True
 
         def once_a_day(midnight_dt):
+
+            # Get the positions before updating the date so that prices are
+            # fetched for trading close instead of midnight
+            finder = algo.asset_finder
+            positions = algo.portfolio.positions
+            position_assets = finder.retrieve_all(positions)
+
             # set all the timestamps
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
+
+            self._cleanup_expired_assets(dt, position_assets)
 
             # call before trading start
             algo.before_trading_start(current_data)
@@ -201,6 +214,49 @@ class AlgorithmSimulator(object):
 
         risk_message = algo.perf_tracker.handle_simulation_end()
         yield risk_message
+
+    def _cleanup_expired_assets(self, dt, position_assets):
+        """
+        Clear out any assets that have expired before starting a new sim day.
+        Performs three functions:
+        1. Finds all assets for which we have open orders and clears any
+           orders whose assets are on or after their auto_close_date.
+        2. Finds all assets for which we have positions and generates
+           close_position events for any assets that have reached their
+           auto_close_date.
+        """
+        algo = self.algo
+
+        def create_close_position_event(asset):
+            event = Event({
+                'dt': dt,
+                'type': DATASOURCE_TYPE.CLOSE_POSITION,
+                'sid': asset.sid,
+            })
+            return event
+
+        def past_auto_close_date(asset):
+            acd = asset.auto_close_date
+            return acd is not None and acd <= dt
+
+        # Remove positions in any sids that have reached their auto_close date.
+        to_clear = []
+        for asset in position_assets:
+            if past_auto_close_date(asset):
+                to_clear.append(asset)
+        perf_tracker = algo.perf_tracker
+        for close_event in map(create_close_position_event, to_clear):
+            perf_tracker.process_close_position(close_event)
+
+        # Remove open orders for any sids that have reached their
+        # auto_close_date.
+        blotter = algo.blotter
+        to_cancel = []
+        for asset in blotter.open_orders:
+            if past_auto_close_date(asset):
+                to_cancel.append(asset)
+        for asset in to_cancel:
+            blotter.cancel_all(asset)
 
     @staticmethod
     def _get_daily_message(dt, algo, perf_tracker):
