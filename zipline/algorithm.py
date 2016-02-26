@@ -192,7 +192,7 @@ class TradingAlgorithm(object):
 
         self.logger = None
 
-        self.data_portal = None
+        self.data_portal = kwargs.pop('data_portal', None)
 
         # If an env has been provided, pop it
         self.trading_environment = kwargs.pop('env', None)
