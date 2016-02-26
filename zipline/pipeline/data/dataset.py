@@ -100,8 +100,8 @@ class BoundColumn(Term):
         The dtype of data produced when this column is loaded.
     latest : zipline.pipeline.data.Factor or zipline.pipeline.data.Filter
         A Filter/Factor computing the most recently known value of this column
-        on each date. Produces a Filter if self.dtype == np.bool_, otherwise
-        produces a Factor.
+        on each date. Produces a Filter if self.dtype == ``np.bool_``,
+        otherwise produces a Factor.
     dataset : zipline.pipeline.data.DataSet
         The dataset to which this column is bound.
     name : str

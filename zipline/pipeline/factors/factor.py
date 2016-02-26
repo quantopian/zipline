@@ -455,10 +455,10 @@ class Factor(CompositeTerm):
             Return True for assets falling below this percentile in the data.
         mask : zipline.pipeline.Filter, optional
             A Filter representing assets to consider when percentile
-            thresholds.  If mask is supplied, percentile cutoffs are computed
-            each day using only assets for which `mask` returns True, and
-            assets not passing `mask` will produce False in the output of this
-            filter as well.
+            calculating thresholds.  If mask is supplied, percentile cutoffs
+            are computed each day using only assets for which ``mask`` returns
+            True.  Assets for which ``mask`` produces False will produce False
+            in the output of this Factor as well.
 
         Returns
         -------
