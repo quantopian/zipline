@@ -226,11 +226,12 @@ def module_requirements(requirements_path, module_names, strict_bounds,
 
     if found != module_names:
         raise AssertionError(
-            "No requirements found for %s." % module_names - found
+            "No requirements found for %s." % (module_names - found)
         )
     return module_lines
 
-conda_build = os.path.basename(sys.argv[0]) == 'conda-build'
+conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
+                                                'conda-build-script.py')  # win
 
 setup_requires = module_requirements(
     'etc/requirements.txt',
