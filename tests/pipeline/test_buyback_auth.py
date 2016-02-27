@@ -9,7 +9,6 @@ from blaze.compute.core import swap_resources_into_scope
 from contextlib2 import ExitStack
 import pandas as pd
 from six import iteritems
-from tests.pipeline.test_events import EventLoaderCommonMixin, DATE_FIELD_NAME
 
 from zipline.pipeline.common import(
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
@@ -36,6 +35,7 @@ from zipline.pipeline.loaders.blaze import (
 from zipline.utils.test_utils import (
     tmp_asset_finder,
 )
+from .base import EventLoaderCommonMixin, DATE_FIELD_NAME
 
 
 buyback_authorizations = [

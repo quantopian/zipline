@@ -8,7 +8,6 @@ from blaze.compute.core import swap_resources_into_scope
 from contextlib2 import ExitStack
 import pandas as pd
 from six import iteritems
-from tests.pipeline.test_events import EventLoaderCommonMixin, DATE_FIELD_NAME
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
@@ -32,6 +31,7 @@ from zipline.utils.test_utils import (
     make_simple_equity_info,
     tmp_asset_finder,
 )
+from .base import EventLoaderCommonMixin, DATE_FIELD_NAME
 
 
 class EarningsCalendarLoaderTestCase(TestCase, EventLoaderCommonMixin):
