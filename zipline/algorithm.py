@@ -524,34 +524,43 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, overwrite_sim_params=True,
+    def run(self,
+            source,
+            overwrite_sim_params=True,
             benchmark_return_source=None):
         """Run the algorithm.
 
-        :Arguments:
-            source : can be either:
-                     - pandas.DataFrame
-                     - zipline source
-                     - list of sources
+        Parameters
+        ----------
+        source : DataSource-like or list[DataSource]
+            The source or sources to use as the input data for the algorithm
+            and benchmark.
+        overwrite_sim_params : bool, optional
+            Update the internal sim_params based on the source data.
+        benchmark_return_source : DataSource, optional
+            A source that emits BENCHMARK events. By default this will use
+            the benchmark_returns defined by the trading environment.
 
-               If pandas.DataFrame is provided, it must have the
-               following structure:
-               * column names must be the different asset identifiers
-               * index must be DatetimeIndex
-               * array contents should be price info.
+        Returns
+        -------
+        daily_stats : pandas.DataFrame
+            Daily performance metrics such as returns, alpha etc.
 
-        :Returns:
-            daily_stats : pandas.DataFrame
-              Daily performance metrics such as returns, alpha etc.
-
+        See Also
+        --------
+        zipline.sources.DataSource
+        zipline.sources.BenchmarkSource
         """
 
         # Ensure that source is a DataSource object
         if isinstance(source, list):
             if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract start and end
- dates. Make sure to set the correct fields in sim_params passed to
- __init__().""", UserWarning)
+                warnings.warn(
+                    'List of sources passed, will not attempt to extract'
+                    ' start and end dates. Make sure to set the correct fields'
+                    ' in sim_params passed to __init__().',
+                    UserWarning,
+                )
                 overwrite_sim_params = False
         elif isinstance(source, pd.DataFrame):
             # if DataFrame provided, map columns to sids and wrap
@@ -575,6 +584,9 @@ class TradingAlgorithm(object):
             self.set_sources(source)
         else:
             self.set_sources([source])
+
+        # set the benchmark source
+        self.benchmark_return_source = benchmark_return_source
 
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
@@ -601,7 +613,7 @@ class TradingAlgorithm(object):
         self.perf_tracker = None
 
         # create zipline
-        self.gen = self._create_generator(self.sim_params)
+        self.gen = gen = self._create_generator(self.sim_params)
 
         # Create history containers
         if self.history_specs:
@@ -613,14 +625,8 @@ class TradingAlgorithm(object):
                 self.trading_environment,
             )
 
-        # loop through simulated_trading, each iteration returns a
-        # perf dictionary
-        perfs = []
-        for perf in self.gen:
-            perfs.append(perf)
-
         # convert perf dict to pandas dataframe
-        daily_stats = self._create_daily_stats(perfs)
+        daily_stats = self._create_daily_stats(gen)
 
         self.analyze(daily_stats)
 
@@ -1128,7 +1134,7 @@ class TradingAlgorithm(object):
         assert isinstance(sources, list)
         self.sources = sources
 
-    # Remain backwards compatibility
+    # Remain backwards compatible
     @property
     def data_frequency(self):
         return self.sim_params.data_frequency

@@ -4,6 +4,7 @@ from abc import (
 )
 
 from six import with_metaclass
+from toolz import identity, compose
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.protocol import Event
@@ -29,14 +30,14 @@ class DataSource(with_metaclass(ABCMeta)):
         An iterator that yields the raw datasource,
         in chronological order of data, one event at a time.
         """
-        NotImplemented
+        raise NotImplementedError('raw_data')
 
     @abstractproperty
     def instance_hash(self):
         """
         A hash that represents the unique args to the source.
         """
-        pass
+        raise NotImplementedError('instance_hash')
 
     def get_hash(self):
         return self.__class__.__name__ + "-" + self.instance_hash
@@ -61,8 +62,26 @@ class DataSource(with_metaclass(ABCMeta)):
     def __iter__(self):
         return self
 
-    def next(self):
-        return self.mapped_data.next()
-
     def __next__(self):
         return next(self.mapped_data)
+    next = __next__  # py2 compat
+
+
+class BenchmarkSource(DataSource):
+    """A DataSource for benchmark data.
+
+    Parameters
+    ----------
+    data : mapping[datetime -> float]
+        The mapping from datetime to the benchmark returns.
+    """
+    event_type = DATASOURCE_TYPE.BENCHMARK
+    mapping = {
+        'dt': (identity, 0),
+        'returns': (float, 1),
+    }
+    raw_data = None  # satisfy abstractproperty
+    instance_hash = property(compose(str, id))
+
+    def __init__(self, data):
+        self.raw_data = data.iteritems()
