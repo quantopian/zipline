@@ -254,6 +254,9 @@ class TradingAlgorithm(object):
         else:
             self.sim_params.update_internal_from_env(self.trading_environment)
 
+        if 'emission_rate' in kwargs:
+            self.sim_params.emission_rate = kwargs.pop('emission_rate')
+
         # Build a perf_tracker
         self.perf_tracker = PerformanceTracker(sim_params=self.sim_params,
                                                env=self.trading_environment)
