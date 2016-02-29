@@ -107,7 +107,6 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 from zipline.utils.tradingcalendar import trading_day, trading_days
-from zipline.finance.cancel_policy import NeverCancel
 
 # Because test cases appear to reuse some resources.
 
@@ -878,7 +877,6 @@ class TestTransformAlgorithm(TestCase):
             )
 
             algo = algo_class(sim_params=sim_params, env=env)
-            algo.cancel_policy = NeverCancel()
             algo.run(data_portal)
         finally:
             tempdir.cleanup()

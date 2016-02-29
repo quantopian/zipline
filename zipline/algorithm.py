@@ -70,7 +70,7 @@ from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
-from zipline.finance.cancel_policy import EODCancel
+from zipline.finance.cancel_policy import NeverCancel
 from zipline.assets import Asset, Equity, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
@@ -239,11 +239,10 @@ class TradingAlgorithm(object):
                 data_frequency=self.data_frequency,
                 asset_finder=self.asset_finder,
                 slippage_func=VolumeShareSlippage(),
-                commission=PerShare()
+                commission=PerShare(),
+                # Default to NeverCancel in zipline
+                cancel_policy=kwargs.pop('cancel_policy', NeverCancel())
             )
-
-        # Cancel open orders at end of day by default
-        self.cancel_policy = EODCancel(warn_on_cancel=True)
 
         # The symbol lookup date specifies the date to use when resolving
         # symbols to sids, and can be set using set_symbol_lookup_date()
@@ -867,7 +866,7 @@ class TradingAlgorithm(object):
         style = self.__convert_order_params_for_blotter(limit_price,
                                                         stop_price,
                                                         style)
-        return self.blotter.order(asset, amount, style, self.cancel_policy)
+        return self.blotter.order(asset, amount, style)
 
     def validate_order_params(self,
                               asset,

@@ -35,8 +35,8 @@ from zipline.utils.test_utils import(
     setup_logger,
     teardown_logger,
 )
-from zipline.gens.sim_engine import DAY_END
-from zipline.finance.cancel_policy import EODCancel
+from zipline.gens.sim_engine import DAY_END, BAR
+from zipline.finance.cancel_policy import EODCancel, NeverCancel
 from zipline.finance.slippage import DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT, \
     FixedSlippage
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
@@ -149,18 +149,42 @@ class BlotterTestCase(TestCase):
         self.assertEqual(list(blotter.open_orders), [25])
 
     def test_blotter_eod_cancellation(self):
-        blotter = Blotter('minute', self.env.asset_finder)
+        blotter = Blotter('minute', self.env.asset_finder,
+                          cancel_policy=EODCancel())
 
-        blotter.order(24, 100, MarketOrder(), cancel_policy=EODCancel())
-        blotter.order(25, 100, MarketOrder(), cancel_policy=EODCancel())
+        blotter.order(24, 100, MarketOrder())
+        blotter.order(25, 100, MarketOrder())
 
         self.assertEqual(len(blotter.new_orders), 2)
         for order in blotter.new_orders:
             self.assertEqual(order.status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(None, DAY_END)
+        blotter.execute_cancel_policy(BAR)
+        for order in blotter.new_orders:
+            self.assertEqual(order.status, ORDER_STATUS.OPEN)
+
+        blotter.execute_cancel_policy(DAY_END)
         for order in blotter.new_orders:
             self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
+
+    def test_blotter_never_cancel(self):
+        blotter = Blotter('minute', self.env.asset_finder,
+                          cancel_policy=NeverCancel())
+
+        blotter.order(24, 100, MarketOrder())
+        blotter.order(25, 100, MarketOrder())
+
+        self.assertEqual(len(blotter.new_orders), 2)
+        for order in blotter.new_orders:
+            self.assertEqual(order.status, ORDER_STATUS.OPEN)
+
+        blotter.execute_cancel_policy(BAR)
+        for order in blotter.new_orders:
+            self.assertEqual(order.status, ORDER_STATUS.OPEN)
+
+        blotter.execute_cancel_policy(DAY_END)
+        for order in blotter.new_orders:
+            self.assertEqual(order.status, ORDER_STATUS.OPEN)
 
     def test_order_rejection(self):
         blotter = Blotter(self.sim_params.data_frequency,

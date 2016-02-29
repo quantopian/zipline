@@ -31,11 +31,12 @@ from zipline.utils.serialization_utils import (
 )
 
 log = Logger('Blotter')
+warning_logger = Logger('AlgoWarning')
 
 
 class Blotter(object):
-    def __init__(self, data_frequency, asset_finder,
-                 slippage_func=None, commission=None):
+    def __init__(self, data_frequency, asset_finder, slippage_func=None,
+                 commission=None, cancel_policy=None):
         # these orders are aggregated by sid
         self.open_orders = defaultdict(list)
 
@@ -58,6 +59,8 @@ class Blotter(object):
 
         self.data_frequency = data_frequency
 
+        self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
+
     def __repr__(self):
         return """
 {class_name}(
@@ -78,8 +81,7 @@ class Blotter(object):
     def set_date(self, dt):
         self.current_dt = dt
 
-    def order(self, sid, amount, style, cancel_policy=NeverCancel(),
-              order_id=None):
+    def order(self, sid, amount, style, order_id=None):
 
         # something could be done with amount to further divide
         # between buy by share count OR buy shares up to a dollar amount
@@ -108,7 +110,6 @@ class Blotter(object):
             dt=self.current_dt,
             sid=sid,
             amount=amount,
-            cancel_policy=cancel_policy,
             stop=style.get_stop_price(is_buy),
             limit=style.get_limit_price(is_buy),
             id=order_id
@@ -156,11 +157,22 @@ class Blotter(object):
         assert not orders
         del self.open_orders[asset]
 
-    def execute_cancel_policy(self, dt, event):
-        for orders_by_sid in itervalues(self.open_orders):
-            for order in orders_by_sid:
-                if order.should_cancel(dt, event):
+    def execute_cancel_policy(self, event):
+        if self.cancel_policy.should_cancel(event):
+            warn = self.cancel_policy.warn_on_cancel
+            for orders_by_sid in itervalues(self.open_orders):
+                for order in orders_by_sid:
                     self.cancel(order.id)
+                    if warn:
+                        warning_logger.warn(
+                            'Your order for %s shares of %s has been '
+                            'partially filled. %s shares were successfully '
+                            'purchased. The remaining %s shares are being '
+                            'canceled based on the policy %s.' %
+                            (order.amount, order.sid.symbol, order.filled,
+                             order.amount - order.filled,
+                             self.cancel_policy.__class__.__name__)
+                        )
 
     def reject(self, order_id, reason=''):
         """

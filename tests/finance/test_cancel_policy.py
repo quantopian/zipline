@@ -1,11 +1,20 @@
-import datetime
-
-import pytz
-
+#
+# Copyright 2016 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from unittest import TestCase
 
 from zipline.finance.cancel_policy import NeverCancel, EODCancel
-from zipline.finance.order import Order
 from zipline.gens.sim_engine import (
     BAR,
     DAY_END
@@ -15,43 +24,11 @@ from zipline.gens.sim_engine import (
 class CancelPolicyTestCase(TestCase):
 
     def test_eod_cancel(self):
-
-        order = Order(
-            dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-            sid=133,
-            amount=1,
-            cancel_policy=EODCancel()
-        )
-
-        current_dt = datetime.datetime(2006, 1, 5, 20, 59, tzinfo=pytz.utc)
-        current_event = BAR
-
-        should_cancel = order.should_cancel(current_dt, current_event)
-        self.assertEqual(should_cancel, False)
-
-        current_dt = datetime.datetime(2006, 1, 5, 21, 0, tzinfo=pytz.utc)
-        current_event = DAY_END
-
-        should_cancel = order.should_cancel(current_dt, current_event)
-        self.assertEqual(should_cancel, True)
+        cancel_policy = EODCancel()
+        self.assertTrue(cancel_policy.should_cancel(DAY_END))
+        self.assertFalse(cancel_policy.should_cancel(BAR))
 
     def test_never_cancel(self):
-
-        order = Order(
-            dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
-            sid=133,
-            amount=1,
-            cancel_policy=NeverCancel()
-        )
-
-        current_dt = datetime.datetime(2006, 1, 5, 20, 59, tzinfo=pytz.utc)
-        current_event = BAR
-
-        should_cancel = order.should_cancel(current_dt, current_event)
-        self.assertEqual(should_cancel, False)
-
-        current_dt = datetime.datetime(2006, 1, 5, 21, 0, tzinfo=pytz.utc)
-        current_event = DAY_END
-
-        should_cancel = order.should_cancel(current_dt, current_event)
-        self.assertEqual(should_cancel, False)
+        cancel_policy = NeverCancel()
+        self.assertFalse(cancel_policy.should_cancel(DAY_END))
+        self.assertFalse(cancel_policy.should_cancel(BAR))

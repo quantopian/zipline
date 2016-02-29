@@ -15,16 +15,12 @@
 from copy import copy
 import math
 import uuid
-import logbook
 
 from six import text_type, iteritems
 
 import zipline.protocol as zp
 from zipline.utils.serialization_utils import VERSION_LABEL
 from zipline.utils.enum import enum
-from zipline.finance.cancel_policy import NeverCancel
-
-warning_logger = logbook.Logger('AlgoWarning')
 
 ORDER_STATUS = enum(
     'OPEN',
@@ -41,8 +37,8 @@ LIMIT = 1 << 3
 
 
 class Order(object):
-    def __init__(self, dt, sid, amount, cancel_policy=None, stop=None,
-                 limit=None, filled=0, commission=None, id=None):
+    def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
+                 commission=None, id=None):
         """
         @dt - datetime.datetime that the order was placed
         @sid - asset for the order.  called sid for historical reasons.
@@ -67,7 +63,6 @@ class Order(object):
         self.limit_reached = False
         self.direction = math.copysign(1, self.amount)
         self.type = zp.DATASOURCE_TYPE.ORDER
-        self.cancel_policy = cancel_policy if cancel_policy else NeverCancel()
 
     def make_id(self):
         return uuid.uuid4().hex
@@ -189,9 +184,6 @@ class Order(object):
     @status.setter
     def status(self, status):
         self._status = status
-
-    def should_cancel(self, dt, event):
-        return self.cancel_policy.should_cancel(dt, event, self)
 
     def cancel(self):
         self.status = ORDER_STATUS.CANCELLED
