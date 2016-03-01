@@ -737,21 +737,17 @@ class DataPortal(object):
                 columns=None
             )
 
-        for asset in assets:
-            asset_minute_data = self._get_minute_window_for_asset(
-                asset,
-                field_to_use,
-                modified_minutes_for_window
-            )
-
-            if bars_to_prepend != 0:
-                asset_minute_data = np.insert(asset_minute_data, 0,
-                                              nans_to_prepend)
-
-            data.append(asset_minute_data)
+        asset_minute_data = self._get_minute_window_for_assets(
+            assets,
+            field_to_use,
+            modified_minutes_for_window
+        )
+        if bars_to_prepend != 0:
+            asset_minute_data = np.insert(asset_minute_data, 0,
+                                          nans_to_prepend)
 
         return pd.DataFrame(
-            np.array(data).T,
+            asset_minute_data,
             index=minutes_for_window,
             columns=assets
         )
@@ -844,7 +840,7 @@ class DataPortal(object):
 
         return df
 
-    def _get_minute_window_for_asset(self, asset, field, minutes_for_window):
+    def _get_minute_window_for_assets(self, assets, field, minutes_for_window):
         """
         Internal method that gets a window of adjusted minute data for an asset
         and specified date range.  Used to support the history API method for
@@ -868,17 +864,14 @@ class DataPortal(object):
         -------
         A numpy array with requested values.
         """
-        if isinstance(asset, int):
-            asset = self.env.asset_finder.retrieve_asset(asset)
-
-        if isinstance(asset, Future):
-            return self._get_minute_window_for_future(asset, field,
+        if isinstance(assets, Future):
+            return self._get_minute_window_for_future([assets], field,
                                                       minutes_for_window)
         else:
             # TODO: Make caller accept assets.
-            window = self._get_minute_window_for_equities([asset], field,
+            window = self._get_minute_window_for_equities(assets, field,
                                                           minutes_for_window)
-            return window[:, 0]
+            return window
 
     def _get_minute_window_for_future(self, asset, field, minutes_for_window):
         # THIS IS TEMPORARY.  For now, we are only exposing futures within
