@@ -62,7 +62,7 @@ class FinanceTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[1, 133])
+        cls.env.write_data(equities_identifiers=[1, 2, 133])
 
     @classmethod
     def tearDownClass(cls):
@@ -307,9 +307,10 @@ class FinanceTestCase(TestCase):
                 if tick >= order_date and len(order_list) < order_count:
                     # place an order
                     direction = alternator ** len(order_list)
-                    order_id = blotter.order(sid,
-                                             order_amount * direction,
-                                             MarketOrder())
+                    order_id = blotter.order(
+                        blotter.asset_finder.retrieve_asset(sid),
+                        order_amount * direction,
+                        MarketOrder())
                     order_list.append(blotter.orders[order_id])
                     order_date = order_date + order_interval
                     # move after market orders to just after market next
@@ -367,8 +368,10 @@ class FinanceTestCase(TestCase):
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(1, 100, LimitOrder(10))
-        blotter.order(2, 100, LimitOrder(10))
+        blotter.order(
+            blotter.asset_finder.retrieve_asset(1), 100, LimitOrder(10))
+        blotter.order(
+            blotter.asset_finder.retrieve_asset(2), 100, LimitOrder(10))
 
         # send in a split for sid 2
         blotter.process_splits([(2, 0.3333)])
