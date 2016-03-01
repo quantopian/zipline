@@ -598,7 +598,7 @@ class BcolzMinuteBarReader(object):
     def _pos_to_minute(self, pos):
         # TODO: Make configurable.
         q, r = divmod(pos, 390)
-        minute = self._minute_index[q] + np.timedelta64(r, 'm')
+        minute = self._minute_index[q] + np.timedelta64(int(r), 'm')
         return pd.Timestamp(minute, tz='UTC')
 
     @remember_last
