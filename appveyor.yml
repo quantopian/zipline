@@ -14,6 +14,8 @@ environment:
       PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.16.1"
       NUMPY_VERSION: "1.9.2"
+      CONDA_PY: "34"
+      CONDA_NPY: "19"
       SCIPY_VERSION: "0.15.1"
 
     - PYTHON: "C:\\Python27_64"
@@ -21,6 +23,8 @@ environment:
       PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.16.1"
       NUMPY_VERSION: "1.9.2"
+      CONDA_PY: "27"
+      CONDA_NPY: "19"
       SCIPY_VERSION: "0.15.1"
 
 
