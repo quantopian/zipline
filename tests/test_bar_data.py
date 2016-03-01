@@ -157,7 +157,7 @@ class TestMinuteBarData(TestBarDataBase):
                 cls.env,
                 writer,
                 cls.days[0],
-                cls.days[-2],
+                cls.days[-1],
                 sid
             )
 
@@ -166,7 +166,7 @@ class TestMinuteBarData(TestBarDataBase):
                 cls.env,
                 writer,
                 cls.days[0],
-                cls.days[-2],
+                cls.days[-1],
                 sid,
                 10
             )
@@ -292,10 +292,12 @@ class TestMinuteBarData(TestBarDataBase):
                                              asset2_value)
 
     def test_minute_after_assets_stopped(self):
-        minutes = self.env.market_minutes_for_day(self.days[-1])
+        minutes = self.env.market_minutes_for_day(
+            self.env.next_trading_day(self.days[-1])
+        )
 
         last_trading_minute = \
-            self.env.market_minutes_for_day(self.days[-2])[-1]
+            self.env.market_minutes_for_day(self.days[-1])[-1]
 
         # this entire day is after both assets have stopped trading
         for idx, minute in enumerate(minutes):
@@ -442,13 +444,13 @@ class TestDailyBarData(TestBarDataBase):
         path = cls.tempdir.getpath("testdaily.bcolz")
 
         dfs = {
-            1: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-2]),
+            1: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
             2: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-2], interval=2
+                cls.env, cls.days[0], cls.days[-1], interval=2
             ),
-            3: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-2]),
+            3: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
             4: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-2], interval=2
+                cls.env, cls.days[0], cls.days[-1], interval=2
             ),
         }
 
@@ -533,9 +535,26 @@ class TestDailyBarData(TestBarDataBase):
                 bar_data.current(asset, "last_traded")
             )
 
-    def test_after_assets_dead(self):
-        # both assets are dead by self.days[-1]
+    def test_last_active_day(self):
         bar_data = BarData(self.data_portal, lambda: self.days[-1], "daily")
+        self.check_internal_consistency(bar_data)
+
+        for asset in self.ASSETS:
+            self.assertTrue(bar_data.can_trade(asset))
+            self.assertFalse(bar_data.is_stale(asset))
+
+            self.assertEqual(6, bar_data.current(asset, "open"))
+            self.assertEqual(7, bar_data.current(asset, "high"))
+            self.assertEqual(4, bar_data.current(asset, "low"))
+            self.assertEqual(5, bar_data.current(asset, "close"))
+            self.assertEqual(500, bar_data.current(asset, "volume"))
+            self.assertEqual(5, bar_data.current(asset, "price"))
+
+    def test_after_assets_dead(self):
+        # both assets end on self.day[-1], so let's try the next day
+        next_day = self.env.next_trading_day(self.days[-1])
+
+        bar_data = BarData(self.data_portal, lambda: next_day, "daily")
         self.check_internal_consistency(bar_data)
 
         for asset in self.ASSETS:

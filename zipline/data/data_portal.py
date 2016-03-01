@@ -317,7 +317,10 @@ class DataPortal(object):
         if isinstance(asset, int):
             asset = self.env.asset_finder.retrieve_asset(asset)
 
-        if dt < asset.start_date or dt >= asset.end_date:
+        if dt < asset.start_date or \
+                (data_frequency == "daily" and dt > asset.end_date) or \
+                (data_frequency == "minute" and
+                 normalize_date(dt) > asset.end_date):
             if field == "volume":
                 return 0
             elif field != "last_traded":
