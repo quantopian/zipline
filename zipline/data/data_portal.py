@@ -719,7 +719,6 @@ class DataPortal(object):
             raise ValueError("Cannot calculate history window that ends "
                              "before the first trading day!")
 
-        data = []
         bars_to_prepend = 0
         nans_to_prepend = None
 
