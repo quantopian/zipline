@@ -742,9 +742,14 @@ class DataPortal(object):
             field_to_use,
             modified_minutes_for_window
         )
+
         if bars_to_prepend != 0:
-            asset_minute_data = np.insert(asset_minute_data, 0,
-                                          nans_to_prepend)
+            if field_to_use == "volume":
+                filler = np.zeros((len(nans_to_prepend), len(assets)))
+            else:
+                filler = np.full((len(nans_to_prepend), len(assets)), np.nan)
+
+            asset_minute_data = np.concatenate([filler, asset_minute_data])
 
         return pd.DataFrame(
             asset_minute_data,

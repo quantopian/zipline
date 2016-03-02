@@ -840,6 +840,31 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             np.full(100, np.nan), window[self.ASSET2]
         )
 
+    def test_history_window_before_first_trading_day(self):
+        # trading_start is 2/3/2014
+        # get a history window that starts before that, and ends after that
+
+        first_day_minutes = self.env.market_minutes_for_day(
+            self.TRADING_START_DT
+        )
+
+        for field in OHLCP:
+            window = self.data_portal.get_history_window(
+                [self.ASSET1], first_day_minutes[5], 15, "1m", "price"
+            )[self.ASSET1]
+
+            # should be 9 Nans and 6 values
+            np.testing.assert_array_equal(np.full(9, np.nan), window[0:9])
+            np.testing.assert_array_equal(range(7802, 7808), window[9:])
+
+        # volume should be prefilled with zeros
+        window = self.data_portal.get_history_window(
+            [self.ASSET1], first_day_minutes[5], 15, "1m", "volume"
+        )[self.ASSET1]
+
+        np.testing.assert_array_equal(np.zeros(9), window[0:9])
+        np.testing.assert_array_equal(range(780200, 780800, 100), window[9:])
+        
 
 class DailyEquityHistoryTestCase(HistoryTestCaseBase):
     @classmethod
