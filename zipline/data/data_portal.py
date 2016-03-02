@@ -92,6 +92,7 @@ class DataPortal(object):
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
             self._equity_history_loader = USEquityHistoryLoader(
+                self.env,
                 self._equity_daily_reader,
                 self._adjustment_reader
             )
