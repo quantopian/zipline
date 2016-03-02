@@ -89,9 +89,18 @@ class BusinessDaysUntilNextEarnings(BusinessDaysUntilNextEvents):
     Factor returning the number of **business days** (not trading days!) until
     the next known earnings date for each asset.
 
+    Assets that announced or will announce earnings on the day of ``compute``
+    will produce a value of 0.0.  Assets that will announce the event on the
+    next upcoming business day will produce a value of 1.0.
+
+    Assets for which the date of the next earnings announcement is ``NaT`` will
+    produce a value of ``NaN``.  This most commonly occurs because many
+    companies do not publish the exact date of their upcoming earnings
+    announcements until a few weeks before the announcement.
+
     See Also
     --------
-    zipline.pipeline.factors.BusinessDaysSincePreviousEarnings
+    BusinessDaysSincePreviousEarnings
     """
     inputs = [EarningsCalendar.next_announcement]
 
@@ -101,9 +110,21 @@ class BusinessDaysSincePreviousEarnings(BusinessDaysSincePreviousEvents):
     Factor returning the number of **business days** (not trading days!) since
     the most recent earnings date for each asset.
 
+    Assets that announced or will announce earnings on the day of ``compute``
+    will produce a value of 0.0.  Assets that will announce the event on the
+    next upcoming business day will produce a value of 1.0.
+
+    Assets which announced or will announce the earnings today will produce a
+    value of 0.0. Assets that announced the on the previous business day will
+    produce a value of 1.0.
+
+    Assets for which the previous earnings date is `NaT` will produce a value
+    of `NaN`.  This will happen in the interval between IPO and first earnings
+    for most companies.
+
     See Also
     --------
-    zipline.pipeline.factors.BusinessDaysUntilNextEarnings
+    BusinessDaysUntilNextEarnings
     """
     inputs = [EarningsCalendar.previous_announcement]
 
@@ -117,7 +138,7 @@ class BusinessDaysSincePreviousCashBuybackAuth(
 
     See Also
     --------
-    zipline.pipeline.factors.BusinessDaysSincePreviousCashBuybackAuth
+    BusinessDaysSincePreviousCashBuybackAuth
     """
     inputs = [CashBuybackAuthorizations.previous_announcement_date]
 
@@ -132,6 +153,6 @@ class BusinessDaysSincePreviousShareBuybackAuth(
 
     See Also
     --------
-    zipline.pipeline.factors.BusinessDaysSincePreviousShareBuybackAuth
+    BusinessDaysSincePreviousShareBuybackAuth
     """
     inputs = [ShareBuybackAuthorizations.previous_announcement_date]
