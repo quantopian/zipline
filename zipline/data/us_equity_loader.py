@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numpy import dtype, around
+from numpy import dtype, around, full, nan, concatenate
 
 from six import iteritems
 
@@ -36,10 +36,11 @@ class SlidingWindow(object):
        Index in the overall calendar at which the window starts.
     """
 
-    def __init__(self, window, cal_start):
+    def __init__(self, window, cal_start, offset):
         self.window = window
         self.cal_start = cal_start
         self.current = around(next(window), 3)
+        self.offset = offset
         self.most_recent_ix = self.cal_start
 
     def get(self, end_ix):
@@ -52,7 +53,8 @@ class SlidingWindow(object):
         if self.most_recent_ix == end_ix:
             return self.current
 
-        self.current = around(self.window.seek(end_ix - self.cal_start + 1), 3)
+        target = end_ix - self.cal_start - self.offset + 1
+        self.current = around(self.window.seek(target), 3)
 
         self.most_recent_ix = end_ix
         return self.current
@@ -70,7 +72,8 @@ class USEquityHistoryLoader(object):
         Reader for adjustment data.
     """
 
-    def __init__(self, daily_reader, adjustment_reader):
+    def __init__(self, env, daily_reader, adjustment_reader):
+        self.env = env
         self._daily_reader = daily_reader
         self._calendar = daily_reader._calendar
         self._adjustments_reader = adjustment_reader
@@ -176,16 +179,39 @@ class USEquityHistoryLoader(object):
         except KeyError:
             pass
 
-        start_ix = self._calendar.get_loc(start)
-        end_ix = self._calendar.get_loc(end)
+        # Handle case where data is request before the start of data available
+        # in the daily_reader. In that case, prepend nans until the start
+        # of data.
+        pre_array = None
+        if start < self._daily_reader.first_trading_day:
+            start_ix = 0
+            td = self.env.trading_days
+            offset = td.get_loc(start) - td.get_loc(
+                self._daily_reader.first_trading_day)
+            if end < self._daily_reader.first_trading_day:
+                fill_size = size
+                end_ix = 0
+            else:
+                pre_slice = self._calendar.slice_indexer(start, end)
+                fill_size = pre_slice.stop - pre_slice.start
+                end_ix = self._calendar.get_loc(end)
+            if field != 'volume':
+                pre_array = full((fill_size, 1), nan)
+            else:
+                pre_array = full((fill_size, 1), 0)
+        else:
+            offset = 0
+            start_ix = self._calendar.get_loc(start)
+            end_ix = self._calendar.get_loc(end)
 
         col = getattr(USEquityPricing, field)
         cal = self._calendar
         prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
         prefetch_end = cal[prefetch_end_ix]
-        array = self._daily_reader.load_raw_arrays(
-            [col], start, prefetch_end, assets)[0]
+
         days = cal[start_ix:prefetch_end_ix]
+        array = self._daily_reader.load_raw_arrays(
+            [col], days[0], prefetch_end, assets)[0]
         if self._adjustments_reader:
             adjs = self._get_adjustments_in_range(assets, days, col)
         else:
@@ -194,6 +220,9 @@ class USEquityHistoryLoader(object):
             array = array.astype('float64')
         dtype_ = dtype('float64')
 
+        if pre_array is not None:
+            array = concatenate([pre_array, array])
+
         window = Float64Window(
             array,
             dtype_,
@@ -201,7 +230,7 @@ class USEquityHistoryLoader(object):
             0,
             size
         )
-        block = SlidingWindow(window, start_ix)
+        block = SlidingWindow(window, start_ix, offset)
         self._daily_window_blocks[(assets_key, field, size)] = CachedObject(
             block, prefetch_end)
         return block
@@ -231,5 +260,8 @@ class USEquityHistoryLoader(object):
         end = dts[-1]
         size = len(dts)
         block = self._ensure_sliding_window(assets, start, end, size, field)
-        end_ix = self._calendar.get_loc(end)
+        if end > self._calendar[0]:
+            end_ix = self._calendar.get_loc(end)
+        else:
+            end_ix = size
         return block.get(end_ix)

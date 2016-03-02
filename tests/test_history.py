@@ -1214,3 +1214,49 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                     last_val = sum(np.array(range(782, 782 + idx + 1)) * 100)
 
                 self.assertEqual(window[-1], last_val)
+
+    def test_history_window_before_first_trading_day(self):
+        # trading_start is 2/3/2014
+        # get a history window that starts before that, and ends after that
+
+        second_day = self.env.next_trading_day(self.TRADING_START_DT)
+
+        window = self.data_portal.get_history_window(
+            [self.ASSET1],
+            second_day,
+            4,
+            "1d",
+            "price"
+        )[self.ASSET1]
+
+        # should be two NaNs and two values
+        np.testing.assert_almost_equal(
+            [np.nan, np.nan, 2, 3], window)
+
+        window = self.data_portal.get_history_window(
+            [self.ASSET1],
+            second_day,
+            4,
+            "1d",
+            "volume"
+        )[self.ASSET1]
+
+        # should be two NaNs and two values
+        np.testing.assert_almost_equal(
+            [0, 0, 200, 300], window)
+
+        # Use a minute to force minute mode.
+        first_minute = self.env.open_and_closes.market_open[
+            self.TRADING_START_DT]
+
+        window = self.data_portal.get_history_window(
+            [self.ASSET2],
+            first_minute,
+            4,
+            "1d",
+            "close"
+        )[self.ASSET2]
+
+        # should be all nans since ASSET2 does not start on first day.
+        np.testing.assert_almost_equal(
+            [np.nan, np.nan, np.nan, np.nan], window)
