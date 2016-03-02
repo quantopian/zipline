@@ -19,6 +19,7 @@ from abc import (
 )
 from six import with_metaclass
 
+import pandas as pd
 from pandas import (
     DataFrame,
     date_range,
@@ -27,6 +28,12 @@ from pandas import (
     Timedelta,
 )
 from pandas.tseries.offsets import CustomBusinessDay
+
+start_default = pd.Timestamp('1990-01-01', tz='UTC')
+end_base = pd.Timestamp('today', tz='UTC')
+# Give an aggressive buffer for logic that needs to use the next trading
+# day or minute.
+end_default = end_base + pd.Timedelta(days=365)
 
 
 def delta_from_time(t):
@@ -126,7 +133,7 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         The native timezone of the exchange.
     """
 
-    def __init__(self, start, end):
+    def __init__(self, start=start_default, end=end_default):
         tz = self.tz
         open_offset = self.open_offset
         close_offset = self.close_offset
