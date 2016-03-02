@@ -40,14 +40,26 @@ def delta_from_time(t):
     )
 
 
-def days_at_time(days, t, tz):
+def days_at_time(days, t, tz, day_offset=0):
     """
     Shift an index of days to time t, interpreted in tz.
 
     Overwrites any existing tz info on the input.
+
+    Parameters
+    ----------
+    days : DatetimeIndex
+        The "base" time which we want to change.
+    t : datetime.time
+        The time we want to offset @days by
+    tz : pytz.timezone
+        The timezone which these times represent
+    day_offset : int
+        The number of days we want to offset @days by
     """
     days = DatetimeIndex(days).tz_localize(None).tz_localize(tz)
-    return days.shift(
+    days_offset = days + DateOffset(day_offset)
+    return days_offset.shift(
         1, freq=DateOffset(hour=t.hour, minute=t.minute, second=t.second)
     ).tz_convert('UTC')
 
@@ -116,6 +128,8 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
 
     def __init__(self, start, end):
         tz = self.tz
+        open_offset = self.open_offset
+        close_offset = self.close_offset
 
         # Define those days on which the exchange is usually open.
         self.day = CustomBusinessDay(
@@ -127,8 +141,8 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         _all_days = date_range(start, end, freq=self.day, tz='UTC')
 
         # `DatetimeIndex`s of standard opens/closes for each day.
-        _opens = days_at_time(_all_days, self.open_time, tz)
-        _closes = days_at_time(_all_days, self.close_time, tz)
+        _opens = days_at_time(_all_days, self.open_time, tz, open_offset)
+        _closes = days_at_time(_all_days, self.close_time, tz, close_offset)
 
         # `DatetimeIndex`s of nonstandard opens/closes
         _special_opens = self._special_opens(start, end)
@@ -138,6 +152,9 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         _overwrite_special_dates(_all_days, _opens, _special_opens)
         _overwrite_special_dates(_all_days, _closes, _special_closes)
 
+        # In pandas 0.16.1 _opens and _closes will lose their timezone
+        # information. This looks like it has been resolved in 0.17.1.
+        # http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#datetime-with-tz  # noqa
         self.schedule = DataFrame(
             index=_all_days,
             columns=['market_open', 'market_close'],
