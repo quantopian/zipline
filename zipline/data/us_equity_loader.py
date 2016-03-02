@@ -188,8 +188,13 @@ class USEquityHistoryLoader(object):
             td = self.env.trading_days
             offset = td.get_loc(start) - td.get_loc(
                 self._daily_reader.first_trading_day)
-            pre_slice = self._calendar.slice_indexer(start, end)
-            fill_size = pre_slice.stop - pre_slice.start
+            if end < self._daily_reader.first_trading_day:
+                fill_size = size
+                end_ix = 0
+            else:
+                pre_slice = self._calendar.slice_indexer(start, end)
+                fill_size = pre_slice.stop - pre_slice.start
+                end_ix = self._calendar.get_loc(end)
             if field != 'volume':
                 pre_array = full((fill_size, 1), nan)
             else:
@@ -197,8 +202,7 @@ class USEquityHistoryLoader(object):
         else:
             offset = 0
             start_ix = self._calendar.get_loc(start)
-
-        end_ix = self._calendar.get_loc(end)
+            end_ix = self._calendar.get_loc(end)
 
         col = getattr(USEquityPricing, field)
         cal = self._calendar
@@ -256,5 +260,8 @@ class USEquityHistoryLoader(object):
         end = dts[-1]
         size = len(dts)
         block = self._ensure_sliding_window(assets, start, end, size, field)
-        end_ix = self._calendar.get_loc(end)
+        if end > self._calendar[0]:
+            end_ix = self._calendar.get_loc(end)
+        else:
+            end_ix = size
         return block.get(end_ix)

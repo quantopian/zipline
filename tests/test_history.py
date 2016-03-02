@@ -1219,3 +1219,19 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # should be two NaNs and two values
         np.testing.assert_almost_equal(
             [0, 0, 200, 300], window)
+
+        # Use a minute to force minute mode.
+        first_minute = self.env.open_and_closes.market_open[
+            self.TRADING_START_DT]
+
+        window = self.data_portal.get_history_window(
+            [self.ASSET2],
+            first_minute,
+            4,
+            "1d",
+            "close"
+        )[self.ASSET2]
+
+        # should be all nans since ASSET2 does not start on first day.
+        np.testing.assert_almost_equal(
+            [np.nan, np.nan, np.nan, np.nan], window)
