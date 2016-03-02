@@ -188,11 +188,12 @@ class USEquityHistoryLoader(object):
             td = self.env.trading_days
             offset = td.get_loc(start) - td.get_loc(
                 self._daily_reader.first_trading_day)
-            if end < self._daily_reader.first_trading_day:
-                array = full((size, 1), nan)
+            pre_slice = self._calendar.slice_indexer(start, end)
+            fill_size = pre_slice.stop - pre_slice.start
+            if field != 'volume':
+                pre_array = full((fill_size, 1), nan)
             else:
-                pre_slice = self._calendar.slice_indexer(start, end)
-                pre_array = full((pre_slice.stop - pre_slice.start, 1), nan)
+                pre_array = full((fill_size, 1), 0)
         else:
             offset = 0
             start_ix = self._calendar.get_loc(start)

@@ -1207,3 +1207,15 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # should be two NaNs and two values
         np.testing.assert_almost_equal(
             [np.nan, np.nan, 2, 3], window)
+
+        window = self.data_portal.get_history_window(
+            [self.ASSET1],
+            second_day,
+            4,
+            "1d",
+            "volume"
+        )[self.ASSET1]
+
+        # should be two NaNs and two values
+        np.testing.assert_almost_equal(
+            [0, 0, 200, 300], window)
