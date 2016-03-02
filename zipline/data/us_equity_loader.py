@@ -183,12 +183,12 @@ class USEquityHistoryLoader(object):
         # in the daily_reader. In that case, prepend nans until the start
         # of data.
         pre_array = None
-        if start < self._daily_reader.first_trading_day:
+        if start < self._daily_reader._calendar[0]:
             start_ix = 0
             td = self.env.trading_days
             offset = td.get_loc(start) - td.get_loc(
-                self._daily_reader.first_trading_day)
-            if end < self._daily_reader.first_trading_day:
+                self._daily_reader._calendar[0])
+            if end < self._daily_reader._calendar[0]:
                 fill_size = size
                 end_ix = 0
             else:
