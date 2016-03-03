@@ -103,11 +103,13 @@ install:
 
   - conda info -a
   - conda install conda-build
-  - cmd: '%CMD_IN_ENV% conda build conda\bcolz -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
-  - cmd: '%CMD_IN_ENV% conda build conda\cyordereddict -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
-  - cmd: '%CMD_IN_ENV% conda build conda\logbook -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
-  - cmd: '%CMD_IN_ENV% conda build conda\ta-lib -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
-  - cmd: '%CMD_IN_ENV% conda build conda\zipline --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
+  - ps: $NPY_VERSION_ARR=$env:NUMPY_VERSION -split '.', 0, 'simplematch'
+  - ps: $env:NPY_VERSION_MAJ_MIN=$NPY_VERSION_ARR[0..1] -join ""
+  - cmd: '%CMD_IN_ENV% conda build conda/bcolz -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
+  - cmd: '%CMD_IN_ENV% conda build conda/cyordereddict -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
+  - cmd: '%CMD_IN_ENV% conda build conda/logbook -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
+  - cmd: '%CMD_IN_ENV% conda build conda/ta-lib -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
+  - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
 
   - cmd: conda create -n testenv --yes --use-local pip numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9
   - cmd: activate testenv
