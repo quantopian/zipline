@@ -110,9 +110,8 @@ install:
   # this uses git requirements right now
   - cmd: pip install -r etc/requirements_blaze.txt
   - cmd: pip install -e .[talib]
+  - cmd: pip freeze | sort
 
 test_script:
-  - cd \
-  - pip freeze | sort
   - nosetests tests/
   - flake8 zipline tests
