@@ -1,6 +1,6 @@
+from itertools import permutations
 from operator import (
     add,
-    and_,
     ge,
     gt,
     le,
@@ -8,13 +8,13 @@ from operator import (
     methodcaller,
     mul,
     ne,
-    or_,
 )
 from unittest import TestCase
 
 import numpy
 from numpy import (
     arange,
+    array,
     eye,
     float64,
     full,
@@ -27,7 +27,7 @@ from pandas import (
     Int64Index,
 )
 
-from zipline.pipeline import Factor
+from zipline.pipeline import Factor, Filter
 from zipline.pipeline.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
@@ -55,6 +55,11 @@ class H(Factor):
     window_length = 0
 
 
+class NonExprFilter(Filter):
+    inputs = ()
+    window_length = 0
+
+
 class DateFactor(Factor):
     dtype = datetime64ns_dtype
     inputs = ()
@@ -71,9 +76,9 @@ class NumericalExpressionTestCase(TestCase):
         self.h = H()
         self.d = DateFactor()
         self.fake_raw_data = {
-            self.f: full((5, 5), 3),
-            self.g: full((5, 5), 2),
-            self.h: full((5, 5), 1),
+            self.f: full((5, 5), 3, float),
+            self.g: full((5, 5), 2, float),
+            self.h: full((5, 5), 1, float),
             self.d: full((5, 5), 0, dtype='datetime64[ns]'),
         }
         self.mask = DataFrame(True, index=self.dates, columns=self.assets)
@@ -89,7 +94,7 @@ class NumericalExpressionTestCase(TestCase):
 
     def check_constant_output(self, expr, expected):
         self.assertFalse(isnan(expected))
-        return self.check_output(expr, full((5, 5), expected))
+        return self.check_output(expr, full((5, 5), expected, float))
 
     def test_validate_good(self):
         f = self.f
@@ -430,9 +435,9 @@ class NumericalExpressionTestCase(TestCase):
     def test_comparisons(self):
         f, g, h = self.f, self.g, self.h
         self.fake_raw_data = {
-            f: arange(25).reshape(5, 5),
-            g: arange(25).reshape(5, 5) - eye(5),
-            h: full((5, 5), 5),
+            f: arange(25, dtype=float).reshape(5, 5),
+            g: arange(25, dtype=float).reshape(5, 5) - eye(5),
+            h: full((5, 5), 5, dtype=float),
         }
         f_data = self.fake_raw_data[f]
         g_data = self.fake_raw_data[g]
@@ -460,26 +465,57 @@ class NumericalExpressionTestCase(TestCase):
 
     def test_boolean_binops(self):
         f, g, h = self.f, self.g, self.h
+
+        # Add a non-numexpr filter to ensure that we correctly handle
+        # delegation to NumericalExpression.
+        custom_filter = NonExprFilter()
+        custom_filter_mask = array(
+            [[0, 1, 0, 1, 0],
+             [0, 0, 1, 0, 0],
+             [1, 0, 0, 0, 0],
+             [0, 0, 1, 1, 0],
+             [0, 0, 0, 1, 0]],
+            dtype=bool,
+        )
+
         self.fake_raw_data = {
-            f: arange(25).reshape(5, 5),
-            g: arange(25).reshape(5, 5) - eye(5),
-            h: full((5, 5), 5),
+            f: arange(25, dtype=float).reshape(5, 5),
+            g: arange(25, dtype=float).reshape(5, 5) - eye(5),
+            h: full((5, 5), 5, dtype=float),
+            custom_filter: custom_filter_mask,
         }
 
         # Should be True on the diagonal.
-        eye_filter = f > g
+        eye_filter = (f > g)
+
         # Should be True in the first row only.
         first_row_filter = f < h
 
         eye_mask = eye(5, dtype=bool)
+
         first_row_mask = zeros((5, 5), dtype=bool)
         first_row_mask[0] = 1
 
         self.check_output(eye_filter, eye_mask)
         self.check_output(first_row_filter, first_row_mask)
 
-        for op in (and_, or_):  # NumExpr doesn't support xor.
-            self.check_output(
-                op(eye_filter, first_row_filter),
-                op(eye_mask, first_row_mask),
-            )
+        def gen_boolops(x, y, z):
+            """
+            Generate all possible interleavings of & and | between all possible
+            orderings of x, y, and z.
+            """
+            for a, b, c in permutations([x, y, z]):
+                yield (a & b) & c
+                yield (a & b) | c
+                yield (a | b) & c
+                yield (a | b) | c
+                yield a & (b & c)
+                yield a & (b | c)
+                yield a | (b & c)
+                yield a | (b | c)
+
+        exprs = gen_boolops(eye_filter, custom_filter, first_row_filter)
+        arrays = gen_boolops(eye_mask, custom_filter_mask, first_row_mask)
+
+        for expr, expected in zip(exprs, arrays):
+            self.check_output(expr, expected)

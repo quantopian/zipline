@@ -51,6 +51,7 @@ cdef class Asset:
     cdef readonly object start_date
     cdef readonly object end_date
     cdef public object first_traded
+    cdef readonly object auto_close_date
 
     cdef readonly object exchange
 
@@ -61,6 +62,7 @@ cdef class Asset:
                   object start_date=None,
                   object end_date=None,
                   object first_traded=None,
+                  object auto_close_date=None,
                   object exchange="",
                   *args,
                   **kwargs):
@@ -73,6 +75,7 @@ cdef class Asset:
         self.start_date    = start_date
         self.end_date      = end_date
         self.first_traded  = first_traded
+        self.auto_close_date = auto_close_date
 
     def __int__(self):
         return self.sid
@@ -127,7 +130,7 @@ cdef class Asset:
 
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded')
+                 'start_date', 'end_date', 'first_traded', 'auto_close_date')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -147,6 +150,7 @@ cdef class Asset:
                                  self.start_date,
                                  self.end_date,
                                  self.first_traded,
+                                 self.auto_close_date,
                                  self.exchange,))
 
     cpdef to_dict(self):
@@ -160,6 +164,7 @@ cdef class Asset:
             'start_date': self.start_date,
             'end_date': self.end_date,
             'first_traded': self.first_traded,
+            'auto_close_date': self.auto_close_date,
             'exchange': self.exchange,
         }
 
@@ -181,7 +186,7 @@ cdef class Equity(Asset):
 
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded')
+                 'start_date', 'end_date', 'first_traded', 'auto_close_date')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
@@ -227,7 +232,6 @@ cdef class Future(Asset):
     cdef readonly object root_symbol
     cdef readonly object notice_date
     cdef readonly object expiration_date
-    cdef readonly object auto_close_date
     cdef readonly object tick_size
     cdef readonly float multiplier
 
@@ -249,9 +253,16 @@ cdef class Future(Asset):
         self.root_symbol     = root_symbol
         self.notice_date     = notice_date
         self.expiration_date = expiration_date
-        self.auto_close_date = auto_close_date
         self.tick_size       = tick_size
         self.multiplier      = multiplier
+
+        if auto_close_date is None:
+            if notice_date is None:
+                self.auto_close_date = expiration_date
+            elif expiration_date is None:
+                self.auto_close_date = notice_date
+            else:
+                self.auto_close_date = min(notice_date, expiration_date)
 
     def __str__(self):
         if self.symbol:
@@ -299,7 +310,6 @@ cdef class Future(Asset):
         super_dict['root_symbol'] = self.root_symbol
         super_dict['notice_date'] = self.notice_date
         super_dict['expiration_date'] = self.expiration_date
-        super_dict['auto_close_date'] = self.auto_close_date
         super_dict['tick_size'] = self.tick_size
         super_dict['multiplier'] = self.multiplier
         return super_dict

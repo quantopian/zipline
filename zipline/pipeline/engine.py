@@ -92,13 +92,13 @@ class SimplePipelineEngine(object):
         An AssetFinder instance.  We depend on the AssetFinder to determine
         which assets are in the top-level universe at any point in time.
     """
-    __slots__ = [
+    __slots__ = (
         '_get_loader',
         '_calendar',
         '_finder',
         '_root_mask_term',
         '__weakref__',
-    ]
+    )
 
     def __init__(self, get_loader, calendar, asset_finder):
         self._get_loader = get_loader

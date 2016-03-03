@@ -6,11 +6,13 @@ from bcolz import ctable
 from numpy import (
     arange,
     array,
+    eye,
     float64,
     full,
     iinfo,
     uint32,
 )
+from numpy.random import RandomState
 from pandas import DataFrame, Timestamp
 from six import iteritems
 from sqlite3 import connect as sqlite3_connect
@@ -23,6 +25,12 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     US_EQUITY_PRICING_BCOLZ_COLUMNS,
 )
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    datetime64ns_dtype,
+    float64_dtype,
+    int64_dtype,
+)
 
 
 UINT_32_MAX = iinfo(uint32).max
@@ -32,31 +40,34 @@ def nanos_to_seconds(nanos):
     return nanos / (1000 * 1000 * 1000)
 
 
-class ConstantLoader(PipelineLoader):
+class PrecomputedLoader(PipelineLoader):
     """
-    Synthetic PipelineLoader that returns a constant value for each column.
+    Synthetic PipelineLoader that uses a pre-computed array for each column.
 
     Parameters
     ----------
-    constants : dict
-        Map from column to value(s) to use for that column.
+    values : dict
+        Map from column to values to use for that column.
         Values can be anything that can be passed as the first positional
-        argument to a DataFrame of the same shape as `mask`.
-    mask : pandas.DataFrame
-        Mask indicating when assets existed.
-        Indices of this frame are used to align input queries.
+        argument to a DataFrame whose indices are ``dates`` and ``sids``
+    dates : iterable[datetime-like]
+        Row labels for input data.  Can be anything that pd.DataFrame will
+        coerce to a DatetimeIndex.
+    sids : iterable[int-like]
+        Column labels for input data.  Can be anything that pd.DataFrame will
+        coerce to an Int64Index.
 
     Notes
     -----
-    Adjustments are unsupported with ConstantLoader.
+    Adjustments are unsupported by this loader.
     """
-    def __init__(self, constants, dates, assets):
+    def __init__(self, constants, dates, sids):
         loaders = {}
         for column, const in iteritems(constants):
             frame = DataFrame(
                 const,
                 index=dates,
-                columns=assets,
+                columns=sids,
                 dtype=column.dtype,
             )
             loaders[column] = DataFrameLoader(
@@ -81,6 +92,106 @@ class ConstantLoader(PipelineLoader):
                 loader.load_adjusted_array([col], dates, assets, mask)
             )
         return out
+
+
+class EyeLoader(PrecomputedLoader):
+    """
+    A PrecomputedLoader that emits arrays containing 1s on the diagonal and 0s
+    elsewhere.
+
+    Parameters
+    ----------
+    columns : list[BoundColumn]
+        Columns that this loader should know about.
+    dates : iterable[datetime-like]
+        Same as PrecomputedLoader.
+    sids : iterable[int-like]
+        Same as PrecomputedLoader
+    """
+    def __init__(self, columns, dates, sids):
+        shape = (len(dates), len(sids))
+        super(EyeLoader, self).__init__(
+            {column: eye(shape, dtype=column.dtype) for column in columns},
+            dates,
+            sids,
+        )
+
+
+class SeededRandomLoader(PrecomputedLoader):
+    """
+    A PrecomputedLoader that emits arrays randomly-generated with a given seed.
+
+    Parameters
+    ----------
+    seed : int
+        Seed for numpy.random.RandomState.
+    columns : list[BoundColumn]
+        Columns that this loader should know about.
+    dates : iterable[datetime-like]
+        Same as PrecomputedLoader.
+    sids : iterable[int-like]
+        Same as PrecomputedLoader
+    """
+
+    def __init__(self, seed, columns, dates, sids):
+        self._seed = seed
+        super(SeededRandomLoader, self).__init__(
+            {c: self.values(c.dtype, dates, sids) for c in columns},
+            dates,
+            sids,
+        )
+
+    def values(self, dtype, dates, sids):
+        """
+        Make a random array of shape (len(dates), len(sids)) with ``dtype``.
+        """
+        shape = (len(dates), len(sids))
+        return {
+            datetime64ns_dtype: self._datetime_values,
+            float64_dtype: self._float_values,
+            int64_dtype: self._int_values,
+            bool_dtype: self._bool_values,
+        }[dtype](shape)
+
+    @property
+    def state(self):
+        """
+        Make a new RandomState from our seed.
+
+        This ensures that every call to _*_values produces the same output
+        every time for a given SeededRandomLoader instance.
+        """
+        return RandomState(self._seed)
+
+    def _float_values(self, shape):
+        """
+        Return uniformly-distributed floats between -0.0 and 100.0.
+        """
+        return self.state.uniform(low=0.0, high=100.0, size=shape)
+
+    def _int_values(self, shape):
+        """
+        Return uniformly-distributed integers between 0 and 100.
+        """
+        return self.state.random_integers(low=0, high=100, size=shape)
+
+    def _datetime_values(self, shape):
+        """
+        Return uniformly-distributed dates in 2014.
+        """
+        start = Timestamp('2014', tz='UTC').asm8
+        offsets = self.state.random_integers(
+            low=0,
+            high=364,
+            size=shape,
+        ).astype('timedelta64[D]')
+        return start + offsets
+
+    def _bool_values(self, shape):
+        """
+        Return uniformly-distributed True/False values.
+        """
+        return self.state.randn(*shape) < 0
 
 
 class SyntheticDailyBarWriter(BcolzDailyBarWriter):

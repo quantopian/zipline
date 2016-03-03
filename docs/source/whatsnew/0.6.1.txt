@@ -123,7 +123,7 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
-* Adjust benchmark events to match market hours (:issue:`241).
+* Adjust benchmark events to match market hours (:issue:`241`).
   Previously benchmark events were emitted at 0:00 on the day the
   benchmark related to: in 'minute' emission mode this meant that the
   benchmarks were emitted before any intra-day trades were processed.

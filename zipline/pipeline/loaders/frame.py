@@ -15,6 +15,7 @@ from pandas import (
 )
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import make_adjustment_from_labels
+from zipline.utils.pandas_utils import sort_values
 from .base import PipelineLoader
 
 ADJUSTMENT_COLUMNS = Index([
@@ -59,7 +60,7 @@ class DataFrameLoader(PipelineLoader):
 
     def __init__(self, column, baseline, adjustments=None):
         self.column = column
-        self.baseline = baseline.values
+        self.baseline = baseline.values.astype(self.column.dtype)
         self.dates = baseline.index
         self.assets = baseline.columns
 
@@ -71,7 +72,7 @@ class DataFrameLoader(PipelineLoader):
         else:
             # Ensure that columns are in the correct order.
             adjustments = adjustments.reindex_axis(ADJUSTMENT_COLUMNS, axis=1)
-            adjustments.sort(['apply_date', 'sid'], inplace=True)
+            sort_values(adjustments, ['apply_date', 'sid'], inplace=True)
 
         self.adjustments = adjustments
         self.adjustment_apply_dates = DatetimeIndex(adjustments.apply_date)
@@ -170,5 +171,6 @@ class DataFrameLoader(PipelineLoader):
                 # Mask out requested columns/rows that didnt match.
                 mask=(good_assets & good_dates[:, None]) & mask,
                 adjustments=self.format_adjustments(dates, assets),
+                missing_value=column.missing_value,
             ),
         }

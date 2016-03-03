@@ -28,7 +28,7 @@ except ImportError:
     from collections import OrderedDict
 from six import iteritems, itervalues
 
-from zipline.protocol import Event, DATASOURCE_TYPE
+from zipline.finance.transaction import Transaction
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
 )
@@ -140,10 +140,6 @@ class PositionTracker(object):
         self._unpaid_stock_dividends = {}
         self._positions_store = zp.Positions()
 
-        # Dict, keyed on dates, that contains lists of close position events
-        # for any Assets in this tracker's positions
-        self._auto_close_position_sids = {}
-
         self.data_frequency = data_frequency
 
     def _update_asset(self, sid):
@@ -163,64 +159,6 @@ class PositionTracker(object):
             if isinstance(asset, Future):
                 self._position_value_multipliers[sid] = 0
                 self._position_exposure_multipliers[sid] = asset.multiplier
-                # Futures auto-close timing is controlled by the Future's
-                # auto_close_date property
-                self._insert_auto_close_position_date(
-                    dt=asset.auto_close_date,
-                    sid=sid
-                )
-
-    def _insert_auto_close_position_date(self, dt, sid):
-        """
-        Inserts the given SID in to the list of positions to be auto-closed by
-        the given dt.
-
-        Parameters
-        ----------
-        dt : pandas.Timestamp
-            The date before-which the given SID will be auto-closed
-        sid : int
-            The SID of the Asset to be auto-closed
-        """
-        if dt is not None:
-            self._auto_close_position_sids.setdefault(dt, set()).add(sid)
-
-    def auto_close_position_events(self, next_trading_day):
-        """
-        Generates CLOSE_POSITION events for any SIDs whose auto-close date is
-        before or equal to the given date.
-
-        Parameters
-        ----------
-        next_trading_day : pandas.Timestamp
-            The time before-which certain Assets need to be closed
-
-        Yields
-        ------
-        Event
-            A close position event for any sids that should be closed before
-            the next_trading_day parameter
-        """
-        past_asset_end_dates = set()
-
-        # Check the auto_close_position_dates dict for SIDs to close
-        for date, sids in self._auto_close_position_sids.items():
-            if date > next_trading_day:
-                continue
-            past_asset_end_dates.add(date)
-
-            for sid in sids:
-                # Yield a CLOSE_POSITION event
-                event = Event({
-                    'dt': date,
-                    'type': DATASOURCE_TYPE.CLOSE_POSITION,
-                    'sid': sid,
-                })
-                yield event
-
-        # Clear out past dates
-        while past_asset_end_dates:
-            self._auto_close_position_sids.pop(past_asset_end_dates.pop())
 
     def update_positions(self, positions):
         # update positions in batch
@@ -391,7 +329,7 @@ class PositionTracker(object):
             dt=event.dt,
             price=price,
             commission=0,
-            order_id=0
+            order_id=None,
         )
         return txn
 
@@ -491,10 +429,9 @@ class PositionTracker(object):
         state_dict['positions'] = dict(self.positions)
         state_dict['unpaid_dividends'] = self._unpaid_dividends
         state_dict['unpaid_stock_dividends'] = self._unpaid_stock_dividends
-        state_dict['auto_close_position_sids'] = self._auto_close_position_sids
         state_dict['data_frequency'] = self.data_frequency
 
-        STATE_VERSION = 3
+        STATE_VERSION = 4
         state_dict[VERSION_LABEL] = STATE_VERSION
         return state_dict
 
@@ -514,7 +451,6 @@ class PositionTracker(object):
 
         self._unpaid_dividends = state['unpaid_dividends']
         self._unpaid_stock_dividends = state['unpaid_stock_dividends']
-        self._auto_close_position_sids = state['auto_close_position_sids']
 
         # Arrays for quick calculations of positions value
         self._position_value_multipliers = OrderedDict()

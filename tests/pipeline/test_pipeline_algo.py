@@ -436,7 +436,7 @@ class PipelineAlgorithmTestCase(TestCase):
                 'ratio': array([], dtype=float),
                 'sid': array([], dtype=int),
             },
-            index=DatetimeIndex([], tz='UTC'),
+            index=DatetimeIndex([]),
             columns=['effective_date', 'ratio', 'sid'],
         )
         dividends = DataFrame({

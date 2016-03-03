@@ -6,16 +6,20 @@ from weakref import WeakValueDictionary
 
 from numpy import dtype as dtype_class
 from six import with_metaclass
-
 from zipline.errors import (
     DTypeNotSpecified,
     InputTermNotAtomic,
-    InvalidDType,
+    NotDType,
     TermInputsNotSpecified,
+    UnsupportedDType,
     WindowLengthNotSpecified,
 )
+from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import bool_dtype, default_fillvalue_for_dtype
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    default_missing_value_for_dtype,
+)
 from zipline.utils.sentinel import sentinel
 
 
@@ -32,6 +36,7 @@ class Term(with_metaclass(ABCMeta, object)):
     # These are NotSpecified because a subclass is required to provide them.
     dtype = NotSpecified
     domain = NotSpecified
+    missing_value = NotSpecified
 
     # Subclasses aren't required to provide `params`.  The default behavior is
     # no params.
@@ -42,6 +47,7 @@ class Term(with_metaclass(ABCMeta, object)):
     def __new__(cls,
                 domain=domain,
                 dtype=dtype,
+                missing_value=missing_value,
                 # params is explicitly not allowed to be passed to an instance.
                 *args,
                 **kwargs):
@@ -55,18 +61,26 @@ class Term(with_metaclass(ABCMeta, object)):
         Caching previously-constructed Terms is **sane** because terms and
         their inputs are both conceptually immutable.
         """
-        # Class-level attributes can be used to provide defaults for Term
-        # subclasses.
-
+        # Subclasses can set override these class-level attributes to provide
+        # default values.
         if domain is NotSpecified:
             domain = cls.domain
+        if dtype is NotSpecified:
+            dtype = cls.dtype
+        if missing_value is NotSpecified:
+            missing_value = cls.missing_value
 
-        dtype = cls._validate_dtype(dtype)
+        dtype, missing_value = cls.validate_dtype(
+            cls.__name__,
+            dtype,
+            missing_value,
+        )
         params = cls._pop_params(kwargs)
 
         identity = cls.static_identity(
             domain=domain,
             dtype=dtype,
+            missing_value=missing_value,
             params=params,
             *args, **kwargs
         )
@@ -78,6 +92,7 @@ class Term(with_metaclass(ABCMeta, object)):
                 super(Term, cls).__new__(cls)._init(
                     domain=domain,
                     dtype=dtype,
+                    missing_value=missing_value,
                     params=params,
                     *args, **kwargs
                 )
@@ -131,40 +146,45 @@ class Term(with_metaclass(ABCMeta, object)):
                 )
         return tuple(zip(cls.params, param_values))
 
-    @classmethod
-    def _validate_dtype(cls, passed_dtype):
+    @staticmethod
+    def validate_dtype(termname, dtype, missing_value):
         """
-        Validate a `dtype` passed to Term.__new__.
+        Validate a `dtype` and `missing_value` passed to Term.__new__.
 
-        If passed_dtype is NotSpecified, then we try to fall back to a
-        class-level attribute.  If a value is found at that point, we pass it
-        to np.dtype so that users can pass `float` or `bool` and have them
-        coerce to the appropriate numpy types.
+        Ensures that we know how to represent ``dtype``, and that missing_value
+        is specified for types without default missing values.
 
         Returns
         -------
-        validated : np.dtype
-            The dtype to use for the new term.
+        validated_dtype, validated_missing_value : np.dtype, any
+            The dtype and missing_value to use for the new term.
 
         Raises
         ------
         DTypeNotSpecified
             When no dtype was passed to the instance, and the class doesn't
             provide a default.
-        InvalidDType
+        NotDType
             When either the class or the instance provides a value not
             coercible to a numpy dtype.
+        NoDefaultMissingValue
+            When dtype requires an explicit missing_value, but
+            ``missing_value`` is NotSpecified.
         """
-        dtype = passed_dtype
         if dtype is NotSpecified:
-            dtype = cls.dtype
-        if dtype is NotSpecified:
-            raise DTypeNotSpecified(termname=cls.__name__)
+            raise DTypeNotSpecified(termname=termname)
         try:
             dtype = dtype_class(dtype)
         except TypeError:
-            raise InvalidDType(dtype=dtype, termname=cls.__name__)
-        return dtype
+            raise NotDType(dtype=dtype, termname=termname)
+
+        if not can_represent_dtype(dtype):
+            raise UnsupportedDType(dtype=dtype, termname=termname)
+
+        if missing_value is NotSpecified:
+            missing_value = default_missing_value_for_dtype(dtype)
+
+        return dtype, missing_value
 
     def __init__(self, *args, **kwargs):
         """
@@ -183,7 +203,7 @@ class Term(with_metaclass(ABCMeta, object)):
         pass
 
     @classmethod
-    def static_identity(cls, domain, dtype, params):
+    def static_identity(cls, domain, dtype, missing_value, params):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -195,9 +215,9 @@ class Term(with_metaclass(ABCMeta, object)):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, domain, dtype, params)
+        return (cls, domain, dtype, missing_value, params)
 
-    def _init(self, domain, dtype, params):
+    def _init(self, domain, dtype, missing_value, params):
         """
         Parameters
         ----------
@@ -210,6 +230,7 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         self.domain = domain
         self.dtype = dtype
+        self.missing_value = missing_value
 
         for name, value in params:
             if hasattr(self, name):
@@ -267,10 +288,6 @@ class Term(with_metaclass(ABCMeta, object)):
     def atomic(self):
         return not any(dep for dep in self.dependencies
                        if dep is not AssetExists())
-
-    @lazyval
-    def missing_value(self):
-        return default_fillvalue_for_dtype(self.dtype)
 
 
 class AssetExists(Term):

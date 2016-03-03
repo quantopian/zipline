@@ -864,7 +864,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
         np.testing.assert_array_equal(np.zeros(9), window[0:9])
         np.testing.assert_array_equal(range(780200, 780800, 100), window[9:])
-        
+
 
 class DailyEquityHistoryTestCase(HistoryTestCaseBase):
     @classmethod

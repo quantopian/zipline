@@ -38,6 +38,7 @@ from zipline.utils.numpy_utils import (
     bool_dtype,
     datetime64ns_dtype,
     float64_dtype,
+    int64_dtype,
 )
 from zipline.utils.preprocess import preprocess
 
@@ -303,7 +304,7 @@ def function_application(func):
     return mathfunc
 
 
-FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype])
+FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
 class Factor(CompositeTerm):
@@ -454,10 +455,10 @@ class Factor(CompositeTerm):
             Return True for assets falling below this percentile in the data.
         mask : zipline.pipeline.Filter, optional
             A Filter representing assets to consider when percentile
-            thresholds.  If mask is supplied, percentile cutoffs are computed
-            each day using only assets for which `mask` returns True, and
-            assets not passing `mask` will produce False in the output of this
-            filter as well.
+            calculating thresholds.  If mask is supplied, percentile cutoffs
+            are computed each day using only assets for which ``mask`` returns
+            True.  Assets for which ``mask`` produces False will produce False
+            in the output of this Factor as well.
 
         Returns
         -------

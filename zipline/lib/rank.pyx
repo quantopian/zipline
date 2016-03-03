@@ -58,6 +58,11 @@ def masked_rankdata_2d(ndarray data,
         # the extra work that apply_along_axis does.
         result = apply_along_axis(rankdata, 1, data, method=method)
 
+        # On SciPy >= 0.17, rankdata returns integers for any method except
+        # average.
+        if result.dtype.name != 'float64':
+            result = result.astype('float64')
+
     # rankdata will sort missing values into last place, but we want our nans
     # to propagate, so explicitly re-apply.
     result[missing_locations] = nan

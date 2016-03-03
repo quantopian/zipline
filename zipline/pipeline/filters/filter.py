@@ -124,6 +124,13 @@ class Filter(CompositeTerm):
             for op in FILTER_BINOPS
         }
     )
+    clsdict.update(
+        {
+            method_name_for_op(op, commute=True): binary_operator(op)
+            for op in FILTER_BINOPS
+        }
+    )
+
     __invert__ = unary_operator('~')
 
     def _validate(self):
@@ -245,6 +252,52 @@ class PercentileFilter(SingleInputMixin, Filter):
 
 class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     """
-    Filter analog to ``CustomFactor``.
+    Base class for user-defined Filters.
+
+    Parameters
+    ----------
+    inputs : iterable, optional
+        An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),
+        describing the data to load and pass to `self.compute`.  If this
+        argument is passed to the CustomFilter constructor, we look for a
+        class-level attribute named `inputs`.
+    window_length : int, optional
+        Number of rows to pass for each input.  If this argument is not passed
+        to the CustomFilter constructor, we look for a class-level attribute
+        named `window_length`.
+
+    Notes
+    -----
+    Users implementing their own Filters should subclass CustomFilter and
+    implement a method named `compute` with the following signature:
+
+    .. code-block:: python
+
+        def compute(self, today, assets, out, *inputs):
+           ...
+
+    On each simulation date, ``compute`` will be called with the current date,
+    an array of sids, an output array, and an input array for each expression
+    passed as inputs to the CustomFilter constructor.
+
+    The specific types of the values passed to `compute` are as follows::
+
+        today : np.datetime64[ns]
+            Row label for the last row of all arrays passed as `inputs`.
+        assets : np.array[int64, ndim=1]
+            Column labels for `out` and`inputs`.
+        out : np.array[bool, ndim=1]
+            Output array of the same shape as `assets`.  `compute` should write
+            its desired return values into `out`.
+        *inputs : tuple of np.array
+            Raw data arrays corresponding to the values of `self.inputs`.
+
+    See the documentation for
+    :class:`~zipline.pipeline.factors.factor.CustomFactor` for more details on
+    implementing a custom ``compute`` method.
+
+    See Also
+    --------
+    zipline.pipeline.factors.factor.CustomFactor
     """
     ctx = nullctx()

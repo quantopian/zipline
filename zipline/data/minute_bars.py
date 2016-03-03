@@ -95,8 +95,6 @@ class BcolzMinuteBarMetadata(object):
 
             first_trading_day = pd.Timestamp(
                 raw_data['first_trading_day'], tz='UTC')
-            minute_index = pd.to_datetime(raw_data['minute_index'],
-                                          utc=True)
             # TODO: Just write market minutes.
             minute_index = np.array(
                 [x for i, x in enumerate(raw_data['minute_index'])
@@ -399,20 +397,14 @@ class BcolzMinuteBarWriter(object):
     def write(self, sid, df):
         """
         Write the OHLCV data for the given sid.
-
         If there is no bcolz ctable yet created for the sid, create it.
-
         If the length of the bcolz ctable is not exactly to the date before
         the first day provided, fill the ctable with 0s up to that date.
-
         Writes in blocks of the size of the days times minutes per day.
-
         Parameters:
         -----------
         sid : int
             The asset identifer for the data being written.
-        days : pd.DatetimeIndex
-            The days for which to write data from the given df.
         df : pd.DataFrame
             DataFrame of market data with the following characteristics.
             columns : ('open', 'high', 'low', 'close', 'volume')
@@ -423,11 +415,45 @@ class BcolzMinuteBarWriter(object):
                 volume : float64|int64
             index : DatetimeIndex of market minutes.
         """
+        cols = {
+            'open': df.open.values,
+            'high': df.high.values,
+            'low': df.low.values,
+            'close': df.close.values,
+            'volume': df.volume.values,
+        }
+        dts = df.index.values
+        self.write_cols(sid, dts, cols)
+
+    def write_cols(self, sid, dts, cols):
+        """
+        Write the OHLCV data for the given sid.
+        If there is no bcolz ctable yet created for the sid, create it.
+        If the length of the bcolz ctable is not exactly to the date before
+        the first day provided, fill the ctable with 0s up to that date.
+        Writes in blocks of the size of the days times minutes per day.
+        Parameters:
+        -----------
+        sid : int
+            The asset identifer for the data being written.
+        dts : datetime64 array
+            The dts corresponding to values in cols.
+        cols : dict of str -> np.array
+            dict of market data with the following characteristics.
+            keys are ('open', 'high', 'low', 'close', 'volume')
+                open : float64
+                high : float64
+                low  : float64
+                close : float64
+                volume : float64|int64
+        """
         table = self._ensure_ctable(sid)
 
         tds = self._trading_days
-        input_first_day = normalize_date(df.index[0])
-        input_last_day = normalize_date(df.index[-1])
+        input_first_day = pd.Timestamp(dts[0].astype('datetime64[D]'),
+                                       tz='UTC')
+        input_last_day = pd.Timestamp(dts[-1].astype('datetime64[D]'),
+                                      tz='UTC')
 
         last_date = self.last_date_in_output_for_sid(sid)
 
@@ -457,15 +483,15 @@ class BcolzMinuteBarWriter(object):
         vol_col = np.zeros(minutes_count, dtype=np.uint32)
 
         dt_ixs = np.searchsorted(all_minutes_in_window.values,
-                                 df.index.values)
+                                 dts.astype('datetime64[ns]'))
 
         ohlc_ratio = self._ohlc_ratio
-        open_col[dt_ixs] = (df.open.values * ohlc_ratio).astype(np.uint32)
-        high_col[dt_ixs] = (df.high.values * ohlc_ratio).astype(np.uint32)
-        low_col[dt_ixs] = (df.low.values * ohlc_ratio).astype(np.uint32)
-        close_col[dt_ixs] = (df.close.values * ohlc_ratio).astype(
+        open_col[dt_ixs] = (cols['open'] * ohlc_ratio).astype(np.uint32)
+        high_col[dt_ixs] = (cols['high'] * ohlc_ratio).astype(np.uint32)
+        low_col[dt_ixs] = (cols['low'] * ohlc_ratio).astype(np.uint32)
+        close_col[dt_ixs] = (cols['close'] * ohlc_ratio).astype(
             np.uint32)
-        vol_col[dt_ixs] = df.volume.values.astype(np.uint32)
+        vol_col[dt_ixs] = cols['volume'].astype(np.uint32)
 
         table.append([
             open_col,

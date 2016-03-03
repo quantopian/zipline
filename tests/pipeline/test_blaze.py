@@ -13,6 +13,7 @@ from datashape import dshape, var, Record
 from nose_parameterized import parameterized
 import numpy as np
 from numpy.testing.utils import assert_array_almost_equal
+from odo import odo
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
 from toolz import keymap, valmap, concatv
@@ -31,7 +32,11 @@ from zipline.pipeline.loaders.blaze.core import (
     NonPipelineField,
     no_deltas_rules,
 )
-from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.numpy_utils import (
+    float64_dtype,
+    int64_dtype,
+    repeat_last_axis,
+)
 from zipline.utils.test_utils import tmp_asset_finder, make_simple_equity_info
 
 
@@ -52,6 +57,19 @@ asset_infos = (
 with_extra_sid = parameterized.expand(asset_infos)
 
 
+def _utc_localize_index_level_0(df):
+    """``tz_localize`` the first level of a multiindexed dataframe to utc.
+
+    Mutates df in place.
+    """
+    idx = df.index
+    df.index = pd.MultiIndex.from_product(
+        (idx.levels[0].tz_localize('utc'), idx.levels[1]),
+        names=idx.names,
+    )
+    return df
+
+
 class BlazeToPipelineTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -60,7 +78,8 @@ class BlazeToPipelineTestCase(TestCase):
         cls.sids = sids = ord('A'), ord('B'), ord('C')
         cls.df = df = pd.DataFrame({
             'sid': sids * 3,
-            'value': (0, 1, 2, 1, 2, 3, 2, 3, 4),
+            'value': (0., 1., 2., 1., 2., 3., 2., 3., 4.),
+            'int_value': (0, 1, 2, 1, 2, 3, 2, 3, 4),
             'asof_date': dates,
             'timestamp': dates,
         })
@@ -68,6 +87,7 @@ class BlazeToPipelineTestCase(TestCase):
         var * {
             sid: ?int64,
             value: ?float64,
+            int_value: ?int64,
             asof_date: datetime,
             timestamp: datetime
         }
@@ -78,6 +98,7 @@ class BlazeToPipelineTestCase(TestCase):
         cls.macro_dshape = var * Record(dshape_)
 
         cls.garbage_loader = BlazeLoader()
+        cls.missing_values = {'int_value': 0}
 
     def test_tabular(self):
         name = 'expr'
@@ -86,15 +107,20 @@ class BlazeToPipelineTestCase(TestCase):
             expr,
             loader=self.garbage_loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         self.assertEqual(ds.__name__, name)
         self.assertTrue(issubclass(ds, DataSet))
-        self.assertEqual(
-            {c.name: c.dtype for c in ds.columns},
-            {'sid': np.int64, 'value': np.float64},
-        )
 
-        for field in ('timestamp', 'asof_date'):
+        self.assertIs(ds.value.dtype, float64_dtype)
+        self.assertIs(ds.int_value.dtype, int64_dtype)
+
+        self.assertTrue(np.isnan(ds.value.missing_value))
+        self.assertEqual(ds.int_value.missing_value, 0)
+
+        invalid_type_fields = ('asof_date',)
+
+        for field in invalid_type_fields:
             with self.assertRaises(AttributeError) as e:
                 getattr(ds, field)
             self.assertIn("'%s'" % field, str(e.exception))
@@ -106,6 +132,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ),
             ds,
         )
@@ -117,10 +144,11 @@ class BlazeToPipelineTestCase(TestCase):
             expr.value,
             loader=self.garbage_loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         self.assertEqual(value.name, 'value')
         self.assertIsInstance(value, BoundColumn)
-        self.assertEqual(value.dtype, np.float64)
+        self.assertIs(value.dtype, float64_dtype)
 
         # test memoization
         self.assertIs(
@@ -128,6 +156,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr.value,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ),
             value,
         )
@@ -136,6 +165,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ).value,
             value,
         )
@@ -146,6 +176,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=self.garbage_loader,
                 no_deltas_rule=no_deltas_rules.ignore,
+                missing_values=self.missing_values,
             ),
             value.dataset,
         )
@@ -182,7 +213,11 @@ class BlazeToPipelineTestCase(TestCase):
             )),
         )
         loader = BlazeLoader()
-        ds = from_blaze(expr.ds, loader=loader)
+        ds = from_blaze(
+            expr.ds,
+            loader=loader,
+            missing_values=self.missing_values,
+        )
         self.assertEqual(len(loader), 1)
         exprdata = loader[ds]
         self.assertTrue(exprdata.expr.isidentical(expr.ds))
@@ -197,6 +232,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr,
                 loader=loader,
                 no_deltas_rule=no_deltas_rules.warn,
+                missing_values=self.missing_values,
             )
         self.assertEqual(len(ws), 1)
         w = ws[0].message
@@ -268,6 +304,7 @@ class BlazeToPipelineTestCase(TestCase):
             expr_with_add,
             deltas=None,
             loader=self.garbage_loader,
+            missing_values=self.missing_values,
         )
 
         with self.assertRaises(TypeError):
@@ -275,6 +312,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr.value + 1,  # put an Add in the column
                 deltas=None,
                 loader=self.garbage_loader,
+                missing_values=self.missing_values,
             )
 
         deltas = bz.Data(
@@ -286,6 +324,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr_with_add,
                 deltas=deltas,
                 loader=self.garbage_loader,
+                missing_values=self.missing_values,
             )
 
         with self.assertRaises(TypeError):
@@ -293,6 +332,7 @@ class BlazeToPipelineTestCase(TestCase):
                 expr.value + 1,
                 deltas=deltas,
                 loader=self.garbage_loader,
+                missing_values=self.missing_values,
             )
 
     def _test_id(self, df, dshape, expected, finder, add):
@@ -302,6 +342,7 @@ class BlazeToPipelineTestCase(TestCase):
             expr,
             loader=loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         p = Pipeline()
         for a in add:
@@ -315,7 +356,11 @@ class BlazeToPipelineTestCase(TestCase):
                 finder,
             ).run_pipeline(p, dates[0], dates[-1])
 
-        assert_frame_equal(result, expected, check_dtype=False)
+        assert_frame_equal(
+            result,
+            _utc_localize_index_level_0(expected),
+            check_dtype=False,
+        )
 
     def test_custom_query_time_tz(self):
         df = self.df.copy()
@@ -330,9 +375,11 @@ class BlazeToPipelineTestCase(TestCase):
             expr,
             loader=loader,
             no_deltas_rule=no_deltas_rules.ignore,
+            missing_values=self.missing_values,
         )
         p = Pipeline()
         p.add(ds.value.latest, 'value')
+        p.add(ds.int_value.latest, 'int_value')
         dates = self.dates
 
         with tmp_asset_finder() as finder:
@@ -345,7 +392,7 @@ class BlazeToPipelineTestCase(TestCase):
         expected = df.drop('asof_date', axis=1)
         expected['timestamp'] = expected['timestamp'].dt.normalize().astype(
             'datetime64[ns]',
-        )
+        ).dt.tz_localize('utc')
         expected.ix[3:5, 'timestamp'] += timedelta(days=1)
         expected.set_index(['timestamp', 'sid'], inplace=True)
         expected.index = pd.MultiIndex.from_product((
@@ -388,7 +435,9 @@ class BlazeToPipelineTestCase(TestCase):
                 expected.index.levels[0],
                 finder.retrieve_all(expected.index.levels[1]),
             ))
-            self._test_id(self.df, self.dshape, expected, finder, ('value',))
+            self._test_id(
+                self.df, self.dshape, expected, finder, ('int_value', 'value',)
+            )
 
     def test_id_ffill_out_of_window(self):
         """
@@ -495,7 +544,7 @@ class BlazeToPipelineTestCase(TestCase):
                 var * Record(fields),
                 expected,
                 finder,
-                ('value', 'other'),
+                ('value', 'int_value', 'other'),
             )
 
     def test_id_macro_dataset(self):
@@ -615,41 +664,26 @@ class BlazeToPipelineTestCase(TestCase):
         df['other'] = df.value + 1
         fields = OrderedDict(self.macro_dshape.measure.fields)
         fields['other'] = fields['value']
-        expr = bz.Data(df, name='expr', dshape=var * Record(fields))
-        loader = BlazeLoader()
-        ds = from_blaze(
-            expr,
-            loader=loader,
-            no_deltas_rule=no_deltas_rules.ignore,
-        )
-        p = Pipeline()
-        p.add(ds.value.latest, 'value')
-        p.add(ds.other.latest, 'other')
-        dates = self.dates
 
         asset_info = asset_infos[0][0]
         with tmp_asset_finder(equities=asset_info) as finder:
-            result = SimplePipelineEngine(
-                loader,
-                dates,
+            expected = pd.DataFrame(
+                np.array([[0, 1],
+                          [1, 2],
+                          [2, 3]]).repeat(3, axis=0),
+                index=pd.MultiIndex.from_product((
+                    df.timestamp,
+                    finder.retrieve_all(asset_info.index),
+                )),
+                columns=('value', 'other'),
+            ).sort_index(axis=1)
+            self._test_id(
+                df,
+                var * Record(fields),
+                expected,
                 finder,
-            ).run_pipeline(p, dates[0], dates[-1])
-
-        expected = pd.DataFrame(
-            np.array([[0, 1],
-                      [1, 2],
-                      [2, 3]]).repeat(3, axis=0),
-            index=pd.MultiIndex.from_product((
-                df.timestamp,
-                finder.retrieve_all(asset_info.index),
-            )),
-            columns=('value', 'other'),
-        ).sort_index(axis=1)
-        assert_frame_equal(
-            result,
-            expected.sort_index(axis=1),
-            check_dtype=False,
-        )
+                ('value', 'other'),
+            )
 
     def test_id_take_last_in_group(self):
         T = pd.Timestamp
@@ -780,6 +814,7 @@ class BlazeToPipelineTestCase(TestCase):
             deltas,
             loader=loader,
             no_deltas_rule=no_deltas_rules.raise_,
+            missing_values=self.missing_values,
         )
         p = Pipeline()
 
@@ -804,18 +839,25 @@ class BlazeToPipelineTestCase(TestCase):
 
         assert_frame_equal(
             result,
-            expected_output,
+            _utc_localize_index_level_0(expected_output),
             check_dtype=False,
         )
 
     @with_extra_sid
     def test_deltas(self, asset_info):
         expr = bz.Data(self.df, name='expr', dshape=self.dshape)
-        deltas = bz.Data(self.df, name='deltas', dshape=self.dshape)
-        deltas = bz.transform(
-            deltas,
-            value=deltas.value + 10,
-            timestamp=deltas.timestamp + timedelta(days=1),
+        deltas = bz.Data(self.df, dshape=self.dshape)
+        deltas = bz.Data(
+            odo(
+                bz.transform(
+                    deltas,
+                    value=deltas.value + 10,
+                    timestamp=deltas.timestamp + timedelta(days=1),
+                ),
+                pd.DataFrame,
+            ),
+            name='delta',
+            dshape=self.dshape,
         )
 
         expected_views = keymap(pd.Timestamp, {
@@ -962,16 +1004,23 @@ class BlazeToPipelineTestCase(TestCase):
         repeated_dates = base_dates.repeat(3)
         baseline = pd.DataFrame({
             'sid': self.sids * 2,
-            'value': (0, 1, 2, 1, 2, 3),
+            'value': (0., 1., 2., 1., 2., 3.),
+            'int_value': (0, 1, 2, 1, 2, 3),
             'asof_date': repeated_dates,
             'timestamp': repeated_dates,
         })
         expr = bz.Data(baseline, name='expr', dshape=self.dshape)
-        deltas = bz.Data(baseline, name='deltas', dshape=self.dshape)
-        deltas = bz.transform(
-            deltas,
-            value=deltas.value + 10,
-            timestamp=deltas.timestamp + timedelta(days=1),
+        deltas = bz.Data(
+            odo(
+                bz.transform(
+                    expr,
+                    value=expr.value + 10,
+                    timestamp=expr.timestamp + timedelta(days=1),
+                ),
+                pd.DataFrame,
+            ),
+            name='delta',
+            dshape=self.dshape,
         )
         expected_views = keymap(pd.Timestamp, {
             '2014-01-03': np.array([[10.0, 11.0, 12.0],

@@ -32,14 +32,13 @@ Position Tracking
 """
 
 from __future__ import division
-from math import (
-    copysign,
-    floor,
-)
+from math import copysign
+import numpy as np
 
 from copy import copy
 
 import logbook
+import numpy as np
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL
@@ -75,7 +74,7 @@ class Position(object):
         """
         return {
             'payment_asset': stock_dividend.payment_asset,
-            'share_count': floor(
+            'share_count': np.floor(
                 self.amount * float(stock_dividend.ratio)
             )
         }
@@ -100,7 +99,7 @@ class Position(object):
         raw_share_count = self.amount / float(ratio)
 
         # e.g., 33
-        full_share_count = floor(raw_share_count)
+        full_share_count = np.floor(raw_share_count)
 
         # e.g., 0.333
         fractional_share_count = raw_share_count - full_share_count
