@@ -102,7 +102,7 @@ install:
   - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
 
   - conda info -a
-  - conda install conda-build
+  - conda install conda-build=1.19.2 --yes
   - ps: $NPY_VERSION_ARR=$env:NUMPY_VERSION -split '.', 0, 'simplematch'
   - ps: $env:NPY_VERSION_MAJ_MIN=$NPY_VERSION_ARR[0..1] -join ""
   - cmd: '%CMD_IN_ENV% conda build conda/bcolz -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
