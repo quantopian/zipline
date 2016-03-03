@@ -40,17 +40,17 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
         )
 
     @lazyval
-    def previous_value_loader(self):
+    def cash_amount_loader(self):
         return self._previous_event_value_loader(
-            self.dataset.previous_value,
+            self.dataset.cash_amount,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
             CASH_FIELD_NAME
         )
 
     @lazyval
-    def previous_announcement_date_loader(self):
+    def announcement_date_loader(self):
         return self._previous_event_date_loader(
-            self.dataset.previous_announcement_date,
+            self.dataset.announcement_date,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
         )
 
@@ -83,16 +83,16 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
         )
 
     @lazyval
-    def previous_share_count_loader(self):
+    def share_count_loader(self):
         return self._previous_event_value_loader(
-            self.dataset.previous_share_count,
+            self.dataset.share_count,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
             SHARE_COUNT_FIELD_NAME
         )
 
     @lazyval
-    def previous_announcement_date_loader(self):
+    def announcement_date_loader(self):
         return self._previous_event_date_loader(
-            self.dataset.previous_announcement_date,
+            self.dataset.announcement_date,
             BUYBACK_ANNOUNCEMENT_FIELD_NAME,
         )
