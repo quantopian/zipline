@@ -197,6 +197,7 @@ is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
 get__name__ = op.attrgetter('__name__')
 log = logbook.Logger('BlazeLoader')
 
+
 class ExprData(namedtuple('ExprData', 'expr deltas odo_kwargs')):
     """A pair of expressions and data resources. The expresions will be
     computed using the resources as the starting scope.
