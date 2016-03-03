@@ -129,6 +129,7 @@ from collections import namedtuple, defaultdict
 from copy import copy
 from functools import partial, reduce
 from itertools import count
+import logbook
 import warnings
 from weakref import WeakKeyDictionary
 
@@ -194,7 +195,7 @@ traversable_nodes = (
 )
 is_invalid_deltas_node = complement(flip(isinstance, valid_deltas_node_types))
 get__name__ = op.attrgetter('__name__')
-
+log = logbook.Logger('BlazeLoader')
 
 class ExprData(namedtuple('ExprData', 'expr deltas odo_kwargs')):
     """A pair of expressions and data resources. The expresions will be
@@ -765,8 +766,8 @@ def adjustments_from_deltas_with_sids(dense_dates,
                                       column_name,
                                       asset_idx,
                                       deltas):
-    """Collect all the adjustments that occur in a dataset that does not
-    have a sid column.
+    """Collect all the adjustments that occur in a dataset that has a sid
+    column.
 
     Parameters
     ----------
@@ -952,6 +953,17 @@ class BlazeLoader(dict):
                 columns=added_query_fields + list(map(getname, columns)),
             )
         )
+        if not materialized_deltas.empty and have_sids:
+            missing_sids = materialized_deltas[
+                ~materialized_deltas.sid.isin(assets)
+            ]
+            log.debug(
+                "Didn't find the following sids in asset index: {}".format(
+                    set(missing_sids.sid))
+            )
+            materialized_deltas = materialized_deltas[
+                materialized_deltas.sid.isin(assets)
+            ]
 
         if data_query_time is not None:
             for m in (materialized_expr, materialized_deltas):

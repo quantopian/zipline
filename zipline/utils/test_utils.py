@@ -12,7 +12,7 @@ import shutil
 from string import ascii_uppercase
 import tempfile
 
-from logbook import FileHandler
+from logbook import FileHandler, TestHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
 import numpy as np
@@ -881,3 +881,9 @@ def parameter_space(**params):
         param_sets = product(*(params[name] for name in argnames))
         return subtest(param_sets, *argnames)(f)
     return decorator
+
+
+def make_test_handler(testcase, *args, **kwargs):
+    handler = TestHandler(*args, **kwargs)
+    testcase.addCleanup(handler.close)
+    return handler
