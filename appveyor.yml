@@ -85,7 +85,10 @@ environment:
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
 platform:
-    - x64
+  - x64
+
+cache:
+  - '%LOCALAPPDATA%\pip\Cache'
 
 # all our python builds have to happen in tests_script...
 build: false
