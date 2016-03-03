@@ -4,13 +4,13 @@ matrix:
   fast_finish: true
   include:
   - python: 2.7
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 CACHE_DIR=$HOME/.cache/.pip/pip_np19
+    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
   - python: 2.7
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1 CACHE_DIR=$HOME/.cache/.pip/pip_np110
+    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1
   - python: 3.4
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 CACHE_DIR=$HOME/.cache/.pip/pip_np19
+    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
   - python: 3.4
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1 CACHE_DIR=$HOME/.cache/.pip/pip_np110
+    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1
 cache:
   directories:
     - $HOME/.cache/.pip/
@@ -28,6 +28,9 @@ install:
 
   - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=0.4.9
   - source activate testenv
+  - IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
+  - NPY_VERSION_MAJ_MIN=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
+  - CACHE_DIR="$HOME/.cache/.pip/pip_np""$NPY_VERSION_MAJ_MIN"
   - pip install --upgrade pip coverage coveralls --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_dev.txt --cache-dir=$CACHE_DIR
@@ -38,8 +41,7 @@ before_script:
 script:
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
-  - IFS='.' read -r -a conda_npy_version <<< "$NUMPY_VERSION"
-  - conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy="${conda_npy_version[0]}.${conda_npy_version[1]}"  # accepts only major.minor
+  - conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN
 
   - nosetests tests/
   - flake8 zipline tests
