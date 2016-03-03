@@ -36,12 +36,12 @@ class SlidingWindow(object):
        Index in the overall calendar at which the window starts.
     """
 
-    def __init__(self, window, cal_start, offset):
+    def __init__(self, window, size, cal_start, offset):
         self.window = window
         self.cal_start = cal_start
         self.current = around(next(window), 3)
         self.offset = offset
-        self.most_recent_ix = self.cal_start
+        self.most_recent_ix = self.cal_start + size
 
     def get(self, end_ix):
         """
@@ -209,7 +209,7 @@ class USEquityHistoryLoader(object):
         prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
         prefetch_end = cal[prefetch_end_ix]
 
-        days = cal[start_ix:prefetch_end_ix]
+        days = cal[start_ix:prefetch_end_ix + 1]
         array = self._daily_reader.load_raw_arrays(
             [col], days[0], prefetch_end, assets)[0]
         if self._adjustments_reader:
@@ -230,7 +230,7 @@ class USEquityHistoryLoader(object):
             0,
             size
         )
-        block = SlidingWindow(window, start_ix, offset)
+        block = SlidingWindow(window, size, start_ix, offset)
         self._daily_window_blocks[(assets_key, field, size)] = CachedObject(
             block, prefetch_end)
         return block
