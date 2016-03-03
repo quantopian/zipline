@@ -39,6 +39,10 @@ install:
 before_script:
   - pip freeze | sort
 script:
+  - conda build conda/bcolz -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NUMPY_VERSION
+  - conda build conda/cyordereddict -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NUMPY_VERSION
+  - conda build conda/logbook -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NUMPY_VERSION
+  - conda build conda/ta-lib -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NUMPY_VERSION
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
   - conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN

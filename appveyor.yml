@@ -103,7 +103,11 @@ install:
 
   - conda info -a
   - conda install conda-build
-  - cmd: '%CMD_IN_ENV% conda build conda\ta-lib -q'
+  - cmd: '%CMD_IN_ENV% conda build conda\bcolz -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
+  - cmd: '%CMD_IN_ENV% conda build conda\cyordereddict -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
+  - cmd: '%CMD_IN_ENV% conda build conda\logbook -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
+  - cmd: '%CMD_IN_ENV% conda build conda\ta-lib -q --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
+  - cmd: '%CMD_IN_ENV% conda build conda\zipline --python=%PYTHON_VERSION% --numpy=%NUMPY_VERSION%'
 
   - cmd: conda create -n testenv --yes --use-local pip numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9
   - cmd: activate testenv
