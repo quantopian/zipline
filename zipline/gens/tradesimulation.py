@@ -151,9 +151,18 @@ class AlgorithmSimulator(object):
             self.algo.performance_needs_update = True
 
         def once_a_day(midnight_dt):
+            # Get the positions before updating the date so that prices are
+            # fetched for trading close instead of midnight
+            positions = algo.portfolio.positions
+            position_assets = algo.asset_finder.retrieve_all(positions)
+
             # set all the timestamps
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
+
+            # we want to wait until the clock rolls over to the next day
+            # before cleaning up expired assets.
+            self._cleanup_expired_assets(midnight_dt, position_assets)
 
             # call before trading start
             algo.before_trading_start(current_data)
@@ -201,6 +210,41 @@ class AlgorithmSimulator(object):
 
         risk_message = algo.perf_tracker.handle_simulation_end()
         yield risk_message
+
+    def _cleanup_expired_assets(self, dt, position_assets):
+        """
+        Clear out any assets that have expired before starting a new sim day.
+
+        Performs two functions:
+
+        1. Finds all assets for which we have open orders and clears any
+           orders whose assets are on or after their auto_close_date.
+
+        2. Finds all assets for which we have positions and generates
+           close_position events for any assets that have reached their
+           auto_close_date.
+        """
+        algo = self.algo
+
+        def past_auto_close_date(asset):
+            acd = asset.auto_close_date
+            return acd is not None and acd <= dt
+
+        # Remove positions in any sids that have reached their auto_close date.
+        assets_to_clear = \
+            [asset for asset in position_assets if past_auto_close_date(asset)]
+        perf_tracker = algo.perf_tracker
+        for asset in assets_to_clear:
+            perf_tracker.process_close_position(asset, dt)
+
+        # Remove open orders for any sids that have reached their
+        # auto_close_date.
+        blotter = algo.blotter
+        assets_to_cancel = \
+            set([asset for asset in blotter.open_orders
+                 if past_auto_close_date(asset)])
+        for asset in assets_to_cancel:
+            blotter.cancel_all_orders_for_asset(asset)
 
     @staticmethod
     def _get_daily_message(dt, algo, perf_tracker):

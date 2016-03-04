@@ -648,6 +648,9 @@ class BcolzMinuteBarReader(object):
         The position of the given minute in the list of all trading minutes
         since market open on the first trading day.
         """
+
+        # This method will return an inaccurate value when the minute_dt is
+        # not a trading minute (midnight, for example)
         minute = minute_dt.asm8.astype('datetime64[m]')
         # TODO: Get better structure for this.
         mo_loc = np.searchsorted(self._minute_index, minute,

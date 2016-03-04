@@ -142,7 +142,7 @@ class BlotterTestCase(TestCase):
             [oid_1, oid_3],
         )
 
-        blotter.cancel_all(24)
+        blotter.cancel_all_orders_for_asset(24)
         self.assertEqual(len(blotter.open_orders), 1)
         self.assertEqual(list(blotter.open_orders), [25])
 

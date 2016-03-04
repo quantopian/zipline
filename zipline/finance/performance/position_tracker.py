@@ -18,6 +18,7 @@ from __future__ import division
 import logbook
 import numpy as np
 from collections import namedtuple
+from math import isnan
 from zipline.finance.performance.position import Position
 from zipline.finance.transaction import Transaction
 
@@ -311,18 +312,22 @@ class PositionTracker(object):
 
         return net_cash_payment
 
-    def maybe_create_close_position_transaction(self, event):
-        if not self.positions.get(event.sid):
+    def maybe_create_close_position_transaction(self, asset, dt):
+        if not self.positions.get(asset):
             return None
 
-        amount = self.positions.get(event.sid).amount
+        amount = self.positions.get(asset).amount
         price = self._data_portal.get_spot_value(
-            event.sid, 'close', event.dt, self.data_frequency)
+            asset, 'price', dt, self.data_frequency)
+
+        # Get the last traded price if price is no longer available
+        if isnan(price):
+            price = self.positions.get(asset).last_sale_price
 
         txn = Transaction(
-            sid=event.sid,
+            sid=asset,
             amount=(-1 * amount),
-            dt=event.dt,
+            dt=dt,
             price=price,
             commission=0,
             order_id=None,
@@ -370,10 +375,8 @@ class PositionTracker(object):
                 asset, 'price', dt, self.data_frequency
             )
 
-            if np.isnan(last_sale_price):
-                last_sale_price = 0
-
-            position.last_sale_price = last_sale_price
+            if not np.isnan(last_sale_price):
+                position.last_sale_price = last_sale_price
 
     def stats(self):
         amounts = []
