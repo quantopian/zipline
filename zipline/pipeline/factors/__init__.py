@@ -25,8 +25,8 @@ from .technical import (
 
 __all__ = [
     'BusinessDaysSinceCashBuybackAuth',
-    'BusinessDaysSincePreviousEarnings',
     'BusinessDaysUntilNextEarnings',
+    'BusinessDaysSincePreviousEarnings',
     'BusinessDaysSinceShareBuybackAuth',
     'CustomFactor',
     'AverageDollarVolume',
