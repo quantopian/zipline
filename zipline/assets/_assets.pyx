@@ -37,7 +37,7 @@ cimport numpy as np
 # IMPORTANT NOTE: You must change this template if you change
 # Asset.__reduce__, or else we'll attempt to unpickle an old version of this
 # class
-CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v5.cache'
+CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v6.cache'
 
 cdef class Asset:
 
