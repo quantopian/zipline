@@ -518,7 +518,7 @@ class BcolzDailyBarReader(DailyBarReader):
         if day >= asset.end_date:
             # go back to one day before the asset ended
             search_day = self._calendar[
-                self._calendar.get_loc(asset.end_date) - 1
+                self._calendar.searchsorted(asset.end_date) - 1
             ]
         else:
             search_day = day
