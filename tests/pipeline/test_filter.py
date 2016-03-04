@@ -345,10 +345,14 @@ class FilterTestCase(BasePipelineTestCase):
         data[diag] = nan
 
         results = self.run_graph(
-            TermGraph({'isnan': self.f.isnan()}),
+            TermGraph({
+                'isnan': self.f.isnan(),
+                'isnull': self.f.isnull(),
+            }),
             initial_workspace={self.f: data},
         )
         check_arrays(results['isnan'], diag)
+        check_arrays(results['isnull'], diag)
 
     def test_notnan(self):
         data = self.randn_data(seed=10)
@@ -356,10 +360,14 @@ class FilterTestCase(BasePipelineTestCase):
         data[diag] = nan
 
         results = self.run_graph(
-            TermGraph({'notnan': self.f.notnan()}),
+            TermGraph({
+                'notnan': self.f.notnan(),
+                'notnull': self.f.notnull(),
+            }),
             initial_workspace={self.f: data},
         )
         check_arrays(results['notnan'], ~diag)
+        check_arrays(results['notnull'], ~diag)
 
     def test_isfinite(self):
         data = self.randn_data(seed=10)

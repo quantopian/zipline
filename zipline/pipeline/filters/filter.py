@@ -13,6 +13,7 @@ from zipline.errors import (
     BadPercentileBounds,
     UnsupportedDataType,
 )
+from zipline.lib.rank import ismissing
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     PositiveWindowLengthMixin,
@@ -171,6 +172,27 @@ class NumExprFilter(NumericalExpression, Filter):
             assets,
             mask,
         ) & mask
+
+
+class NullFilter(SingleInputMixin, Filter):
+    """
+    A Filter indicating whether an input input values are missing.
+
+    Parameters
+    ----------
+    factor zipline.pipeline.factor.Factor
+        The factor to compare with null.
+    """
+    window_length = 0
+
+    def __new__(cls, factor):
+        return super(NullFilter, cls).__new__(
+            cls,
+            inputs=(factor,),
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        return ismissing(arrays[0], self.inputs[0].missing_value)
 
 
 class PercentileFilter(SingleInputMixin, Filter):
