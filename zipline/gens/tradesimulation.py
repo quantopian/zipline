@@ -153,7 +153,7 @@ class AlgorithmSimulator(object):
         def once_a_day(midnight_dt):
             # Get the positions before updating the date so that prices are
             # fetched for trading close instead of midnight
-            positions = algo.portfolio.positions
+            positions = algo.perf_tracker.position_tracker.positions
             position_assets = algo.asset_finder.retrieve_all(positions)
 
             # set all the timestamps
