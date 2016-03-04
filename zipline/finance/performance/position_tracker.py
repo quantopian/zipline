@@ -30,7 +30,6 @@ except ImportError:
 from six import iteritems, itervalues
 
 from zipline.utils.serialization_utils import VERSION_LABEL
-
 import zipline.protocol as zp
 from zipline.assets import (
     Equity, Future
@@ -313,22 +312,22 @@ class PositionTracker(object):
 
         return net_cash_payment
 
-    def maybe_create_close_position_transaction(self, event):
-        if not self.positions.get(event.sid):
+    def maybe_create_close_position_transaction(self, asset, dt):
+        if not self.positions.get(asset):
             return None
 
-        amount = self.positions.get(event.sid).amount
+        amount = self.positions.get(asset).amount
         price = self._data_portal.get_spot_value(
-            event.sid, 'price', event.dt, self.data_frequency)
+            asset, 'price', dt, self.data_frequency)
 
         # Get the last traded price if price is no longer available
         if isnan(price):
-            price = self.positions.get(event.sid).last_sale_price
+            price = self.positions.get(asset).last_sale_price
 
         txn = Transaction(
-            sid=event.sid,
+            sid=asset,
             amount=(-1 * amount),
-            dt=event.dt,
+            dt=dt,
             price=price,
             commission=0,
             order_id=None,

@@ -71,6 +71,7 @@ from zipline.finance.performance.period import PerformancePeriod
 import zipline.finance.risk as risk
 
 from zipline.utils.serialization_utils import VERSION_LABEL
+
 from . position_tracker import PositionTracker
 
 log = logbook.Logger('Performance')
@@ -278,9 +279,9 @@ class PerformanceTracker(object):
         self.cumulative_performance.handle_commission(cost)
         self.todays_performance.handle_commission(cost)
 
-    def process_close_position(self, event):
+    def process_close_position(self, asset, dt):
         txn = self.position_tracker.\
-            maybe_create_close_position_transaction(event)
+            maybe_create_close_position_transaction(asset, dt)
         if txn:
             self.process_transaction(txn)
 

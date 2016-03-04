@@ -136,12 +136,12 @@ class Blotter(object):
             # along with newly placed orders.
             self.new_orders.append(cur_order)
 
-    def cancel_all(self, sid):
+    def cancel_all_orders_for_asset(self, asset):
         """
-        Cancel all open orders for a given sid.
+        Cancel all open orders for a given asset.
         """
         # (sadly) open_orders is a defaultdict, so this will always succeed.
-        orders = self.open_orders[sid]
+        orders = self.open_orders[asset]
 
         # We're making a copy here because `cancel` mutates the list of open
         # orders in place.  The right thing to do here would be to make
@@ -151,7 +151,7 @@ class Blotter(object):
             self.cancel(order.id)
 
         assert not orders
-        del self.open_orders[sid]
+        del self.open_orders[asset]
 
     def reject(self, order_id, reason=''):
         """

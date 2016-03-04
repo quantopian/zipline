@@ -38,8 +38,13 @@ from zipline.utils.test_utils import (
     setup_logger,
     teardown_logger,
     FakeDataPortal,
-    make_trade_panel_for_asset_info,
+    make_trade_data_for_asset_info,
     parameter_space,
+    to_utc,
+    create_data_portal,
+    create_data_portal_from_trade_history,
+    make_jagged_equity_info,
+    DailyBarWriterFromDataFrames
 )
 import zipline.utils.factory as factory
 
@@ -90,12 +95,6 @@ from zipline.test_algorithms import (
 )
 from zipline.utils.context_tricks import CallbackManager
 import zipline.utils.events
-from zipline.utils.test_utils import (
-    make_jagged_equity_info,
-    tmp_asset_finder,
-    to_utc,
-)
-
 from zipline.sources import DataPanelSource
 
 from zipline.finance.execution import LimitOrder
@@ -107,13 +106,6 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.commission import PerShare
 from zipline.utils.tradingcalendar import trading_day, trading_days
-
-from zipline.utils.test_utils import (
-    create_data_portal,
-    create_data_portal_from_trade_history,
-    make_jagged_equity_info,
-    DailyBarWriterFromDataFrames
-)
 
 # Because test cases appear to reuse some resources.
 
@@ -2223,7 +2215,7 @@ class TestEquityAutoClose(TestCase):
             data_frequency=frequency,
             emission_rate=frequency,
             env=env,
-            capital_base=capital_base
+            capital_base=capital_base,
         )
 
         if frequency == 'daily':
@@ -2468,7 +2460,8 @@ class TestEquityAutoClose(TestCase):
     def test_cancel_open_orders(self):
         """
         Test that any open orders for an equity that gets delisted are
-        canceled.
+        canceled.  Unless an equity is auto closed, any open orders for that
+        equity will persist indefinitely.
         """
         auto_close_delta = trading_day
         resources = self.make_data(auto_close_delta, 'daily')
@@ -2552,11 +2545,14 @@ class TestEquityAutoClose(TestCase):
 
         order_size = 10
 
+        capital_base = 100000
         algo = TradingAlgorithm(
             initialize=self.default_initialize(),
             handle_data=self.default_handle_data(assets, order_size),
             env=env,
-            sim_params=resources.sim_params
+            sim_params=resources.sim_params,
+            data_frequency='minute',
+            capital_base=capital_base,
         )
 
         output = algo.run(resources.data_portal)
@@ -2568,7 +2564,7 @@ class TestEquityAutoClose(TestCase):
         fp0 = final_prices[0]
         fp1 = final_prices[1]
 
-        initial_cash = resources.sim_params.capital_base
+        initial_cash = capital_base
         after_fills = initial_cash - cost_basis
         after_first_auto_close = after_fills + fp0 * (order_size)
         after_second_auto_close = after_first_auto_close + fp1 * (order_size)
