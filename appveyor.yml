@@ -97,6 +97,8 @@ init:
   - "ECHO %PYTHON_VERSION% %PYTHON%"
 
 install:
+  # Get cygwin's git out of our PATH.  See https://github.com/omnia-md/conda-dev-recipes/pull/16/files#diff-180360612c6b8c4ed830919bbb4dd459
+  - "del C:\\cygwin\\bin\\git.exe"
   # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit),
   - powershell .\etc\install.ps1
   - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
