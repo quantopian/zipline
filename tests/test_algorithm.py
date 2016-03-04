@@ -56,7 +56,6 @@ from zipline.test_algorithms import (
     InvalidOrderAlgorithm,
     RecordAlgorithm,
     FutureFlipAlgo,
-    TestAlgorithm,
     TestOrderAlgorithm,
     TestOrderPercentAlgorithm,
     TestOrderStyleForwardingAlgorithm,
@@ -2048,6 +2047,7 @@ class TestTradingAlgorithm(TestCase):
         results = algo.run(data_portal)
         self.assertIs(results, self.perf_ref)
 
+
 @skip("fix in Q2")
 class TestRemoveData(TestCase):
     """
@@ -2100,8 +2100,6 @@ class TestRemoveData(TestCase):
 
     def test_remove_data(self):
         source = DataPanelSource(self.trade_data)
-
-        import pdb; pdb.set_trace()
 
         def initialize(context):
             context.data_lengths = []

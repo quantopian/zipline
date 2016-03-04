@@ -28,11 +28,7 @@ except ImportError:
     from collections import OrderedDict
 from six import iteritems, itervalues
 
-from zipline.finance.transaction import Transaction
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
-
+from zipline.utils.serialization_utils import VERSION_LABEL
 import zipline.protocol as zp
 from zipline.assets import (
     Equity, Future

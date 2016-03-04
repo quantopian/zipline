@@ -20,7 +20,6 @@ from os.path import join
 import json
 import os
 import pandas as pd
-from pandas.core.datetools import normalize_date
 
 from zipline.utils.memoize import remember_last
 

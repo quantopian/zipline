@@ -38,7 +38,6 @@ import numpy as np
 from copy import copy
 
 import logbook
-import numpy as np
 
 from zipline.utils.serialization_utils import (
     VERSION_LABEL

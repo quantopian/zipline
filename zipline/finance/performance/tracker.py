@@ -70,10 +70,7 @@ from zipline.finance.performance.period import PerformancePeriod
 
 import zipline.finance.risk as risk
 
-from zipline.utils.pandas_utils import sort_values
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
+from zipline.utils.serialization_utils import VERSION_LABEL
 from . position_tracker import PositionTracker
 
 log = logbook.Logger('Performance')

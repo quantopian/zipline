@@ -6,6 +6,7 @@ import sqlalchemy as sa
 # assets database
 ASSET_DB_VERSION = 2
 
+
 def generate_asset_db_metadata(bind=None):
     # NOTE: When modifying this schema, update the ASSET_DB_VERSION value
     metadata = sa.MetaData(bind=bind)
