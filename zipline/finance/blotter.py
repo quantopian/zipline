@@ -26,9 +26,7 @@ from zipline.finance.slippage import VolumeShareSlippage
 from zipline.finance.commission import PerShare
 from zipline.finance.cancel_policy import NeverCancel
 
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
+from zipline.utils.serialization_utils import VERSION_LABEL
 
 log = Logger('Blotter')
 warning_logger = Logger('AlgoWarning')
@@ -121,7 +119,7 @@ class Blotter(object):
 
         return order.id
 
-    def cancel(self, order_id):
+    def cancel(self, order_id, relay_status=True):
         if order_id not in self.orders:
             return
 
@@ -136,9 +134,11 @@ class Blotter(object):
                 self.new_orders.remove(cur_order)
             cur_order.cancel()
             cur_order.dt = self.current_dt
-            # we want this order's new status to be relayed out
-            # along with newly placed orders.
-            self.new_orders.append(cur_order)
+
+            if relay_status:
+                # we want this order's new status to be relayed out
+                # along with newly placed orders.
+                self.new_orders.append(cur_order)
 
     def cancel_all_orders_for_asset(self, asset):
         """
@@ -160,18 +160,20 @@ class Blotter(object):
     def execute_cancel_policy(self, event):
         if self.cancel_policy.should_cancel(event):
             warn = self.cancel_policy.warn_on_cancel
+
             for orders_by_sid in itervalues(self.open_orders):
                 for order in orders_by_sid:
-                    self.cancel(order.id)
+                    self.cancel(order.id, relay_status=False)
+
                     if warn:
                         warning_logger.warn(
                             'Your order for %s shares of %s has been '
                             'partially filled. %s shares were successfully '
                             'purchased. The remaining %s shares are being '
-                            'canceled based on the policy %s.' %
+                            'canceled based on the %s policy.' %
                             (order.amount, order.sid.symbol, order.filled,
                              order.amount - order.filled,
-                             self.cancel_policy.__class__.__name__)
+                             self.cancel_policy.__class__.__name__),
                         )
 
     def reject(self, order_id, reason=''):

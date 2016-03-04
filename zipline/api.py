@@ -17,12 +17,17 @@
 # methods (e.g. order). These are added to this namespace via the
 # decorator `api_methods` inside of algorithm.py.
 
-from .finance import (commission, slippage)
+from .finance import (commission, slippage, cancel_policy)
 from .utils import math_utils, events
 
 from zipline.finance.slippage import (
     FixedSlippage,
     VolumeShareSlippage,
+)
+
+from zipline.finance.cancel_policy import (
+    NeverCancel,
+    EODCancel
 )
 
 from zipline.utils.events import (
@@ -33,6 +38,9 @@ from zipline.utils.events import (
 __all__ = [
     'slippage',
     'commission',
+    'cancel_policy',
+    'NeverCancel',
+    'EODCancel',
     'events',
     'math_utils',
     'FixedSlippage',

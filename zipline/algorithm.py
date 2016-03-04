@@ -47,7 +47,7 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
-    CannotOrderDelistedAsset)
+    CannotOrderDelistedAsset, UnsupportedCancelPolicy, SetCancelPolicyPostInit)
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
@@ -70,7 +70,7 @@ from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
-from zipline.finance.cancel_policy import NeverCancel
+from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.assets import Asset, Equity, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
@@ -1045,6 +1045,12 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_cancel_policy(self, cancel_policy):
+        if not isinstance(cancel_policy, CancelPolicy):
+            raise UnsupportedCancelPolicy()
+
+        if self.initialized:
+            raise SetCancelPolicyPostInit()
+
         self.blotter.cancel_policy = cancel_policy
 
     @api_method

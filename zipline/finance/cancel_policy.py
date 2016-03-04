@@ -30,9 +30,7 @@ class CancelPolicy(with_metaclass(abc.ABCMeta)):
         pass
 
     def __getstate__(self):
-
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__)}
+        state_dict = {k: v for k, v in iteritems(self.__dict__)}
 
         STATE_VERSION = 1
         state_dict[VERSION_LABEL] = STATE_VERSION
@@ -40,7 +38,6 @@ class CancelPolicy(with_metaclass(abc.ABCMeta)):
         return state_dict
 
     def __setstate__(self, state):
-
         OLDEST_SUPPORTED_STATE = 1
         version = state.pop(VERSION_LABEL)
 
@@ -52,6 +49,10 @@ class CancelPolicy(with_metaclass(abc.ABCMeta)):
 
 
 class EODCancel(CancelPolicy):
+    """
+    This policy cancels open orders at the end of the day.  For now, Zipline
+    will only apply this policy to minutely simulations.
+    """
     def __init__(self, warn_on_cancel=True):
         self.warn_on_cancel = warn_on_cancel
 
@@ -60,6 +61,9 @@ class EODCancel(CancelPolicy):
 
 
 class NeverCancel(CancelPolicy):
+    """
+    Orders are never automatically canceled.
+    """
     def __init__(self):
         self.warn_on_cancel = False
 
