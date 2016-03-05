@@ -115,7 +115,6 @@ install:
 
   - cmd: conda create -n testenv --yes --use-local pip numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9
   - cmd: activate testenv
-  - cmd: pip install --upgrade pip coverage coveralls
   - cmd: pip install -r etc/requirements.txt
   - cmd: pip install -r etc/requirements_dev.txt
   # this uses git requirements right now
