@@ -302,8 +302,9 @@ class DailyBarWriterFromCSVs(BcolzDailyBarWriter):
             return array.astype(uint32)
         elif colname == 'day':
             nanos_per_second = (1000 * 1000 * 1000)
-            self.check_uint_safe(arrmax.view(int) / nanos_per_second, colname)
-            return (array.view(int) / nanos_per_second).astype(uint32)
+            self.check_uint_safe(arrmax.view(int64) / nanos_per_second,
+                                 colname)
+            return (array.view(int64) / nanos_per_second).astype(uint32)
 
     @staticmethod
     def check_uint_safe(value, colname):
