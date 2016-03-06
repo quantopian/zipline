@@ -30,7 +30,8 @@ cache:
 build: false
 
 init:
-  - "ECHO %PYTHON_VERSION% %PYTHON%"
+  - "ECHO %PYTHON_VERSION% %PYTHON_ARCH% %PYTHON%"
+  - "ECHO %NUMPY_VERSION%"
 
 install:
   # Get cygwin's git out of our PATH.  See https://github.com/omnia-md/conda-dev-recipes/pull/16/files#diff-180360612c6b8c4ed830919bbb4dd459
