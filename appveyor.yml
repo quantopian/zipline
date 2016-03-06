@@ -1,5 +1,5 @@
-matrix:
-  fast_finish: true
+#matrix:
+#  fast_finish: true
 
 environment:
   global:
@@ -9,14 +9,57 @@ environment:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\appveyor\\run_with_env.cmd"
 
   matrix:
-    - PYTHON: "C:\\Python34_64"
-      PYTHON_VERSION: "3.4"
+    - PYTHON: "C:\\Python27_64"
+      PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.16.1"
       NUMPY_VERSION: "1.9.2"
-      CONDA_PY: "34"
-      CONDA_NPY: "19"
       SCIPY_VERSION: "0.15.1"
+
+    - PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "32"
+      PANDAS_VERSION: "0.16.1"
+      NUMPY_VERSION: "1.9.2"
+      SCIPY_VERSION: "0.15.1"
+
+    - PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.16.1"
+      NUMPY_VERSION: "1.9.2"
+      SCIPY_VERSION: "0.15.1"
+
+    - PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "32"
+      PANDAS_VERSION: "0.16.1"
+      NUMPY_VERSION: "1.9.2"
+      SCIPY_VERSION: "0.15.1"
+
+    - PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.17.1"
+      NUMPY_VERSION: "1.10.4"
+      SCIPY_VERSION: "0.16.1"
+
+    - PYTHON: "C:\\Python27_64"
+      PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "32"
+      PANDAS_VERSION: "0.17.1"
+      NUMPY_VERSION: "1.10.4"
+      SCIPY_VERSION: "0.16.1"
+
+    - PYTHON: "C:\\Python34_64"
+      PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.17.1"
+      NUMPY_VERSION: "1.10.4"
+      SCIPY_VERSION: "0.16.1"
+
+    - PYTHON: "C:\\Python34_64"
+      PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "32"
+      PANDAS_VERSION: "0.17.1"
+      NUMPY_VERSION: "1.10.4"
+      SCIPY_VERSION: "0.16.1"
 
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
