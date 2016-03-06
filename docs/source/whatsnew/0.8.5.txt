@@ -16,8 +16,22 @@ None
 
 Enhancements
 ~~~~~~~~~~~~
+* Added new datasets 
+  :class:`~zipline.pipeline.data.buyback_auth.CashBuybackAuthorizations` 
+  and :class:`~zipline.pipeline.data.buyback_auth.ShareBuybackAuthorizations`
+  for use in the Pipeline API.  These datasets provide an abstract interface for
+  adding cash and share buyback authorizations data, respectively, to a new 
+  algorithm. pandas-based reference implementations for these datasets can be found in
+  :mod:`zipline.pipeline.loaders.buyback_auth`, and experimental blaze-based
+  implementations can be found in
+  :mod:`zipline.pipeline.loaders.blaze.buyback_auth`. (:issue:`1022`).
 
-None
+* Added new built-in factors,
+  :class:`zipline.pipeline.factors.BusinessDaysSinceCashBuybackAuth` and
+  :class:`zipline.pipeline.factors.BusinessDaysSinceShareBuybackAuth`.  These
+  factors use the new ``CashBuybackAuthorizations`` and 
+  ``ShareBuybackAuthorizations`` datasets, respectively. (:issue:`1022`).
+
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

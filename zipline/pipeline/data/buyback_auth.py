@@ -11,8 +11,8 @@ class CashBuybackAuthorizations(DataSet):
     Dataset representing dates of recently announced cash buyback
     authorizations.
     """
-    previous_value = Column(float64_dtype)
-    previous_announcement_date = Column(datetime64ns_dtype)
+    cash_amount = Column(float64_dtype)
+    announcement_date = Column(datetime64ns_dtype)
 
 
 class ShareBuybackAuthorizations(DataSet):
@@ -20,5 +20,5 @@ class ShareBuybackAuthorizations(DataSet):
     Dataset representing dates of recently announced share buyback
     authorizations.
     """
-    previous_share_count = Column(float64_dtype)
-    previous_announcement_date = Column(datetime64ns_dtype)
+    share_count = Column(float64_dtype)
+    announcement_date = Column(datetime64ns_dtype)

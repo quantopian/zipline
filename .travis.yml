@@ -24,7 +24,7 @@ before_install:
   - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==$SCIPY_VERSION/" etc/requirements.txt
 install:
-  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION ta-lib=0.4.9
+  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=0.4.9
   - source activate testenv
   - pip install --upgrade pip coverage coveralls --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements.txt --cache-dir=$CACHE_DIR

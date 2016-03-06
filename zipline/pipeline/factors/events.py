@@ -129,7 +129,7 @@ class BusinessDaysSincePreviousEarnings(BusinessDaysSincePreviousEvents):
     inputs = [EarningsCalendar.previous_announcement]
 
 
-class BusinessDaysSincePreviousCashBuybackAuth(
+class BusinessDaysSinceCashBuybackAuth(
     BusinessDaysSincePreviousEvents
 ):
     """
@@ -138,12 +138,12 @@ class BusinessDaysSincePreviousCashBuybackAuth(
 
     See Also
     --------
-    BusinessDaysSincePreviousCashBuybackAuth
+    zipline.pipeline.factors.BusinessDaysSinceCashBuybackAuth
     """
-    inputs = [CashBuybackAuthorizations.previous_announcement_date]
+    inputs = [CashBuybackAuthorizations.announcement_date]
 
 
-class BusinessDaysSincePreviousShareBuybackAuth(
+class BusinessDaysSinceShareBuybackAuth(
     BusinessDaysSincePreviousEvents
 ):
     """
@@ -153,6 +153,6 @@ class BusinessDaysSincePreviousShareBuybackAuth(
 
     See Also
     --------
-    BusinessDaysSincePreviousShareBuybackAuth
+    zipline.pipeline.factors.BusinessDaysSinceShareBuybackAuth
     """
-    inputs = [ShareBuybackAuthorizations.previous_announcement_date]
+    inputs = [ShareBuybackAuthorizations.announcement_date]

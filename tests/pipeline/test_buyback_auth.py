@@ -23,8 +23,8 @@ from zipline.pipeline.common import(
 from zipline.pipeline.data import (CashBuybackAuthorizations,
                                    ShareBuybackAuthorizations)
 from zipline.pipeline.factors.events import (
-    BusinessDaysSincePreviousCashBuybackAuth,
-    BusinessDaysSincePreviousShareBuybackAuth
+    BusinessDaysSinceCashBuybackAuth,
+    BusinessDaysSinceShareBuybackAuth
 )
 from zipline.pipeline.loaders.buyback_auth import \
     CashBuybackAuthorizationsLoader, ShareBuybackAuthorizationsLoader
@@ -88,11 +88,11 @@ class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
     """
     pipeline_columns = {
         PREVIOUS_BUYBACK_CASH:
-            CashBuybackAuthorizations.previous_value.latest,
+            CashBuybackAuthorizations.cash_amount.latest,
         PREVIOUS_BUYBACK_ANNOUNCEMENT:
-            CashBuybackAuthorizations.previous_announcement_date.latest,
+            CashBuybackAuthorizations.announcement_date.latest,
         DAYS_SINCE_PREV:
-            BusinessDaysSincePreviousCashBuybackAuth(),
+            BusinessDaysSinceCashBuybackAuth(),
     }
 
     @classmethod
@@ -150,11 +150,11 @@ class ShareBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
     """
     pipeline_columns = {
         PREVIOUS_BUYBACK_SHARE_COUNT:
-            ShareBuybackAuthorizations.previous_share_count.latest,
+            ShareBuybackAuthorizations.share_count.latest,
         PREVIOUS_BUYBACK_ANNOUNCEMENT:
-            ShareBuybackAuthorizations.previous_announcement_date.latest,
+            ShareBuybackAuthorizations.announcement_date.latest,
         DAYS_SINCE_PREV:
-            BusinessDaysSincePreviousShareBuybackAuth(),
+            BusinessDaysSinceShareBuybackAuth(),
     }
 
     @classmethod
