@@ -42,6 +42,9 @@ install:
 
   - conda info -a
   - conda install conda-build=1.19.2 --yes
+  # https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/ for 64bit C compilation
+  - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
+
   - ps: $NPY_VERSION_ARR=$env:NUMPY_VERSION -split '.', 0, 'simplematch'
   - ps: $env:NPY_VERSION_MAJ_MIN=$NPY_VERSION_ARR[0..1] -join ""
   - cmd: '%CMD_IN_ENV% conda build conda/bcolz -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
@@ -50,7 +53,7 @@ install:
   - cmd: '%CMD_IN_ENV% conda build conda/ta-lib -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
   - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
 
-  - cmd: conda create -n testenv --yes --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9
+  - cmd: conda create -n testenv --yes --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1
   - cmd: activate testenv
   - cmd: pip install -r etc/requirements.txt
   - cmd: pip install -r etc/requirements_dev.txt
