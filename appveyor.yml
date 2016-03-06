@@ -6,7 +6,7 @@ environment:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
     # /E:ON and /V:ON options are not enabled in the batch script intepreter
     # See: http://stackoverflow.com/a/13751649/163740
-    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\etc\\run_with_env.cmd"
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\appveyor\\run_with_env.cmd"
 
   matrix:
     - PYTHON: "C:\\Python34_64"
@@ -37,7 +37,7 @@ install:
   # Get cygwin's git out of our PATH.  See https://github.com/omnia-md/conda-dev-recipes/pull/16/files#diff-180360612c6b8c4ed830919bbb4dd459
   - "del C:\\cygwin\\bin\\git.exe"
   # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit),
-  - powershell .\etc\install.ps1
+  - powershell .\ci\appveyor\install.ps1
   - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
 
   - conda info -a
