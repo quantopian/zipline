@@ -155,7 +155,7 @@ class NumExprFilter(NumericalExpression, Filter):
         """
         Helper for creating new NumExprFactors.
 
-        This is just a wrapper around NumExprFactor.__new__ that always
+        This is just a wrapper around NumericalExpression.__new__ that always
         forwards `bool` as the dtype, since Filters can only be of boolean
         dtype.
         """
