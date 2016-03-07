@@ -2065,7 +2065,7 @@ class TestTradingAlgorithm(TestCase):
         self.assertIs(results, self.perf_ref)
 
 
-class TestOrderCancellation(TestCase):
+class TestOrderCancelation(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
@@ -2203,11 +2203,12 @@ class TestOrderCancellation(TestCase):
                 self.assertEqual(1, results.positions[0][0]["sid"].sid)
 
             # should be an order on day1, but no more orders afterwards
-            np.testing.assert_array_equal([1, 0, 0], map(len, results.orders))
+            np.testing.assert_array_equal([1, 0, 0],
+                                          list(map(len, results.orders)))
 
             # should be 389 txns on day 1, but no more afterwards
             np.testing.assert_array_equal([389, 0, 0],
-                                          map(len, results.transactions))
+                                          list(map(len, results.transactions)))
 
             the_order = results.orders[0][0]
 
@@ -2235,13 +2236,14 @@ class TestOrderCancellation(TestCase):
             results = algo.run(self.data_portal)
 
             # order stays open throughout simulation
-            np.testing.assert_array_equal([1, 1, 1], map(len, results.orders))
+            np.testing.assert_array_equal([1, 1, 1],
+                                          list(map(len, results.orders)))
 
             # one txn per minute.  389 the first day (since no order until the
             # end of the first minute).  390 on the second day.  221 on the
             # the last day, sum = 1000.
             np.testing.assert_array_equal([389, 390, 221],
-                                          map(len, results.transactions))
+                                          list(map(len, results.transactions)))
 
             self.assertFalse(log_catcher.has_warnings)
 
@@ -2257,11 +2259,12 @@ class TestOrderCancellation(TestCase):
             results = algo.run(self.data_portal)
 
             # order stays open throughout simulation
-            np.testing.assert_array_equal([1, 1, 1], map(len, results.orders))
+            np.testing.assert_array_equal([1, 1, 1],
+                                          list(map(len, results.orders)))
 
             # one txn per day
             np.testing.assert_array_equal([0, 1, 1],
-                                          map(len, results.transactions))
+                                          list(map(len, results.transactions)))
 
             self.assertFalse(log_catcher.has_warnings)
 
