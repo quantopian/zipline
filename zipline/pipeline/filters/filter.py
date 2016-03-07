@@ -176,12 +176,12 @@ class NumExprFilter(NumericalExpression, Filter):
 
 class NullFilter(SingleInputMixin, Filter):
     """
-    A Filter indicating whether an input input values are missing.
+    A Filter indicating whether input values are missing from an input.
 
     Parameters
     ----------
-    factor zipline.pipeline.factor.Factor
-        The factor to compare with null.
+    factor : zipline.pipeline.factor.Factor
+        The factor to compare against its missing_value.
     """
     window_length = 0
 
