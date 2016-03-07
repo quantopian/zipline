@@ -28,7 +28,8 @@ from zipline.errors import (
 from zipline.finance.trading import TradingEnvironment
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.utils import factory
-from zipline.utils.test_utils import create_data_portal, write_minute_data
+from zipline.utils.test_utils import create_data_portal, write_minute_data, \
+    create_empty_splits_mergers_frame
 from .test_perf_tracking import MockDailyBarSpotReader
 
 
@@ -64,16 +65,7 @@ class TestBenchmark(TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, cls.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([], dtype=np.uint32),
             'amount': np.array([], dtype=np.float64),

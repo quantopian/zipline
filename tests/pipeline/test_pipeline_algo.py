@@ -23,7 +23,6 @@ from pandas import (
     concat,
     DataFrame,
     date_range,
-    DatetimeIndex,
     read_csv,
     Series,
     Timestamp,
@@ -61,7 +60,8 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.utils.test_utils import (
     make_simple_equity_info,
     str_to_seconds,
-    DailyBarWriterFromDataFrames, FakeDataPortal)
+    DailyBarWriterFromDataFrames, FakeDataPortal,
+    create_empty_splits_mergers_frame)
 from zipline.utils.tradingcalendar import (
     trading_day,
     trading_days,
@@ -429,16 +429,7 @@ class PipelineAlgorithmTestCase(TestCase):
                 'sid': cls.AAPL,
             }
         ])
-        mergers = DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': array([], dtype=int),
-                'ratio': array([], dtype=float),
-                'sid': array([], dtype=int),
-            },
-            index=DatetimeIndex([]),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        mergers = create_empty_splits_mergers_frame()
         dividends = DataFrame({
             'sid': array([], dtype=uint32),
             'amount': array([], dtype=float64),

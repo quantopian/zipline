@@ -1145,22 +1145,12 @@ def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
     # create a split for the last day
     writer = SQLiteAdjustmentWriter(path, days, MockDailyBarReader())
     if splits is None:
-        splits = pd.DataFrame({
-            # Hackery to make the dtypes correct on an empty frame.
-            'effective_date': np.array([], dtype=int),
-            'ratio': np.array([], dtype=float),
-            'sid': np.array([], dtype=int),
-        }, index=pd.DatetimeIndex([], tz='UTC'))
+        splits = create_empty_splits_mergers_frame()
     else:
         splits = pd.DataFrame(splits)
 
     if mergers is None:
-        mergers = pd.DataFrame({
-            # Hackery to make the dtypes correct on an empty frame.
-            'effective_date': np.array([], dtype=int),
-            'ratio': np.array([], dtype=float),
-            'sid': np.array([], dtype=int),
-        }, index=pd.DatetimeIndex([], tz='UTC'))
+        mergers = create_empty_splits_mergers_frame()
     else:
         mergers = pd.DataFrame(mergers)
 
@@ -1335,3 +1325,16 @@ def parameter_space(**params):
         param_sets = product(*(params[name] for name in argnames))
         return subtest(param_sets, *argnames)(f)
     return decorator
+
+
+def create_empty_splits_mergers_frame():
+    return pd.DataFrame(
+        {
+            # Hackery to make the dtypes correct on an empty frame.
+            'effective_date': np.array([], dtype=int),
+            'ratio': np.array([], dtype=float),
+            'sid': np.array([], dtype=int),
+        },
+        index=pd.DatetimeIndex([]),
+        columns=['effective_date', 'ratio', 'sid'],
+    )

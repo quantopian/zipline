@@ -74,8 +74,7 @@ cdef class MinuteSimulationClock:
         for day in self.trading_days:
             yield day, DAY_START
 
-            minutes = pd.to_datetime(
-                self.minutes_by_day[day], utc=True, box=True)
+            minutes = self.minutes_by_day[day]
 
             for minute in minutes:
                 yield minute, BAR
