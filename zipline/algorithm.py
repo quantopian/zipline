@@ -514,7 +514,7 @@ class TradingAlgorithm(object):
                 for asset in self._assets_from_source:
                     if isinstance(asset, Equity):
                         equities.append(asset)
-                if self._equities:
+                if equities:
                     from zipline.data.us_equity_pricing import \
                         PanelDailyBarReader
                     equity_daily_reader = PanelDailyBarReader(

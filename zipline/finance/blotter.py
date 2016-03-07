@@ -250,8 +250,8 @@ class Blotter(object):
         closed_orders = []
         transactions = []
 
-        if len(self.open_orders) > 0:
-            assets = self.asset_finder.retrieve_all(self.open_orders.keys())
+        if self.open_orders:
+            assets = self.asset_finder.retrieve_all(self.open_orders)
             asset_dict = {asset.sid: asset for asset in assets}
 
             for sid, asset_orders in iteritems(self.open_orders):

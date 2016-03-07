@@ -54,11 +54,7 @@ def handle_data(algo, data):
     b = np.zeros(m)
 
     # find relative moving average price for each asset
-    # TODO: Use arrays.
-    mavgs = {}
-    for sid in algo.sids:
-        mavg = history(sid, algo.window_length, '1d', 'price').mean()
-        mavgs[sid] = mavg
+    mavgs = data.history(algo.sids, 'price', algo.window_length, '1d').mean()
     for i, sid in enumerate(algo.sids):
         price = data.current(sid, "price")
         # Relative mean deviation

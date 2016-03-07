@@ -27,7 +27,7 @@ cdef class BarData:
     cdef object data_portal
     cdef object simulation_dt_func
     cdef object data_frequency
-    cdef object _views
+    cdef dict _views
     cdef object _universe_func
     cdef object _last_calculated_universe
     cdef object _universe_last_updated_at
@@ -40,7 +40,7 @@ cdef class BarData:
     This is what is passed as `data` to the `handle_data` function.
     """
     def __init__(self, data_portal, simulation_dt_func, data_frequency,
-                 universe_func=None):
+                 universe_func):
         """
         Parameters
         ---------
@@ -54,6 +54,10 @@ cdef class BarData:
         data_frequency: string
             The frequency of the bar data; i.e. whether the data is
             'daily' or 'minute' bars
+
+        universe_func: function
+            Function which returns the current 'universe'.  This is for
+            backwards compatibility with older API concepts.
         """
         self.data_portal = data_portal
         self.simulation_dt_func = simulation_dt_func

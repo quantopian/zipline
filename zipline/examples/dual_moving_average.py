@@ -40,21 +40,21 @@ def handle_data(context, data):
     # Compute averages
     # history() has to be called with the same params
     # from above and returns a pandas dataframe.
-    short_mavg = history([context.sym], 100, '1d', 'price').mean()
-    long_mavg = history([context.sym], 300, '1d', 'price').mean()
+    short_mavg = data.history(context.sym, 'price', 100, '1d').mean()
+    long_mavg = data.history(context.sym, 'price', 300, '1d').mean()
 
     # Trading logic
-    if short_mavg[context.sym] > long_mavg[context.sym]:
+    if short_mavg > long_mavg:
         # order_target orders as many shares as needed to
         # achieve the desired number of shares.
         order_target(context.sym, 100)
-    elif short_mavg[context.sym] < long_mavg[context.sym]:
+    elif short_mavg < long_mavg:
         order_target(context.sym, 0)
 
     # Save values for later inspection
     record(AAPL=data.current(context.sym, "price"),
-           short_mavg=short_mavg[context.sym],
-           long_mavg=long_mavg[context.sym])
+           short_mavg=short_mavg,
+           long_mavg=long_mavg)
 
 
 # Note: this function can be removed if running
