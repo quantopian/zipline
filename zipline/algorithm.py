@@ -19,7 +19,6 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 import numpy as np
 
-from datetime import datetime
 from itertools import chain, repeat
 from numbers import Integral
 
@@ -973,11 +972,6 @@ class TradingAlgorithm(object):
         Any logic that should happen exactly once at the start of each datetime
         group should happen here.
         """
-        assert isinstance(dt, datetime), \
-            "Attempt to set algorithm's current time with non-datetime"
-        assert dt.tzinfo == pytz.utc, \
-            "Algorithm expects a utc datetime"
-
         self.datetime = dt
         self.perf_tracker.set_date(dt)
         self.blotter.set_date(dt)

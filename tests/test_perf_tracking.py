@@ -48,7 +48,8 @@ from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
-from zipline.utils.test_utils import create_data_portal_from_trade_history
+from zipline.utils.test_utils import create_data_portal_from_trade_history, \
+    create_empty_splits_mergers_frame
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -595,16 +596,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
             'amount': np.array([10.00], dtype=np.float64),
@@ -667,16 +659,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([], dtype=np.uint32),
             'amount': np.array([], dtype=np.float64),
@@ -747,16 +730,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
             'amount': np.array([10.00], dtype=np.float64),
@@ -814,16 +788,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
             'amount': np.array([10.00], dtype=np.float64),
@@ -881,16 +846,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
 
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -953,16 +909,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
             'amount': np.array([10.00], dtype=np.float64),
@@ -1020,16 +967,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
             'amount': np.array([10.00], dtype=np.float64),
@@ -1084,16 +1022,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
             'amount': np.array([10.00], dtype=np.float64),
@@ -1146,16 +1075,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
                                         MockDailyBarSpotReader())
-        splits = mergers = pd.DataFrame(
-            {
-                # Hackery to make the dtypes correct on an empty frame.
-                'effective_date': np.array([], dtype=int),
-                'ratio': np.array([], dtype=float),
-                'sid': np.array([], dtype=int),
-            },
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['effective_date', 'ratio', 'sid'],
-        )
+        splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
             'amount': np.array([10.00], dtype=np.float64),

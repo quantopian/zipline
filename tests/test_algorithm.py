@@ -17,6 +17,7 @@ import datetime
 from datetime import timedelta
 from mock import MagicMock
 from nose_parameterized import parameterized
+from six import iteritems, itervalues
 from six.moves import range
 from testfixtures import TempDirectory
 from textwrap import dedent
@@ -1343,15 +1344,17 @@ class TestGetDatetime(TestCase):
                 context.first_bar = True
 
             def handle_data(context, data):
+                dt = get_datetime({tz})
+                if dt.tz.zone != context.tz:
+                    raise ValueError("Mismatched Zone")
+
                 if context.first_bar:
-                    dt = get_datetime({tz})
-                    if dt.tz.zone != context.tz:
-                        raise ValueError("Mismatched Zone")
-                    elif dt.tz_convert("US/Eastern").hour != 9:
+                    if dt.tz_convert("US/Eastern").hour != 9:
                         raise ValueError("Mismatched Hour")
                     elif dt.tz_convert("US/Eastern").minute != 31:
                         raise ValueError("Mismatched Minute")
-                context.first_bar = False
+
+                    context.first_bar = False
             """.format(tz=repr(tz))
         )
 
@@ -2221,7 +2224,7 @@ class TestEquityAutoClose(TestCase):
         if frequency == 'daily':
             trade_data_by_sid = {
                 sid: df.set_index('day') for sid, df in
-                trade_data_by_sid.iteritems()
+                iteritems(trade_data_by_sid)
             }
             final_prices = {
                 asset.sid: trade_data_by_sid[asset.sid].
@@ -2260,7 +2263,7 @@ class TestEquityAutoClose(TestCase):
 
     def prices_on_tick(self, trades_by_sid, row):
         return [trades.iloc[row].close
-                for trades in trades_by_sid.itervalues()]
+                for trades in itervalues(trades_by_sid)]
 
     def default_initialize(self):
         """

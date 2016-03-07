@@ -26,6 +26,9 @@ logger = Logger('Requests Source Logger')
 
 
 def roll_dts_to_midnight(dts, env):
+    if len(dts) == 0:
+        return dts
+
     return pd.DatetimeIndex(
         (dts.tz_convert('US/Eastern') - pd.Timedelta(hours=16)).date,
         tz='UTC',

@@ -70,8 +70,8 @@ class TestBarDataBase(TestCase):
 
             # make sure all the different query forms are internally
             # consistent
-            self.assert_same(multi_asset_series[self.ASSET1], asset1_value)
-            self.assert_same(multi_asset_series[self.ASSET2], asset2_value)
+            self.assert_same(multi_asset_series.loc[self.ASSET1], asset1_value)
+            self.assert_same(multi_asset_series.loc[self.ASSET2], asset2_value)
 
             self.assert_same(df.loc[self.ASSET1][field], asset1_value)
             self.assert_same(df.loc[self.ASSET2][field], asset2_value)
