@@ -82,6 +82,9 @@ install:
   # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit),
   - powershell .\ci\appveyor\install.ps1
   - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
+  - sed -i "s/numpy==.*/numpy==%NUMPY_VERSION%/" etc/requirements.txt
+  - sed -i "s/pandas==.*/pandas==%PANDAS_VERSION%/" etc/requirements.txt
+  - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements.txt
 
   - conda info -a
   - conda install conda-build=1.19.2 --yes
