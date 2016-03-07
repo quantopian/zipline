@@ -308,6 +308,8 @@ class NYSEExchangeCalendar(ExchangeCalendar):
 
     def is_open_on_minute(self, dt):
         """
+        Is the exchange open (accepting orders) at @dt.
+
         Parameters
         ----------
         dt : Timestamp
@@ -326,7 +328,8 @@ class NYSEExchangeCalendar(ExchangeCalendar):
 
     def is_open_on_date(self, dt):
         """
-        Is the exchange open anytime during the calendar day containing @dt.
+        Is the exchange open (accepting orders) anytime during the calendar day
+        containing @dt.
 
         Parameters
         ----------
@@ -368,26 +371,26 @@ class NYSEExchangeCalendar(ExchangeCalendar):
         end_session += Timedelta(days=1)
         return self.schedule.loc[start_session:end_session]
 
-    def opens_and_closes(self, date):
+    def opens_and_closes(self, dt):
         """
-        Given a UTC-canonicalized date, returns a tuple of timestamps of the
-        open and close of the exchange session on that date.
+        Given a datetime, returns a tuple of timestamps of the
+        open and close of the exchange session containg the datetime.
 
-        SD: Can @date be an arbitrary datetime, or should we first map it to
-        and exchange session using session_date. Need to check what the
+        SD: Should we accept an arbitrary datetime, or should we first map it
+        to and exchange session using session_date. Need to check what the
         consumers expect. Here, I assume we need to map it to a session.
 
         Parameters
         ----------
-        date : Timestamp
-            The UTC-canonicalized session whose open and close are needed.
+        dt : Timestamp
+            A dt in a session whose open and close are needed.
 
         Returns
         -------
         (Timestamp, Timestamp)
-            The open and close for the given date.
+            The open and close for the given dt.
         """
-        session = self.session_date(date)
+        session = self.session_date(dt)
         o_and_c = self.schedule.loc[session]
         # `market_open` and `market_close` should be timezone aware, but pandas
         # 0.16.1 does not appear to support this:
@@ -397,7 +400,7 @@ class NYSEExchangeCalendar(ExchangeCalendar):
 
     def session_date(self, dt):
         """
-        Given a time, returns the UTC-canonicalized date of the exchange
+        Given a datetime, returns the UTC-canonicalized date of the exchange
         session in which the time belongs. If the time is not in an exchange
         session (while the market is closed), returns the date of the next
         exchange session after the time.
@@ -415,28 +418,28 @@ class NYSEExchangeCalendar(ExchangeCalendar):
         dt_utc = dt.astimezone(timezone('UTC'))
         return dt_utc.replace(hour=0, minute=0, second=0)
 
-    def minutes_for_date(self, date):
+    def minutes_for_date(self, dt):
         """
-        Given a UTC-canonicalized date, returns a DatetimeIndex of all trading
-        minutes in the exchange session for that date.
+        Given a datetime, returns a DatetimeIndex of all trading
+        minutes in the exchange session for that datetime.
 
-        SD: Sounds like @date can be an arbitrary datetime, and that we should
+        SD: Should @dt be an arbitrary datetime, so that we should
         first map to an exchange session by calling self.session_date. Need to
         check what the consumers expect. Here, I assume we need to map it to a
         session.
 
         Parameters
         ----------
-        date : Timestamp
-            The UTC-canonicalized date whose minutes are needed.
+        dt : Timestamp
+            The datetime whose exchange session minutes are needed.
 
         Returns
         -------
         DatetimeIndex
             A DatetimeIndex populated with all of the minutes in the
-            given date.
+            given dt.
         """
-        session = self.session_date(date)
+        session = self.session_date(dt)
         open, close = self.opens_and_closes(session)
         return date_range(open, close, freq='min', tz='UTC')
 
