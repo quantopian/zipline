@@ -34,7 +34,7 @@ from zipline.pipeline.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
 )
-from zipline.testing import check_arrays
+from zipline.testing import check_allclose
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 
@@ -91,7 +91,7 @@ class NumericalExpressionTestCase(TestCase):
             self.mask.columns,
             self.mask.values,
         )
-        check_arrays(result, expected)
+        check_allclose(result, expected)
 
     def check_constant_output(self, expr, expected):
         self.assertFalse(isnan(expected))

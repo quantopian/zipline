@@ -365,7 +365,7 @@ class AdjustedArrayTestCase(TestCase):
                 frame[0, 0] = 5.0
 
     def test_bad_input(self):
-        msg = "Mask shape \(2, 3\) != data shape \(5, 5\)"
+        msg = "Mask shape \(2L?, 3L?\) != data shape \(5L?, 5L?\)"
         data = arange(25).reshape(5, 5)
         bad_mask = array([[0, 1, 1], [0, 0, 1]], dtype=bool)
 
