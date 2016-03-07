@@ -102,12 +102,14 @@ install:
   - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
 
   - ps: $NPY_VERSION_ARR=$env:NUMPY_VERSION -split '.', 0, 'simplematch'
-  - ps: $env:NPY_VERSION_MAJ_MIN=$NPY_VERSION_ARR[0..1] -join ""
-  - cmd: '%CMD_IN_ENV% conda build conda/bcolz -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
-  - cmd: '%CMD_IN_ENV% conda build conda/cyordereddict -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
-  - cmd: '%CMD_IN_ENV% conda build conda/logbook -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
-  - cmd: '%CMD_IN_ENV% conda build conda/ta-lib -q --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
-  - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%PYTHON_VERSION% --numpy=%NPY_VERSION_MAJ_MIN%'
+  - ps: $env:CONDA_NPY=$NPY_VERSION_ARR[0..1] -join ""
+  - ps: $PY_VERSION_ARR=$env:PYTHON_VERSION -split '.', 0, 'simplematch'
+  - ps: $env:CONDA_PY=$PY_VERSION_ARR[0..1] -join ""
+  - cmd: '%CMD_IN_ENV% conda build conda/bcolz --python=%CONDA_PY% --numpy=%CONDA_NPY%'
+  - cmd: '%CMD_IN_ENV% conda build conda/cyordereddict --python=%CONDA_PY% --numpy=%CONDA_NPY%'
+  - cmd: '%CMD_IN_ENV% conda build conda/logbook --python=%CONDA_PY% --numpy=%CONDA_NPY%'
+  - cmd: '%CMD_IN_ENV% conda build conda/ta-lib --python=%CONDA_PY% --numpy=%CONDA_NPY%'
+  - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%CONDA_PY% --numpy=%CONDA_NPY%'
 
   - cmd: conda create -n testenv --yes --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1
   - cmd: activate testenv
