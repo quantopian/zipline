@@ -107,7 +107,7 @@ from zipline.gens.sim_engine import (
     DailySimulationClock,
 )
 from zipline.sources.benchmark_source import BenchmarkSource
-from zipline.zipline_deprecation_warning import ZiplineDeprecationWarning
+from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -455,7 +455,7 @@ class TradingAlgorithm(object):
     def _calculate_universe(self):
         # this exists to provide backwards compatibility for older,
         # deprecated APIs, particularly around the iterability of
-        # BarData (ie, 'for sid in data).
+        # BarData (ie, 'for sid in data`).
 
         # our universe is all the assets passed into `run`.
         return self._assets_from_source
@@ -507,9 +507,9 @@ class TradingAlgorithm(object):
                     copy_panel.items, copy_panel.major_axis[0],
                 )
                 self._assets_from_source = \
-                    self.trading_environment.asset_finder.retrieve_all(
+                    set(self.trading_environment.asset_finder.retrieve_all(
                         copy_panel.items
-                    )
+                    ))
                 equities = []
                 for asset in self._assets_from_source:
                     if isinstance(asset, Equity):

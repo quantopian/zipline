@@ -22,7 +22,7 @@ its shares once the averages cross again (indicating downwards
 momentum).
 """
 
-from zipline.api import order_target, record, symbol, history
+from zipline.api import order_target, record, symbol
 
 
 def initialize(context):

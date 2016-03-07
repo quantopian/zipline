@@ -21,7 +21,8 @@ import numpy as np
 from cpython cimport bool
 
 from zipline.assets import Asset
-from zipline.zipline_deprecation_warning import ZiplineDeprecationWarning
+import zipline
+from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 cdef class BarData:
     cdef object data_portal
@@ -40,7 +41,7 @@ cdef class BarData:
     This is what is passed as `data` to the `handle_data` function.
     """
     def __init__(self, data_portal, simulation_dt_func, data_frequency,
-                 universe_func):
+                 universe_func=None):
         """
         Parameters
         ---------
@@ -83,7 +84,7 @@ cdef class BarData:
         SidView: Accessor into the given asset's data.
         """
         try:
-            self._warn_user("`data[sid(N)]` is deprecated. Use "
+            self._warn_deprecated("`data[sid(N)]` is deprecated. Use "
                             "`data.current`.")
             view = self._views[asset]
         except KeyError:
@@ -420,42 +421,42 @@ cdef class BarData:
         return self._last_calculated_universe
 
     def __iter__(self):
-        self._warn_user("Iterating over the assets in `data` is "
+        self._warn_deprecated("Iterating over the assets in `data` is "
                         "deprecated.")
         for asset in self._calculate_universe():
             yield asset
 
     def __contains__(self, asset):
-        self._warn_user("Checking whether an asset is in data is "
+        self._warn_deprecated("Checking whether an asset is in data is "
                         "deprecated.")
         universe = self._calculate_universe()
         return asset in universe
 
     def iteritems(self):
-        self._warn_user("Iterating over the assets in `data` is "
+        self._warn_deprecated("Iterating over the assets in `data` is "
                         "deprecated.")
         for asset in self._calculate_universe():
             yield asset, self[asset]
 
     def __len__(self):
-        self._warn_user("Iterating over the assets in `data` is "
+        self._warn_deprecated("Iterating over the assets in `data` is "
                         "deprecated.")
 
         return len(self._calculate_universe())
 
     def keys(self):
-        self._warn_user("Iterating over the assets in `data` is "
+        self._warn_deprecated("Iterating over the assets in `data` is "
                         "deprecated.")
 
         return list(self._calculate_universe())
 
     def iterkeys(self):
-        iter(self.keys())
+        return iter(self.keys())
 
     def __getitem__(self, name):
         return self._get_equity_price_view(name)
 
-    cdef _warn_user(self, msg):
+    cdef _warn_deprecated(self, msg):
         warnings.warn(
             msg,
             category=ZiplineDeprecationWarning,
@@ -538,34 +539,34 @@ cdef class SidView:
             return self.simulation_dt_func()
 
     def mavg(self, num_minutes):
-        self._warn_user("The `mavg` method is deprecated.")
+        self._warn_deprecated("The `mavg` method is deprecated.")
         return self.data_portal.get_simple_transform(
             self.asset, "mavg", self.simulation_dt_func(),
             self.data_frequency, bars=num_minutes
         )
 
     def stddev(self, num_minutes):
-        self._warn_user("The `stddev` method is deprecated.")
+        self._warn_deprecated("The `stddev` method is deprecated.")
         return self.data_portal.get_simple_transform(
             self.asset, "stddev", self.simulation_dt_func(),
             self.data_frequency, bars=num_minutes
         )
 
     def vwap(self, num_minutes):
-        self._warn_user("The `vwap` method is deprecated.")
+        self._warn_deprecated("The `vwap` method is deprecated.")
         return self.data_portal.get_simple_transform(
             self.asset, "vwap", self.simulation_dt_func(),
             self.data_frequency, bars=num_minutes
         )
 
     def returns(self):
-        self._warn_user("The `returns` method is deprecated.")
+        self._warn_deprecated("The `returns` method is deprecated.")
         return self.data_portal.get_simple_transform(
             self.asset, "returns", self.simulation_dt_func(),
             self.data_frequency
         )
 
-    cdef _warn_user(self, msg):
+    cdef _warn_deprecated(self, msg):
         warnings.warn(
             msg,
             category=ZiplineDeprecationWarning,

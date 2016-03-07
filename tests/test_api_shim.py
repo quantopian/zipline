@@ -11,7 +11,7 @@ from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
 from zipline.utils.test_utils import write_minute_data_for_asset, \
     create_daily_df_for_asset, DailyBarWriterFromDataFrames
-from zipline.zipline_deprecation_warning import ZiplineDeprecationWarning
+from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 simple_algo = """
 from zipline.api import sid, order

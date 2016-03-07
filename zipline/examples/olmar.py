@@ -5,7 +5,6 @@ from datetime import datetime
 import pytz
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.api import history
 from zipline.utils.factory import load_from_yahoo
 from zipline.finance import commission
 
