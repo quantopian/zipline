@@ -912,7 +912,7 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
         length = len(minutes)
         assets = {}
 
-        for sidint, trades in trades_by_sid.iteritems():
+        for sidint, trades in iteritems(trades_by_sid):
             opens = np.zeros(length)
             highs = np.zeros(length)
             lows = np.zeros(length)

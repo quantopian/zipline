@@ -17,6 +17,7 @@ import datetime
 from datetime import timedelta
 from mock import MagicMock
 from nose_parameterized import parameterized
+from six import iteritems, itervalues
 from six.moves import range
 from testfixtures import TempDirectory
 from textwrap import dedent
@@ -2221,7 +2222,7 @@ class TestEquityAutoClose(TestCase):
         if frequency == 'daily':
             trade_data_by_sid = {
                 sid: df.set_index('day') for sid, df in
-                trade_data_by_sid.iteritems()
+                iteritems(trade_data_by_sid)
             }
             final_prices = {
                 asset.sid: trade_data_by_sid[asset.sid].
@@ -2260,7 +2261,7 @@ class TestEquityAutoClose(TestCase):
 
     def prices_on_tick(self, trades_by_sid, row):
         return [trades.iloc[row].close
-                for trades in trades_by_sid.itervalues()]
+                for trades in itervalues(trades_by_sid)]
 
     def default_initialize(self):
         """
