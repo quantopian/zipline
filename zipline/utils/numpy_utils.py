@@ -1,6 +1,7 @@
 """
 Utilities for working with numpy arrays.
 """
+from datetime import datetime
 from numpy import (
     broadcast,
     busday_count,
@@ -48,6 +49,42 @@ _FILLVALUE_DEFAULTS = {
 
 class NoDefaultMissingValue(Exception):
     pass
+
+
+def make_kind_check(python_types, numpy_kind):
+    """
+    Make a function that checks whether a scalar or array is of a given kind
+    (e.g. float, int, datetime, timedelta).
+    """
+    def check(value):
+        if hasattr(value, 'dtype'):
+            return value.dtype.kind == numpy_kind
+        return isinstance(value, python_types)
+    return check
+
+
+is_float = make_kind_check(float, 'f')
+is_int = make_kind_check(int, 'i')
+is_datetime = make_kind_check(datetime, 'M')
+
+
+def coerce_to_dtype(dtype, value):
+    """
+    Make a value with the specified numpy dtype.
+
+    Only datetime64[ns] and datetime64[D] are supported for datetime dtypes.
+    """
+    name = dtype.name
+    if name.startswith('datetime64'):
+        if name == 'datetime64[D]':
+            return make_datetime64D(value)
+        elif name == 'datetime64[ns]':
+            return make_datetime64ns(value)
+        else:
+            raise TypeError(
+                "Don't know how to coerce values of dtype %s" % dtype
+            )
+    return dtype.type(value)
 
 
 def default_missing_value_for_dtype(dtype):
