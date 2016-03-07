@@ -1344,15 +1344,17 @@ class TestGetDatetime(TestCase):
                 context.first_bar = True
 
             def handle_data(context, data):
+                dt = get_datetime({tz})
+                if dt.tz.zone != context.tz:
+                    raise ValueError("Mismatched Zone")
+
                 if context.first_bar:
-                    dt = get_datetime({tz})
-                    if dt.tz.zone != context.tz:
-                        raise ValueError("Mismatched Zone")
-                    elif dt.tz_convert("US/Eastern").hour != 9:
+                    if dt.tz_convert("US/Eastern").hour != 9:
                         raise ValueError("Mismatched Hour")
                     elif dt.tz_convert("US/Eastern").minute != 31:
                         raise ValueError("Mismatched Minute")
-                context.first_bar = False
+
+                    context.first_bar = False
             """.format(tz=repr(tz))
         )
 
