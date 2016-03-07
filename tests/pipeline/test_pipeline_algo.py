@@ -344,10 +344,10 @@ class PipelineAlgorithmTestCase(TestCase):
         cls.tempdir = tempdir = TempDirectory()
         tempdir.create()
         try:
-            cls.raw_data, cls.bar_reader = cls.create_bar_reader(tempdir)
-            cls.adj_reader = cls.create_adjustment_reader(tempdir)
+            cls.raw_data, bar_reader = cls.create_bar_reader(tempdir)
+            adj_reader = cls.create_adjustment_reader(tempdir)
             cls.pipeline_loader = USEquityPricingLoader(
-                cls.bar_reader, cls.adj_reader
+                bar_reader, adj_reader
             )
         except:
             cls.tempdir.cleanup()
@@ -358,6 +358,7 @@ class PipelineAlgorithmTestCase(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.pipeline_loader
         del cls.env
         cls.tempdir.cleanup()
 
