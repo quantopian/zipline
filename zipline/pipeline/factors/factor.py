@@ -5,20 +5,27 @@ from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
-from numpy import inf
+from numpy import inf, where, nanstd
 from toolz import curry
 
 from zipline.errors import (
     UnknownRankMethod,
     UnsupportedDataType,
 )
+from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d
+from zipline.pipeline.classifiers import Classifier, Everything
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     PositiveWindowLengthMixin,
     SingleInputMixin,
 )
-from zipline.pipeline.term import ComputableTerm, NotSpecified, Term
+from zipline.pipeline.term import (
+    ComputableTerm,
+    NotSpecified,
+    NotSpecifiedType,
+    Term,
+)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -31,11 +38,13 @@ from zipline.pipeline.expression import (
     unary_op_name,
 )
 from zipline.pipeline.filters import (
+    Filter,
     NumExprFilter,
     PercentileFilter,
     NullFilter,
 )
-from zipline.utils.control_flow import nullctx
+from zipline.utils.input_validation import expect_types
+from zipline.utils.math_utils import nanmean
 from zipline.utils.numpy_utils import (
     bool_dtype,
     coerce_to_dtype,
@@ -43,6 +52,7 @@ from zipline.utils.numpy_utils import (
     float64_dtype,
     int64_dtype,
 )
+from zipline.utils.preprocess import preprocess
 
 
 _RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
@@ -319,26 +329,67 @@ def function_application(func):
     return mathfunc
 
 
-def if_not_float64_tell_caller_to_use_isnull(f):
+def restrict_to_dtype(dtype, message_template):
     """
-    Factor method decorator that checks if self.dtype if float64.
+    A factory for decorators that restricting Factor methods to only be
+    callable on Factors with a specific dtype.
 
-    If the factor instance is of another dtype, this raises a TypeError
-    directing the user to `isnull` or `notnull` instead.
+    This is conceptually similar to
+    zipline.utils.input_validation.expect_dtypes, but provides more flexibility
+    for providing error messages that are specifically targeting Factor
+    methods.
+
+    Parameters
+    ----------
+    dtype : numpy.dtype
+        The dtype on which the decorated method may be called.
+    message_template : str
+        A template for the error message to be raised.
+        `message_template.format` will be called with keyword arguments
+        `method_name`, `expected_dtype`, and `received_dtype`.
+
+    Usage
+    -----
+    @restrict_to_dtype(
+        dtype=float64_dtype,
+        message_template=(
+            "{method_name}() was called on a factor of dtype {received_dtype}."
+            "{method_name}() requires factors of dtype{expected_dtype}."
+
+        ),
+    )
+    def some_factor_method(self, ...):
+        self.stuff_that_requires_being_float64(...)
     """
-    @wraps(f)
-    def wrapped_method(self):
-        if self.dtype != float64_dtype:
+    def processor(factor_method, _, factor_instance):
+        factor_dtype = factor_instance.dtype
+        if factor_dtype != dtype:
             raise TypeError(
-                "{meth}() was called on a factor of dtype {dtype}.\n"
-                "{meth}() is only defined for dtype float64."
-                "To filter missing data, use isnull() or notnull().".format(
-                    meth=f.__name__,
-                    dtype=self.dtype,
-                ),
+                message_template.format(
+                    method_name=factor_method.__name__,
+                    expected_dtype=dtype.name,
+                    received_dtype=factor_dtype,
+                )
             )
-        return f(self)
-    return wrapped_method
+        return factor_instance
+    return preprocess(self=processor)
+
+if_not_float64_tell_caller_to_use_isnull = restrict_to_dtype(
+    dtype=float64_dtype,
+    message_template=(
+        "{method_name}() was called on a factor of dtype {received_dtype}.\n"
+        "{method_name}() is only defined for dtype {expected_dtype}."
+        "To filter missing data, use isnull() or notnull()."
+    )
+)
+
+float64_only = restrict_to_dtype(
+    dtype=float64_dtype,
+    message_template=(
+        "{method_name}() is only defined on Factors of dtype {expected_dtype},"
+        " but it was called on a Factor of dtype {received_dtype}."
+    )
+)
 
 
 FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
@@ -395,6 +446,190 @@ class Factor(ComputableTerm):
             )
         return retval
 
+    @expect_types(
+        mask=(Filter, NotSpecifiedType),
+        groupby=(Classifier, NotSpecifiedType),
+    )
+    @float64_only
+    def demean(self, mask=NotSpecified, groupby=NotSpecified):
+        """
+        Construct a Factor that computes ``self`` and subtracts the mean from
+        row of the result.
+
+        If ``mask`` is supplied, ignore values where ``mask`` returns False
+        when computing row means, and output NaN anywhere the mask is False.
+
+        If ``groupby`` is supplied, compute by partitioning each row based on
+        the values produced by ``groupby``, de-meaning the partitioned arrays,
+        and stitching the sub-results back together.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            A Filter defining values to ignore when computing means.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to compute means.
+
+        Example
+        -------
+        Let ``f`` be a Factor which would produce the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    1.0    2.0    3.0    4.0
+            2017-03-14    1.5    2.5    3.5    1.0
+            2017-03-15    2.0    3.0    4.0    1.5
+            2017-03-16    2.5    3.5    1.0    2.0
+
+        Let ``c`` be a Classifier producing the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13      1      1      2      2
+            2017-03-14      1      1      2      2
+            2017-03-15      1      1      2      2
+            2017-03-16      1      1      2      2
+
+        Let ``m`` be a Filter producing the following output::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13  False   True   True   True
+            2017-03-14   True  False   True   True
+            2017-03-15   True   True  False   True
+            2017-03-16   True   True   True  False
+
+        Then ``f.demean()`` will subtract the mean from each row produced by
+        ``f``.
+
+        ::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13 -1.500 -0.500  0.500  1.500
+            2017-03-14 -0.625  0.375  1.375 -1.125
+            2017-03-15 -0.625  0.375  1.375 -1.125
+            2017-03-16  0.250  1.250 -1.250 -0.250
+
+        ``f.demean(mask=m)`` will subtract the mean from each row, but means
+        will be calculated ignoring values on the diagonal, and NaNs will
+        written to the diagonal in the output. Diagonal values are ignored
+        because they are the locations where the mask ``m`` produced False.
+
+        ::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    NaN -1.000  0.000  1.000
+            2017-03-14 -0.500    NaN  1.500 -1.000
+            2017-03-15 -0.166  0.833    NaN -0.666
+            2017-03-16  0.166  1.166 -1.333    NaN
+
+        ``f.demean(groupby=c)`` will subtract the group-mean of AAPL/MSFT and
+        MCD/BK from their respective entries.  The AAPL/MSFT are grouped
+        together because both assets always produce 1 in the output of the
+        classifier ``c``.  Similarly, MCD/BK are grouped together because they
+        always produce 2.
+
+        ::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13 -0.500  0.500 -0.500  0.500
+            2017-03-14 -0.500  0.500  1.250 -1.250
+            2017-03-15 -0.500  0.500  1.250 -1.250
+            2017-03-16 -0.500  0.500 -0.500  0.500
+
+        ``f.demean(mask=m, groupby=c)`` will also subtract the group-mean of
+        AAPL/MSFT and MCD/BK, but means will be calculated ignoring values on
+        the diagonal , and NaNs will be written to the diagonal in the output.
+
+        ::
+
+                         AAPL   MSFT    MCD     BK
+            2017-03-13    NaN  0.000 -0.500  0.500
+            2017-03-14  0.000    NaN  1.250 -1.250
+            2017-03-15 -0.500  0.500    NaN  0.000
+            2017-03-16 -0.500  0.500  0.000    NaN
+
+        Notes
+        -----
+        Mean is sensitive to the magnitudes of outliers. When working with
+        factor that can potentially produce large outliers, it is often useful
+        to use the ``mask`` parameter to discard values at the extremes of the
+        distribution::
+
+            >>> base = MyFactor(...)
+            >>> normalized = base.demean(mask=base.percentile_between(1, 99))
+
+        ``demean()`` is only supported on Factors of dtype float64.
+
+        See Also
+        --------
+        :meth:`pandas.DataFrame.groupby`
+        """
+        return GroupedRowTransform(
+            transform=lambda row: row - nanmean(row),
+            factor=self,
+            mask=mask,
+            groupby=groupby,
+        )
+
+    @expect_types(
+        mask=(Filter, NotSpecifiedType),
+        groupby=(Classifier, NotSpecifiedType),
+    )
+    @float64_only
+    def zscore(self, mask=NotSpecified, groupby=NotSpecified):
+        """
+        Construct a Factor that Z-Scores each day's results.
+
+        The Z-Score of a row is defined as::
+
+            (row - row.mean()) / row.stddev()
+
+        If ``mask`` is supplied, ignore values where ``mask`` returns False
+        when computing row means and standard deviations, and output NaN
+        anywhere the mask is False.
+
+        If ``groupby`` is supplied, compute by partitioning each row based on
+        the values produced by ``groupby``, z-scoring the partitioned arrays,
+        and stitching the sub-results back together.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            A Filter defining values to ignore when Z-Scoring.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to compute Z-Scores.
+
+        Returns
+        -------
+        zscored : zipline.pipeline.Factor
+            A Factor producing that z-scores the output of self.
+
+        Notes
+        -----
+        Mean and standard deviation are sensitive to the magnitudes of
+        outliers. When working with factor that can potentially produce large
+        outliers, it is often useful to use the ``mask`` parameter to discard
+        values at the extremes of the distribution::
+
+            >>> base = MyFactor(...)
+            >>> normalized = base.zscore(mask=base.percentile_between(1, 99))
+
+        ``zscore()`` is only supported on Factors of dtype float64.
+
+        Example
+        -------
+        See :meth:`~zipline.pipeline.factors.Factor.demean` for an in-depth
+        example of the semantics for ``mask`` and ``groupby``.
+
+        See Also
+        --------
+        :meth:`pandas.DataFrame.groupby`
+        """
+        return GroupedRowTransform(
+            transform=lambda row: (row - nanmean(row)) / nanstd(row),
+            factor=self,
+            mask=mask,
+            groupby=groupby,
+        )
+
     def rank(self, method='ordinal', ascending=True, mask=NotSpecified):
         """
         Construct a new Factor representing the sorted rank of each column
@@ -431,9 +666,8 @@ class Factor(ComputableTerm):
 
         See Also
         --------
-        scipy.stats.rankdata
-        zipline.lib.rank.masked_rankdata_2d
-        zipline.pipeline.factors.factor.Rank
+        :func:`scipy.stats.rankdata`
+        :class:`zipline.pipeline.factors.factor.Rank`
         """
         return Rank(self, method=method, ascending=ascending, mask=mask)
 
@@ -592,6 +826,90 @@ class NumExprFactor(NumericalExpression, Factor):
     pass
 
 
+class GroupedRowTransform(Factor):
+    """
+    A Factor that transforms an input factor by applying a row-wise
+    shape-preserving transformation on classifier-defined groups of that
+    Factor.
+
+    This is most often useful for normalization operators like ``zscore`` or
+    ``demean``.
+
+    Parameters
+    ----------
+    transform : function[ndarray[ndim=1] -> ndarray[ndim=1]]
+        Function to apply over each row group.
+    factor : zipline.pipeline.Factor
+        The factor providing baseline data to transform.
+    mask : zipline.pipeline.Filter
+        Mask of entries to ignore when calculating transforms.
+    groupby : zipline.pipeline.Classifier
+        Classifier partitioning ``factor`` into groups to use when calculating
+        means.
+
+    Notes
+    -----
+    Users should rarely construct instances of this factor directly.  Instead,
+    they should construct instances via factor normalization methods like
+    ``zscore`` and ``demean``.
+
+    See Also
+    --------
+    zipline.pipeline.factors.Factor.zscore
+    zipline.pipeline.factors.Factor.demean
+    """
+    window_length = 0
+
+    def __new__(cls, transform, factor, mask, groupby):
+
+        if mask is NotSpecified:
+            mask = factor.mask
+        else:
+            mask = mask & factor.mask
+
+        if groupby is NotSpecified:
+            groupby = Everything(mask=mask)
+
+        return super(GroupedRowTransform, cls).__new__(
+            GroupedRowTransform,
+            transform=transform,
+            inputs=(factor, groupby),
+            missing_value=factor.missing_value,
+            mask=mask,
+            dtype=factor.dtype,
+        )
+
+    def _init(self, transform, *args, **kwargs):
+        self._transform = transform
+        return super(GroupedRowTransform, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, transform, *args, **kwargs):
+        return (
+            super(GroupedRowTransform, cls).static_identity(*args, **kwargs),
+            transform,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        data = arrays[0]
+        null_group_value = self.inputs[1].missing_value
+        group_labels = where(
+            mask,
+            arrays[1],
+            null_group_value,
+        )
+
+        return where(
+            group_labels != null_group_value,
+            naive_grouped_rowwise_apply(
+                data=data,
+                group_labels=group_labels,
+                func=self._transform,
+            ),
+            self.missing_value,
+        )
+
+
 class Rank(SingleInputMixin, Factor):
     """
     A Factor representing the row-wise rank data of another Factor.
@@ -607,8 +925,8 @@ class Rank(SingleInputMixin, Factor):
 
     See Also
     --------
-    scipy.stats.rankdata : Underlying ranking algorithm.
-    zipline.factors.Factor.rank : Method-style interface to same functionality.
+    :func:`scipy.stats.rankdata`
+    :class:`Factor.rank`
 
     Notes
     -----
@@ -778,4 +1096,3 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         median_low15 = MedianValue([USEquityPricing.low], window_length=15)
     '''
     dtype = float64_dtype
-    ctx = nullctx()

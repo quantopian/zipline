@@ -13,7 +13,7 @@ from zipline.errors import (
     UnsupportedDType,
     WindowLengthNotSpecified,
 )
-from zipline.pipeline import Factor, Filter, TermGraph
+from zipline.pipeline import Classifier, Factor, Filter, TermGraph
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
@@ -344,10 +344,12 @@ class ObjectIdentityTestCase(TestCase):
             SomeFactor(dtype=complex128_dtype)
 
     def test_latest_on_different_dtypes(self):
-        factor_dtypes = (int64_dtype, float64_dtype, datetime64ns_dtype)
+        factor_dtypes = (float64_dtype, datetime64ns_dtype)
         for column in TestingDataSet.columns:
             if column.dtype == bool_dtype:
                 self.assertIsInstance(column.latest, Filter)
+            elif column.dtype == int64_dtype:
+                self.assertIsInstance(column.latest, Classifier)
             elif column.dtype in factor_dtypes:
                 self.assertIsInstance(column.latest, Factor)
             else:

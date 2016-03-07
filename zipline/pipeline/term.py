@@ -28,6 +28,8 @@ NotSpecified = sentinel(
     'Singleton sentinel value used for Term defaults.',
 )
 
+NotSpecifiedType = type(NotSpecified)
+
 
 class Term(with_metaclass(ABCMeta, object)):
     """

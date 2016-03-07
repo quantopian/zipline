@@ -5,19 +5,24 @@ from itertools import product
 from nose_parameterized import parameterized
 
 from numpy import (
+    apply_along_axis,
     arange,
     array,
     datetime64,
     empty,
     eye,
     nan,
+    nanmean,
+    nanstd,
     ones,
+    where,
 )
 from numpy.random import randn, seed
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.rank import masked_rankdata_2d
-from zipline.pipeline import Factor, Filter, TermGraph
+from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
+from zipline.pipeline import Classifier, Factor, Filter, TermGraph
 from zipline.pipeline.factors import (
     Returns,
     RSI,
@@ -39,6 +44,20 @@ from .base import BasePipelineTestCase
 
 class F(Factor):
     dtype = float64_dtype
+    inputs = ()
+    window_length = 0
+
+
+class C(Classifier):
+    dtype = int64_dtype
+    missing_value = -1
+    inputs = ()
+    window_length = 0
+
+
+class OtherC(Classifier):
+    dtype = int64_dtype
+    missing_value = -1
     inputs = ()
     window_length = 0
 
@@ -403,3 +422,134 @@ class FactorTestCase(BasePipelineTestCase):
         )
 
         check_arrays(float_result, datetime_result)
+
+    @parameter_space(
+        seed_value=range(1, 2),
+        normalizer_name_and_func=[
+            ('demean', lambda row: row - nanmean(row)),
+            ('zscore', lambda row: (row - nanmean(row)) / nanstd(row)),
+        ],
+        add_nulls_to_factor=(False, True,)
+    )
+    def test_normalizations(self,
+                            seed_value,
+                            normalizer_name_and_func,
+                            add_nulls_to_factor):
+
+        name, func = normalizer_name_and_func
+
+        shape = (7, 7)
+
+        # All Trues.
+        nomask = self.ones_mask(shape=shape)
+        # Falses on main diagonal.
+        eyemask = self.eye_mask(shape=shape)
+        # Falses on other diagonal.
+        eyemask_T = eyemask.T
+        # Falses on both diagonals.
+        xmask = eyemask & eyemask_T
+
+        # Block of random data.
+        factor_data = self.randn_data(seed=seed_value, shape=shape)
+        if add_nulls_to_factor:
+            factor_data = where(eyemask, factor_data, nan)
+
+        # Cycles of 0, 1, 2, 0, 1, 2, ...
+        classifier_data = (
+            (self.arange_data(shape=shape, dtype=int) + seed_value) % 3
+        )
+        # With -1s on main diagonal.
+        classifier_data_eyenulls = where(eyemask, classifier_data, -1)
+        # With -1s on opposite diagonal.
+        classifier_data_eyenulls_T = where(eyemask_T, classifier_data, -1)
+        # With -1s on both diagonals.
+        classifier_data_xnulls = where(xmask, classifier_data, -1)
+
+        f = self.f
+        c = C()
+        c_with_nulls = OtherC()
+        m = Mask()
+        method = getattr(f, name)
+        terms = {
+            'vanilla': method(),
+            'masked': method(mask=m),
+            'grouped': method(groupby=c),
+            'grouped_with_nulls': method(groupby=c_with_nulls),
+            'both': method(mask=m, groupby=c),
+            'both_with_nulls': method(mask=m, groupby=c_with_nulls),
+        }
+
+        expected = {
+            'vanilla': apply_along_axis(func, 1, factor_data,),
+            'masked': where(
+                eyemask,
+                grouped_apply(factor_data, eyemask, func),
+                nan,
+            ),
+            'grouped': grouped_apply(
+                factor_data,
+                classifier_data,
+                func,
+            ),
+            # If the classifier has nulls, we should get NaNs in the
+            # corresponding locations in the output.
+            'grouped_with_nulls': where(
+                eyemask_T,
+                grouped_apply(factor_data, classifier_data_eyenulls_T, func),
+                nan,
+            ),
+            # Passing a mask with a classifier should behave as though the
+            # classifier had nulls where the mask was False.
+            'both': where(
+                eyemask,
+                grouped_apply(
+                    factor_data,
+                    classifier_data_eyenulls,
+                    func,
+                ),
+                nan,
+            ),
+            'both_with_nulls': where(
+                xmask,
+                grouped_apply(
+                    factor_data,
+                    classifier_data_xnulls,
+                    func,
+                ),
+                nan,
+            )
+        }
+
+        graph = TermGraph(terms)
+        results = self.run_graph(
+            graph,
+            initial_workspace={
+                f: factor_data,
+                c: classifier_data,
+                c_with_nulls: classifier_data_eyenulls_T,
+                Mask(): eyemask,
+            },
+            mask=self.build_mask(nomask),
+        )
+
+        for key in expected:
+            check_arrays(expected[key], results[key])
+
+    @parameter_space(normalizer=['demean', 'zscore'])
+    def test_cant_normalize_non_float(self, normalizer):
+        class DateFactor(Factor):
+            dtype = datetime64ns_dtype
+            inputs = ()
+            window_length = 0
+
+        d = DateFactor()
+        with self.assertRaises(TypeError) as e:
+            getattr(d, normalizer)()
+
+        errmsg = str(e.exception)
+        expected = (
+            "{normalizer}() is only defined on Factors of dtype float64,"
+            " but it was called on a Factor of dtype datetime64[ns]."
+        ).format(normalizer=normalizer)
+
+        self.assertEqual(errmsg, expected)

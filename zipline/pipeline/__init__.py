@@ -1,7 +1,7 @@
 from __future__ import print_function
 from zipline.assets import AssetFinder
 
-from .classifier import Classifier
+from .classifiers import Classifier
 from .engine import SimplePipelineEngine
 from .factors import Factor, CustomFactor
 from .filters import Filter

@@ -182,7 +182,7 @@ class NullFilter(SingleInputMixin, Filter):
 
     Parameters
     ----------
-    factor : zipline.pipeline.factor.Factor
+    factor : zipline.pipeline.Factor
         The factor to compare against its missing_value.
     """
     window_length = 0

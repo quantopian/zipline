@@ -2,6 +2,8 @@
 Mixins classes for use with Filters and Factors.
 """
 from numpy import full_like
+
+from zipline.utils.control_flow import nullctx
 from zipline.errors import WindowLengthNotPositive
 
 from .term import NotSpecified
@@ -43,6 +45,8 @@ class CustomTermMixin(object):
 
     Used by CustomFactor, CustomFilter, CustomClassifier, etc.
     """
+    ctx = nullctx()
+
     def __new__(cls,
                 inputs=NotSpecified,
                 window_length=NotSpecified,
