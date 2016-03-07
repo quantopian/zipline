@@ -156,13 +156,15 @@ class BlotterTestCase(TestCase):
                       MarketOrder())
 
         self.assertEqual(len(blotter.new_orders), 1)
+        order_id = blotter.open_orders[24][0].id
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
         blotter.execute_cancel_policy(BAR)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
         blotter.execute_cancel_policy(DAY_END)
-        self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.CANCELLED)
+        order = blotter.orders[order_id]
+        self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
 
     def test_blotter_never_cancel(self):
         blotter = Blotter('minute', self.env.asset_finder,
