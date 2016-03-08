@@ -17,6 +17,7 @@ from logbook import Logger, Processor
 from pandas.tslib import normalize_date
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
+from six import viewkeys
 
 from zipline.gens.sim_engine import (
     BAR,
@@ -173,8 +174,8 @@ class AlgorithmSimulator(object):
 
             # handle any splits that impact any positions or any open orders.
             assets_we_care_about = \
-                perf_tracker.position_tracker.positions.viewkeys() | \
-                algo.blotter.open_orders.viewkeys()
+                viewkeys(perf_tracker.position_tracker.positions) | \
+                viewkeys(algo.blotter.open_orders)
 
             if assets_we_care_about:
                 splits = data_portal.get_splits(assets_we_care_about,
