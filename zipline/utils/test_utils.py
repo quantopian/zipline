@@ -888,8 +888,17 @@ def make_test_handler(testcase, *args, **kwargs):
     Returns a TestHandler which will be used by the given testcase. This
     handler can be used to test log messages.
 
+    Parameters
+    ----------
     testcase: unittest.TestCase
         The test class in which the log handler will be used.
+    *args, **kwargs
+        Forwarded to the new TestHandler object.
+
+    Returns
+    -------
+    handler: logbook.TestHandler
+        The handler to use for the test case.
     """
     handler = TestHandler(*args, **kwargs)
     testcase.addCleanup(handler.close)
