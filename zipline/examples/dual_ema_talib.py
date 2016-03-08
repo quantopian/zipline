@@ -24,7 +24,7 @@ momentum).
 
 """
 
-from zipline.api import order, record, symbol, history
+from zipline.api import order, record, symbol
 # Import exponential moving average from talib wrapper
 from talib import EMA
 
@@ -37,8 +37,7 @@ def initialize(context):
 
 
 def handle_data(context, data):
-    trailing_window = history([context.asset], 40, '1d', 'price')[
-        context.asset]
+    trailing_window = data.history(context.asset, 'price', 40, '1d')
     if trailing_window.isnull().values.any():
         return
     short_ema = EMA(trailing_window.values, timeperiod=20)
@@ -56,7 +55,7 @@ def handle_data(context, data):
         context.invested = False
         sell = True
 
-    record(AAPL=data[context.asset].price,
+    record(AAPL=data.current(context.asset, "price"),
            short_ema=short_ema[-1],
            long_ema=long_ema[-1],
            buy=buy,

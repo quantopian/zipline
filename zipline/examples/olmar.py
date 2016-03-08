@@ -5,7 +5,6 @@ from datetime import datetime
 import pytz
 
 from zipline.algorithm import TradingAlgorithm
-from zipline.api import history
 from zipline.utils.factory import load_from_yahoo
 from zipline.finance import commission
 
@@ -54,13 +53,9 @@ def handle_data(algo, data):
     b = np.zeros(m)
 
     # find relative moving average price for each asset
-    # TODO: Use arrays.
-    mavgs = {}
-    for sid in algo.sids:
-        mavg = history(sid, algo.window_length, '1d', 'price').mean()
-        mavgs[sid] = mavg
+    mavgs = data.history(algo.sids, 'price', algo.window_length, '1d').mean()
     for i, sid in enumerate(algo.sids):
-        price = data[sid].price
+        price = data.current(sid, "price")
         # Relative mean deviation
         x_tilde[i] = mavgs[sid] / price
 
@@ -106,7 +101,7 @@ def rebalance_portfolio(algo, data, desired_port):
 
     for i, sid in enumerate(algo.sids):
         current_amount[i] = algo.portfolio.positions[sid].amount
-        prices[i] = data[sid].price
+        prices[i] = data.current(sid, "price")
 
     desired_amount = np.round(desired_port * positions_value / prices)
 

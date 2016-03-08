@@ -37,6 +37,7 @@ from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, OHLC, \
 from zipline.finance.order import ORDER_STATUS
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
+from zipline.finance.trading import TradingEnvironment
 from zipline.utils import security_list
 from zipline.utils.tradingcalendar import trading_days
 import numpy as np
@@ -956,13 +957,16 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
         )
 
 
-class FakeDataPortal(object):
+class FakeDataPortal(DataPortal):
 
-    def __init__(self):
-        self._adjustment_reader = None
+    def __init__(self, env=None):
+        if env is None:
+            env = TradingEnvironment()
 
-    def setup_offset_cache(self, minutes_by_day, minutes_to_day, trading_days):
-        pass
+        super(FakeDataPortal, self).__init__(env)
+
+    def get_spot_value(self, asset, field, dt, data_frequency):
+        return 1.0
 
 
 class FetcherDataPortal(DataPortal):
@@ -981,9 +985,6 @@ class FetcherDataPortal(DataPortal):
 
         # otherwise just return a fixed value
         return int(asset)
-
-    def setup_offset_cache(self, minutes_by_day, minutes_to_day, trading_days):
-        pass
 
     def _get_daily_window_for_sid(self, asset, field, days_in_window,
                                   extra_slot=True):

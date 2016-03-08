@@ -246,34 +246,37 @@ class Blotter(object):
             example, Zipline models the commission cost into the fill price
             of the transaction), then this is None.
         """
+
         closed_orders = []
         transactions = []
 
-        assets = self.asset_finder.retrieve_all(self.open_orders.keys())
-        asset_dict = {asset.sid: asset for asset in assets}
+        if self.open_orders:
+            assets = self.asset_finder.retrieve_all(self.open_orders)
+            asset_dict = {asset.sid: asset for asset in assets}
 
-        for sid, asset_orders in iteritems(self.open_orders):
-            asset = asset_dict[sid]
+            for sid, asset_orders in iteritems(self.open_orders):
+                asset = asset_dict[sid]
 
-            for order, txn in \
-                    self.slippage_func(bar_data, asset, asset_orders):
-                direction = math.copysign(1, txn.amount)
-                per_share, total_commission = self.commission.calculate(txn)
-                txn.price += per_share * direction
-                txn.commission = total_commission
-                order.filled += txn.amount
+                for order, txn in \
+                        self.slippage_func(bar_data, asset, asset_orders):
+                    direction = math.copysign(1, txn.amount)
+                    per_share, total_commission = \
+                        self.commission.calculate(txn)
+                    txn.price += per_share * direction
+                    txn.commission = total_commission
+                    order.filled += txn.amount
 
-                if txn.commission is not None:
-                    order.commission = (order.commission or 0.0) + \
-                        txn.commission
+                    if txn.commission is not None:
+                        order.commission = (order.commission or 0.0) + \
+                            txn.commission
 
-                txn.dt = pd.Timestamp(txn.dt, tz='UTC')
-                order.dt = txn.dt
+                    txn.dt = pd.Timestamp(txn.dt, tz='UTC')
+                    order.dt = txn.dt
 
-                transactions.append(txn)
+                    transactions.append(txn)
 
-                if not order.open:
-                    closed_orders.append(order)
+                    if not order.open:
+                        closed_orders.append(order)
 
         # remove all closed orders from our open_orders dict
         for order in closed_orders:

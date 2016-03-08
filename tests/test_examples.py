@@ -45,7 +45,7 @@ class ExamplesTests(TestCase):
         runpy.run_path(example, run_name='__main__')
 
     # Test algorithm as if scripts/run_algo.py is being used.
-    def test_example_run_pipline(self):
+    def test_example_run_pipeline(self):
         example = os.path.join(example_dir(), 'buyapple.py')
         confs = ['-f', example, '--start', '2011-1-1', '--end', '2012-1-1']
         parsed_args = parse_args(confs)

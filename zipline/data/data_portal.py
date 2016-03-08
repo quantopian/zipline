@@ -28,6 +28,11 @@ from zipline.data.us_equity_pricing import NoDataOnDate
 from zipline.data.us_equity_loader import USEquityHistoryLoader
 
 from zipline.utils import tradingcalendar
+from zipline.utils.math_utils import (
+    nansum,
+    nanmean,
+    nanstd
+)
 from zipline.utils.memoize import remember_last
 from zipline.errors import (
     NoTradeDataAvailableTooEarly,
@@ -1373,3 +1378,44 @@ class DataPortal(object):
                       if isinstance(asset, Asset)]
 
         return asset_list
+
+    def get_simple_transform(self, asset, transform_name, dt, data_frequency,
+                             bars=None):
+        if transform_name == "returns":
+            # returns is always calculated over the last 2 days, regardless
+            # of the simulation's data frequency.
+            hst = self.get_history_window(
+                [asset], dt, 2, "1d", "price", ffill=True
+            )[asset]
+
+            return (hst.iloc[-1] - hst.iloc[0]) / hst.iloc[0]
+
+        if bars is None:
+            raise ValueError("bars cannot be None!")
+
+        if data_frequency == "minute":
+            freq_str = "1m"
+        else:
+            freq_str = "1d"
+
+        price_arr = self.get_history_window(
+            [asset], dt, bars, freq_str, "price", ffill=True
+        )[asset]
+
+        if transform_name == "mavg":
+            return nanmean(price_arr)
+        elif transform_name == "stddev":
+            return nanstd(price_arr, ddof=1)
+        elif transform_name == "vwap":
+            volume_arr = self.get_history_window(
+                [asset], dt, bars, freq_str, "volume", ffill=True
+            )[asset]
+
+            vol_sum = nansum(volume_arr)
+
+            try:
+                ret = nansum(price_arr * volume_arr) / vol_sum
+            except ZeroDivisionError:
+                ret = np.nan
+
+            return ret
