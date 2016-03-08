@@ -141,6 +141,9 @@ class DataPortal(object):
 
         self._in_bts = False
 
+    def _reindex_extra_source(self, df, source_date_index):
+        return df.reindex(index=source_date_index, method='ffill')
+
     def handle_extra_source(self, source_df, sim_params):
         """
         Extra sources always have a sid column.
@@ -151,7 +154,8 @@ class DataPortal(object):
         if source_df is None:
             return
 
-        self._extra_source_df = source_df
+        # Normalize all the dates in the df
+        source_df.index = source_df.index.normalize()
 
         # source_df's sid column can either consist of assets we know about
         # (such as sid(24)) or of assets we don't know about (such as
@@ -171,17 +175,10 @@ class DataPortal(object):
         # asset -> df.  In other words,
         # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
         # holding that data.
-
-        if sim_params.emission_rate == "daily":
-            source_date_index = self.env.days_in_range(
-                start=sim_params.period_start,
-                end=sim_params.period_end
-            )
-        else:
-            source_date_index = self.env.minutes_for_days_in_range(
-                start=sim_params.period_start,
-                end=sim_params.period_end
-            )
+        source_date_index = self.env.days_in_range(
+            start=sim_params.period_start,
+            end=sim_params.period_end
+        )
 
         # Break the source_df up into one dataframe per sid.  This lets
         # us (more easily) calculate accurate start/end dates for each sid,
@@ -192,18 +189,24 @@ class DataPortal(object):
         for group_name in group_names:
             group_dict[group_name] = grouped_by_sid.get_group(group_name)
 
+        # This will be the dataframe which we query to get fetcher assets at
+        # any given time. Get's overwritten every time there's a new fetcher
+        # call
+        extra_source_df = pd.DataFrame()
+
         for identifier, df in iteritems(group_dict):
             # Before reindexing, save the earliest and latest dates
             earliest_date = df.index[0]
             latest_date = df.index[-1]
 
             # Since we know this df only contains a single sid, we can safely
-            # de-dupe by the index (dt)
+            # de-dupe by the index (dt). If minute granularity, will take the
+            # last data point on any given day
             df = df.groupby(level=0).last()
 
             # Reindex the dataframe based on the backtest start/end date.
             # This makes reads easier during the backtest.
-            df = df.reindex(index=source_date_index, method='ffill')
+            df = self._reindex_extra_source(df, source_date_index)
 
             if not isinstance(identifier, Asset):
                 # for fake assets we need to store a start/end date
@@ -215,6 +218,12 @@ class DataPortal(object):
                     self._augmented_sources_map[col_name] = {}
 
                 self._augmented_sources_map[col_name][identifier] = df
+
+            # Append to extra_source_df the reindexed dataframe for the single
+            # sid
+            extra_source_df = extra_source_df.append(df)
+
+        self._extra_source_df = extra_source_df
 
     def _open_minute_file(self, field, asset):
         sid_str = str(int(asset))
@@ -272,7 +281,9 @@ class DataPortal(object):
         elif data_frequency == 'daily':
             return self._equity_daily_reader.get_last_traded_dt(asset, dt)
 
-    def _check_extra_sources(self, asset, column, day):
+    def _check_extra_sources(self, asset, column, dt):
+        day = normalize_date(dt)
+
         # If we have an extra source with a column called "price", only look
         # at it if it's on something like palladium and not AAPL (since our
         # own price data always wins when dealing with assets).
@@ -1345,15 +1356,10 @@ class DataPortal(object):
             (field in self._augmented_sources_map and
              asset in self._augmented_sources_map[field])
 
-    def get_fetcher_assets(self, day):
+    def get_fetcher_assets(self, dt):
         """
         Returns a list of assets for the current date, as defined by the
         fetcher data.
-
-        Notes
-        -----
-        Data is forward-filled.  If there is no fetcher data defined for day
-        N, we use day N-1's data (if available, otherwise we keep going back).
 
         Returns
         -------
@@ -1364,24 +1370,17 @@ class DataPortal(object):
         if self._extra_source_df is None:
             return []
 
+        day = normalize_date(dt)
+
         if day in self._extra_source_df.index:
-            date_to_use = day
+            assets = self._extra_source_df.loc[day]['sid']
         else:
-            # current day isn't in the fetcher df, go back the last
-            # available day
-            idx = self._extra_source_df.index.searchsorted(day)
-            if idx == 0:
-                return []
+            return []
 
-            date_to_use = self._extra_source_df.index[idx - 1]
-
-        asset_list = self._extra_source_df.loc[date_to_use]["sid"]
-
-        # make sure they're actually assets
-        asset_list = [asset for asset in asset_list
-                      if isinstance(asset, Asset)]
-
-        return asset_list
+        if isinstance(assets, pd.Series):
+            return [x for x in assets if isinstance(x, Asset)]
+        else:
+            return [assets] if isinstance(assets, Asset) else []
 
     def get_simple_transform(self, asset, transform_name, dt, data_frequency,
                              bars=None):

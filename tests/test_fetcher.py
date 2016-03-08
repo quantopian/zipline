@@ -136,10 +136,10 @@ class FetcherTestCase(TestCase):
 
         return results
 
-    def test_minutely_fetcher(self):
+    def test_fetch_minute_granularity(self):
         sim_params = factory.create_simulation_parameters(
             start=pd.Timestamp("2006-01-03", tz='UTC'),
-            end=pd.Timestamp("2006-01-31", tz='UTC'),
+            end=pd.Timestamp("2006-01-10", tz='UTC'),
             emission_rate="minute",
             data_frequency="minute"
         )
@@ -165,49 +165,29 @@ def handle_data(context, data):
         signal = [result["minute_perf"]["recorded_vars"]["aapl_signal"] for
                   result in perf_packets if "minute_perf" in result]
 
-        self.assertEqual(20 * 390, len(signal))
+        self.assertEqual(6 * 390, len(signal))
 
         # csv data is:
         # symbol,date,signal
-        # aapl,1/4/06 4:01PM,-1
-        # aapl,1/5/06 4:00PM,5
-        # aapl,1/6/06 9:30AM,6
-        # aapl,1/9/06 12:01PM,9
+        # aapl,1/4/06 5:31AM, 1
+        # aapl,1/4/06 11:30AM, 2
+        # aapl,1/5/06 5:31AM, 1
+        # aapl,1/5/06 11:30AM, 3
+        # aapl,1/9/06 5:31AM, 1
+        # aapl,1/9/06 11:30AM, 4 for dates 1/3 to 1/10
 
-        # dates are interpreted as UTC time
-        # market hours are 14:31-21:00 UTC each of those days
+        # 2 signals per day, only last signal is taken. So we expect
+        # 390 bars of signal NaN on 1/3
+        # 390 bars of signal 2 on 1/4
+        # 390 bars of signal 3 on 1/5
+        # 390 bars of signal 3 on 1/6 (forward filled)
+        # 390 bars of signal 4 on 1/9
+        # 390 bars of signal 4 on 1/9 (forward filled)
 
-        # day1 starts at 2006-01-04 14:31
-        # day1 ends at 2006-01-04 21:00
-        # day2 starts at 2006-01-04 14:31
-        # -1 starts at 2006-01-04 16:01
-        # day2 ends at 2006-01-04 14:31
-        # day3 starts at 2006-01-05 14:31
-        # 5 starts at 2006-01-05 16:00
-        # day3 ends at 2006-01-05 21:00
-        # 6 starts at 2006-01-06 9:30
-        # day4 starts at 2006-01-06 14:31
-        # day4 ends at 2006-01-06 21:00
-        # 9 starts at 2006-01-09 12:01
-        # day5 starts at 2006-01-09 14:31
-        # day5 ends at 2006-01-09 21:00
-        # ...
-        # day20 ends at 2006-01-31 21:00
-
-        # 480 NaNs
-        # 389 -1s
-        # 301 5s
-        # 390 6s
-        # 6240 9s
-
-        values = [result["minute_perf"]["recorded_vars"]["aapl_signal"]
-                  for result in perf_packets if "minute_perf" in result]
-
-        np.testing.assert_array_equal([np.NaN] * 480, values[0:480])
-        np.testing.assert_array_equal([-1.0] * 389, values[480:869])
-        np.testing.assert_array_equal([5.0] * 301, values[869:1170])
-        np.testing.assert_array_equal([6.0] * 390, values[1170:1560])
-        np.testing.assert_array_equal([9.0] * 6240, values[1560:])
+        np.testing.assert_array_equal([np.NaN] * 390, signal[0:390])
+        np.testing.assert_array_equal([2] * 390, signal[390:780])
+        np.testing.assert_array_equal([3] * 780, signal[780:1560])
+        np.testing.assert_array_equal([4] * 780, signal[1560:])
 
     def test_fetch_csv_with_multi_symbols(self):
         results = self.run_algo(
