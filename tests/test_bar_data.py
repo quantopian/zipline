@@ -79,6 +79,13 @@ class TestBarDataBase(TestCase):
             self.assert_same(asset1_multi_field[field], asset1_value)
             self.assert_same(asset2_multi_field[field], asset2_value)
 
+        # also verify that bar_data doesn't expose anything bad
+        for field in ["data_portal", "simulation_dt_func", "data_frequency",
+                      "_views", "_universe_func", "_last_calculated_universe",
+                      "_universe_last_updatedat"]:
+            with self.assertRaises(AttributeError):
+                getattr(bar_data, field)
+
 
 class TestMinuteBarData(TestBarDataBase):
     @classmethod
