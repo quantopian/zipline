@@ -90,6 +90,15 @@ You may only call 'set_slippage' in your initialize method.
 """.strip()
 
 
+class SetCancelPolicyPostInit(ZiplineError):
+    # Raised if a users script calls set_cancel_policy
+    # after the initialize method has returned.
+    msg = """
+You attempted to set the cancel policy outside of `initialize`. \
+You may only call 'set_cancel_policy' in your initialize method.
+""".strip()
+
+
 class RegisterTradingControlPostInit(ZiplineError):
     # Raised if a user's script register's a trading control after initialize
     # has been run.
@@ -117,6 +126,17 @@ class UnsupportedCommissionModel(ZiplineError):
     msg = """
 You attempted to set commission with an unsupported class. \
 Please use PerShare or PerTrade.
+""".strip()
+
+
+class UnsupportedCancelPolicy(ZiplineError):
+    """
+    Raised if a user script calls set_cancel_policy with an object that isn't
+    a CancelPolicy.
+    """
+    msg = """
+You attempted to set the cancel policy with an unsupported class.  Please use
+an instance of CancelPolicy.
 """.strip()
 
 

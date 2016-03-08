@@ -191,6 +191,14 @@ class AlgorithmSimulator(object):
         with ExitStack() as stack:
             stack.enter_context(self.processor)
             stack.enter_context(ZiplineAPI(self.algo))
+
+            if algo.data_frequency == 'minute':
+                def execute_order_cancellation_policy():
+                    algo.blotter.execute_cancel_policy(DAY_END)
+            else:
+                def execute_order_cancellation_policy():
+                    pass
+
             for dt, action in self.clock:
                 if action == BAR:
                     every_bar(dt)
@@ -198,6 +206,7 @@ class AlgorithmSimulator(object):
                     once_a_day(dt)
                 elif action == DAY_END:
                     # End of the day.
+                    execute_order_cancellation_policy()
                     handle_benchmark(normalize_date(dt))
 
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)

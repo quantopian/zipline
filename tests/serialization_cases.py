@@ -17,6 +17,10 @@ from zipline.finance.slippage import (
     VolumeShareSlippage
 )
 from zipline.finance.transaction import Transaction
+from zipline.finance.cancel_policy import (
+    EODCancel,
+    NeverCancel
+)
 from zipline.protocol import Account
 from zipline.protocol import Portfolio
 from zipline.protocol import Position as ProtocolPosition
@@ -86,7 +90,9 @@ def object_serialization_cases(skip_daily=False):
         (VolumeShareSlippage, (), {}, 'dict'),
         (Account, (), {}, 'dict'),
         (Portfolio, (), {}, 'dict'),
-        (ProtocolPosition, (8554,), {}, 'dict')
+        (ProtocolPosition, (8554,), {}, 'dict'),
+        (EODCancel, (), {}, 'dict'),
+        (NeverCancel, (), {}, 'dict'),
     ]
 
     if not skip_daily:

@@ -15,6 +15,8 @@
 from collections import namedtuple
 import datetime
 from datetime import timedelta
+
+from logbook import TestHandler, WARNING
 from mock import MagicMock
 from nose_parameterized import parameterized
 from six import iteritems, itervalues
@@ -57,7 +59,7 @@ from zipline.errors import (
     SymbolNotFound,
     RootSymbolNotFound,
     UnsupportedDatetimeFormat,
-    CannotOrderDelistedAsset)
+    CannotOrderDelistedAsset, SetCancelPolicyPostInit, UnsupportedCancelPolicy)
 from zipline.test_algorithms import (
     access_account_in_init,
     access_portfolio_in_init,
@@ -222,6 +224,41 @@ class TestMiscellaneousAPI(TestCase):
         del cls.env
         teardown_logger(cls)
         cls.temp_dir.cleanup()
+
+    def test_cancel_policy_outside_init(self):
+        code = """
+from zipline.api import cancel_policy, set_cancel_policy
+
+def initialize(algo):
+    pass
+
+def handle_data(algo, data):
+    set_cancel_policy(cancel_policy.NeverCancel())
+"""
+
+        algo = TradingAlgorithm(script=code,
+                                sim_params=self.sim_params,
+                                env=self.env)
+
+        with self.assertRaises(SetCancelPolicyPostInit):
+            algo.run(self.data_portal)
+
+    def test_cancel_policy_invalid_param(self):
+        code = """
+from zipline.api import set_cancel_policy
+
+def initialize(algo):
+    set_cancel_policy("foo")
+
+def handle_data(algo, data):
+    pass
+"""
+        algo = TradingAlgorithm(script=code,
+                                sim_params=self.sim_params,
+                                env=self.env)
+
+        with self.assertRaises(UnsupportedCancelPolicy):
+            algo.run(self.data_portal)
 
     def test_zipline_api_resolves_dynamically(self):
         # Make a dummy algo.
@@ -2026,6 +2063,210 @@ class TestTradingAlgorithm(TestCase):
 
         results = algo.run(data_portal)
         self.assertIs(results, self.perf_ref)
+
+
+class TestOrderCancelation(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.tempdir = TempDirectory()
+
+        cls.days = cls.env.days_in_range(
+            start=pd.Timestamp("2016-01-05", tz='UTC'),
+            end=pd.Timestamp("2016-01-07", tz='UTC')
+        )
+
+        cls.env.write_data(equities_data={
+            1: {
+                'start_date': cls.days[0],
+                'end_date': cls.days[-1],
+                'symbol': "ASSET1"
+            }
+        })
+
+        cls.data_portal = DataPortal(
+            cls.env,
+            equity_minute_reader=cls.build_minute_data(),
+            equity_daily_reader=cls.build_daily_data()
+        )
+
+        cls.code = dedent(
+            """
+            from zipline.api import (
+                sid, order, set_slippage, slippage, VolumeShareSlippage,
+                set_cancel_policy, cancel_policy, EODCancel
+            )
+
+            def initialize(context):
+                set_slippage(
+                    slippage.VolumeShareSlippage(
+                        volume_limit=1,
+                        price_impact=0
+                    )
+                )
+
+                {0}
+                context.ordered = False
+
+            def handle_data(context, data):
+                if not context.ordered:
+                    order(sid(1), 1000)
+                    context.ordered = True
+            """
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
+
+    @classmethod
+    def build_minute_data(cls):
+        market_opens = cls.env.open_and_closes.market_open.loc[cls.days]
+
+        writer = BcolzMinuteBarWriter(
+            cls.days[0],
+            cls.tempdir.path,
+            market_opens,
+            US_EQUITIES_MINUTES_PER_DAY
+        )
+
+        asset_minutes = cls.env.minutes_for_days_in_range(
+            cls.days[0], cls.days[-1]
+        )
+
+        minutes_count = len(asset_minutes)
+        minutes_arr = np.array(range(1, 1 + minutes_count))
+
+        # normal test data, but volume is pinned at 1 share per minute
+        df = pd.DataFrame({
+            "open": minutes_arr + 1,
+            "high": minutes_arr + 2,
+            "low": minutes_arr - 1,
+            "close": minutes_arr,
+            "volume": np.full(minutes_count, 1),
+            "dt": asset_minutes
+        }).set_index("dt")
+
+        writer.write(1, df)
+
+        return BcolzMinuteBarReader(cls.tempdir.path)
+
+    @classmethod
+    def build_daily_data(cls):
+        path = cls.tempdir.getpath("testdaily.bcolz")
+
+        dfs = {
+            1: pd.DataFrame({
+                "open": np.full(3, 1),
+                "high": np.full(3, 1),
+                "low": np.full(3, 1),
+                "close": np.full(3, 1),
+                "volume": np.full(3, 1),
+                "day": [day.value for day in cls.days]
+            })
+        }
+
+        daily_writer = DailyBarWriterFromDataFrames(dfs)
+        daily_writer.write(path, cls.days, dfs)
+
+        return BcolzDailyBarReader(path)
+
+    def prep_algo(self, cancelation_string, data_frequency="minute"):
+        code = self.code.format(cancelation_string)
+        algo = TradingAlgorithm(
+            script=code,
+            env=self.env,
+            sim_params=SimulationParameters(
+                period_start=self.days[0],
+                period_end=self.days[-1],
+                env=self.env,
+                data_frequency=data_frequency
+            )
+        )
+
+        return algo
+
+    def test_eod_order_cancel_minute(self):
+        # order 1000 shares of asset1.  the volume is only 1 share per bar,
+        # so the order should be cancelled at the end of the day.
+        algo = self.prep_algo(
+            "set_cancel_policy(cancel_policy.EODCancel())"
+        )
+
+        log_catcher = TestHandler()
+        with log_catcher:
+            results = algo.run(self.data_portal)
+
+            for daily_positions in results.positions:
+                self.assertEqual(1, len(daily_positions))
+                self.assertEqual(389, daily_positions[0]["amount"])
+                self.assertEqual(1, results.positions[0][0]["sid"].sid)
+
+            # should be an order on day1, but no more orders afterwards
+            np.testing.assert_array_equal([1, 0, 0],
+                                          list(map(len, results.orders)))
+
+            # should be 389 txns on day 1, but no more afterwards
+            np.testing.assert_array_equal([389, 0, 0],
+                                          list(map(len, results.transactions)))
+
+            the_order = results.orders[0][0]
+
+            self.assertEqual(ORDER_STATUS.CANCELLED, the_order["status"])
+            self.assertEqual(389, the_order["filled"])
+
+            warnings = [record for record in log_catcher.records if
+                        record.level == WARNING]
+
+            self.assertEqual(1, len(warnings))
+
+            self.assertEqual(
+                "Your order for 1000 shares of ASSET1 has been partially "
+                "filled. 389 shares were successfully purchased. The "
+                "remaining 611 shares are being canceled based on the "
+                "EODCancel policy.",
+                str(warnings[0].message)
+            )
+
+    def test_default_cancelation_policy(self):
+        algo = self.prep_algo("")
+
+        log_catcher = TestHandler()
+        with log_catcher:
+            results = algo.run(self.data_portal)
+
+            # order stays open throughout simulation
+            np.testing.assert_array_equal([1, 1, 1],
+                                          list(map(len, results.orders)))
+
+            # one txn per minute.  389 the first day (since no order until the
+            # end of the first minute).  390 on the second day.  221 on the
+            # the last day, sum = 1000.
+            np.testing.assert_array_equal([389, 390, 221],
+                                          list(map(len, results.transactions)))
+
+            self.assertFalse(log_catcher.has_warnings)
+
+    def test_eod_order_cancel_daily(self):
+        # in daily mode, EODCancel does nothing.
+        algo = self.prep_algo(
+            "set_cancel_policy(cancel_policy.EODCancel())",
+            "daily"
+        )
+
+        log_catcher = TestHandler()
+        with log_catcher:
+            results = algo.run(self.data_portal)
+
+            # order stays open throughout simulation
+            np.testing.assert_array_equal([1, 1, 1],
+                                          list(map(len, results.orders)))
+
+            # one txn per day
+            np.testing.assert_array_equal([0, 1, 1],
+                                          list(map(len, results.transactions)))
+
+            self.assertFalse(log_catcher.has_warnings)
 
 
 @skip("fix in Q2")

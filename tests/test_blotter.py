@@ -35,6 +35,8 @@ from zipline.utils.test_utils import(
     setup_logger,
     teardown_logger,
 )
+from zipline.gens.sim_engine import DAY_END, BAR
+from zipline.finance.cancel_policy import EODCancel, NeverCancel
 from zipline.finance.slippage import DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT, \
     FixedSlippage
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
@@ -106,7 +108,7 @@ class BlotterTestCase(TestCase):
 
         blotter = Blotter('daily', self.env.asset_finder)
 
-        blotter.order(24, 100, style_obj)
+        blotter.order(blotter.asset_finder.retrieve_asset(24), 100, style_obj)
         result = blotter.open_orders[24][0]
 
         self.assertEqual(result.limit, expected_lmt)
@@ -146,6 +148,40 @@ class BlotterTestCase(TestCase):
         self.assertEqual(len(blotter.open_orders), 1)
         self.assertEqual(list(blotter.open_orders), [25])
 
+    def test_blotter_eod_cancellation(self):
+        blotter = Blotter('minute', self.env.asset_finder,
+                          cancel_policy=EODCancel())
+
+        blotter.order(blotter.asset_finder.retrieve_asset(24), 100,
+                      MarketOrder())
+
+        self.assertEqual(len(blotter.new_orders), 1)
+        order_id = blotter.open_orders[24][0].id
+        self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
+
+        blotter.execute_cancel_policy(BAR)
+        self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
+
+        blotter.execute_cancel_policy(DAY_END)
+        order = blotter.orders[order_id]
+        self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
+
+    def test_blotter_never_cancel(self):
+        blotter = Blotter('minute', self.env.asset_finder,
+                          cancel_policy=NeverCancel())
+
+        blotter.order(blotter.asset_finder.retrieve_asset(24), 100,
+                      MarketOrder())
+
+        self.assertEqual(len(blotter.new_orders), 1)
+        self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
+
+        blotter.execute_cancel_policy(BAR)
+        self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
+
+        blotter.execute_cancel_policy(DAY_END)
+        self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
+
     def test_order_rejection(self):
         blotter = Blotter(self.sim_params.data_frequency,
                           self.env.asset_finder)
@@ -156,8 +192,10 @@ class BlotterTestCase(TestCase):
         self.assertEqual(blotter.new_orders, [])
 
         # Basic tests of open order behavior
-        open_order_id = blotter.order(24, 100, MarketOrder())
-        second_order_id = blotter.order(24, 50, MarketOrder())
+        open_order_id = blotter.order(
+            blotter.asset_finder.retrieve_asset(24), 100, MarketOrder())
+        second_order_id = blotter.order(
+            blotter.asset_finder.retrieve_asset(24), 50, MarketOrder())
         self.assertEqual(len(blotter.open_orders[24]), 2)
         open_order = blotter.open_orders[24][0]
         self.assertEqual(open_order.status, ORDER_STATUS.OPEN)
@@ -179,7 +217,8 @@ class BlotterTestCase(TestCase):
         # pulls it from new_orders)
         blotter = Blotter(self.sim_params.data_frequency,
                           self.env.asset_finder)
-        new_open_id = blotter.order(24, 10, MarketOrder())
+        new_open_id = blotter.order(
+            blotter.asset_finder.retrieve_asset(24), 10, MarketOrder())
         new_open_order = blotter.open_orders[24][0]
         self.assertEqual(new_open_id, new_open_order.id)
         # Pretend that the trade simulation did this.
@@ -197,7 +236,8 @@ class BlotterTestCase(TestCase):
         blotter = Blotter(self.sim_params.data_frequency,
                           self.env.asset_finder)
         blotter.slippage_func = FixedSlippage()
-        filled_id = blotter.order(24, 100, MarketOrder())
+        filled_id = blotter.order(
+            blotter.asset_finder.retrieve_asset(24), 100, MarketOrder())
         filled_order = None
         blotter.current_dt = self.sim_params.trading_days[-1]
         bar_data = BarData(
@@ -230,7 +270,8 @@ class BlotterTestCase(TestCase):
         blotter.hold(56)
         self.assertEqual(blotter.new_orders, [])
 
-        open_id = blotter.order(24, 100, MarketOrder())
+        open_id = blotter.order(
+            blotter.asset_finder.retrieve_asset(24), 100, MarketOrder())
         open_order = blotter.open_orders[24][0]
         self.assertEqual(open_order.id, open_id)
 
@@ -263,7 +304,8 @@ class BlotterTestCase(TestCase):
 
             blotter = Blotter(self.sim_params.data_frequency,
                               self.env.asset_finder)
-            open_id = blotter.order(24, order_size, MarketOrder())
+            open_id = blotter.order(blotter.asset_finder.retrieve_asset(24),
+                                    order_size, MarketOrder())
             open_order = blotter.open_orders[24][0]
             self.assertEqual(open_id, open_order.id)
             blotter.hold(open_id)
