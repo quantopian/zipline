@@ -7,7 +7,7 @@ from unittest import TestCase
 
 from zipline.errors import (
     DTypeNotSpecified,
-    InputTermNotAtomic,
+    WindowedInputToWindowedTerm,
     NotDType,
     TermInputsNotSpecified,
     UnsupportedDType,
@@ -157,7 +157,7 @@ class DependencyResolutionTestCase(TestCase):
         self.assertEqual(graph.extra_rows[bar], 4)
         self.assertEqual(graph.extra_rows[buzz], 4)
 
-    def test_reuse_atomic_terms(self):
+    def test_reuse_loadable_terms(self):
         """
         Test that raw inputs only show up in the dependency graph once.
         """
@@ -174,7 +174,7 @@ class DependencyResolutionTestCase(TestCase):
 
     def test_disallow_recursive_lookback(self):
 
-        with self.assertRaises(InputTermNotAtomic):
+        with self.assertRaises(WindowedInputToWindowedTerm):
             SomeFactor(inputs=[SomeFactor(), SomeDataSet.foo])
 
 

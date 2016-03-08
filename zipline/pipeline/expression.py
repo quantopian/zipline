@@ -12,7 +12,7 @@ from numpy import (
     inf,
 )
 
-from zipline.pipeline.term import Term, CompositeTerm
+from zipline.pipeline.term import Term, ComputableTerm
 
 
 _VARIABLE_NAME_RE = re.compile("^(x_)([0-9]+)$")
@@ -164,7 +164,7 @@ def is_comparison(op):
     return op in COMPARISONS
 
 
-class NumericalExpression(CompositeTerm):
+class NumericalExpression(ComputableTerm):
     """
     Term binding to a numexpr expression.
 

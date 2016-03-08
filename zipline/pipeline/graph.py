@@ -9,6 +9,8 @@ from six import itervalues, iteritems
 from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
+from .term import LoadableTerm
+
 
 class CyclicDependency(Exception):
     pass
@@ -163,8 +165,8 @@ class TermGraph(DiGraph):
         return iter(self._ordered)
 
     @lazyval
-    def atomic_terms(self):
-        return tuple(term for term in self if term.atomic)
+    def loadable_terms(self):
+        return tuple(term for term in self if isinstance(term, LoadableTerm))
 
     def _add_to_graph(self, term, parents, extra_rows):
         """
