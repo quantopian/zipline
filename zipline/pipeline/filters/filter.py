@@ -19,7 +19,7 @@ from zipline.pipeline.mixins import (
     PositiveWindowLengthMixin,
     SingleInputMixin,
 )
-from zipline.pipeline.term import ComputableTerm
+from zipline.pipeline.term import ComputableTerm, Term
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     FILTER_BINOPS,
@@ -67,7 +67,9 @@ def binary_operator(op):
             # merging of inputs.  Look up and call the appropriate
             # right-binding operator with ourself as the input.
             return commuted_method_getter(other)(self)
-        elif isinstance(other, Filter):
+        elif isinstance(other, Term):
+            if other.dtype != bool_dtype:
+                raise BadBinaryOperator(op, self, other)
             if self is other:
                 return NumExprFilter.create(
                     "x_0 {op} x_0".format(op=op),

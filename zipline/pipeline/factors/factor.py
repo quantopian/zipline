@@ -18,7 +18,7 @@ from zipline.pipeline.mixins import (
     PositiveWindowLengthMixin,
     SingleInputMixin,
 )
-from zipline.pipeline.term import ComputableTerm, NotSpecified
+from zipline.pipeline.term import ComputableTerm, NotSpecified, Term
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -140,7 +140,7 @@ def binop_return_dtype(op, left, right):
     elif left != float64_dtype or right != float64_dtype:
         raise TypeError(
             "Don't know how to compute {left} {op} {right}.\n"
-            "Arithmetic operators are only supported on Factors of "
+            "Arithmetic operators are only supported between Factors of "
             "dtype 'float64'.".format(
                 left=left.name,
                 op=op,
@@ -188,7 +188,7 @@ def binary_operator(op):
             # inputs.  Look up and call the appropriate reflected operator with
             # ourself as the input.
             return commuted_method_getter(other)(self)
-        elif isinstance(other, Factor):
+        elif isinstance(other, Term):
             if self is other:
                 return return_type(
                     "x_0 {op} x_0".format(op=op),
@@ -204,7 +204,8 @@ def binary_operator(op):
             return return_type(
                 "x_0 {op} ({constant})".format(op=op, constant=other),
                 binds=(self,),
-                # Interpret numeric literals as floats.
+                # .dtype access is safe here because coerce_numbers_to_my_dtype
+                # will convert any input numbers to numpy equivalents.
                 dtype=binop_return_dtype(op, self.dtype, other.dtype)
             )
         raise BadBinaryOperator(op, self, other)
