@@ -1262,7 +1262,7 @@ class DataPortal(object):
 
         Parameters
         ----------
-        sids : list
+        sids : container
             Sids for which we want splits.
 
         dt: pd.Timestamp
@@ -1273,7 +1273,7 @@ class DataPortal(object):
         -------
         list: List of splits, where each split is a (sid, ratio) tuple.
         """
-        if self._adjustment_reader is None or len(sids) == 0:
+        if self._adjustment_reader is None or not sids:
             return {}
 
         # convert dt to # of seconds since epoch, because that's what we use
@@ -1284,8 +1284,7 @@ class DataPortal(object):
             "SELECT sid, ratio FROM SPLITS WHERE effective_date = ?",
             (seconds,)).fetchall()
 
-        sids_set = set(sids)
-        splits = [split for split in splits if split[0] in sids_set]
+        splits = [split for split in splits if split[0] in sids]
 
         return splits
 
