@@ -18,7 +18,10 @@ from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     SQLiteAdjustmentReader,
     BcolzDailyBarReader)
-from zipline.errors import HistoryInInitialize
+from zipline.errors import (
+    HistoryInInitialize,
+    HistoryWindowStartsBeforeData,
+)
 from zipline.finance.trading import (
     TradingEnvironment,
     SimulationParameters
@@ -62,12 +65,13 @@ class HistoryTestCaseBase(TestCase):
     # - merger on 2015-01-05 and 2015-01-06
     @classmethod
     def setUpClass(cls):
-        cls.env = TradingEnvironment()
         cls.tempdir = TempDirectory()
 
         # trading_start (when bcolz files start) = 2014-02-01
         cls.TRADING_START_DT = pd.Timestamp("2014-02-03", tz='UTC')
         cls.TRADING_END_DT = pd.Timestamp("2016-01-30", tz='UTC')
+
+        cls.env = TradingEnvironment(min_date=cls.TRADING_START_DT)
 
         cls.trading_days = cls.env.days_in_range(
             start=cls.TRADING_START_DT,
@@ -507,8 +511,8 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             """
         )
 
-        start = pd.Timestamp('2007-04-05', tz='UTC')
-        end = pd.Timestamp('2007-04-10', tz='UTC')
+        start = pd.Timestamp('2014-04-05', tz='UTC')
+        end = pd.Timestamp('2014-04-10', tz='UTC')
 
         sim_params = SimulationParameters(
             period_start=start,
@@ -843,27 +847,20 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-
         first_day_minutes = self.env.market_minutes_for_day(
             self.TRADING_START_DT
         )
-
+        exp_msg = (
+            "History window extends beyond environment first date, "
+            "2014-02-03. To use history with bar count, 15, start simulation "
+            "on or after, 2014-02-04."
+        )
         for field in OHLCP:
-            window = self.data_portal.get_history_window(
-                [self.ASSET1], first_day_minutes[5], 15, "1m", "price"
-            )[self.ASSET1]
-
-            # should be 9 Nans and 6 values
-            np.testing.assert_array_equal(np.full(9, np.nan), window[0:9])
-            np.testing.assert_array_equal(range(7802, 7808), window[9:])
-
-        # volume should be prefilled with zeros
-        window = self.data_portal.get_history_window(
-            [self.ASSET1], first_day_minutes[5], 15, "1m", "volume"
-        )[self.ASSET1]
-
-        np.testing.assert_array_equal(np.zeros(9), window[0:9])
-        np.testing.assert_array_equal(range(780200, 780800, 100), window[9:])
+            with self.assertRaisesRegexp(
+                    HistoryWindowStartsBeforeData, exp_msg):
+                self.data_portal.get_history_window(
+                    [self.ASSET1], first_day_minutes[5], 15, "1m", "price"
+                )[self.ASSET1]
 
 
 class DailyEquityHistoryTestCase(HistoryTestCaseBase):
@@ -1221,42 +1218,39 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 
         second_day = self.env.next_trading_day(self.TRADING_START_DT)
 
-        window = self.data_portal.get_history_window(
-            [self.ASSET1],
-            second_day,
-            4,
-            "1d",
-            "price"
-        )[self.ASSET1]
+        exp_msg = (
+            "History window extends beyond environment first date, "
+            "2014-02-03. To use history with bar count, 4, start simulation "
+            "on or after, 2014-02-07."
+        )
 
-        # should be two NaNs and two values
-        np.testing.assert_almost_equal(
-            [np.nan, np.nan, 2, 3], window)
+        with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
+            self.data_portal.get_history_window(
+                [self.ASSET1],
+                second_day,
+                4,
+                "1d",
+                "price"
+            )[self.ASSET1]
 
-        window = self.data_portal.get_history_window(
-            [self.ASSET1],
-            second_day,
-            4,
-            "1d",
-            "volume"
-        )[self.ASSET1]
-
-        # should be two NaNs and two values
-        np.testing.assert_almost_equal(
-            [0, 0, 200, 300], window)
+        with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
+            self.data_portal.get_history_window(
+                [self.ASSET1],
+                second_day,
+                4,
+                "1d",
+                "volume"
+            )[self.ASSET1]
 
         # Use a minute to force minute mode.
         first_minute = self.env.open_and_closes.market_open[
             self.TRADING_START_DT]
 
-        window = self.data_portal.get_history_window(
-            [self.ASSET2],
-            first_minute,
-            4,
-            "1d",
-            "close"
-        )[self.ASSET2]
-
-        # should be all nans since ASSET2 does not start on first day.
-        np.testing.assert_almost_equal(
-            [np.nan, np.nan, np.nan, np.nan], window)
+        with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
+            self.data_portal.get_history_window(
+                [self.ASSET2],
+                first_minute,
+                4,
+                "1d",
+                "close"
+            )[self.ASSET2]
