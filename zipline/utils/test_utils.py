@@ -884,6 +884,13 @@ def parameter_space(**params):
 
 
 def make_test_handler(testcase, *args, **kwargs):
+    """
+    Returns a TestHandler which will be used by the given testcase. This
+    handler can be used to test log messages.
+
+    testcase: unittest.TestCase
+        The test class in which the log handler will be used.
+    """
     handler = TestHandler(*args, **kwargs)
     testcase.addCleanup(handler.close)
     return handler

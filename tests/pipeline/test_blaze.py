@@ -5,6 +5,7 @@ from __future__ import division
 
 from collections import OrderedDict
 from datetime import timedelta, time
+from itertools import product, chain
 from unittest import TestCase
 import warnings
 
@@ -40,7 +41,6 @@ from zipline.utils.numpy_utils import (
 from zipline.utils.test_utils import (
     tmp_asset_finder,
     make_simple_equity_info,
-    make_test_handler
 )
 
 nameof = op.attrgetter('name')
@@ -58,6 +58,9 @@ asset_infos = (
     ),),
 )
 with_extra_sid = parameterized.expand(asset_infos)
+with_ignore_sid = parameterized.expand(
+    product(chain.from_iterable(asset_infos), [True, False])
+)
 
 
 def _utc_localize_index_level_0(df):
@@ -846,10 +849,20 @@ class BlazeToPipelineTestCase(TestCase):
             check_dtype=False,
         )
 
-    @with_extra_sid
-    def test_deltas(self, asset_info):
-        expr = bz.Data(self.df, name='expr', dshape=self.dshape)
-        deltas = bz.Data(self.df, dshape=self.dshape)
+    @with_ignore_sid
+    def test_deltas(self, asset_info, add_extra_sid):
+        df = self.df.copy()
+        if add_extra_sid:
+            extra_sid_df = pd.DataFrame({
+                'asof_date': self.dates,
+                'timestamp': self.dates,
+                'sid': (ord('E'),) * 3,
+                'value': (3., 4., 5.,),
+                'int_value': (3, 4, 5),
+            })
+            df = df.append(extra_sid_df, ignore_index=True)
+        expr = bz.Data(df, name='expr', dshape=self.dshape)
+        deltas = bz.Data(df, dshape=self.dshape)
         deltas = bz.Data(
             odo(
                 bz.transform(
@@ -862,7 +875,6 @@ class BlazeToPipelineTestCase(TestCase):
             name='delta',
             dshape=self.dshape,
         )
-
         expected_views = keymap(pd.Timestamp, {
             '2014-01-02': np.array([[10.0, 11.0, 12.0],
                                     [1.0, 2.0, 3.0]]),
@@ -878,7 +890,6 @@ class BlazeToPipelineTestCase(TestCase):
                 lambda view: np.c_[view, [np.nan, np.nan]],
                 expected_views,
             )
-
         with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 list(concatv([12] * nassets, [13] * nassets, [14] * nassets)),
@@ -1131,82 +1142,3 @@ class BlazeToPipelineTestCase(TestCase):
                 window_length=3,
                 compute_fn=op.itemgetter(-1),
             )
-
-    def test_ignore_nonexistent_delta(self):
-        missing_sid = ord('E')
-        handler = make_test_handler(self)
-        asset_info = asset_infos[0][0]
-        base_dates = pd.DatetimeIndex([
-            pd.Timestamp('2014-01-01'),
-            pd.Timestamp('2014-01-04')
-        ])
-        repeated_dates = base_dates.repeat(4)
-        baseline = pd.DataFrame({
-            'sid': (self.sids + (missing_sid,)) * 2,
-            'value': (0., 1., 2., 3., 1., 2., 3., 4.),
-            'int_value': (0, 1, 2, 3, 1, 2, 3, 4.),
-            'asof_date': repeated_dates,
-            'timestamp': repeated_dates
-        })
-        expr = bz.Data(baseline, name='expr', dshape=self.dshape)
-        deltas = bz.Data(
-            odo(
-                bz.transform(
-                    expr,
-                    value=expr.value + 10,
-                    timestamp=expr.timestamp + timedelta(days=1),
-                ),
-                pd.DataFrame,
-            ),
-            name='delta',
-            dshape=self.dshape,
-        )
-        expected_views = keymap(pd.Timestamp, {
-            '2014-01-03': np.array([[10.0, 11.0, 12.0],
-                                    [10.0, 11.0, 12.0],
-                                    [10.0, 11.0, 12.0]]),
-            '2014-01-06': np.array([[10.0, 11.0, 12.0],
-                                    [10.0, 11.0, 12.0],
-                                    [11.0, 12.0, 13.0]]),
-        })
-        if len(asset_info) == 4:
-            expected_views = valmap(
-                lambda view: np.c_[view, [np.nan, np.nan, np.nan]],
-                expected_views,
-            )
-            expected_output_buffer = [10, 11, 12, np.nan, 11, 12, 13, np.nan]
-        else:
-            expected_output_buffer = [10, 11, 12, 11, 12, 13]
-
-        cal = pd.DatetimeIndex([
-            pd.Timestamp('2014-01-01'),
-            pd.Timestamp('2014-01-02'),
-            pd.Timestamp('2014-01-03'),
-            # omitting the 4th and 5th to simulate a weekend
-            pd.Timestamp('2014-01-06'),
-        ])
-        with handler.applicationbound():
-            with tmp_asset_finder(equities=asset_info) as finder:
-                expected_output = pd.DataFrame(
-                    expected_output_buffer,
-                    index=pd.MultiIndex.from_product((
-                        sorted(expected_views.keys()),
-                        finder.retrieve_all(asset_info.index),
-                    )),
-                    columns=('value',),
-                )
-                self._run_pipeline(
-                    expr,
-                    deltas,
-                    expected_views,
-                    expected_output,
-                    finder,
-                    calendar=cal,
-                    start=cal[2],
-                    end=cal[-1],
-                    window_length=3,
-                    compute_fn=op.itemgetter(-1),
-                )
-            message = handler.records[0].message
-            exp_msg = "Didn't find the following sids in asset index: {}"
-            self.assertIn(exp_msg.format(set([missing_sid])), message)

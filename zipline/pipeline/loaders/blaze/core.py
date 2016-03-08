@@ -957,7 +957,7 @@ class BlazeLoader(dict):
         # all sids from the deltas table; filter out such mismatches here.
         if not materialized_deltas.empty and have_sids:
             materialized_deltas = materialized_deltas[
-                materialized_deltas.sid.isin(assets)
+                materialized_deltas[SID_FIELD_NAME].isin(assets)
             ]
 
         if data_query_time is not None:
