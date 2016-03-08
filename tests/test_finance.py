@@ -25,6 +25,7 @@ from unittest import TestCase
 from datetime import datetime, timedelta
 
 import numpy as np
+import pandas as pd
 
 from nose.tools import timed
 
@@ -546,8 +547,16 @@ class TradingEnvironmentTestCase(TestCase):
         self.assertTrue(all(friday == minutes[31:421]))
         self.assertTrue(all(thursday == minutes[421:]))
 
+    def test_min_date(self):
+        min_date = pd.Timestamp('2016-03-04', tz='UTC')
+        env = TradingEnvironment(min_date=min_date)
+
+        self.assertGreaterEqual(env.first_trading_day, min_date)
+        self.assertGreaterEqual(env.treasury_curves.index[0],
+                                min_date)
+
     def test_max_date(self):
-        max_date = datetime(2008, 8, 1, tzinfo=pytz.utc)
+        max_date = pd.Timestamp('2008-08-01', tz='UTC')
         env = TradingEnvironment(max_date=max_date)
 
         self.assertLessEqual(env.last_trading_day, max_date)
