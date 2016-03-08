@@ -21,7 +21,7 @@ from datetime import timedelta
 import pandas as pd
 
 from zipline.sources.data_source import DataSource
-from zipline.utils import tradingcalendar as calendar_nyse
+from zipline.utils.nyse_exchange_calendar import NYSEExchangeCalendar
 from zipline.gens.utils import hash_args
 
 
@@ -35,7 +35,7 @@ class RandomWalkSource(DataSource):
     VALID_FREQS = frozenset(('daily', 'minute'))
 
     def __init__(self, start_prices=None, freq='minute', start=None,
-                 end=None, drift=0.1, sd=0.1, calendar=calendar_nyse):
+                 end=None, drift=0.1, sd=0.1, calendar=NYSEExchangeCalendar):
         """
         :Arguments:
             start_prices : dict
@@ -78,13 +78,13 @@ class RandomWalkSource(DataSource):
         else:
             self.start_prices = start_prices
 
-        self.calendar = calendar
+        self.calendar = NYSEExchangeCalendar(start, end)
         if start is None:
-            self.start = calendar.start
+            self.start = calendar.first_trading_day
         else:
             self.start = start
         if end is None:
-            self.end = calendar.end_base
+            self.end = calendar.last_trading_day
         else:
             self.end = end
 
@@ -94,7 +94,7 @@ class RandomWalkSource(DataSource):
         self.sids = self.start_prices.keys()
 
         self.open_and_closes = \
-            calendar.open_and_closes[self.start:self.end]
+            calendar.schedule[self.start:self.end]
 
         self._raw_data = None
 
