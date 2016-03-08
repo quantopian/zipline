@@ -4,8 +4,10 @@ from .factor import (
 )
 from .latest import Latest
 from .events import (
-    BusinessDaysSincePreviousEarnings,
+    BusinessDaysSinceCashBuybackAuth,
     BusinessDaysUntilNextEarnings,
+    BusinessDaysSincePreviousEarnings,
+    BusinessDaysSinceShareBuybackAuth,
 )
 from .technical import (
     AverageDollarVolume,
@@ -22,8 +24,10 @@ from .technical import (
 )
 
 __all__ = [
-    'BusinessDaysSincePreviousEarnings',
+    'BusinessDaysSinceCashBuybackAuth',
     'BusinessDaysUntilNextEarnings',
+    'BusinessDaysSincePreviousEarnings',
+    'BusinessDaysSinceShareBuybackAuth',
     'CustomFactor',
     'AverageDollarVolume',
     'EWMA',
