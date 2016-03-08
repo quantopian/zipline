@@ -894,3 +894,49 @@ def handle_data(context, data):
     context.incr += 1
     record(data=float('%s'))
 """
+
+call_with_kwargs = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    price_history = data.history(assets=symbol('TEST'), fields="price",
+                                 bar_count=5, frequency="1d")
+    current = data.current(assets=symbol('TEST'), fields="price")
+"""
+
+call_without_kwargs = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    price_history = data.history(symbol('TEST'), "price", 5, "1d")
+    current = data.current(symbol('TEST'), "price")
+    is_stale = data.is_stale(symbol('TEST'))
+    can_trade = data.can_trade(symbol('TEST'))
+"""
+
+call_with_bad_kwargs_history = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    price_history = data.history(assets=symbol('TEST'), fields="price",
+                                 blahblah=5, frequency="1d")
+"""
+
+call_with_bad_kwargs_current = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    current = data.current(assets=symbol('TEST'), blahblah="price")
+"""
