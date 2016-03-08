@@ -156,7 +156,7 @@ def load_market_data(trading_day=trading_day_nyse,
     # before this date.
     last_date = trading_days[trading_days.get_loc(now, method='ffill') - 2]
 
-    benchmark_returns = ensure_benchmark_data(
+    br = ensure_benchmark_data(
         bm_symbol,
         first_date,
         last_date,
@@ -165,12 +165,14 @@ def load_market_data(trading_day=trading_day_nyse,
         # date so that we can compute returns for the first date.
         trading_day,
     )
-    treasury_curves = ensure_treasury_data(
+    tc = ensure_treasury_data(
         bm_symbol,
         first_date,
         last_date,
         now,
     )
+    benchmark_returns = br[br.index.slice_indexer(first_date, last_date)]
+    treasury_curves = tc[tc.index.slice_indexer(first_date, last_date)]
     return benchmark_returns, treasury_curves
 
 
