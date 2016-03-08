@@ -1,10 +1,11 @@
 """
 factor.py
 """
+from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
-from numpy import float64, inf
+from numpy import inf
 from toolz import curry
 
 from zipline.errors import (
@@ -32,30 +33,43 @@ from zipline.pipeline.expression import (
 from zipline.pipeline.filters import (
     NumExprFilter,
     PercentileFilter,
+    NullFilter,
 )
 from zipline.utils.control_flow import nullctx
 from zipline.utils.numpy_utils import (
     bool_dtype,
+    coerce_to_dtype,
     datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
 )
-from zipline.utils.preprocess import preprocess
 
 
 _RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
 
 
-def numbers_to_float64(func, argname, argvalue):
+def coerce_numbers_to_my_dtype(f):
     """
-    Preprocessor for converting numerical inputs into floats.
+    A decorator for methods whose signature is f(self, other) that coerces
+    ``other`` to ``self.dtype``.
 
-    This is used in the binary operator constructors for Factor so that
-    `2 + Factor()` has the same behavior as `2.0 + Factor()`.
+    This is used to make comparison operations between numbers and `Factor`
+    instances work independently of whether the user supplies a float or
+    integer literal.
+
+    For example, if I write::
+
+        my_filter = my_factor > 3
+
+    my_factor probably has dtype float64, but 3 is an int, so we want to coerce
+    to float64 before doing the comparison.
     """
-    if isinstance(argvalue, Number):
-        return float64(argvalue)
-    return argvalue
+    @wraps(f)
+    def method(self, other):
+        if isinstance(other, Number):
+            other = coerce_to_dtype(self.dtype, other)
+        return f(self, other)
+    return method
 
 
 @curry
@@ -148,9 +162,9 @@ def binary_operator(op):
     # NumericalExpression operator.
     commuted_method_getter = attrgetter(method_name_for_op(op, commute=True))
 
-    @preprocess(other=numbers_to_float64)
     @with_doc("Binary Operator: '%s'" % op)
     @with_name(method_name_for_op(op))
+    @coerce_numbers_to_my_dtype
     def binary_operator(self, other):
         # This can't be hoisted up a scope because the types returned by
         # binop_return_type aren't defined when the top-level function is
@@ -207,8 +221,8 @@ def reflected_binary_operator(op):
     """
     assert not is_comparison(op)
 
-    @preprocess(other=numbers_to_float64)
     @with_name(method_name_for_op(op, commute=True))
+    @coerce_numbers_to_my_dtype
     def reflected_binary_operator(self, other):
 
         if isinstance(self, NumericalExpression):
@@ -302,6 +316,28 @@ def function_application(func):
                 dtype=float64_dtype,
             )
     return mathfunc
+
+
+def if_not_float64_tell_caller_to_use_isnull(f):
+    """
+    Factor method decorator that checks if self.dtype if float64.
+
+    If the factor instance is of another dtype, this raises a TypeError
+    directing the user to `isnull` or `notnull` instead.
+    """
+    @wraps(f)
+    def wrapped_method(self, *args, **kwargs):
+        if self.dtype != float64_dtype:
+            raise TypeError(
+                "{meth}() was called on a factor of dtype {dtype}.\n"
+                "{meth}() is only defined for dtype float64."
+                "To filter missing data, use isnull() or notnull().".format(
+                    meth=f.__name__,
+                    dtype=self.dtype,
+                ),
+            )
+        return f(self, *args, **kwargs)
+    return wrapped_method
 
 
 FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
@@ -476,6 +512,34 @@ class Factor(CompositeTerm):
             mask=mask,
         )
 
+    def isnull(self):
+        """
+        A Filter producing True for values where this Factor has missing data.
+
+        Equivalent to self.isnan() when ``self.dtype`` is float64.
+        Otherwise equivalent to ``self.eq(self.missing_value)``.
+
+        Returns
+        -------
+        filter : zipline.pipeline.filters.Filter
+        """
+        if self.dtype == float64_dtype:
+            # Using isnan is more efficient when possible because we can fold
+            # the isnan computation with other NumExpr expressions.
+            return self.isnan()
+        else:
+            return NullFilter(self)
+
+    def notnull(self):
+        """
+        A Filter producing True for values where this Factor has complete data.
+
+        Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.
+        Otherwise equivalent to ``(self != self.missing_value)``.
+        """
+        return ~self.isnull()
+
+    @if_not_float64_tell_caller_to_use_isnull
     def isnan(self):
         """
         A Filter producing True for all values where this Factor is NaN.
@@ -486,6 +550,7 @@ class Factor(CompositeTerm):
         """
         return self != self
 
+    @if_not_float64_tell_caller_to_use_isnull
     def notnan(self):
         """
         A Filter producing True for values where this Factor is not NaN.
@@ -496,6 +561,7 @@ class Factor(CompositeTerm):
         """
         return ~self.isnan()
 
+    @if_not_float64_tell_caller_to_use_isnull
     def isfinite(self):
         """
         A Filter producing True for values where this Factor is anything but

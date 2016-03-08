@@ -11,6 +11,7 @@ from zipline.pipeline import (
 from zipline.utils import (
     cache,
     data,
+    functional,
     input_validation,
     memoize,
     numpy_utils,
@@ -82,3 +83,6 @@ class DoctestTestCase(TestCase):
 
     def test_data_docs(self):
         self._check_docs(data)
+
+    def test_functional_docs(self):
+        self._check_docs(functional)
