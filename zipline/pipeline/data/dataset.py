@@ -8,9 +8,10 @@ from six import (
 )
 
 from zipline.pipeline.term import (
-    Term,
     AssetExists,
+    LoadableTerm,
     NotSpecified,
+    Term,
 )
 from zipline.utils.input_validation import ensure_dtype
 from zipline.utils.numpy_utils import (
@@ -87,7 +88,7 @@ class _BoundColumnDescr(object):
         )
 
 
-class BoundColumn(Term):
+class BoundColumn(LoadableTerm):
     """
     A column of data that's been concretely bound to a particular dataset.
 

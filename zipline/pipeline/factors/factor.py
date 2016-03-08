@@ -18,7 +18,7 @@ from zipline.pipeline.mixins import (
     PositiveWindowLengthMixin,
     SingleInputMixin,
 )
-from zipline.pipeline.term import CompositeTerm, NotSpecified
+from zipline.pipeline.term import ComputableTerm, NotSpecified
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -343,7 +343,7 @@ def if_not_float64_tell_caller_to_use_isnull(f):
 FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
-class Factor(CompositeTerm):
+class Factor(ComputableTerm):
     """
     Pipeline API expression producing numerically-valued outputs.
     """

@@ -1059,7 +1059,7 @@ def bind_expression_to_resources(expr, resources):
     expr : bz.Expr
         The expression to which we want to bind resources.
     resources : dict[bz.Symbol -> any]
-        Mapping from the atomic terms of ``expr`` to actual data resources.
+        Mapping from the loadable terms of ``expr`` to actual data resources.
 
     Returns
     -------

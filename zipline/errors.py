@@ -347,13 +347,17 @@ class WindowLengthNotPositive(ZiplineError):
     ).strip()
 
 
-class InputTermNotAtomic(ZiplineError):
+class WindowedInputToWindowedTerm(ZiplineError):
     """
-    Raised when a non-atomic term is specified as an input to a Pipeline API
-    term with a lookback window.
+    Raised when a windowed Pipeline API term is specified as an input to
+    another windowed term.
+
+    This is an error because it's generally not safe to compose windowed
+    functions on split/dividend adjusted data.
     """
     msg = (
-        "Can't compute {parent} with non-atomic input {child}."
+        "Can't compute windowed expression {parent} with "
+        "windowed input {child}."
     )
 
 
