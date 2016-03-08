@@ -765,8 +765,8 @@ def adjustments_from_deltas_with_sids(dense_dates,
                                       column_name,
                                       asset_idx,
                                       deltas):
-    """Collect all the adjustments that occur in a dataset that does not
-    have a sid column.
+    """Collect all the adjustments that occur in a dataset that has a sid
+    column.
 
     Parameters
     ----------
@@ -952,6 +952,13 @@ class BlazeLoader(dict):
                 columns=added_query_fields + list(map(getname, columns)),
             )
         )
+
+        # It's not guaranteed that assets returned by the engine will contain
+        # all sids from the deltas table; filter out such mismatches here.
+        if not materialized_deltas.empty and have_sids:
+            materialized_deltas = materialized_deltas[
+                materialized_deltas[SID_FIELD_NAME].isin(assets)
+            ]
 
         if data_query_time is not None:
             for m in (materialized_expr, materialized_deltas):

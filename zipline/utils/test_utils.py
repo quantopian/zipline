@@ -12,7 +12,7 @@ import shutil
 from string import ascii_uppercase
 import tempfile
 
-from logbook import FileHandler
+from logbook import FileHandler, TestHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
 import numpy as np
@@ -881,3 +881,25 @@ def parameter_space(**params):
         param_sets = product(*(params[name] for name in argnames))
         return subtest(param_sets, *argnames)(f)
     return decorator
+
+
+def make_test_handler(testcase, *args, **kwargs):
+    """
+    Returns a TestHandler which will be used by the given testcase. This
+    handler can be used to test log messages.
+
+    Parameters
+    ----------
+    testcase: unittest.TestCase
+        The test class in which the log handler will be used.
+    *args, **kwargs
+        Forwarded to the new TestHandler object.
+
+    Returns
+    -------
+    handler: logbook.TestHandler
+        The handler to use for the test case.
+    """
+    handler = TestHandler(*args, **kwargs)
+    testcase.addCleanup(handler.close)
+    return handler

@@ -5,6 +5,7 @@ from __future__ import division
 
 from collections import OrderedDict
 from datetime import timedelta, time
+from itertools import product, chain
 from unittest import TestCase
 import warnings
 
@@ -37,8 +38,10 @@ from zipline.utils.numpy_utils import (
     int64_dtype,
     repeat_last_axis,
 )
-from zipline.utils.test_utils import tmp_asset_finder, make_simple_equity_info
-
+from zipline.utils.test_utils import (
+    tmp_asset_finder,
+    make_simple_equity_info,
+)
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
@@ -55,6 +58,9 @@ asset_infos = (
     ),),
 )
 with_extra_sid = parameterized.expand(asset_infos)
+with_ignore_sid = parameterized.expand(
+    product(chain.from_iterable(asset_infos), [True, False])
+)
 
 
 def _utc_localize_index_level_0(df):
@@ -843,10 +849,20 @@ class BlazeToPipelineTestCase(TestCase):
             check_dtype=False,
         )
 
-    @with_extra_sid
-    def test_deltas(self, asset_info):
-        expr = bz.Data(self.df, name='expr', dshape=self.dshape)
-        deltas = bz.Data(self.df, dshape=self.dshape)
+    @with_ignore_sid
+    def test_deltas(self, asset_info, add_extra_sid):
+        df = self.df.copy()
+        if add_extra_sid:
+            extra_sid_df = pd.DataFrame({
+                'asof_date': self.dates,
+                'timestamp': self.dates,
+                'sid': (ord('E'),) * 3,
+                'value': (3., 4., 5.,),
+                'int_value': (3, 4, 5),
+            })
+            df = df.append(extra_sid_df, ignore_index=True)
+        expr = bz.Data(df, name='expr', dshape=self.dshape)
+        deltas = bz.Data(df, dshape=self.dshape)
         deltas = bz.Data(
             odo(
                 bz.transform(
@@ -859,7 +875,6 @@ class BlazeToPipelineTestCase(TestCase):
             name='delta',
             dshape=self.dshape,
         )
-
         expected_views = keymap(pd.Timestamp, {
             '2014-01-02': np.array([[10.0, 11.0, 12.0],
                                     [1.0, 2.0, 3.0]]),
@@ -875,7 +890,6 @@ class BlazeToPipelineTestCase(TestCase):
                 lambda view: np.c_[view, [np.nan, np.nan]],
                 expected_views,
             )
-
         with tmp_asset_finder(equities=asset_info) as finder:
             expected_output = pd.DataFrame(
                 list(concatv([12] * nassets, [13] * nassets, [14] * nassets)),
