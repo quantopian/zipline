@@ -234,6 +234,7 @@ class TradingAlgorithm(object):
         self._pipeline_cache = CachedObject(None, pd.Timestamp(0, tz='UTC'))
 
         self.blotter = kwargs.pop('blotter', None)
+        self.cancel_policy = kwargs.pop('cancel_policy', NeverCancel())
         if not self.blotter:
             self.blotter = Blotter(
                 data_frequency=self.data_frequency,
@@ -241,7 +242,7 @@ class TradingAlgorithm(object):
                 slippage_func=VolumeShareSlippage(),
                 commission=PerShare(),
                 # Default to NeverCancel in zipline
-                cancel_policy=kwargs.pop('cancel_policy', NeverCancel())
+                cancel_policy=self.cancel_policy
             )
 
         # The symbol lookup date specifies the date to use when resolving
