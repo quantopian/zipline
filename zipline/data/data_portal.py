@@ -708,39 +708,45 @@ class DataPortal(object):
 
         first_trading_day = self._equity_minute_reader.first_trading_day
 
-        # but then cut it down to only the minutes after
-        # the first trading day.
-        modified_minutes_for_window = minutes_for_window[
-            minutes_for_window.slice_indexer(first_trading_day)]
+        if minutes_for_window[0] < first_trading_day:
 
-        modified_minutes_length = len(modified_minutes_for_window)
+            # but then cut it down to only the minutes after
+            # the first trading day.
+            modified_minutes_for_window = minutes_for_window[
+                minutes_for_window.slice_indexer(first_trading_day)]
 
-        if modified_minutes_length == 0:
-            raise ValueError("Cannot calculate history window that ends "
-                             "before the first trading day!")
+            modified_minutes_length = len(modified_minutes_for_window)
 
-        bars_to_prepend = 0
-        nans_to_prepend = None
+            if modified_minutes_length == 0:
+                raise ValueError("Cannot calculate history window that ends "
+                                 "before the first trading day!")
 
-        if modified_minutes_length < bar_count:
-            first_trading_date = first_trading_day.date()
-            if modified_minutes_for_window[0].date() == first_trading_date:
-                # the beginning of the window goes before our global trading
-                # start date
-                bars_to_prepend = bar_count - modified_minutes_length
-                nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
+            bars_to_prepend = 0
+            nans_to_prepend = None
 
-        if len(assets) == 0:
-            return pd.DataFrame(
-                None,
-                index=modified_minutes_for_window,
-                columns=None
-            )
+            if modified_minutes_length < bar_count:
+                first_trading_date = first_trading_day.date()
+                if modified_minutes_for_window[0].date() == first_trading_date:
+                    # the beginning of the window goes before our global
+                    # trading start date
+                    bars_to_prepend = bar_count - modified_minutes_length
+                    nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
+
+            if len(assets) == 0:
+                return pd.DataFrame(
+                    None,
+                    index=modified_minutes_for_window,
+                    columns=None
+                )
+            query_minutes = modified_minutes_for_window
+        else:
+            query_minutes = minutes_for_window
+            bars_to_prepend = 0
 
         asset_minute_data = self._get_minute_window_for_assets(
             assets,
             field_to_use,
-            modified_minutes_for_window
+            query_minutes,
         )
 
         if bars_to_prepend != 0:
