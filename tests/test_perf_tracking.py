@@ -44,12 +44,13 @@ import zipline.utils.math_utils as zp_math
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.trading import TradingEnvironment
+from zipline.finance.performance.position import Position
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
 from zipline.utils.test_utils import create_data_portal_from_trade_history, \
-    create_empty_splits_mergers_frame
+    create_empty_splits_mergers_frame, FakeDataPortal
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -251,7 +252,7 @@ class TestSplitPerformance(unittest.TestCase):
         cls.sim_params = create_simulation_parameters(num_days=2,
                                                       capital_base=10e3)
 
-        setup_env_data(cls.env, cls.sim_params, [1])
+        setup_env_data(cls.env, cls.sim_params, [1, 2])
 
         cls.tempdir = TempDirectory()
         cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
@@ -259,6 +260,31 @@ class TestSplitPerformance(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.tempdir.cleanup()
+
+    def test_multiple_splits(self):
+        # if multiple positions all have splits at the same time, verify that
+        # the total leftover cash is correct
+        perf_tracker = perf.PerformanceTracker(
+            self.sim_params, self.env, FakeDataPortal()
+        )
+
+        asset1 = self.env.asset_finder.retrieve_asset(1)
+        asset2 = self.env.asset_finder.retrieve_asset(2)
+
+        perf_tracker.position_tracker.positions[1] = \
+            Position(asset1, amount=10, cost_basis=10, last_sale_price=11)
+
+        perf_tracker.position_tracker.positions[2] = \
+            Position(asset2, amount=10, cost_basis=10, last_sale_price=11)
+
+        leftover_cash = perf_tracker.position_tracker.handle_splits(
+            [(1, 0.333), (2, 0.333)]
+        )
+
+        # we used to have 10 shares that each cost us $10, total $100
+        # now we have 33 shares that each cost us $3.33, total $99.9
+        # each position returns $0.10 as leftover cash
+        self.assertEqual(0.2, leftover_cash)
 
     def test_split_long_position(self):
         events = factory.create_trade_history(

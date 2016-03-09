@@ -224,8 +224,11 @@ class PositionTracker(object):
 
         Returns
         -------
-        None
+        int: The leftover cash from fractional sahres after modifying each
+            position.
         """
+        total_leftover_cash = 0
+
         for split in splits:
             sid = split[0]
             if sid in self.positions:
@@ -234,7 +237,9 @@ class PositionTracker(object):
                 position = self.positions[sid]
                 leftover_cash = position.handle_split(sid, split[1])
                 self._update_asset(split[0])
-                return leftover_cash
+                total_leftover_cash += leftover_cash
+
+        return total_leftover_cash
 
     def earn_dividends(self, dividends, stock_dividends):
         """
