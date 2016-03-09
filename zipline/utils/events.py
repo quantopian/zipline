@@ -413,11 +413,8 @@ class BeforeClose(StatelessRule):
         ):
             self.calculate_dates(dt, env)
 
-        if self._period_start < dt <= self._period_end:
-            # We're within the interval specified.
-            return True
-        else:
-            return False
+        # Return true if we're within the interval specified.
+        return self._period_start < dt <= self._period_end
 
 
 class NotHalfDay(StatelessRule):
