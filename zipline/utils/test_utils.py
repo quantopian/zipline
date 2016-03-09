@@ -6,6 +6,7 @@ from itertools import (
     count,
     product,
 )
+from nose.tools import nottest
 import operator
 import os
 import shutil
@@ -883,6 +884,7 @@ def parameter_space(**params):
     return decorator
 
 
+@nottest
 def make_test_handler(testcase, *args, **kwargs):
     """
     Returns a TestHandler which will be used by the given testcase. This
