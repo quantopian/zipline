@@ -240,7 +240,7 @@ class EventRule(six.with_metaclass(ABCMeta)):
 
 class StatelessRule(EventRule):
     """
-    A stateless rule has no state.
+    A stateless rule has no observable side effects.
     This is reentrant and will always give the same result for the
     same datetime.
     Because these are pure, they can be composed to create new rules.
@@ -336,28 +336,38 @@ class AfterOpen(StatelessRule):
             datetime.timedelta(minutes=1),  # Defaults to the first minute.
         )
 
-        self._next_period_start = None
-        self._next_period_end = None
+        self._period_start = None
+        self._period_end = None
+        self._period_close = None
 
         self._one_minute = datetime.timedelta(minutes=1)
 
     def calculate_dates(self, dt, env):
         # given a dt, find that day's open and period end (open + offset)
-        self._next_period_start = env.get_open_and_close(dt)[0]
-        self._next_period_end = \
-            self._next_period_start + self.offset - self._one_minute
+        self._period_start, self._period_close = env.get_open_and_close(dt)
+        self._period_end = \
+            self._period_start + self.offset - self._one_minute
 
     def should_trigger(self, dt, env):
-        if self._next_period_start is None:
+        # There are two reasons why we might want to recalculate the dates.
+        # One is the first time we ever call should_trigger, when
+        # self._period_start is none. The second is when we're on a new day,
+        # and need to recalculate the dates. For performance reasons, we rely
+        # on the fact that our clock only ever ticks forward, since it's
+        # cheaper to do dt1 <= dt2 than dt1.date() != dt2.date(). This means
+        # that we will NOT correctly recognize a new date if we go backwards
+        # in time(which should never happen in a simulation, or in a live
+        # trading environment)
+        if (
+            self._period_start is None or
+            self._period_close <= dt
+        ):
             self.calculate_dates(dt, env)
 
-        if self._next_period_start <= dt < self._next_period_end:
+        if self._period_start <= dt < self._period_end:
             # haven't made it past the offset yet
             return False
         else:
-            if dt >= self._next_period_end:
-                self.calculate_dates(env.next_trading_day(dt), env)
-
             return True
 
 
@@ -375,28 +385,39 @@ class BeforeClose(StatelessRule):
             datetime.timedelta(minutes=1),  # Defaults to the last minute.
         )
 
-        self._next_period_start = None
-        self._next_period_end = None
+        self._period_start = None
+        self._period_end = None
 
         self._one_minute = datetime.timedelta(minutes=1)
 
     def calculate_dates(self, dt, env):
         # given a dt, find that day's close and period start (close - offset)
-        self._next_period_end = env.get_open_and_close(dt)[1]
-        self._next_period_start = \
-            self._next_period_end - self.offset - self._one_minute
+        self._period_end = env.get_open_and_close(dt)[1]
+        self._period_start = \
+            self._period_end - self.offset - self._one_minute
+        self._period_close = self._period_end
 
     def should_trigger(self, dt, env):
-        if self._next_period_start is None:
+        # There are two reasons why we might want to recalculate the dates.
+        # One is the first time we ever call should_trigger, when
+        # self._period_start is none. The second is when we're on a new day,
+        # and need to recalculate the dates. For performance reasons, we rely
+        # on the fact that our clock only ever ticks forward, since it's
+        # cheaper to do dt1 <= dt2 than dt1.date() != dt2.date(). This means
+        # that we will NOT correctly recognize a new date if we go backwards
+        # in time(which should never happen in a simulation, or in a live
+        # trading environment)
+        if (
+            self._period_start is None or
+            self._period_close <= dt
+        ):
             self.calculate_dates(dt, env)
 
-        if dt <= self._next_period_start:
-            return False
-        else:
-            if dt > self._next_period_end:
-                self.calculate_dates(env.next_trading_day(dt), env)
-
+        if self._period_start < dt <= self._period_end:
+            # We're within the interval specified.
             return True
+        else:
+            return False
 
 
 class NotHalfDay(StatelessRule):
