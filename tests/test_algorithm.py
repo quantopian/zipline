@@ -25,19 +25,8 @@ import numpy as np
 import pandas as pd
 from contextlib2 import ExitStack
 
+from zipline.algorithm import TradingAlgorithm
 from zipline.api import FixedSlippage
-from zipline.assets import Equity, Future
-from zipline.utils.api_support import ZiplineAPI
-from zipline.utils.control_flow import nullctx
-from zipline.utils.test_utils import (
-    setup_logger,
-    teardown_logger,
-    make_trade_panel_for_asset_info,
-    parameter_space,
-)
-import zipline.utils.factory as factory
-import zipline.utils.simfactory as simfactory
-
 from zipline.errors import (
     OrderDuringInitialize,
     RegisterTradingControlPostInit,
@@ -46,6 +35,18 @@ from zipline.errors import (
     SymbolNotFound,
     RootSymbolNotFound,
     UnsupportedDatetimeFormat,
+)
+from zipline.assets import Equity, Future
+from zipline.finance.execution import LimitOrder
+from zipline.finance.commission import PerShare
+from zipline.finance.order import ORDER_STATUS
+from zipline.finance.trading import SimulationParameters, TradingEnvironment
+from zipline.protocol import DATASOURCE_TYPE
+from zipline.sources import (
+    SpecificEquityTrades,
+    DataFrameSource,
+    DataPanelSource,
+    RandomWalkSource,
 )
 from zipline.test_algorithms import (
     access_account_in_init,
@@ -85,30 +86,24 @@ from zipline.test_algorithms import (
     record_float_magic,
     record_variables,
 )
-from zipline.utils.context_tricks import CallbackManager
-import zipline.utils.events
-from zipline.utils.test_utils import (
+from zipline.testing import (
     assert_single_position,
     drain_zipline,
     make_jagged_equity_info,
     tmp_asset_finder,
     to_utc,
+    setup_logger,
+    teardown_logger,
+    make_trade_panel_for_asset_info,
+    parameter_space,
 )
-
-from zipline.sources import (SpecificEquityTrades,
-                             DataFrameSource,
-                             DataPanelSource,
-                             RandomWalkSource)
-
-from zipline.finance.execution import LimitOrder
-from zipline.finance.trading import SimulationParameters
-from zipline.finance.order import ORDER_STATUS
-from zipline.utils.api_support import set_algo_instance
+from zipline.utils.api_support import ZiplineAPI, set_algo_instance
+from zipline.utils.context_tricks import CallbackManager
+from zipline.utils.control_flow import nullctx
+import zipline.utils.events
 from zipline.utils.events import DateRuleFactory, TimeRuleFactory, Always
-from zipline.algorithm import TradingAlgorithm
-from zipline.protocol import DATASOURCE_TYPE
-from zipline.finance.trading import TradingEnvironment
-from zipline.finance.commission import PerShare
+import zipline.utils.factory as factory
+import zipline.utils.simfactory as simfactory
 from zipline.utils.tradingcalendar import trading_day, trading_days
 
 # Because test cases appear to reuse some resources.

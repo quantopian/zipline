@@ -26,16 +26,17 @@ import pytz
 from zipline.finance import trading
 from zipline.algorithm import TradingAlgorithm
 from zipline.finance import slippage
-from zipline.utils import factory
-from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.test_utils import (
+from zipline.protocol import (
+    Event,
+    DATASOURCE_TYPE,
+)
+from zipline.testing import (
     setup_logger,
     teardown_logger
 )
-from zipline.protocol import (
-    Event,
-    DATASOURCE_TYPE
-)
+from zipline.utils import factory
+from zipline.utils.factory import create_simulation_parameters
+
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90

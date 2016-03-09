@@ -3,7 +3,8 @@ Tests for our testing utilities.
 """
 from itertools import product
 from unittest import TestCase
-from zipline.utils.test_utils import parameter_space
+
+from zipline.testing import parameter_space
 
 
 class TestParameterSpace(TestCase):

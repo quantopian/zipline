@@ -28,7 +28,7 @@ from zipline.finance.execution import (
 )
 from zipline.sources.test_source import create_trade
 
-from zipline.utils.test_utils import(
+from zipline.testing import(
     setup_logger,
     teardown_logger,
 )

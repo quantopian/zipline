@@ -72,7 +72,7 @@ from zipline.errors import (
     AssetDBImpossibleDowngrade,
 )
 from zipline.finance.trading import TradingEnvironment, noop_load
-from zipline.utils.test_utils import (
+from zipline.testing import (
     all_subindices,
     make_commodity_future_info,
     make_rotating_equity_info,

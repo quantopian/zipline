@@ -16,18 +16,19 @@ from zipline.pipeline import Pipeline
 from zipline.pipeline.common import TS_FIELD_NAME
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
-from zipline.utils.numpy_utils import (
-    NaTD,
-    make_datetime64D
-)
-from zipline.utils.pandas_utils import explode
-from zipline.utils.test_utils import (
+from zipline.testing import (
     ExplodingObject,
     gen_calendars,
     make_simple_equity_info,
     num_days_in_range,
     tmp_asset_finder,
 )
+
+from zipline.utils.numpy_utils import (
+    NaTD,
+    make_datetime64D
+)
+from zipline.utils.pandas_utils import explode
 from zipline.utils.tradingcalendar import trading_day
 
 

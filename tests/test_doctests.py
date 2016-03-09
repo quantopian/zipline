@@ -3,6 +3,7 @@ import sys
 import doctest
 from unittest import TestCase
 
+from zipline import testing
 from zipline.lib import adjustment
 from zipline.pipeline import (
     engine,
@@ -16,7 +17,6 @@ from zipline.utils import (
     memoize,
     numpy_utils,
     preprocess,
-    test_utils,
 )
 
 
@@ -66,8 +66,8 @@ class DoctestTestCase(TestCase):
     def test_memoize_docs(self):
         self._check_docs(memoize)
 
-    def test_test_utils_docs(self):
-        self._check_docs(test_utils)
+    def test_testing_docs(self):
+        self._check_docs(testing)
 
     def test_preprocess_docs(self):
         self._check_docs(preprocess)

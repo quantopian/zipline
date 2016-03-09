@@ -38,7 +38,7 @@ from zipline.utils.numpy_utils import (
     int64_dtype,
     repeat_last_axis,
 )
-from zipline.utils.test_utils import (
+from zipline.testing import (
     tmp_asset_finder,
     make_simple_equity_info,
 )

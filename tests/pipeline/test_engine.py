@@ -62,13 +62,13 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
-from zipline.utils.memoize import lazyval
-from zipline.utils.test_utils import (
+from zipline.testing import (
     make_rotating_equity_info,
     make_simple_equity_info,
     product_upper_triangle,
     check_arrays,
 )
+from zipline.utils.memoize import lazyval
 
 
 class RollingSumDifference(CustomFactor):

@@ -12,23 +12,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import pytz
-import numpy as np
-import pandas as pd
-import talib
-
 from datetime import timedelta, datetime
 from unittest import TestCase, skip
 
-from zipline.utils.test_utils import setup_logger, teardown_logger
+import numpy as np
+import pandas as pd
+import pytz
+import talib
 
-import zipline.utils.factory as factory
 from zipline.finance.trading import TradingEnvironment
-
 from zipline.test_algorithms import TALIBAlgorithm
-
+from zipline.testing import setup_logger, teardown_logger
 import zipline.transforms.ta as ta
+import zipline.utils.factory as factory
 
 
 class TestTALIB(TestCase):

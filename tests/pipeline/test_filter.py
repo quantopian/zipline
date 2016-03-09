@@ -23,9 +23,8 @@ from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, TermGraph
-from zipline.utils.test_utils import check_arrays
+from zipline.testing import check_arrays
 from zipline.utils.numpy_utils import float64_dtype
-
 from .base import BasePipelineTestCase, with_default_shape
 
 
