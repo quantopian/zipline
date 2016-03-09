@@ -245,16 +245,6 @@ class PerformanceTracker(object):
 
         return _dict
 
-    def copy_state_from(self, other_perf_tracker):
-        self.all_benchmark_returns = other_perf_tracker.all_benchmark_returns
-
-        if other_perf_tracker.position_tracker:
-            self.position_tracker._unpaid_dividends = \
-                other_perf_tracker.position_tracker._unpaid_dividends
-
-            self.position_tracker._unpaid_stock_dividends = \
-                other_perf_tracker.position_tracker._unpaid_stock_dividends
-
     def process_transaction(self, transaction):
         self.txn_count += 1
         self.cumulative_performance.handle_execution(transaction)
