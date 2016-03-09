@@ -158,10 +158,13 @@ cdef class BarData:
         the current trade bar.  If there is no current trade bar, NaN is
         returned.
         """
-        if isinstance(assets, Asset):
+        multiple_assets = self._is_iterable(assets)
+        multiple_fields = self._is_iterable(fields)
+
+        if not multiple_assets:
             asset = assets
 
-            if isinstance(fields, str):
+            if not multiple_fields:
                 field = fields
 
                 # return scalar value
@@ -183,7 +186,7 @@ cdef class BarData:
                     for field in fields
                 }, index=fields, name=assets.symbol)
         else:
-            if isinstance(fields, str):
+            if not multiple_fields:
                 field = fields
 
                 # assume assets is iterable
@@ -213,6 +216,9 @@ cdef class BarData:
                     data[field] = series
 
                 return pd.DataFrame(data)
+
+    cdef _is_iterable(self, obj):
+        return hasattr(obj, '__iter__') and not isinstance(obj, str)
 
     def can_trade(self, assets):
         """

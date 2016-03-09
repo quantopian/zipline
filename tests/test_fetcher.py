@@ -417,12 +417,8 @@ def initialize(context):
     context.stock = sid(24)
 
 def handle_data(context, data):
-    palladium = data['palladium']
-    aapl = data[context.stock]
-    if 'price' in palladium:
-        record(palladium=palladium.price)
-    if 'price' in aapl:
-        record(aapl=aapl.price)
+    record(palladium=data.current("palladium", "price"))
+    record(aapl=data.current(context.stock, "price"))
         """)
 
             np.testing.assert_array_equal([24] * 251, results["aapl"])
