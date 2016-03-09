@@ -156,7 +156,7 @@ def initialize(context):
     fetch_csv('https://fake.urls.com/aapl_minute_csv_data.csv')
 
 def handle_data(context, data):
-    record(aapl_signal=data[sid(24)].signal)
+    record(aapl_signal=data.current(sid(24), "signal"))
 """, sim_params=sim_params, data_frequency="minute", env=self.env)
 
         # manually setting data portal and getting generator because we need
@@ -223,46 +223,12 @@ def initialize(context):
     context.stocks = [sid(3766), sid(25317)]
 
 def handle_data(context, data):
-    record(ibm_signal=data[sid(3766)]["signal"])
-    record(dell_signal=data[sid(25317)]["signal"])
-
-    assert "signal" not in data[sid(24)]
+    record(ibm_signal=data.current(sid(3766), "signal"))
+    record(dell_signal=data.current(sid(25317), "signal"))
     """)
 
         self.assertEqual(5, results["ibm_signal"].iloc[-1])
         self.assertEqual(5, results["dell_signal"].iloc[-1])
-
-    def test_fetch_csv_with_nomatch_symbol(self):
-        """
-        The algorithm is loading data with a symbol column
-        that contains a symbol that doesn't match anything in
-        our database. Letting these types events through
-        creates complications for the order method. So we drop these
-        values, instead of just letting the securities roll through.
-
-        This test also ensures that if a given symbol has *multiple*
-        matches, but *none* of the matches are inside the test range,
-        that none of them are found (nor does the algo crash)
-        """
-        results = self.run_algo(
-            """
-from zipline.api import fetch_csv, sid, record
-
-def initialize(context):
-    fetch_csv('https://fake.urls.com/nomatch_csv_data.csv',
-              mask=True)
-    context.stocks = [sid(3766), sid(25317)]
-
-def handle_data(context, data):
-    if "signal" in data[sid(3766)]:
-        record(ibm_signal=data[sid(3766)]["signal"])
-
-    if "signal" in data[sid(25317)]:
-        record(dell_signal=data[sid(25317)]["signal"])
-            """)
-
-        self.assertNotIn("dell_signal", results.columns)
-        self.assertNotIn("ibm_signal", results.columns)
 
     def test_fetch_csv_with_pure_signal_file(self):
         results = self.run_algo(
@@ -282,7 +248,8 @@ def initialize(context):
     context.stocks = [sid(3766), sid(25317)]
 
 def handle_data(context, data):
-    cur_cpi = data['urban']['cpi']
+
+    cur_cpi = data.current("urban", "cpi")
     record(cpi=cur_cpi)
             """)
 
@@ -304,9 +271,9 @@ def initialize(context):
 
 def handle_data(context, data):
     record(
-        signal=data[sid(24)]['signal'],
-        scaled=data[sid(24)]['scaled'],
-        price=data[sid(24)].price)
+        signal=data.current(sid(24), "signal"),
+        scaled=data.current(sid(24), "scaled"),
+        price=data.current(sid(24), "price"))
         """)
 
         self.assertEqual(5, results["signal"][-1])
@@ -328,11 +295,10 @@ def initialize(context):
             mask=True)
 
 def handle_data(context, data):
-    if 'signal' in data[sid(24)]:
-        record(
-            signal=data[sid(24)]['signal'],
-            scaled=data[sid(24)]['scaled'],
-            price=data[sid(24)].price)
+    record(
+        signal=data.current(sid(24),"signal"),
+        scaled=data.current(sid(24), "scaled"),
+        price=data.current(sid(24), "price"))
             """
         )
 
@@ -364,9 +330,15 @@ def initialize(context):
 
 def handle_data(context, data):
     if {should_have_data}:
-        assert 'cpi' in data['urban']
+        try:
+            data.current("urban", "cpi")
+        except (KeyError, ValueError):
+            assert False
     else:
-        assert 'cpi' not in data['urban']
+        try:
+            data.current("urban", "cpi")
+        except (KeyError, ValueError):
+            assert True
         """
 
         results = self.run_algo(
