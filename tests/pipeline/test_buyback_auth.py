@@ -19,15 +19,20 @@ from zipline.pipeline.common import(
     PREVIOUS_BUYBACK_SHARE_COUNT,
     SHARE_COUNT_FIELD_NAME,
     SID_FIELD_NAME,
-    TS_FIELD_NAME)
-from zipline.pipeline.data import (CashBuybackAuthorizations,
-                                   ShareBuybackAuthorizations)
+    TS_FIELD_NAME
+)
+from zipline.pipeline.data import (
+    CashBuybackAuthorizations,
+    ShareBuybackAuthorizations
+)
 from zipline.pipeline.factors.events import (
     BusinessDaysSinceCashBuybackAuth,
     BusinessDaysSinceShareBuybackAuth
 )
-from zipline.pipeline.loaders.buyback_auth import \
-    CashBuybackAuthorizationsLoader, ShareBuybackAuthorizationsLoader
+from zipline.pipeline.loaders.buyback_auth import (
+    CashBuybackAuthorizationsLoader,
+    ShareBuybackAuthorizationsLoader
+)
 from zipline.pipeline.loaders.blaze import (
     BlazeCashBuybackAuthorizationsLoader,
     BlazeShareBuybackAuthorizationsLoader,

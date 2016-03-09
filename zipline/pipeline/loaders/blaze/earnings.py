@@ -17,7 +17,7 @@ class BlazeEarningsCalendarLoader(BlazeEventsLoader):
     expr : Expr
         The expression representing the data to load.
     resources : dict, optional
-        Mapping from the atomic terms of ``expr`` to actual data resources.
+        Mapping from the loadable terms of ``expr`` to actual data resources.
     odo_kwargs : dict, optional
         Extra keyword arguments to pass to odo when executing the expression.
     data_query_time : time, optional

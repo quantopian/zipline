@@ -6,6 +6,7 @@ from itertools import (
     count,
     product,
 )
+from nose.tools import nottest
 import operator
 import os
 import shutil
@@ -13,7 +14,7 @@ from string import ascii_uppercase
 import tempfile
 from bcolz import ctable
 
-from logbook import FileHandler
+from logbook import FileHandler, TestHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
@@ -1339,3 +1340,26 @@ def create_empty_splits_mergers_frame():
         index=pd.DatetimeIndex([]),
         columns=['effective_date', 'ratio', 'sid'],
     )
+
+
+@nottest
+def make_test_handler(testcase, *args, **kwargs):
+    """
+    Returns a TestHandler which will be used by the given testcase. This
+    handler can be used to test log messages.
+
+    Parameters
+    ----------
+    testcase: unittest.TestCase
+        The test class in which the log handler will be used.
+    *args, **kwargs
+        Forwarded to the new TestHandler object.
+
+    Returns
+    -------
+    handler: logbook.TestHandler
+        The handler to use for the test case.
+    """
+    handler = TestHandler(*args, **kwargs)
+    testcase.addCleanup(handler.close)
+    return handler

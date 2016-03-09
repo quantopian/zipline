@@ -765,8 +765,8 @@ def adjustments_from_deltas_with_sids(dense_dates,
                                       column_name,
                                       asset_idx,
                                       deltas):
-    """Collect all the adjustments that occur in a dataset that does not
-    have a sid column.
+    """Collect all the adjustments that occur in a dataset that has a sid
+    column.
 
     Parameters
     ----------
@@ -953,6 +953,13 @@ class BlazeLoader(dict):
             )
         )
 
+        # It's not guaranteed that assets returned by the engine will contain
+        # all sids from the deltas table; filter out such mismatches here.
+        if not materialized_deltas.empty and have_sids:
+            materialized_deltas = materialized_deltas[
+                materialized_deltas[SID_FIELD_NAME].isin(assets)
+            ]
+
         if data_query_time is not None:
             for m in (materialized_expr, materialized_deltas):
                 m.loc[:, TS_FIELD_NAME] = m.loc[
@@ -1059,7 +1066,7 @@ def bind_expression_to_resources(expr, resources):
     expr : bz.Expr
         The expression to which we want to bind resources.
     resources : dict[bz.Symbol -> any]
-        Mapping from the atomic terms of ``expr`` to actual data resources.
+        Mapping from the loadable terms of ``expr`` to actual data resources.
 
     Returns
     -------

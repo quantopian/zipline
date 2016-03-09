@@ -19,7 +19,7 @@ from zipline.pipeline.mixins import (
     PositiveWindowLengthMixin,
     SingleInputMixin,
 )
-from zipline.pipeline.term import CompositeTerm
+from zipline.pipeline.term import ComputableTerm
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     FILTER_BINOPS,
@@ -112,7 +112,7 @@ def unary_operator(op):
     return unary_operator
 
 
-class Filter(CompositeTerm):
+class Filter(ComputableTerm):
     """
     Pipeline API expression producing boolean-valued outputs.
     """

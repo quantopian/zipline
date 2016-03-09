@@ -8,7 +8,7 @@ from numpy import dtype as dtype_class
 from six import with_metaclass
 from zipline.errors import (
     DTypeNotSpecified,
-    InputTermNotAtomic,
+    WindowedInputToWindowedTerm,
     NotDType,
     TermInputsNotSpecified,
     UnsupportedDType,
@@ -268,26 +268,32 @@ class Term(with_metaclass(ABCMeta, object)):
     @abstractproperty
     def inputs(self):
         """
-        A tuple of other Terms that this Term requires for computation.
+        A tuple of other Terms needed as direct inputs for this Term.
         """
-        raise NotImplementedError()
+        raise NotImplementedError('inputs')
+
+    @abstractproperty
+    def windowed(self):
+        """
+        Boolean indicating whether this term is a trailing-window computation.
+        """
+        raise NotImplementedError('windowed')
 
     @abstractproperty
     def mask(self):
         """
-        A 2D Filter representing asset/date pairs to include while
+        A Filter representing asset/date pairs to include while
         computing this Term. (True means include; False means exclude.)
         """
-        raise NotImplementedError()
+        raise NotImplementedError('mask')
 
     @lazyval
     def dependencies(self):
+        """
+        A tuple containing all terms that must be computed before this term can
+        be loaded or computed.
+        """
         return self.inputs + (self.mask,)
-
-    @lazyval
-    def atomic(self):
-        return not any(dep for dep in self.dependencies
-                       if dep is not AssetExists())
 
 
 class AssetExists(Term):
@@ -310,12 +316,29 @@ class AssetExists(Term):
     inputs = ()
     dependencies = ()
     mask = None
+    windowed = False
 
     def __repr__(self):
         return "AssetExists()"
 
 
-class CompositeTerm(Term):
+class LoadableTerm(Term):
+    """
+    A Term that should be loaded from an external resource by a PipelineLoader.
+
+    This is the base class for :class:`zipline.pipeline.data.BoundColumn`.
+    """
+    inputs = ()
+    windowed = False
+
+
+class ComputableTerm(Term):
+    """
+    A Term that should be computed from a tuple of inputs.
+
+    This is the base class for :class:`zipline.pipeline.Factor`,
+    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Factor`.
+    """
     inputs = NotSpecified
     window_length = NotSpecified
     mask = NotSpecified
@@ -344,20 +367,24 @@ class CompositeTerm(Term):
         if window_length is NotSpecified:
             window_length = cls.window_length
 
-        return super(CompositeTerm, cls).__new__(cls, inputs=inputs, mask=mask,
-                                                 window_length=window_length,
-                                                 *args, **kwargs)
+        return super(ComputableTerm, cls).__new__(
+            cls,
+            inputs=inputs,
+            mask=mask,
+            window_length=window_length,
+            *args, **kwargs
+        )
 
     def _init(self, inputs, window_length, mask, *args, **kwargs):
         self.inputs = inputs
         self.window_length = window_length
         self.mask = mask
-        return super(CompositeTerm, self)._init(*args, **kwargs)
+        return super(ComputableTerm, self)._init(*args, **kwargs)
 
     @classmethod
     def static_identity(cls, inputs, window_length, mask, *args, **kwargs):
         return (
-            super(CompositeTerm, cls).static_identity(*args, **kwargs),
+            super(ComputableTerm, cls).static_identity(*args, **kwargs),
             inputs,
             window_length,
             mask,
@@ -378,16 +405,18 @@ class CompositeTerm(Term):
 
         if self.window_length:
             for child in self.inputs:
-                if not child.atomic:
-                    raise InputTermNotAtomic(parent=self, child=child)
+                if child.windowed:
+                    raise WindowedInputToWindowedTerm(parent=self, child=child)
 
-        return super(CompositeTerm, self)._validate()
+        return super(ComputableTerm, self)._validate()
 
     def _compute(self, inputs, dates, assets, mask):
         """
         Subclasses should implement this to perform actual computation.
-        This is `_compute` rather than just `compute` because `compute` is
-        reserved for user-supplied functions in CustomFactor.
+
+        This is named ``_compute`` rather than just ``compute`` because
+        ``compute`` is reserved for user-supplied functions in
+        CustomFilter/CustomFactor/CustomClassifier.
         """
         raise NotImplementedError()
 

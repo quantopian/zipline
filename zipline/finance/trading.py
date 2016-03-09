@@ -68,6 +68,7 @@ class TradingEnvironment(object):
         load=None,
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
+        min_date=None,
         max_date=None,
         env_trading_calendar=tradingcalendar,
         asset_db_path=':memory:'
@@ -82,10 +83,7 @@ class TradingEnvironment(object):
         # `tc_td` is short for "trading calendar trading days"
         tc_td = env_trading_calendar.trading_days
 
-        if max_date:
-            self.trading_days = tc_td[tc_td <= max_date].copy()
-        else:
-            self.trading_days = tc_td.copy()
+        self.trading_days = tc_td[tc_td.slice_indexer(min_date, max_date)]
 
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
