@@ -818,7 +818,8 @@ class TradingAlgorithm(object):
                     asset.symbol, asset.end_date
                 )
             )
-        last_price = self.trading_client.current_data[asset].price
+
+        last_price = self.trading_client.current_data.current(asset, "price")
 
         if np.isnan(last_price):
             raise CannotOrderDelistedAsset(
