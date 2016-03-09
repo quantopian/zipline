@@ -8,9 +8,15 @@ from six.moves import zip
 from zipline.utils.numpy_utils import NaTns
 
 
-def next_date_frame(dates, events_by_sid, event_date_field_name):
+def next_event_frame(events_by_sid,
+                     dates,
+                     missing_value,
+                     field_dtype,
+                     event_date_field_name,
+                     return_field_name):
     """
-    Make a DataFrame representing the simulated next known date for an event.
+    Make a DataFrame representing the simulated next known dates or values
+    for an event.
 
     Parameters
     ----------
@@ -36,28 +42,36 @@ def next_date_frame(dates, events_by_sid, event_date_field_name):
     --------
     previous_date_frame
     """
-    cols = {
+    date_cols = {
         equity: np.full_like(dates, NaTns) for equity in events_by_sid
     }
+    value_cols = {
+        equity: np.full(len(dates), missing_value, dtype=field_dtype) for equity
+        in
+        events_by_sid
+    }
+
     raw_dates = dates.values
     for equity, df in iteritems(events_by_sid):
         event_dates = df[event_date_field_name]
-        data = cols[equity]
+        values = df[return_field_name]
+        data = date_cols[equity]
         if not event_dates.index.is_monotonic_increasing:
             event_dates = event_dates.sort_index()
 
         # Iterate over the raw Series values, since we're comparing against
         # numpy arrays anyway.
-        iterkv = zip(event_dates.index.values, event_dates.values)
-        for knowledge_date, event_date in iterkv:
+        iterkv = zip(event_dates.index.values, event_dates.values, values)
+        for knowledge_date, event_date, value in iterkv:
             date_mask = (
                 (knowledge_date <= raw_dates) &
                 (raw_dates <= event_date)
             )
             value_mask = (event_date <= data) | (data == NaTns)
-            data[date_mask & value_mask] = event_date
-
-    return pd.DataFrame(index=dates, data=cols)
+            data_indeces = np.where(date_mask & value_mask)
+            data[data_indeces] = event_date
+            value_cols[equity][data_indeces] = value
+    return pd.DataFrame(index=dates, data=value_cols)
 
 
 def previous_event_frame(events_by_sid,
