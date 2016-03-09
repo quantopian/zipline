@@ -393,7 +393,8 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
             new_shares = (.001 * self.portfolio.portfolio_value) / price
         elif isinstance(self.sid(0), Future):
             new_shares = (.001 * self.portfolio.portfolio_value) / \
-                (data.current(sid(0), "price") * self.sid(0).contract_multiplier)
+                (data.current(sid(0), "price") *
+                    self.sid(0).contract_multiplier)
 
         new_shares = int(round_if_near_integer(new_shares))
         self.target_shares += new_shares
