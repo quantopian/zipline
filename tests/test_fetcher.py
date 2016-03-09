@@ -35,7 +35,6 @@ from .resources.fetcher_inputs.fetcher_test_data import (
     IBM_CSV_DATA,
     ANNUAL_AAPL_CSV_DATA,
     AAPL_IBM_CSV_DATA,
-    NOMATCH_CSV_DATA,
     CPIAUCSL_DATA,
     PALLADIUM_DATA,
     FETCHER_UNIVERSE_DATA,
@@ -56,9 +55,6 @@ class FetcherTestCase(TestCase):
         responses.add(responses.GET,
                       'https://fake.urls.com/multi_signal_csv_data.csv',
                       body=MULTI_SIGNAL_CSV_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/nomatch_csv_data.csv',
-                      body=NOMATCH_CSV_DATA, content_type='text/csv')
         responses.add(responses.GET,
                       'https://fake.urls.com/cpiaucsl_data.csv',
                       body=CPIAUCSL_DATA, content_type='text/csv')
