@@ -1,5 +1,6 @@
 import warnings
 from unittest import TestCase
+from mock import patch
 import pandas as pd
 from testfixtures import TempDirectory
 
@@ -9,6 +10,7 @@ from zipline.data.minute_bars import BcolzMinuteBarWriter, \
     US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
+from zipline.protocol import BarData
 from zipline.utils.test_utils import write_minute_data_for_asset, \
     create_daily_df_for_asset, DailyBarWriterFromDataFrames
 from zipline.zipline_warnings import ZiplineDeprecationWarning
@@ -148,6 +150,55 @@ class TestAPIShim(TestCase):
             env=cls.env,
             algo_filename=filename
         )
+
+    def test_old_new_data_api_paths(self):
+        """
+        Test that the new and old data APIs hit the same code paths.
+
+        We want to ensure that the old data API(data[sid(N)].field)
+        and the new data API(data.current(sid(N), field) hit the same
+        code paths on the DataPortal.
+        """
+        test_minute = self.env.market_minutes_for_day(
+            self.trading_days[0]
+        )[1]
+        bar_data = BarData(self.data_portal, lambda: test_minute, "minute")
+        ohlcvp_fields = [
+            "open",
+            "high",
+            "low"
+            "close",
+            "volume",
+            "price",
+        ]
+        patch_meth = 'zipline.data.data_portal.DataPortal.get_spot_value'
+
+        def assert_spot_value_called(fun, field, ts):
+            """
+            Assert that spot_value was called during the execution of fun.
+
+            Takes in a function fun, a timestamp ts, and a string field.
+            """
+            with patch(patch_meth) as gsv:
+                fun()
+                gsv.assert_called_with(
+                    self.asset1,
+                    field,
+                    test_minute,
+                    'minute'
+                )
+
+        for field in ohlcvp_fields:
+            assert_spot_value_called(
+                lambda: getattr(bar_data[self.asset1], field),
+                field,
+                test_minute,
+            )
+            assert_spot_value_called(
+                lambda: bar_data.current(self.asset1, field),
+                field,
+                test_minute,
+            )
 
     def test_iterate_data(self):
         with warnings.catch_warnings(record=True) as w:
