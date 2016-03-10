@@ -284,24 +284,6 @@ def handle_data(algo, data):
             with ZiplineAPI(algo):
                 self.assertIs(sentinel, getattr(zipline.api, name)())
 
-    def test_get_sid(self):
-        algo_text = """
-from zipline.api import sid
-
-def initialize(context):
-    pass
-
-def handle_data(context, data):
-    aapl = data[sid(3)]
-    assert aapl.sid == 3
-"""
-
-        algo = TradingAlgorithm(script=algo_text,
-                                sim_params=self.sim_params,
-                                env=self.env)
-
-        algo.run(self.data_portal)
-
     def test_sid_datetime(self):
         algo_text = """
 from zipline.api import sid, get_datetime
@@ -310,8 +292,8 @@ def initialize(context):
     pass
 
 def handle_data(context, data):
-    aapl = data[sid(1)]
-    assert aapl.datetime == get_datetime()
+    aapl_dt = data.current(sid(1), "last_traded")
+    assert aapl_dt == get_datetime()
 """
 
         algo = TradingAlgorithm(script=algo_text,
@@ -1094,7 +1076,7 @@ def initialize(context):
 def handle_data(context, data):
     if context.incr < context.count:
         order(sid(0), -1000)
-    record(price=data[0].price)
+    record(price=data.current(sid(0), "price"))
 
     context.incr += 1""",
             sim_params=self.sim_params,
@@ -1156,8 +1138,8 @@ def handle_data(context, data):
         # order small lots to be sure the
         # order will fill in a single transaction
         order(sid(0), 5000)
-    record(price=data[0].price)
-    record(volume=data[0].volume)
+    record(price=data.current(sid(0), "price"))
+    record(volume=data.current(sid(0), "volume"))
     record(incr=context.incr)
     context.incr += 1
     """.format(commission_line),

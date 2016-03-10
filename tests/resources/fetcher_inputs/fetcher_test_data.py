@@ -140,30 +140,6 @@ ibm,4/1/07,0
 ibm,5/1/07,1
 """.strip()
 
-NOMATCH_CSV_DATA = """
-symbol,date,signal
-nomatch,1/1/06,1
-nomatch,2/1/06,0
-nomatch,3/1/06,0
-nomatch,4/1/06,0
-nomatch,5/1/06,1
-nomatch,6/1/06,1
-nomatch,7/1/06,1
-nomatch,8/1/06,1
-nomatch,9/1/06,0
-nomatch,10/1/06,1
-nomatch,11/1/06,1
-nomatch,12/1/06,5
-nomatch,1/1/07,1
-nomatch,2/1/07,0
-nomatch,3/1/07,1
-nomatch,4/1/07,0
-nomatch,5/1/07,1
-PIRS,1/1/06,1
-PIRS,2/1/06,0
-PIRS,3/1/06,0
-""".strip()
-
 CPIAUCSL_DATA = """
 Date,Value
 2007-12-01,211.445

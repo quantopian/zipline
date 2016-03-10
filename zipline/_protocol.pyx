@@ -139,7 +139,8 @@ cdef class BarData:
         assets : Asset or iterable of Assets
 
         fields : string or iterable of strings.  Valid values are: "price",
-            "last_traded", "open", "high", "low", "close", "volume"
+            "last_traded", "open", "high", "low", "close", "volume", or column
+            names in files read by fetch_csv.
 
         Returns
         -------

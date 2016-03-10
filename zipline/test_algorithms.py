@@ -264,7 +264,8 @@ class TestOrderAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['amount'] == \
                 self.incr, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
         self.incr += 1
         self.order(self.sid(0), 1)
 
@@ -283,8 +284,8 @@ class TestOrderInstantAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['last_sale_price'] == \
                 self.last_price, "Orders was not filled at last price."
         self.incr += 1
-        self.order_value(self.sid(0), data[0].price)
-        self.last_price = data[0].price
+        self.order_value(self.sid(0), data.current(sid(0), "price"))
+        self.last_price = data.current(sid(0), "price")
 
 
 class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
@@ -309,7 +310,7 @@ class TestOrderStyleForwardingAlgorithm(TradingAlgorithm):
 
             method_to_check = getattr(self, self.method_name)
             method_to_check(self.sid(133),
-                            data[0].price,
+                            data.current(sid(0), "price"),
                             style=StopLimitOrder(10, 10))
 
             assert len(self.blotter.open_orders[self.sid(133)]) == 1
@@ -332,14 +333,18 @@ class TestOrderValueAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['amount'] == \
                 self.incr, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
         self.incr += 2
 
         multiplier = 2.
         if isinstance(self.sid(0), Future):
             multiplier *= self.sid(0).multiplier
 
-        self.order_value(self.sid(0), data[0].price * multiplier)
+        self.order_value(
+            self.sid(0),
+            data.current(sid(0), "price") * multiplier
+        )
 
 
 class TestTargetAlgorithm(TradingAlgorithm):
@@ -355,7 +360,8 @@ class TestTargetAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
         self.target_shares = 10
         self.order_target(self.sid(0), self.target_shares)
 
@@ -377,16 +383,18 @@ class TestOrderPercentAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
 
         self.order_percent(self.sid(0), .001)
 
         if isinstance(self.sid(0), Equity):
-            price = data[0].price
+            price = data.current(sid(0), "price")
             new_shares = (.001 * self.portfolio.portfolio_value) / price
         elif isinstance(self.sid(0), Future):
             new_shares = (.001 * self.portfolio.portfolio_value) / \
-                (data[0].price * self.sid(0).contract_multiplier)
+                (data.current(sid(0), "price") *
+                    self.sid(0).contract_multiplier)
 
         new_shares = int(round_if_near_integer(new_shares))
         self.target_shares += new_shares
@@ -417,9 +425,10 @@ class TestTargetPercentAlgorithm(TradingAlgorithm):
                 "Orders not filled correctly"
 
             assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
 
-        self.sale_price = data[0].price
+        self.sale_price = data.current(sid(0), "price")
         self.order_target_percent(self.sid(0), .002)
         self.ordered = True
 
@@ -440,16 +449,17 @@ class TestTargetValueAlgorithm(TradingAlgorithm):
             assert self.portfolio.positions[0]['amount'] == \
                 self.target_shares, "Orders not filled immediately."
             assert self.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
 
         self.order_target_value(self.sid(0), 20)
-        self.target_shares = np.round(20 / data[0].price)
+        self.target_shares = np.round(20 / data.current(sid(0), "price"))
 
         if isinstance(self.sid(0), Equity):
-            self.target_shares = np.round(20 / data[0].price)
+            self.target_shares = np.round(20 / data.current(sid(0), "price"))
         if isinstance(self.sid(0), Future):
             self.target_shares = np.round(
-                20 / (data[0].price * self.sid(0).multiplier))
+                20 / (data.current(sid(0), "price") * self.sid(0).multiplier))
 
 
 class FutureFlipAlgo(TestAlgorithm):
@@ -756,7 +766,8 @@ def handle_data_api(context, data):
         assert context.portfolio.positions[0]['amount'] == \
             context.incr, "Orders not filled immediately."
         assert context.portfolio.positions[0]['last_sale_price'] == \
-            data[0].price, "Orders not filled at current price."
+            data.current(sid(0), "price"), \
+            "Orders not filled at current price."
     context.incr += 1
     order(sid(0), 1)
 
@@ -792,7 +803,8 @@ def handle_data(context, data):
         assert context.portfolio.positions[0]['amount'] == \
                 context.incr, "Orders not filled immediately."
         assert context.portfolio.positions[0]['last_sale_price'] == \
-                data[0].price, "Orders not filled at current price."
+                data.current(sid(0), "price"), \
+                "Orders not filled at current price."
     context.incr += 1
     order(sid(0), 1)
 
