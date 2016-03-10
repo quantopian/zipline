@@ -8,7 +8,7 @@ import numpy as np
 from zipline.finance.trading import TradingEnvironment, noop_load
 from zipline.history.history import HistorySpec
 from zipline.protocol import BarData
-from zipline.utils.test_utils import to_utc
+from zipline.testing import to_utc
 
 _cases_env = TradingEnvironment(load=noop_load)
 

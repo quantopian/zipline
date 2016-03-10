@@ -16,40 +16,33 @@
 """
 Tests for the zipline.finance package
 """
+from datetime import datetime, timedelta
 import itertools
 import operator
-
-import pytz
-
 from unittest import TestCase
-from datetime import datetime, timedelta
 
-import numpy as np
-import pandas as pd
 
 from nose.tools import timed
-
+import numpy as np
+import pandas as pd
+import pytz
 from six.moves import range
 
+from zipline.finance.blotter import Blotter
+from zipline.finance.execution import MarketOrder, LimitOrder
+from zipline.finance.trading import TradingEnvironment
+from zipline.finance.performance import PerformanceTracker
+from zipline.finance.trading import SimulationParameters
+from zipline.gens.composites import date_sorted_sources
 import zipline.protocol
 from zipline.protocol import Event, DATASOURCE_TYPE
-
-import zipline.utils.factory as factory
-import zipline.utils.simfactory as simfactory
-
-from zipline.finance.blotter import Blotter
-from zipline.gens.composites import date_sorted_sources
-
-from zipline.finance.trading import TradingEnvironment
-from zipline.finance.execution import MarketOrder, LimitOrder
-from zipline.finance.trading import SimulationParameters
-
-from zipline.finance.performance import PerformanceTracker
-from zipline.utils.test_utils import(
+from zipline.testing import(
     setup_logger,
     teardown_logger,
     assert_single_position
 )
+import zipline.utils.factory as factory
+import zipline.utils.simfactory as simfactory
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90

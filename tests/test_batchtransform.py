@@ -14,28 +14,25 @@
 # limitations under the License.
 
 from collections import deque
+from copy import deepcopy
+from datetime import datetime
+from unittest import TestCase
 
 import pytz
 import numpy as np
 import pandas as pd
 
-from datetime import datetime
-from unittest import TestCase
-
-from zipline.utils.test_utils import setup_logger, teardown_logger
-
-from zipline.sources.data_source import DataSource
-import zipline.utils.factory as factory
-
-from zipline.transforms import batch_transform
-
-from zipline.test_algorithms import (BatchTransformAlgorithm,
-                                     BatchTransformAlgorithmMinute)
-
-from zipline.finance.trading import TradingEnvironment
 from zipline.algorithm import TradingAlgorithm
+from zipline.finance.trading import TradingEnvironment
+from zipline.sources.data_source import DataSource
+from zipline.test_algorithms import (
+    BatchTransformAlgorithm,
+    BatchTransformAlgorithmMinute,
+)
+from zipline.testing import setup_logger, teardown_logger
+from zipline.transforms import batch_transform
+import zipline.utils.factory as factory
 from zipline.utils.tradingcalendar import trading_days
-from copy import deepcopy
 
 
 @batch_transform

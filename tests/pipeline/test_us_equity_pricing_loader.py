@@ -54,7 +54,7 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
 from zipline.errors import WindowLengthTooLong
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
-from zipline.utils.test_utils import (
+from zipline.testing import (
     seconds_to_timestamp,
     str_to_seconds,
 )

@@ -15,9 +15,13 @@
 
 from unittest import TestCase
 
+from nose_parameterized import parameterized
 from six.moves import range
 
-from nose_parameterized import parameterized
+
+from zipline.errors import(
+    BadOrderParameters
+)
 
 from zipline.finance.execution import (
     LimitOrder,
@@ -25,14 +29,9 @@ from zipline.finance.execution import (
     StopLimitOrder,
     StopOrder,
 )
-
-from zipline.utils.test_utils import(
+from zipline.testing import(
     setup_logger,
     teardown_logger,
-)
-
-from zipline.errors import(
-    BadOrderParameters
 )
 
 

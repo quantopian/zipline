@@ -37,9 +37,7 @@ from zipline.pipeline.loaders.blaze import (
     BlazeCashBuybackAuthorizationsLoader,
     BlazeShareBuybackAuthorizationsLoader,
 )
-from zipline.utils.test_utils import (
-    tmp_asset_finder,
-)
+from zipline.testing import tmp_asset_finder
 from .base import EventLoaderCommonMixin, DATE_FIELD_NAME
 
 
