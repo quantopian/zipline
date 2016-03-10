@@ -166,15 +166,31 @@ class Blotter(object):
                     self.cancel(order.id, relay_status=False)
 
                     if warn:
-                        warning_logger.warn(
-                            'Your order for %s shares of %s has been '
-                            'partially filled. %s shares were successfully '
-                            'purchased. The remaining %s shares are being '
-                            'canceled based on the %s policy.' %
-                            (order.amount, order.sid.symbol, order.filled,
-                             order.amount - order.filled,
-                             self.cancel_policy.__class__.__name__),
-                        )
+                        # Message appropriately depending on whether there's
+                        # been a partial fill or not.
+                        if order.filled > 0:
+                            warning_logger.warn(
+                                'Your order for {order_amt} shares of '
+                                '{order_sym} has been partially filled. '
+                                '{order_filled} shares were successfully '
+                                'purchased. {order_failed} shares were not '
+                                'filled by the end of day and '
+                                'were canceled.'.format(
+                                    order_amt=order.amount,
+                                    order_sym=order.sid.symbol,
+                                    order_filled=order.filled,
+                                    order_failed=order.amount - order.filled,
+                                )
+                            )
+                        else:
+                            warning_logger.warn(
+                                'Your order for {order_amt} shares of '
+                                '{order_sym} failed to fill by the end of day '
+                                'and was canceled.'.format(
+                                    order_amt=order.amount,
+                                    order_sym=order.sid.symbol,
+                                )
+                            )
 
     def reject(self, order_id, reason=''):
         """
