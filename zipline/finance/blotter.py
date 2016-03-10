@@ -162,7 +162,8 @@ class Blotter(object):
             warn = self.cancel_policy.warn_on_cancel
 
             for orders_by_sid in itervalues(self.open_orders):
-                for order in orders_by_sid:
+                # So we don't mutate the list as we cancel orders
+                for order in orders_by_sid[:]:
                     self.cancel(order.id, relay_status=False)
 
                     if warn:

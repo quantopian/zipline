@@ -152,19 +152,27 @@ class BlotterTestCase(TestCase):
         blotter = Blotter('minute', self.env.asset_finder,
                           cancel_policy=EODCancel())
 
+        # Make two orders for the same sid, so we can test that we are not
+        # mutating the orders list as we are cancelling orders
         blotter.order(blotter.asset_finder.retrieve_asset(24), 100,
                       MarketOrder())
+        blotter.order(blotter.asset_finder.retrieve_asset(24), -100,
+                      MarketOrder())
 
-        self.assertEqual(len(blotter.new_orders), 1)
-        order_id = blotter.open_orders[24][0].id
+        self.assertEqual(len(blotter.new_orders), 2)
+        order_ids = [order.id for order in blotter.open_orders[24]]
+
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
+        self.assertEqual(blotter.new_orders[1].status, ORDER_STATUS.OPEN)
 
         blotter.execute_cancel_policy(BAR)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
+        self.assertEqual(blotter.new_orders[1].status, ORDER_STATUS.OPEN)
 
         blotter.execute_cancel_policy(DAY_END)
-        order = blotter.orders[order_id]
-        self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
+        for order_id in order_ids:
+            order = blotter.orders[order_id]
+            self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
 
     def test_blotter_never_cancel(self):
         blotter = Blotter('minute', self.env.asset_finder,
