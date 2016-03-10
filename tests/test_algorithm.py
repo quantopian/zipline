@@ -2267,9 +2267,9 @@ class TestOrderCancelation(TestCase):
 
             self.assertEqual(
                 "Your order for 1000 shares of ASSET1 has been partially "
-                "filled. 389 shares were successfully purchased. The "
-                "remaining 611 shares are being canceled based on the "
-                "EODCancel policy.",
+                "filled. 389 shares were successfully purchased. "
+                "611 shares were not filled by the end of day and "
+                "were canceled.",
                 str(warnings[0].message)
             )
 
