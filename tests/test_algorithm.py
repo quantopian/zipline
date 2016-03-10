@@ -47,8 +47,8 @@ from zipline.utils.test_utils import (
     create_data_portal,
     create_data_portal_from_trade_history,
     make_jagged_equity_info,
-    DailyBarWriterFromDataFrames
-)
+    DailyBarWriterFromDataFrames,
+    create_daily_df_for_asset, write_minute_data_for_asset)
 import zipline.utils.factory as factory
 
 from zipline.errors import (
@@ -964,6 +964,201 @@ class TestPositions(TestCase):
         # Verify that positions are empty for all dates.
         empty_positions = daily_stats.positions.map(lambda x: len(x) == 0)
         self.assertTrue(empty_positions.all())
+
+
+class TestBeforeTradingStart(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        cls.tempdir = TempDirectory()
+
+        cls.trading_days = cls.env.days_in_range(
+            start=pd.Timestamp("2016-01-05", tz='UTC'),
+            end=pd.Timestamp("2016-01-07", tz='UTC')
+        )
+
+        equities_data = {}
+        for sid in [1, 2]:
+            equities_data[sid] = {
+                "start_date": cls.trading_days[0],
+                "end_date": cls.trading_days[-1],
+                "symbol": "ASSET{0}".format(sid),
+            }
+
+        cls.env.write_data(equities_data=equities_data)
+
+        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
+        cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
+
+        market_opens = cls.env.open_and_closes.market_open.loc[
+            cls.trading_days]
+
+        minute_writer = BcolzMinuteBarWriter(
+            cls.trading_days[0],
+            cls.tempdir.path,
+            market_opens,
+            US_EQUITIES_MINUTES_PER_DAY
+        )
+
+        for sid in [1, 8554]:
+            write_minute_data_for_asset(
+                cls.env, minute_writer, cls.trading_days[0],
+                cls.trading_days[-1], sid
+            )
+
+        # asset2 only trades every 50 minutes
+        write_minute_data_for_asset(
+            cls.env, minute_writer, cls.trading_days[0],
+            cls.trading_days[-1], 2, 50
+        )
+
+        cls.minute_reader = BcolzMinuteBarReader(cls.tempdir.path)
+
+        cls.daily_path = cls.tempdir.getpath("testdaily.bcolz")
+        dfs = {
+            1: create_daily_df_for_asset(cls.env, cls.trading_days[0],
+                                         cls.trading_days[-1]),
+            2: create_daily_df_for_asset(cls.env, cls.trading_days[0],
+                                         cls.trading_days[-1])
+        }
+        daily_writer = DailyBarWriterFromDataFrames(dfs)
+        daily_writer.write(cls.daily_path, cls.trading_days, dfs)
+
+        cls.sim_params = SimulationParameters(
+            period_start=cls.trading_days[1],
+            period_end=cls.trading_days[-1],
+            data_frequency="minute",
+            env=cls.env
+        )
+
+        cls.data_portal = DataPortal(
+            env=cls.env,
+            equity_daily_reader=BcolzDailyBarReader(cls.daily_path),
+            equity_minute_reader=cls.minute_reader
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
+
+    def test_data_in_bts_minute(self):
+        algo_code = dedent("""
+        from zipline.api import record, sid
+        def initialize(context):
+            context.history_values = []
+
+        def before_trading_start(context, data):
+            record(the_price1=data.current(sid(1), "price"))
+            record(the_high1=data.current(sid(1), "high"))
+            record(the_price2=data.current(sid(2), "price"))
+            record(the_high2=data.current(sid(2), "high"))
+
+            context.history_values.append(data.history(
+                [sid(1), sid(2)],
+                ["price", "high"],
+                60,
+                "1m"
+            ))
+
+        def handle_data(context, data):
+            pass
+        """)
+
+        algo = TradingAlgorithm(
+            script=algo_code,
+            data_frequency="minute",
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        results = algo.run(self.data_portal)
+
+        # fetching data at midnight gets us the previous market minute's data
+        self.assertEqual(390, results.iloc[0].the_price1)
+        self.assertEqual(392, results.iloc[0].the_high1)
+
+        # make sure that price is ffilled, but not other fields
+        self.assertEqual(350, results.iloc[0].the_price2)
+        self.assertTrue(np.isnan(results.iloc[0].the_high2))
+
+        # 10-minute history
+
+        # asset1 day1 price should be 331-390
+        np.testing.assert_array_equal(
+            range(331, 391), algo.history_values[0]["price"][1]
+        )
+
+        # asset1 day1 high should be 333-392
+        np.testing.assert_array_equal(
+            range(333, 393), algo.history_values[0]["high"][1]
+        )
+
+        # asset2 day1 price should be 19 300s, then 40 350s
+        np.testing.assert_array_equal(
+            [300] * 19, algo.history_values[0]["price"][2][0:19]
+        )
+
+        np.testing.assert_array_equal(
+            [350] * 40, algo.history_values[0]["price"][2][20:]
+        )
+
+        # asset2 day1 high should be all NaNs except for the 19th item
+        # = 2016-01-05 20:20:00+00:00
+        np.testing.assert_array_equal(
+            np.full(19, np.nan), algo.history_values[0]["high"][2][0:19]
+        )
+
+        self.assertEqual(352, algo.history_values[0]["high"][2][19])
+
+        np.testing.assert_array_equal(
+            np.full(40, np.nan), algo.history_values[0]["high"][2][20:]
+        )
+
+    def data_in_bts_daily(self):
+        algo_code = dedent("""
+        from zipline.api import record, sid
+        def initialize(context):
+            context.history_values = []
+
+        def before_trading_start(context, data):
+            record(the_price1=data.current(sid(1), "price"))
+            record(the_high1=data.current(sid(1), "high"))
+            record(the_price2=data.current(sid(2), "price"))
+            record(the_high2=data.current(sid(2), "high"))
+
+            context.history_values.append(data.history(
+                [sid(1), sid(2)],
+                ["price", "high"],
+                1,
+                "1m"
+            ))
+
+        def handle_data(context, data):
+            pass
+        """)
+
+        algo = TradingAlgorithm(
+            script=algo_code,
+            data_frequency="minute",
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        results = algo.run(self.data_portal)
+
+        self.assertEqual(392, results.the_high1[0])
+        self.assertEqual(390, results.the_price1[0])
+
+        # nan because asset2 only trades every 50 minutes
+        self.assertTrue(np.isnan(results.the_high2[0]))
+
+        self.assertTrue(350, results.the_price2[0])
+
+        self.assertEqual(392, algo.history_values[0]["high"][1][0])
+        self.assertEqual(390, algo.history_values[0]["price"][1][0])
+
+        self.assertTrue(np.isnan(algo.history_values[0]["high"][2][0]))
+        self.assertEqual(350, algo.history_values[0]["price"][2][0])
 
 
 class TestAlgoScript(TestCase):

@@ -32,7 +32,7 @@ from zipline.assets.asset_writer import (
 from zipline.errors import (
     NoFurtherDataError
 )
-
+from zipline.utils.memoize import remember_last
 
 log = logbook.Logger('Trading')
 
@@ -375,6 +375,7 @@ class TradingEnvironment(object):
         # then return the open of the *next* trading day.
         return self.next_open_and_close(start)[0]
 
+    @remember_last
     def previous_market_minute(self, start):
         """
         Get the next market minute before @start. This is either the immediate

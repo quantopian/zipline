@@ -139,6 +139,8 @@ class DataPortal(object):
         }
         self._equity_daily_reader_array_data = {}
 
+        self._in_bts = False
+
     def handle_extra_source(self, source_df, sim_params):
         """
         Extra sources always have a sid column.
@@ -471,8 +473,9 @@ class DataPortal(object):
         if column == "volume":
             if result == 0:
                 return 0
-        elif not ffill and np.isnan(result):
-            return np.nan
+        elif not ffill or not np.isnan(result):
+            # if we're not forward filling, or we found a result, return it
+            return result
 
         # we are looking for price, and didn't find one. have to go hunting.
         last_traded_dt = \
@@ -497,8 +500,10 @@ class DataPortal(object):
 
         # the value we found came from a different day, so we have to adjust
         # the data if there are any adjustments on that day barrier
-        return self._get_adjusted_value(asset, column, last_traded_dt, dt,
-                                        "minute", spot_value=result)
+        return self._get_adjusted_value(
+            asset, column, last_traded_dt,
+            dt, "minute", spot_value=result
+        )
 
     def _get_daily_data(self, asset, column, dt):
         if column == "last_traded":
