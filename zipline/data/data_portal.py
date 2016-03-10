@@ -25,7 +25,9 @@ from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import NoDataOnDate
-from zipline.data.us_equity_loader import USEquityHistoryLoader
+from zipline.data.us_equity_loader import (
+    USEquityHistoryLoader,
+)
 
 from zipline.utils import tradingcalendar
 from zipline.utils.math_utils import (
@@ -36,7 +38,8 @@ from zipline.utils.math_utils import (
 from zipline.utils.memoize import remember_last
 from zipline.errors import (
     NoTradeDataAvailableTooEarly,
-    NoTradeDataAvailableTooLate
+    NoTradeDataAvailableTooLate,
+    HistoryWindowStartsBeforeData,
 )
 
 log = Logger('DataPortal')
@@ -545,9 +548,16 @@ class DataPortal(object):
 
     @remember_last
     def _get_days_for_window(self, end_date, bar_count):
-        day_idx = tradingcalendar.trading_days.searchsorted(end_date)
-        return tradingcalendar.trading_days[
-            (day_idx - bar_count + 1):(day_idx + 1)]
+        tds = self.env.trading_days
+        end_loc = self.env.trading_days.get_loc(end_date)
+        start_loc = end_loc - bar_count + 1
+        if start_loc < 0:
+            raise HistoryWindowStartsBeforeData(
+                first_trading_day=self.env.first_trading_day.date(),
+                bar_count=bar_count,
+                suggested_start_day=tds[bar_count].date(),
+            )
+        return tds[start_loc:end_loc + 1]
 
     def _get_history_daily_window(self, assets, end_dt, bar_count,
                                   field_to_use):
@@ -708,59 +718,23 @@ class DataPortal(object):
         of minute frequency for the given sids.
         """
         # get all the minutes for this window
-        minutes_for_window = self.env.market_minute_window(
-            end_dt, bar_count, step=-1)[::-1]
-
-        first_trading_day = self._equity_minute_reader.first_trading_day
-
-        if minutes_for_window[0] < first_trading_day:
-
-            # but then cut it down to only the minutes after
-            # the first trading day.
-            modified_minutes_for_window = minutes_for_window[
-                minutes_for_window.slice_indexer(first_trading_day)]
-
-            modified_minutes_length = len(modified_minutes_for_window)
-
-            if modified_minutes_length == 0:
-                raise ValueError("Cannot calculate history window that ends "
-                                 "before the first trading day!")
-
-            bars_to_prepend = 0
-            nans_to_prepend = None
-
-            if modified_minutes_length < bar_count:
-                first_trading_date = first_trading_day.date()
-                if modified_minutes_for_window[0].date() == first_trading_date:
-                    # the beginning of the window goes before our global
-                    # trading start date
-                    bars_to_prepend = bar_count - modified_minutes_length
-                    nans_to_prepend = np.repeat(np.nan, bars_to_prepend)
-
-            if len(assets) == 0:
-                return pd.DataFrame(
-                    None,
-                    index=modified_minutes_for_window,
-                    columns=None
-                )
-            query_minutes = modified_minutes_for_window
-        else:
-            query_minutes = minutes_for_window
-            bars_to_prepend = 0
+        mm = self.env.market_minutes
+        end_loc = mm.get_loc(end_dt)
+        start_loc = end_loc - bar_count + 1
+        if start_loc < 0:
+            suggested_start_day = (mm[bar_count] + self.env.trading_day).date()
+            raise HistoryWindowStartsBeforeData(
+                first_trading_day=self.env.first_trading_day.date(),
+                bar_count=bar_count,
+                suggested_start_day=suggested_start_day,
+            )
+        minutes_for_window = mm[start_loc:end_loc + 1]
 
         asset_minute_data = self._get_minute_window_for_assets(
             assets,
             field_to_use,
-            query_minutes,
+            minutes_for_window,
         )
-
-        if bars_to_prepend != 0:
-            if field_to_use == "volume":
-                filler = np.zeros((len(nans_to_prepend), len(assets)))
-            else:
-                filler = np.full((len(nans_to_prepend), len(assets)), np.nan)
-
-            asset_minute_data = np.concatenate([filler, asset_minute_data])
 
         return pd.DataFrame(
             asset_minute_data,
