@@ -18,10 +18,18 @@ Tools to generate data sources.
 """
 import numpy as np
 import pandas as pd
+from toolz import identity
 
 from zipline.gens.utils import hash_args
-
 from zipline.sources.data_source import DataSource
+
+
+_trade_map = {
+    'dt': (identity, 'dt'),
+    'sid': (identity, 'sid'),
+    'price': (float, 'price'),
+    'volume': (int, 'volume'),
+}
 
 
 class DataFrameSource(DataSource):
@@ -57,12 +65,7 @@ class DataFrameSource(DataSource):
 
     @property
     def mapping(self):
-        return {
-            'dt': (lambda x: x, 'dt'),
-            'sid': (lambda x: x, 'sid'),
-            'price': (float, 'price'),
-            'volume': (int, 'volume'),
-        }
+        return _trade_map.copy()
 
     @property
     def instance_hash(self):
@@ -128,12 +131,7 @@ class DataPanelSource(DataSource):
 
     @property
     def mapping(self):
-        mapping = {
-            'dt': (lambda x: x, 'dt'),
-            'sid': (lambda x: x, 'sid'),
-            'price': (float, 'price'),
-            'volume': (int, 'volume'),
-        }
+        mapping = _trade_map.copy()
 
         # Add additional fields.
         for field_name in self.data.minor_axis:

@@ -138,44 +138,72 @@ class TradingAlgorithm(object):
     def __init__(self, *args, **kwargs):
         """Initialize sids and other state variables.
 
-        :Arguments:
-        :Optional:
-            initialize : function
-                Function that is called with a single
-                argument at the begninning of the simulation.
-            handle_data : function
-                Function that is called with 2 arguments
-                (context and data) on every bar.
-            script : str
-                Algoscript that contains initialize and
-                handle_data function definition.
-            data_frequency : {'daily', 'minute'}
-               The duration of the bars.
-            capital_base : float <default: 1.0e5>
-               How much capital to start with.
-            instant_fill : bool <default: False>
-               Whether to fill orders immediately or on next bar.
-            asset_finder : An AssetFinder object
-                A new AssetFinder object to be used in this TradingEnvironment
-            equities_metadata : can be either:
-                            - dict
-                            - pandas.DataFrame
-                            - object with 'read' property
-                If dict is provided, it must have the following structure:
-                * keys are the identifiers
-                * values are dicts containing the metadata, with the metadata
-                  field name as the key
-                If pandas.DataFrame is provided, it must have the
-                following structure:
-                * column names must be the metadata fields
-                * index must be the different asset identifiers
-                * array contents should be the metadata value
-                If an object with a 'read' property is provided, 'read' must
-                return rows containing at least one of 'sid' or 'symbol' along
-                with the other metadata fields.
-            identifiers : List
-                Any asset identifiers that are not provided in the
-                equities_metadata, but will be traded by this TradingAlgorithm
+        Parameters
+        ----------
+        *args
+            Forwarded ``initialize``.
+        initialize : callable[context -> None, optional
+            Function that is called at the start of the simulation to
+            setup the initial context.
+        handle_data : callable[(context, data) -> None], optional
+            Function called on every bar. This is where most logic should be
+            implemented.
+        before_trading_start : callable[(context, data) -> None], optional
+            Function that is called before any bars have been processed each
+            day.
+        analyze : callable[(context, DataFrame) -> None], optional
+            Function that is called at the end of the backtest. This is passed
+            the context and the performance results for the backtest.
+        script : str, optional
+            Algoscript that contains the definitions for the four API
+            functions and any supporting code.
+        namespace : dict, optional
+            The namespace to execute the algoscript in. By default this is an
+            empty namespace that will include only python built ins.
+        algo_filename : str, optional
+            The filename for the algoscript. This will be used in exception
+            tracebacks. default: '<string>'.
+        data_frequency : {'daily', 'minute'}, optional
+            The duration of the bars.
+        capital_base : float, optional
+            How much capital to start with. default: 1.0e5
+        instant_fill : bool, optional
+            Whether to fill orders immediately or on next bar. default: False
+        equities_metadata : dict or DataFrame or file-like object, optional
+            If dict is provided, it must have the following structure:
+            * keys are the identifiers
+            * values are dicts containing the metadata, with the metadata
+              field name as the key
+            If pandas.DataFrame is provided, it must have the
+            following structure:
+            * column names must be the metadata fields
+            * index must be the different asset identifiers
+            * array contents should be the metadata value
+            If an object with a ``read`` method is provided, ``read`` must
+            return rows containing at least one of 'sid' or 'symbol' along
+            with the other metadata fields.
+        futures_metadata : dict or DataFrame or file-like object, optional
+            The same layout as ``equities_metadata`` except that it is used
+            for futures information.
+        identifiers : list, optional
+            Any asset identifiers that are not provided in the
+            equities_metadata, but will be traded by this TradingAlgorithm.
+        get_pipeline_loader : callable[BoundColumn -> PipelineLoader], optional
+            The function that maps pipeline columns to their loaders.
+        create_event_context : callable[BarData -> context manager], optional
+            A function used to create a context mananger that wraps the
+            execution of all events that are scheduled for a bar.
+            This function will be passed the data for the bar and should
+            return the actual context manager that will be entered.
+        history_container_class : type, optional
+            The type of history container to use. default: HistoryContainer
+        platform : str, optional
+            The platform the simulation is running on. This can be queried for
+            in the simulation with ``get_environment``. This allows algorithms
+            to conditionally execute code based on platform it is running on.
+            default: 'zipline'
+        **kwargs
+            Forwarded to ``initialize``.
         """
         self.sources = []
 
@@ -225,6 +253,9 @@ class TradingAlgorithm(object):
             )
         else:
             self.sim_params.update_internal_from_env(self.trading_environment)
+
+        if 'emission_rate' in kwargs:
+            self.sim_params.emission_rate = kwargs.pop('emission_rate')
 
         # Build a perf_tracker
         self.perf_tracker = PerformanceTracker(sim_params=self.sim_params,
@@ -493,34 +524,43 @@ class TradingAlgorithm(object):
     # TODO: make a new subclass, e.g. BatchAlgorithm, and move
     # the run method to the subclass, and refactor to put the
     # generator creation logic into get_generator.
-    def run(self, source, overwrite_sim_params=True,
+    def run(self,
+            source,
+            overwrite_sim_params=True,
             benchmark_return_source=None):
         """Run the algorithm.
 
-        :Arguments:
-            source : can be either:
-                     - pandas.DataFrame
-                     - zipline source
-                     - list of sources
+        Parameters
+        ----------
+        source : DataSource-like or list[DataSource]
+            The source or sources to use as the input data for the algorithm
+            and benchmark.
+        overwrite_sim_params : bool, optional
+            Update the internal sim_params based on the source data.
+        benchmark_return_source : DataSource, optional
+            A source that emits BENCHMARK events. By default this will use
+            the benchmark_returns defined by the trading environment.
 
-               If pandas.DataFrame is provided, it must have the
-               following structure:
-               * column names must be the different asset identifiers
-               * index must be DatetimeIndex
-               * array contents should be price info.
+        Returns
+        -------
+        daily_stats : pandas.DataFrame
+            Daily performance metrics such as returns, alpha etc.
 
-        :Returns:
-            daily_stats : pandas.DataFrame
-              Daily performance metrics such as returns, alpha etc.
-
+        See Also
+        --------
+        zipline.sources.DataSource
+        zipline.sources.BenchmarkSource
         """
 
         # Ensure that source is a DataSource object
         if isinstance(source, list):
             if overwrite_sim_params:
-                warnings.warn("""List of sources passed, will not attempt to extract start and end
- dates. Make sure to set the correct fields in sim_params passed to
- __init__().""", UserWarning)
+                warnings.warn(
+                    'List of sources passed, will not attempt to extract'
+                    ' start and end dates. Make sure to set the correct fields'
+                    ' in sim_params passed to __init__().',
+                    UserWarning,
+                )
                 overwrite_sim_params = False
         elif isinstance(source, pd.DataFrame):
             # if DataFrame provided, map columns to sids and wrap
@@ -544,6 +584,9 @@ class TradingAlgorithm(object):
             self.set_sources(source)
         else:
             self.set_sources([source])
+
+        # set the benchmark source
+        self.benchmark_return_source = benchmark_return_source
 
         # Override sim_params if params are provided by the source.
         if overwrite_sim_params:
@@ -570,7 +613,7 @@ class TradingAlgorithm(object):
         self.perf_tracker = None
 
         # create zipline
-        self.gen = self._create_generator(self.sim_params)
+        self.gen = gen = self._create_generator(self.sim_params)
 
         # Create history containers
         if self.history_specs:
@@ -582,14 +625,8 @@ class TradingAlgorithm(object):
                 self.trading_environment,
             )
 
-        # loop through simulated_trading, each iteration returns a
-        # perf dictionary
-        perfs = []
-        for perf in self.gen:
-            perfs.append(perf)
-
         # convert perf dict to pandas dataframe
-        daily_stats = self._create_daily_stats(perfs)
+        daily_stats = self._create_daily_stats(gen)
 
         self.analyze(daily_stats)
 
@@ -1097,7 +1134,7 @@ class TradingAlgorithm(object):
         assert isinstance(sources, list)
         self.sources = sources
 
-    # Remain backwards compatibility
+    # Remain backwards compatible
     @property
     def data_frequency(self):
         return self.sim_params.data_frequency
