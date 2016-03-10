@@ -155,14 +155,20 @@ class TestAPIShim(TestCase):
         """
         Test that the new and old data APIs hit the same code paths.
 
-        We want to ensure that the old data API(data[sid(N)].field)
-        and the new data API(data.current(sid(N), field) hit the same
-        code paths on the DataPortal.
+        We want to ensure that the old data API(data[sid(N)].field and
+        similar)  and the new data API(data.current(sid(N), field) and
+        similar) hit the same code paths on the DataPortal.
         """
-        test_minute = self.env.market_minutes_for_day(
+        test_start_minute = self.env.market_minutes_for_day(
             self.trading_days[0]
         )[1]
-        bar_data = BarData(self.data_portal, lambda: test_minute, "minute")
+        test_end_minute = self.env.market_minutes_for_day(
+            self.trading_days[0]
+        )[-1]
+        bar_data = BarData(
+            self.data_portal,
+            lambda: test_end_minute, "minute"
+        )
         ohlcvp_fields = [
             "open",
             "high",
@@ -171,34 +177,89 @@ class TestAPIShim(TestCase):
             "volume",
             "price",
         ]
-        patch_meth = 'zipline.data.data_portal.DataPortal.get_spot_value'
+        spot_value_meth = 'zipline.data.data_portal.DataPortal.get_spot_value'
 
-        def assert_spot_value_called(fun, field, ts):
+        def assert_get_spot_value_called(fun, field):
             """
-            Assert that spot_value was called during the execution of fun.
+            Assert that get_spot_value was called during the execution of fun.
 
-            Takes in a function fun, a timestamp ts, and a string field.
+            Takes in a function fun and a string field.
             """
-            with patch(patch_meth) as gsv:
+            with patch(spot_value_meth) as gsv:
                 fun()
                 gsv.assert_called_with(
                     self.asset1,
                     field,
-                    test_minute,
+                    test_end_minute,
                     'minute'
                 )
-
+        # Ensure that data.current(sid(n), field) has the same behaviour as
+        # data[sid(n)].field.
         for field in ohlcvp_fields:
-            assert_spot_value_called(
+            assert_get_spot_value_called(
                 lambda: getattr(bar_data[self.asset1], field),
                 field,
-                test_minute,
             )
-            assert_spot_value_called(
+            assert_get_spot_value_called(
                 lambda: bar_data.current(self.asset1, field),
                 field,
-                test_minute,
             )
+
+        history_meth = 'zipline.data.data_portal.DataPortal.get_history_window'
+
+        def assert_get_history_window_called(fun, is_legacy):
+            """
+            Assert that get_history_window was called during fun().
+
+            Takes in a function fun and a boolean is_legacy.
+            """
+            with patch(history_meth) as ghw:
+                fun()
+                # Slightly hacky, but done to get around the fact that
+                # history( explicitly passes an ffill param as the last arg,
+                # while data.history doesn't.
+                if is_legacy:
+                    ghw.assert_called_with(
+                        [self.asset1, self.asset2],
+                        test_end_minute,
+                        5,
+                        "1m",
+                        "volume",
+                        True
+                    )
+                else:
+                    ghw.assert_called_with(
+                        [self.asset1, self.asset2],
+                        test_end_minute,
+                        5,
+                        "1m",
+                        "volume",
+                    )
+
+        test_sim_params = SimulationParameters(
+            period_start=test_start_minute,
+            period_end=test_end_minute,
+            data_frequency="minute",
+            env=self.env
+        )
+
+        history_algorithm = self.create_algo(
+            history_algo,
+            sim_params=test_sim_params
+        )
+        assert_get_history_window_called(
+            lambda: history_algorithm.run(self.data_portal),
+            is_legacy=True
+        )
+        assert_get_history_window_called(
+            lambda: bar_data.history(
+                [self.asset1, self.asset2],
+                "volume",
+                5,
+                "1m"
+            ),
+            is_legacy=False
+        )
 
     def test_iterate_data(self):
         with warnings.catch_warnings(record=True) as w:
