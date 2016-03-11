@@ -102,11 +102,11 @@ install:
   # https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/ for 64bit C compilation
   - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
 
-  - cmd: '%CMD_IN_ENV% conda build conda/bcolz --python=%CONDA_PY% --numpy=%CONDA_NPY%'
-  - cmd: '%CMD_IN_ENV% conda build conda/cyordereddict --python=%CONDA_PY% --numpy=%CONDA_NPY%'
-  - cmd: '%CMD_IN_ENV% conda build conda/logbook --python=%CONDA_PY% --numpy=%CONDA_NPY%'
-  - cmd: '%CMD_IN_ENV% conda build conda/ta-lib --python=%CONDA_PY% --numpy=%CONDA_NPY%'
-  - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%CONDA_PY% --numpy=%CONDA_NPY%'
+  - cmd: '%CMD_IN_ENV% conda build conda/bcolz --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
+  - cmd: '%CMD_IN_ENV% conda build conda/cyordereddict --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
+  - cmd: '%CMD_IN_ENV% conda build conda/logbook --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
+  - cmd: '%CMD_IN_ENV% conda build conda/ta-lib --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
+  - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%CONDA_PY% --numpy=%CONDA_NPY% -c quantopian'
 
   - cmd: conda create -n testenv --yes --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1
   - cmd: activate testenv
