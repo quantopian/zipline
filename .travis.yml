@@ -1,16 +1,16 @@
 language: python
 sudo: false
-matrix:
-  fast_finish: true
-  include:
-  - python: 2.7
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
-  - python: 2.7
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.4 SCIPY_VERSION=0.16.1
-  - python: 3.4
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
-  - python: 3.4
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.4 SCIPY_VERSION=0.16.1
+fast_finish: true
+python:
+  - 2.7
+  - 3.4
+env:
+  global:
+    # ANACONDA_TOKEN
+    - secure: "HlTfqMSkU4yFTGSHvCg1FJ5gQaHA7SVWtH/h9uHHNArowBNqF0c9nJQcPNydi1szzGE+29ZiUwbj1AMI3CgpevZuowrxwMNlsEXol7uSxMJGczFEfauREEKfX0rEOzHcIRxlN6tC8AEBXnxBNesLbw9XadB+lJ/y7Fkfl28n5oU="
+  matrix:
+    - PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
+    - PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.4 SCIPY_VERSION=0.16.1
 cache:
   directories:
     - $HOME/.cache/.pip/
@@ -24,7 +24,7 @@ before_install:
   - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==$SCIPY_VERSION/" etc/requirements.txt
 install:
-  - conda install conda-build=1.19.2 --yes
+  - conda install conda-build=1.19.2 anaconda-client=1.3.1 --yes
 
   - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=0.4.9
   - source activate testenv
@@ -39,13 +39,18 @@ install:
 before_script:
   - pip freeze | sort
 script:
-  - conda build conda/bcolz -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --skip-existing -c quantopian
-  - conda build conda/cyordereddict -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --skip-existing -c quantopian
-  - conda build conda/logbook -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --skip-existing -c quantopian
-  - conda build conda/ta-lib -q --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --skip-existing -c quantopian
+  - |
+    for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
+      if [[ "$recipe" = "zipline" ]]; then continue; fi
+
+      conda build conda/$recipe --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --skip-existing -c quantopian
+      RECIPE_OUTPUT=$(conda build conda/$recipe --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --output)
+      if [[ -f "$RECIPE_OUTPUT" && "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
+    done
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
   - conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN -c quantopian
+  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload `conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --output` -u quantopian --label ci; fi
 
   - nosetests tests/
   - flake8 zipline tests
