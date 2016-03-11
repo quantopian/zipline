@@ -180,7 +180,7 @@ class AlgorithmSimulator(object):
             if assets_we_care_about:
                 splits = data_portal.get_splits(assets_we_care_about,
                                                 midnight_dt)
-                if len(splits) > 0:
+                if splits:
                     algo.blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
 
