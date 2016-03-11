@@ -2552,7 +2552,9 @@ class TestPositionTracker(unittest.TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
         futures_metadata = {3: {'multiplier': 1000},
-                            4: {'multiplier': 1000}}
+                            4: {'multiplier': 1000},
+                            1032201401: {'multiplier': 50},
+                            }
         cls.env.write_data(equities_identifiers=[1, 2],
                            futures_data=futures_metadata)
 
@@ -2601,7 +2603,6 @@ class TestPositionTracker(unittest.TestCase):
         pt.update_positions({1: pos1, 2: pos2, 3: pos3, 4: pos4})
 
         # Test long-only methods
-
         pos_stats = pt.stats()
         self.assertEqual(100, pos_stats.long_value)
         self.assertEqual(100 + 300000, pos_stats.long_exposure)
@@ -2619,6 +2620,46 @@ class TestPositionTracker(unittest.TestCase):
         # Test gross and net exposures
         self.assertEqual(100 + 200 + 300000 + 400000, pos_stats.gross_exposure)
         self.assertEqual(100 - 200 + 300000 - 400000, pos_stats.net_exposure)
+
+    def test_update_positions(self):
+        pt = perf.PositionTracker(self.env.asset_finder)
+        dt = pd.Timestamp("2014/01/01 3:00PM")
+        pos1 = perf.Position(1, amount=np.float64(10.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pos2 = perf.Position(2, amount=np.float64(-20.0),
+                             last_sale_date=dt, last_sale_price=10)
+        pos3 = perf.Position(1032201401, amount=np.float64(30.0),
+                             last_sale_date=dt, last_sale_price=100)
+
+        # Call update_positions twice. When the second call is made,
+        # self.positions will already contain data. The order of this data
+        # needs to be preserved so that it is consistent with the order of the
+        # data stored in the multipliers OrderedDict()'s. If self.positions
+        # were to be stored as a dict, then its order could change in arbitrary
+        # ways when the second update_positions call is made. Hence we also
+        # store it as an OrderedDict.
+        pt.update_positions({1: pos1, 1032201401: pos3})
+        pt.update_positions({2: pos2})
+
+        pos_stats = pt.stats()
+        # Test long-only methods
+        self.assertEqual(100, pos_stats.long_value)
+        # 150,000 = 30 * 100 * 50 (amount * last_sale_price * multiplier)
+        self.assertEqual(100 + 150000, pos_stats.long_exposure)
+        self.assertEqual(2, pos_stats.longs_count)
+
+        # Test short-only methods
+        self.assertEqual(-200, pos_stats.short_value)
+        self.assertEqual(-200, pos_stats.short_exposure)
+        self.assertEqual(1, pos_stats.shorts_count)
+
+        # Test gross and net values
+        self.assertEqual(100 + 200, pos_stats.gross_value)
+        self.assertEqual(100 - 200, pos_stats.net_value)
+
+        # Test gross and net exposures
+        self.assertEqual(100 + 150000 + 200, pos_stats.gross_exposure)
+        self.assertEqual(100 + 150000 - 200, pos_stats.net_exposure)
 
     def test_serialization(self):
         pt = perf.PositionTracker(self.env.asset_finder)
