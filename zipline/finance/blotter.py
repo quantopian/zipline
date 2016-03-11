@@ -16,9 +16,10 @@ import math
 
 from logbook import Logger
 from collections import defaultdict
+from copy import copy
 
 import pandas as pd
-from six import iteritems, itervalues
+from six import iteritems
 
 from zipline.finance.order import Order
 
@@ -140,7 +141,8 @@ class Blotter(object):
                 # along with newly placed orders.
                 self.new_orders.append(cur_order)
 
-    def cancel_all_orders_for_asset(self, asset):
+    def cancel_all_orders_for_asset(self, asset, warn=False,
+                                    relay_status=True):
         """
         Cancel all open orders for a given asset.
         """
@@ -152,7 +154,33 @@ class Blotter(object):
         # self.open_orders no longer a defaultdict.  If we do that, then we
         # should just remove the orders once here and be done with the matter.
         for order in orders[:]:
-            self.cancel(order.id)
+            self.cancel(order.id, relay_status)
+            if warn:
+                # Message appropriately depending on whether there's
+                # been a partial fill or not.
+                if order.filled > 0:
+                    warning_logger.warn(
+                        'Your order for {order_amt} shares of '
+                        '{order_sym} has been partially filled. '
+                        '{order_filled} shares were successfully '
+                        'purchased. {order_failed} shares were not '
+                        'filled by the end of day and '
+                        'were canceled.'.format(
+                            order_amt=order.amount,
+                            order_sym=order.sid.symbol,
+                            order_filled=order.filled,
+                            order_failed=order.amount - order.filled,
+                        )
+                    )
+                else:
+                    warning_logger.warn(
+                        'Your order for {order_amt} shares of '
+                        '{order_sym} failed to fill by the end of day '
+                        'and was canceled.'.format(
+                            order_amt=order.amount,
+                            order_sym=order.sid.symbol,
+                        )
+                    )
 
         assert not orders
         del self.open_orders[asset]
@@ -160,37 +188,9 @@ class Blotter(object):
     def execute_cancel_policy(self, event):
         if self.cancel_policy.should_cancel(event):
             warn = self.cancel_policy.warn_on_cancel
-
-            for orders_by_sid in itervalues(self.open_orders):
-                for order in orders_by_sid:
-                    self.cancel(order.id, relay_status=False)
-
-                    if warn:
-                        # Message appropriately depending on whether there's
-                        # been a partial fill or not.
-                        if order.filled > 0:
-                            warning_logger.warn(
-                                'Your order for {order_amt} shares of '
-                                '{order_sym} has been partially filled. '
-                                '{order_filled} shares were successfully '
-                                'purchased. {order_failed} shares were not '
-                                'filled by the end of day and '
-                                'were canceled.'.format(
-                                    order_amt=order.amount,
-                                    order_sym=order.sid.symbol,
-                                    order_filled=order.filled,
-                                    order_failed=order.amount - order.filled,
-                                )
-                            )
-                        else:
-                            warning_logger.warn(
-                                'Your order for {order_amt} shares of '
-                                '{order_sym} failed to fill by the end of day '
-                                'and was canceled.'.format(
-                                    order_amt=order.amount,
-                                    order_sym=order.sid.symbol,
-                                )
-                            )
+            for asset in copy(self.open_orders):
+                self.cancel_all_orders_for_asset(asset, warn,
+                                                 relay_status=False)
 
     def reject(self, order_id, reason=''):
         """
