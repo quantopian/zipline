@@ -39,6 +39,10 @@ install:
 before_script:
   - pip freeze | sort
 script:
+  - nosetests tests/
+  - flake8 zipline tests
+  # deactive env to get access to anaconda command
+  - source deactivate
   - |
     for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
       if [[ "$recipe" = "zipline" ]]; then continue; fi
@@ -51,9 +55,9 @@ script:
   - git fetch --unshallow
   - conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN -c quantopian
   - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload `conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --output` -u quantopian --label ci; fi
+  # reactivate env (necessary for coveralls)
+  - source activate testenv
 
-  - nosetests tests/
-  - flake8 zipline tests
 after_success:
   - coveralls
 
