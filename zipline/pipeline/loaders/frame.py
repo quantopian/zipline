@@ -60,7 +60,7 @@ class DataFrameLoader(PipelineLoader):
 
     def __init__(self, column, baseline, adjustments=None):
         self.column = column
-        self.baseline = baseline.values
+        self.baseline = baseline.values.astype(self.column.dtype)
         self.dates = baseline.index
         self.assets = baseline.columns
 
@@ -171,5 +171,6 @@ class DataFrameLoader(PipelineLoader):
                 # Mask out requested columns/rows that didnt match.
                 mask=(good_assets & good_dates[:, None]) & mask,
                 adjustments=self.format_adjustments(dates, assets),
+                missing_value=column.missing_value,
             ),
         }

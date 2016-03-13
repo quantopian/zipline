@@ -6,16 +6,20 @@ from weakref import WeakValueDictionary
 
 from numpy import dtype as dtype_class
 from six import with_metaclass
-
 from zipline.errors import (
     DTypeNotSpecified,
-    InputTermNotAtomic,
-    InvalidDType,
+    WindowedInputToWindowedTerm,
+    NotDType,
     TermInputsNotSpecified,
+    UnsupportedDType,
     WindowLengthNotSpecified,
 )
+from zipline.lib.adjusted_array import can_represent_dtype
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import bool_dtype, default_fillvalue_for_dtype
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    default_missing_value_for_dtype,
+)
 from zipline.utils.sentinel import sentinel
 
 
@@ -32,6 +36,7 @@ class Term(with_metaclass(ABCMeta, object)):
     # These are NotSpecified because a subclass is required to provide them.
     dtype = NotSpecified
     domain = NotSpecified
+    missing_value = NotSpecified
 
     # Subclasses aren't required to provide `params`.  The default behavior is
     # no params.
@@ -42,6 +47,7 @@ class Term(with_metaclass(ABCMeta, object)):
     def __new__(cls,
                 domain=domain,
                 dtype=dtype,
+                missing_value=missing_value,
                 # params is explicitly not allowed to be passed to an instance.
                 *args,
                 **kwargs):
@@ -55,18 +61,26 @@ class Term(with_metaclass(ABCMeta, object)):
         Caching previously-constructed Terms is **sane** because terms and
         their inputs are both conceptually immutable.
         """
-        # Class-level attributes can be used to provide defaults for Term
-        # subclasses.
-
+        # Subclasses can set override these class-level attributes to provide
+        # default values.
         if domain is NotSpecified:
             domain = cls.domain
+        if dtype is NotSpecified:
+            dtype = cls.dtype
+        if missing_value is NotSpecified:
+            missing_value = cls.missing_value
 
-        dtype = cls._validate_dtype(dtype)
+        dtype, missing_value = cls.validate_dtype(
+            cls.__name__,
+            dtype,
+            missing_value,
+        )
         params = cls._pop_params(kwargs)
 
         identity = cls.static_identity(
             domain=domain,
             dtype=dtype,
+            missing_value=missing_value,
             params=params,
             *args, **kwargs
         )
@@ -78,6 +92,7 @@ class Term(with_metaclass(ABCMeta, object)):
                 super(Term, cls).__new__(cls)._init(
                     domain=domain,
                     dtype=dtype,
+                    missing_value=missing_value,
                     params=params,
                     *args, **kwargs
                 )
@@ -131,40 +146,45 @@ class Term(with_metaclass(ABCMeta, object)):
                 )
         return tuple(zip(cls.params, param_values))
 
-    @classmethod
-    def _validate_dtype(cls, passed_dtype):
+    @staticmethod
+    def validate_dtype(termname, dtype, missing_value):
         """
-        Validate a `dtype` passed to Term.__new__.
+        Validate a `dtype` and `missing_value` passed to Term.__new__.
 
-        If passed_dtype is NotSpecified, then we try to fall back to a
-        class-level attribute.  If a value is found at that point, we pass it
-        to np.dtype so that users can pass `float` or `bool` and have them
-        coerce to the appropriate numpy types.
+        Ensures that we know how to represent ``dtype``, and that missing_value
+        is specified for types without default missing values.
 
         Returns
         -------
-        validated : np.dtype
-            The dtype to use for the new term.
+        validated_dtype, validated_missing_value : np.dtype, any
+            The dtype and missing_value to use for the new term.
 
         Raises
         ------
         DTypeNotSpecified
             When no dtype was passed to the instance, and the class doesn't
             provide a default.
-        InvalidDType
+        NotDType
             When either the class or the instance provides a value not
             coercible to a numpy dtype.
+        NoDefaultMissingValue
+            When dtype requires an explicit missing_value, but
+            ``missing_value`` is NotSpecified.
         """
-        dtype = passed_dtype
         if dtype is NotSpecified:
-            dtype = cls.dtype
-        if dtype is NotSpecified:
-            raise DTypeNotSpecified(termname=cls.__name__)
+            raise DTypeNotSpecified(termname=termname)
         try:
             dtype = dtype_class(dtype)
         except TypeError:
-            raise InvalidDType(dtype=dtype, termname=cls.__name__)
-        return dtype
+            raise NotDType(dtype=dtype, termname=termname)
+
+        if not can_represent_dtype(dtype):
+            raise UnsupportedDType(dtype=dtype, termname=termname)
+
+        if missing_value is NotSpecified:
+            missing_value = default_missing_value_for_dtype(dtype)
+
+        return dtype, missing_value
 
     def __init__(self, *args, **kwargs):
         """
@@ -183,7 +203,7 @@ class Term(with_metaclass(ABCMeta, object)):
         pass
 
     @classmethod
-    def static_identity(cls, domain, dtype, params):
+    def static_identity(cls, domain, dtype, missing_value, params):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -195,9 +215,9 @@ class Term(with_metaclass(ABCMeta, object)):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, domain, dtype, params)
+        return (cls, domain, dtype, missing_value, params)
 
-    def _init(self, domain, dtype, params):
+    def _init(self, domain, dtype, missing_value, params):
         """
         Parameters
         ----------
@@ -210,6 +230,7 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         self.domain = domain
         self.dtype = dtype
+        self.missing_value = missing_value
 
         for name, value in params:
             if hasattr(self, name):
@@ -247,30 +268,32 @@ class Term(with_metaclass(ABCMeta, object)):
     @abstractproperty
     def inputs(self):
         """
-        A tuple of other Terms that this Term requires for computation.
+        A tuple of other Terms needed as direct inputs for this Term.
         """
-        raise NotImplementedError()
+        raise NotImplementedError('inputs')
+
+    @abstractproperty
+    def windowed(self):
+        """
+        Boolean indicating whether this term is a trailing-window computation.
+        """
+        raise NotImplementedError('windowed')
 
     @abstractproperty
     def mask(self):
         """
-        A 2D Filter representing asset/date pairs to include while
+        A Filter representing asset/date pairs to include while
         computing this Term. (True means include; False means exclude.)
         """
-        raise NotImplementedError()
+        raise NotImplementedError('mask')
 
     @lazyval
     def dependencies(self):
+        """
+        A tuple containing all terms that must be computed before this term can
+        be loaded or computed.
+        """
         return self.inputs + (self.mask,)
-
-    @lazyval
-    def atomic(self):
-        return not any(dep for dep in self.dependencies
-                       if dep is not AssetExists())
-
-    @lazyval
-    def missing_value(self):
-        return default_fillvalue_for_dtype(self.dtype)
 
 
 class AssetExists(Term):
@@ -293,12 +316,29 @@ class AssetExists(Term):
     inputs = ()
     dependencies = ()
     mask = None
+    windowed = False
 
     def __repr__(self):
         return "AssetExists()"
 
 
-class CompositeTerm(Term):
+class LoadableTerm(Term):
+    """
+    A Term that should be loaded from an external resource by a PipelineLoader.
+
+    This is the base class for :class:`zipline.pipeline.data.BoundColumn`.
+    """
+    inputs = ()
+    windowed = False
+
+
+class ComputableTerm(Term):
+    """
+    A Term that should be computed from a tuple of inputs.
+
+    This is the base class for :class:`zipline.pipeline.Factor`,
+    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Factor`.
+    """
     inputs = NotSpecified
     window_length = NotSpecified
     mask = NotSpecified
@@ -327,20 +367,24 @@ class CompositeTerm(Term):
         if window_length is NotSpecified:
             window_length = cls.window_length
 
-        return super(CompositeTerm, cls).__new__(cls, inputs=inputs, mask=mask,
-                                                 window_length=window_length,
-                                                 *args, **kwargs)
+        return super(ComputableTerm, cls).__new__(
+            cls,
+            inputs=inputs,
+            mask=mask,
+            window_length=window_length,
+            *args, **kwargs
+        )
 
     def _init(self, inputs, window_length, mask, *args, **kwargs):
         self.inputs = inputs
         self.window_length = window_length
         self.mask = mask
-        return super(CompositeTerm, self)._init(*args, **kwargs)
+        return super(ComputableTerm, self)._init(*args, **kwargs)
 
     @classmethod
     def static_identity(cls, inputs, window_length, mask, *args, **kwargs):
         return (
-            super(CompositeTerm, cls).static_identity(*args, **kwargs),
+            super(ComputableTerm, cls).static_identity(*args, **kwargs),
             inputs,
             window_length,
             mask,
@@ -361,16 +405,18 @@ class CompositeTerm(Term):
 
         if self.window_length:
             for child in self.inputs:
-                if not child.atomic:
-                    raise InputTermNotAtomic(parent=self, child=child)
+                if child.windowed:
+                    raise WindowedInputToWindowedTerm(parent=self, child=child)
 
-        return super(CompositeTerm, self)._validate()
+        return super(ComputableTerm, self)._validate()
 
     def _compute(self, inputs, dates, assets, mask):
         """
         Subclasses should implement this to perform actual computation.
-        This is `_compute` rather than just `compute` because `compute` is
-        reserved for user-supplied functions in CustomFactor.
+
+        This is named ``_compute`` rather than just ``compute`` because
+        ``compute`` is reserved for user-supplied functions in
+        CustomFilter/CustomFactor/CustomClassifier.
         """
         raise NotImplementedError()
 

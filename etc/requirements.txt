@@ -1,8 +1,10 @@
 # Incompatible with earlier PIP versions
 pip>=7.1.0
+# bcolz fails to install if this is not in the build_requires.
+setuptools>18.0
 
 # Logging
-Logbook==0.10.0
+Logbook==0.12.5
 
 # Scientific Libraries
 
@@ -17,14 +19,13 @@ pandas==0.16.1
 patsy==0.4.0
 statsmodels==0.6.1
 
-# Don't use 2.4.0.
 python-dateutil==2.4.2
-six==1.9.0
+six==1.10.0
 
 # For fetching remote data
 requests==2.9.1
 
-Cython==0.23.4
+Cython==0.22.1
 
 # faster OrderedDict
 cyordereddict==0.2.2

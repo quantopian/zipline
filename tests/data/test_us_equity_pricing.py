@@ -39,9 +39,7 @@ from zipline.data.us_equity_pricing import (
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
-from zipline.utils.test_utils import (
-    seconds_to_timestamp,
-)
+from zipline.testing import seconds_to_timestamp
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')

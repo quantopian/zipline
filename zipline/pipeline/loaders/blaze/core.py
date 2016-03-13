@@ -158,13 +158,18 @@ from toolz import (
 )
 import toolz.curried.operator as op
 
-
+from zipline.pipeline.common import (
+    AD_FIELD_NAME,
+    SID_FIELD_NAME,
+    TS_FIELD_NAME
+)
 from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
     normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
 )
+from zipline.pipeline.term import NotSpecified
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum
@@ -178,9 +183,6 @@ from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
 
 
-AD_FIELD_NAME = 'asof_date'
-TS_FIELD_NAME = 'timestamp'
-SID_FIELD_NAME = 'sid'
 valid_deltas_node_types = (
     bz.expr.Field,
     bz.expr.ReLabel,
@@ -275,15 +277,21 @@ _new_names = ('BlazeDataSet_%d' % n for n in count())
 
 
 @memoize
-def new_dataset(expr, deltas):
-    """Creates or returns a dataset from a pair of blaze expressions.
+def new_dataset(expr, deltas, missing_values):
+    """
+    Creates or returns a dataset from a pair of blaze expressions.
 
     Parameters
     ----------
     expr : Expr
-       The blaze expression representing the first known values.
+        The blaze expression representing the first known values.
     deltas : Expr
-       The blaze expression representing the deltas to the data.
+        The blaze expression representing the deltas to the data.
+    missing_values : frozenset((name, value) pairs
+        Association pairs column name and missing_value for that column.
+
+        This needs to be a frozenset rather than a dict or tuple of tuples
+        because we want a collection that's unordered but still hashable.
 
     Returns
     -------
@@ -295,9 +303,16 @@ def new_dataset(expr, deltas):
     This function is memoized. repeated calls with the same inputs will return
     the same type.
     """
+    missing_values = dict(missing_values)
     columns = {}
     for name, type_ in expr.dshape.measure.fields:
+        # Don't generate a column for sid or timestamp, since they're
+        # implicitly the labels if the arrays that will be passed to pipeline
+        # Terms.
+        if name in (SID_FIELD_NAME, TS_FIELD_NAME):
+            continue
         try:
+            # TODO: This should support datetime and bool columns.
             if promote(type_, float64, promote_option=False) != float64:
                 raise NotPipelineCompatible()
             if isinstance(type_, Option):
@@ -307,7 +322,10 @@ def new_dataset(expr, deltas):
         except TypeError:
             col = NonNumpyField(name, type_)
         else:
-            col = Column(type_.to_numpy_dtype())
+            col = Column(
+                type_.to_numpy_dtype(),
+                missing_values.get(name, NotSpecified),
+            )
 
         columns[name] = col
 
@@ -473,6 +491,7 @@ def from_blaze(expr,
                loader=None,
                resources=None,
                odo_kwargs=None,
+               missing_values=None,
                no_deltas_rule=no_deltas_rules.warn):
     """Create a Pipeline API object from a blaze expression.
 
@@ -494,6 +513,9 @@ def from_blaze(expr,
         scope for ``bz.compute``.
     odo_kwargs : dict, optional
         The keyword arguments to pass to odo when evaluating the expressions.
+    missing_values : dict[str -> any], optional
+        A dict mapping column names to missing values for those columns.
+        Missing values are required for integral columns.
     no_deltas_rule : no_deltas_rule
         What should happen if ``deltas='auto'`` but no deltas can be found.
         'warn' says to raise a warning but continue.
@@ -583,7 +605,10 @@ def from_blaze(expr,
     _check_resources('deltas', deltas, resources)
 
     # Create or retrieve the Pipeline API dataset.
-    ds = new_dataset(dataset_expr, deltas)
+    if missing_values is None:
+        missing_values = {}
+    ds = new_dataset(dataset_expr, deltas, frozenset(missing_values.items()))
+
     # Register our new dataset with the loader.
     (loader if loader is not None else global_loader)[ds] = ExprData(
         bind_expression_to_resources(dataset_expr, resources),
@@ -740,8 +765,8 @@ def adjustments_from_deltas_with_sids(dense_dates,
                                       column_name,
                                       asset_idx,
                                       deltas):
-    """Collect all the adjustments that occur in a dataset that does not
-    have a sid column.
+    """Collect all the adjustments that occur in a dataset that has a sid
+    column.
 
     Parameters
     ----------
@@ -848,50 +873,54 @@ class BlazeLoader(dict):
             data_query_tz,
         )
 
-        def where(e, column):
+        def where(e):
             """Create the query to run against the resources.
 
             Parameters
             ----------
             e : Expr
                 The baseline or deltas expression.
-            column : BoundColumn
-                The column to query for.
 
             Returns
             -------
             q : Expr
-                The query to run for the given column.
+                The query to run.
             """
-            colname = column.name
-            pred = e[TS_FIELD_NAME] <= lower_dt
-            schema = e[colname].schema.measure
-            if isinstance(schema, Option):
-                pred &= e[colname].notnull()
-                schema = schema.ty
-            if schema in floating:
-                pred &= ~e[colname].isnan()
-            filtered = e[pred]
-            lower = filtered.timestamp.max()
+            def lower_for_col(column):
+                pred = e[TS_FIELD_NAME] <= lower_dt
+                colname = column.name
+                schema = e[colname].schema.measure
+                if isinstance(schema, Option):
+                    pred &= e[colname].notnull()
+                    schema = schema.ty
+                if schema in floating:
+                    pred &= ~e[colname].isnan()
 
-            if have_sids:
-                # If we have sids, then we need to take the earliest of the
-                # greatest date that has a non-null value by sid.
-                lower = bz.by(
-                    filtered[SID_FIELD_NAME],
-                    timestamp=lower,
-                ).timestamp.min()
+                filtered = e[pred]
+                lower = filtered[TS_FIELD_NAME].max()
+                if have_sids:
+                    # If we have sids, then we need to take the earliest of the
+                    # greatest date that has a non-null value by sid.
+                    lower = bz.by(
+                        filtered[SID_FIELD_NAME],
+                        timestamp=lower,
+                    ).timestamp.min()
+                return lower
 
-            lower = odo(lower, pd.Timestamp)
+            lower = odo(
+                reduce(
+                    bz.least,
+                    map(lower_for_col, columns),
+                ),
+                pd.Timestamp,
+                **odo_kwargs
+            )
             if lower is pd.NaT:
-                # If there is no lower date, just query for data in he date
-                # range. It must all be null anyways.
                 lower = lower_dt
-
             return e[
                 (e[TS_FIELD_NAME] >= lower) &
                 (e[TS_FIELD_NAME] <= upper_dt)
-            ][added_query_fields + [colname]]
+            ][added_query_fields + list(map(getname, columns))]
 
         def collect_expr(e):
             """Execute and merge all of the per-column subqueries.
@@ -911,13 +940,9 @@ class BlazeLoader(dict):
             This can return more data than needed. The in memory reindex will
             handle this.
             """
-            return sort_values(reduce(
-                partial(pd.merge, on=added_query_fields, how='outer'),
-                (
-                    odo(where(e, column), pd.DataFrame, **odo_kwargs)
-                    for column in columns
-                ),
-            ), TS_FIELD_NAME)  # sort for the groupby later
+            df = odo(where(e), pd.DataFrame, **odo_kwargs)
+            df.sort(TS_FIELD_NAME, inplace=True)  # sort for the groupby later
+            return df
 
         materialized_expr = collect_expr(expr)
         materialized_deltas = (
@@ -927,6 +952,13 @@ class BlazeLoader(dict):
                 columns=added_query_fields + list(map(getname, columns)),
             )
         )
+
+        # It's not guaranteed that assets returned by the engine will contain
+        # all sids from the deltas table; filter out such mismatches here.
+        if not materialized_deltas.empty and have_sids:
+            materialized_deltas = materialized_deltas[
+                materialized_deltas[SID_FIELD_NAME].isin(assets)
+            ]
 
         if data_query_time is not None:
             for m in (materialized_expr, materialized_deltas):
@@ -1018,7 +1050,8 @@ class BlazeLoader(dict):
                     column_name,
                     asset_idx,
                     sparse_deltas,
-                )
+                ),
+                column.missing_value,
             )
 
 global_loader = BlazeLoader.global_instance()
@@ -1033,7 +1066,7 @@ def bind_expression_to_resources(expr, resources):
     expr : bz.Expr
         The expression to which we want to bind resources.
     resources : dict[bz.Symbol -> any]
-        Mapping from the atomic terms of ``expr`` to actual data resources.
+        Mapping from the loadable terms of ``expr`` to actual data resources.
 
     Returns
     -------

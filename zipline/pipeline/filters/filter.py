@@ -13,12 +13,13 @@ from zipline.errors import (
     BadPercentileBounds,
     UnsupportedDataType,
 )
+from zipline.lib.rank import ismissing
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     PositiveWindowLengthMixin,
     SingleInputMixin,
 )
-from zipline.pipeline.term import CompositeTerm
+from zipline.pipeline.term import ComputableTerm
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     FILTER_BINOPS,
@@ -111,7 +112,7 @@ def unary_operator(op):
     return unary_operator
 
 
-class Filter(CompositeTerm):
+class Filter(ComputableTerm):
     """
     Pipeline API expression producing boolean-valued outputs.
     """
@@ -155,7 +156,7 @@ class NumExprFilter(NumericalExpression, Filter):
         """
         Helper for creating new NumExprFactors.
 
-        This is just a wrapper around NumExprFactor.__new__ that always
+        This is just a wrapper around NumericalExpression.__new__ that always
         forwards `bool` as the dtype, since Filters can only be of boolean
         dtype.
         """
@@ -171,6 +172,27 @@ class NumExprFilter(NumericalExpression, Filter):
             assets,
             mask,
         ) & mask
+
+
+class NullFilter(SingleInputMixin, Filter):
+    """
+    A Filter indicating whether input values are missing from an input.
+
+    Parameters
+    ----------
+    factor : zipline.pipeline.factor.Factor
+        The factor to compare against its missing_value.
+    """
+    window_length = 0
+
+    def __new__(cls, factor):
+        return super(NullFilter, cls).__new__(
+            cls,
+            inputs=(factor,),
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        return ismissing(arrays[0], self.inputs[0].missing_value)
 
 
 class PercentileFilter(SingleInputMixin, Filter):
@@ -252,6 +274,52 @@ class PercentileFilter(SingleInputMixin, Filter):
 
 class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     """
-    Filter analog to ``CustomFactor``.
+    Base class for user-defined Filters.
+
+    Parameters
+    ----------
+    inputs : iterable, optional
+        An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),
+        describing the data to load and pass to `self.compute`.  If this
+        argument is passed to the CustomFilter constructor, we look for a
+        class-level attribute named `inputs`.
+    window_length : int, optional
+        Number of rows to pass for each input.  If this argument is not passed
+        to the CustomFilter constructor, we look for a class-level attribute
+        named `window_length`.
+
+    Notes
+    -----
+    Users implementing their own Filters should subclass CustomFilter and
+    implement a method named `compute` with the following signature:
+
+    .. code-block:: python
+
+        def compute(self, today, assets, out, *inputs):
+           ...
+
+    On each simulation date, ``compute`` will be called with the current date,
+    an array of sids, an output array, and an input array for each expression
+    passed as inputs to the CustomFilter constructor.
+
+    The specific types of the values passed to `compute` are as follows::
+
+        today : np.datetime64[ns]
+            Row label for the last row of all arrays passed as `inputs`.
+        assets : np.array[int64, ndim=1]
+            Column labels for `out` and`inputs`.
+        out : np.array[bool, ndim=1]
+            Output array of the same shape as `assets`.  `compute` should write
+            its desired return values into `out`.
+        *inputs : tuple of np.array
+            Raw data arrays corresponding to the values of `self.inputs`.
+
+    See the documentation for
+    :class:`~zipline.pipeline.factors.factor.CustomFactor` for more details on
+    implementing a custom ``compute`` method.
+
+    See Also
+    --------
+    zipline.pipeline.factors.factor.CustomFactor
     """
     ctx = nullctx()

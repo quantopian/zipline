@@ -107,7 +107,7 @@ Asset Metadata
    :members:
 
 Data API
-~~~~
+~~~~~~~~
 
 .. autoclass:: zipline.data.minute_bars.BcolzMinuteBarWriter
    :members:

@@ -16,39 +16,33 @@
 """
 Tests for the zipline.finance package
 """
+from datetime import datetime, timedelta
 import itertools
 import operator
-
-import pytz
-
 from unittest import TestCase
-from datetime import datetime, timedelta
 
-import numpy as np
 
 from nose.tools import timed
-
+import numpy as np
+import pandas as pd
+import pytz
 from six.moves import range
 
+from zipline.finance.blotter import Blotter
+from zipline.finance.execution import MarketOrder, LimitOrder
+from zipline.finance.trading import TradingEnvironment
+from zipline.finance.performance import PerformanceTracker
+from zipline.finance.trading import SimulationParameters
+from zipline.gens.composites import date_sorted_sources
 import zipline.protocol
 from zipline.protocol import Event, DATASOURCE_TYPE
-
-import zipline.utils.factory as factory
-import zipline.utils.simfactory as simfactory
-
-from zipline.finance.blotter import Blotter
-from zipline.gens.composites import date_sorted_sources
-
-from zipline.finance.trading import TradingEnvironment
-from zipline.finance.execution import MarketOrder, LimitOrder
-from zipline.finance.trading import SimulationParameters
-
-from zipline.finance.performance import PerformanceTracker
-from zipline.utils.test_utils import(
+from zipline.testing import(
     setup_logger,
     teardown_logger,
     assert_single_position
 )
+import zipline.utils.factory as factory
+import zipline.utils.simfactory as simfactory
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
@@ -546,8 +540,16 @@ class TradingEnvironmentTestCase(TestCase):
         self.assertTrue(all(friday == minutes[31:421]))
         self.assertTrue(all(thursday == minutes[421:]))
 
+    def test_min_date(self):
+        min_date = pd.Timestamp('2016-03-04', tz='UTC')
+        env = TradingEnvironment(min_date=min_date)
+
+        self.assertGreaterEqual(env.first_trading_day, min_date)
+        self.assertGreaterEqual(env.treasury_curves.index[0],
+                                min_date)
+
     def test_max_date(self):
-        max_date = datetime(2008, 8, 1, tzinfo=pytz.utc)
+        max_date = pd.Timestamp('2008-08-01', tz='UTC')
         env = TradingEnvironment(max_date=max_date)
 
         self.assertLessEqual(env.last_trading_day, max_date)

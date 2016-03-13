@@ -1,21 +1,34 @@
 """
 Base class for Pipeline API  unittests.
 """
-from functools import wraps
+from functools import wraps, partial
 from unittest import TestCase
 
+from nose_parameterized import parameterized
+import numpy as np
 from numpy import arange, prod
+import pandas as pd
 from pandas import date_range, Int64Index, DataFrame
+from pandas.util.testing import assert_series_equal
 from six import iteritems
 
+from zipline.pipeline import Pipeline
+from zipline.pipeline.common import TS_FIELD_NAME
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
-from zipline.utils.pandas_utils import explode
-from zipline.utils.test_utils import (
+from zipline.testing import (
     ExplodingObject,
+    gen_calendars,
     make_simple_equity_info,
+    num_days_in_range,
     tmp_asset_finder,
 )
+
+from zipline.utils.numpy_utils import (
+    NaTD,
+    make_datetime64D
+)
+from zipline.utils.pandas_utils import explode
 from zipline.utils.tradingcalendar import trading_day
 
 
@@ -133,3 +146,226 @@ class BasePipelineTestCase(TestCase):
         Build a block of testing data from numpy.arange.
         """
         return arange(prod(shape), dtype=dtype).reshape(shape)
+
+
+DATE_FIELD_NAME = "event_date"
+
+
+class EventLoaderCommonMixin(object):
+    sids = A, B, C, D, E = range(5)
+    equity_info = make_simple_equity_info(
+        sids,
+        start_date=pd.Timestamp('2013-01-01', tz='UTC'),
+        end_date=pd.Timestamp('2015-01-01', tz='UTC'),
+    )
+
+    event_dates_cases = [
+        # K1--K2--E1--E2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-15', '2014-01-20'])
+        }),
+        # K1--K2--E2--E1.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-20', '2014-01-15'])
+        }),
+        # K1--E1--K2--E2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-20'])
+        }),
+        # K1 == K2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
+            DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-15'])
+        }),
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime([]),
+            DATE_FIELD_NAME: pd.to_datetime([])
+        })
+    ]
+
+    def zip_with_floats(self, dates, flts):
+        return pd.Series(flts, index=dates).astype('float')
+
+    def num_days_between(self, dates, start_date, end_date):
+        return num_days_in_range(dates, start_date, end_date)
+
+    def zip_with_dates(self, index_dates, dts):
+        return pd.Series(pd.to_datetime(dts), index=index_dates)
+
+    def loader_args(self, dates):
+        """Construct the base  object to pass to the loader.
+
+        Parameters
+        ----------
+        dates : pd.DatetimeIndex
+            The dates we can serve.
+
+        Returns
+        -------
+        args : tuple[any]
+            The arguments to forward to the loader positionally.
+        """
+        return dates, self.dataset
+
+    def setup_engine(self, dates):
+        """
+        Make a Pipeline Enigne object based on the given dates.
+        """
+        loader = self.loader_type(*self.loader_args(dates))
+        return SimplePipelineEngine(lambda _: loader, dates, self.finder)
+
+    def get_expected_next_event_dates(self, dates):
+        num_days_between_for_dates = partial(self.num_days_between, dates)
+        zip_with_dates_for_dates = partial(self.zip_with_dates, dates)
+        return pd.DataFrame({
+            0: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-15'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-15') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-16', '2014-01-20') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-21', None)
+            ),
+            1: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-09') +
+                ['2014-01-15'] *
+                num_days_between_for_dates('2014-01-10', '2014-01-15') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-16', '2014-01-20') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-21', None)
+            ),
+            2: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-10'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-10') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-11', '2014-01-14') +
+                ['2014-01-20'] *
+                num_days_between_for_dates('2014-01-15', '2014-01-20') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-21', None)
+            ),
+            3: zip_with_dates_for_dates(
+                ['NaT'] *
+                num_days_between_for_dates(None, '2014-01-04') +
+                ['2014-01-10'] *
+                num_days_between_for_dates('2014-01-05', '2014-01-10') +
+                ['2014-01-15'] *
+                num_days_between_for_dates('2014-01-11', '2014-01-15') +
+                ['NaT'] *
+                num_days_between_for_dates('2014-01-16', None)
+            ),
+            4: zip_with_dates_for_dates(['NaT'] *
+                                        len(dates)),
+        }, index=dates)
+
+    def get_expected_previous_event_dates(self, dates):
+        num_days_between_for_dates = partial(self.num_days_between, dates)
+        zip_with_dates_for_dates = partial(self.zip_with_dates, dates)
+        return pd.DataFrame({
+            0: zip_with_dates_for_dates(
+                ['NaT'] * num_days_between_for_dates(None, '2014-01-14') +
+                ['2014-01-15'] * num_days_between_for_dates('2014-01-15',
+                                                            '2014-01-19') +
+                ['2014-01-20'] * num_days_between_for_dates('2014-01-20',
+                                                            None),
+            ),
+            1: zip_with_dates_for_dates(
+                ['NaT'] * num_days_between_for_dates(None, '2014-01-14') +
+                ['2014-01-15'] * num_days_between_for_dates('2014-01-15',
+                                                            '2014-01-19') +
+                ['2014-01-20'] * num_days_between_for_dates('2014-01-20',
+                                                            None),
+            ),
+            2: zip_with_dates_for_dates(
+                ['NaT'] * num_days_between_for_dates(None, '2014-01-09') +
+                ['2014-01-10'] * num_days_between_for_dates('2014-01-10',
+                                                            '2014-01-19') +
+                ['2014-01-20'] * num_days_between_for_dates('2014-01-20',
+                                                            None),
+            ),
+            3: zip_with_dates_for_dates(
+                ['NaT'] * num_days_between_for_dates(None, '2014-01-09') +
+                ['2014-01-10'] * num_days_between_for_dates('2014-01-10',
+                                                            '2014-01-14') +
+                ['2014-01-15'] * num_days_between_for_dates('2014-01-15',
+                                                            None),
+            ),
+            4: zip_with_dates_for_dates(['NaT'] * len(dates)),
+        }, index=dates)
+
+    @staticmethod
+    def _compute_busday_offsets(announcement_dates):
+        """
+        Compute expected business day offsets from a DataFrame of announcement
+        dates.
+        """
+        # Column-vector of dates on which factor `compute` will be called.
+        raw_call_dates = announcement_dates.index.values.astype(
+            'datetime64[D]'
+        )[:, None]
+
+        # 2D array of dates containining expected nexg announcement.
+        raw_announce_dates = (
+            announcement_dates.values.astype('datetime64[D]')
+        )
+
+        # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
+        # We fill these entries with NaNs later.
+        whereNaT = raw_announce_dates == NaTD
+        raw_announce_dates[whereNaT] = make_datetime64D(0)
+
+        # The abs call here makes it so that we can use this function to
+        # compute offsets for both next and previous earnings (previous
+        # earnings offsets come back negative).
+        expected = abs(np.busday_count(
+            raw_call_dates,
+            raw_announce_dates
+        ).astype(float))
+
+        expected[whereNaT] = np.nan
+        return pd.DataFrame(
+            data=expected,
+            columns=announcement_dates.columns,
+            index=announcement_dates.index,
+        )
+
+    @parameterized.expand(gen_calendars(
+        '2014-01-01',
+        '2014-01-31',
+        critical_dates=pd.to_datetime([
+            '2014-01-05',
+            '2014-01-10',
+            '2014-01-15',
+            '2014-01-20',
+        ], utc=True),
+    ))
+    def test_compute(self, dates):
+        engine = self.setup_engine(dates)
+        self.setup(dates)
+
+        pipe = Pipeline(
+            columns=self.pipeline_columns
+        )
+
+        result = engine.run_pipeline(
+            pipe,
+            start_date=dates[0],
+            end_date=dates[-1],
+        )
+
+        for sid in self.sids:
+            for col_name in self.cols.keys():
+                assert_series_equal(result[col_name].xs(sid, level=1),
+                                    self.cols[col_name][sid],
+                                    check_names=False)

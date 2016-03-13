@@ -23,9 +23,8 @@ from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, TermGraph
-from zipline.utils.test_utils import check_arrays
+from zipline.testing import check_arrays
 from zipline.utils.numpy_utils import float64_dtype
-
 from .base import BasePipelineTestCase, with_default_shape
 
 
@@ -345,10 +344,14 @@ class FilterTestCase(BasePipelineTestCase):
         data[diag] = nan
 
         results = self.run_graph(
-            TermGraph({'isnan': self.f.isnan()}),
+            TermGraph({
+                'isnan': self.f.isnan(),
+                'isnull': self.f.isnull(),
+            }),
             initial_workspace={self.f: data},
         )
         check_arrays(results['isnan'], diag)
+        check_arrays(results['isnull'], diag)
 
     def test_notnan(self):
         data = self.randn_data(seed=10)
@@ -356,10 +359,14 @@ class FilterTestCase(BasePipelineTestCase):
         data[diag] = nan
 
         results = self.run_graph(
-            TermGraph({'notnan': self.f.notnan()}),
+            TermGraph({
+                'notnan': self.f.notnan(),
+                'notnull': self.f.notnull(),
+            }),
             initial_workspace={self.f: data},
         )
         check_arrays(results['notnan'], ~diag)
+        check_arrays(results['notnull'], ~diag)
 
     def test_isfinite(self):
         data = self.randn_data(seed=10)

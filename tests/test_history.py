@@ -38,8 +38,8 @@ from zipline.history import history
 from zipline.history.history_container import HistoryContainer
 from zipline.protocol import BarData
 from zipline.sources import RandomWalkSource, DataFrameSource
+from zipline.testing import subtest
 import zipline.utils.factory as factory
-from zipline.utils.test_utils import subtest
 
 
 class TestHistoryContainer(TestCase):

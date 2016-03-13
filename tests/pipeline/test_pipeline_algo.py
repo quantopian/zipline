@@ -57,7 +57,7 @@ from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
-from zipline.utils.test_utils import (
+from zipline.testing import (
     make_simple_equity_info,
     str_to_seconds,
 )

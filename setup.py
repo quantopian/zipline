@@ -157,6 +157,10 @@ REQ_PATTERN = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
 
 
 def _conda_format(req):
+    match = REQ_PATTERN.match(req)
+    if match and match.group(1).lower() == 'numpy':
+        return 'numpy x.x'
+
     return REQ_PATTERN.sub(
         lambda m: '%s %s%s' % (m.group(1).lower(), m.group(2), m.group(3)),
         req,
@@ -202,7 +206,8 @@ def extras_requires(conda_format=False):
     }
 
 
-def module_requirements(requirements_path, module_names, strict_bounds):
+def module_requirements(requirements_path, module_names, strict_bounds,
+                        conda_format=False):
     module_names = set(module_names)
     found = set()
     module_lines = []
@@ -215,18 +220,33 @@ def module_requirements(requirements_path, module_names, strict_bounds):
         name = match.group(1)
         if name in module_names:
             found.add(name)
+            if conda_format:
+                line = _conda_format(line)
             module_lines.append(line)
 
     if found != module_names:
         raise AssertionError(
-            "No requirements found for %s." % module_names - found
+            "No requirements found for %s." % (module_names - found)
         )
     return module_lines
 
-conda_build = os.path.basename(sys.argv[0]) == 'conda-build'
+conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
+                                                'conda-build-script.py')  # win
+
+setup_requires = module_requirements(
+    'etc/requirements.txt',
+    ('Cython', 'numpy'),
+    strict_bounds=conda_build,
+    conda_format=conda_build,
+)
+
+conditional_arguments = {
+    'setup_requires' if not conda_build else 'build_requires': setup_requires,
+}
 
 setup(
     name='zipline',
+    url="http://zipline.io",
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     description='A backtester for financial algorithms.',
@@ -252,10 +272,5 @@ setup(
     ],
     install_requires=install_requires(conda_format=conda_build),
     extras_require=extras_requires(conda_format=conda_build),
-    setup_requires=module_requirements(
-        'etc/requirements.txt',
-        ('Cython', 'numpy'),
-        strict_bounds=False,
-    ),
-    url="http://zipline.io",
+    **conditional_arguments
 )

@@ -15,24 +15,21 @@
 
 from unittest import TestCase
 
-import zipline.utils.simfactory as simfactory
-import zipline.utils.factory as factory
-
+from zipline.finance.slippage import FixedSlippage
+from zipline.finance.trading import TradingEnvironment
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
     SetPortfolioAlgorithm,
 )
-from zipline.finance.slippage import FixedSlippage
-from zipline.finance.trading import TradingEnvironment
-
-
-from zipline.utils.test_utils import (
+from zipline.testing import (
     drain_zipline,
     setup_logger,
     teardown_logger,
     ExceptionSource,
 )
+import zipline.utils.simfactory as simfactory
+import zipline.utils.factory as factory
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90

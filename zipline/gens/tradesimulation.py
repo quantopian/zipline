@@ -23,8 +23,9 @@ from zipline.errors import SidsNotFound
 from zipline.finance.trading import NoFurtherDataError
 from zipline.protocol import (
     BarData,
+    DATASOURCE_TYPE,
+    Event,
     SIDData,
-    DATASOURCE_TYPE
 )
 from zipline.utils.api_support import ZiplineAPI
 from zipline.utils.data import SortedDict
@@ -58,10 +59,35 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
-        def _get_asset_close_date(sid,
-                                  finder=self.env.asset_finder,
-                                  default=self.sim_params.last_close
-                                  + timedelta(days=1)):
+        _day = timedelta(days=1)
+
+        def _get_removal_date(sid,
+                              finder=self.env.asset_finder,
+                              default=self.sim_params.last_close + _day):
+            """
+            Get the date of the morning on which we should remove an asset from
+            data.
+
+            If we don't have an auto_close_date, this is just the end of the
+            simulation.
+
+            If we have an auto_close_date, then we remove assets from data on
+            max(asset.auto_close_date, asset.end_date + timedelta(days=1))
+
+            We hold assets at least until auto_close_date because up until that
+            date the user might still hold positions or have open orders in an
+            expired asset.
+
+            We hold assets at least until end_date + 1, because an asset
+            continues trading until the **end** of its end_date.  Even if an
+            asset auto-closed before the end_date (say, because Interactive
+            Brokers clears futures positions prior the actual notice or
+            expiration), there may still be trades arriving that represent
+            signals for other assets that are still tradeable. (Particularly in
+            the futures case, trading in the final days of a contract are
+            likely relevant for trading the next contract on the same future
+            chain.)
+            """
             try:
                 asset = finder.retrieve_asset(sid)
             except ValueError:
@@ -72,18 +98,30 @@ class AlgorithmSimulator(object):
                 return default + timedelta(microseconds=id(sid))
             except SidsNotFound:
                 return default
-            # Default is used when the asset has no auto close date,
-            # and is set to a time after the simulation ends, so that the
-            # relevant asset isn't removed from the universe at all
-            # (at least not for this reason).
-            return asset.auto_close_date or default
 
-        self._get_asset_close = _get_asset_close_date
+            auto_close_date = asset.auto_close_date
+            if auto_close_date is None:
+                # If we don't have an auto_close_date, we never remove an asset
+                # from the user's portfolio.
+                return default
+
+            end_date = asset.end_date
+            if end_date is None:
+                # If we have an auto_close_date but not an end_date, clear the
+                # asset from data when we clear positions/orders.
+                return auto_close_date
+
+            # If we have both, make close once we're on or after the
+            # auto_close_date, and strictly after the end_date.
+            # See docstring above for an explanation of this logic.
+            return max(auto_close_date, end_date + _day)
+
+        self._get_removal_date = _get_removal_date
 
         # The algorithm's data as of our most recent event.
         # Maintain sids in order by asset close date, so that we can more
         # efficiently remove them when their times come...
-        self.current_data = BarData(SortedDict(self._get_asset_close))
+        self.current_data = BarData(SortedDict(self._get_removal_date))
 
         # We don't have a datetime for the current snapshot until we
         # receive a message.
@@ -123,16 +161,6 @@ class AlgorithmSimulator(object):
 
                 self.simulation_dt = date
                 self.on_dt_changed(date)
-
-                closed = list(takewhile(
-                    lambda asset_id: self._get_asset_close(asset_id) < date,
-                    self.current_data
-                ))
-                for sid in closed:
-                    try:
-                        del self.current_data[sid]
-                    except KeyError:
-                        continue
 
                 # If we're still in the warmup period.  Use the event to
                 # update our universe, but don't yield any perf messages,
@@ -368,7 +396,74 @@ class AlgorithmSimulator(object):
         dt = normalize_date(dt)
         self.simulation_dt = dt
         self.on_dt_changed(dt)
+
+        self._cleanup_expired_assets(dt, self.current_data, self.algo.blotter)
+
         self.algo.before_trading_start(self.current_data)
+
+    def _cleanup_expired_assets(self, dt, current_data, algo_blotter):
+        """
+        Clear out any assets that have expired before starting a new sim day.
+
+        Performs three functions:
+
+        1. Finds all assets for which we have open orders and clears any
+           orders whose assets are on or after their auto_close_date.
+
+        2. Finds all assets for which we have positions and generates
+           close_position events for any assets that have reached their
+           auto_close_date.
+
+        3. Finds and removes from data all sids for which
+           _get_removal_date(sid) <= dt.
+        """
+        algo = self.algo
+        expired = list(takewhile(
+            lambda asset_id: self._get_removal_date(asset_id) <= dt,
+            self.current_data
+        ))
+        for sid in expired:
+            try:
+                del self.current_data[sid]
+            except KeyError:
+                continue
+
+        def create_close_position_event(asset):
+            event = Event({
+                'dt': dt,
+                'type': DATASOURCE_TYPE.CLOSE_POSITION,
+                'sid': asset.sid,
+            })
+            return event
+
+        def past_auto_close_date(asset):
+            acd = asset.auto_close_date
+            return acd is not None and acd <= dt
+
+        # Remove positions in any sids that have reached their auto_close date.
+        to_clear = []
+        finder = algo.asset_finder
+        perf_tracker = algo.perf_tracker
+        nonempty_position_assets = finder.retrieve_all(
+            # get_nonempty_position_sids us just the non-empty positions, and
+            # also avoids an unnecessary re-compuation of the portfolio.
+            perf_tracker.position_tracker.get_nonempty_position_sids()
+        )
+        for asset in nonempty_position_assets:
+            if past_auto_close_date(asset):
+                to_clear.append(asset)
+        for close_event in map(create_close_position_event, to_clear):
+            perf_tracker.process_close_position(close_event)
+
+        # Remove open orders for any sids that have reached their
+        # auto_close_date.
+        blotter = algo.blotter
+        to_cancel = []
+        for asset in blotter.open_orders:
+            if past_auto_close_date(asset):
+                to_cancel.append(asset)
+        for asset in to_cancel:
+            blotter.cancel_all(asset)
 
     def on_dt_changed(self, dt):
         if self.algo.datetime != dt:

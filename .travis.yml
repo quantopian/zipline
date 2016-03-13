@@ -1,19 +1,19 @@
 language: python
 sudo: false
-cache:
-  directories:
-    - $HOME/.cache/pip
 matrix:
   fast_finish: true
   include:
   - python: 2.7
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
+    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 CACHE_DIR=$HOME/.cache/.pip/pip_np19
   - python: 2.7
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1
+    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1 CACHE_DIR=$HOME/.cache/.pip/pip_np110
   - python: 3.4
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
+    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 CACHE_DIR=$HOME/.cache/.pip/pip_np19
   - python: 3.4
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1
+    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1 CACHE_DIR=$HOME/.cache/.pip/pip_np110
+cache:
+  directories:
+    - $HOME/.cache/.pip/
 
 before_install:
   - if [ ${TRAVIS_PYTHON_VERSION:0:1} == "2" ]; then wget https://repo.continuum.io/miniconda/Miniconda-3.7.0-Linux-x86_64.sh -O miniconda.sh; else wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O miniconda.sh; fi
@@ -24,13 +24,13 @@ before_install:
   - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==$SCIPY_VERSION/" etc/requirements.txt
 install:
-  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION ta-lib=0.4.8
+  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=0.4.9
   - source activate testenv
-  - pip install --upgrade pip coverage coveralls
-  - pip install -r etc/requirements.txt
-  - pip install -r etc/requirements_dev.txt
-  - pip install -r etc/requirements_blaze.txt  # this uses git requirements right now
-  - pip install -e .
+  - pip install --upgrade pip coverage coveralls --cache-dir=$CACHE_DIR
+  - pip install -r etc/requirements.txt --cache-dir=$CACHE_DIR
+  - pip install -r etc/requirements_dev.txt --cache-dir=$CACHE_DIR
+  - pip install -r etc/requirements_blaze.txt --cache-dir=$CACHE_DIR  # this uses git requirements right now
+  - pip install -e . --cache-dir=$CACHE_DIR
 before_script:
   - pip freeze | sort
 script:

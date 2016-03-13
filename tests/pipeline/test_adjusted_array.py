@@ -10,6 +10,7 @@ from numpy import (
     arange,
     array,
     full,
+    where,
 )
 from numpy.testing import assert_array_equal
 from six.moves import zip_longest
@@ -21,11 +22,23 @@ from zipline.lib.adjustment import (
     Float64Overwrite,
 )
 from zipline.lib.adjusted_array import AdjustedArray, NOMASK
+from zipline.testing import check_arrays, parameter_space
 from zipline.utils.numpy_utils import (
+    coerce_to_dtype,
     datetime64ns_dtype,
+    default_missing_value_for_dtype,
     float64_dtype,
-    make_datetime64ns,
+    int64_dtype,
 )
+
+
+def moving_window(array, nrows):
+    """
+    Simple moving window generator over a 2D numpy array.
+    """
+    count = num_windows_of_length_M_on_buffers_of_length_N(nrows, len(array))
+    for i in range(count):
+        yield array[i:i + nrows]
 
 
 def num_windows_of_length_M_on_buffers_of_length_N(M, N):
@@ -49,23 +62,12 @@ def valid_window_lengths(underlying_buffer_length):
     return iter(range(1, underlying_buffer_length + 1))
 
 
-def value_with_dtype(dtype, value):
-    """
-    Make a value with the specified numpy dtype.
-    """
-    name = dtype.name
-    if name.startswith('datetime64'):
-        if name != 'datetime64[ns]':
-            raise TypeError("Expected datetime64[ns], but got %s." % name)
-        return make_datetime64ns(value)
-    return dtype.type(value)
-
-
 def _gen_unadjusted_cases(dtype):
 
     nrows = 6
     ncols = 3
     data = arange(nrows * ncols).astype(dtype).reshape(nrows, ncols)
+    missing_value = default_missing_value_for_dtype(dtype)
 
     for windowlen in valid_window_lengths(nrows):
 
@@ -78,6 +80,7 @@ def _gen_unadjusted_cases(dtype):
             data,
             windowlen,
             {},
+            missing_value,
             [
                 data[offset:offset + windowlen]
                 for offset in range(num_legal_windows)
@@ -109,7 +112,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
 
     # Note that row indices are inclusive!
     adjustments[1] = [
-        adjustment_type(0, 0, 0, 0, value_with_dtype(dtype, 2)),
+        adjustment_type(0, 0, 0, 0, coerce_to_dtype(dtype, 2)),
     ]
     buffer_as_of[1] = array([[2, 1, 1],
                              [1, 1, 1],
@@ -122,8 +125,8 @@ def _gen_multiplicative_adjustment_cases(dtype):
     buffer_as_of[2] = buffer_as_of[1]
 
     adjustments[3] = [
-        adjustment_type(1, 2, 1, 1, value_with_dtype(dtype, 3)),
-        adjustment_type(0, 1, 0, 0, value_with_dtype(dtype, 4)),
+        adjustment_type(1, 2, 1, 1, coerce_to_dtype(dtype, 3)),
+        adjustment_type(0, 1, 0, 0, coerce_to_dtype(dtype, 4)),
     ]
     buffer_as_of[3] = array([[8, 1, 1],
                              [4, 3, 1],
@@ -133,7 +136,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
                              [1, 1, 1]], dtype=dtype)
 
     adjustments[4] = [
-        adjustment_type(0, 3, 2, 2, value_with_dtype(dtype, 5))
+        adjustment_type(0, 3, 2, 2, coerce_to_dtype(dtype, 5))
     ]
     buffer_as_of[4] = array([[8, 1, 5],
                              [4, 3, 5],
@@ -143,8 +146,8 @@ def _gen_multiplicative_adjustment_cases(dtype):
                              [1, 1, 1]], dtype=dtype)
 
     adjustments[5] = [
-        adjustment_type(0, 4, 1, 1, value_with_dtype(dtype, 6)),
-        adjustment_type(2, 2, 2, 2, value_with_dtype(dtype, 7)),
+        adjustment_type(0, 4, 1, 1, coerce_to_dtype(dtype, 6)),
+        adjustment_type(2, 2, 2, 2, coerce_to_dtype(dtype, 7)),
     ]
     buffer_as_of[5] = array([[8,  6,  5],
                              [4, 18,  5],
@@ -176,7 +179,7 @@ def _gen_overwrite_adjustment_cases(dtype):
 
     # Note that row indices are inclusive!
     adjustments[1] = [
-        adjustment_type(0, 0, 0, 0, value_with_dtype(dtype, 1)),
+        adjustment_type(0, 0, 0, 0, coerce_to_dtype(dtype, 1)),
     ]
     buffer_as_of[1] = array([[1, 2, 2],
                              [2, 2, 2],
@@ -189,8 +192,8 @@ def _gen_overwrite_adjustment_cases(dtype):
     buffer_as_of[2] = buffer_as_of[1]
 
     adjustments[3] = [
-        adjustment_type(1, 2, 1, 1, value_with_dtype(dtype, 3)),
-        adjustment_type(0, 1, 0, 0, value_with_dtype(dtype, 4)),
+        adjustment_type(1, 2, 1, 1, coerce_to_dtype(dtype, 3)),
+        adjustment_type(0, 1, 0, 0, coerce_to_dtype(dtype, 4)),
     ]
     buffer_as_of[3] = array([[4, 2, 2],
                              [4, 3, 2],
@@ -200,7 +203,7 @@ def _gen_overwrite_adjustment_cases(dtype):
                              [2, 2, 2]], dtype=dtype)
 
     adjustments[4] = [
-        adjustment_type(0, 3, 2, 2, value_with_dtype(dtype, 5))
+        adjustment_type(0, 3, 2, 2, coerce_to_dtype(dtype, 5))
     ]
     buffer_as_of[4] = array([[4, 2, 5],
                              [4, 3, 5],
@@ -210,8 +213,8 @@ def _gen_overwrite_adjustment_cases(dtype):
                              [2, 2, 2]], dtype=dtype)
 
     adjustments[5] = [
-        adjustment_type(0, 4, 1, 1, value_with_dtype(dtype, 6)),
-        adjustment_type(2, 2, 2, 2, value_with_dtype(dtype, 7)),
+        adjustment_type(0, 4, 1, 1, coerce_to_dtype(dtype, 6)),
+        adjustment_type(2, 2, 2, 2, coerce_to_dtype(dtype, 7)),
     ]
     buffer_as_of[5] = array([[4,  6,  5],
                              [4,  6,  5],
@@ -230,6 +233,7 @@ def _gen_overwrite_adjustment_cases(dtype):
 
 def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
 
+    missing_value = default_missing_value_for_dtype(baseline.dtype)
     for windowlen in valid_window_lengths(nrows):
 
         num_legal_windows = num_windows_of_length_M_on_buffers_of_length_N(
@@ -241,6 +245,7 @@ def _gen_expectations(baseline, adjustments, buffer_as_of, nrows):
             baseline,
             windowlen,
             adjustments,
+            missing_value,
             [
                 # This is a nasty expression...
                 #
@@ -267,9 +272,10 @@ class AdjustedArrayTestCase(TestCase):
                             data,
                             lookback,
                             adjustments,
+                            missing_value,
                             expected):
 
-        array = AdjustedArray(data, NOMASK, adjustments)
+        array = AdjustedArray(data, NOMASK, adjustments, missing_value)
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(lookback)
             for yielded, expected_yield in zip_longest(window_iter, expected):
@@ -282,9 +288,10 @@ class AdjustedArrayTestCase(TestCase):
                                         data,
                                         lookback,
                                         adjustments,
+                                        missing_value,
                                         expected):
 
-        array = AdjustedArray(data, NOMASK, adjustments)
+        array = AdjustedArray(data, NOMASK, adjustments, missing_value)
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(lookback)
             for yielded, expected_yield in zip_longest(window_iter, expected):
@@ -301,18 +308,43 @@ class AdjustedArrayTestCase(TestCase):
                                         data,
                                         lookback,
                                         adjustments,
+                                        missing_value,
                                         expected):
-        array = AdjustedArray(data, NOMASK, adjustments)
+        array = AdjustedArray(data, NOMASK, adjustments, missing_value)
         for _ in range(2):  # Iterate 2x ensure adjusted_arrays are re-usable.
             window_iter = array.traverse(lookback)
             for yielded, expected_yield in zip_longest(window_iter, expected):
                 self.assertEqual(yielded.dtype, data.dtype)
                 assert_array_equal(yielded, expected_yield)
 
+    @parameter_space(
+        dtype=[float64_dtype, int64_dtype, datetime64ns_dtype],
+        missing_value=[0, 10000],
+        window_length=[2, 3],
+    )
+    def test_masking(self, dtype, missing_value, window_length):
+        missing_value = coerce_to_dtype(dtype, missing_value)
+        baseline_ints = arange(15).reshape(5, 3)
+        baseline = baseline_ints.astype(dtype)
+        mask = (baseline_ints % 2).astype(bool)
+        masked_baseline = where(mask, baseline, missing_value)
+
+        array = AdjustedArray(
+            baseline,
+            mask,
+            adjustments={},
+            missing_value=missing_value,
+        )
+
+        gen_expected = moving_window(masked_baseline, window_length)
+        gen_actual = array.traverse(window_length)
+        for expected, actual in zip(gen_expected, gen_actual):
+            check_arrays(expected, actual)
+
     def test_invalid_lookback(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = AdjustedArray(data, NOMASK, {})
+        adj_array = AdjustedArray(data, NOMASK, {}, float('nan'))
 
         with self.assertRaises(WindowLengthTooLong):
             adj_array.traverse(7)
@@ -326,7 +358,7 @@ class AdjustedArrayTestCase(TestCase):
     def test_array_views_arent_writable(self):
 
         data = arange(30, dtype=float).reshape(6, 5)
-        adj_array = AdjustedArray(data, NOMASK, {})
+        adj_array = AdjustedArray(data, NOMASK, {}, float('nan'))
 
         for frame in adj_array.traverse(3):
             with self.assertRaises(ValueError):
@@ -338,7 +370,7 @@ class AdjustedArrayTestCase(TestCase):
         bad_mask = array([[0, 1, 1], [0, 0, 1]], dtype=bool)
 
         with self.assertRaisesRegexp(ValueError, msg):
-            AdjustedArray(data, bad_mask, {})
+            AdjustedArray(data, bad_mask, {}, missing_value=-1)
 
     def test_inspect(self):
         data = arange(15, dtype=float).reshape(5, 3)
@@ -346,6 +378,7 @@ class AdjustedArrayTestCase(TestCase):
             data,
             NOMASK,
             {4: [Float64Multiply(2, 3, 0, 0, 4.0)]},
+            float('nan'),
         )
 
         expected = dedent(

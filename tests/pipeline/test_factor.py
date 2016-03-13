@@ -22,10 +22,15 @@ from zipline.pipeline.factors import (
     Returns,
     RSI,
 )
-from zipline.utils.test_utils import check_allclose, check_arrays
+from zipline.testing import (
+    check_allclose,
+    check_arrays,
+    parameter_space,
+)
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
+    int64_dtype,
     NaTns,
 )
 
@@ -58,6 +63,73 @@ class FactorTestCase(BasePipelineTestCase):
     def test_bad_input(self):
         with self.assertRaises(UnknownRankMethod):
             self.f.rank("not a real rank method")
+
+    @parameter_space(method_name=['isnan', 'notnan', 'isfinite'])
+    def test_float64_only_ops(self, method_name):
+        class NotFloat(Factor):
+            dtype = datetime64ns_dtype
+            inputs = ()
+            window_length = 0
+
+        nf = NotFloat()
+        meth = getattr(nf, method_name)
+        with self.assertRaises(TypeError):
+            meth()
+
+    @parameter_space(custom_missing_value=[-1, 0])
+    def test_isnull_int_dtype(self, custom_missing_value):
+
+        class CustomMissingValue(Factor):
+            dtype = int64_dtype
+            window_length = 0
+            missing_value = custom_missing_value
+            inputs = ()
+
+        factor = CustomMissingValue()
+
+        data = arange(25).reshape(5, 5)
+        data[eye(5, dtype=bool)] = custom_missing_value
+
+        graph = TermGraph(
+            {
+                'isnull': factor.isnull(),
+                'notnull': factor.notnull(),
+            }
+        )
+
+        results = self.run_graph(
+            graph,
+            initial_workspace={factor: data},
+            mask=self.build_mask(ones((5, 5))),
+        )
+        check_arrays(results['isnull'], eye(5, dtype=bool))
+        check_arrays(results['notnull'], ~eye(5, dtype=bool))
+
+    def test_isnull_datetime_dtype(self):
+        class DatetimeFactor(Factor):
+            dtype = datetime64ns_dtype
+            window_length = 0
+            inputs = ()
+
+        factor = DatetimeFactor()
+
+        data = arange(25).reshape(5, 5).astype('datetime64[ns]')
+        data[eye(5, dtype=bool)] = NaTns
+
+        graph = TermGraph(
+            {
+                'isnull': factor.isnull(),
+                'notnull': factor.notnull(),
+            }
+        )
+
+        results = self.run_graph(
+            graph,
+            initial_workspace={factor: data},
+            mask=self.build_mask(ones((5, 5))),
+        )
+        check_arrays(results['isnull'], eye(5, dtype=bool))
+        check_arrays(results['notnull'], ~eye(5, dtype=bool))
 
     @for_each_factor_dtype
     def test_rank_ascending(self, name, factor_dtype):

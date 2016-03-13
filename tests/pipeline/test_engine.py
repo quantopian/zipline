@@ -41,7 +41,7 @@ from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment
 from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline.loaders.synthetic import (
-    ConstantLoader,
+    PrecomputedLoader,
     NullAdjustmentReader,
     SyntheticDailyBarWriter,
 )
@@ -62,13 +62,13 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
-from zipline.utils.memoize import lazyval
-from zipline.utils.test_utils import (
+from zipline.testing import (
     make_rotating_equity_info,
     make_simple_equity_info,
     product_upper_triangle,
     check_arrays,
 )
+from zipline.utils.memoize import lazyval
 
 
 class RollingSumDifference(CustomFactor):
@@ -126,16 +126,16 @@ class ColumnArgs(tuple):
         return hash(frozenset(self))
 
 
-class RecordingConstantLoader(ConstantLoader):
+class RecordingPrecomputedLoader(PrecomputedLoader):
     def __init__(self, *args, **kwargs):
-        super(RecordingConstantLoader, self).__init__(*args, **kwargs)
+        super(RecordingPrecomputedLoader, self).__init__(*args, **kwargs)
 
         self.load_calls = []
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         self.load_calls.append(ColumnArgs(*columns))
 
-        return super(RecordingConstantLoader, self).load_adjusted_array(
+        return super(RecordingPrecomputedLoader, self).load_adjusted_array(
             columns, dates, assets, mask,
         )
 
@@ -159,10 +159,10 @@ class ConstantInputTestCase(TestCase):
         }
         self.asset_ids = [1, 2, 3]
         self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
-        self.loader = ConstantLoader(
+        self.loader = PrecomputedLoader(
             constants=self.constants,
             dates=self.dates,
-            assets=self.asset_ids,
+            sids=self.asset_ids,
         )
 
         self.asset_info = make_simple_equity_info(
@@ -364,10 +364,10 @@ class ConstantInputTestCase(TestCase):
         dates_to_test = self.dates[-30:]
 
         constants = {open_: 1, close: 2, volume: 3}
-        loader = ConstantLoader(
+        loader = PrecomputedLoader(
             constants=constants,
             dates=self.dates,
-            assets=self.asset_ids,
+            sids=self.asset_ids,
         )
         engine = SimplePipelineEngine(
             lambda column: loader, self.dates, self.asset_finder,
@@ -415,7 +415,7 @@ class ConstantInputTestCase(TestCase):
     def test_loader_given_multiple_columns(self):
 
         class Loader1DataSet1(DataSet):
-            col1 = Column(float32)
+            col1 = Column(float)
             col2 = Column(float32)
 
         class Loader1DataSet2(DataSet):
@@ -430,14 +430,15 @@ class ConstantInputTestCase(TestCase):
                       Loader1DataSet1.col2: 2,
                       Loader1DataSet2.col1: 3,
                       Loader1DataSet2.col2: 4}
-        loader1 = RecordingConstantLoader(constants=constants1,
-                                          dates=self.dates,
-                                          assets=self.asset_ids)
+
+        loader1 = RecordingPrecomputedLoader(constants=constants1,
+                                             dates=self.dates,
+                                             sids=self.assets)
         constants2 = {Loader2DataSet.col1: 5,
                       Loader2DataSet.col2: 6}
-        loader2 = RecordingConstantLoader(constants=constants2,
-                                          dates=self.dates,
-                                          assets=self.asset_ids)
+        loader2 = RecordingPrecomputedLoader(constants=constants2,
+                                             dates=self.dates,
+                                             sids=self.assets)
 
         engine = SimplePipelineEngine(
             lambda column:

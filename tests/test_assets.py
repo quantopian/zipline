@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 import pickle
 import sys
+from types import GetSetDescriptorType
 from unittest import TestCase
 import uuid
 import warnings
@@ -71,7 +72,7 @@ from zipline.errors import (
     AssetDBImpossibleDowngrade,
 )
 from zipline.finance.trading import TradingEnvironment, noop_load
-from zipline.utils.test_utils import (
+from zipline.testing import (
     all_subindices,
     make_commodity_future_info,
     make_rotating_equity_info,
@@ -172,6 +173,22 @@ def build_lookup_generic_cases(asset_finder_type):
 
 class AssetTestCase(TestCase):
 
+    # Dynamically list the Asset properties we want to test.
+    asset_attrs = [name for name, value in vars(Asset).items()
+                   if isinstance(value, GetSetDescriptorType)]
+
+    # Very wow
+    asset = Asset(
+        1337,
+        symbol="DOGE",
+        asset_name="DOGECOIN",
+        start_date=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
+        end_date=pd.Timestamp('2014-06-25 11:21AM', tz='UTC'),
+        first_traded=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
+        auto_close_date=pd.Timestamp('2014-06-26 11:21AM', tz='UTC'),
+        exchange='THE MOON',
+    )
+
     def test_asset_object(self):
         self.assertEquals({5061: 'foo'}[Asset(5061)], 'foo')
         self.assertEquals(Asset(5061), 5061)
@@ -182,32 +199,19 @@ class AssetTestCase(TestCase):
 
         self.assertEquals(str(Asset(5061)), 'Asset(5061)')
 
+    def test_to_and_from_dict(self):
+        asset_from_dict = Asset.from_dict(self.asset.to_dict())
+        for attr in self.asset_attrs:
+            self.assertEqual(
+                getattr(self.asset, attr), getattr(asset_from_dict, attr),
+            )
+
     def test_asset_is_pickleable(self):
-
-        # Very wow
-        s = Asset(
-            1337,
-            symbol="DOGE",
-            asset_name="DOGECOIN",
-            start_date=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
-            end_date=pd.Timestamp('2014-06-25 11:21AM', tz='UTC'),
-            first_traded=pd.Timestamp('2013-12-08 9:31AM', tz='UTC'),
-            exchange='THE MOON',
-        )
-        s_unpickled = pickle.loads(pickle.dumps(s))
-
-        attrs_to_check = ['end_date',
-                          'exchange',
-                          'first_traded',
-                          'end_date',
-                          'asset_name',
-                          'start_date',
-                          'sid',
-                          'start_date',
-                          'symbol']
-
-        for attr in attrs_to_check:
-            self.assertEqual(getattr(s, attr), getattr(s_unpickled, attr))
+        asset_unpickled = pickle.loads(pickle.dumps(self.asset))
+        for attr in self.asset_attrs:
+            self.assertEqual(
+                getattr(self.asset, attr), getattr(asset_unpickled, attr),
+            )
 
     def test_asset_comparisons(self):
 

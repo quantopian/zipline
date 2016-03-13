@@ -1,23 +1,26 @@
 from contextlib import contextmanager
 from functools import wraps
+from inspect import getargspec
 from itertools import (
     combinations,
     count,
     product,
 )
+from nose.tools import nottest
 import operator
 import os
 import shutil
 from string import ascii_uppercase
 import tempfile
 
-from logbook import FileHandler
+from logbook import FileHandler, TestHandler
 from mock import patch
 from numpy.testing import assert_allclose, assert_array_equal
+import numpy as np
 import pandas as pd
 from pandas.tseries.offsets import MonthBegin
 from six import iteritems, itervalues
-from six.moves import filter
+from six.moves import filter, map
 from sqlalchemy import create_engine
 from toolz import concat
 
@@ -25,6 +28,8 @@ from zipline.assets import AssetFinder
 from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
 from zipline.assets.futures import CME_CODE_TO_MONTH
 from zipline.finance.order import ORDER_STATUS
+from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.tradingcalendar import trading_days
 
@@ -205,7 +210,7 @@ def all_pairs_matching_predicate(values, pred):
 
     Examples
     --------
-    >>> from zipline.utils.test_utils import all_pairs_matching_predicate
+    >>> from zipline.testing import all_pairs_matching_predicate
     >>> from operator import eq, lt
     >>> list(all_pairs_matching_predicate(range(5), eq))
     [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)]
@@ -236,6 +241,31 @@ def all_subindices(index):
         index[start:stop]
         for start, stop in product_upper_triangle(range(len(index) + 1))
     )
+
+
+def chrange(start, stop):
+    """
+    Construct an iterable of length-1 strings beginning with `start` and ending
+    with `stop`.
+
+    Parameters
+    ----------
+    start : str
+        The first character.
+    stop : str
+        The last character.
+
+    Returns
+    -------
+    chars: iterable[str]
+        Iterable of strings beginning with start and ending with stop.
+
+    Example
+    -------
+    >>> chrange('A', 'C')
+    ['A', 'B', 'C']
+    """
+    return list(map(chr, range(ord(start), ord(stop) + 1)))
 
 
 def make_rotating_equity_info(num_assets,
@@ -317,6 +347,99 @@ def make_simple_equity_info(sids, start_date, end_date, symbols=None):
         },
         index=sids,
     )
+
+
+def make_jagged_equity_info(num_assets,
+                            start_date,
+                            first_end,
+                            frequency,
+                            periods_between_ends,
+                            auto_close_delta):
+    """
+    Create a DataFrame representing assets that all begin at the same start
+    date, but have cascading end dates.
+
+    Parameters
+    ----------
+    num_assets : int
+        How many assets to create.
+    start_date : pd.Timestamp
+        The start date for all the assets.
+    first_end : pd.Timestamp
+        The date at which the first equity will end.
+    frequency : str or pd.tseries.offsets.Offset (e.g. trading_day)
+        Frequency used to interpret the next argument.
+    periods_between_ends : int
+        Starting after the first end date, end each asset every
+        `frequency` * `periods_between_ends`.
+
+    Returns
+    -------
+    info : pd.DataFrame
+        DataFrame representing newly-created assets.
+    """
+    frame = pd.DataFrame(
+        {
+            'symbol': [chr(ord('A') + i) for i in range(num_assets)],
+            'start_date': start_date,
+            'end_date': pd.date_range(
+                first_end,
+                freq=(periods_between_ends * frequency),
+                periods=num_assets,
+            ),
+            'exchange': 'TEST',
+        },
+        index=range(num_assets),
+    )
+
+    # Explicitly pass None to disable setting the auto_close_date column.
+    if auto_close_delta is not None:
+        frame['auto_close_date'] = frame['end_date'] + auto_close_delta
+
+    return frame
+
+
+def make_trade_panel_for_asset_info(dates,
+                                    asset_info,
+                                    price_start,
+                                    price_step_by_date,
+                                    price_step_by_sid,
+                                    volume_start,
+                                    volume_step_by_date,
+                                    volume_step_by_sid):
+    """
+    Convert an asset info frame into a panel of trades, writing NaNs for
+    locations where assets did not exist.
+    """
+    sids = list(asset_info.index)
+
+    price_sid_deltas = np.arange(len(sids), dtype=float) * price_step_by_sid
+    price_date_deltas = np.arange(len(dates), dtype=float) * price_step_by_date
+    prices = (price_sid_deltas + price_date_deltas[:, None]) + price_start
+
+    volume_sid_deltas = np.arange(len(sids)) * volume_step_by_sid
+    volume_date_deltas = np.arange(len(dates)) * volume_step_by_date
+    volumes = (volume_sid_deltas + volume_date_deltas[:, None]) + volume_start
+
+    for j, sid in enumerate(sids):
+        start_date, end_date = asset_info.loc[sid, ['start_date', 'end_date']]
+        # Normalize here so the we still generate non-NaN values on the minutes
+        # for an asset's last trading day.
+        for i, date in enumerate(dates.normalize()):
+            if not (start_date <= date <= end_date):
+                prices[i, j] = np.nan
+                volumes[i, j] = 0
+
+    # Legacy panel sources use a flipped convention from what we return
+    # elsewhere.
+    return pd.Panel(
+        {
+            'price': prices,
+            'volume': volumes,
+        },
+        major_axis=dates,
+        minor_axis=sids,
+    ).transpose(2, 1, 0)
 
 
 def make_future_info(first_sid,
@@ -539,13 +662,18 @@ class SubTestFailures(AssertionError):
 
 
 def subtest(iterator, *_names):
-    """Construct a subtest in a unittest.
+    """
+    Construct a subtest in a unittest.
 
-    This works by decorating a function as a subtest. The test will be run
-    by iterating over the ``iterator`` and *unpacking the values into the
-    function. If any of the runs fail, the result will be put into a set and
-    the rest of the tests will be run. Finally, if any failed, all of the
-    results will be dumped as one failure.
+    Consider using ``zipline.testing.parameter_space`` when subtests
+    are constructed over a single input or over the cross-product of multiple
+    inputs.
+
+    ``subtest`` works by decorating a function as a subtest. The decorated
+    function will be run by iterating over the ``iterator`` and *unpacking the
+    values into the function. If any of the runs fail, the result will be put
+    into a set and the rest of the tests will be run. Finally, if any failed,
+    all of the results will be dumped as one failure.
 
     Parameters
     ----------
@@ -587,6 +715,10 @@ def subtest(iterator, *_names):
 
     We cannot use ``unittest2.TestCase.subTest`` because nose, pytest, and
     nose2 do not support ``addSubTest``.
+
+    See Also
+    --------
+    zipline.testing.parameter_space
     """
     def dec(f):
         @wraps(f)
@@ -664,3 +796,112 @@ def gen_calendars(start, stop, critical_dates):
 
     # Also test with the trading calendar.
     yield (trading_days[trading_days.slice_indexer(start, stop)],)
+
+
+@contextmanager
+def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
+    """
+    A contextManager that yields a SimplePipelineEngine holding a reference to
+    an AssetFinder generated via tmp_asset_finder.
+
+    Parameters
+    ----------
+    calendar : pd.DatetimeIndex
+        Calendar to pass to the constructed PipelineEngine.
+    sids : iterable[int]
+        Sids to use for the temp asset finder.
+    random_seed : int
+        Integer used to seed instances of SeededRandomLoader.
+    symbols : iterable[str], optional
+        Symbols for constructed assets. Forwarded to make_simple_equity_info.
+    """
+    equity_info = make_simple_equity_info(
+        sids=sids,
+        start_date=calendar[0],
+        end_date=calendar[-1],
+        symbols=symbols,
+    )
+
+    loader = make_seeded_random_loader(random_seed, calendar, sids)
+    get_loader = lambda column: loader
+
+    with tmp_asset_finder(equities=equity_info) as finder:
+        yield SimplePipelineEngine(get_loader, calendar, finder)
+
+
+def parameter_space(**params):
+    """
+    Wrapper around subtest that allows passing keywords mapping names to
+    iterables of values.
+
+    The decorated test function will be called with the cross-product of all
+    possible inputs
+
+    Usage
+    -----
+    >>> from unittest import TestCase
+    >>> class SomeTestCase(TestCase):
+    ...     @parameter_space(x=[1, 2], y=[2, 3])
+    ...     def test_some_func(self, x, y):
+    ...         # Will be called with every possible combination of x and y.
+    ...         self.assertEqual(somefunc(x, y), expected_result(x, y))
+
+    See Also
+    --------
+    zipline.testing.subtest
+    """
+    def decorator(f):
+
+        argspec = getargspec(f)
+        if argspec.varargs:
+            raise AssertionError("parameter_space() doesn't support *args")
+        if argspec.keywords:
+            raise AssertionError("parameter_space() doesn't support **kwargs")
+        if argspec.defaults:
+            raise AssertionError("parameter_space() doesn't support defaults.")
+
+        # Skip over implicit self.
+        argnames = argspec.args
+        if argnames[0] == 'self':
+            argnames = argnames[1:]
+
+        extra = set(params) - set(argnames)
+        if extra:
+            raise AssertionError(
+                "Keywords %s supplied to parameter_space() are "
+                "not in function signature." % extra
+            )
+
+        unspecified = set(argnames) - set(params)
+        if unspecified:
+            raise AssertionError(
+                "Function arguments %s were not "
+                "supplied to parameter_space()." % extra
+            )
+
+        param_sets = product(*(params[name] for name in argnames))
+        return subtest(param_sets, *argnames)(f)
+    return decorator
+
+
+@nottest
+def make_test_handler(testcase, *args, **kwargs):
+    """
+    Returns a TestHandler which will be used by the given testcase. This
+    handler can be used to test log messages.
+
+    Parameters
+    ----------
+    testcase: unittest.TestCase
+        The test class in which the log handler will be used.
+    *args, **kwargs
+        Forwarded to the new TestHandler object.
+
+    Returns
+    -------
+    handler: logbook.TestHandler
+        The handler to use for the test case.
+    """
+    handler = TestHandler(*args, **kwargs)
+    testcase.addCleanup(handler.close)
+    return handler

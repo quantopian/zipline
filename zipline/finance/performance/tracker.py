@@ -391,22 +391,6 @@ class PerformanceTracker(object):
         self.cumulative_performance.handle_dividends_paid(net_cash_payment)
         self.todays_performance.handle_dividends_paid(net_cash_payment)
 
-    def check_asset_auto_closes(self, next_trading_day):
-        """
-        Check if the position tracker currently owns any Assets with an
-        auto-close date that is the next trading day.  Close those positions.
-
-        Parameters
-        ----------
-        next_trading_day : pandas.Timestamp
-            The next trading day of the simulation
-        """
-        auto_close_events = self.position_tracker.auto_close_position_events(
-            next_trading_day=next_trading_day
-        )
-        for event in auto_close_events:
-            self.process_close_position(event)
-
     def handle_minute_close(self, dt):
         """
         Handles the close of the given minute. This includes handling
@@ -473,11 +457,6 @@ class PerformanceTracker(object):
         # simulation, return the daily perf packet
         next_trading_day = self.env.next_trading_day(completed_date)
 
-        # Check if any assets need to be auto-closed before generating today's
-        # perf period
-        if next_trading_day:
-            self.check_asset_auto_closes(next_trading_day=next_trading_day)
-
         # Take a snapshot of our current performance to return to the
         # browser.
         daily_update = self.to_dict(emission_type='daily')
@@ -502,8 +481,7 @@ class PerformanceTracker(object):
         if (next_trading_day is None) or (next_trading_day >= self.last_close):
             return daily_update
 
-        # Check for any dividends and auto-closes, then return the daily perf
-        # packet
+        # Check for any dividends, then return the daily perf packet
         self.check_upcoming_dividends(next_trading_day=next_trading_day)
         return daily_update
 

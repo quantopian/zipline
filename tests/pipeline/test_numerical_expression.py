@@ -32,9 +32,8 @@ from zipline.pipeline.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
 )
-
+from zipline.testing import check_arrays
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
-from zipline.utils.test_utils import check_arrays
 
 
 class F(Factor):

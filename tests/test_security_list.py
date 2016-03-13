@@ -5,13 +5,19 @@ from unittest import TestCase
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
-from zipline.sources import SpecificEquityTrades
 from zipline.finance.trading import TradingEnvironment
-from zipline.utils.test_utils import (
-    setup_logger, teardown_logger, security_list_copy, add_security_data,)
+from zipline.sources import SpecificEquityTrades
+from zipline.testing import (
+    add_security_data,
+    security_list_copy,
+    setup_logger,
+    teardown_logger,
+)
 from zipline.utils import factory
 from zipline.utils.security_list import (
-    SecurityListSet, load_from_directory)
+    SecurityListSet,
+    load_from_directory,
+)
 
 LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 

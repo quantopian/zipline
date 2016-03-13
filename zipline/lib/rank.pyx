@@ -17,8 +17,24 @@ from numpy cimport (
 from numpy import apply_along_axis, float64, isnan, nan
 from scipy.stats import rankdata
 
+from zipline.utils.numpy_utils import (
+    is_float,
+    float64_dtype,
+    int64_dtype,
+    datetime64ns_dtype,
+)
+
 
 import_array()
+
+
+cpdef ismissing(ndarray data, object missing_value):
+    """
+    Generic ismissing function that handles quirks with NaN.
+    """
+    if is_float(data) and isnan(missing_value):
+        return isnan(data)
+    return (data == missing_value)
 
 
 def masked_rankdata_2d(ndarray data,
@@ -35,12 +51,7 @@ def masked_rankdata_2d(ndarray data,
             "Can't compute rankdata on array of dtype %r." % dtype_name
         )
 
-    cdef ndarray missing_locations = ~mask
-    # Mask out any entries that are equal to the missing value.
-    if dtype_name == 'float64' and isnan(missing_value):
-        missing_locations |= isnan(data)
-    else:
-        missing_locations |= (data == missing_value)
+    cdef ndarray missing_locations = (~mask | ismissing(data, missing_value))
 
     # Interpret the bytes of integral data as floats for sorting.
     data = data.copy().view(float64)
@@ -57,6 +68,11 @@ def masked_rankdata_2d(ndarray data,
         # Write a less general "apply to rows" method that doesn't do all
         # the extra work that apply_along_axis does.
         result = apply_along_axis(rankdata, 1, data, method=method)
+
+        # On SciPy >= 0.17, rankdata returns integers for any method except
+        # average.
+        if result.dtype.name != 'float64':
+            result = result.astype('float64')
 
     # rankdata will sort missing values into last place, but we want our nans
     # to propagate, so explicitly re-apply.

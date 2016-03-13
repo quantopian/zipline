@@ -68,6 +68,7 @@ class TradingEnvironment(object):
         load=None,
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
+        min_date=None,
         max_date=None,
         env_trading_calendar=tradingcalendar,
         asset_db_path=':memory:'
@@ -82,10 +83,7 @@ class TradingEnvironment(object):
         # `tc_td` is short for "trading calendar trading days"
         tc_td = env_trading_calendar.trading_days
 
-        if max_date:
-            self.trading_days = tc_td[tc_td <= max_date].copy()
-        else:
-            self.trading_days = tc_td.copy()
+        self.trading_days = tc_td[tc_td.slice_indexer(min_date, max_date)]
 
         self.first_trading_day = self.trading_days[0]
         self.last_trading_day = self.trading_days[-1]
@@ -174,23 +172,43 @@ class TradingEnvironment(object):
 
         # If any pandas.DataFrame data has been provided,
         # write it to the database.
-        if (equities_df is not None or futures_df is not None or
-                exchanges_df is not None or root_symbols_df is not None):
-            self._write_data_dataframes(equities_df, futures_df,
-                                        exchanges_df, root_symbols_df)
+        has_rows = lambda df: df is not None and len(df) > 0
+        if any(map(has_rows, [equities_df,
+                              futures_df,
+                              exchanges_df,
+                              root_symbols_df])):
+            self._write_data_dataframes(
+                equities=equities_df,
+                futures=futures_df,
+                exchanges=exchanges_df,
+                root_symbols=root_symbols_df,
+            )
 
-        if (equities_data is not None or futures_data is not None or
-                exchanges_data is not None or root_symbols_data is not None):
-            self._write_data_dicts(equities_data, futures_data,
-                                   exchanges_data, root_symbols_data)
+        # Same for dicts.
+        has_data = lambda d: d is not None and len(d) > 0
+        if any(map(has_data, [equities_data,
+                              futures_data,
+                              exchanges_data,
+                              futures_data])):
+            self._write_data_dicts(
+                equities=equities_data,
+                futures=futures_data,
+                exchanges=exchanges_data,
+                root_symbols=root_symbols_data
+            )
 
-        # These could be lists or other iterables such as a pandas.Index.
-        # For simplicity, don't check whether data has been provided.
-        self._write_data_lists(equities_identifiers,
-                               futures_identifiers,
-                               exchanges_identifiers,
-                               root_symbols_identifiers,
-                               allow_sid_assignment=allow_sid_assignment)
+        # Same for iterables.
+        if any(map(has_data, [equities_identifiers,
+                              futures_identifiers,
+                              exchanges_identifiers,
+                              root_symbols_identifiers])):
+            self._write_data_lists(
+                equities=equities_identifiers,
+                futures=futures_identifiers,
+                exchanges=exchanges_identifiers,
+                root_symbols=root_symbols_identifiers,
+                allow_sid_assignment=allow_sid_assignment
+            )
 
     def _write_data_lists(self, equities=None, futures=None, exchanges=None,
                           root_symbols=None, allow_sid_assignment=True):
