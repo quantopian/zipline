@@ -57,9 +57,8 @@ class AlgorithmSimulator(object):
         # Snapshot Setup
         # ==============
 
-        # The algorithm's data as of our most recent event.
-        # We want an object that will have empty objects as default
-        # values on missing keys.
+        # This object is the way that user algorithms interact with OHLCV data,
+        # fetcher data, and some API methods like `data.can_trade`.
         self.current_data = self._create_bar_data(universe_func)
 
         # We don't have a datetime for the current snapshot until we

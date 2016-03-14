@@ -17,6 +17,7 @@ from copy import copy
 
 import pytz
 import pandas as pd
+from contextlib2 import ExitStack
 from pandas.tseries.tools import normalize_date
 import numpy as np
 
@@ -30,7 +31,7 @@ from six import (
     string_types,
 )
 
-
+from zipline._protocol import handle_non_market_minutes
 from zipline.data.data_portal import DataPortal
 from zipline.errors import (
     AttachPipelineAfterInitialize,
@@ -347,7 +348,9 @@ class TradingAlgorithm(object):
         if self._before_trading_start is None:
             return
 
-        self._before_trading_start(self, data)
+        with handle_non_market_minutes(data) if \
+                self.data_frequency == "minute" else ExitStack():
+            self._before_trading_start(self, data)
 
     def handle_data(self, data):
         self._handle_data(self, data)

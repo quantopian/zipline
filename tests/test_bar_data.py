@@ -18,6 +18,7 @@ from testfixtures import TempDirectory
 import pandas as pd
 import numpy as np
 
+from zipline._protocol import handle_non_market_minutes
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import BcolzMinuteBarWriter, \
     US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
@@ -109,13 +110,14 @@ class TestMinuteBarData(TestBarDataBase):
                 'start_date': cls.days[0],
                 'end_date': cls.days[-1],
                 'symbol': "ASSET{0}".format(sid)
-            } for sid in [1, 2, 3, 4]
+            } for sid in [1, 2, 3, 4, 5]
         })
 
         cls.ASSET1 = cls.env.asset_finder.retrieve_asset(1)
         cls.ASSET2 = cls.env.asset_finder.retrieve_asset(2)
         cls.SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(3)
         cls.ILLIQUID_SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(4)
+        cls.HILARIOUSLY_ILLIQUID_ASSET = cls.env.asset_finder.retrieve_asset(5)
 
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
 
@@ -177,6 +179,15 @@ class TestMinuteBarData(TestBarDataBase):
                 sid,
                 10
             )
+
+        write_minute_data_for_asset(
+            cls.env,
+            writer,
+            cls.days[0],
+            cls.days[-1],
+            cls.HILARIOUSLY_ILLIQUID_ASSET.sid,
+            50
+        )
 
         return BcolzMinuteBarReader(cls.tempdir.path)
 
@@ -385,6 +396,75 @@ class TestMinuteBarData(TestBarDataBase):
                 195,
                 bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
             )
+
+    def test_spot_price_at_midnight(self):
+        # make sure that if we try to get a minute price at a non-market
+        # minute, we use the previous market close's timestamp
+        day = self.days[1]
+
+        eight_fortyfive_am_eastern = \
+            pd.Timestamp("{0}-{1}-{2} 8:45".format(
+                day.year, day.month, day.day),
+                tz='US/Eastern'
+            )
+
+        bar_data = BarData(self.data_portal, lambda: day, "minute")
+        bar_data2 = BarData(self.data_portal,
+                            lambda: eight_fortyfive_am_eastern,
+                            "minute")
+
+        with handle_non_market_minutes(bar_data), \
+                handle_non_market_minutes(bar_data2):
+            for bd in [bar_data, bar_data2]:
+                for field in ["close", "price"]:
+                    self.assertEqual(
+                        390,
+                        bd.current(self.ASSET1, field)
+                    )
+
+                # make sure that if the asset didn't trade at the previous
+                # close, we properly ffill (or not ffill)
+                self.assertEqual(
+                    350,
+                    bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "price")
+                )
+
+                self.assertTrue(
+                    np.isnan(bd.current(self.HILARIOUSLY_ILLIQUID_ASSET,
+                                        "high"))
+                )
+
+                self.assertEqual(
+                    0,
+                    bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "volume")
+                )
+
+    def test_can_trade_at_midnight(self):
+        # make sure that if we use `can_trade` at midnight, we don't pretend
+        # we're in the previous day's last minute
+        the_day_after = self.env.next_trading_day(self.days[-1])
+
+        bar_data = BarData(self.data_portal, lambda: the_day_after, "minute")
+
+        for asset in [self.ASSET1, self.HILARIOUSLY_ILLIQUID_ASSET]:
+            self.assertFalse(bar_data.can_trade(asset))
+
+            with handle_non_market_minutes(bar_data):
+                self.assertFalse(bar_data.can_trade(asset))
+
+        # but make sure it works when the assets are alive
+        bar_data2 = BarData(self.data_portal, lambda: self.days[1], "minute")
+        for asset in [self.ASSET1, self.HILARIOUSLY_ILLIQUID_ASSET]:
+            self.assertTrue(bar_data2.can_trade(asset))
+
+            with handle_non_market_minutes(bar_data2):
+                self.assertTrue(bar_data2.can_trade(asset))
+
+    def test_is_stale_at_midnight(self):
+        bar_data = BarData(self.data_portal, lambda: self.days[1], "minute")
+
+        with handle_non_market_minutes(bar_data):
+            self.assertTrue(bar_data.is_stale(self.HILARIOUSLY_ILLIQUID_ASSET))
 
 
 class TestDailyBarData(TestBarDataBase):

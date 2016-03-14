@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import warnings
+from contextlib import contextmanager
 
 from pandas.tslib import normalize_date
 import pandas as pd
@@ -45,6 +46,15 @@ class assert_keywords(object):
         return assert_keywords_and_call
 
 
+@contextmanager
+def handle_non_market_minutes(bar_data):
+    try:
+        bar_data._handle_non_market_minutes = True
+        yield
+    finally:
+        bar_data._handle_non_market_minutes = False
+
+
 cdef class BarData:
     cdef object data_portal
     cdef object simulation_dt_func
@@ -53,6 +63,8 @@ cdef class BarData:
     cdef object _universe_func
     cdef object _last_calculated_universe
     cdef object _universe_last_updated_at
+
+    cdef bool _adjust_minutes
 
     """
     Provides methods to access spot value or history windows of price data.
@@ -90,6 +102,8 @@ cdef class BarData:
         self._last_calculated_universe = None
         self._universe_last_updated_at = None
 
+        self._adjust_minutes = False
+
     cdef _get_equity_price_view(self, asset):
         """
         Returns a DataPortalSidView for the given asset.  Used to support the
@@ -126,6 +140,14 @@ cdef class BarData:
             self.data_frequency
         )
 
+    cdef _get_current_minute(self):
+        dt = self.simulation_dt_func()
+
+        if self._adjust_minutes:
+            dt = self.data_portal.env.previous_market_minute(dt)
+
+        return dt
+
     @assert_keywords('assets', 'fields')
     def current(self, assets, fields):
         """
@@ -144,8 +166,7 @@ cdef class BarData:
 
         Returns
         -------
-        Scalar, pandas Series, or pandas DataFrame.  See notes
-        below.
+        Scalar, pandas Series, or pandas DataFrame.  See notes below.
 
         Notes
         -----
@@ -163,6 +184,9 @@ cdef class BarData:
         If a list of assets and a list of fields are passed in, a pandas
         DataFrame is returned, indexed by asset.  The columns are the requested
         fields, filled with the scalar values for each asset for each field.
+
+        If the current simulation time is not a valid market time, we use the
+        last market close instead.
 
         "price" returns the last known close price of the asset.  If there is
         no last known value (either because the asset has never traded, or
@@ -194,7 +218,7 @@ cdef class BarData:
                 return self.data_portal.get_spot_value(
                     asset,
                     field,
-                    self.simulation_dt_func(),
+                    self._get_current_minute(),
                     self.data_frequency
                 )
             else:
@@ -204,7 +228,7 @@ cdef class BarData:
                     field: self.data_portal.get_spot_value(
                         asset,
                         field,
-                        self.simulation_dt_func(),
+                        self._get_current_minute(),
                         self.data_frequency)
                     for field in fields
                 }, index=fields, name=assets.symbol)
@@ -218,7 +242,7 @@ cdef class BarData:
                     asset: self.data_portal.get_spot_value(
                         asset,
                         field,
-                        self.simulation_dt_func(),
+                        self._get_current_minute(),
                         self.data_frequency)
                     for asset in assets
                     }, index=assets, name=fields)
@@ -231,7 +255,7 @@ cdef class BarData:
                         asset: self.data_portal.get_spot_value(
                             asset,
                             field,
-                            self.simulation_dt_func(),
+                            self._get_current_minute(),
                             self.data_frequency)
                         for asset in assets
                         }, index=assets, name=field)
@@ -258,22 +282,32 @@ cdef class BarData:
         boolean or Series of booleans, indexed by asset.
         """
         dt = self.simulation_dt_func()
+
+        if self._adjust_minutes:
+            adjusted_dt = self._get_current_minute()
+        else:
+            adjusted_dt = dt
+
         data_portal = self.data_portal
 
         if isinstance(assets, Asset):
-            return self._can_trade_for_asset(assets, dt, data_portal)
+            return self._can_trade_for_asset(
+                assets, dt, adjusted_dt, data_portal
+            )
         else:
             return pd.Series(data={
-                asset: self._can_trade_for_asset(asset, dt, data_portal)
+                asset: self._can_trade_for_asset(
+                    asset, dt, adjusted_dt, data_portal
+                )
                 for asset in assets
             })
 
-    cdef bool _can_trade_for_asset(self, asset, dt, data_portal):
+    cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
         if asset.start_date <= dt <= asset.end_date:
             # is there a last price?
             return not np.isnan(
                 data_portal.get_spot_value(
-                    asset, "price", dt, self.data_frequency
+                    asset, "price", adjusted_dt, self.data_frequency
                 )
             )
 
@@ -286,6 +320,10 @@ cdef class BarData:
 
         If the asset has never traded, returns False.
 
+        If the current simulation time is not a valid market time, we use the
+        current time to check if the asset is alive, but we use the last
+        market minute/day for the trade data check.
+
         Parameters
         ----------
         assets: Asset or iterable of assets
@@ -295,25 +333,35 @@ cdef class BarData:
         boolean or Series of booleans, indexed by asset.
         """
         dt = self.simulation_dt_func()
+        if self._adjust_minutes:
+            adjusted_dt = self._get_current_minute()
+        else:
+            adjusted_dt = dt
+
         data_portal = self.data_portal
 
         if isinstance(assets, Asset):
-            return self._is_stale_for_asset(assets, dt, data_portal)
+            return self._is_stale_for_asset(
+                assets, dt, adjusted_dt, data_portal
+            )
         else:
             return pd.Series(data={
-                asset: self._is_stale_for_asset(asset, dt, data_portal)
+                asset: self._is_stale_for_asset(
+                    asset, dt, adjusted_dt, data_portal
+                )
                 for asset in assets
             })
 
-    cdef bool _is_stale_for_asset(self, asset, dt, data_portal):
+    cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
         if asset.start_date > dt:
             return False
 
         if asset.end_date <= dt:
             return False
 
-        current_volume = data_portal.get_spot_value(asset, "volume", dt,
-                                                     self.data_frequency)
+        current_volume = data_portal.get_spot_value(
+            asset, "volume",  adjusted_dt, self.data_frequency
+        )
 
         if current_volume > 0:
             # found a current value, so we know this asset is not stale.
@@ -322,7 +370,7 @@ cdef class BarData:
             # we need to distinguish between if this asset has ever traded
             # (stale = True) or has never traded (stale = False)
             last_traded_dt = \
-                data_portal.get_spot_value(asset, "last_traded", dt,
+                data_portal.get_spot_value(asset, "last_traded", adjusted_dt,
                                            self.data_frequency)
 
             return not (last_traded_dt is pd.NaT)
@@ -366,6 +414,11 @@ cdef class BarData:
             If multiple assets and multiple fields are passed in, the returned
             Panel is indexed by field, has dt as the major axis, and assets
             as the minor axis.
+
+        Notes
+        -----
+        If the current simulation time is not a valid market time, we use the
+        last market close instead.
         """
         if isinstance(fields, str):
             single_asset = isinstance(assets, Asset)
@@ -377,7 +430,7 @@ cdef class BarData:
 
             df = self.data_portal.get_history_window(
                 asset_list,
-                self.simulation_dt_func(),
+                self._get_current_minute(),
                 bar_count,
                 frequency,
                 fields
@@ -401,7 +454,7 @@ cdef class BarData:
                 return pd.DataFrame({
                     field: self.data_portal.get_history_window(
                         [assets],
-                        self.simulation_dt_func(),
+                        self._get_current_minute(),
                         bar_count,
                         frequency,
                         field
@@ -411,7 +464,7 @@ cdef class BarData:
                 df_dict = {
                     field: self.data_portal.get_history_window(
                         assets,
-                        self.simulation_dt_func(),
+                        self._get_current_minute(),
                         bar_count,
                         frequency,
                         field
@@ -433,6 +486,10 @@ cdef class BarData:
         return self.data_portal.get_fetcher_assets(
             normalize_date(self.simulation_dt_func())
         )
+
+    property _handle_non_market_minutes:
+        def __set__(self, val):
+            self._adjust_minutes = val
 
     #################
     # OLD API SUPPORT

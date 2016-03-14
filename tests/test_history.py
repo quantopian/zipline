@@ -7,6 +7,7 @@ import numpy as np
 from testfixtures import TempDirectory
 
 from zipline import TradingAlgorithm
+from zipline._protocol import handle_non_market_minutes
 from zipline.assets import Asset
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import (
@@ -572,6 +573,23 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
         for idx, minute in enumerate(minutes):
             self.verify_regular_dt(idx, minute, "minute")
+
+    def test_minute_midnight(self):
+        midnight = pd.Timestamp("2015-01-06", tz='UTC')
+        last_minute = self.env.previous_open_and_close(midnight)[1]
+
+        midnight_bar_data = \
+            BarData(self.data_portal, lambda: midnight, "minute")
+
+        yesterday_bar_data = \
+            BarData(self.data_portal, lambda: last_minute, "minute")
+
+        with handle_non_market_minutes(midnight_bar_data):
+            for field in ALL_FIELDS:
+                np.testing.assert_array_equal(
+                    midnight_bar_data.history(self.ASSET2, field, 30, "1m"),
+                    yesterday_bar_data.history(self.ASSET2, field, 30, "1m")
+                )
 
     def test_minute_after_asset_stopped(self):
         # asset2 stopped at 1/4/16
