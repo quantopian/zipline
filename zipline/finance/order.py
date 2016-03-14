@@ -16,10 +16,9 @@ from copy import copy
 import math
 import uuid
 
-from six import text_type, iteritems
+from six import text_type
 
 import zipline.protocol as zp
-from zipline.utils.serialization_utils import VERSION_LABEL
 from zipline.utils.enum import enum
 
 ORDER_STATUS = enum(
@@ -230,26 +229,3 @@ class Order(object):
         Unicode representation for this object.
         """
         return text_type(repr(self))
-
-    def __getstate__(self):
-
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__)
-                if not k.startswith('_')}
-
-        state_dict['_status'] = self._status
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Order saved state is too old.")
-
-        self.__dict__.update(state)

@@ -29,7 +29,6 @@ except ImportError:
     from collections import OrderedDict
 from six import iteritems, itervalues
 
-from zipline.utils.serialization_utils import VERSION_LABEL
 import zipline.protocol as zp
 from zipline.assets import (
     Equity, Future
@@ -425,43 +424,3 @@ class PositionTracker(object):
             shorts_count=shorts_count,
             net_value=net_value
         )
-
-    def __getstate__(self):
-        state_dict = {}
-
-        state_dict['asset_finder'] = self.asset_finder
-        state_dict['positions'] = dict(self.positions)
-        state_dict['unpaid_dividends'] = self._unpaid_dividends
-        state_dict['unpaid_stock_dividends'] = self._unpaid_stock_dividends
-        state_dict['data_frequency'] = self.data_frequency
-
-        STATE_VERSION = 4
-        state_dict[VERSION_LABEL] = STATE_VERSION
-        return state_dict
-
-    def __setstate__(self, state):
-        OLDEST_SUPPORTED_STATE = 3
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("PositionTracker saved state is too old.")
-
-        self.asset_finder = state['asset_finder']
-        self.positions = positiondict()
-        self.data_frequency = state['data_frequency']
-        # note that positions_store is temporary and gets regened from
-        # .positions
-        self._positions_store = zp.Positions()
-
-        self._unpaid_dividends = state['unpaid_dividends']
-        self._unpaid_stock_dividends = state['unpaid_stock_dividends']
-
-        # Arrays for quick calculations of positions value
-        self._position_value_multipliers = OrderedDict()
-        self._position_exposure_multipliers = OrderedDict()
-
-        # Update positions is called without a finder
-        self.update_positions(state['positions'])
-
-        # FIXME
-        self._data_portal = None

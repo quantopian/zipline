@@ -13,12 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from six import iteritems
-
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
-
 DEFAULT_PER_SHARE_COST = 0.0075         # 0.75 cents per share
 DEFAULT_MINIMUM_COST_PER_TRADE = 1.0    # $1 per trade
 
@@ -61,27 +55,6 @@ class PerShare(object):
             commission = max(commission, self.min_trade_cost)
             return abs(commission / transaction.amount), commission
 
-    def __getstate__(self):
-
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__)
-                if not k.startswith('_')}
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("PerShare saved state is too old.")
-
-        self.__dict__.update(state)
-
 
 class PerTrade(object):
     """
@@ -109,27 +82,6 @@ class PerTrade(object):
 
         return abs(self.cost / transaction.amount), self.cost
 
-    def __getstate__(self):
-
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__)
-                if not k.startswith('_')}
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("PerTrade saved state is too old.")
-
-        self.__dict__.update(state)
-
 
 class PerDollar(object):
     """
@@ -156,24 +108,3 @@ class PerDollar(object):
         """
         cost_per_share = transaction.price * self.cost
         return cost_per_share, abs(transaction.amount) * cost_per_share
-
-    def __getstate__(self):
-
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__)
-                if not k.startswith('_')}
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("PerDollar saved state is too old.")
-
-        self.__dict__.update(state)

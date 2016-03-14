@@ -15,12 +15,9 @@
 import abc
 
 from abc import abstractmethod
-from six import with_metaclass, iteritems
+from six import with_metaclass
 
 from zipline.gens.sim_engine import DAY_END
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
 
 
 class CancelPolicy(with_metaclass(abc.ABCMeta)):
@@ -28,24 +25,6 @@ class CancelPolicy(with_metaclass(abc.ABCMeta)):
     @abstractmethod
     def should_cancel(self, event):
         pass
-
-    def __getstate__(self):
-        state_dict = {k: v for k, v in iteritems(self.__dict__)}
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("%s saved state is too old." %
-                                self.__class__.__name__)
-
-        self.__dict__.update(state)
 
 
 class EODCancel(CancelPolicy):

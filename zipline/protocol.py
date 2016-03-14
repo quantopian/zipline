@@ -12,8 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import copy
-
 import pandas as pd
 
 from .utils.enum import enum
@@ -21,7 +19,6 @@ from .utils.enum import enum
 from zipline._protocol import BarData as _BarData
 
 BarData = _BarData
-from zipline.utils.serialization_utils import VERSION_LABEL
 
 # Datasource type should completely determine the other fields of a
 # message with its type.
@@ -115,31 +112,6 @@ class Portfolio(object):
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        # Have to convert to primitive dict
-        state_dict['positions'] = dict(self.positions)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Portfolio saved state is too old.")
-
-        self.positions = Positions()
-        self.positions.update(state.pop('positions'))
-
-        self.__dict__.update(state)
-
 
 class Account(object):
     '''
@@ -173,25 +145,6 @@ class Account(object):
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Account saved state is too old.")
-
-        self.__dict__.update(state)
-
 
 class Position(object):
 
@@ -206,24 +159,6 @@ class Position(object):
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
-
-    def __getstate__(self):
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Protocol Position saved state is too old.")
-
-        self.__dict__.update(state)
 
 
 class Positions(dict):

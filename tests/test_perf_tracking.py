@@ -2380,21 +2380,6 @@ shares in position"
         self.assertEqual(pp.positions[1].cost_basis, cost_bases[-1])
 
 
-class TestPosition(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def test_serialization(self):
-        dt = pd.Timestamp("1984/03/06 3:00PM")
-        pos = perf.Position(10, amount=np.float64(120.0), last_sale_date=dt,
-                            last_sale_price=3.4)
-
-        p_string = dumps_with_persistent_ids(pos)
-
-        test = loads_with_persistent_ids(p_string, env=None)
-        nt.assert_dict_equal(test.__dict__, pos.__dict__)
-
-
 class TestPositionTracker(unittest.TestCase):
 
     @classmethod
@@ -2493,41 +2478,3 @@ class TestPositionTracker(unittest.TestCase):
         # Test gross and net exposures
         self.assertEqual(100 + 200 + 300000 + 400000, pos_stats.gross_exposure)
         self.assertEqual(100 - 200 + 300000 - 400000, pos_stats.net_exposure)
-
-    def test_serialization(self):
-        pt = perf.PositionTracker(self.env.asset_finder, None, None)
-        dt = pd.Timestamp("1984/03/06 3:00PM")
-        pos1 = perf.Position(1, amount=np.float64(120.0),
-                             last_sale_date=dt, last_sale_price=3.4)
-        pos3 = perf.Position(3, amount=np.float64(100.0),
-                             last_sale_date=dt, last_sale_price=3.4)
-
-        pt.update_positions({1: pos1, 3: pos3})
-        p_string = dumps_with_persistent_ids(pt)
-        test = loads_with_persistent_ids(p_string, env=self.env)
-        nt.assert_count_equal(test.positions.keys(), pt.positions.keys())
-        for sid in pt.positions:
-            nt.assert_dict_equal(test.positions[sid].__dict__,
-                                 pt.positions[sid].__dict__)
-
-
-class TestPerformancePeriod(unittest.TestCase):
-
-    def test_serialization(self):
-        env = TradingEnvironment()
-        pp = perf.PerformancePeriod(100, env.asset_finder, 'minute', None)
-
-        p_string = dumps_with_persistent_ids(pp)
-        test = loads_with_persistent_ids(p_string, env=env)
-
-        correct = pp.__dict__.copy()
-        correct.pop('_data_portal')
-
-        nt.assert_count_equal(test.__dict__.keys(), correct.keys())
-
-        equal_keys = list(correct.keys())
-        equal_keys.remove('_account_store')
-        equal_keys.remove('_portfolio_store')
-
-        for k in equal_keys:
-            nt.assert_equal(test.__dict__[k], correct[k])

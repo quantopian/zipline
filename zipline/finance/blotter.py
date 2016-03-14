@@ -27,8 +27,6 @@ from zipline.finance.slippage import VolumeShareSlippage
 from zipline.finance.commission import PerShare
 from zipline.finance.cancel_policy import NeverCancel
 
-from zipline.utils.serialization_utils import VERSION_LABEL
-
 log = Logger('Blotter')
 warning_logger = Logger('AlgoWarning')
 
@@ -334,35 +332,3 @@ class Blotter(object):
 
         # FIXME this API doesn't feel right (returning two things here)
         return transactions, None
-
-    def __getstate__(self):
-
-        state_to_save = ['new_orders', 'orders', '_status', 'data_frequency']
-
-        state_dict = {k: self.__dict__[k] for k in state_to_save
-                      if k in self.__dict__}
-
-        # Have to handle defaultdicts specially
-        state_dict['open_orders'] = dict(self.open_orders)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-        # FIXME this doesn't work (passing in None assetfinder as second
-        # param), but srz/desrz code isn't used in prod. can fix later.
-        self.__init__(state.pop('data_frequency'), None)
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Blotter saved is state too old.")
-
-        open_orders = defaultdict(list)
-        open_orders.update(state.pop('open_orders'))
-        self.open_orders = open_orders
-
-        self.__dict__.update(state)
