@@ -566,3 +566,43 @@ class PipelineAlgorithmTestCase(TestCase):
             # TradingAlgorithm.
             overwrite_sim_params=False,
         )
+
+    def test_empty_pipeline(self):
+
+        # For ensuring we call before_trading_start.
+        count = [0]
+
+        def initialize(context):
+            pipeline = attach_pipeline(Pipeline(), 'test')
+
+            vwap = VWAP(window_length=10)
+            pipeline.add(vwap, 'vwap')
+
+            # Nothing should have prices less than 0.
+            pipeline.set_screen(vwap < 0)
+
+        def handle_data(context, data):
+            pass
+
+        def before_trading_start(context, data):
+            context.results = pipeline_output('test')
+            self.assertTrue(context.results.empty)
+            count[0] += 1
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            before_trading_start=before_trading_start,
+            data_frequency='daily',
+            get_pipeline_loader=lambda column: self.pipeline_loader,
+            start=self.dates[0],
+            end=self.dates[-1],
+            env=self.env,
+        )
+
+        algo.run(
+            source=self.make_source(),
+            overwrite_sim_params=False,
+        )
+
+        self.assertTrue(count[0] > 0)
