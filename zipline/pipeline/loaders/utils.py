@@ -5,7 +5,7 @@ import pandas as pd
 from six import iteritems
 from six.moves import zip
 
-from zipline.utils.numpy_utils import NaTns, NaTD
+from zipline.utils.numpy_utils import NaTns
 
 
 def next_date_frame(dates, events_by_sid, event_date_field_name):
@@ -60,70 +60,42 @@ def next_date_frame(dates, events_by_sid, event_date_field_name):
     return pd.DataFrame(index=dates, data=cols)
 
 
-def previous_date_frame(date_index, events_by_sid, event_date_field_name):
+def previous_event_frame(events_by_sid,
+                         date_index,
+                         missing_value,
+                         field_dtype,
+                         event_date_field,
+                         previous_return_field):
     """
-    Make a DataFrame representing simulated next earnings date_index.
+    Make a DataFrame representing simulated previous dates or values for an
+    event.
 
     Parameters
     ----------
-    date_index : DatetimeIndex.
-        The index of the returned DataFrame.
-    events_by_sid : dict[int -> pd.DataFrame]
-        Dict mapping sids to a DataFrame. The index of the DataFrame
-        represents the date we learned of the event mapping to the event
-        data.
-    event_date_field_name : str
-        The name of the date field that marks when the event occurred.
-
-    Returns
-    -------
-    previous_events: pd.DataFrame
-        A DataFrame where each column is a security from `events_by_sid` where
-        the values are the dates of the previous event that occurred on the
-        date of the index. Entries falling before the first date will have
-        `NaT` as the result in the output.
-
-    See Also
-    --------
-    next_date_frame
-    """
-    sids = list(events_by_sid)
-    out = np.full((len(date_index), len(sids)), NaTD, dtype='datetime64[ns]')
-    d_n = date_index[-1].asm8
-    for col_idx, sid in enumerate(sids):
-        # events_by_sid[sid] is Series mapping knowledge_date to actual
-        # event_date.  We don't care about the knowledge date for
-        # computing previous earnings.
-        values = events_by_sid[sid][event_date_field_name].values
-        values = values[values <= d_n]
-        out[date_index.searchsorted(values), col_idx] = values
-
-    frame = pd.DataFrame(out, index=date_index, columns=sids)
-    frame.ffill(inplace=True)
-    return frame
-
-
-def previous_value(date_index, events_by_sid, event_date_field, value_field,
-                   value_field_dtype, missing_value):
-    """
-    Make a DataFrame representing simulated next earnings date_index.
-
-    Parameters
-    ----------
-    date_index : DatetimeIndex.
-        The index of the returned DataFrame.
     events_by_sid : dict[int -> DatetimeIndex]
         Dict mapping sids to a series of dates. Each k:v pair of the series
         represents the date we learned of the event mapping to the date the
         event will occur.
+    date_index : DatetimeIndex.
+        The index of the returned DataFrame.
+    missing_value : any
+        Data which missing values should be filled with.
+    field_dtype: any
+        The dtype of the field for which the previous values are being
+        retrieved.
+    event_date_field: str
+        The name of the date field that marks when the event occurred.
+    return_field: str
+        The name of the field for which the previous values are being
+        retrieved.
 
     Returns
     -------
     previous_events: pd.DataFrame
-        A DataFrame where each column is a security from `events_by_sid` where
-        the values are the dates of the previous event that occured on the date
-        of the index. Entries falling before the first date will have `NaT` as
-        the result in the output.
+        A DataFrame where each column is a security from `events_by_sid` and
+        the values are the values for the previous event that occurred on the
+        date of the index. Entries falling before the first date will have
+        `missing_value` filled in as the result in the output.
 
     See Also
     --------
@@ -133,18 +105,24 @@ def previous_value(date_index, events_by_sid, event_date_field, value_field,
     out = np.full(
         (len(date_index), len(sids)),
         missing_value,
-        dtype=value_field_dtype
+        dtype=field_dtype
     )
     d_n = date_index[-1].asm8
     for col_idx, sid in enumerate(sids):
-        # events_by_sid[sid] is DataFrame mapping knowledge_date to event
-        # date and value.  We don't care about the knowledge date for computing
-        # previous values.
+        # events_by_sid[sid] is a DataFrame mapping knowledge_date to event
+        # date and values.
         df = events_by_sid[sid]
         df = df[df[event_date_field] <= d_n]
+        event_date_vals = df[event_date_field].values
+        # Get knowledge dates corresponding to the values in which we are
+        # interested
+        kd_vals = df[df[event_date_field] <= d_n].index.values
+        # The date at which a previous event is first known is the max of the
+        #  kd and the event date.
+        index_dates = np.maximum(kd_vals, event_date_vals)
         out[
-            date_index.searchsorted(df[event_date_field].values), col_idx
-        ] = df[value_field]
+            date_index.searchsorted(index_dates), col_idx
+        ] = df[previous_return_field]
 
     frame = pd.DataFrame(out, index=date_index, columns=sids)
     frame.ffill(inplace=True)
