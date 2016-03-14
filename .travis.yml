@@ -53,8 +53,9 @@ script:
     done
   # unshallow the clone so the conda build can clone it.
   - git fetch --unshallow
-  - conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN -c quantopian
-  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload `conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN --output` -u quantopian --label ci; fi
+  - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$TRAVIS_PYTHON_VERSION --numpy=$NPY_VERSION_MAJ_MIN -c quantopian | tee >(cat - >&3))
+  - ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload" | awk '{print $NF}')
+  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci; fi
   # reactivate env (necessary for coveralls)
   - source activate testenv
 
