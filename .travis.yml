@@ -6,8 +6,8 @@ python:
   - 3.4
 env:
   global:
-    # ANACONDA_TOKEN
-    - secure: "HlTfqMSkU4yFTGSHvCg1FJ5gQaHA7SVWtH/h9uHHNArowBNqF0c9nJQcPNydi1szzGE+29ZiUwbj1AMI3CgpevZuowrxwMNlsEXol7uSxMJGczFEfauREEKfX0rEOzHcIRxlN6tC8AEBXnxBNesLbw9XadB+lJ/y7Fkfl28n5oU="
+    # ANACONDA_TOKEN with api:write
+    - secure: "RJJjjQloUjCSkhII93QM+YAsr6YYq7hPFvlbnT07ogn1NeUPsVCyJ97oiZfKtPgdbd24hdQP/CHfB0HgTTES8n996tN3QWc4hZj0e10kFyIlas9qnkrRYRR1jxGShBDXrLdx/tGh8z1qnnCm1fy+fDhAF7Zerouwy4EA2YEzxdE="
   matrix:
     - PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
     - PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.4 SCIPY_VERSION=0.16.1

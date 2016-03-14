@@ -8,6 +8,10 @@ environment:
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\appveyor\\run_with_env.cmd"
 
+    # with api:write
+    ANACONDA_TOKEN:
+      secure: "u3oPlANiKY5g1yMtcK+2MQfb4ViKGEap3TcBtvS7Y1InyeWs80Ko3/PsP7Lp6qwq"
+
   matrix:
     - PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
@@ -102,11 +106,19 @@ install:
   # https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/ for 64bit C compilation
   - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
 
-  - cmd: '%CMD_IN_ENV% conda build conda/bcolz --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
-  - cmd: '%CMD_IN_ENV% conda build conda/cyordereddict --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
-  - cmd: '%CMD_IN_ENV% conda build conda/logbook --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
-  - cmd: '%CMD_IN_ENV% conda build conda/numexpr --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
-  - cmd: '%CMD_IN_ENV% conda build conda/ta-lib --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian'
+  - cmd: |
+      FOR /D %%r IN (conda/*) DO (
+        IF NOT "%%r" == "zipline" (
+          %CMD_IN_ENV% conda build "conda/%%r" --python=%CONDA_PY% --numpy=%CONDA_NPY% --skip-existing -c quantopian
+
+          FOR /f "tokens=* USEBACKQ" %%F IN (`%CMD_IN_ENV% conda build "conda/%%r" --python=%CONDA_PY% --numpy=%CONDA_NPY% --output`) DO (
+            SET RECIPE_OUTPUT=%%F
+          )
+          IF EXIST "%RECIPE_OUTPUT%" (
+            %CMD_IN_ENV% anaconda -t %ANACONDA_TOKEN% upload "%RECIPE_OUTPUT%" -u quantopian --label ci
+          )
+        )
+      )
   - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%CONDA_PY% --numpy=%CONDA_NPY% -c quantopian'
 
   - cmd: conda create -n testenv --yes --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1 numexpr=2.4.6
