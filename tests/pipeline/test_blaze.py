@@ -108,7 +108,7 @@ class BlazeToPipelineTestCase(TestCase):
 
     def test_tabular(self):
         name = 'expr'
-        expr = bz.Data(self.df, name=name, dshape=self.dshape)
+        expr = bz.data(self.df, name=name, dshape=self.dshape)
         ds = from_blaze(
             expr,
             loader=self.garbage_loader,
@@ -145,7 +145,7 @@ class BlazeToPipelineTestCase(TestCase):
 
     def test_column(self):
         exprname = 'expr'
-        expr = bz.Data(self.df, name=exprname, dshape=self.dshape)
+        expr = bz.data(self.df, name=exprname, dshape=self.dshape)
         value = from_blaze(
             expr.value,
             loader=self.garbage_loader,
@@ -189,7 +189,7 @@ class BlazeToPipelineTestCase(TestCase):
         self.assertEqual(value.dataset.__name__, exprname)
 
     def test_missing_asof(self):
-        expr = bz.Data(
+        expr = bz.data(
             self.df.loc[:, ['sid', 'value', 'timestamp']],
             name='expr',
             dshape="""
@@ -210,7 +210,7 @@ class BlazeToPipelineTestCase(TestCase):
         self.assertIn(repr(str(expr.dshape.measure)), str(e.exception))
 
     def test_auto_deltas(self):
-        expr = bz.Data(
+        expr = bz.data(
             {'ds': self.df,
              'ds_deltas': pd.DataFrame(columns=self.df.columns)},
             dshape=var * Record((
@@ -233,7 +233,7 @@ class BlazeToPipelineTestCase(TestCase):
         with warnings.catch_warnings(record=True) as ws:
             warnings.simplefilter('always')
             loader = BlazeLoader()
-            expr = bz.Data(self.df, dshape=self.dshape)
+            expr = bz.data(self.df, dshape=self.dshape)
             from_blaze(
                 expr,
                 loader=loader,
@@ -247,7 +247,7 @@ class BlazeToPipelineTestCase(TestCase):
 
     def test_auto_deltas_fail_raise(self):
         loader = BlazeLoader()
-        expr = bz.Data(self.df, dshape=self.dshape)
+        expr = bz.data(self.df, dshape=self.dshape)
         with self.assertRaises(ValueError) as e:
             from_blaze(
                 expr,
@@ -257,7 +257,7 @@ class BlazeToPipelineTestCase(TestCase):
         self.assertIn(str(expr), str(e.exception))
 
     def test_non_numpy_field(self):
-        expr = bz.Data(
+        expr = bz.data(
             [],
             dshape="""
             var * {
@@ -279,7 +279,7 @@ class BlazeToPipelineTestCase(TestCase):
         # NOTE: This test will fail if we ever allow string types in
         # the Pipeline API. If this happens, change the dtype of the `a` field
         # of expr to another type we don't allow.
-        expr = bz.Data(
+        expr = bz.data(
             [],
             dshape="""
             var * {
@@ -301,7 +301,7 @@ class BlazeToPipelineTestCase(TestCase):
         )
 
     def test_complex_expr(self):
-        expr = bz.Data(self.df, dshape=self.dshape)
+        expr = bz.data(self.df, dshape=self.dshape)
         # put an Add in the table
         expr_with_add = bz.transform(expr, value=expr.value + 1)
 
@@ -321,7 +321,7 @@ class BlazeToPipelineTestCase(TestCase):
                 missing_values=self.missing_values,
             )
 
-        deltas = bz.Data(
+        deltas = bz.data(
             pd.DataFrame(columns=self.df.columns),
             dshape=self.dshape,
         )
@@ -342,7 +342,7 @@ class BlazeToPipelineTestCase(TestCase):
             )
 
     def _test_id(self, df, dshape, expected, finder, add):
-        expr = bz.Data(df, name='expr', dshape=dshape)
+        expr = bz.data(df, name='expr', dshape=dshape)
         loader = BlazeLoader()
         ds = from_blaze(
             expr,
@@ -375,7 +375,7 @@ class BlazeToPipelineTestCase(TestCase):
             timedelta(hours=8, minutes=44)
         ).tz_convert('utc').tz_localize(None)
         df.ix[3:5, 'timestamp'] = pd.Timestamp('2014-01-01 13:45')
-        expr = bz.Data(df, name='expr', dshape=self.dshape)
+        expr = bz.data(df, name='expr', dshape=self.dshape)
         loader = BlazeLoader(data_query_time=time(8, 45), data_query_tz='EST')
         ds = from_blaze(
             expr,
@@ -861,9 +861,9 @@ class BlazeToPipelineTestCase(TestCase):
                 'int_value': (3, 4, 5),
             })
             df = df.append(extra_sid_df, ignore_index=True)
-        expr = bz.Data(df, name='expr', dshape=self.dshape)
-        deltas = bz.Data(df, dshape=self.dshape)
-        deltas = bz.Data(
+        expr = bz.data(df, name='expr', dshape=self.dshape)
+        deltas = bz.data(df, dshape=self.dshape)
+        deltas = bz.data(
             odo(
                 bz.transform(
                     deltas,
@@ -916,14 +916,14 @@ class BlazeToPipelineTestCase(TestCase):
 
     @with_extra_sid
     def test_deltas_only_one_delta_in_universe(self, asset_info):
-        expr = bz.Data(self.df, name='expr', dshape=self.dshape)
+        expr = bz.data(self.df, name='expr', dshape=self.dshape)
         deltas = pd.DataFrame({
             'sid': [65, 66],
             'asof_date': [self.dates[1], self.dates[0]],
             'timestamp': [self.dates[2], self.dates[1]],
             'value': [10, 11],
         })
-        deltas = bz.Data(deltas, name='deltas', dshape=self.dshape)
+        deltas = bz.data(deltas, name='deltas', dshape=self.dshape)
         expected_views = keymap(pd.Timestamp, {
             '2014-01-02': np.array([[0.0, 11.0, 2.0],
                                     [1.0, 2.0, 3.0]]),
@@ -968,8 +968,8 @@ class BlazeToPipelineTestCase(TestCase):
 
     def test_deltas_macro(self):
         asset_info = asset_infos[0][0]
-        expr = bz.Data(self.macro_df, name='expr', dshape=self.macro_dshape)
-        deltas = bz.Data(
+        expr = bz.data(self.macro_df, name='expr', dshape=self.macro_dshape)
+        deltas = bz.data(
             self.macro_df.iloc[:-1],
             name='deltas',
             dshape=self.macro_dshape,
@@ -1023,8 +1023,8 @@ class BlazeToPipelineTestCase(TestCase):
             'asof_date': repeated_dates,
             'timestamp': repeated_dates,
         })
-        expr = bz.Data(baseline, name='expr', dshape=self.dshape)
-        deltas = bz.Data(
+        expr = bz.data(baseline, name='expr', dshape=self.dshape)
+        deltas = bz.data(
             odo(
                 bz.transform(
                     expr,
@@ -1094,8 +1094,8 @@ class BlazeToPipelineTestCase(TestCase):
             'asof_date': base_dates,
             'timestamp': base_dates,
         })
-        expr = bz.Data(baseline, name='expr', dshape=self.macro_dshape)
-        deltas = bz.Data(baseline, name='deltas', dshape=self.macro_dshape)
+        expr = bz.data(baseline, name='expr', dshape=self.macro_dshape)
+        deltas = bz.data(baseline, name='deltas', dshape=self.macro_dshape)
         deltas = bz.transform(
             deltas,
             value=deltas.value + 10,
