@@ -28,6 +28,8 @@ from zipline.data._minute_bar_internal import (
     find_last_traded_position_internal
 )
 
+from zipline.utils.memoize import remember_last
+
 US_EQUITIES_MINUTES_PER_DAY = 390
 
 DEFAULT_EXPECTEDLEN = US_EQUITIES_MINUTES_PER_DAY * 252 * 15
@@ -633,6 +635,7 @@ class BcolzMinuteBarReader(object):
 
         return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
 
+    @remember_last
     def _find_position_of_minute(self, minute_dt):
         """
         Internal method that returns the position of the given minute in the
