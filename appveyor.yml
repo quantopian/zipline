@@ -102,24 +102,30 @@ install:
   - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements.txt
 
   - conda info -a
-  - conda install conda-build=1.19.2 anaconda-client=1.3.1 --yes
+  - conda install conda-build=1.19.2 anaconda-client=1.3.1 --yes -q
   # https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/ for 64bit C compilation
   - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
 
   - ps: >-
       foreach ($recipe in dir .\conda -dir -name) { `
         if ($recipe -eq "zipline") { continue } `
-        iex "$env:CMD_IN_ENV conda build conda/$recipe -q --python=$env:CONDA_PY --numpy=$env:CONDA_NPY --skip-existing -c quantopian -c https://conda.anaconda.org/quantopian/label/ci"; `
+        iex "$env:CMD_IN_ENV conda build conda/$recipe -q --python=$env:CONDA_PY --numpy=$env:CONDA_NPY --skip-existing -c quantopian -c https://conda.anaconda.org/quantopian/label/ci" 2>&1; `
         if ($LastExitCode -ne 0) { throw "Command failed with exit code $LastExitCode." } `
         $RECIPE_OUTPUT=conda build conda/$recipe --python=$env:CONDA_PY --numpy=$env:CONDA_NPY --output; `
-        if (Test-Path $RECIPE_OUTPUT) { `
-          anaconda -t $env:ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; `
+        if ((Test-Path $RECIPE_OUTPUT) -and ($env:ANACONDA_TOKEN)) { `
+          iex "$env:CMD_IN_ENV anaconda -t $env:ANACONDA_TOKEN upload $RECIPE_OUTPUT -u quantopian --label ci --no-progress" 2>&1; `
           if ($LastExitCode -ne 0) { throw "Command failed with exit code $LastExitCode." } `
         } `
       }
-  - cmd: '%CMD_IN_ENV% conda build conda/zipline --python=%CONDA_PY% --numpy=%CONDA_NPY% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci'
+  - ps: iex "$env:CMD_IN_ENV conda build conda/zipline -q --python=$env:CONDA_PY --numpy=$env:CONDA_NPY -c quantopian -c https://conda.anaconda.org/quantopian/label/ci" 2>&1 | tee -variable ZP_OUT
+  - ps: $ZP_OUTPUT=(($ZP_OUT | sls "anaconda upload") -split ' ')[-1]
+  - ps: >-
+      if ((Test-Path $ZP_OUTPUT) -and ($env:ANACONDA_TOKEN)) { `
+        iex "$env:CMD_IN_ENV anaconda -t $env:ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci --no-progress" 2>&1; `
+        if ($LastExitCode -ne 0) { throw "Command failed with exit code $LastExitCode." } `
+      }
 
-  - cmd: conda create -n testenv --yes --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1 numexpr=2.4.6 -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+  - cmd: conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1 numexpr=2.4.6 -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - cmd: activate testenv
   - cmd: pip install -r etc/requirements.txt
   - cmd: pip install -r etc/requirements_dev.txt
