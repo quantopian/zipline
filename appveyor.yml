@@ -127,11 +127,12 @@ install:
 
   - cmd: conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1 numexpr=2.4.6 -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - cmd: activate testenv
-  - cmd: pip install -r etc/requirements.txt
-  - cmd: pip install -r etc/requirements_dev.txt
+  - SET CACHE_DIR=%LOCALAPPDATA%\pip\Cache\pip_np%CONDA_NPY%py%CONDA_PY%
+  - cmd: pip install -r etc/requirements.txt --cache-dir=%CACHE_DIR%
+  - cmd: pip install -r etc/requirements_dev.txt --cache-dir=%CACHE_DIR%
   # this uses git requirements right now
-  - cmd: pip install -r etc/requirements_blaze.txt
-  - cmd: pip install -e .[talib]
+  - cmd: pip install -r etc/requirements_blaze.txt --cache-dir=%CACHE_DIR%
+  - cmd: pip install -e .[talib] --cache-dir=%CACHE_DIR%
   - cmd: pip freeze | sort
 
 test_script:
