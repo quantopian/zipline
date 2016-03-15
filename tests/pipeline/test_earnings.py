@@ -208,7 +208,7 @@ class BlazeEarningsCalendarLoaderTestCase(EarningsCalendarLoaderTestCase):
             BlazeEarningsCalendarLoaderTestCase,
             self,
         ).loader_args(dates)
-        return (bz.Data(pd.concat(
+        return (bz.data(pd.concat(
             pd.DataFrame({
                 ANNOUNCEMENT_FIELD_NAME: df[ANNOUNCEMENT_FIELD_NAME],
                 TS_FIELD_NAME: df[TS_FIELD_NAME],
