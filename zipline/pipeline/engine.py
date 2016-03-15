@@ -384,6 +384,23 @@ class SimplePipelineEngine(object):
         If mask[date, asset] is True, then result.loc[(date, asset), colname]
         will contain the value of data[colname][date, asset].
         """
+        if not mask.any():
+            # Manually handle the empty DataFrame case. This is a workaround
+            # to pandas failing to tz_localize an empty dataframe with a
+            # MultiIndex. It also saves us the work of applying a known-empty
+            # mask to each array.
+            #
+            # Slicing `dates` here to preserve pandas metadata.
+            empty_dates = dates[:0]
+            empty_assets = array([], dtype=object)
+            return DataFrame(
+                data={
+                    name: array([], dtype=arr.dtype)
+                    for name, arr in iteritems(data)
+                },
+                index=MultiIndex.from_arrays([empty_dates, empty_assets]),
+            )
+
         resolved_assets = array(self._finder.retrieve_all(assets))
         dates_kept = repeat_last_axis(dates.values, len(assets))[mask]
         assets_kept = repeat_first_axis(resolved_assets, len(dates))[mask]
