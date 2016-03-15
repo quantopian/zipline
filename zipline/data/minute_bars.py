@@ -552,6 +552,23 @@ class BcolzMinuteBarReader(object):
 
         return carray
 
+    def get_ctable(self, sid):
+        """Get the ctable of minute bars for a given sid.
+
+        Returns
+        -------
+        ctable or None
+            The ctable of minute bars for this sid, or None if no ctable
+            exists.
+        """
+
+        ctable_path = os.path.join(self._rootdir, _sid_subdir_path(sid))
+
+        if os.path.exists(ctable_path):
+            return bcolz.ctable(rootdir=ctable_path)
+        else:
+            return None
+
     def get_value(self, sid, dt, field):
         """
         Retrieve the pricing info for the given sid, dt, and field.
