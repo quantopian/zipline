@@ -15,17 +15,10 @@
 from __future__ import division
 
 import abc
-
 import math
-
-from copy import copy
-
 from six import with_metaclass
 
 from zipline.finance.transaction import create_transaction
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -152,25 +145,6 @@ class VolumeShareSlippage(SlippageModel):
             math.copysign(cur_volume, order.direction)
         )
 
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("VolumeShareSlippage saved state is too old.")
-
-        self.__dict__.update(state)
-
 
 class FixedSlippage(SlippageModel):
 
@@ -189,22 +163,3 @@ class FixedSlippage(SlippageModel):
             price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
-
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("FixedSlippage saved state is too old.")
-
-        self.__dict__.update(state)

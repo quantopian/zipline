@@ -60,7 +60,6 @@ Performance Tracking
 from __future__ import division
 
 import logbook
-from six import iteritems
 from datetime import datetime
 
 import pandas as pd
@@ -69,8 +68,6 @@ from pandas.tseries.tools import normalize_date
 from zipline.finance.performance.period import PerformancePeriod
 
 import zipline.finance.risk as risk
-
-from zipline.utils.serialization_utils import VERSION_LABEL
 
 from . position_tracker import PositionTracker
 
@@ -443,23 +440,3 @@ class PerformanceTracker(object):
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict
-
-    def __getstate__(self):
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__)
-                if not k.startswith('_')}
-
-        STATE_VERSION = 4
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 4
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("PerformanceTracker saved state is too old.")
-
-        self.__dict__.update(state)

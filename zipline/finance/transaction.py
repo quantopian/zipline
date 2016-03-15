@@ -16,7 +16,6 @@ from __future__ import division
 
 from copy import copy
 from zipline.protocol import DATASOURCE_TYPE
-from zipline.utils.serialization_utils import VERSION_LABEL
 
 
 class Transaction(object):
@@ -37,25 +36,6 @@ class Transaction(object):
         py = copy(self.__dict__)
         del py['type']
         return py
-
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Transaction saved state is too old.")
-
-        self.__dict__.update(state)
 
 
 def create_transaction(order, dt, price, amount):
