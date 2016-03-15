@@ -20,8 +20,13 @@ from os.path import join
 import json
 import os
 import pandas as pd
+from zipline.gens.sim_engine import NANOS_IN_MINUTE
 
-from zipline.utils.memoize import remember_last
+from zipline.data._minute_bar_internal import (
+    minute_value,
+    find_position_of_minute,
+    find_last_traded_position_internal
+)
 
 US_EQUITIES_MINUTES_PER_DAY = 390
 
@@ -519,7 +524,11 @@ class BcolzMinuteBarReader(object):
         metadata = self._get_metadata()
 
         self._first_trading_day = metadata.first_trading_day
-        self._minute_index = metadata.minute_index
+
+        # store a list of "minute epoch" values
+        self._minute_value_index = \
+            metadata.minute_index.astype('datetime64[m]').astype(int)
+
         self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
 
         self._carrays = {
@@ -601,32 +610,29 @@ class BcolzMinuteBarReader(object):
 
     def _find_last_traded_position(self, asset, dt):
         volumes = self._open_minute_file('volume', asset)
-        start_date = asset.start_date
+        start_date_minutes = asset.start_date.value / NANOS_IN_MINUTE
+        dt_minutes = dt.value / NANOS_IN_MINUTE
 
-        if dt < start_date:
+        if dt_minutes < start_date_minutes:
             return -1
 
-        minute_pos = min(self._find_position_of_minute(dt), len(volumes) - 1)
-
-        while minute_pos >= 0:
-            dt = self._pos_to_minute(minute_pos)
-            if dt < start_date:
-                return -1
-            if volumes[minute_pos] != 0:
-                return minute_pos
-            minute_pos -= 1
-
-        # we've gone to the beginning of this asset's range, and still haven't
-        # found a trade event
-        return -1
+        return find_last_traded_position_internal(
+            self._minute_value_index,
+            dt_minutes,
+            start_date_minutes,
+            volumes,
+            US_EQUITIES_MINUTES_PER_DAY
+        )
 
     def _pos_to_minute(self, pos):
-        # TODO: Make configurable.
-        q, r = divmod(pos, 390)
-        minute = self._minute_index[q] + np.timedelta64(int(r), 'm')
-        return pd.Timestamp(minute, tz='UTC')
+        minute_epoch = minute_value(
+            self._minute_value_index,
+            pos,
+            US_EQUITIES_MINUTES_PER_DAY
+        )
 
-    @remember_last
+        return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
+
     def _find_position_of_minute(self, minute_dt):
         """
         Internal method that returns the position of the given minute in the
@@ -643,18 +649,14 @@ class BcolzMinuteBarReader(object):
 
         Returns
         -------
-        out : int
-
-        The position of the given minute in the list of all trading minutes
-        since market open on the first trading day.
+        int: The position of the given minute in the list of all trading
+        minutes since market open on the first trading day.
         """
 
-        # This method will return an inaccurate value when the minute_dt is
-        # not a trading minute (midnight, for example)
-        minute = minute_dt.asm8.astype('datetime64[m]')
-        # TODO: Get better structure for this.
-        mo_loc = np.searchsorted(self._minute_index, minute,
-                                 side='right') - 1
-        mo = self._minute_index[mo_loc]
-        delta = minute - mo
-        return mo_loc * 390 + delta.astype('int')
+        # NOTE: This method will return an inaccurate value when the minute_dt
+        # is not a trading minute (midnight, for example)
+        return find_position_of_minute(
+            self._minute_value_index,
+            minute_dt.value / NANOS_IN_MINUTE,
+            US_EQUITIES_MINUTES_PER_DAY
+        )
