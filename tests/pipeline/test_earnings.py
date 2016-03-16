@@ -9,7 +9,7 @@ from blaze.compute.core import swap_resources_into_scope
 from contextlib2 import ExitStack
 import pandas as pd
 from six import iteritems
-from tests.pipeline.base import EventLoaderCommonMixin
+from .base import EventLoaderCommonMixin
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,

@@ -10,7 +10,7 @@ from contextlib2 import ExitStack
 import itertools
 import pandas as pd
 from six import iteritems
-from tests.pipeline.base import EventLoaderCommonMixin
+from .base import EventLoaderCommonMixin
 
 from zipline.pipeline.common import(
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
