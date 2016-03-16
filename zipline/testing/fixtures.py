@@ -126,7 +126,7 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
 
 class WithLogger(object):
     """
-    ZiplineTestCase mixing providing cls.log_handler as an instance-level
+    ZiplineTestCase mixin providing cls.log_handler as an instance-level
     fixture.
 
     After init_instance_fixtures has been called `self.log_handler` will be a
