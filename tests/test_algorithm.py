@@ -39,6 +39,7 @@ from zipline.finance.commission import PerShare
 from zipline.finance.execution import LimitOrder
 from zipline.finance.order import ORDER_STATUS
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
+from zipline.sources import DataPanelSource
 from zipline.testing.core import (
     FakeDataPortal,
     make_trade_data_for_asset_info,
