@@ -483,9 +483,7 @@ cdef class BarData:
 
     @property
     def fetcher_assets(self):
-        return self.data_portal.get_fetcher_assets(
-            normalize_date(self.simulation_dt_func())
-        )
+        return self.data_portal.get_fetcher_assets(self.simulation_dt_func())
 
     property _handle_non_market_minutes:
         def __set__(self, val):

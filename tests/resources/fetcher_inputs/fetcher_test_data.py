@@ -60,12 +60,13 @@ aapl,5/1/07,1
 # times are expected in UTC
 AAPL_MINUTE_CSV_DATA = """
 symbol,date,signal
-aapl,1/4/06 4:01PM,-1
-aapl,1/5/06 4:00PM,5
-aapl,1/6/06 9:30AM,6
-aapl,1/9/06 12:01PM,9
+aapl,1/4/06 5:31AM, 1
+aapl,1/4/06 11:30AM, 2
+aapl,1/5/06 5:31AM, 1
+aapl,1/5/06 11:30AM, 3
+aapl,1/9/06 5:31AM, 1
+aapl,1/9/06 11:30AM, 4
 """.strip()
-
 
 IBM_CSV_DATA = """
 symbol,date,signal
