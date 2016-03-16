@@ -241,7 +241,7 @@ class BlazeEventLoaderTestCase(TestCase):
                 TypeError, re.escape(ABSTRACT_CONCRETE_LOADER_ERROR)
         ):
             BlazeEventDataSetLoaderNoConcreteLoader(
-                bz.Data(
+                bz.data(
                     pd.DataFrame({ANNOUNCEMENT_FIELD_NAME: dtx,
                                   SID_FIELD_NAME: 0})
                 )

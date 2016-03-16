@@ -225,7 +225,7 @@ class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):
             BlazeCashBuybackAuthLoaderTestCase,
             self,
         ).loader_args(dates)
-        return (bz.Data(pd.concat(
+        return (bz.data(pd.concat(
             pd.DataFrame({
                 BUYBACK_ANNOUNCEMENT_FIELD_NAME:
                     frame[BUYBACK_ANNOUNCEMENT_FIELD_NAME],
@@ -252,7 +252,7 @@ class BlazeShareBuybackAuthLoaderTestCase(ShareBuybackAuthLoaderTestCase):
             BlazeShareBuybackAuthLoaderTestCase,
             self,
         ).loader_args(dates)
-        return (bz.Data(pd.concat(
+        return (bz.data(pd.concat(
             pd.DataFrame({
                 BUYBACK_ANNOUNCEMENT_FIELD_NAME:
                     frame[BUYBACK_ANNOUNCEMENT_FIELD_NAME],
