@@ -326,7 +326,7 @@ def if_not_float64_tell_caller_to_use_isnull(f):
     directing the user to `isnull` or `notnull` instead.
     """
     @wraps(f)
-    def wrapped_method(self, *args, **kwargs):
+    def wrapped_method(self):
         if self.dtype != float64_dtype:
             raise TypeError(
                 "{meth}() was called on a factor of dtype {dtype}.\n"
@@ -336,7 +336,7 @@ def if_not_float64_tell_caller_to_use_isnull(f):
                     dtype=self.dtype,
                 ),
             )
-        return f(self, *args, **kwargs)
+        return f(self)
     return wrapped_method
 
 

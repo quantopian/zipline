@@ -26,6 +26,7 @@ from six import iteritems
 from six.moves import range, map
 
 from zipline.finance.trading import TradingEnvironment
+from zipline.testing import subtest
 import zipline.utils.events
 from zipline.utils.events import (
     EventRule,
@@ -50,7 +51,6 @@ from zipline.utils.events import (
     MAX_MONTH_RANGE,
     MAX_WEEK_RANGE,
 )
-from zipline.utils.test_utils import subtest
 
 
 # A day known to be a half day.

@@ -33,8 +33,8 @@ Position Tracking
 
 from __future__ import division
 from math import copysign
+from collections import OrderedDict
 import numpy as np
-
 import logbook
 
 log = logbook.Logger('Performance')
@@ -193,6 +193,6 @@ last_sale_price: {last_sale_price}"
         }
 
 
-class positiondict(dict):
+class positiondict(OrderedDict):
     def __missing__(self, key):
         return None

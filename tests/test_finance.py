@@ -16,40 +16,37 @@
 """
 Tests for the zipline.finance package
 """
-import os
-import pytz
-
-from unittest import TestCase
 from datetime import datetime, timedelta
+import os
+from unittest import TestCase
 
-import numpy as np
-import pandas as pd
 
 from nose.tools import timed
-
+import numpy as np
+import pandas as pd
+import pytz
 from six.moves import range
 from testfixtures import TempDirectory
 
-import zipline.utils.factory as factory
-
 from zipline.finance.blotter import Blotter
-from zipline.finance.trading import TradingEnvironment
 from zipline.finance.execution import MarketOrder, LimitOrder
-from zipline.finance.trading import SimulationParameters
-
+from zipline.finance.trading import TradingEnvironment
 from zipline.finance.performance import PerformanceTracker
-from zipline.utils.test_utils import(
+from zipline.finance.trading import SimulationParameters
+from zipline.testing import (
     setup_logger,
-    teardown_logger,
-    write_bcolz_minute_data)
+    teardown_logger
+)
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.minute_bars import BcolzMinuteBarReader
 
 from zipline.data.data_portal import DataPortal
 from zipline.finance.slippage import FixedSlippage
 from zipline.protocol import BarData
-
+from zipline.testing.core import write_bcolz_minute_data
 from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
+
+import zipline.utils.factory as factory
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90

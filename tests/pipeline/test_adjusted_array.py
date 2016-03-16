@@ -22,6 +22,7 @@ from zipline.lib.adjustment import (
     Float64Overwrite,
 )
 from zipline.lib.adjusted_array import AdjustedArray, NOMASK
+from zipline.testing import check_arrays, parameter_space
 from zipline.utils.numpy_utils import (
     coerce_to_dtype,
     datetime64ns_dtype,
@@ -29,7 +30,6 @@ from zipline.utils.numpy_utils import (
     float64_dtype,
     int64_dtype,
 )
-from zipline.utils.test_utils import check_arrays, parameter_space
 
 
 def moving_window(array, nrows):

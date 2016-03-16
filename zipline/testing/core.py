@@ -251,7 +251,7 @@ def all_pairs_matching_predicate(values, pred):
 
     Examples
     --------
-    >>> from zipline.utils.test_utils import all_pairs_matching_predicate
+    >>> from zipline.testing import all_pairs_matching_predicate
     >>> from operator import eq, lt
     >>> list(all_pairs_matching_predicate(range(5), eq))
     [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)]
@@ -1060,7 +1060,7 @@ def subtest(iterator, *_names):
     """
     Construct a subtest in a unittest.
 
-    Consider using ``zipline.utils.test_utils.parameter_space`` when subtests
+    Consider using ``zipline.testing.parameter_space`` when subtests
     are constructed over a single input or over the cross-product of multiple
     inputs.
 
@@ -1113,7 +1113,7 @@ def subtest(iterator, *_names):
 
     See Also
     --------
-    zipline.utils.test_utils.parameter_space
+    zipline.testing.parameter_space
     """
     def dec(f):
         @wraps(f)
@@ -1293,7 +1293,7 @@ def parameter_space(**params):
 
     See Also
     --------
-    zipline.utils.test_utils.subtest
+    zipline.testing.subtest
     """
     def decorator(f):
 

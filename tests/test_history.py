@@ -25,9 +25,12 @@ from zipline.finance.trading import (
     SimulationParameters
 )
 from zipline.protocol import BarData
-from zipline.utils.test_utils import str_to_seconds, MockDailyBarReader, \
-    DailyBarWriterFromDataFrames, write_minute_data_for_asset
-
+from zipline.testing import str_to_seconds
+from zipline.testing.core import (
+    write_minute_data_for_asset,
+    DailyBarWriterFromDataFrames,
+    MockDailyBarReader
+)
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]

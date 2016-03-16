@@ -31,7 +31,7 @@ from zipline.finance.execution import (
     StopOrder,
 )
 
-from zipline.utils.test_utils import(
+from zipline.testing import(
     setup_logger,
     teardown_logger,
 )

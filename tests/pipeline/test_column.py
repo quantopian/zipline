@@ -9,7 +9,7 @@ from pandas.util.testing import assert_frame_equal
 
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data.testing import TestingDataSet as TDS
-from zipline.utils.test_utils import chrange, temp_pipeline_engine
+from zipline.testing import chrange, temp_pipeline_engine
 
 
 class LatestTestCase(TestCase):

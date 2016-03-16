@@ -22,7 +22,7 @@ from zipline.pipeline.factors import (
     Returns,
     RSI,
 )
-from zipline.utils.test_utils import (
+from zipline.testing import (
     check_allclose,
     check_arrays,
     parameter_space,

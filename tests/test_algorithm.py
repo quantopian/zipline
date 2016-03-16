@@ -29,28 +29,24 @@ import numpy as np
 import pandas as pd
 from contextlib2 import ExitStack
 
+from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
-from zipline.assets import Equity, Future
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import BcolzMinuteBarWriter, \
     US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
-from zipline.utils.api_support import ZiplineAPI
-from zipline.utils.control_flow import nullctx
-from zipline.utils.test_utils import (
-    setup_logger,
-    teardown_logger,
+from zipline.finance.commission import PerShare
+from zipline.finance.execution import LimitOrder
+from zipline.finance.order import ORDER_STATUS
+from zipline.finance.trading import TradingEnvironment, SimulationParameters
+from zipline.testing.core import (
     FakeDataPortal,
     make_trade_data_for_asset_info,
-    parameter_space,
-    to_utc,
     create_data_portal,
     create_data_portal_from_trade_history,
-    make_jagged_equity_info,
     DailyBarWriterFromDataFrames,
-    create_daily_df_for_asset, write_minute_data_for_asset)
-import zipline.utils.factory as factory
-
+    create_daily_df_for_asset, write_minute_data_for_asset
+)
 from zipline.errors import (
     OrderDuringInitialize,
     RegisterTradingControlPostInit,
@@ -59,7 +55,11 @@ from zipline.errors import (
     SymbolNotFound,
     RootSymbolNotFound,
     UnsupportedDatetimeFormat,
-    CannotOrderDelistedAsset, SetCancelPolicyPostInit, UnsupportedCancelPolicy)
+    CannotOrderDelistedAsset,
+    SetCancelPolicyPostInit,
+    UnsupportedCancelPolicy
+)
+from zipline.assets import Equity, Future
 from zipline.test_algorithms import (
     access_account_in_init,
     access_portfolio_in_init,
@@ -100,18 +100,19 @@ from zipline.test_algorithms import (
     call_with_bad_kwargs_current,
     call_with_bad_kwargs_history
 )
+from zipline.testing import (
+    make_jagged_equity_info,
+    to_utc,
+    setup_logger,
+    teardown_logger,
+    parameter_space,
+)
+from zipline.utils.api_support import ZiplineAPI, set_algo_instance
 from zipline.utils.context_tricks import CallbackManager
+from zipline.utils.control_flow import nullctx
 import zipline.utils.events
-from zipline.sources import DataPanelSource
-
-from zipline.finance.execution import LimitOrder
-from zipline.finance.trading import SimulationParameters
-from zipline.finance.order import ORDER_STATUS
-from zipline.utils.api_support import set_algo_instance
 from zipline.utils.events import DateRuleFactory, TimeRuleFactory, Always
-from zipline.algorithm import TradingAlgorithm
-from zipline.finance.trading import TradingEnvironment
-from zipline.finance.commission import PerShare
+import zipline.utils.factory as factory
 from zipline.utils.tradingcalendar import trading_day, trading_days
 
 # Because test cases appear to reuse some resources.

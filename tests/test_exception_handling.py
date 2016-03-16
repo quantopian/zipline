@@ -16,21 +16,18 @@
 from unittest import TestCase
 from testfixtures import TempDirectory
 
-import zipline.utils.factory as factory
-
+from zipline.finance.trading import TradingEnvironment
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
     SetPortfolioAlgorithm,
 )
-from zipline.finance.trading import TradingEnvironment
-
-
-from zipline.utils.test_utils import (
+from zipline.testing import (
     setup_logger,
-    teardown_logger,
-    create_data_portal
+    teardown_logger
 )
+import zipline.utils.factory as factory
+from zipline.testing.core import create_data_portal
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
