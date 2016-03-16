@@ -26,7 +26,7 @@ from zipline.data.us_equity_pricing import BcolzDailyBarReader, \
     SQLiteAdjustmentReader
 from zipline.finance.trading import TradingEnvironment
 from zipline.protocol import BarData
-from zipline.utils.test_utils import write_minute_data_for_asset, \
+from zipline.testing.core import write_minute_data_for_asset, \
     create_daily_df_for_asset, DailyBarWriterFromDataFrames, \
     create_mock_adjustments, str_to_seconds
 

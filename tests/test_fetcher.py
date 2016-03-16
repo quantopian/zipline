@@ -26,7 +26,7 @@ from zipline.finance.trading import TradingEnvironment
 from zipline.sources.requests_csv import mask_requests_args
 
 from zipline.utils import factory
-from zipline.utils.test_utils import FetcherDataPortal
+from zipline.testing.core import FetcherDataPortal
 
 from .resources.fetcher_inputs.fetcher_test_data import (
     MULTI_SIGNAL_CSV_DATA,

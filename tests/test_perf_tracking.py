@@ -49,7 +49,7 @@ from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
-from zipline.utils.test_utils import create_data_portal_from_trade_history, \
+from zipline.testing.core import create_data_portal_from_trade_history, \
     create_empty_splits_mergers_frame, FakeDataPortal
 
 logger = logging.getLogger('Test Perf Tracking')

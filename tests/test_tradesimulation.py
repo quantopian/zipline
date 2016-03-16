@@ -22,7 +22,7 @@ from zipline import TradingAlgorithm
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.test_algorithms import NoopAlgorithm
 from zipline.utils import factory
-from zipline.utils.test_utils import FakeDataPortal
+from zipline.testing.core import FakeDataPortal
 
 
 class BeforeTradingAlgorithm(TradingAlgorithm):

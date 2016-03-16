@@ -1,5 +1,5 @@
 import zipline.utils.factory as factory
-from zipline.utils.test_utils import create_data_portal_from_trade_history
+from zipline.testing.core import create_data_portal_from_trade_history
 
 from zipline.test_algorithms import TestAlgorithm
 

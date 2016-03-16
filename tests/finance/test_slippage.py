@@ -38,7 +38,7 @@ from zipline.finance.blotter import Order
 from zipline.data.minute_bars import BcolzMinuteBarReader
 from zipline.data.data_portal import DataPortal
 from zipline.protocol import BarData
-from zipline.utils.test_utils import write_bcolz_minute_data
+from zipline.testing.core import write_bcolz_minute_data
 
 
 class SlippageTestCase(TestCase):

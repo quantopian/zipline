@@ -28,7 +28,7 @@ from zipline.errors import (
 from zipline.finance.trading import TradingEnvironment
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.utils import factory
-from zipline.utils.test_utils import create_data_portal, write_minute_data, \
+from zipline.testing.core import create_data_portal, write_minute_data, \
     create_empty_splits_mergers_frame
 from .test_perf_tracking import MockDailyBarSpotReader
 
