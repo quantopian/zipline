@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from pandas import isnull
 from six import with_metaclass, string_types, viewkeys
-from six.moves import map as imap, range
+from six.moves import map as imap
 import sqlalchemy as sa
 
 from zipline.errors import (
@@ -40,12 +40,12 @@ from zipline.assets.asset_writer import (
     check_version_info,
     split_delimited_symbol,
     asset_db_table_names,
-    SQLITE_MAX_VARIABLE_NUMBER,
 )
 from zipline.assets.asset_db_schema import (
     ASSET_DB_VERSION
 )
 from zipline.utils.control_flow import invert
+from zipline.utils.sqlite_utils import group_into_chunks
 
 log = Logger('assets.py')
 
@@ -163,7 +163,7 @@ class AssetFinder(object):
 
         router_cols = self.asset_router.c
 
-        for assets in self._group_into_chunks(missing):
+        for assets in group_into_chunks(missing):
             query = sa.select((router_cols.sid, router_cols.asset_type)).where(
                 self.asset_router.c.sid.in_(map(int, assets))
             )
@@ -175,12 +175,6 @@ class AssetFinder(object):
                 found[sid] = self._asset_type_cache[sid] = None
 
         return found
-
-    @staticmethod
-    def _group_into_chunks(items, chunk_size=SQLITE_MAX_VARIABLE_NUMBER):
-        items = list(items)
-        return [items[x:x+chunk_size]
-                for x in range(0, len(items), chunk_size)]
 
     def group_by_type(self, sids):
         """
@@ -210,7 +204,7 @@ class AssetFinder(object):
 
         Parameters
         ----------
-        sids : interable of int
+        sids : iterable of int
             Assets to retrieve.
         default_none : bool
             If True, return None for failed lookups.
@@ -358,7 +352,7 @@ class AssetFinder(object):
         cache = self._asset_cache
         hits = {}
 
-        for assets in self._group_into_chunks(sids):
+        for assets in group_into_chunks(sids):
             # Load misses from the db.
             query = self._select_assets_by_sid(asset_tbl, assets)
 
@@ -665,6 +659,30 @@ class AssetFinder(object):
 
         contracts = self.retrieve_futures_contracts(sids)
         return [contracts[sid] for sid in sids]
+
+    def lookup_expired_futures(self, start, end):
+        if not isinstance(start, pd.Timestamp):
+            start = pd.Timestamp(start)
+        start = start.value
+        if not isinstance(end, pd.Timestamp):
+            end = pd.Timestamp(end)
+        end = end.value
+
+        fc_cols = self.futures_contracts.c
+
+        nd = sa.func.nullif(fc_cols.notice_date, pd.tslib.iNaT)
+        ed = sa.func.nullif(fc_cols.expiration_date, pd.tslib.iNaT)
+        date = sa.func.coalesce(sa.func.min(nd, ed), ed, nd)
+
+        sids = list(map(
+            itemgetter('sid'),
+            sa.select((fc_cols.sid,)).where(
+                (date >= start) & (date < end)).order_by(
+                sa.func.coalesce(ed, nd).asc()
+            ).execute().fetchall()
+        ))
+
+        return sids
 
     @property
     def sids(self):

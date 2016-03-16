@@ -22,15 +22,10 @@ its shares once the averages cross again (indicating downwards
 momentum).
 """
 
-from zipline.api import order_target, record, symbol, history, add_history
+from zipline.api import order_target, record, symbol
 
 
 def initialize(context):
-    # Register 2 histories that track daily prices,
-    # one with a 100 window and one with a 300 day window
-    add_history(100, '1d', 'price')
-    add_history(300, '1d', 'price')
-
     context.sym = symbol('AAPL')
 
     context.i = 0
@@ -45,21 +40,21 @@ def handle_data(context, data):
     # Compute averages
     # history() has to be called with the same params
     # from above and returns a pandas dataframe.
-    short_mavg = history(100, '1d', 'price').mean()
-    long_mavg = history(300, '1d', 'price').mean()
+    short_mavg = data.history(context.sym, 'price', 100, '1d').mean()
+    long_mavg = data.history(context.sym, 'price', 300, '1d').mean()
 
     # Trading logic
-    if short_mavg[context.sym] > long_mavg[context.sym]:
+    if short_mavg > long_mavg:
         # order_target orders as many shares as needed to
         # achieve the desired number of shares.
         order_target(context.sym, 100)
-    elif short_mavg[context.sym] < long_mavg[context.sym]:
+    elif short_mavg < long_mavg:
         order_target(context.sym, 0)
 
     # Save values for later inspection
-    record(AAPL=data[context.sym].price,
-           short_mavg=short_mavg[context.sym],
-           long_mavg=long_mavg[context.sym])
+    record(AAPL=data.current(context.sym, "price"),
+           short_mavg=short_mavg,
+           long_mavg=long_mavg)
 
 
 # Note: this function can be removed if running

@@ -190,7 +190,7 @@ class MaxOrderSize(TradingControl):
         if self.max_shares is not None and abs(amount) > self.max_shares:
             self.fail(asset, amount, _algo_datetime)
 
-        current_asset_price = algo_current_data[asset].price
+        current_asset_price = algo_current_data.current(asset, "price")
         order_value = amount * current_asset_price
 
         too_much_value = (self.max_notional is not None and
@@ -252,7 +252,7 @@ class MaxPositionSize(TradingControl):
         if too_many_shares:
             self.fail(asset, amount, algo_datetime)
 
-        current_price = algo_current_data[asset].price
+        current_price = algo_current_data.current(asset, "price")
         value_post_order = shares_post_order * current_price
 
         too_much_value = (self.max_notional is not None and

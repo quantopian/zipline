@@ -15,18 +15,10 @@
 from __future__ import division
 
 import abc
-
 import math
-
-from copy import copy
-from functools import partial
-
 from six import with_metaclass
 
 from zipline.finance.transaction import create_transaction
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
 
 SELL = 1 << 0
 BUY = 1 << 1
@@ -34,53 +26,45 @@ STOP = 1 << 2
 LIMIT = 1 << 3
 
 
-def transact_stub(slippage, commission, event, open_orders):
-    """
-    This is intended to be wrapped in a partial, so that the
-    slippage and commission models can be enclosed.
-    """
-    for order, transaction in slippage(event, open_orders):
-        if transaction and transaction.amount != 0:
-            direction = math.copysign(1, transaction.amount)
-            per_share, total_commission = commission.calculate(transaction)
-            transaction.price += per_share * direction
-            transaction.commission = total_commission
-        yield order, transaction
-
-
-def transact_partial(slippage, commission):
-    return partial(transact_stub, slippage, commission)
-
-
 class LiquidityExceeded(Exception):
     pass
 
 
+DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
+
+
 class SlippageModel(with_metaclass(abc.ABCMeta)):
+    def __init__(self):
+        self._volume_for_bar = 0
 
     @property
     def volume_for_bar(self):
         return self._volume_for_bar
 
     @abc.abstractproperty
-    def process_order(self, event, order):
+    def process_order(self, bar_data, price, volume, order):
         pass
 
-    def simulate(self, event, current_orders):
-
+    def simulate(self, bar_data, asset, orders_for_asset):
         self._volume_for_bar = 0
+        volume = bar_data.current(asset, "volume")
 
-        for order in current_orders:
+        if volume == 0:
+            return
 
+        price = bar_data.current(asset, "price")
+        dt = bar_data.current_dt
+
+        for order in orders_for_asset:
             if order.open_amount == 0:
                 continue
 
-            order.check_triggers(event)
+            order.check_triggers(price, dt)
             if not order.triggered:
                 continue
 
             try:
-                txn = self.process_order(event, order)
+                txn = self.process_order(bar_data, price, volume, order)
             except LiquidityExceeded:
                 break
 
@@ -88,18 +72,19 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
                 self._volume_for_bar += abs(txn.amount)
                 yield order, txn
 
-    def __call__(self, event, current_orders, **kwargs):
-        return self.simulate(event, current_orders, **kwargs)
+    def __call__(self, bar_data, asset, current_orders):
+        return self.simulate(bar_data, asset, current_orders)
 
 
 class VolumeShareSlippage(SlippageModel):
 
-    def __init__(self,
-                 volume_limit=.25,
+    def __init__(self, volume_limit=DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
 
         self.volume_limit = volume_limit
         self.price_impact = price_impact
+
+        super(VolumeShareSlippage, self).__init__()
 
     def __repr__(self):
         return """
@@ -110,9 +95,9 @@ class VolumeShareSlippage(SlippageModel):
                    volume_limit=self.volume_limit,
                    price_impact=self.price_impact)
 
-    def process_order(self, event, order):
+    def process_order(self, bar_data, price, volume, order):
 
-        max_volume = self.volume_limit * event.volume
+        max_volume = self.volume_limit * volume
 
         # price impact accounts for the total volume of transactions
         # created against the current minute bar
@@ -132,13 +117,13 @@ class VolumeShareSlippage(SlippageModel):
         # total amount will be used to calculate price impact
         total_volume = self.volume_for_bar + cur_volume
 
-        volume_share = min(total_volume / event.volume,
+        volume_share = min(total_volume / volume,
                            self.volume_limit)
 
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
-            * event.price
-        impacted_price = event.price + simulated_impact
+            * price
+        impacted_price = price + simulated_impact
 
         if order.limit:
             # this is tricky! if an order with a limit price has reached
@@ -154,30 +139,11 @@ class VolumeShareSlippage(SlippageModel):
                 return
 
         return create_transaction(
-            event,
             order,
+            bar_data.current_dt,
             impacted_price,
             math.copysign(cur_volume, order.direction)
         )
-
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("VolumeShareSlippage saved state is too old.")
-
-        self.__dict__.update(state)
 
 
 class FixedSlippage(SlippageModel):
@@ -190,29 +156,10 @@ class FixedSlippage(SlippageModel):
         """
         self.spread = spread
 
-    def process_order(self, event, order):
+    def process_order(self, bar_data, price, volume, order):
         return create_transaction(
-            event,
             order,
-            event.price + (self.spread / 2.0 * order.direction),
+            bar_data.current_dt,
+            price + (self.spread / 2.0 * order.direction),
             order.amount,
         )
-
-    def __getstate__(self):
-
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("FixedSlippage saved state is too old.")
-
-        self.__dict__.update(state)

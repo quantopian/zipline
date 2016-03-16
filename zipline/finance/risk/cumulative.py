@@ -34,10 +34,6 @@ from . risk import (
     sortino_ratio,
 )
 
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
-
 log = logbook.Logger('Risk Cumulative')
 
 
@@ -90,8 +86,7 @@ class RiskMetricsCumulative(object):
         'information',
     )
 
-    def __init__(self, sim_params, env,
-                 create_first_day_stats=False):
+    def __init__(self, sim_params, env, create_first_day_stats=False):
         self.treasury_curves = env.treasury_curves
         self.start_date = sim_params.period_start.replace(
             hour=0, minute=0, second=0, microsecond=0
@@ -454,23 +449,3 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         beta = algorithm_covariance / benchmark_variance
 
         return beta
-
-    def __getstate__(self):
-        state_dict = {k: v for k, v in iteritems(self.__dict__)
-                      if not k.startswith('_')}
-
-        STATE_VERSION = 3
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 3
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("RiskMetricsCumulative \
-                    saved state is too old.")
-
-        self.__dict__.update(state)
