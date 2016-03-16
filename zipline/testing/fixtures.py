@@ -125,14 +125,15 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
 
 
 class WithLogger(object):
-    """ZiplineTestCase mixing providing cls.log_handler as an instance-level
+    """
+    ZiplineTestCase mixin providing cls.log_handler as an instance-level
     fixture.
 
-    after init_instance_fixtures has been called `self.log_handler` will be a
-    new ``NullHandler``.
+    After init_instance_fixtures has been called `self.log_handler` will be a
+    new ``logbook.NullHandler``.
 
-    This behaviour may be overridden by defining a ``make_log_handler`` class
-    method which returns a new handler object.
+    This behavior may be overridden by defining a ``make_log_handler`` class
+    method which returns a new logbook.LogHandler instance.
     """
     make_log_handler = NullHandler
 
@@ -150,19 +151,27 @@ class WithAssetFinder(object):
     ZiplineTestCase mixin providing cls.asset_finder as a class-level fixture.
 
     After init_class_fixtures has been called, `cls.asset_finder` is populated
-    with an AssetFinder. The default finder just a `tmp_asset_finder` whose
-    arguments come from:
+    with an AssetFinder. The default finder is the result of calling
+    `tmp_asset_finder` with arguments generated as follows::
 
-      equities=cls.make_equities_info(),
-      futures=cls.make_futures_info(),
-      exchanges=cls.make_exchanges_info(),
-      root_symbols=cls.make_root_symbols_info(),
+       equities=cls.make_equities_info(),
+       futures=cls.make_futures_info(),
+       exchanges=cls.make_exchanges_info(),
+       root_symbols=cls.make_root_symbols_info(),
 
-    Each of these fields may be overridden with a function named
-    ``make_*_info`` which returnsa dataframe to write.
+    Each of these methods may be overridden with a function returning a
+    alternative dataframe of data to write.
 
-    This behavior can be altered by overriding `make_asset_finder` as a class
-    method.
+    The top-level creation behavior can be altered by overriding
+    `make_asset_finder` as a class method.
+
+    See Also
+    --------
+    zipline.testing.make_simple_equity_info
+    zipline.testing.make_jagged_equity_info
+    zipline.testing.make_rotating_equity_info
+    zipline.testing.make_future_info
+    zipline.testing.make_commodity_future_info
     """
     @classmethod
     def _make_info(cls):
@@ -187,6 +196,9 @@ class WithAssetFinder(object):
     @classmethod
     def init_class_fixtures(cls):
         super(WithAssetFinder, cls).init_class_fixtures()
+
+        # TODO: Move this to consumers that actually depend on it.
+        #       These are misleading if make_asset_finder is overridden.
         cls.equities_info = cls.make_equities_info()
         cls.futures_info = cls.make_futures_info()
         cls.exchanges_info = cls.make_exchanges_info()

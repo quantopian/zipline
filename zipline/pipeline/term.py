@@ -252,6 +252,11 @@ class Term(with_metaclass(ABCMeta, object)):
         # should set this flag to True.
         self._subclass_called_super_validate = False
         self._validate()
+        assert self._subclass_called_super_validate, (
+            "Term._validate() was not called.\n"
+            "This probably means that you overrode _validate"
+            " without calling super()."
+        )
         del self._subclass_called_super_validate
 
         return self
