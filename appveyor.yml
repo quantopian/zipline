@@ -125,6 +125,9 @@ install:
         if ($LastExitCode -ne 0) { throw "Command failed with exit code $LastExitCode." } `
       }
 
+  # test that we can conda install zipline in a new env
+  - conda create -n installenv --yes -q --use-local python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% zipline -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+
   - conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=0.4.9 bcolz=0.12.1 numexpr=2.4.6 -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
   - activate testenv
   - SET CACHE_DIR=%LOCALAPPDATA%\pip\Cache\pip_np%CONDA_NPY%py%CONDA_PY%
