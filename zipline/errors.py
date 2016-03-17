@@ -597,7 +597,6 @@ class AssetDBImpossibleDowngrade(ZiplineError):
 
 class HistoryWindowStartsBeforeData(ZiplineError):
     msg = (
-        "History window extends beyond environment first date, "
-        "{first_trading_day}. To use history with bar count, {bar_count}, "
-        "start simulation on or after, {suggested_start_day}."
+        "History window extends before {first_trading_day}. To use this "
+        "history window, start the backtest on or after {suggested_start_day}."
         )
