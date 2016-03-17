@@ -21,7 +21,6 @@ from zipline.testing import (
     ExplodingObject,
     gen_calendars,
     make_simple_equity_info,
-    num_days_in_range,
     tmp_asset_finder,
 )
 
@@ -183,22 +182,13 @@ class EventLoaderCommonMixin(object):
     def get_sids(cls):
         raise NotImplementedError('get_sids')
 
-    @classmethod
-    def get_equity_info(cls):
-        return make_simple_equity_info(
-            cls.get_sids(),
-            start_date=pd.Timestamp('2013-01-01', tz='UTC'),
-            end_date=pd.Timestamp('2015-01-01', tz='UTC'),
-        )
+    @abc.abstractproperty
+    def get_dataset(self):
+        raise NotImplementedError('get_dataset')
 
-    def zip_with_floats(self, dates, flts):
-        return pd.Series(flts, index=dates).astype('float')
-
-    def num_days_between(self, dates, start_date, end_date):
-        return num_days_in_range(dates, start_date, end_date)
-
-    def zip_with_dates(self, index_dates, dts):
-        return pd.Series(pd.to_datetime(dts), index=index_dates)
+    @abc.abstractproperty
+    def loader_type(self):
+        raise NotImplementedError('loader_type')
 
     def loader_args(self, dates):
         """Construct the base  object to pass to the loader.
@@ -213,14 +203,14 @@ class EventLoaderCommonMixin(object):
         args : tuple[any]
             The arguments to forward to the loader positionally.
         """
-        return dates, self.dataset
+        return dates, self.get_dataset()
 
     def setup_engine(self, dates):
         """
         Make a Pipeline Enigne object based on the given dates.
         """
         loader = self.loader_type(*self.loader_args(dates))
-        return SimplePipelineEngine(lambda _: loader, dates, self.finder)
+        return SimplePipelineEngine(lambda _: loader, dates, self.asset_finder)
 
     @staticmethod
     def _compute_busday_offsets(announcement_dates):
@@ -270,7 +260,7 @@ class EventLoaderCommonMixin(object):
     ))
     def test_compute(self, dates):
         engine = self.setup_engine(dates)
-        self.setup(dates)
+        cols = self.setup(dates)
 
         pipe = Pipeline(
             columns=self.pipeline_columns
@@ -283,7 +273,7 @@ class EventLoaderCommonMixin(object):
         )
 
         for sid in self.get_sids():
-            for col_name in self.cols.keys():
+            for col_name in cols.keys():
                 assert_series_equal(result[col_name].xs(sid, level=1),
-                                    self.cols[col_name][sid],
+                                    cols[col_name][sid],
                                     check_names=False)

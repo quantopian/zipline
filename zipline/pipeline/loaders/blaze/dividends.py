@@ -6,10 +6,16 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.pipeline.data.dividends import DividendsByExDate, \
-    DividendsByAnnouncementDate, DividendsByPayDate
-from zipline.pipeline.loaders.dividends import DividendsByAnnouncementDateLoader, \
-    DividendsByPayDateLoader, DividendsByExDateLoader
+from zipline.pipeline.data.dividends import (
+    DividendsByExDate,
+    DividendsByAnnouncementDate,
+    DividendsByPayDate
+)
+from zipline.pipeline.loaders.dividends import (
+    DividendsByAnnouncementDateLoader,
+    DividendsByPayDateLoader,
+    DividendsByExDateLoader
+)
 from .events import BlazeEventsLoader
 
 

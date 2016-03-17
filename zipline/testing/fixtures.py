@@ -5,7 +5,7 @@ from logbook import NullHandler
 import pandas as pd
 from six import with_metaclass
 
-from .core import tmp_asset_finder
+from .core import tmp_asset_finder, make_simple_equity_info
 from ..finance.trading import TradingEnvironment
 from ..utils import tradingcalendar, factory
 from ..utils.final import FinalMeta, final
@@ -177,7 +177,14 @@ class WithAssetFinder(object):
     def _make_info(cls):
         return None
 
-    make_equities_info = _make_info
+    @classmethod
+    def make_equities_info(cls):
+        return make_simple_equity_info(
+            cls.get_sids(),
+            start_date=pd.Timestamp('2013-01-01', tz='UTC'),
+            end_date=pd.Timestamp('2015-01-01', tz='UTC'),
+        )
+
     make_futures_info = _make_info
     make_exchanges_info = _make_info
     make_root_symbols_info = _make_info
