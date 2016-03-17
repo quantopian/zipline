@@ -76,6 +76,19 @@ def handle_data(context,data):
     assert data[sid(1)]["sid"] == context.asset1
 """
 
+data_items_algo = """
+from zipline.api import sid
+
+def initialize(context):
+    context.asset1 = sid(1)
+    context.asset2 = sid(2)
+
+def handle_data(context, data):
+    iter_list = list(data.iteritems())
+    items_list = data.items()
+    assert iter_list == items_list
+"""
+
 
 class TestAPIShim(TestCase):
     @classmethod
@@ -298,9 +311,39 @@ class TestAPIShim(TestCase):
                     warning.category
                 )
                 self.assertEqual(
-                    '`data[sid(N)]` is deprecated. Use `data.current`.',
+                    "`data[sid(N)]` is deprecated. Use `data.current`.",
                     str(warning.message)
                 )
+
+    def test_data_items(self):
+        """
+        Test that we maintain backwards compat for data.[items | iteritems].
+
+        We also want to assert that we warn that iterating over the assets
+        in `data` is deprecated.
+        """
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("default", ZiplineDeprecationWarning)
+            algo = self.create_algo(data_items_algo)
+            algo.run(self.data_portal)
+
+            self.assertEqual(4, len(w))
+
+            for idx, warning in enumerate(w):
+                self.assertEqual(
+                    ZiplineDeprecationWarning,
+                    warning.category
+                )
+                if idx % 2 == 0:
+                    self.assertEqual(
+                        "Iterating over the assets in `data` is deprecated.",
+                        str(warning.message)
+                    )
+                else:
+                    self.assertEqual(
+                        "`data[sid(N)]` is deprecated. Use `data.current`.",
+                        str(warning.message)
+                    )
 
     def test_iterate_data(self):
         with warnings.catch_warnings(record=True) as w:

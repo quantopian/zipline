@@ -517,6 +517,11 @@ cdef class BarData:
         universe = self._calculate_universe()
         return asset in universe
 
+    def items(self):
+        self._warn_deprecated("Iterating over the assets in `data` is "
+                        "deprecated.")
+        return [(asset, self[asset]) for asset in self._calculate_universe()]
+
     def iteritems(self):
         self._warn_deprecated("Iterating over the assets in `data` is "
                         "deprecated.")
