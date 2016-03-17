@@ -872,9 +872,8 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             self.TRADING_START_DT
         )
         exp_msg = (
-            "History window extends beyond environment first date, "
-            "2014-02-03. To use history with bar count, 15, start simulation "
-            "on or after, 2014-02-04."
+            "History window extends before 2014-02-03. To use this history "
+            "window, start the backtest on or after 2014-02-04."
         )
         for field in OHLCP:
             with self.assertRaisesRegexp(
@@ -1240,9 +1239,8 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         second_day = self.env.next_trading_day(self.TRADING_START_DT)
 
         exp_msg = (
-            "History window extends beyond environment first date, "
-            "2014-02-03. To use history with bar count, 4, start simulation "
-            "on or after, 2014-02-07."
+            "History window extends before 2014-02-03. To use this history "
+            "window, start the backtest on or after 2014-02-07."
         )
 
         with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
