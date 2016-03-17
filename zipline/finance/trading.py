@@ -32,7 +32,7 @@ from zipline.assets.asset_writer import (
 from zipline.errors import (
     NoFurtherDataError
 )
-from zipline.utils.memoize import remember_last
+from zipline.utils.memoize import remember_last, lazyval
 
 log = logbook.Logger('Trading')
 
@@ -94,10 +94,6 @@ class TradingEnvironment(object):
         self.open_and_closes = env_trading_calendar.open_and_closes.loc[
             self.trading_days]
 
-        self.market_minutes = self.minutes_for_days_in_range(
-            self.first_trading_day,
-            self.last_trading_day)
-
         self.bm_symbol = bm_symbol
         if not load:
             load = load_market_data
@@ -126,6 +122,11 @@ class TradingEnvironment(object):
             self.asset_finder = AssetFinder(engine)
         else:
             self.asset_finder = None
+
+    @lazyval
+    def market_minutes(self):
+        return self.minutes_for_days_in_range(self.first_trading_day,
+                                              self.last_trading_day)
 
     def write_data(self,
                    engine=None,
