@@ -590,6 +590,8 @@ cdef class SidView:
             return self.dt
         elif column == "datetime":
             return self.datetime
+        elif column == "sid":
+            return self.sid
 
         return self.data_portal.get_spot_value(
             self.asset,
