@@ -593,3 +593,10 @@ class AssetDBImpossibleDowngrade(ZiplineError):
         "The existing Asset database is version: {db_version} which is lower "
         "than the desired downgrade version: {desired_version}."
     )
+
+
+class HistoryWindowStartsBeforeData(ZiplineError):
+    msg = (
+        "History window extends before {first_trading_day}. To use this "
+        "history window, start the backtest on or after {suggested_start_day}."
+        )
