@@ -15,12 +15,16 @@
 from __future__ import division
 
 from copy import copy
+
+from zipline.assets import Asset
 from zipline.protocol import DATASOURCE_TYPE
 
 
 class Transaction(object):
 
     def __init__(self, sid, amount, dt, price, order_id, commission=None):
+        assert isinstance(sid, Asset)
+
         self.sid = sid
         self.amount = amount
         self.dt = dt

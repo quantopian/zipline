@@ -144,7 +144,7 @@ class SlippageTestCase(TestCase):
                     dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                     amount=100,
                     filled=0,
-                    sid=133
+                    sid=self.ASSET133
                 )
             ]
 
@@ -183,7 +183,7 @@ class SlippageTestCase(TestCase):
                     dt=datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                     amount=100,
                     filled=0,
-                    sid=133
+                    sid=self.ASSET133
                 )
             ]
 
@@ -214,7 +214,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -236,7 +236,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -258,7 +258,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'limit': 3.6})
         ]
 
@@ -297,7 +297,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -319,7 +319,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'limit': 3.5})
         ]
 
@@ -341,7 +341,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'limit': 3.4})
         ]
 
@@ -504,7 +504,10 @@ class SlippageTestCase(TestCase):
     def test_orders_stop(self, name, order_data, event_data, expected):
         tempdir = TempDirectory()
         try:
-            order = Order(**order_data)
+            data = order_data
+            data['sid'] = self.ASSET133
+
+            order = Order(**data)
 
             assets = {
                 133: pd.DataFrame({
@@ -569,7 +572,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'stop': 4.0,
                 'limit': 3.0})
         ]
@@ -604,7 +607,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'stop': 4.0,
                 'limit': 3.5})
         ]
@@ -639,7 +642,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': 100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'stop': 4.0,
                 'limit': 3.6})
         ]
@@ -687,7 +690,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'stop': 3.0,
                 'limit': 4.0})
         ]
@@ -722,7 +725,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'stop': 3.0,
                 'limit': 3.5})
         ]
@@ -757,7 +760,7 @@ class SlippageTestCase(TestCase):
                 'dt': datetime.datetime(2006, 1, 5, 14, 30, tzinfo=pytz.utc),
                 'amount': -100,
                 'filled': 0,
-                'sid': 133,
+                'sid': self.ASSET133,
                 'stop': 3.0,
                 'limit': 3.4})
         ]

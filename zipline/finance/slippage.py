@@ -42,18 +42,20 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         return self._volume_for_bar
 
     @abc.abstractproperty
-    def process_order(self, bar_data, price, volume, order):
+    def process_order(self, data, order):
         pass
 
-    def simulate(self, bar_data, asset, orders_for_asset):
+    def simulate(self, data, asset, orders_for_asset):
         self._volume_for_bar = 0
-        volume = bar_data.current(asset, "volume")
+        volume = data.current(asset, "volume")
 
         if volume == 0:
             return
 
-        price = bar_data.current(asset, "price")
-        dt = bar_data.current_dt
+        # can use the close price, since we verified there's volume in this
+        # bar.
+        price = data.current(asset, "close")
+        dt = data.current_dt
 
         for order in orders_for_asset:
             if order.open_amount == 0:
@@ -63,8 +65,20 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
             if not order.triggered:
                 continue
 
+            txn = None
+
             try:
-                txn = self.process_order(bar_data, price, volume, order)
+                execution_price, execution_volume = \
+                    self.process_order(data, order)
+
+                if execution_price is not None:
+                    txn = create_transaction(
+                        order,
+                        data.current_dt,
+                        execution_price,
+                        execution_volume
+                    )
+
             except LiquidityExceeded:
                 break
 
@@ -95,7 +109,8 @@ class VolumeShareSlippage(SlippageModel):
                    volume_limit=self.volume_limit,
                    price_impact=self.price_impact)
 
-    def process_order(self, bar_data, price, volume, order):
+    def process_order(self, data, order):
+        volume = data.current(order.asset, "volume")
 
         max_volume = self.volume_limit * volume
 
@@ -111,7 +126,7 @@ class VolumeShareSlippage(SlippageModel):
         cur_volume = int(min(remaining_volume, abs(order.open_amount)))
 
         if cur_volume < 1:
-            return
+            return None, None
 
         # tally the current amount into our total amount ordered.
         # total amount will be used to calculate price impact
@@ -119,6 +134,8 @@ class VolumeShareSlippage(SlippageModel):
 
         volume_share = min(total_volume / volume,
                            self.volume_limit)
+
+        price = data.current(order.asset, "close")
 
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
@@ -136,11 +153,9 @@ class VolumeShareSlippage(SlippageModel):
             # is less than the limit price
             if (order.direction > 0 and impacted_price > order.limit) or \
                     (order.direction < 0 and impacted_price < order.limit):
-                return
+                return None, None
 
-        return create_transaction(
-            order,
-            bar_data.current_dt,
+        return (
             impacted_price,
             math.copysign(cur_volume, order.direction)
         )
@@ -156,10 +171,10 @@ class FixedSlippage(SlippageModel):
         """
         self.spread = spread
 
-    def process_order(self, bar_data, price, volume, order):
-        return create_transaction(
-            order,
-            bar_data.current_dt,
+    def process_order(self, data, order):
+        price = data.current(order.asset, "close")
+
+        return (
             price + (self.spread / 2.0 * order.direction),
-            order.amount,
+            order.amount
         )
