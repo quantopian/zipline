@@ -815,7 +815,8 @@ def write_bcolz_minute_data(env, days, path, df_dict):
 
 
 def write_minute_data_for_asset(env, writer, start_dt, end_dt, sid,
-                                interval=1, start_val=1):
+                                interval=1, start_val=1,
+                                minute_blacklist=None):
 
     asset_minutes = env.minutes_for_days_in_range(start_dt, end_dt)
     minutes_count = len(asset_minutes)
@@ -835,6 +836,10 @@ def write_minute_data_for_asset(env, writer, start_dt, end_dt, sid,
         while counter < len(minutes_arr):
             df[counter:(counter + interval - 1)] = 0
             counter += interval
+
+    if minute_blacklist is not None:
+        for minute in minute_blacklist:
+            df.loc[minute] = 0
 
     writer.write(sid, df)
 
