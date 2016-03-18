@@ -94,15 +94,32 @@ class DailyHistoryAggregator(object):
         #              1: (1458221460000000000, np.nan),
         #              2: (1458221460000000000, 42.0),
         #         })
-        self._opens_cache = None
-        self._highs_cache = None
-        self._lows_cache = None
-        self._closes_cache = None
-        self._volumes_cache = None
+        self._caches = {
+            'open': None,
+            'high': None,
+            'low': None,
+            'close': None,
+            'volume': None
+        }
 
         # The int value is used for deltas to avoid extra computation from
         # creating new Timestamps.
         self._one_min = pd.Timedelta('1 min').value
+
+    def _prelude(self, dt, field):
+        date = dt.date()
+        dt_value = dt.value
+        cache = self._caches[field]
+        if cache is None or cache[0] != date:
+            market_open = self._market_opens[date]
+            cache = self._caches[field] = (dt.date(), market_open, {})
+
+        _, market_open, entries = cache
+        if dt != market_open:
+            prev_dt = dt_value - self._one_min
+        else:
+            prev_dt = None
+        return market_open, prev_dt, dt_value, entries
 
     def opens(self, assets, dt):
         """
@@ -117,18 +134,9 @@ class DailyHistoryAggregator(object):
         -------
         np.array with dtype=float64, in order of assets parameter.
         """
-        date = dt.date()
-        dt_value = dt.value
-        if self._opens_cache is None or self._opens_cache[0] != date:
-            market_open = self._market_opens.loc[date]
-            self._opens_cache = (dt.date(), market_open, {})
+        market_open, prev_dt, dt_value, entries = self._prelude(dt, 'open')
 
-        _, market_open, entries = self._opens_cache
         opens = []
-        if dt != market_open:
-            prev_dt = dt_value - self._one_min
-        else:
-            prev_dt = None
 
         for asset in assets:
             if prev_dt is None:
@@ -179,18 +187,9 @@ class DailyHistoryAggregator(object):
         -------
         np.array with dtype=float64, in order of assets parameter.
         """
-        date = dt.date()
-        dt_value = dt.value
-        if self._highs_cache is None or self._highs_cache[0] != date:
-            market_open = self._market_opens.loc[date]
-            self._highs_cache = (dt.date(), market_open, {})
+        market_open, prev_dt, dt_value, entries = self._prelude(dt, 'high')
 
-        _, market_open, entries = self._highs_cache
         highs = []
-        if dt != market_open:
-            prev_dt = dt_value - self._one_min
-        else:
-            prev_dt = None
 
         for asset in assets:
             if prev_dt is None:
@@ -241,20 +240,9 @@ class DailyHistoryAggregator(object):
         -------
         np.array with dtype=float64, in order of assets parameter.
         """
-        date = dt.date()
-        dt_value = dt.value
-        if self._lows_cache is None or self._lows_cache[0] != date:
-            market_open = self._market_opens.loc[date]
-            self._lows_cache = (dt.date(), market_open, {})
+        market_open, prev_dt, dt_value, entries = self._prelude(dt, 'low')
 
-        _, market_open, entries = self._lows_cache
         lows = []
-        if dt != market_open:
-            prev_dt = dt_value - self._one_min
-        else:
-            prev_dt = None
-
-        # What if called on same dt?
 
         for asset in assets:
             if prev_dt is None:
@@ -306,18 +294,9 @@ class DailyHistoryAggregator(object):
         -------
         np.array with dtype=float64, in order of assets parameter.
         """
-        date = dt.date()
-        dt_value = dt.value
-        if self._closes_cache is None or self._closes_cache[0] != date:
-            market_open = self._market_opens.loc[date]
-            self._closes_cache = (dt.date(), market_open, {})
+        market_open, prev_dt, dt_value, entries = self._prelude(dt, 'close')
 
-        _, market_open, entries = self._closes_cache
         closes = []
-        if dt != market_open:
-            prev_dt = dt_value - self._one_min
-        else:
-            prev_dt = None
 
         for asset in assets:
             if prev_dt is None:
@@ -367,18 +346,9 @@ class DailyHistoryAggregator(object):
         -------
         np.array with dtype=int64, in order of assets parameter.
         """
-        date = dt.date()
-        dt_value = dt.value
-        if self._volumes_cache is None or self._volumes_cache[0] != date:
-            market_open = self._market_opens.loc[date]
-            self._volumes_cache = (dt.date(), market_open, {})
+        market_open, prev_dt, dt_value, entries = self._prelude(dt, 'volume')
 
-        _, market_open, entries = self._volumes_cache
         volumes = []
-        if dt != market_open:
-            prev_dt = dt_value - self._one_min
-        else:
-            prev_dt = None
 
         for asset in assets:
             if prev_dt is None:
