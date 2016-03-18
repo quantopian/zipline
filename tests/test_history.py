@@ -849,6 +849,65 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # last 5 minutes should not be adjusted
         np.testing.assert_array_equal(np.array(range(782, 787)), window3[395:])
 
+    def test_overnight_adjustments(self):
+        # Should incorporate adjustments on midnight 01/06
+        current_dt = pd.Timestamp("2015-01-06 8:45", tz='US/Eastern')
+        bar_data = BarData(self.data_portal, lambda: current_dt, "minute")
+
+        expected = {
+            'open': np.arange(383, 393) / 2.0,
+            'high': np.arange(384, 394) / 2.0,
+            'low': np.arange(381, 391) / 2.0,
+            'close': np.arange(382, 392) / 2.0,
+            'volume': np.arange(382, 392) * 100 * 2.0,
+            'price': np.arange(382, 392) / 2.0,
+        }
+
+        with handle_non_market_minutes(bar_data):
+            # Single field, single asset
+            for field in ALL_FIELDS:
+                values = bar_data.history(self.SPLIT_ASSET, field, 10, '1m')
+                np.testing.assert_array_equal(values.values, expected[field])
+
+            # Multi field, single asset
+            values = bar_data.history(
+                self.SPLIT_ASSET, ['open', 'volume'], 10, '1m'
+            )
+            np.testing.assert_array_equal(values.open.values,
+                                          expected['open'])
+            np.testing.assert_array_equal(values.volume.values,
+                                          expected['volume'])
+
+            # Single field, multi asset
+            values = bar_data.history(
+                [self.SPLIT_ASSET, self.ASSET2], 'open', 10, '1m'
+            )
+            np.testing.assert_array_equal(values[self.SPLIT_ASSET].values,
+                                          expected['open'])
+            np.testing.assert_array_equal(values[self.ASSET2].values,
+                                          expected['open'] * 2)
+
+            # Multi field, multi asset
+            values = bar_data.history(
+                [self.SPLIT_ASSET, self.ASSET2], ['open', 'volume'], 10, '1m'
+            )
+            np.testing.assert_array_equal(
+                values.open[self.SPLIT_ASSET].values,
+                expected['open']
+            )
+            np.testing.assert_array_equal(
+                values.volume[self.SPLIT_ASSET].values,
+                expected['volume']
+            )
+            np.testing.assert_array_equal(
+                values.open[self.ASSET2].values,
+                expected['open'] * 2
+            )
+            np.testing.assert_array_equal(
+                values.volume[self.ASSET2].values,
+                expected['volume'] / 2
+            )
+
     def test_minute_early_close(self):
         # 2014-07-03 is an early close
         # HALF_DAY_TEST_ASSET started trading on 2014-07-02, how convenient
