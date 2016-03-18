@@ -19,6 +19,7 @@ import uuid
 from six import text_type
 
 import zipline.protocol as zp
+from zipline.assets import Asset
 from zipline.utils.enum import enum
 
 ORDER_STATUS = enum(
@@ -46,6 +47,8 @@ class Order(object):
                   a negative sign indicates a sell
         @filled - how many shares of the order have been filled so far
         """
+        assert isinstance(sid, Asset)
+
         # get a string representation of the uuid.
         self.id = id or self.make_id()
         self.dt = dt
@@ -198,6 +201,14 @@ class Order(object):
     @property
     def open(self):
         return self.status in [ORDER_STATUS.OPEN, ORDER_STATUS.HELD]
+
+    @property
+    def asset(self):
+        """
+        Convenience accessor to hide away a historical API that we'd like to
+        change at some point.
+        """
+        return self.sid
 
     @property
     def triggered(self):
