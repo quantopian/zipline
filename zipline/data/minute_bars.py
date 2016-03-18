@@ -581,6 +581,10 @@ class BcolzMinuteBarReader(object):
     def _get_metadata(self):
         return BcolzMinuteBarMetadata.read(self._rootdir)
 
+    @lazyval
+    def last_available_dt(self):
+        return self._market_closes[-1]
+
     @property
     def first_trading_day(self):
         return self._first_trading_day

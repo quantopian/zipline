@@ -445,7 +445,17 @@ class TestAPIShim(TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
-            algo = self.create_algo(history_algo)
+            sim_params = SimulationParameters(
+                period_start=self.trading_days[1],
+                period_end=self.sim_params.period_end,
+                capital_base=self.sim_params.capital_base,
+                data_frequency=self.sim_params.data_frequency,
+                emission_rate=self.sim_params.emission_rate,
+                env=self.env,
+            )
+
+            algo = self.create_algo(history_algo,
+                                    sim_params=sim_params)
             algo.run(self.data_portal)
 
             self.assertEqual(1, len(w))
