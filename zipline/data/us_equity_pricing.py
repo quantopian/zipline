@@ -14,6 +14,7 @@
 from abc import (
     ABCMeta,
     abstractmethod,
+    abstractproperty,
 )
 from errno import ENOENT
 from os import remove
@@ -339,6 +340,10 @@ class DailyBarReader(with_metaclass(ABCMeta)):
     def spot_price(self, sid, day, colname):
         pass
 
+    @abstractproperty
+    def last_available_dt(self):
+        pass
+
 
 class BcolzDailyBarReader(DailyBarReader):
     """
@@ -491,6 +496,10 @@ class BcolzDailyBarReader(DailyBarReader):
     def first_trading_day(self):
         return self._first_trading_day
 
+    @property
+    def last_available_dt(self):
+        return self._calendar[-1]
+
     def _spot_col(self, colname):
         """
         Get the colname from daily_bar_table and read all of it into memory,
@@ -630,6 +639,10 @@ class PanelDailyBarReader(DailyBarReader):
         self._calendar = calendar
 
         self.panel = panel
+
+    @property
+    def last_available_dt(self):
+        return self._calendar[-1]
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         col_names = [col.name for col in columns]
