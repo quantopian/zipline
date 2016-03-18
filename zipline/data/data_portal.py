@@ -111,7 +111,7 @@ class DailyHistoryAggregator(object):
         dt_value = dt.value
         cache = self._caches[field]
         if cache is None or cache[0] != date:
-            market_open = self._market_opens[date]
+            market_open = self._market_opens.loc[date]
             cache = self._caches[field] = (dt.date(), market_open, {})
 
         _, market_open, entries = cache
