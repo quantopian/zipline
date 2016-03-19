@@ -535,8 +535,8 @@ class FactorTestCase(BasePipelineTestCase):
         for key in expected:
             check_arrays(expected[key], results[key])
 
-    @parameter_space(normalizer=['demean', 'zscore'])
-    def test_cant_normalize_non_float(self, normalizer):
+    @parameter_space(method_name=['demean', 'zscore'])
+    def test_cant_normalize_non_float(self, method_name):
         class DateFactor(Factor):
             dtype = datetime64ns_dtype
             inputs = ()
@@ -544,12 +544,12 @@ class FactorTestCase(BasePipelineTestCase):
 
         d = DateFactor()
         with self.assertRaises(TypeError) as e:
-            getattr(d, normalizer)()
+            getattr(d, method_name)()
 
         errmsg = str(e.exception)
         expected = (
             "{normalizer}() is only defined on Factors of dtype float64,"
             " but it was called on a Factor of dtype datetime64[ns]."
-        ).format(normalizer=normalizer)
+        ).format(normalizer=method_name)
 
         self.assertEqual(errmsg, expected)
