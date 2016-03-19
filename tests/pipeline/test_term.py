@@ -343,6 +343,27 @@ class ObjectIdentityTestCase(TestCase):
         with self.assertRaises(UnsupportedDType):
             SomeFactor(dtype=complex128_dtype)
 
+    def test_require_super_call_in_validate(self):
+
+        class MyFactor(Factor):
+            inputs = ()
+            dtype = float64_dtype
+            window_length = 0
+
+            def _validate(self):
+                "Woops, I didn't call super()!"
+
+        with self.assertRaises(AssertionError) as e:
+            MyFactor()
+
+        errmsg = str(e.exception)
+        self.assertEqual(
+            errmsg,
+            "Term._validate() was not called.\n"
+            "This probably means that you overrode _validate"
+            " without calling super()."
+        )
+
     def test_latest_on_different_dtypes(self):
         factor_dtypes = (float64_dtype, datetime64ns_dtype)
         for column in TestingDataSet.columns:
