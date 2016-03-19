@@ -15,6 +15,15 @@ from ..mixins import (
 
 
 class Classifier(RestrictedDTypeMixin, ComputableTerm):
+    """
+    A Pipeline expression computing a categorical output.
+
+    Classifiers are most commonly useful for describing grouping keys for
+    complex transformations on Factor outputs. For example, Factor.demean() and
+    Factor.zscore() can be passed a Classifier in their ``groupby`` argument,
+    indicating that means/standard deviations should be computed on assets for
+    which the classifier produced the same label.
+    """
     ALLOWED_DTYPES = (int64_dtype,)  # Used by RestrictedDTypeMixin
 
 

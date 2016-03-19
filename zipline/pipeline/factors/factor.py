@@ -397,7 +397,30 @@ FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 class Factor(RestrictedDTypeMixin, ComputableTerm):
     """
-    Pipeline API expression producing numerically-valued outputs.
+    Pipeline API expression producing a numerical or date-valued output.
+
+    Factors are the most commonly-used Pipeline term, representing the result
+    of any computation producing a numerical result.
+
+    Factors can be combined, both with other Factors and with scalar values,
+    via any of the builtin mathematical operators (``+``, ``-``, ``*``, etc).
+    This makes it easy to write complex expressions that combine multiple
+    Factors.  For example, constructing a Factor that computes the average of
+    two other Factors is simply::
+
+        >>> f1 = SomeFactor(...)
+        >>> f2 = SomeOtherFactor(...)
+        >>> average = (f1 + f2) / 2.0
+
+    Factors can also be converted into :class:`zipline.pipeline.Filter` objects
+    via comparison operators: (``<``, ``<=``, ``!=``, ``eq``, ``>``, ``>=``).
+
+    There are many natural operators defined on Factors besides the basic
+    numerical operators. These include methods identifying missing or
+    extreme-valued outputs (isnull, notnull, isnan, notnan), methods for
+    normalizing outputs (rank, demean, zscore), and methods for constructing
+    Filters based on rank-order properties of results (top, bottom,
+    percentile_between).
     """
     ALLOWED_DTYPES = FACTOR_DTYPES  # Used by RestrictedDTypeMixin
 

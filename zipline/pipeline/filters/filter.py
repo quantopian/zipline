@@ -117,7 +117,51 @@ def unary_operator(op):
 
 class Filter(RestrictedDTypeMixin, ComputableTerm):
     """
-    Pipeline API expression producing boolean-valued outputs.
+    Pipeline expression computing a boolean output.
+
+    Filters are most commonly useful for describing sets of assets to include
+    or exclude for some particular purpose. Many Pipeline API functions accept
+    a ``mask`` argument, which can be supplied a Filter indicating that only
+    values passing the Filter should be considered when performing the
+    requested computation. For example, :meth:`zipline.pipeline.Factor.top`
+    accepts a mask indicating that ranks should be computed only on assets that
+    passed the specified Filter.
+
+    The most common way to construct a Filter is via one of the comparison
+    operators (``<``, ``<=``, ``!=``, ``eq``, ``>``, ``>=``) of
+    :class:`~zipline.pipeline.Factor`. For example, a natural way to construct
+    a Filter for stocks with a 10-day VWAP less than $20.0 is to first
+    construct a Factor computing 10-day VWAP and compare it to the scalar value
+    20.0::
+
+        >>> from zipline.pipeline.factors import VWAP
+        >>> vwap_10 = VWAP(window_length=10)
+        >>> vwaps_under_20 = (vwap_10 <= 20)
+
+    Filters can also be constructed via comparisons between two Factors.  For
+    example, to construct a Filter producing True for asset/date pairs where
+    the asset's 10-day VWAP was greater than it's 30-day VWAP::
+
+        >>> short_vwap = VWAP(window_length=10)
+        >>> long_vwap = VWAP(window_length=30)
+        >>> higher_short_vwap = (short_vwap > long_vwap)
+
+    Filters can be combined via the ``&`` (and) and ``|`` (or) operators.
+
+    ``&``-ing together two filters produces a new Filter that produces True if
+    **both** of the inputs produced True.
+
+    ``|``-ing together two filters produces a new Filter that produces True if
+    **either** of its inputs produced True.
+
+    The ``~`` operator can be used to invert a Filter, swapping all True values
+    with Falses and vice-versa.
+
+    Filters may be set as the ``screen`` attribute of a Pipeline, indicating
+    asset/date pairs for which the filter produces False should be excluded
+    from the Pipeline's output.  This is useful both for reducing noise in the
+    output of a Pipeline and for reducing memory consumption of Pipeline
+    results.
     """
     ALLOWED_DTYPES = (bool_dtype,)  # Used by RestrictedDTypeMixin
     dtype = bool_dtype
