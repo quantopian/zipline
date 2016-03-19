@@ -374,6 +374,7 @@ def restrict_to_dtype(dtype, message_template):
         return factor_instance
     return preprocess(self=processor)
 
+# Decorators for Factor methods.
 if_not_float64_tell_caller_to_use_isnull = restrict_to_dtype(
     dtype=float64_dtype,
     message_template=(
