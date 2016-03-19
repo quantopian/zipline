@@ -1,5 +1,4 @@
-from .classifier import Classifier, CustomClassifier, Everything
-from .latest import Latest
+from .classifier import Classifier, CustomClassifier, Everything, Latest
 
 __all__ = [
     'Classifier',

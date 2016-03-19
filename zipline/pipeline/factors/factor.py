@@ -8,16 +8,15 @@ from numbers import Number
 from numpy import inf, where, nanstd
 from toolz import curry
 
-from zipline.errors import (
-    UnknownRankMethod,
-    UnsupportedDataType,
-)
+from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline.classifiers import Classifier, Everything
 from zipline.pipeline.mixins import (
     CustomTermMixin,
+    LatestMixin,
     PositiveWindowLengthMixin,
+    RestrictedDTypeMixin,
     SingleInputMixin,
 )
 from zipline.pipeline.term import (
@@ -396,10 +395,12 @@ float64_only = restrict_to_dtype(
 FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
-class Factor(ComputableTerm):
+class Factor(RestrictedDTypeMixin, ComputableTerm):
     """
     Pipeline API expression producing numerically-valued outputs.
     """
+    ALLOWED_DTYPES = FACTOR_DTYPES  # Used by RestrictedDTypeMixin
+
     # Dynamically add functions for creating NumExprFactor/NumExprFilter
     # instances.
     clsdict = locals()
@@ -435,17 +436,6 @@ class Factor(ComputableTerm):
     __rtruediv__ = clsdict['__rdiv__']
 
     eq = binary_operator('==')
-
-    def _validate(self):
-        # Do superclass validation first so that `NotSpecified` dtypes get
-        # handled.
-        retval = super(Factor, self)._validate()
-        if self.dtype not in FACTOR_DTYPES:
-            raise UnsupportedDataType(
-                typename=type(self).__name__,
-                dtype=self.dtype
-            )
-        return retval
 
     @expect_types(
         mask=(Filter, NotSpecifiedType),
@@ -1097,3 +1087,16 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         median_low15 = MedianValue([USEquityPricing.low], window_length=15)
     '''
     dtype = float64_dtype
+
+
+class Latest(LatestMixin, CustomFactor):
+    """
+    Factor producing the most recently-known value of `inputs[0]` on each day.
+
+    The `.latest` attribute of DataSet columns returns an instance of this
+    Factor.
+    """
+    window_length = 1
+
+    def compute(self, today, assets, out, data):
+        out[:] = data[-1]

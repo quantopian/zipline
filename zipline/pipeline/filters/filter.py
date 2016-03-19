@@ -16,7 +16,9 @@ from zipline.errors import (
 from zipline.lib.rank import ismissing
 from zipline.pipeline.mixins import (
     CustomTermMixin,
+    LatestMixin,
     PositiveWindowLengthMixin,
+    RestrictedDTypeMixin,
     SingleInputMixin,
 )
 from zipline.pipeline.term import ComputableTerm, Term
@@ -26,7 +28,6 @@ from zipline.pipeline.expression import (
     method_name_for_op,
     NumericalExpression,
 )
-from zipline.utils.control_flow import nullctx
 from zipline.utils.numpy_utils import bool_dtype
 
 
@@ -114,10 +115,11 @@ def unary_operator(op):
     return unary_operator
 
 
-class Filter(ComputableTerm):
+class Filter(RestrictedDTypeMixin, ComputableTerm):
     """
     Pipeline API expression producing boolean-valued outputs.
     """
+    ALLOWED_DTYPES = (bool_dtype,)  # Used by RestrictedDTypeMixin
     dtype = bool_dtype
 
     clsdict = locals()
@@ -324,4 +326,10 @@ class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     --------
     zipline.pipeline.factors.factor.CustomFactor
     """
-    ctx = nullctx()
+
+
+class Latest(LatestMixin, CustomFilter):
+    """
+    Filter producing the most recently-known value of `inputs[0]` on each day.
+    """
+    pass

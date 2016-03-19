@@ -3,26 +3,19 @@ classifier.py
 """
 from numpy import zeros, where
 
-from zipline.errors import UnsupportedDataType
 from zipline.pipeline.term import ComputableTerm
 from zipline.utils.numpy_utils import int64_dtype
 
-from ..mixins import CustomTermMixin, PositiveWindowLengthMixin
+from ..mixins import (
+    CustomTermMixin,
+    LatestMixin,
+    PositiveWindowLengthMixin,
+    RestrictedDTypeMixin
+)
 
 
-class Classifier(ComputableTerm):
-
-    def _validate(self):
-        # Run superclass validation first so that we handle `dtype not passed`
-        # before this.
-        retval = super(Classifier, self)._validate()
-        # TODO: Support strings here.
-        if self.dtype != int64_dtype:
-            raise UnsupportedDataType(
-                typename=type(self).__name__,
-                dtype=self.dtype
-            )
-        return retval
+class Classifier(RestrictedDTypeMixin, ComputableTerm):
+    ALLOWED_DTYPES = (int64_dtype,)  # Used by RestrictedDTypeMixin
 
 
 class Everything(Classifier):
@@ -52,3 +45,15 @@ class CustomClassifier(PositiveWindowLengthMixin, CustomTermMixin, Classifier):
     zipline.pipeline.CustomFilter
     """
     pass
+
+
+class Latest(LatestMixin, CustomClassifier):
+    """
+    A classifier producing the latest value of an input.
+
+    See Also
+    --------
+    zipline.pipeline.data.dataset.BoundColumn.latest
+    zipline.pipeline.factors.factor.Latest
+    zipline.pipeline.filters.filter.Latest
+    """

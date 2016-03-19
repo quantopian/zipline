@@ -223,7 +223,7 @@ class NumericalExpression(ComputableTerm):
                     expected_indices, expr_indices,
                 )
             )
-        return super(NumericalExpression, self)._validate()
+        super(NumericalExpression, self)._validate()
 
     def _compute(self, arrays, dates, assets, mask):
         """
