@@ -1,10 +1,17 @@
-from .filter import Filter, NumExprFilter, NullFilter, PercentileFilter
-from .latest import Latest
+from .filter import (
+    CustomFilter,
+    Filter,
+    Latest,
+    NullFilter,
+    NumExprFilter,
+    PercentileFilter,
+)
 
 __all__ = [
+    'CustomFilter',
     'Filter',
     'Latest',
-    'NumExprFilter',
     'NullFilter',
+    'NumExprFilter',
     'PercentileFilter',
 ]

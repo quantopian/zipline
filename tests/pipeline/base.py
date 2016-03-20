@@ -147,6 +147,24 @@ class BasePipelineTestCase(TestCase):
         """
         return arange(prod(shape), dtype=dtype).reshape(shape)
 
+    @with_default_shape
+    def randn_data(self, seed, shape):
+        """
+        Build a block of testing data from a seeded RandomState.
+        """
+        return np.random.RandomState(seed).randn(*shape)
+
+    @with_default_shape
+    def eye_mask(self, shape):
+        """
+        Build a mask using np.eye.
+        """
+        return ~np.eye(*shape, dtype=bool)
+
+    @with_default_shape
+    def ones_mask(self, shape):
+        return np.ones(shape, dtype=bool)
+
 
 class EventLoaderCommonMixin(object):
     @abc.abstractproperty

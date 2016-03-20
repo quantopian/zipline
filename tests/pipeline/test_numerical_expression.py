@@ -153,7 +153,7 @@ class NumericalExpressionTestCase(TestCase):
         message = e.exception.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] + datetime64[ns].\n"
-            "Arithmetic operators are only supported on Factors of dtype "
+            "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
         self.assertEqual(message, expected)
@@ -164,7 +164,7 @@ class NumericalExpressionTestCase(TestCase):
         message = e.exception.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] * datetime64[ns].\n"
-            "Arithmetic operators are only supported on Factors of dtype "
+            "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
         self.assertEqual(message, expected)
@@ -178,8 +178,8 @@ class NumericalExpressionTestCase(TestCase):
                 message = e.exception.args[0]
                 expected = (
                     "Don't know how to compute float64 {sym} datetime64[ns].\n"
-                    "Arithmetic operators are only supported on Factors of "
-                    "dtype 'float64'."
+                    "Arithmetic operators are only supported between Factors"
+                    " of dtype 'float64'."
                 ).format(sym=sym)
                 self.assertEqual(message, expected)
 
@@ -188,8 +188,8 @@ class NumericalExpressionTestCase(TestCase):
                 message = e.exception.args[0]
                 expected = (
                     "Don't know how to compute datetime64[ns] {sym} float64.\n"
-                    "Arithmetic operators are only supported on Factors of "
-                    "dtype 'float64'."
+                    "Arithmetic operators are only supported between Factors"
+                    " of dtype 'float64'."
                 ).format(sym=sym)
                 self.assertEqual(message, expected)
 

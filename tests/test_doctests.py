@@ -4,7 +4,7 @@ import doctest
 from unittest import TestCase
 
 from zipline import testing
-from zipline.lib import adjustment
+from zipline.lib import adjustment, normalize
 from zipline.pipeline import (
     engine,
     expression,
@@ -86,3 +86,6 @@ class DoctestTestCase(TestCase):
 
     def test_functional_docs(self):
         self._check_docs(functional)
+
+    def test_normalize_docs(self):
+        self._check_docs(normalize)
