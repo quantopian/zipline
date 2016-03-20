@@ -613,3 +613,47 @@ class BcolzMinuteBarReader(object):
         since market open on the first trading day.
         """
         return self._minute_index.get_loc(minute_dt)
+
+    def unadjusted_window(self, fields, start_dt, end_dt, sids):
+        """
+        Parameters
+        ----------
+        fields : list of str
+           'open', 'high', 'low', 'close', or 'volume'
+        start_dt: Timestamp
+           Beginning of the window range.
+        end_dt: Timestamp
+           End of the window range.
+        sids : list of int
+           The asset identifiers in the window.
+
+        Returns
+        -------
+        list of np.ndarray
+            A list with an entry per field of ndarrays with shape
+            (sids, minutes in range) with a dtype of float64, containing the
+            values for the respective field over start and end dt range.
+        """
+        # TODO: Handle early closes.
+        start_idx = self._find_position_of_minute(start_dt)
+        end_idx = self._find_position_of_minute(end_dt)
+
+        results = []
+
+        shape = (len(sids), (end_idx - start_idx + 1))
+
+        for field in fields:
+            if field != 'volume':
+                out = np.full(shape, np.nan)
+            else:
+                out = np.zeros(shape, dtype=np.uint32)
+
+            for i, sid in enumerate(sids):
+                carray = self._open_minute_file(field, sid)
+                values = carray[start_idx:end_idx + 1]
+                where = values != 0
+                out[i, where] = values[where]
+            if field != 'volume':
+                out *= self._ohlc_inverse
+            results.append(out)
+        return results

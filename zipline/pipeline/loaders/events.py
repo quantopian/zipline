@@ -5,8 +5,9 @@ from toolz import merge
 
 from .base import PipelineLoader
 from .frame import DataFrameLoader
-from .utils import next_date_frame, previous_date_frame, previous_value
+from .utils import previous_event_frame, next_date_frame
 from zipline.pipeline.common import TS_FIELD_NAME
+from zipline.utils.numpy_utils import NaTD
 
 WRONG_COLS_ERROR = "Expected columns {expected_columns} for sid {sid} but " \
                    "got columns {resulting_columns}."
@@ -179,10 +180,13 @@ class EventsLoader(PipelineLoader):
                                     event_date_field_name):
         return DataFrameLoader(
             prev_date_field,
-            previous_date_frame(
-                self.all_dates,
+            previous_event_frame(
                 self.events_by_sid,
+                self.all_dates,
+                NaTD,
+                'datetime64[ns]',
                 event_date_field_name,
+                event_date_field_name
             ),
             adjustments=None,
         )
@@ -193,13 +197,13 @@ class EventsLoader(PipelineLoader):
                                      value_field_name):
         return DataFrameLoader(
             previous_value_field,
-            previous_value(
-                self.all_dates,
+            previous_event_frame(
                 self.events_by_sid,
-                event_date_field_name,
-                value_field_name,
+                self.all_dates,
+                previous_value_field.missing_value,
                 previous_value_field.dtype,
-                previous_value_field.missing_value
+                event_date_field_name,
+                value_field_name
             ),
             adjustments=None,
         )

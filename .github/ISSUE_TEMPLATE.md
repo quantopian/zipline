@@ -6,7 +6,7 @@ Before I tell you about my issue, let me describe my environment:
 
 * Operating System: (Windows Version or `$ uname --all`)
 * Python Version: `$ python --version`
-* Python Bitness: `$ python -c 'import math, sys;print(int(math.log(sys.maxsize, 2) + 1))'`
+* Python Bitness: `$ python -c 'import math, sys;print(int(math.log(sys.maxsize + 1, 2) + 1))'`
 * How did you install Zipline: (`pip`, `conda`, or `other (please explain)`)
 * Python packages: `$ pip freeze` or `$ conda list`
 

@@ -1081,7 +1081,7 @@ def bind_expression_to_resources(expr, resources):
     # prefixes symbol-manipulation methods with underscores to prevent
     # collisions with data column names.
     return expr._subs({
-        k: bz.Data(v, dshape=k.dshape) for k, v in iteritems(resources)
+        k: bz.data(v, dshape=k.dshape) for k, v in iteritems(resources)
     })
 
 
