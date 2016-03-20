@@ -3,14 +3,19 @@
 #
 #    docker build -t quantopian/zipline .
 # 
-# To run:
+# To run the container:
 #
-#    docker run -v=/path/to/your/notebooks:/project -p 8888:8888/tcp --name zipline -it quantopian/zipline
+#    docker run -v=/path/to/your/notebooks:/projects -p 8888:8888/tcp --name zipline -it quantopian/zipline
 #
 # To access Jupyter when running docker locally (you may need to add NAT rules):
 #
 #    https://127.0.0.1:8888
-
+#
+# You can also run an algo using the docker exec command.  For example:
+#
+#    docker exec -it zipline run_algo.py -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 \
+#         --symbols XOP -o /projects/result.pickle
+#
 FROM python:2.7
 
 # 
@@ -56,26 +61,27 @@ RUN pip install numpy==1.9.2 \
   && pip install TA-Lib \
   && pip install jupyter
 
-
-#
-# install zipline from source
-# 
-ADD . /zipline-src
-WORKDIR /zipline-src
-RUN rm -rf /zipline-src/dist || /bin/true
-RUN python setup.py install
-
 # 
 # make volumes and ports available 
 # 
-
 VOLUME ${PROJECT_DIR}
 EXPOSE ${NOTEBOOK_PORT}
 
 #
+# install zipline from source
+# 
+ADD . /zipline
+WORKDIR /zipline
+RUN rm -rf /zipline/dist || /bin/true
+RUN python setup.py install
+
+
+#
 # run the startup script.  CMD is used rather than ENTRYPOINT
 # to preserve compatibility with PyCharm docker plugin.
-
 WORKDIR ${PROJECT_DIR}
 
-CMD /zipline-src/etc/docker_cmd.sh
+#
+# start the jupyter server
+#
+CMD /zipline/etc/docker_cmd.sh
