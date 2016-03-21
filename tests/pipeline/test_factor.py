@@ -2,6 +2,7 @@
 Tests for Factor terms.
 """
 from itertools import product
+from six import iteritems
 from nose_parameterized import parameterized
 
 from numpy import (
@@ -32,6 +33,7 @@ from zipline.testing import (
     check_arrays,
     parameter_space,
 )
+from zipline.utils.functional import dzip_exact
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
@@ -423,6 +425,91 @@ class FactorTestCase(BasePipelineTestCase):
 
         check_arrays(float_result, datetime_result)
 
+    def test_normalizations_hand_computed(self):
+        """
+        Test the hand-computed example in factor.demean.
+        """
+        f = self.f
+        m = Mask()
+        c = C()
+
+        factor_data = array(
+            [[1.0, 2.0, 3.0, 4.0],
+             [1.5, 2.5, 3.5, 1.0],
+             [2.0, 3.0, 4.0, 1.5],
+             [2.5, 3.5, 1.0, 2.0]],
+        )
+        filter_data = array(
+            [[False, True, True, True],
+             [True, False, True, True],
+             [True, True, False, True],
+             [True, True, True, False]],
+            dtype=bool,
+        )
+        classifier_data = array(
+            [[1, 1, 2, 2],
+             [1, 1, 2, 2],
+             [1, 1, 2, 2],
+             [1, 1, 2, 2]],
+            dtype=int,
+        )
+
+        terms = {
+            'vanilla': f.demean(),
+            'masked': f.demean(mask=m),
+            'grouped': f.demean(groupby=c),
+            'grouped_masked': f.demean(mask=m, groupby=c),
+        }
+        expected = {
+            'vanilla': array(
+                [[-1.500, -0.500,  0.500,  1.500],
+                 [-0.625,  0.375,  1.375, -1.125],
+                 [-0.625,  0.375,  1.375, -1.125],
+                 [0.250,   1.250, -1.250, -0.250]],
+            ),
+            'masked': array(
+                [[nan,    -1.000,  0.000,  1.000],
+                 [-0.500,    nan,  1.500, -1.000],
+                 [-0.166,  0.833,    nan, -0.666],
+                 [0.166,   1.166, -1.333,    nan]],
+            ),
+            'grouped': array(
+                [[-0.500, 0.500, -0.500,  0.500],
+                 [-0.500, 0.500,  1.250, -1.250],
+                 [-0.500, 0.500,  1.250, -1.250],
+                 [-0.500, 0.500, -0.500,  0.500]],
+            ),
+            'grouped_masked': array(
+                [[nan,     0.000, -0.500,  0.500],
+                 [0.000,     nan,  1.250, -1.250],
+                 [-0.500,  0.500,    nan,  0.000],
+                 [-0.500,  0.500,  0.000,    nan]]
+            )
+        }
+
+        graph = TermGraph(terms)
+        results = self.run_graph(
+            graph,
+            initial_workspace={
+                f: factor_data,
+                c: classifier_data,
+                m: filter_data,
+            },
+            mask=self.build_mask(self.ones_mask(shape=factor_data.shape)),
+        )
+
+        for key, (res, exp) in iteritems(dzip_exact(results, expected)):
+            check_allclose(
+                res,
+                exp,
+                # The hand-computed values aren't very precise (in particular,
+                # we truncate repeating decimals at 3 places) This is just
+                # asserting that the example isn't misleading by being totally
+                # wrong.
+                atol=0.001,
+                err_msg="Mismatch for %r" % key
+            )
+
     @parameter_space(
         seed_value=range(1, 2),
         normalizer_name_and_func=[
@@ -431,10 +518,10 @@ class FactorTestCase(BasePipelineTestCase):
         ],
         add_nulls_to_factor=(False, True,)
     )
-    def test_normalizations(self,
-                            seed_value,
-                            normalizer_name_and_func,
-                            add_nulls_to_factor):
+    def test_normalizations_randomized(self,
+                                       seed_value,
+                                       normalizer_name_and_func,
+                                       add_nulls_to_factor):
 
         name, func = normalizer_name_and_func
 

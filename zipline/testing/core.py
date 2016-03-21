@@ -568,8 +568,14 @@ def check_allclose(actual,
     """
     if type(actual) != type(desired):
         raise AssertionError("%s != %s" % (type(actual), type(desired)))
-    return assert_allclose(actual, desired, rtol=rtol, atol=atol,
-                           err_msg=err_msg, verbose=verbose)
+    return assert_allclose(
+        actual,
+        desired,
+        atol=atol,
+        rtol=rtol,
+        err_msg=err_msg,
+        verbose=verbose,
+    )
 
 
 def check_arrays(x, y, err_msg='', verbose=True):

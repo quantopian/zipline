@@ -321,6 +321,19 @@ def optional(type_):
     return (type_, type(None))
 
 
+def _expect_element(collection):
+    template = (
+        "%(funcname)s() expected a value in {collection} "
+        "for argument '%(argname)s', but got %(actual)s instead."
+    ).format(collection=collection)
+    return make_check(
+        ValueError,
+        template,
+        complement(op.contains(collection)),
+        repr,
+    )
+
+
 def expect_element(*_pos, **named):
     """
     Preprocessing decorator that verifies inputs are elements of some
@@ -391,16 +404,3 @@ def coerce(from_, to, **to_kwargs):
 
 
 coerce_string = partial(coerce, string_types)
-
-
-def _expect_element(collection):
-    template = (
-        "%(funcname)s() expected a value in {collection} "
-        "for argument '%(argname)s', but got %(actual)s instead."
-    ).format(collection=collection)
-    return make_check(
-        ValueError,
-        template,
-        complement(op.contains(collection)),
-        repr,
-    )
