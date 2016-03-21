@@ -139,7 +139,7 @@ class WithLogger(object):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithLogger, cls).init_instance_fixtures()
+        super(WithLogger, cls).init_class_fixtures()
 
         cls.log_handler = cls.enter_class_context(
             cls.make_log_handler().applicationbound(),
