@@ -26,7 +26,8 @@ before_install:
 install:
   - conda install conda-build=1.19.2 anaconda-client=1.3.1 --yes
 
-  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=0.4.9
+  - TALIB_VERSION=$(cat ./etc/requirements_talib.txt | sed "s/TA-Lib==\(.*\)/\1/")
+  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=$TALIB_VERSION
   - source activate testenv
   - IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
   - CONDA_NPY=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
@@ -36,7 +37,8 @@ install:
   - pip install -r etc/requirements.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_dev.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_blaze.txt --cache-dir=$CACHE_DIR  # this uses git requirements right now
-  - pip install -e .[talib] --cache-dir=$CACHE_DIR
+  - pip install -r etc/requirements_talib.txt --cache-dir=$CACHE_DIR
+  - pip install -e .[all] --cache-dir=$CACHE_DIR
 before_script:
   - pip freeze | sort
 script:
