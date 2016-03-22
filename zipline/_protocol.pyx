@@ -303,7 +303,7 @@ cdef class BarData:
             })
 
     cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        if asset.start_date <= dt <= asset.end_date:
+        if asset.start_date <= normalize_date(dt) <= asset.end_date:
             # is there a last price?
             return not np.isnan(
                 data_portal.get_spot_value(

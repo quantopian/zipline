@@ -730,7 +730,7 @@ class TestTransformAlgorithm(TestCase):
         for sid in cls.sids:
             equities_metadata[sid] = {
                 'start_date': cls.sim_params.period_start,
-                'end_date': cls.env.next_trading_day(cls.sim_params.period_end)
+                'end_date': cls.sim_params.period_end
             }
 
         cls.env.write_data(equities_data=equities_metadata,
@@ -863,6 +863,43 @@ class TestTransformAlgorithm(TestCase):
             env=self.env
         )
         algo.run(self.data_portal)
+
+    def test_order_on_each_day_of_asset_lifetime(self):
+        algo_code = dedent("""
+        from zipline.api import sid, schedule_function, date_rules, order
+        def initialize(context):
+            schedule_function(order_it, date_rule=date_rules.every_day())
+
+        def order_it(context, data):
+            order(sid(133), 1)
+
+        def handle_data(context, data):
+            pass
+        """)
+
+        asset133 = self.env.asset_finder.retrieve_asset(133)
+
+        sim_params = SimulationParameters(
+            period_start=asset133.start_date,
+            period_end=asset133.end_date,
+            data_frequency="minute"
+        )
+
+        algo = TradingAlgorithm(
+            script=algo_code,
+            sim_params=sim_params,
+            env=self.env
+        )
+
+        results = algo.run(FakeDataPortal(self.env))
+
+        for orders_for_day in results.orders:
+            self.assertEqual(1, len(orders_for_day))
+            self.assertEqual(orders_for_day[0]["status"], ORDER_STATUS.FILLED)
+
+        for txns_for_day in results.transactions:
+            self.assertEqual(1, len(txns_for_day))
+            self.assertEqual(1, txns_for_day[0]["amount"])
 
     @parameterized.expand([
         (TestOrderAlgorithm,),
