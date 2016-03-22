@@ -121,6 +121,11 @@ class FetcherTestCase(TestCase):
 
         )
 
+    @classmethod
+    def tearDownClass(cls):
+        responses.stop()
+        responses.reset()
+
     def run_algo(self, code, sim_params=None, data_frequency="daily"):
         if sim_params is None:
             sim_params = self.sim_params
