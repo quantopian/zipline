@@ -366,6 +366,49 @@ def expect_element(*_pos, **named):
     return preprocess(**valmap(_expect_element, named))
 
 
+def expect_dimensions(**dimensions):
+    """
+    Preprocessing decorator that verifies inputs are numpy arrays with a
+    specific dimensionality.
+
+    Usage
+    -----
+    >>> from numpy import array
+    >>> @expect_dimensions(x=1, y=2)
+    ... def foo(x, y):
+    ...    return x[0] + y[0, 0]
+    ...
+    >>> foo(array([1, 1]), array([[1, 1], [2, 2]]))
+    2
+    >>> foo(array([1, 1], array([1, 1])))
+    Traceback (most recent call last):
+       ...
+    TypeError: foo() expected a 2-D array for argument 'y', but got a 1-D array instead.  # noqa
+    """
+    def _expect_dimension(expected_ndim):
+        def _check(func, argname, argvalue):
+            funcname = _qualified_name(func)
+            actual_ndim = argvalue.ndim
+            if actual_ndim != expected_ndim:
+                if actual_ndim == 0:
+                    actual_repr = 'scalar'
+                else:
+                    actual_repr = "%d-D array" % actual_ndim
+                raise ValueError(
+                    "{func}() expected a {expected:d}-D array"
+                    " for argument {argname!r}, but got a {actual}"
+                    " instead.".format(
+                        func=funcname,
+                        expected=expected_ndim,
+                        argname=argname,
+                        actual=actual_repr,
+                    )
+                )
+            return argvalue
+        return _check
+    return preprocess(**valmap(_expect_dimension, dimensions))
+
+
 def coerce(from_, to, **to_kwargs):
     """
     A preprocessing decorator that coerces inputs of a given type by passing
