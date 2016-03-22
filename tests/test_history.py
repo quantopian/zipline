@@ -51,7 +51,7 @@ ALL_FIELDS = OHLCP + ["volume"]
 
 class HistoryTestCaseBase(TestCase):
     # asset1:
-    # - 2014-03-01 (rounds up to TRADING_START_DT) to 2016-01-30.
+    # - 2014-03-01 (rounds up to TRADING_START_DT) to 2016-01-29.
     # - every minute/day.
 
     # asset2:
@@ -82,7 +82,7 @@ class HistoryTestCaseBase(TestCase):
 
         # trading_start (when bcolz files start) = 2014-02-01
         cls.TRADING_START_DT = pd.Timestamp("2014-02-03", tz='UTC')
-        cls.TRADING_END_DT = pd.Timestamp("2016-01-30", tz='UTC')
+        cls.TRADING_END_DT = pd.Timestamp("2016-01-29", tz='UTC')
 
         cls.env = TradingEnvironment(min_date=cls.TRADING_START_DT)
 
@@ -125,9 +125,7 @@ class HistoryTestCaseBase(TestCase):
         cls.env.write_data(equities_data={
             1: {
                 "start_date": pd.Timestamp("2014-01-03", tz='UTC'),
-                "end_date": cls.env.next_trading_day(
-                    pd.Timestamp("2016-01-30", tz='UTC')
-                ),
+                "end_date": cls.TRADING_END_DT,
                 "symbol": "ASSET1"
             },
             2: {
@@ -162,7 +160,7 @@ class HistoryTestCaseBase(TestCase):
             },
             8: {
                 "start_date": pd.Timestamp("2015-01-05", tz='UTC'),
-                "end_date": pd.Timestamp("2015-01-07", tz='UTC'),
+                "end_date": pd.Timestamp("2015-01-06", tz='UTC'),
                 "symbol": "SHORT_ASSET"
             }
         })
@@ -482,31 +480,33 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             start_val=2
         )
 
-        for sid in [2, 4, 5, 6]:
+        for sid in [2, 4, 5, 6, cls.SHORT_ASSET.sid]:
+            asset = cls.env.asset_finder.retrieve_asset(sid)
             write_minute_data_for_asset(
                 cls.env,
                 writer,
-                pd.Timestamp("2015-01-05", tz='UTC'),
-                pd.Timestamp("2015-12-31", tz='UTC'),
-                sid,
+                asset.start_date,
+                asset.end_date,
+                asset.sid,
                 start_val=2
             )
 
         write_minute_data_for_asset(
             cls.env,
             writer,
-            pd.Timestamp("2014-07-02", tz='UTC'),
-            pd.Timestamp("2015-12-31", tz='UTC'),
+            cls.HALF_DAY_TEST_ASSET.start_date,
+            cls.HALF_DAY_TEST_ASSET.end_date,
             cls.HALF_DAY_TEST_ASSET.sid,
             start_val=2
         )
 
+        asset3 = cls.env.asset_finder.retrieve_asset(3)
         write_minute_data_for_asset(
             cls.env,
             writer,
-            pd.Timestamp("2015-01-05", tz='UTC'),
-            pd.Timestamp("2015-12-31", tz='UTC'),
-            3,
+            asset3.start_date,
+            asset3.end_date,
+            asset3.sid,
             interval=10,
             start_val=2
         )
@@ -608,80 +608,86 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
                 )
 
     def test_minute_after_asset_stopped(self):
-        # asset2 stopped at 1/4/16
-
-        #  get some history windows that straddle the end
+        # SHORT_ASSET's last day was 2015-01-06
+        # get some history windows that straddle the end
         minutes = self.env.market_minutes_for_day(
-            pd.Timestamp("2016-01-04", tz='UTC')
+            pd.Timestamp("2015-01-07", tz='UTC')
         )[0:60]
-
-        all_asset2_minutes = self.env.minutes_for_days_in_range(
-            start=self.ASSET2.start_date,
-            end=self.ASSET2.end_date
-        )
 
         for idx, minute in enumerate(minutes):
             bar_data = BarData(self.data_portal, lambda: minute, "minute")
             check_internal_consistency(
-                bar_data, self.ASSET2, ALL_FIELDS, 30, "1m"
+                bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, "1m"
             )
 
-            # asset2's base minute value started at 2 and just goes up
-            # one per minute
-            asset2_minute_idx = all_asset2_minutes.searchsorted(minute) + 2
+        # choose a window that contains the last minute of the asset
+        bar_data = BarData(self.data_portal, lambda: minutes[15], "minute")
 
-            for field in ALL_FIELDS:
-                asset2_series = bar_data.history(self.ASSET2, field, 30, "1m")
+        #                             close  high  low  open  price  volume
+        # 2015-01-06 20:47:00+00:00    768   770  767   769    768   76800
+        # 2015-01-06 20:48:00+00:00    769   771  768   770    769   76900
+        # 2015-01-06 20:49:00+00:00    770   772  769   771    770   77000
+        # 2015-01-06 20:50:00+00:00    771   773  770   772    771   77100
+        # 2015-01-06 20:51:00+00:00    772   774  771   773    772   77200
+        # 2015-01-06 20:52:00+00:00    773   775  772   774    773   77300
+        # 2015-01-06 20:53:00+00:00    774   776  773   775    774   77400
+        # 2015-01-06 20:54:00+00:00    775   777  774   776    775   77500
+        # 2015-01-06 20:55:00+00:00    776   778  775   777    776   77600
+        # 2015-01-06 20:56:00+00:00    777   779  776   778    777   77700
+        # 2015-01-06 20:57:00+00:00    778   780  777   779    778   77800
+        # 2015-01-06 20:58:00+00:00    779   781  778   780    779   77900
+        # 2015-01-06 20:59:00+00:00    780   782  779   781    780   78000
+        # 2015-01-06 21:00:00+00:00    781   783  780   782    781   78100
+        # 2015-01-07 14:31:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:32:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:33:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:34:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:35:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:36:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:37:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:38:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:39:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:40:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:41:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:42:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:43:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:44:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:45:00+00:00    NaN   NaN  NaN   NaN    NaN       0
+        # 2015-01-07 14:46:00+00:00    NaN   NaN  NaN   NaN    NaN       0
 
-                if idx < 30:
-                    present_count = 29 - idx
-                    missing_count = 30 - present_count
+        window = bar_data.history(self.SHORT_ASSET, ALL_FIELDS, 30, "1m")
 
-                    offset = MINUTE_FIELD_INFO[field]
+        # there should be 14 values and 16 NaNs/0s
+        for field in ALL_FIELDS:
+            if field == "volume":
+                np.testing.assert_array_equal(
+                    range(76800, 78101, 100),
+                    window["volume"][0:14]
+                )
+                np.testing.assert_array_equal(
+                    np.zeros(16),
+                    window["volume"][-16:]
+                )
+            else:
+                np.testing.assert_array_equal(
+                    np.array(range(768, 782)) + MINUTE_FIELD_INFO[field],
+                    window[field][0:14]
+                )
+                np.testing.assert_array_equal(
+                    np.full(16, np.nan),
+                    window[field][-16:]
+                )
 
-                    if field in OHLCP:
-                        answer_key = np.array(range(
-                            asset2_minute_idx + offset - present_count - idx,
-                            asset2_minute_idx + offset - missing_count + 1
-                        ))
+        # now do a smaller window that is entirely contained after the asset
+        # ends
+        window = bar_data.history(self.SHORT_ASSET, ALL_FIELDS, 5, "1m")
 
-                        np.testing.assert_array_equal(
-                            answer_key,
-                            asset2_series[0:present_count]
-                        )
-
-                        if missing_count > 0:
-                            np.testing.assert_array_equal(
-                                np.full(missing_count, np.nan),
-                                asset2_series[(30 - missing_count):]
-                            )
-                    elif field == "volume":
-                        answer_key = np.array(range(
-                            asset2_minute_idx - present_count - idx,
-                            asset2_minute_idx - missing_count + 1
-                        )) * 100
-
-                        np.testing.assert_array_equal(
-                            answer_key,
-                            asset2_series[0:present_count]
-                        )
-
-                        if missing_count > 0:
-                            np.testing.assert_array_equal(
-                                np.zeros(missing_count),
-                                asset2_series[(30 - missing_count):]
-                            )
-                else:
-                    # completely after the asset's end date
-                    if field in OHLCP:
-                        np.testing.assert_array_equal(
-                            np.full(30, np.nan),
-                            asset2_series
-                        )
-                    elif field == "volume":
-                        np.testing.assert_array_equal(
-                            np.zeros(30), asset2_series
-                        )
+        for field in ALL_FIELDS:
+            if field == "volume":
+                np.testing.assert_array_equal(np.zeros(5), window["volume"])
+            else:
+                np.testing.assert_array_equal(np.full(5, np.nan),
+                                              window[field])
 
     def test_minute_splits_and_mergers(self):
         # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
@@ -926,9 +932,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         }
 
         for sid in [2, 4, 5, 6]:
+            asset = cls.env.asset_finder.retrieve_asset(sid)
             dfs[sid] = cls.create_df_for_asset(
-                pd.Timestamp("2015-01-05", tz='UTC'),
-                pd.Timestamp("2015-12-31", tz='UTC')
+                asset.start_date,
+                asset.end_date
             )
 
         days = cls.env.days_in_range(
@@ -952,9 +959,18 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         write_minute_data_for_asset(
             cls.env,
             minute_writer,
+            cls.ASSET1.start_date,
+            cls.ASSET1.end_date,
+            cls.ASSET1.sid,
+            start_val=2
+        )
+
+        write_minute_data_for_asset(
+            cls.env,
+            minute_writer,
             cls.ASSET2.start_date,
-            cls.env.previous_trading_day(cls.ASSET2.end_date),
-            2,
+            cls.ASSET2.end_date,
+            cls.ASSET2.sid,
             start_val=2,
             minute_blacklist=[
                 pd.Timestamp('2015-01-08 14:31', tz='UTC'),
@@ -1039,22 +1055,56 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         for idx, day in enumerate(days):
             self.verify_regular_dt(idx, day, "daily")
 
+    def test_daily_some_assets_stopped(self):
+        # asset1 ends on 2016-01-30
+        # asset2 ends on 2015-12-13
+
+        bar_data = BarData(self.data_portal,
+                           lambda: pd.Timestamp("2016-01-06", tz='UTC'),
+                           "daily")
+
+        for field in OHLCP:
+            window = bar_data.history(
+                [self.ASSET1, self.ASSET2], field, 15, "1d"
+            )
+
+            # last 2 values for asset2 should be NaN (# of days since asset2
+            # delisted)
+            np.testing.assert_array_equal(
+                np.full(2, np.nan),
+                window[self.ASSET2][-2:]
+            )
+
+            # third from last value should not be NaN
+            self.assertFalse(np.isnan(window[self.ASSET2][-3]))
+
+        volume_window = bar_data.history(
+            [self.ASSET1, self.ASSET2], "volume", 15, "1d"
+        )
+
+        np.testing.assert_array_equal(
+            np.zeros(2),
+            volume_window[self.ASSET2][-2:]
+        )
+
+        self.assertNotEqual(0, volume_window[self.ASSET2][-3])
+
     def test_daily_after_asset_stopped(self):
         # SHORT_ASSET trades on 1/5, 1/6, that's it.
 
         days = self.env.days_in_range(
-            start=self.SHORT_ASSET.end_date,
-            end=self.env.next_trading_day(self.SHORT_ASSET.end_date)
+            start=pd.Timestamp("2015-01-07", tz='UTC'),
+            end=pd.Timestamp("2015-01-08", tz='UTC')
         )
 
-        # days has 1/7, 1/8, 1/9
+        # days has 1/7, 1/8
         for idx, day in enumerate(days):
             bar_data = BarData(self.data_portal, lambda: day, "daily")
             check_internal_consistency(
                 bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, "1d"
             )
 
-            for field in ["close"]:
+            for field in ALL_FIELDS:
                 asset_series = bar_data.history(
                     self.SHORT_ASSET, field, 2, "1d"
                 )
@@ -1189,6 +1239,39 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # first value should be 0.9408 of its original value, rounded to 3
         # digits. second value should be 0.96 of its original value
         np.testing.assert_array_equal([1.882, 2.88, 4], window3)
+
+    def test_daily_blended_some_assets_stopped(self):
+        # asset1 ends on 2016-01-30
+        # asset2 ends on 2016-01-04
+
+        bar_data = BarData(self.data_portal,
+                           lambda: pd.Timestamp("2016-01-06 16:00", tz='UTC'),
+                           "daily")
+
+        for field in OHLCP:
+            window = bar_data.history(
+                [self.ASSET1, self.ASSET2], field, 15, "1d"
+            )
+
+            # last 2 values for asset2 should be NaN
+            np.testing.assert_array_equal(
+                np.full(2, np.nan),
+                window[self.ASSET2][-2:]
+            )
+
+            # third from last value should not be NaN
+            self.assertFalse(np.isnan(window[self.ASSET2][-3]))
+
+        volume_window = bar_data.history(
+            [self.ASSET1, self.ASSET2], "volume", 15, "1d"
+        )
+
+        np.testing.assert_array_equal(
+            np.zeros(2),
+            volume_window[self.ASSET2][-2:]
+        )
+
+        self.assertNotEqual(0, volume_window[self.ASSET2][-3])
 
     def test_daily_history_blended(self):
         # daily history windows that end mid-day use minute values for the

@@ -127,7 +127,7 @@ class DailyHistoryAggregator(object):
         for the day, if there has been no data on or before the `dt` the open
         is `nan`.
 
-        Once the first non-nan open is seen, that value remains constannt per
+        Once the first non-nan open is seen, that value remains constant per
         asset for the remainder of the day.
 
         Returns
@@ -137,8 +137,13 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'open')
 
         opens = []
+        normalized_date = normalize_date(dt)
 
         for asset in assets:
+            if not asset._is_alive(normalized_date, True):
+                opens.append(np.NaN)
+                continue
+
             if prev_dt is None:
                 val = self._minute_reader.get_value(asset, dt, 'open')
                 entries[asset] = (dt_value, val)
@@ -190,8 +195,13 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'high')
 
         highs = []
+        normalized_date = normalize_date(dt)
 
         for asset in assets:
+            if not asset._is_alive(normalized_date, True):
+                highs.append(np.NaN)
+                continue
+
             if prev_dt is None:
                 val = self._minute_reader.get_value(asset, dt, 'high')
                 entries[asset] = (dt_value, val)
@@ -243,8 +253,13 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'low')
 
         lows = []
+        normalized_date = normalize_date(dt)
 
         for asset in assets:
+            if not asset._is_alive(normalized_date, True):
+                lows.append(np.NaN)
+                continue
+
             if prev_dt is None:
                 val = self._minute_reader.get_value(asset, dt, 'low')
                 entries[asset] = (dt_value, val)
@@ -297,8 +312,13 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'close')
 
         closes = []
+        normalized_dt = normalize_date(dt)
 
         for asset in assets:
+            if not asset._is_alive(normalized_dt, True):
+                closes.append(np.NaN)
+                continue
+
             if prev_dt is None:
                 val = self._minute_reader.get_value(asset, dt, 'close')
                 entries[asset] = (dt_value, val)
@@ -349,8 +369,13 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'volume')
 
         volumes = []
+        normalized_date = normalize_date(dt)
 
         for asset in assets:
+            if not asset._is_alive(normalized_date, True):
+                volumes.append(0)
+                continue
+
             if prev_dt is None:
                 val = self._minute_reader.get_value(asset, dt, 'volume')
                 entries[asset] = (dt_value, val)
@@ -1161,7 +1186,7 @@ class DataPortal(object):
                     # if the window extends past the asset's end date, set
                     # all post-end-date values to NaN in that asset's series
                     series = df[asset]
-                    series[series.index >= asset.end_date] = np.NaN
+                    series[series.index.normalize() > asset.end_date] = np.NaN
 
         return df
 

@@ -441,7 +441,7 @@ class BcolzMinuteBarWriter(object):
         Parameters:
         -----------
         sid : int
-            The asset identifer for the data being written.
+            The asset identifier for the data being written.
         dts : datetime64 array
             The dts corresponding to values in cols.
         cols : dict of str -> np.array
