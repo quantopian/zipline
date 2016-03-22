@@ -1,10 +1,11 @@
 """
 Tests for Factor terms.
 """
+from functools import partial
 from itertools import product
-from six import iteritems
 from nose_parameterized import parameterized
 
+from toolz import compose
 from numpy import (
     apply_along_axis,
     arange,
@@ -13,9 +14,8 @@ from numpy import (
     empty,
     eye,
     nan,
-    nanmean,
-    nanstd,
     ones,
+    rot90,
     where,
 )
 from numpy.random import randn, seed
@@ -32,6 +32,7 @@ from zipline.testing import (
     check_allclose,
     check_arrays,
     parameter_space,
+    permute_rows,
 )
 from zipline.utils.functional import dzip_exact
 from zipline.utils.numpy_utils import (
@@ -40,11 +41,18 @@ from zipline.utils.numpy_utils import (
     int64_dtype,
     NaTns,
 )
+from zipline.utils.math_utils import nanmean, nanstd
 
 from .base import BasePipelineTestCase
 
 
 class F(Factor):
+    dtype = float64_dtype
+    inputs = ()
+    window_length = 0
+
+
+class OtherF(Factor):
     dtype = float64_dtype
     inputs = ()
     window_length = 0
@@ -498,7 +506,7 @@ class FactorTestCase(BasePipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=factor_data.shape)),
         )
 
-        for key, (res, exp) in iteritems(dzip_exact(results, expected)):
+        for key, (res, exp) in dzip_exact(results, expected).items():
             check_allclose(
                 res,
                 exp,
@@ -516,7 +524,7 @@ class FactorTestCase(BasePipelineTestCase):
             ('demean', lambda row: row - nanmean(row)),
             ('zscore', lambda row: (row - nanmean(row)) / nanstd(row)),
         ],
-        add_nulls_to_factor=(False, True,)
+        add_nulls_to_factor=(False, True,),
     )
     def test_normalizations_randomized(self,
                                        seed_value,
@@ -532,9 +540,9 @@ class FactorTestCase(BasePipelineTestCase):
         # Falses on main diagonal.
         eyemask = self.eye_mask(shape=shape)
         # Falses on other diagonal.
-        eyemask_T = eyemask.T
+        eyemask90 = rot90(eyemask)
         # Falses on both diagonals.
-        xmask = eyemask & eyemask_T
+        xmask = eyemask & eyemask90
 
         # Block of random data.
         factor_data = self.randn_data(seed=seed_value, shape=shape)
@@ -548,7 +556,7 @@ class FactorTestCase(BasePipelineTestCase):
         # With -1s on main diagonal.
         classifier_data_eyenulls = where(eyemask, classifier_data, -1)
         # With -1s on opposite diagonal.
-        classifier_data_eyenulls_T = where(eyemask_T, classifier_data, -1)
+        classifier_data_eyenulls90 = where(eyemask90, classifier_data, -1)
         # With -1s on both diagonals.
         classifier_data_xnulls = where(xmask, classifier_data, -1)
 
@@ -581,8 +589,8 @@ class FactorTestCase(BasePipelineTestCase):
             # If the classifier has nulls, we should get NaNs in the
             # corresponding locations in the output.
             'grouped_with_nulls': where(
-                eyemask_T,
-                grouped_apply(factor_data, classifier_data_eyenulls_T, func),
+                eyemask90,
+                grouped_apply(factor_data, classifier_data_eyenulls90, func),
                 nan,
             ),
             # Passing a mask with a classifier should behave as though the
@@ -613,7 +621,7 @@ class FactorTestCase(BasePipelineTestCase):
             initial_workspace={
                 f: factor_data,
                 c: classifier_data,
-                c_with_nulls: classifier_data_eyenulls_T,
+                c_with_nulls: classifier_data_eyenulls90,
                 Mask(): eyemask,
             },
             mask=self.build_mask(nomask),
@@ -640,3 +648,161 @@ class FactorTestCase(BasePipelineTestCase):
         ).format(normalizer=method_name)
 
         self.assertEqual(errmsg, expected)
+
+    @parameter_space(seed=[1, 2, 3])
+    def test_quantiles_unmasked(self, seed):
+        permute = partial(permute_rows, seed)
+
+        shape = (6, 6)
+
+        # Shuffle the input rows to verify that we don't depend on the order.
+        # Div by 2 to ensure that we don't depend on inputs being integral.
+        factor_data = permute(arange(36, dtype=float).reshape(shape)) / 2.0
+
+        f = self.f
+        terms = {
+            '2': f.quantiles(bins=2),
+            '3': f.quantiles(bins=3),
+            '6': f.quantiles(bins=6),
+        }
+
+        # Apply the same shuffle we applied to the input rows to our
+        # expectations. Doing it this way makes it obvious that our
+        # expectation corresponds to our input, while still testing against
+        # a range of input orderings.
+        permuted_array = compose(permute, partial(array, dtype=int))
+        expected = {
+            # The values in the input are all increasing, so the first half of
+            # each row should be in the bottom bucket, and the second half
+            # should be in the top bucket.
+            '2': permuted_array([[0, 0, 0, 1, 1, 1],
+                                 [0, 0, 0, 1, 1, 1],
+                                 [0, 0, 0, 1, 1, 1],
+                                 [0, 0, 0, 1, 1, 1],
+                                 [0, 0, 0, 1, 1, 1],
+                                 [0, 0, 0, 1, 1, 1]]),
+            # Similar for three buckets.
+            '3': permuted_array([[0, 0, 1, 1, 2, 2],
+                                 [0, 0, 1, 1, 2, 2],
+                                 [0, 0, 1, 1, 2, 2],
+                                 [0, 0, 1, 1, 2, 2],
+                                 [0, 0, 1, 1, 2, 2],
+                                 [0, 0, 1, 1, 2, 2]]),
+            # In the limiting case, we just have every column different.
+            '6': permuted_array([[0, 1, 2, 3, 4, 5],
+                                 [0, 1, 2, 3, 4, 5],
+                                 [0, 1, 2, 3, 4, 5],
+                                 [0, 1, 2, 3, 4, 5],
+                                 [0, 1, 2, 3, 4, 5],
+                                 [0, 1, 2, 3, 4, 5]]),
+        }
+
+        graph = TermGraph(terms)
+        results = self.run_graph(
+            graph,
+            initial_workspace={
+                f: factor_data,
+            },
+            mask=self.build_mask(self.ones_mask(shape=shape)),
+        )
+
+        for key, (res, exp) in dzip_exact(results, expected).items():
+            check_arrays(res, exp)
+
+    @parameter_space(seed=[1, 2, 3])
+    def test_quantiles_masked(self, seed):
+        permute = partial(permute_rows, seed)
+
+        # 7 x 7 so that we divide evenly into 2/3/6-tiles after including the
+        # nan value in each row.
+        shape = (7, 7)
+
+        # Shuffle the input rows to verify that we don't depend on the order.
+        # Div by 2 to ensure that we don't depend on inputs being integral.
+        factor_data = permute(arange(49, dtype=float).reshape(shape)) / 2.0
+        factor_data_w_nans = where(
+            permute(rot90(self.eye_mask(shape=shape))),
+            factor_data,
+            nan,
+        )
+        mask_data = permute(self.eye_mask(shape=shape))
+
+        f = F()
+        f_nans = OtherF()
+        m = Mask()
+
+        terms = {
+            '2_masked': f.quantiles(bins=2, mask=m),
+            '3_masked': f.quantiles(bins=3, mask=m),
+            '6_masked': f.quantiles(bins=6, mask=m),
+            '2_nans': f_nans.quantiles(bins=2),
+            '3_nans': f_nans.quantiles(bins=3),
+            '6_nans': f_nans.quantiles(bins=6),
+        }
+
+        # Apply the same shuffle we applied to the input rows to our
+        # expectations. Doing it this way makes it obvious that our
+        # expectation corresponds to our input, while still testing against
+        # a range of input orderings.
+        permuted_array = compose(permute, partial(array, dtype=int))
+        expected = {
+            # Expected results here are the same as in test_quantiles_masked,
+            # except with diagonals of -1s interpolated to match the effects of
+            # masking and/or input nans.
+            '2_masked': permuted_array([[-1, 0,  0,  0,  1,  1,  1],
+                                        [0, -1,  0,  0,  1,  1,  1],
+                                        [0,  0, -1,  0,  1,  1,  1],
+                                        [0,  0,  0, -1,  1,  1,  1],
+                                        [0,  0,  0,  1, -1,  1,  1],
+                                        [0,  0,  0,  1,  1, -1,  1],
+                                        [0,  0,  0,  1,  1,  1, -1]]),
+            '3_masked': permuted_array([[-1, 0,  0,  1,  1,  2,  2],
+                                        [0, -1,  0,  1,  1,  2,  2],
+                                        [0,  0, -1,  1,  1,  2,  2],
+                                        [0,  0,  1, -1,  1,  2,  2],
+                                        [0,  0,  1,  1, -1,  2,  2],
+                                        [0,  0,  1,  1,  2, -1,  2],
+                                        [0,  0,  1,  1,  2,  2, -1]]),
+            '6_masked': permuted_array([[-1, 0,  1,  2,  3,  4,  5],
+                                        [0, -1,  1,  2,  3,  4,  5],
+                                        [0,  1, -1,  2,  3,  4,  5],
+                                        [0,  1,  2, -1,  3,  4,  5],
+                                        [0,  1,  2,  3, -1,  4,  5],
+                                        [0,  1,  2,  3,  4, -1,  5],
+                                        [0,  1,  2,  3,  4,  5, -1]]),
+            '2_nans': permuted_array([[0,  0,  0,  1,  1,  1, -1],
+                                      [0,  0,  0,  1,  1, -1,  1],
+                                      [0,  0,  0,  1, -1,  1,  1],
+                                      [0,  0,  0, -1,  1,  1,  1],
+                                      [0,  0, -1,  0,  1,  1,  1],
+                                      [0, -1,  0,  0,  1,  1,  1],
+                                      [-1, 0,  0,  0,  1,  1,  1]]),
+            '3_nans': permuted_array([[0,  0,  1,  1,  2,  2, -1],
+                                      [0,  0,  1,  1,  2, -1,  2],
+                                      [0,  0,  1,  1, -1,  2,  2],
+                                      [0,  0,  1, -1,  1,  2,  2],
+                                      [0,  0, -1,  1,  1,  2,  2],
+                                      [0, -1,  0,  1,  1,  2,  2],
+                                      [-1, 0,  0,  1,  1,  2,  2]]),
+            '6_nans': permuted_array([[0,  1,  2,  3,  4,  5, -1],
+                                      [0,  1,  2,  3,  4, -1,  5],
+                                      [0,  1,  2,  3, -1,  4,  5],
+                                      [0,  1,  2, -1,  3,  4,  5],
+                                      [0,  1, -1,  2,  3,  4,  5],
+                                      [0, -1,  1,  2,  3,  4,  5],
+                                      [-1, 0,  1,  2,  3,  4,  5]]),
+        }
+
+        graph = TermGraph(terms)
+        results = self.run_graph(
+            graph,
+            initial_workspace={
+                f: factor_data,
+                f_nans: factor_data_w_nans,
+                m: mask_data,
+            },
+            mask=self.build_mask(self.ones_mask(shape=shape)),
+        )
+
+        for key, (res, exp) in dzip_exact(results, expected).items():
+            check_arrays(res, exp)

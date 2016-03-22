@@ -5,13 +5,13 @@ from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
-from numpy import inf, where, nanstd
+from numpy import inf, where
 from toolz import curry
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d
-from zipline.pipeline.classifiers import Classifier, Everything
+from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -43,7 +43,7 @@ from zipline.pipeline.filters import (
     NullFilter,
 )
 from zipline.utils.input_validation import expect_types
-from zipline.utils.math_utils import nanmean
+from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.numpy_utils import (
     bool_dtype,
     coerce_to_dtype,
@@ -684,6 +684,33 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :class:`zipline.pipeline.factors.factor.Rank`
         """
         return Rank(self, method=method, ascending=ascending, mask=mask)
+
+    @expect_types(bins=int, mask=(Filter, NotSpecifiedType))
+    def quantiles(self, bins, mask=NotSpecified):
+        """
+        Construct a Classifier computing quantiles of the output of ``self``.
+
+        Every non-NaN data point the output is labelled with an integer value
+        from 0 to (bins - 1).  NaNs are labelled with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        bins : int
+            Number of bins labels to compute.
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing quantiles.
+
+        Returns
+        -------
+        quantiles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to (bins - 1).
+        """
+        if mask is NotSpecified:
+            mask = self.mask
+        return Quantiles(inputs=(self,), bins=bins, mask=mask)
 
     def top(self, N, mask=NotSpecified):
         """

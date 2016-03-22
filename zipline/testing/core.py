@@ -409,7 +409,7 @@ def make_trade_panel_for_asset_info(dates,
                                     volume_step_by_date,
                                     volume_step_by_sid):
     """
-    Convert an asset info frame into a panel of trades, writing NaNs for
+
     locations where assets did not exist.
     """
     sids = list(asset_info.index)
@@ -579,7 +579,7 @@ def check_allclose(actual,
     )
 
 
-def check_arrays(x, y, err_msg='', verbose=True):
+def check_arrays(x, y, err_msg='', verbose=True, check_dtypes=True):
     """
     Wrapper around np.testing.assert_array_equal that also verifies that inputs
     are ndarrays.
@@ -588,8 +588,9 @@ def check_arrays(x, y, err_msg='', verbose=True):
     --------
     np.assert_array_equal
     """
-    if type(x) != type(y):
-        raise AssertionError("%s != %s" % (type(x), type(y)))
+    assert type(x) == type(y), "{x} != {y}".format(x=type(x), y=type(y))
+    assert x.dtype == y.dtype, "{x.dtype} != {y.dtype}".format(x=x, y=y)
+
     return assert_array_equal(x, y, err_msg=err_msg, verbose=True)
 
 
