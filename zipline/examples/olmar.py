@@ -33,7 +33,6 @@ def initialize(algo, eps=1, window_length=5):
     algo.init = True
     algo.days = 0
     algo.window_length = window_length
-    algo.add_transform('mavg', 5)
 
     algo.set_commission(commission.PerShare(cost=0))
 
@@ -54,10 +53,11 @@ def handle_data(algo, data):
     b = np.zeros(m)
 
     # find relative moving average price for each asset
+    mavgs = data.history(algo.sids, 'price', algo.window_length, '1d').mean()
     for i, sid in enumerate(algo.sids):
-        price = data[sid].price
+        price = data.current(sid, "price")
         # Relative mean deviation
-        x_tilde[i] = data[sid].mavg(algo.window_length) / price
+        x_tilde[i] = mavgs[sid] / price
 
     ###########################
     # Inside of OLMAR (algo 2)
@@ -101,7 +101,7 @@ def rebalance_portfolio(algo, data, desired_port):
 
     for i, sid in enumerate(algo.sids):
         current_amount[i] = algo.portfolio.positions[sid].amount
-        prices[i] = data[sid].price
+        prices[i] = data.current(sid, "price")
 
     desired_amount = np.round(desired_port * positions_value / prices)
 
