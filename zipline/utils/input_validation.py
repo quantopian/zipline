@@ -159,39 +159,41 @@ def expect_dtypes(*_pos, **named):
                     name=name, dtype=dtype,
                 )
             )
+
+    def _expect_dtype(_dtype_or_dtype_tuple):
+        """
+        Factory for dtype-checking functions that work the @preprocess
+        decorator.
+        """
+        # Slightly different messages for dtype and tuple of dtypes.
+        if isinstance(_dtype_or_dtype_tuple, tuple):
+            allowed_dtypes = _dtype_or_dtype_tuple
+        else:
+            allowed_dtypes = (_dtype_or_dtype_tuple,)
+        template = (
+            "%(funcname)s() expected a value with dtype {dtype_str} "
+            "for argument '%(argname)s', but got %(actual)r instead."
+        ).format(dtype_str=' or '.join(repr(d.name) for d in allowed_dtypes))
+
+        def check_dtype(value):
+            return getattr(value, 'dtype', None) not in allowed_dtypes
+
+        def display_bad_value(value):
+            # If the bad value has a dtype, but it's wrong, show the dtype
+            # name.
+            try:
+                return value.dtype.name
+            except AttributeError:
+                return value
+
+        return make_check(
+            exc_type=TypeError,
+            template=template,
+            pred=check_dtype,
+            actual=display_bad_value,
+        )
+
     return preprocess(**valmap(_expect_dtype, named))
-
-
-def _expect_dtype(_dtype_or_dtype_tuple):
-    """
-    Factory for dtype-checking functions that work the @preprocess decorator.
-    """
-    # Slightly different messages for dtype and tuple of dtypes.
-    if isinstance(_dtype_or_dtype_tuple, tuple):
-        allowed_dtypes = _dtype_or_dtype_tuple
-    else:
-        allowed_dtypes = (_dtype_or_dtype_tuple,)
-    template = (
-        "%(funcname)s() expected a value with dtype {dtype_str} "
-        "for argument '%(argname)s', but got %(actual)r instead."
-    ).format(dtype_str=' or '.join(repr(d.name) for d in allowed_dtypes))
-
-    def check_dtype(value):
-        return getattr(value, 'dtype', None) not in allowed_dtypes
-
-    def display_bad_value(value):
-        # If the bad value has a dtype, but it's wrong, show the dtype name.
-        try:
-            return value.dtype.name
-        except AttributeError:
-            return value
-
-    return make_check(
-        exc_type=TypeError,
-        template=template,
-        pred=check_dtype,
-        actual=display_bad_value,
-    )
 
 
 def expect_types(*_pos, **named):
@@ -222,6 +224,26 @@ def expect_types(*_pos, **named):
                     name=name, type_=type_,
                 )
             )
+
+    def _expect_type(type_):
+        # Slightly different messages for type and tuple of types.
+        _template = (
+            "%(funcname)s() expected a value of type {type_or_types} "
+            "for argument '%(argname)s', but got %(actual)s instead."
+        )
+        if isinstance(type_, tuple):
+            template = _template.format(
+                type_or_types=' or '.join(map(_qualified_name, type_))
+            )
+        else:
+            template = _template.format(type_or_types=_qualified_name(type_))
+
+        return make_check(
+            TypeError,
+            template,
+            lambda v: not isinstance(v, type_),
+            compose(_qualified_name, type),
+        )
 
     return preprocess(**valmap(_expect_type, named))
 
@@ -273,30 +295,6 @@ def make_check(exc_type, template, pred, actual):
     return _check
 
 
-def _expect_type(type_):
-    """
-    Factory for type-checking functions that work the @preprocess decorator.
-    """
-    # Slightly different messages for type and tuple of types.
-    _template = (
-        "%(funcname)s() expected a value of type {type_or_types} "
-        "for argument '%(argname)s', but got %(actual)s instead."
-    )
-    if isinstance(type_, tuple):
-        template = _template.format(
-            type_or_types=' or '.join(map(_qualified_name, type_))
-        )
-    else:
-        template = _template.format(type_or_types=_qualified_name(type_))
-
-    return make_check(
-        TypeError,
-        template,
-        lambda v: not isinstance(v, type_),
-        compose(_qualified_name, type),
-    )
-
-
 def optional(type_):
     """
     Helper for use with `expect_types` when an input can be `type_` or `None`.
@@ -319,19 +317,6 @@ def optional(type_):
     False
     """
     return (type_, type(None))
-
-
-def _expect_element(collection):
-    template = (
-        "%(funcname)s() expected a value in {collection} "
-        "for argument '%(argname)s', but got %(actual)s instead."
-    ).format(collection=collection)
-    return make_check(
-        ValueError,
-        template,
-        complement(op.contains(collection)),
-        repr,
-    )
 
 
 def expect_element(*_pos, **named):
@@ -363,6 +348,17 @@ def expect_element(*_pos, **named):
     if _pos:
         raise TypeError("expect_element() only takes keyword arguments.")
 
+    def _expect_element(collection):
+        template = (
+            "%(funcname)s() expected a value in {collection} "
+            "for argument '%(argname)s', but got %(actual)s instead."
+        ).format(collection=collection)
+        return make_check(
+            ValueError,
+            template,
+            complement(op.contains(collection)),
+            repr,
+        )
     return preprocess(**valmap(_expect_element, named))
 
 
