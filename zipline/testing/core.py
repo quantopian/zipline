@@ -972,7 +972,10 @@ class FakeDataPortal(DataPortal):
         super(FakeDataPortal, self).__init__(env)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
-        return 1.0
+        if field == "volume":
+            return 100
+        else:
+            return 1.0
 
 
 class FetcherDataPortal(DataPortal):

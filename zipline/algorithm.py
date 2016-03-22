@@ -858,21 +858,31 @@ class TradingAlgorithm(object):
         Calculates how many shares/contracts to order based on the type of
         asset being ordered.
         """
+        # Make sure the asset exists, and that there is a last price for it.
+        # FIXME: we should use BarData's can_trade logic here, but I haven't
+        # yet found a good way to do that.
+        normalized_date = normalize_date(self.datetime)
 
-        if self.datetime >= asset.end_date:
+        if normalized_date < asset.start_date:
             raise CannotOrderDelistedAsset(
-                msg="Cannot order {0}, as it stopped trading on {1}.".format(
-                    asset.symbol, asset.end_date
+                msg="Cannot order {0}, as it started trading on"
+                    " {1}.".format(asset.symbol, asset.start_date)
+            )
+        elif normalized_date > asset.end_date:
+            raise CannotOrderDelistedAsset(
+                msg="Cannot order {0}, as it stopped trading on"
+                    "{1}.".format(asset.symbol, asset.end_date)
+            )
+        else:
+            last_price = \
+                self.trading_client.current_data.current(asset, "price")
+
+            if np.isnan(last_price):
+                raise CannotOrderDelistedAsset(
+                    msg="Cannot order {0} on {1} as there is no last "
+                        "price for the security.".format(asset.symbol,
+                                                         self.datetime)
                 )
-            )
-
-        last_price = self.trading_client.current_data.current(asset, "price")
-
-        if np.isnan(last_price):
-            raise CannotOrderDelistedAsset(
-                msg="Cannot order {0}, as there is no last "
-                    "price for it.".format(asset.symbol)
-            )
 
         if tolerant_equals(last_price, 0):
             zero_message = "Price of 0 for {psid}; can't infer value".format(

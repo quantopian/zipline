@@ -309,6 +309,16 @@ class TestMinuteBarData(TestBarDataBase):
                             self.assertEqual(last_traded_minute - 1,
                                              asset2_value)
 
+    def test_minute_of_last_day(self):
+        minutes = self.env.market_minutes_for_day(self.days[-1])
+
+        # this is the last day the assets exist
+        for idx, minute in enumerate(minutes):
+            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+
+            self.assertTrue(bar_data.can_trade(self.ASSET1))
+            self.assertTrue(bar_data.can_trade(self.ASSET2))
+
     def test_minute_after_assets_stopped(self):
         minutes = self.env.market_minutes_for_day(
             self.env.next_trading_day(self.days[-1])
