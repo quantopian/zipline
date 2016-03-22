@@ -1393,8 +1393,6 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
                             freq='min',
                             tz='US/Eastern').tz_convert('UTC')
 
-    sids = (1, 2)
-
     @classmethod
     def make_equities_info(cls):
         return pd.DataFrame.from_dict({
@@ -1466,8 +1464,10 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     def init_class_fixtures(cls):
         super(MinuteToDailyAggregationTestCase, cls).init_class_fixtures()
 
-        cls.EQUITY1 = cls.env.asset_finder.retrieve_asset(1)
-        cls.EQUITY2 = cls.env.asset_finder.retrieve_asset(2)
+        cls.EQUITIES = {
+            1: cls.env.asset_finder.retrieve_asset(1),
+            2: cls.env.asset_finder.retrieve_asset(2)
+        }
 
     def init_instance_fixtures(self):
         super(MinuteToDailyAggregationTestCase, self).init_instance_fixtures()
@@ -1494,17 +1494,18 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     def test_contiguous_minutes_individual(self, name, field, sid):
         # First test each minute in order.
         results = []
+        asset = self.EQUITIES[sid]
         for minute in self.minutes:
             window = self.data_portal.get_history_window(
-                [sid],
+                [asset],
                 minute,
                 1,  # bar count
                 "1d",
                 field,
-            )[sid]
+            )[asset]
             results.append(window[0])
-        assert_almost_equal(results, self.expected_values[sid][field],
-                            err_msg="sid={0} field={1}".format(sid, field))
+        assert_almost_equal(results, self.expected_values[asset][field],
+                            err_msg="sid={0} field={1}".format(asset, field))
 
     @parameterized.expand([
         ('open_sid_1', 'open', 1),
@@ -1524,13 +1525,14 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
         # Tests initial backfill and mid day backfill.
         for i in [1, 5]:
             minute = self.minutes[i]
+            asset = self.EQUITIES[sid]
             window = self.data_portal.get_history_window(
-                [sid],
+                [asset],
                 minute,
                 1,  # bar count
                 "1d",
                 field,
-            )[sid]
+            )[asset]
             assert_almost_equal(window[0],
                                 self.expected_values[sid][field][i],
                                 err_msg="sid={0} field={1} dt={2}".format(
@@ -1539,38 +1541,40 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     @parameterized.expand(OHLCV)
     def test_contiguous_minutes_multiple(self, field):
         # First test each minute in order.
-        results = {sid: [] for sid in self.sids}
+        assets = self.EQUITIES.values()
+        results = {asset: [] for asset in assets}
         for minute in self.minutes:
             window = self.data_portal.get_history_window(
-                self.sids,
+                assets,
                 minute,
                 1,  # bar count
                 "1d",
                 field,
             )
-            for sid in self.sids:
-                results[sid].append(window.loc[minute.date(), sid])
-        for sid in self.sids:
-            assert_almost_equal(results[sid],
-                                self.expected_values[sid][field],
+            for asset in assets:
+                results[asset].append(window.loc[minute.date(), asset])
+        for asset in assets:
+            assert_almost_equal(results[asset],
+                                self.expected_values[asset][field],
                                 err_msg="sid={0} field={1}".format(
-                                    sid, field))
+                                    asset, field))
 
     @parameterized.expand(OHLCV)
     def test_skip_minutes_multiple(self, field):
         # Test skipping minutes, to exercise backfills.
         # Tests initial backfill and mid day backfill.
+        assets = self.EQUITIES.values()
         for i in [1, 5]:
             minute = self.minutes[i]
             window = self.data_portal.get_history_window(
-                self.sids,
+                assets,
                 minute,
                 1,  # bar count
                 "1d",
                 field,
             )
-            for sid in self.sids:
-                assert_almost_equal(window.loc[minute.date(), sid],
-                                    self.expected_values[sid][field][i],
+            for asset in assets:
+                assert_almost_equal(window.loc[minute.date(), asset],
+                                    self.expected_values[asset][field][i],
                                     err_msg="sid={0} field={1} dt={2}".format(
-                                        sid, field, minute))
+                                        asset, field, minute))
