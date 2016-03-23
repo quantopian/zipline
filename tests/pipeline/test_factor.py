@@ -4,6 +4,7 @@ Tests for Factor terms.
 from functools import partial
 from itertools import product
 from nose_parameterized import parameterized
+from unittest import TestCase
 
 from toolz import compose
 from numpy import (
@@ -822,3 +823,17 @@ class FactorTestCase(BasePipelineTestCase):
         self.assertIs(f.deciles(), f.quantiles(bins=10))
         self.assertIs(f.deciles(mask=m), f.quantiles(bins=10, mask=m))
         self.assertIsNot(f.deciles(), f.deciles(mask=m))
+
+
+class ShortReprTestCase(TestCase):
+    """
+    Tests for short_repr methods of Factors.
+    """
+
+    def test_demean(self):
+        r = F().demean().short_repr()
+        self.assertEqual(r, "GroupedRowTransform('demean')")
+
+    def test_zscore(self):
+        r = F().zscore().short_repr()
+        self.assertEqual(r, "GroupedRowTransform('zscore')")

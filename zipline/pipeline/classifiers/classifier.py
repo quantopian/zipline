@@ -78,6 +78,9 @@ class Quantiles(SingleInputMixin, Classifier):
         result[isnan(result)] = self.missing_value
         return result.astype(int64_dtype)
 
+    def short_repr(self):
+        return type(self).__name__ + '(%d)' % self.params['bins']
+
 
 class CustomClassifier(PositiveWindowLengthMixin, CustomTermMixin, Classifier):
     """

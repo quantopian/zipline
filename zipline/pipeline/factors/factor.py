@@ -576,8 +576,13 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
+        # This is a named function so that it has a __name__ for use in the
+        # graph repr of GroupedRowTransform.
+        def demean(row):
+            return row - nanmean(row)
+
         return GroupedRowTransform(
-            transform=lambda row: row - nanmean(row),
+            transform=demean,
             factor=self,
             mask=mask,
             groupby=groupby,
@@ -637,8 +642,13 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
+        # This is a named function so that it has a __name__ for use in the
+        # graph repr of GroupedRowTransform.
+        def zscore(row):
+            return (row - nanmean(row)) / nanstd(row)
+
         return GroupedRowTransform(
-            transform=lambda row: (row - nanmean(row)) / nanstd(row),
+            transform=zscore,
             factor=self,
             mask=mask,
             groupby=groupby,
@@ -1021,6 +1031,13 @@ class GroupedRowTransform(Factor):
             ),
             self.missing_value,
         )
+
+    @property
+    def transform_name(self):
+        return self._transform.__name__
+
+    def short_repr(self):
+        return type(self).__name__ + '(%r)' % self.transform_name
 
 
 class Rank(SingleInputMixin, Factor):
