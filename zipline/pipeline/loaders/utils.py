@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from six import iteritems
 from six.moves import zip
-from zipline.testing import num_days_in_range
 
 from zipline.utils.numpy_utils import NaTns
 
@@ -280,8 +279,12 @@ def zip_with_floats(dates, flts):
         return pd.Series(flts, index=dates, dtype='float')
 
 
-def num_days_between(dates, start_date, end_date):
-    return num_days_in_range(dates, start_date, end_date)
+def num_days_in_range(dates, start, end):
+    """
+    Return the number of days in `dates` between start and end, inclusive.
+    """
+    start_idx, stop_idx = dates.slice_locs(start, end)
+    return stop_idx - start_idx
 
 
 def zip_with_dates(index_dates, dts):
@@ -320,7 +323,7 @@ def get_values_for_date_ranges(zip_date_index_with_vals,
     return zip_date_index_with_vals(
         date_index,
         np.repeat(vals_for_date_intervals,
-                  [num_days_between(date_index, *date_interval)
+                  [num_days_in_range(date_index, *date_interval)
                    for date_interval in
                    date_intervals]),
     )
