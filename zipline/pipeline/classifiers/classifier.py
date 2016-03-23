@@ -7,6 +7,7 @@ from zipline.lib.quantiles import quantiles
 from zipline.pipeline.term import ComputableTerm
 from zipline.utils.numpy_utils import int64_dtype
 
+from ..filters import NullFilter
 from ..mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -27,6 +28,18 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
     which the classifier produced the same label.
     """
     ALLOWED_DTYPES = (int64_dtype,)  # Used by RestrictedDTypeMixin
+
+    def isnull(self):
+        """
+        A Filter producing True for values where this term has missing data.
+        """
+        return NullFilter(self)
+
+    def notnull(self):
+        """
+        A Filter producing True for values where this term has complete data.
+        """
+        return ~self.isnull()
 
 
 class Everything(Classifier):
