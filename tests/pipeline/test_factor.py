@@ -806,3 +806,19 @@ class FactorTestCase(BasePipelineTestCase):
 
         for key, (res, exp) in dzip_exact(results, expected).items():
             check_arrays(res, exp)
+
+    def test_quantile_helpers(self):
+        f = self.f
+        m = Mask()
+
+        self.assertIs(f.quartiles(), f.quantiles(bins=4))
+        self.assertIs(f.quartiles(mask=m), f.quantiles(bins=4, mask=m))
+        self.assertIsNot(f.quartiles(), f.quartiles(mask=m))
+
+        self.assertIs(f.quintiles(), f.quantiles(bins=5))
+        self.assertIs(f.quintiles(mask=m), f.quantiles(bins=5, mask=m))
+        self.assertIsNot(f.quintiles(), f.quintiles(mask=m))
+
+        self.assertIs(f.deciles(), f.quantiles(bins=10))
+        self.assertIs(f.deciles(mask=m), f.quantiles(bins=10, mask=m))
+        self.assertIsNot(f.deciles(), f.deciles(mask=m))

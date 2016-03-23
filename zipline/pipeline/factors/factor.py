@@ -712,6 +712,78 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             mask = self.mask
         return Quantiles(inputs=(self,), bins=bins, mask=mask)
 
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    def quartiles(self, mask=NotSpecified):
+        """
+        Construct a Classifier computing quartiles over the output of ``self``.
+
+        Every non-NaN data point the output is labelled with a value of either
+        0, 1, 2, or 3, corresponding to the first, second, third, or fourth
+        quartile over each row.  NaN data points are labelled with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing quartiles.
+
+        Returns
+        -------
+        quartiles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to 3.
+        """
+        return self.quantiles(bins=4, mask=mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    def quintiles(self, mask=NotSpecified):
+        """
+        Construct a Classifier computing quintile labels on ``self``.
+
+        Every non-NaN data point the output is labelled with a value of either
+        0, 1, 2, or 3, 4, corresonding to quintiles over each row.  NaN data
+        points are labelled with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing quintiles.
+
+        Returns
+        -------
+        quintiles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to 4.
+        """
+        return self.quantiles(bins=5, mask=mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    def deciles(self, mask=NotSpecified):
+        """
+        Construct a Classifier computing decile labels on ``self``.
+
+        Every non-NaN data point the output is labelled with a value from 0 to
+        9 corresonding to deciles over each row.  NaN data points are labelled
+        with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing deciles.
+
+        Returns
+        -------
+        deciles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to 4.
+        """
+        return self.quantiles(bins=10, mask=mask)
+
     def top(self, N, mask=NotSpecified):
         """
         Construct a Filter matching the top N asset values of self each day.
