@@ -1088,26 +1088,35 @@ class DataPortal(object):
                 days_for_window[0:-1]
             )
 
-            if field_to_use == 'open':
-                minute_value = self._equity_daily_aggregator.opens(
-                    assets, end_dt)
-            elif field_to_use == 'high':
-                minute_value = self._equity_daily_aggregator.highs(
-                    assets, end_dt)
-            elif field_to_use == 'low':
-                minute_value = self._equity_daily_aggregator.lows(
-                    assets, end_dt)
-            elif field_to_use == 'close':
-                minute_value = self._equity_daily_aggregator.closes(
-                    assets, end_dt)
-            elif field_to_use == 'volume':
-                minute_value = self._equity_daily_aggregator.volumes(
-                    assets, end_dt)
+            minute_value = self._fetch_from_daily_aggregator(
+                field_to_use,
+                assets,
+                end_dt
+            )
 
             # append the partial day.
             daily_data[-1] = minute_value
 
             return daily_data
+
+    def _fetch_from_daily_aggregator(self, field, assets, end_dt):
+        if field == 'open':
+            minute_value = self._equity_daily_aggregator.opens(
+                assets, end_dt)
+        elif field == 'high':
+            minute_value = self._equity_daily_aggregator.highs(
+                assets, end_dt)
+        elif field == 'low':
+            minute_value = self._equity_daily_aggregator.lows(
+                assets, end_dt)
+        elif field == 'close':
+            minute_value = self._equity_daily_aggregator.closes(
+                assets, end_dt)
+        elif field == 'volume':
+            minute_value = self._equity_daily_aggregator.volumes(
+                assets, end_dt)
+
+        return minute_value
 
     def _get_history_minute_window(self, assets, end_dt, bar_count,
                                    field_to_use):
