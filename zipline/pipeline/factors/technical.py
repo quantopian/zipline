@@ -23,7 +23,7 @@ from numexpr import evaluate
 
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.mixins import SingleInputMixin
-from zipline.utils.control_flow import ignore_nanwarnings
+from zipline.utils.numpy_utils import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
     nanargmax,

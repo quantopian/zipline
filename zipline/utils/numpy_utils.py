@@ -2,6 +2,11 @@
 Utilities for working with numpy arrays.
 """
 from datetime import datetime
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
+
 from numpy import (
     broadcast,
     busday_count,
@@ -219,3 +224,37 @@ def busday_count_mask_NaT(begindates,
     # Fill in entries where either comparison was NaT with nan in the output.
     out[beginmask | endmask] = nan
     return out
+
+
+class WarningContext(object):
+    """
+    Re-usable contextmanager for contextually managing warnings.
+    """
+    def __init__(self, *warning_specs):
+        self._warning_specs = warning_specs
+        self._catchers = []
+
+    def __enter__(self):
+        catcher = catch_warnings()
+        catcher.__enter__()
+        self._catchers.append(catcher)
+        for args, kwargs in self._warning_specs:
+            filterwarnings(*args, **kwargs)
+        return self
+
+    def __exit__(self, *exc_info):
+        catcher = self._catchers.pop()
+        return catcher.__exit__(*exc_info)
+
+
+def ignore_nanwarnings():
+    """
+    Helper for building a WarningContext that ignores warnings from numpy's
+    nanfunctions.
+    """
+    return WarningContext(
+        (
+            ('ignore',),
+            {'category': RuntimeWarning, 'module': 'numpy.lib.nanfunctions'},
+        )
+    )
