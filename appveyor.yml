@@ -103,3 +103,7 @@ install:
 test_script:
   - nosetests tests/
   - flake8 zipline tests
+
+branches:
+  only:
+    - master
