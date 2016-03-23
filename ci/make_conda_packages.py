@@ -25,11 +25,11 @@ def iter_stdout(cmd):
 PKG_PATH_PATTERN = re.compile(".* anaconda upload (?P<pkg_path>.+)$")
 
 
-def main():
+def main(env, do_upload):
     for recipe in get_immediate_subdirectories('conda'):
         cmd = ["conda", "build", os.path.join('conda', recipe),
-               "--python", os.environ['CONDA_PY'],
-               "--numpy", os.environ['CONDA_NPY'],
+               "--python", env['CONDA_PY'],
+               "--numpy", env['CONDA_NPY'],
                "--skip-existing",
                "-c", "quantopian",
                "-c", "https://conda.anaconda.org/quantopian/label/ci"]
@@ -44,10 +44,8 @@ def main():
                 if match:
                     output = match.group('pkg_path')
 
-        if (output and os.path.exists(output) and
-                os.environ.get('ANACONDA_TOKEN')):
-
-            cmd = ["anaconda", "-t", os.environ['ANACONDA_TOKEN'],
+        if output and os.path.exists(output) and do_upload:
+            cmd = ["anaconda", "-t", env['ANACONDA_TOKEN'],
                    "upload", output, "-u", "quantopian", "--label", "ci"]
 
             for line in iter_stdout(cmd):
@@ -55,4 +53,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    env = os.environ.copy()
+    main(env,
+         do_upload=(env.get('ANACONDA_TOKEN') and
+                    env.get('APPVEYOR_REPO_BRANCH') == 'master') and
+                    'APPVEYOR_PULL_REQUEST_NUMBER' not in env)
