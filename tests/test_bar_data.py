@@ -476,6 +476,48 @@ class TestMinuteBarData(TestBarDataBase):
         with handle_non_market_minutes(bar_data):
             self.assertTrue(bar_data.is_stale(self.HILARIOUSLY_ILLIQUID_ASSET))
 
+    def test_overnight_adjustments(self):
+        # verify there is a split for SPLIT_ASSET
+        splits = self.adjustments_reader.get_adjustments_for_sid(
+            "splits",
+            self.SPLIT_ASSET.sid
+        )
+
+        self.assertEqual(1, len(splits))
+        split = splits[0]
+        self.assertEqual(
+            split[0],
+            pd.Timestamp("2016-01-06", tz='UTC')
+        )
+
+        # Current day is 1/06/16
+        day = self.days[1]
+        eight_fortyfive_am_eastern = \
+            pd.Timestamp("{0}-{1}-{2} 8:45".format(
+                day.year, day.month, day.day),
+                tz='US/Eastern'
+            )
+
+        bar_data = BarData(self.data_portal,
+                           lambda: eight_fortyfive_am_eastern,
+                           "minute")
+
+        expected = {
+            'open': 391 / 2.0,
+            'high': 392 / 2.0,
+            'low': 389 / 2.0,
+            'close': 390 / 2.0,
+            'volume': 39000 * 2.0,
+            'price': 390 / 2.0,
+        }
+
+        with handle_non_market_minutes(bar_data):
+            for field in OHLCP + ['volume']:
+                value = bar_data.current(self.SPLIT_ASSET, field)
+
+                # Assert the price is adjusted for the overnight split
+                self.assertEqual(value, expected[field])
+
 
 class TestDailyBarData(TestBarDataBase):
     @classmethod

@@ -726,12 +726,82 @@ class DataPortal(object):
                 else:
                     return self._get_minute_spot_value(asset, field, dt)
 
-    def _get_adjusted_value(self, asset, field, dt,
-                            perspective_dt,
-                            data_frequency,
-                            spot_value=None):
+    def get_adjustments(self, assets, field, dt, perspective_dt):
         """
-        Private method that returns a scalar value representing the value
+        Returns a list of adjustments between the dt and perspective_dt for the
+        given field and list of assets
+
+        Parameters
+        ---------
+        assets : list of type Asset, or Asset
+            The asset, or assets whose adjustments are desired.
+
+        field: string
+            The desired field of the asset.  Valid values are "open",
+            "open_price", "high", "low", "close", "close_price", "volume", and
+            "price".
+
+        dt: pd.Timestamp
+            The timestamp for the desired value.
+
+        perspective_dt : pd.Timestamp
+            The timestamp from which the data is being viewed back from.
+
+        data_frequency: string
+            The frequency of the data to query; i.e. whether the data is
+            'daily' or 'minute' bars
+
+        Returns
+        -------
+        The list of adjustments for the asset(s)
+        """
+        if not isinstance(assets, (list, tuple)):
+            assets = [assets]
+
+        adjustment_ratios_per_asset = []
+        split_adj_factor = lambda x: x if field != 'volume' else 1.0 / x
+
+        for asset in assets:
+            adjustments_for_asset = []
+            split_adjustments = self._get_adjustment_list(
+                asset, self._splits_dict, "SPLITS"
+            )
+            for adj_dt, adj in split_adjustments:
+                if dt <= adj_dt <= perspective_dt:
+                    adjustments_for_asset.append(split_adj_factor(adj))
+                elif adj_dt > perspective_dt:
+                    break
+
+            if field != 'volume':
+                merger_adjustments = self._get_adjustment_list(
+                    asset, self._mergers_dict, "MERGERS"
+                )
+                for adj_dt, adj in merger_adjustments:
+                    if dt <= adj_dt <= perspective_dt:
+                        adjustments_for_asset.append(adj)
+                    elif adj_dt > perspective_dt:
+                        break
+
+                dividend_adjustments = self._get_adjustment_list(
+                    asset, self._dividends_dict, "DIVIDENDS",
+                )
+                for adj_dt, adj in dividend_adjustments:
+                    if dt <= adj_dt <= perspective_dt:
+                        adjustments_for_asset.append(adj)
+                    elif adj_dt > perspective_dt:
+                        break
+
+            ratio = reduce(mul, adjustments_for_asset, 1.0)
+            adjustment_ratios_per_asset.append(ratio)
+
+        return adjustment_ratios_per_asset
+
+    def get_adjusted_value(self, asset, field, dt,
+                           perspective_dt,
+                           data_frequency,
+                           spot_value=None):
+        """
+        Returns a scalar value representing the value
         of the desired asset's field at the given dt with adjustments applied.
 
         Parameters
@@ -765,39 +835,7 @@ class DataPortal(object):
             spot_value = self.get_spot_value(asset, field, dt, data_frequency)
 
         if isinstance(asset, Equity):
-            adjs = []
-            split_adjustments = self._get_adjustment_list(
-                asset, self._splits_dict, "SPLITS"
-            )
-            for adj_dt, adj in split_adjustments:
-                if dt <= adj_dt <= perspective_dt:
-                    if field != 'volume':
-                        adjs.append(adj)
-                    else:
-                        adjs.append(1.0 / adj)
-                if adj_dt >= perspective_dt:
-                    break
-
-            if field != 'volume':
-                merger_adjustments = self._get_adjustment_list(
-                    asset, self._mergers_dict, "MERGERS"
-                )
-                for adj_dt, adj in merger_adjustments:
-                    if dt <= adj_dt <= perspective_dt:
-                        adjs.append(adj)
-                    if adj_dt >= perspective_dt:
-                        break
-                div_adjustments = self._get_adjustment_list(
-                    asset, self._dividends_dict, "DIVIDENDS",
-                )
-                for adj_dt, adj in div_adjustments:
-                    if dt <= adj_dt <= perspective_dt:
-                        adjs.append(adj)
-                    if adj_dt >= perspective_dt:
-                        break
-
-            ratio = reduce(mul, adjs, 1.0)
-
+            ratio = self.get_adjustments(asset, field, dt, perspective_dt)[0]
             spot_value *= ratio
 
         return spot_value
@@ -868,7 +906,7 @@ class DataPortal(object):
 
         # the value we found came from a different day, so we have to adjust
         # the data if there are any adjustments on that day barrier
-        return self._get_adjusted_value(
+        return self.get_adjusted_value(
             asset, column, last_traded_dt,
             dt, "minute", spot_value=result
         )
@@ -907,7 +945,7 @@ class DataPortal(object):
                             return value
                         else:
                             # adjust if needed
-                            return self._get_adjusted_value(
+                            return self.get_adjusted_value(
                                 asset, column, found_dt, dt, "minute",
                                 spot_value=value
                             )
@@ -1170,7 +1208,7 @@ class DataPortal(object):
                     asset, dt_to_fill, data_frequency)
                 if pd.isnull(previous_dt):
                     continue
-                previous_value = self._get_adjusted_value(
+                previous_value = self.get_adjusted_value(
                     asset,
                     field,
                     previous_dt,

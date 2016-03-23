@@ -19,6 +19,7 @@ from pandas.tslib import normalize_date
 import pandas as pd
 import numpy as np
 
+from six import iteritems
 from cpython cimport bool
 
 from zipline.assets import Asset
@@ -208,6 +209,15 @@ cdef class BarData:
         multiple_assets = self._is_iterable(assets)
         multiple_fields = self._is_iterable(fields)
 
+        # There's some overly verbose code in here, particularly around
+        # 'do something if self._adjust_minutes is False, otherwise do
+        # something else'. This could be less verbose, but the 99% case is that
+        # `self._adjust_minutes` is False, so it's important to keep that code
+        # path as fast as possible.
+
+        # There's probably a way to make this method (and `history`) less
+        # verbose, but this is OK for now.
+
         if not multiple_assets:
             asset = assets
 
@@ -215,56 +225,106 @@ cdef class BarData:
                 field = fields
 
                 # return scalar value
-                return self.data_portal.get_spot_value(
-                    asset,
-                    field,
-                    self._get_current_minute(),
-                    self.data_frequency
-                )
-            else:
-                # assume fields is iterable
-                # return a Series indexed by field
-                return pd.Series(data={
-                    field: self.data_portal.get_spot_value(
+                if not self._adjust_minutes:
+                    return self.data_portal.get_spot_value(
                         asset,
                         field,
                         self._get_current_minute(),
-                        self.data_frequency)
-                    for field in fields
-                }, index=fields, name=assets.symbol)
+                        self.data_frequency
+                    )
+                else:
+                    return self.data_portal.get_adjusted_value(
+                        asset,
+                        field,
+                        self._get_current_minute(),
+                        self.simulation_dt_func(),
+                        self.data_frequency
+                    )
+            else:
+                # assume fields is iterable
+                # return a Series indexed by field
+                if not self._adjust_minutes:
+                    return pd.Series(data={
+                        field: self.data_portal.get_spot_value(
+                                    asset,
+                                    field,
+                                    self._get_current_minute(),
+                                    self.data_frequency
+                               )
+                        for field in fields
+                    }, index=fields, name=assets.symbol)
+                else:
+                    return pd.Series(data={
+                        field: self.data_portal.get_adjusted_value(
+                                    asset,
+                                    field,
+                                    self._get_current_minute(),
+                                    self.simulation_dt_func(),
+                                    self.data_frequency
+                               )
+                        for field in fields
+                    }, index=fields, name=assets.symbol)
         else:
             if not multiple_fields:
                 field = fields
 
                 # assume assets is iterable
                 # return a Series indexed by asset
-                return pd.Series(data={
-                    asset: self.data_portal.get_spot_value(
-                        asset,
-                        field,
-                        self._get_current_minute(),
-                        self.data_frequency)
-                    for asset in assets
-                    }, index=assets, name=fields)
+                if not self._adjust_minutes:
+                    return pd.Series(data={
+                        asset: self.data_portal.get_spot_value(
+                                    asset,
+                                    field,
+                                    self._get_current_minute(),
+                                    self.data_frequency
+                               )
+                        for asset in assets
+                        }, index=assets, name=fields)
+                else:
+                    return pd.Series(data={
+                        asset: self.data_portal.get_adjusted_value(
+                                    asset,
+                                    field,
+                                    self._get_current_minute(),
+                                    self.simulation_dt_func(),
+                                    self.data_frequency
+                               )
+                        for asset in assets
+                        }, index=assets, name=fields)
+
             else:
                 # both assets and fields are iterable
                 data = {}
 
-                for field in fields:
-                    series = pd.Series(data={
-                        asset: self.data_portal.get_spot_value(
-                            asset,
-                            field,
-                            self._get_current_minute(),
-                            self.data_frequency)
-                        for asset in assets
-                        }, index=assets, name=field)
-
-                    data[field] = series
+                if not self._adjust_minutes:
+                    for field in fields:
+                        series = pd.Series(data={
+                            asset: self.data_portal.get_spot_value(
+                                        asset,
+                                        field,
+                                        self._get_current_minute(),
+                                        self.data_frequency
+                                   )
+                            for asset in assets
+                            }, index=assets, name=field)
+                        data[field] = series
+                else:
+                    for field in fields:
+                        series = pd.Series(data={
+                            asset: self.data_portal.get_adjusted_value(
+                                        asset,
+                                        field,
+                                        self._get_current_minute(),
+                                        self.simulation_dt_func(),
+                                        self.data_frequency
+                                   )
+                            for asset in assets
+                            }, index=assets, name=field)
+                        data[field] = series
 
                 return pd.DataFrame(data)
 
-    cdef _is_iterable(self, obj):
+    cdef bool _is_iterable(self, obj):
         return hasattr(obj, '__iter__') and not isinstance(obj, str)
 
     def can_trade(self, assets):
@@ -433,6 +493,16 @@ cdef class BarData:
                 fields
             )
 
+            if self._adjust_minutes:
+                adjs = self.data_portal.get_adjustments(
+                    assets,
+                    fields,
+                    self._get_current_minute(),
+                    self.simulation_dt_func()
+                )
+
+                df = df * adjs
+
             if single_asset:
                 # single asset, single field, return a series.
                 return df[assets]
@@ -446,9 +516,7 @@ cdef class BarData:
                 # history calls, one per field, then stitch together the
                 # results. this can definitely be optimized!
 
-                # returned dataframe whose columns are the fields, indexed by
-                # dt.
-                return pd.DataFrame({
+                df_dict = {
                     field: self.data_portal.get_history_window(
                         [assets],
                         self._get_current_minute(),
@@ -456,7 +524,25 @@ cdef class BarData:
                         frequency,
                         field
                     )[assets] for field in fields
-                })
+                }
+
+                if self._adjust_minutes:
+                    adjs = {
+                        field: self.data_portal.get_adjustments(
+                            assets,
+                            field,
+                            self._get_current_minute(),
+                            self.simulation_dt_func()
+                        )[0] for field in fields
+                    }
+
+                    df_dict = {field: df * adjs[field]
+                               for field, df in iteritems(df_dict)}
+
+                # returned dataframe whose columns are the fields, indexed by
+                # dt.
+                return pd.DataFrame(df_dict)
+
             else:
                 df_dict = {
                     field: self.data_portal.get_history_window(
@@ -467,6 +553,19 @@ cdef class BarData:
                         field
                     ) for field in fields
                 }
+
+                if self._adjust_minutes:
+                    adjs = {
+                        field: self.data_portal.get_adjustments(
+                            assets,
+                            field,
+                            self._get_current_minute(),
+                            self.simulation_dt_func()
+                        ) for field in fields
+                    }
+
+                    df_dict = {field: df * adjs[field]
+                               for field, df in iteritems(df_dict)}
 
                 # returned panel has:
                 # items: fields
