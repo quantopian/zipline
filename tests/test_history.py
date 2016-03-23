@@ -246,150 +246,165 @@ class HistoryTestCaseBase(TestCase):
 
         return SQLiteAdjustmentReader(path)
 
-    def verify_regular_dt(self, idx, dt, mode):
+    def verify_regular_dt(self, idx, dt, mode, fields=None, assets=None):
         if mode == "daily":
             freq = "1d"
         else:
             freq = "1m"
 
+        fields = fields if fields is not None else ALL_FIELDS
+        assets = assets if assets is not None else [self.ASSET2, self.ASSET3]
+
         bar_data = BarData(self.data_portal, lambda: dt, mode)
         check_internal_consistency(
-            bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, freq
+            bar_data, assets, fields, 10, freq
         )
 
-        for field in ALL_FIELDS:
-            asset2_series = bar_data.history(self.ASSET2, field, 10, freq)
-            asset3_series = bar_data.history(self.ASSET3, field, 10, freq)
+        for field in fields:
+            for asset in assets:
+                asset_series = bar_data.history(asset, field, 10, freq)
 
-            base = MINUTE_FIELD_INFO[field] + 2
+                base = MINUTE_FIELD_INFO[field] + 2
 
-            if idx < 9:
-                missing_count = 9 - idx
-                present_count = 9 - missing_count
+                if idx < 9:
+                    missing_count = 9 - idx
+                    present_count = 9 - missing_count
 
-                if field in OHLCP:
-                    # asset2 should have some leading nans
-                    np.testing.assert_array_equal(
-                        np.full(missing_count, np.nan),
-                        asset2_series[0:missing_count]
-                    )
+                    if field in OHLCP:
+                        if asset == self.ASSET2:
+                            # asset2 should have some leading nans
+                            np.testing.assert_array_equal(
+                                np.full(missing_count, np.nan),
+                                asset_series[0:missing_count]
+                            )
 
-                    # asset2 should also have some real values
-                    np.testing.assert_array_equal(
-                        np.array(range(base, base + present_count + 1)),
-                        asset2_series[(9 - present_count):]
-                    )
+                            # asset2 should also have some real values
+                            np.testing.assert_array_equal(
+                                np.array(range(base,
+                                               base + present_count + 1)),
+                                asset_series[(9 - present_count):]
+                            )
 
-                    # asset3 should be NaN the entire time
-                    np.testing.assert_array_equal(
-                        np.full(10, np.nan),
-                        asset3_series
-                    )
-                elif field == "volume":
-                    # asset2 should have some zeros (instead of nans)
-                    np.testing.assert_array_equal(
-                        np.zeros(missing_count),
-                        asset2_series[0:missing_count]
-                    )
+                        if asset == self.ASSET3:
+                            # asset3 should be NaN the entire time
+                            np.testing.assert_array_equal(
+                                np.full(10, np.nan),
+                                asset_series
+                            )
+                    elif field == "volume":
+                        if asset == self.ASSET2:
+                            # asset2 should have some zeros (instead of nans)
+                            np.testing.assert_array_equal(
+                                np.zeros(missing_count),
+                                asset_series[0:missing_count]
+                            )
 
-                    # and some real values
-                    np.testing.assert_array_equal(
-                        np.array(
-                            range(base, base + present_count + 1)
-                        ) * 100,
-                        asset2_series[(9 - present_count):]
-                    )
+                            # and some real values
+                            np.testing.assert_array_equal(
+                                np.array(
+                                    range(base, base + present_count + 1)
+                                ) * 100,
+                                asset_series[(9 - present_count):]
+                            )
 
-                    # asset3 is all zeros, no volume yet
-                    np.testing.assert_array_equal(
-                        np.zeros(10),
-                        asset3_series
-                    )
-            else:
-                # asset3 should have data every 10 minutes
-                # construct an array full of nans, put something in the
-                # right slot, and test for comparison
+                        if asset == self.ASSET3:
+                            # asset3 is all zeros, no volume yet
+                            np.testing.assert_array_equal(
+                                np.zeros(10),
+                                asset_series
+                            )
+                else:
+                    # asset3 should have data every 10 minutes
+                    # construct an array full of nans, put something in the
+                    # right slot, and test for comparison
 
-                position_from_end = ((idx + 1) % 10) + 1
+                    position_from_end = ((idx + 1) % 10) + 1
 
-                # asset3's baseline data is 9 NaNs, then 11, then 9 NaNs,
-                # then 21, etc.  for idx 9 to 19, value_for_asset3 should
-                # be a baseline of 11 (then adjusted for the individual
-                # field), thus the rounding down to the nearest 10.
-                value_for_asset3 = (((idx + 1) // 10) * 10) + \
-                    MINUTE_FIELD_INFO[field] + 1
+                    # asset3's baseline data is 9 NaNs, then 11, then 9 NaNs,
+                    # then 21, etc.  for idx 9 to 19, value_for_asset3 should
+                    # be a baseline of 11 (then adjusted for the individual
+                    # field), thus the rounding down to the nearest 10.
+                    value_for_asset3 = (((idx + 1) // 10) * 10) + \
+                        MINUTE_FIELD_INFO[field] + 1
 
-                if field in OHLC:
-                    asset3_answer_key = np.full(10, np.nan)
-                    asset3_answer_key[-position_from_end] = \
-                        value_for_asset3
+                    if field in OHLC:
+                        asset3_answer_key = np.full(10, np.nan)
+                        asset3_answer_key[-position_from_end] = \
+                            value_for_asset3
 
-                    np.testing.assert_array_equal(
-                        np.array(range(base + idx - 9, base + idx + 1)),
-                        asset2_series
-                    )
+                        if asset == self.ASSET2:
+                            np.testing.assert_array_equal(
+                                np.array(
+                                    range(base + idx - 9, base + idx + 1)),
+                                asset_series
+                            )
 
-                    np.testing.assert_array_equal(
-                        asset3_answer_key,
-                        asset3_series
-                    )
-                elif field == "volume":
-                    asset3_answer_key = np.zeros(10)
-                    asset3_answer_key[-position_from_end] = \
-                        value_for_asset3 * 100
+                        if asset == self.ASSET3:
+                            np.testing.assert_array_equal(
+                                asset3_answer_key,
+                                asset_series
+                            )
+                    elif field == "volume":
+                        asset3_answer_key = np.zeros(10)
+                        asset3_answer_key[-position_from_end] = \
+                            value_for_asset3 * 100
 
-                    np.testing.assert_array_equal(
-                        np.array(
-                            range(base + idx - 9, base + idx + 1)
-                        ) * 100,
-                        asset2_series
-                    )
+                        if asset == self.ASSET2:
+                            np.testing.assert_array_equal(
+                                np.array(
+                                    range(base + idx - 9, base + idx + 1)
+                                ) * 100,
+                                asset_series
+                            )
 
-                    np.testing.assert_array_equal(
-                        asset3_answer_key,
-                        asset3_series
-                    )
-                elif field == "price":
-                    # price is always forward filled
+                        if asset == self.ASSET3:
+                            np.testing.assert_array_equal(
+                                asset3_answer_key,
+                                asset_series
+                            )
+                    elif field == "price":
+                        # price is always forward filled
 
-                    # asset2 has prices every minute, so it's easy
+                        # asset2 has prices every minute, so it's easy
 
-                    # at idx 9, the data is 2 to 11
-                    np.testing.assert_array_equal(
-                        range(idx - 7, idx + 3),
-                        asset2_series
-                    )
+                        if asset == self.ASSET2:
+                            # at idx 9, the data is 2 to 11
+                            np.testing.assert_array_equal(
+                                range(idx - 7, idx + 3),
+                                asset_series
+                            )
 
-                    first_part = asset3_series[0:-position_from_end]
-                    second_part = asset3_series[-position_from_end:]
+                        if asset == self.ASSET3:
+                            first_part = asset_series[0:-position_from_end]
+                            second_part = asset_series[-position_from_end:]
 
-                    decile_count = ((idx + 1) // 10)
+                            decile_count = ((idx + 1) // 10)
 
-                    # in our test data, asset3 prices will be nine NaNs,
-                    # then ten 11s, ten 21s, ten 31s...
+                            # in our test data, asset3 prices will be nine
+                            # NaNs, then ten 11s, ten 21s, ten 31s...
 
-                    if decile_count == 1:
-                        np.testing.assert_array_equal(
-                            np.full(len(first_part), np.nan),
-                            first_part
-                        )
+                            if decile_count == 1:
+                                np.testing.assert_array_equal(
+                                    np.full(len(first_part), np.nan),
+                                    first_part
+                                )
 
-                        np.testing.assert_array_equal(
-                            np.array([11] * len(second_part)),
-                            second_part
-                        )
-                    else:
-                        np.testing.assert_array_equal(
-                            np.array([decile_count * 10 - 9] *
-                                     len(first_part)),
-                            first_part
-                        )
+                                np.testing.assert_array_equal(
+                                    np.array([11] * len(second_part)),
+                                    second_part
+                                )
+                            else:
+                                np.testing.assert_array_equal(
+                                    np.array([decile_count * 10 - 9] *
+                                             len(first_part)),
+                                    first_part
+                                )
 
-                        np.testing.assert_array_equal(
-                            np.array([decile_count * 10 + 1] *
-                                     len(second_part)),
-                            second_part
-                        )
+                                np.testing.assert_array_equal(
+                                    np.array([decile_count * 10 + 1] *
+                                             len(second_part)),
+                                    second_part
+                                )
 
 
 def check_internal_consistency(bar_data, assets, fields, bar_count, freq):
@@ -579,16 +594,32 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
                         asset3_series
                     )
 
-    def test_minute_regular(self):
+    @parameterized.expand([
+        ('open_sid_2', 'open', 2),
+        ('high_sid_2', 'high', 2),
+        ('low_sid_2', 'low', 2),
+        ('close_sid_2', 'close', 2),
+        ('volume_sid_2', 'volume', 2),
+        ('open_sid_3', 'open', 3),
+        ('high_sid_3', 'high', 3),
+        ('low_sid_3', 'low', 3),
+        ('close_sid_3', 'close', 3),
+        ('volume_sid_3', 'volume', 3),
+
+    ])
+    def test_minute_regular(self, name, field, sid):
         # asset2 and asset3 both started on 1/5/2015, but asset3 trades every
         # 10 minutes
+        asset = self.env.asset_finder.retrieve_asset(sid)
 
         minutes = self.env.market_minutes_for_day(
             pd.Timestamp("2015-01-05", tz='UTC')
         )[0:60]
 
         for idx, minute in enumerate(minutes):
-            self.verify_regular_dt(idx, minute, "minute")
+            self.verify_regular_dt(idx, minute, "minute",
+                                   assets=[asset],
+                                   fields=[field])
 
     def test_minute_midnight(self):
         midnight = pd.Timestamp("2015-01-06", tz='UTC')
