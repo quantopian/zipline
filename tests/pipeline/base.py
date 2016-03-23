@@ -1,34 +1,25 @@
 """
 Base class for Pipeline API  unittests.
 """
-import abc
 from functools import wraps
 from unittest import TestCase
 
-from nose_parameterized import parameterized
 import numpy as np
 from numpy import arange, prod
-import pandas as pd
 from pandas import date_range, Int64Index, DataFrame
-from pandas.util.testing import assert_series_equal
 from six import iteritems
 
-from zipline.pipeline import Pipeline, TermGraph
+from zipline.pipeline import TermGraph
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.testing import (
     check_arrays,
     ExplodingObject,
-    gen_calendars,
     make_simple_equity_info,
     tmp_asset_finder,
 )
 
 from zipline.utils.functional import dzip_exact
-from zipline.utils.numpy_utils import (
-    NaTD,
-    make_datetime64D
-)
 from zipline.utils.pandas_utils import explode
 from zipline.utils.tradingcalendar import trading_day
 
@@ -175,105 +166,3 @@ class BasePipelineTestCase(TestCase):
     @with_default_shape
     def ones_mask(self, shape):
         return np.ones(shape, dtype=bool)
-
-
-class EventLoaderCommonMixin(object):
-    @abc.abstractproperty
-    def get_sids(cls):
-        raise NotImplementedError('get_sids')
-
-    @abc.abstractproperty
-    def get_dataset(self):
-        raise NotImplementedError('get_dataset')
-
-    @abc.abstractproperty
-    def loader_type(self):
-        raise NotImplementedError('loader_type')
-
-    def loader_args(self, dates):
-        """Construct the base  object to pass to the loader.
-
-        Parameters
-        ----------
-        dates : pd.DatetimeIndex
-            The dates we can serve.
-
-        Returns
-        -------
-        args : tuple[any]
-            The arguments to forward to the loader positionally.
-        """
-        return dates, self.get_dataset()
-
-    def setup_engine(self, dates):
-        """
-        Make a Pipeline Enigne object based on the given dates.
-        """
-        loader = self.loader_type(*self.loader_args(dates))
-        return SimplePipelineEngine(lambda _: loader, dates, self.asset_finder)
-
-    @staticmethod
-    def _compute_busday_offsets(announcement_dates):
-        """
-        Compute expected business day offsets from a DataFrame of announcement
-        dates.
-        """
-        # Column-vector of dates on which factor `compute` will be called.
-        raw_call_dates = announcement_dates.index.values.astype(
-            'datetime64[D]'
-        )[:, None]
-
-        # 2D array of dates containining expected nexg announcement.
-        raw_announce_dates = (
-            announcement_dates.values.astype('datetime64[D]')
-        )
-
-        # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
-        # We fill these entries with NaNs later.
-        whereNaT = raw_announce_dates == NaTD
-        raw_announce_dates[whereNaT] = make_datetime64D(0)
-
-        # The abs call here makes it so that we can use this function to
-        # compute offsets for both next and previous earnings (previous
-        # earnings offsets come back negative).
-        expected = abs(np.busday_count(
-            raw_call_dates,
-            raw_announce_dates
-        ).astype(float))
-
-        expected[whereNaT] = np.nan
-        return pd.DataFrame(
-            data=expected,
-            columns=announcement_dates.columns,
-            index=announcement_dates.index,
-        )
-
-    @parameterized.expand(gen_calendars(
-        '2014-01-01',
-        '2014-01-31',
-        critical_dates=pd.to_datetime([
-            '2014-01-05',
-            '2014-01-10',
-            '2014-01-15',
-            '2014-01-20',
-        ], utc=True),
-    ))
-    def test_compute(self, dates):
-        engine = self.setup_engine(dates)
-        cols = self.setup(dates)
-
-        pipe = Pipeline(
-            columns=self.pipeline_columns
-        )
-
-        result = engine.run_pipeline(
-            pipe,
-            start_date=dates[0],
-            end_date=dates[-1],
-        )
-
-        for sid in self.get_sids():
-            for col_name in cols.keys():
-                assert_series_equal(result[col_name].xs(sid, level=1),
-                                    cols[col_name][sid],
-                                    check_names=False)

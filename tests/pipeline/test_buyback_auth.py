@@ -5,7 +5,6 @@ import blaze as bz
 from blaze.compute.core import swap_resources_into_scope
 import pandas as pd
 from six import iteritems
-from .base import EventLoaderCommonMixin
 
 from zipline.pipeline.common import(
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
@@ -39,7 +38,9 @@ from zipline.pipeline.loaders.utils import (
     zip_with_floats,
     zip_with_dates
 )
-from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithPipelineEventDataLoader, ZiplineTestCase
+)
 
 date_intervals = [[None, '2014-01-04'], ['2014-01-05', '2014-01-09'],
                   ['2014-01-10', None]]
@@ -74,8 +75,8 @@ def get_expected_previous_values(zip_date_index_with_vals,
     }, index=dates)
 
 
-class CashBuybackAuthLoaderTestCase(WithAssetFinder, ZiplineTestCase,
-                                    EventLoaderCommonMixin):
+class CashBuybackAuthLoaderTestCase(WithPipelineEventDataLoader,
+                                    ZiplineTestCase):
     """
     Test for cash buyback authorizations dataset.
     """
@@ -118,8 +119,8 @@ class CashBuybackAuthLoaderTestCase(WithAssetFinder, ZiplineTestCase,
         return cols
 
 
-class ShareBuybackAuthLoaderTestCase(WithAssetFinder, ZiplineTestCase,
-                                     EventLoaderCommonMixin):
+class ShareBuybackAuthLoaderTestCase(WithPipelineEventDataLoader,
+                                     ZiplineTestCase):
     """
     Test for share buyback authorizations dataset.
     """
@@ -167,11 +168,11 @@ class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):
     """
     loader_type = BlazeCashBuybackAuthorizationsLoader
 
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         _, mapping = super(
             BlazeCashBuybackAuthLoaderTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return (bz.data(pd.concat(
             pd.DataFrame({
                 BUYBACK_ANNOUNCEMENT_FIELD_NAME:
@@ -191,11 +192,11 @@ class BlazeShareBuybackAuthLoaderTestCase(ShareBuybackAuthLoaderTestCase):
     """
     loader_type = BlazeShareBuybackAuthorizationsLoader
 
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         _, mapping = super(
             BlazeShareBuybackAuthLoaderTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return (bz.data(pd.concat(
             pd.DataFrame({
                 BUYBACK_ANNOUNCEMENT_FIELD_NAME:
@@ -214,11 +215,11 @@ class BlazeShareBuybackAuthLoaderNotInteractiveTestCase(
         BlazeShareBuybackAuthLoaderTestCase):
     """Test case for passing a non-interactive symbol and a dict of resources.
     """
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         (bound_expr,) = super(
             BlazeShareBuybackAuthLoaderNotInteractiveTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return swap_resources_into_scope(bound_expr, {})
 
 
@@ -226,9 +227,9 @@ class BlazeCashBuybackAuthLoaderNotInteractiveTestCase(
         BlazeCashBuybackAuthLoaderTestCase):
     """Test case for passing a non-interactive symbol and a dict of resources.
     """
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         (bound_expr,) = super(
             BlazeCashBuybackAuthLoaderNotInteractiveTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return swap_resources_into_scope(bound_expr, {})

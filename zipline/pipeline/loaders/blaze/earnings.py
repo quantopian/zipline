@@ -58,18 +58,4 @@ class BlazeEarningsCalendarLoader(BlazeEventsLoader):
     })
 
     concrete_loader = EarningsCalendarLoader
-
-    def __init__(self,
-                 expr,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 dataset=EarningsCalendar,
-                 **kwargs):
-        super(
-            BlazeEarningsCalendarLoader, self
-        ).__init__(expr, dataset=dataset,
-                   resources=resources, odo_kwargs=odo_kwargs,
-                   data_query_time=data_query_time,
-                   data_query_tz=data_query_tz, **kwargs)
+    default_dataset = EarningsCalendar

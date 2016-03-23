@@ -2,13 +2,19 @@ from unittest import TestCase
 
 from contextlib2 import ExitStack
 from logbook import NullHandler
+from nose_parameterized import parameterized
+import numpy as np
 import pandas as pd
+from pandas.util.testing import assert_series_equal
 from six import with_metaclass
 
-from .core import tmp_asset_finder, make_simple_equity_info
+from .core import tmp_asset_finder, make_simple_equity_info, gen_calendars
 from ..finance.trading import TradingEnvironment
 from ..utils import tradingcalendar, factory
 from ..utils.final import FinalMeta, final
+from zipline.pipeline import Pipeline, SimplePipelineEngine
+from zipline.utils.numpy_utils import make_datetime64D
+from zipline.utils.numpy_utils import NaTD
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -177,14 +183,7 @@ class WithAssetFinder(object):
     def _make_info(cls):
         return None
 
-    @classmethod
-    def make_equities_info(cls):
-        return make_simple_equity_info(
-            cls.get_sids(),
-            start_date=pd.Timestamp('2013-01-01', tz='UTC'),
-            end_date=pd.Timestamp('2015-01-01', tz='UTC'),
-        )
-
+    make_equities_info = _make_info
     make_futures_info = _make_info
     make_exchanges_info = _make_info
     make_root_symbols_info = _make_info
@@ -299,3 +298,122 @@ class WithNYSETradingDays(object):
         start_loc = end_loc - cls.TRADING_DAY_COUNT
 
         cls.trading_days = all_days[start_loc:end_loc + 1]
+
+
+class WithPipelineEventDataLoader(WithAssetFinder):
+    """
+    ZiplineTestCase mixin providing common test methods/behaviors for event
+    data loaders.
+
+    `get_sids` must return the sids being tested.
+    `get_dataset` must return {sid -> pd.DataFrame}
+    `loader_type` must return the loader class to use for loading the dataset
+    `make_asset_finder` returns a default asset finder which can be overridden.
+    """
+    @classmethod
+    def get_sids(cls):
+        return range(0, 5)
+
+    @classmethod
+    def get_dataset(cls):
+        return {sid: pd.DataFrame() for sid in cls.get_sids()}
+
+    @classmethod
+    def loader_type(self):
+        return None
+
+    @classmethod
+    def make_equities_info(cls):
+        return make_simple_equity_info(
+            cls.get_sids(),
+            start_date=pd.Timestamp('2013-01-01', tz='UTC'),
+            end_date=pd.Timestamp('2015-01-01', tz='UTC'),
+        )
+
+    def pipeline_event_loader_args(self, dates):
+        """Construct the base  object to pass to the loader.
+
+        Parameters
+        ----------
+        dates : pd.DatetimeIndex
+            The dates we can serve.
+
+        Returns
+        -------
+        args : tuple[any]
+            The arguments to forward to the loader positionally.
+        """
+        return dates, self.get_dataset()
+
+    def pipeline_event_setup_engine(self, dates):
+        """
+        Make a Pipeline Enigne object based on the given dates.
+        """
+        loader = self.loader_type(*self.pipeline_event_loader_args(dates))
+        return SimplePipelineEngine(lambda _: loader, dates, self.asset_finder)
+
+    @staticmethod
+    def _compute_busday_offsets(announcement_dates):
+        """
+        Compute expected business day offsets from a DataFrame of announcement
+        dates.
+        """
+        # Column-vector of dates on which factor `compute` will be called.
+        raw_call_dates = announcement_dates.index.values.astype(
+            'datetime64[D]'
+        )[:, None]
+
+        # 2D array of dates containining expected nexg announcement.
+        raw_announce_dates = (
+            announcement_dates.values.astype('datetime64[D]')
+        )
+
+        # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
+        # We fill these entries with NaNs later.
+        whereNaT = raw_announce_dates == NaTD
+        raw_announce_dates[whereNaT] = make_datetime64D(0)
+
+        # The abs call here makes it so that we can use this function to
+        # compute offsets for both next and previous earnings (previous
+        # earnings offsets come back negative).
+        expected = abs(np.busday_count(
+            raw_call_dates,
+            raw_announce_dates
+        ).astype(float))
+
+        expected[whereNaT] = np.nan
+        return pd.DataFrame(
+            data=expected,
+            columns=announcement_dates.columns,
+            index=announcement_dates.index,
+        )
+
+    @parameterized.expand(gen_calendars(
+        '2014-01-01',
+        '2014-01-31',
+        critical_dates=pd.to_datetime([
+            '2014-01-05',
+            '2014-01-10',
+            '2014-01-15',
+            '2014-01-20',
+        ], utc=True),
+    ))
+    def test_compute(self, dates):
+        engine = self.pipeline_event_setup_engine(dates)
+        cols = self.setup(dates)
+
+        pipe = Pipeline(
+            columns=self.pipeline_columns
+        )
+
+        result = engine.run_pipeline(
+            pipe,
+            start_date=dates[0],
+            end_date=dates[-1],
+        )
+
+        for sid in self.get_sids():
+            for col_name in cols.keys():
+                assert_series_equal(result[col_name].xs(sid, level=1),
+                                    cols[col_name][sid],
+                                    check_names=False)

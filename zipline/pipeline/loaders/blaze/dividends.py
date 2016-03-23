@@ -72,21 +72,7 @@ class BlazeDividendsByAnnouncementDateLoader(BlazeEventsLoader):
     })
 
     concrete_loader = DividendsByAnnouncementDateLoader
-
-    def __init__(self,
-                 expr,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 dataset=DividendsByAnnouncementDate,
-                 **kwargs):
-        super(
-            BlazeDividendsByAnnouncementDateLoader, self
-        ).__init__(expr, dataset=dataset,
-                   resources=resources, odo_kwargs=odo_kwargs,
-                   data_query_time=data_query_time,
-                   data_query_tz=data_query_tz, **kwargs)
+    default_dataset = DividendsByAnnouncementDate
 
 
 class BlazeDividendsByExDateLoader(BlazeEventsLoader):
@@ -142,21 +128,7 @@ class BlazeDividendsByExDateLoader(BlazeEventsLoader):
     })
 
     concrete_loader = DividendsByExDateLoader
-
-    def __init__(self,
-                 expr,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 dataset=DividendsByExDate,
-                 **kwargs):
-        super(
-            BlazeDividendsByExDateLoader, self
-        ).__init__(expr, dataset=dataset,
-                   resources=resources, odo_kwargs=odo_kwargs,
-                   data_query_time=data_query_time,
-                   data_query_tz=data_query_tz, **kwargs)
+    default_dataset = DividendsByExDate
 
 
 class BlazeDividendsByPayDateLoader(BlazeEventsLoader):
@@ -212,18 +184,4 @@ class BlazeDividendsByPayDateLoader(BlazeEventsLoader):
     })
 
     concrete_loader = DividendsByPayDateLoader
-
-    def __init__(self,
-                 expr,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 dataset=DividendsByPayDate,
-                 **kwargs):
-        super(
-            BlazeDividendsByPayDateLoader, self
-        ).__init__(expr, dataset=dataset,
-                   resources=resources, odo_kwargs=odo_kwargs,
-                   data_query_time=data_query_time,
-                   data_query_tz=data_query_tz, **kwargs)
+    default_dataset = DividendsByPayDate

@@ -60,8 +60,9 @@ def next_event_frame(events_by_sid,
 
         # Iterate over the raw Series values, since we're comparing against
         # numpy arrays anyway.
-        iterkv = zip(event_dates.index.values, event_dates.values, values)
-        for knowledge_date, event_date, value in iterkv:
+        iter_date_vals = zip(event_dates.index.values, event_dates.values,
+                             values)
+        for knowledge_date, event_date, value in iter_date_vals:
             date_mask = (
                 (knowledge_date <= raw_dates) &
                 (raw_dates <= event_date)

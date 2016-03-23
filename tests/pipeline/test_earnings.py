@@ -5,7 +5,6 @@ import blaze as bz
 from blaze.compute.core import swap_resources_into_scope
 import pandas as pd
 from six import iteritems
-from .base import EventLoaderCommonMixin
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
@@ -28,7 +27,10 @@ from zipline.pipeline.loaders.utils import (
     zip_with_dates
 )
 
-from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithPipelineEventDataLoader,
+    ZiplineTestCase
+)
 
 earnings_cases = [
     # K1--K2--A1--A2.
@@ -111,8 +113,8 @@ prev_dates = [
 ]
 
 
-class EarningsCalendarLoaderTestCase(WithAssetFinder, ZiplineTestCase,
-                                     EventLoaderCommonMixin):
+class EarningsCalendarLoaderTestCase(WithPipelineEventDataLoader,
+                                     ZiplineTestCase):
     """
     Tests for loading the earnings announcement data.
     """
@@ -122,10 +124,6 @@ class EarningsCalendarLoaderTestCase(WithAssetFinder, ZiplineTestCase,
         DAYS_SINCE_PREV: BusinessDaysSincePreviousEarnings(),
         DAYS_TO_NEXT: BusinessDaysUntilNextEarnings(),
     }
-
-    @classmethod
-    def get_sids(cls):
-        return range(5)
 
     @classmethod
     def get_dataset(cls):
@@ -199,11 +197,11 @@ class EarningsCalendarLoaderTestCase(WithAssetFinder, ZiplineTestCase,
 class BlazeEarningsCalendarLoaderTestCase(EarningsCalendarLoaderTestCase):
     loader_type = BlazeEarningsCalendarLoader
 
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         _, mapping = super(
             BlazeEarningsCalendarLoaderTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return (bz.data(pd.concat(
             pd.DataFrame({
                 ANNOUNCEMENT_FIELD_NAME: df[ANNOUNCEMENT_FIELD_NAME],
@@ -219,9 +217,9 @@ class BlazeEarningsCalendarLoaderNotInteractiveTestCase(
     """Test case for passing a non-interactive symbol and a dict of resources.
     """
 
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         (bound_expr,) = super(
             BlazeEarningsCalendarLoaderNotInteractiveTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return swap_resources_into_scope(bound_expr, {})
