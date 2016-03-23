@@ -303,7 +303,7 @@ cdef class BarData:
             })
 
     cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        if asset.start_date <= normalize_date(dt) <= asset.end_date:
+        if asset._is_alive(dt, False):
             # is there a last price?
             return not np.isnan(
                 data_portal.get_spot_value(
@@ -353,10 +353,7 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        if asset.start_date > dt:
-            return False
-
-        if asset.end_date <= dt:
+        if not asset._is_alive(dt, False):
             return False
 
         current_volume = data_portal.get_spot_value(
