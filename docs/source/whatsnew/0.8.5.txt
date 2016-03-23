@@ -52,7 +52,9 @@ None
 Bug Fixes
 ~~~~~~~~~
 
-None
+* Fixed a bug where merging two numerical expressions failed given too many
+  inputs. This caused running a pipeline to fail when combining more than ten
+  factors or filters. (:issue:`1072`)
 
 Performance
 ~~~~~~~~~~~
