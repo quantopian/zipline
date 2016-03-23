@@ -248,7 +248,18 @@ class NumericalExpression(ComputableTerm):
         new_inputs.
         """
         expr = self._expr
-        for idx, input_ in enumerate(self.inputs):
+
+        # If we have 11+ variables, some of our variable names may be
+        # substrings of other variable names. For example, we might have x_1,
+        # x_10, and x_100. By enumerating in reverse order, we ensure that
+        # every variable name which is a substring of another variable name is
+        # processed after the variable of which it is a substring. This
+        # guarantees that the substitution of any given variable index only
+        # ever affects exactly its own index. For example, if we have variables
+        # with indices going up to 100, we will process all of the x_1xx names
+        # before x_1x, which will be before x_1, so the substitution of x_1
+        # will not affect x_1x, which will not affect x_1xx.
+        for idx, input_ in reversed(list(enumerate(self.inputs))):
             old_varname = "x_%d" % idx
             # Temporarily rebind to x_temp_N so that we don't overwrite the
             # same value multiple times.
