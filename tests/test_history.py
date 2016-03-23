@@ -12,7 +12,7 @@ from testfixtures import TempDirectory
 from zipline import TradingAlgorithm
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets import Asset
-from zipline.data.data_portal import DataPortal
+from zipline.data.data_portal import DataPortal, DailyHistoryAggregator
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
@@ -1751,3 +1751,99 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
                                     self.expected_values[asset][field][i],
                                     err_msg="sid={0} field={1} dt={2}".format(
                                         asset, field, minute))
+
+
+class DailyHistoryAggregatorTestCase(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tempdir = TempDirectory()
+        start_dt = pd.Timestamp("2014-02-03", tz='UTC')
+        end_dt = pd.Timestamp("2014-02-04", tz='UTC')
+
+        cls.env = TradingEnvironment(min_date=start_dt)
+
+        trading_days = cls.env.days_in_range(
+            start=start_dt,
+            end=end_dt
+        )
+        cls.env.write_data(equities_data={
+            1: {
+                "start_date": pd.Timestamp("2014-02-03", tz='UTC'),
+                "end_date": cls.env.next_trading_day(
+                    pd.Timestamp("2016-02-04", tz='UTC')
+                ),
+                "symbol": "ASSET1"
+            }
+        }
+        )
+
+        cls.ASSET1 = cls.env.asset_finder.retrieve_asset(1)
+
+        market_opens = cls.env.open_and_closes.market_open
+
+        minute_writer = BcolzMinuteBarWriter(
+            trading_days[0],
+            cls.tempdir.path,
+            market_opens,
+            US_EQUITIES_MINUTES_PER_DAY
+        )
+
+        asset_minutes = cls.env.minutes_for_days_in_range(
+            cls.ASSET1.start_date,
+            cls.env.previous_trading_day(cls.ASSET1.end_date)
+        )
+        minutes_count = len(asset_minutes)
+
+        ohlc_arr = np.array([np.nan] * minutes_count)
+        ohlc_arr[0] = 1
+
+        v_arr = np.array([0] * minutes_count)
+        v_arr[0] = 100
+
+        df = pd.DataFrame({
+            "open": ohlc_arr,
+            "high": ohlc_arr,
+            "low": ohlc_arr,
+            "close": ohlc_arr,
+            "volume": v_arr,
+            "dt": asset_minutes
+        }).set_index("dt")
+
+        minute_writer.write(1, df)
+
+        cls.equity_minute_reader = BcolzMinuteBarReader(cls.tempdir.path)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanup()
+
+    def test_nan_closes(self):
+        """
+        Tests the functionality of recursively calling
+        DailyHistoryAggregator.close until we get a non-Nan value, specifically
+        that it doesn't cause the returned array to have an abnormal shape
+        """
+
+        agg = DailyHistoryAggregator(
+            self.env.open_and_closes.market_open,
+            self.equity_minute_reader
+        )
+
+        # The code path where nothing is cached
+        result = agg.closes(
+            [self.ASSET1],
+            pd.Timestamp('2014-02-03 14:50', tz='UTC')
+        )
+
+        self.assertEqual(result, np.array([1.]))
+
+        # The code path where a value is cached, but the cached dt does not
+        # equal the preceeding minute (a.k.a, we are not querying the dt
+        # immediately following the cached dt)
+        result = agg.closes(
+            [self.ASSET1],
+            pd.Timestamp('2014-02-03 14:50', tz='UTC')
+        )
+
+        self.assertEqual(result, np.array([1.]))

@@ -341,7 +341,7 @@ class DailyHistoryAggregator(object):
                         if pd.isnull(val):
                             val = self.closes(
                                 [asset],
-                                pd.Timestamp(prev_dt, tz='UTC'))
+                                pd.Timestamp(prev_dt, tz='UTC'))[0]
                         entries[asset] = (dt_value, val)
                         closes.append(val)
                         continue
@@ -350,7 +350,7 @@ class DailyHistoryAggregator(object):
                         asset, dt, 'close')
                     if pd.isnull(val):
                         val = self.closes([asset],
-                                          pd.Timestamp(prev_dt, tz='UTC'))
+                                          pd.Timestamp(prev_dt, tz='UTC'))[0]
                     entries[asset] = (dt_value, val)
                     closes.append(val)
                     continue
