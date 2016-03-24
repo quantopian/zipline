@@ -308,6 +308,8 @@ class TradingAlgorithm(object):
         self._before_trading_start = None
         self._analyze = None
 
+        self._in_bts = False
+
         self.event_manager = EventManager(
             create_context=kwargs.pop('create_event_context', None),
         )
@@ -392,9 +394,13 @@ class TradingAlgorithm(object):
         if self._before_trading_start is None:
             return
 
+        self._in_bts = True
+
         with handle_non_market_minutes(data) if \
                 self.data_frequency == "minute" else ExitStack():
             self._before_trading_start(self, data)
+
+        self._in_bts = False
 
     def handle_data(self, data):
         self._handle_data(self, data)
@@ -1246,14 +1252,41 @@ class TradingAlgorithm(object):
 
         assets = self._calculate_universe()
 
-        return self.data_portal.get_history_window(
-            assets,
-            self.datetime,
-            bar_count,
-            frequency,
-            field,
-            ffill,
-        )
+        if not self._in_bts:
+            return self.data_portal.get_history_window(
+                assets,
+                self.datetime,
+                bar_count,
+                frequency,
+                field,
+                ffill,
+            )
+        else:
+            # If we are in before_trading_start, we need to get the window
+            # as of the previous market minute
+            adjusted_dt = \
+                self.data_portal.env.previous_market_minute(self.datetime)
+
+            window = self.data_portal.get_history_window(
+                assets,
+                adjusted_dt,
+                bar_count,
+                frequency,
+                field,
+                ffill,
+            )
+
+            # Get the adjustments between the last market minute and the
+            # current before_trading_start dt and apply to the window
+            adjs = self.data_portal.get_adjustments(
+                assets,
+                field,
+                adjusted_dt,
+                self.datetime
+            )
+            window = window * adjs
+
+        return window
 
     ####################
     # Account Controls #
