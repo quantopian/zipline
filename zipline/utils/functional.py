@@ -1,6 +1,7 @@
-from operator import methodcaller
-from six.moves import map
 from pprint import pformat
+
+from six import viewkeys
+from six.moves import map
 
 
 def mapall(funcs, seq):
@@ -76,7 +77,7 @@ def dzip_exact(*dicts):
     >>> dzip_exact({'a': 1, 'b': 2}, {'a': 3, 'b': 4})
     {'a': (1, 3), 'b': (2, 4)}
     """
-    if not same(*map(methodcaller('viewkeys'), dicts)):
+    if not same(*map(viewkeys, dicts)):
         raise ValueError(
             "dict keys not all equal:\n\n%s" % _format_unequal_keys(dicts)
         )
