@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import print_function
+from functools import partial
 import os
 import re
 import sys
@@ -162,19 +163,27 @@ def _with_bounds(req):
 REQ_PATTERN = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
 
 
-def _conda_format(req):
+def _conda_format(req, selector=None):
     match = REQ_PATTERN.match(req)
     if match and match.group(1).lower() == 'numpy':
-        return 'numpy x.x'
+        line = 'numpy x.x'
+    else:
+        line = REQ_PATTERN.sub(
+            lambda m: '%s %s%s' % (m.group(1).lower(), m.group(2), m.group(3)),
+            req,
+            1,
+        )
 
-    return REQ_PATTERN.sub(
-        lambda m: '%s %s%s' % (m.group(1).lower(), m.group(2), m.group(3)),
-        req,
-        1,
-    )
+    if selector is not None:
+        line += ' # [%s]' % selector
+
+    return line
 
 
-def read_requirements(path, strict_bounds, conda_format=False):
+def read_requirements(path,
+                      strict_bounds,
+                      conda_format=False,
+                      conda_selector=None):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
 
@@ -189,15 +198,22 @@ def read_requirements(path, strict_bounds, conda_format=False):
             reqs = map(_with_bounds, reqs)
 
         if conda_format:
-            reqs = map(_conda_format, reqs)
+            reqs = map(partial(_conda_format, selector=conda_selector), reqs)
 
         return list(reqs)
 
 
 def install_requires(strict_bounds=False, conda_format=False):
-    return read_requirements('etc/requirements.txt',
+    reqs = read_requirements('etc/requirements.txt',
                              strict_bounds=strict_bounds,
                              conda_format=conda_format)
+    if sys.version_info.major == 2 or conda_format:
+        reqs += read_requirements('etc/requirements_py2.txt',
+                                  strict_bounds=strict_bounds,
+                                  conda_format=conda_format,
+                                  conda_selector='py2k')
+
+    return reqs
 
 
 def extras_requires(conda_format=False):
@@ -241,7 +257,7 @@ conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
 
 setup_requires = module_requirements(
     'etc/requirements.txt',
-    ('Cython', 'numpy'),
+    ('Cython', 'numpy', 'bcolz'),
     strict_bounds=conda_build,
     conda_format=conda_build,
 )

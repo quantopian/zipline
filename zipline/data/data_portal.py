@@ -30,6 +30,7 @@ from zipline.data.us_equity_loader import (
 )
 
 from zipline.utils import tradingcalendar
+from zipline.utils.compat import lru_cache
 from zipline.utils.math_utils import (
     nansum,
     nanmean,
@@ -1739,6 +1740,31 @@ class DataPortal(object):
         else:
             return [assets] if isinstance(assets, Asset) else []
 
+    @lru_cache(20)
+    def _get_minute_count_for_transform(self, ending_minute, days_count):
+        # cache size picked somewhat loosely.  this code exists purely to
+        # handle deprecated API.
+
+        # bars is the number of days desired.  we have to translate that
+        # into the number of minutes we want.
+        # we get all the minutes for the last (bars - 1) days, then add
+        # all the minutes so far today.  the +2 is to account for ignoring
+        # today, and the previous day, in doing the math.
+        previous_day = self.env.previous_trading_day(ending_minute)
+        days = self.env.days_in_range(
+            self.env.add_trading_days(-days_count + 2, previous_day),
+            previous_day,
+        )
+
+        minutes_count = \
+            sum(210 if day in self.env.early_closes else 390 for day in days)
+
+        # add the minutes for today
+        today_open = self.env.get_open_and_close(ending_minute)[0]
+        minutes_count += (ending_minute - today_open).total_seconds() // 60
+
+        return minutes_count
+
     def get_simple_transform(self, asset, transform_name, dt, data_frequency,
                              bars=None):
         if transform_name == "returns":
@@ -1755,11 +1781,15 @@ class DataPortal(object):
 
         if data_frequency == "minute":
             freq_str = "1m"
+            calculated_bar_count = self._get_minute_count_for_transform(
+                dt, bars
+            )
         else:
             freq_str = "1d"
+            calculated_bar_count = bars
 
         price_arr = self.get_history_window(
-            [asset], dt, bars, freq_str, "price", ffill=True
+            [asset], dt, calculated_bar_count, freq_str, "price", ffill=True
         )[asset]
 
         if transform_name == "mavg":
@@ -1768,7 +1798,8 @@ class DataPortal(object):
             return nanstd(price_arr, ddof=1)
         elif transform_name == "vwap":
             volume_arr = self.get_history_window(
-                [asset], dt, bars, freq_str, "volume", ffill=True
+                [asset], dt, calculated_bar_count, freq_str, "volume",
+                ffill=True
             )[asset]
 
             vol_sum = nansum(volume_arr)
