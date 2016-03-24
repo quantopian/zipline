@@ -2,17 +2,20 @@ import warnings
 from unittest import TestCase
 from mock import patch
 import pandas as pd
+import numpy as np
 from testfixtures import TempDirectory
 
 from zipline import TradingAlgorithm
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import BcolzMinuteBarWriter, \
     US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
-from zipline.data.us_equity_pricing import BcolzDailyBarReader
+from zipline.data.us_equity_pricing import BcolzDailyBarReader, \
+    SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from zipline.finance.trading import TradingEnvironment, SimulationParameters
 from zipline.protocol import BarData
 from zipline.testing.core import write_minute_data_for_asset, \
-    create_daily_df_for_asset, DailyBarWriterFromDataFrames
+    create_daily_df_for_asset, DailyBarWriterFromDataFrames, MockDailyBarReader
+from zipline.testing import str_to_seconds
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 simple_algo = """
@@ -23,7 +26,7 @@ def initialize(context):
 def handle_data(context, data):
     assert sid(1) in data
     assert sid(2) in data
-    assert len(data) == 2
+    assert len(data) == 3
     for asset in data:
         pass
 """
@@ -36,6 +39,24 @@ def initialize(context):
 
 def handle_data(context, data):
     context.history_window = history(5, "1m", "volume")
+"""
+
+history_bts_algo = """
+from zipline.api import sid, history, record
+
+def initialize(context):
+    context.sid3 = sid(3)
+    context.num_bts = 0
+
+def before_trading_start(context, data):
+    context.num_bts += 1
+
+    # Get history at the second BTS (beginning of second day)
+    if context.num_bts == 2:
+        record(history=history(5, "1m", "volume"))
+
+def handle_data(context, data):
+    pass
 """
 
 simple_transforms_algo = """
@@ -102,7 +123,7 @@ class TestAPIShim(TestCase):
         )
 
         equities_data = {}
-        for sid in [1, 2]:
+        for sid in [1, 2, 3]:
             equities_data[sid] = {
                 "start_date": cls.trading_days[0],
                 "end_date": cls.env.next_trading_day(cls.trading_days[-1]),
@@ -113,6 +134,7 @@ class TestAPIShim(TestCase):
 
         cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
         cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
+        cls.asset3 = cls.env.asset_finder.retrieve_asset(3)
 
         market_opens = cls.env.open_and_closes.market_open.loc[
             cls.trading_days]
@@ -124,11 +146,13 @@ class TestAPIShim(TestCase):
             US_EQUITIES_MINUTES_PER_DAY
         )
 
-        for sid in [1, 2]:
+        for sid in [1, 2, 3]:
             write_minute_data_for_asset(
                 cls.env, minute_writer, cls.trading_days[0],
                 cls.trading_days[-1], sid
             )
+
+        cls.adj_reader = cls.create_adjustments_reader()
 
         cls.sim_params = SimulationParameters(
             period_start=cls.trading_days[0],
@@ -140,7 +164,8 @@ class TestAPIShim(TestCase):
         cls.data_portal = DataPortal(
             cls.env,
             equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-            equity_daily_reader=cls.build_daily_data()
+            equity_daily_reader=cls.build_daily_data(),
+            adjustment_reader=cls.adj_reader
         )
 
     @classmethod
@@ -151,6 +176,8 @@ class TestAPIShim(TestCase):
             1: create_daily_df_for_asset(cls.env, cls.trading_days[0],
                                          cls.trading_days[-1]),
             2: create_daily_df_for_asset(cls.env, cls.trading_days[0],
+                                         cls.trading_days[-1]),
+            3: create_daily_df_for_asset(cls.env, cls.trading_days[0],
                                          cls.trading_days[-1])
         }
 
@@ -158,6 +185,41 @@ class TestAPIShim(TestCase):
         daily_writer.write(path, cls.trading_days, dfs)
 
         return BcolzDailyBarReader(path)
+
+    @classmethod
+    def create_adjustments_reader(cls):
+        path = cls.tempdir.getpath("test_adjustments.db")
+
+        adj_writer = SQLiteAdjustmentWriter(
+            path,
+            cls.env.trading_days,
+            MockDailyBarReader()
+        )
+
+        splits = pd.DataFrame([
+            {
+                'effective_date': str_to_seconds("2016-01-06"),
+                'ratio': 0.5,
+                'sid': cls.asset3.sid
+            }
+        ])
+
+        # Mergers and Dividends are not tested, but we need to have these
+        # anyway
+        mergers = pd.DataFrame({}, columns=['effective_date', 'ratio', 'sid'])
+        mergers.effective_date = mergers.effective_date.astype(int)
+        mergers.ratio = mergers.ratio.astype(float)
+        mergers.sid = mergers.sid.astype(int)
+
+        dividends = pd.DataFrame({}, columns=['ex_date', 'record_date',
+                                              'declared_date', 'pay_date',
+                                              'amount', 'sid'])
+        dividends.amount = dividends.amount.astype(float)
+        dividends.sid = dividends.sid.astype(int)
+
+        adj_writer.write(splits, mergers, dividends)
+
+        return SQLiteAdjustmentReader(path)
 
     @classmethod
     def tearDownClass(cls):
@@ -244,7 +306,7 @@ class TestAPIShim(TestCase):
                 # while data.history doesn't.
                 if is_legacy:
                     ghw.assert_called_with(
-                        [self.asset1, self.asset2],
+                        [self.asset1, self.asset2, self.asset3],
                         test_end_minute,
                         5,
                         "1m",
@@ -253,7 +315,7 @@ class TestAPIShim(TestCase):
                     )
                 else:
                     ghw.assert_called_with(
-                        [self.asset1, self.asset2],
+                        [self.asset1, self.asset2, self.asset3],
                         test_end_minute,
                         5,
                         "1m",
@@ -277,7 +339,7 @@ class TestAPIShim(TestCase):
         )
         assert_get_history_window_called(
             lambda: bar_data.history(
-                [self.asset1, self.asset2],
+                [self.asset1, self.asset2, self.asset3],
                 "volume",
                 5,
                 "1m"
@@ -388,6 +450,27 @@ class TestAPIShim(TestCase):
             self.assertEqual(8, w[0].lineno)
             self.assertEqual("The `history` method is deprecated.  Use "
                              "`data.history` instead.", str(w[0].message))
+
+    def test_old_new_history_bts_paths(self):
+        """
+        Tests that calling history in before_trading_start gets us the correct
+        values, which involves 1) calling data_portal.get_history_window as of
+        the previous market minute, 2) getting adjustments between the previous
+        market minute and the current time, and 3) applying those adjustments
+        """
+        algo = self.create_algo(history_bts_algo)
+        algo.run(self.data_portal)
+
+        expected_vol_without_split = np.arange(386, 391) * 100
+        expected_vol_with_split = np.arange(386, 391) * 200
+
+        window = algo.recorded_vars['history']
+        np.testing.assert_array_equal(window[self.asset1].values,
+                                      expected_vol_without_split)
+        np.testing.assert_array_equal(window[self.asset2].values,
+                                      expected_vol_without_split)
+        np.testing.assert_array_equal(window[self.asset3].values,
+                                      expected_vol_with_split)
 
     def test_simple_transforms(self):
         with warnings.catch_warnings(record=True) as w:
