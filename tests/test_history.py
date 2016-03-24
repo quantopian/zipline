@@ -1,6 +1,8 @@
 from textwrap import dedent
 from unittest import TestCase
 
+from numbers import Real
+
 import pandas as pd
 import numpy as np
 from numpy import nan
@@ -12,7 +14,7 @@ from testfixtures import TempDirectory
 from zipline import TradingAlgorithm
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets import Asset
-from zipline.data.data_portal import DataPortal
+from zipline.data.data_portal import DataPortal, DailyHistoryAggregator
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
@@ -1646,9 +1648,9 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
         super(MinuteToDailyAggregationTestCase, self).init_instance_fixtures()
         # Set up a fresh data portal for each test, since order of calling
         # needs to be tested.
-        self.data_portal = DataPortal(
-            self.env,
-            equity_minute_reader=self.bcolz_minute_bar_reader,
+        self.equity_daily_aggregator = DailyHistoryAggregator(
+            self.env.open_and_closes.market_open,
+            self.bcolz_minute_bar_reader,
         )
 
     @parameterized.expand([
@@ -1666,17 +1668,15 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     ])
     def test_contiguous_minutes_individual(self, name, field, sid):
         # First test each minute in order.
+        method_name = field + 's'
         results = []
         asset = self.EQUITIES[sid]
         for minute in self.minutes:
-            window = self.data_portal.get_history_window(
-                [asset],
-                minute,
-                1,  # bar count
-                "1d",
-                field,
-            )[asset]
-            results.append(window[0])
+            value = getattr(self.equity_daily_aggregator, method_name)(
+                [asset], minute)[0]
+            # Prevent regression on building an array when scalar is intended.
+            self.assertIsInstance(value, Real)
+            results.append(value)
         assert_almost_equal(results, self.expected_values[asset][field],
                             err_msg="sid={0} field={1}".format(asset, field))
 
@@ -1696,17 +1696,15 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     def test_skip_minutes_individual(self, name, field, sid):
         # Test skipping minutes, to exercise backfills.
         # Tests initial backfill and mid day backfill.
+        method_name = field + 's'
         for i in [1, 5]:
             minute = self.minutes[i]
             asset = self.EQUITIES[sid]
-            window = self.data_portal.get_history_window(
-                [asset],
-                minute,
-                1,  # bar count
-                "1d",
-                field,
-            )[asset]
-            assert_almost_equal(window[0],
+            value = getattr(self.equity_daily_aggregator, method_name)(
+                [asset], minute)[0]
+            # Prevent regression on building an array when scalar is intended.
+            self.assertIsInstance(value, Real)
+            assert_almost_equal(value,
                                 self.expected_values[sid][field][i],
                                 err_msg="sid={0} field={1} dt={2}".format(
                                     sid, field, minute))
@@ -1714,18 +1712,18 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     @parameterized.expand(OHLCV)
     def test_contiguous_minutes_multiple(self, field):
         # First test each minute in order.
-        assets = self.EQUITIES.values()
+        method_name = field + 's'
+        assets = sorted(self.EQUITIES.values())
         results = {asset: [] for asset in assets}
         for minute in self.minutes:
-            window = self.data_portal.get_history_window(
-                assets,
-                minute,
-                1,  # bar count
-                "1d",
-                field,
-            )
-            for asset in assets:
-                results[asset].append(window.loc[minute.date(), asset])
+            values = getattr(self.equity_daily_aggregator, method_name)(
+                assets, minute)
+            for j, asset in enumerate(assets):
+                value = values[j]
+                # Prevent regression on building an array when scalar is
+                # intended.
+                self.assertIsInstance(value, Real)
+                results[asset].append(value)
         for asset in assets:
             assert_almost_equal(results[asset],
                                 self.expected_values[asset][field],
@@ -1736,18 +1734,19 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     def test_skip_minutes_multiple(self, field):
         # Test skipping minutes, to exercise backfills.
         # Tests initial backfill and mid day backfill.
-        assets = self.EQUITIES.values()
+        method_name = field + 's'
+        assets = sorted(self.EQUITIES.values())
         for i in [1, 5]:
             minute = self.minutes[i]
-            window = self.data_portal.get_history_window(
-                assets,
-                minute,
-                1,  # bar count
-                "1d",
-                field,
-            )
-            for asset in assets:
-                assert_almost_equal(window.loc[minute.date(), asset],
-                                    self.expected_values[asset][field][i],
-                                    err_msg="sid={0} field={1} dt={2}".format(
-                                        asset, field, minute))
+            values = getattr(self.equity_daily_aggregator, method_name)(
+                assets, minute)
+            for j, asset in enumerate(assets):
+                value = values[j]
+                # Prevent regression on building an array when scalar is
+                # intended.
+                self.assertIsInstance(value, Real)
+                assert_almost_equal(
+                    value,
+                    self.expected_values[asset][field][i],
+                    err_msg="sid={0} field={1} dt={2}".format(
+                        asset, field, minute))
