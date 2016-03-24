@@ -1740,8 +1740,11 @@ class DataPortal(object):
         else:
             return [assets] if isinstance(assets, Asset) else []
 
-    @lru_cache(8)
+    @lru_cache(20)
     def _get_minute_count_for_transform(self, ending_minute, days_count):
+        # cache size picked somewhat loosely.  this code exists purely to
+        # handle deprecated API.
+
         # bars is the number of days desired.  we have to translate that
         # into the number of minutes we want.
         # we get all the minutes for the last (bars - 1) days, then add
@@ -1758,10 +1761,7 @@ class DataPortal(object):
 
         # add the minutes for today
         today_open = self.env.get_open_and_close(ending_minute)[0]
-
-        minutes_count += int(
-            (ending_minute - today_open).total_seconds() / 60
-        )
+        minutes_count += (ending_minute - today_open).total_seconds() // 60
 
         return minutes_count
 
@@ -1798,7 +1798,8 @@ class DataPortal(object):
             return nanstd(price_arr, ddof=1)
         elif transform_name == "vwap":
             volume_arr = self.get_history_window(
-                [asset], dt, bars, freq_str, "volume", ffill=True
+                [asset], dt, calculated_bar_count, freq_str, "volume",
+                ffill=True
             )[asset]
 
             vol_sum = nansum(volume_arr)
