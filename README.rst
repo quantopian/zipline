@@ -182,7 +182,7 @@ https://github.com/quantopian/zipline/wiki/Contribution-Requests
    :target: https://pypi.python.org/pypi/zipline
 .. |travis status| image:: https://travis-ci.org/quantopian/zipline.png?branch=master
    :target: https://travis-ci.org/quantopian/zipline
-.. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/github/quantopian/zipline?branch=master&svg=true
+.. |appveyor status| image:: https://ci.appveyor.com/api/projects/status/3dg18e6227dvstw6/branch/master?svg=true
    :target: https://ci.appveyor.com/project/quantopian/zipline/branch/master
 .. |Coverage Status| image:: https://coveralls.io/repos/quantopian/zipline/badge.png
    :target: https://coveralls.io/r/quantopian/zipline
