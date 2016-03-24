@@ -790,7 +790,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         Returns
         -------
         deciles : zipline.pipeline.classifiers.Quantiles
-            A Classifier producing integer labels ranging from 0 to 4.
+            A Classifier producing integer labels ranging from 0 to 9.
         """
         return self.quantiles(bins=10, mask=mask)
 
