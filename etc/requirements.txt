@@ -54,6 +54,3 @@ toolz==0.7.4
 
 # Asset writer and finder
 sqlalchemy==1.0.8
-
-# Caching and other utilities
-functools32==3.2.3.post2

@@ -15,7 +15,6 @@
 from operator import mul
 
 import bcolz
-from functools32 import lru_cache
 from logbook import Logger
 
 import numpy as np
@@ -31,6 +30,7 @@ from zipline.data.us_equity_loader import (
 )
 
 from zipline.utils import tradingcalendar
+from zipline.utils.compat import lru_cache
 from zipline.utils.math_utils import (
     nansum,
     nanmean,

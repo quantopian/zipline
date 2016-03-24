@@ -1,7 +1,7 @@
 """
 Tools for memoization of function results.
 """
-from functools32 import lru_cache
+from zipline.utils.compat import lru_cache
 from weakref import WeakKeyDictionary
 
 
