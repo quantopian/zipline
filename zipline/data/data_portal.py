@@ -15,7 +15,7 @@
 from operator import mul
 
 import bcolz
-from cachetools import lru_cache
+from functools32 import lru_cache
 from logbook import Logger
 
 import numpy as np
