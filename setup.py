@@ -257,7 +257,7 @@ conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
 
 setup_requires = module_requirements(
     'etc/requirements.txt',
-    ('Cython', 'numpy'),
+    ('Cython', 'numpy', 'bcolz'),
     strict_bounds=conda_build,
     conda_format=conda_build,
 )
