@@ -32,7 +32,7 @@ install:
   - IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
   - CONDA_NPY=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
   - CONDA_PY=$TRAVIS_PYTHON_VERSION
-  - CACHE_DIR="$HOME/.cache/.pip/pip_np""CONDA_NPY"
+  - CACHE_DIR="$HOME/.cache/.pip/pip_np""$CONDA_NPY"
   - pip install --upgrade pip coverage coveralls --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_dev.txt --cache-dir=$CACHE_DIR
