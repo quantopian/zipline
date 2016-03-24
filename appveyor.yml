@@ -1,0 +1,109 @@
+#matrix:
+#  fast_finish: true
+
+environment:
+  global:
+    # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # See: http://stackoverflow.com/a/13751649/163740
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\appveyor\\run_with_env.cmd"
+
+    # with api:write
+    ANACONDA_TOKEN:
+      secure: "u3oPlANiKY5g1yMtcK+2MQfb4ViKGEap3TcBtvS7Y1InyeWs80Ko3/PsP7Lp6qwq"
+
+  matrix:
+    - PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.16.1"
+      NUMPY_VERSION: "1.9.2"
+      SCIPY_VERSION: "0.15.1"
+
+    - PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.16.1"
+      NUMPY_VERSION: "1.9.2"
+      SCIPY_VERSION: "0.15.1"
+
+    - PYTHON_VERSION: "2.7"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.17.1"
+      NUMPY_VERSION: "1.10.4"
+      SCIPY_VERSION: "0.16.1"
+
+    - PYTHON_VERSION: "3.4"
+      PYTHON_ARCH: "64"
+      PANDAS_VERSION: "0.17.1"
+      NUMPY_VERSION: "1.10.4"
+      SCIPY_VERSION: "0.16.1"
+
+# We always use a 64-bit machine, but can build x86 distributions
+# with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
+platform:
+  - x64
+
+cache:
+  - '%LOCALAPPDATA%\pip\Cache'
+
+# all our python builds have to happen in tests_script...
+build: false
+
+init:
+  - "ECHO %PYTHON_VERSION% %PYTHON_ARCH% %PYTHON%"
+  - "ECHO %NUMPY_VERSION%"
+
+install:
+  # If there is a newer build queued for the same PR, cancel this one.
+  # The AppVeyor 'rollout builds' option is supposed to serve the same
+  # purpose but it is problematic because it tends to cancel builds pushed
+  # directly to master instead of just PR builds (or the converse).
+  # credits: JuliaLang developers.
+  - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
+        https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
+        Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
+          throw "There are newer queued builds for this pull request, failing early." }
+
+  - ps: $NPY_VERSION_ARR=$env:NUMPY_VERSION -split '.', 0, 'simplematch'
+  - ps: $env:CONDA_NPY=$NPY_VERSION_ARR[0..1] -join ""
+  - ps: $PY_VERSION_ARR=$env:PYTHON_VERSION -split '.', 0, 'simplematch'
+  - ps: $env:CONDA_PY=$PY_VERSION_ARR[0..1] -join ""
+  - SET PYTHON=C:\Python%CONDA_PY%_64
+  # Get cygwin's git out of our PATH.  See https://github.com/omnia-md/conda-dev-recipes/pull/16/files#diff-180360612c6b8c4ed830919bbb4dd459
+  - "del C:\\cygwin\\bin\\git.exe"
+  # this installs the appropriate Miniconda (Py2/Py3, 32/64 bit),
+  - powershell .\ci\appveyor\install.ps1
+  - SET PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
+  - sed -i "s/numpy==.*/numpy==%NUMPY_VERSION%/" etc/requirements.txt
+  - sed -i "s/pandas==.*/pandas==%PANDAS_VERSION%/" etc/requirements.txt
+  - sed -i "s/scipy==.*/scipy==%SCIPY_VERSION%/" etc/requirements.txt
+
+  - conda info -a
+  - conda install conda-build=1.19.2 anaconda-client=1.3.1 --yes -q
+  # https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/ for 64bit C compilation
+  - ps: copy .\ci\appveyor\vcvars64.bat "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64"
+  - "%CMD_IN_ENV% python .\\ci\\make_conda_packages.py"
+
+  # test that we can conda install zipline in a new env
+  - conda create -n installenv --yes -q --use-local python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% zipline -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+
+  - ps: $env:BCOLZ_VERSION=(sls "bcolz==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
+  - ps: $env:NUMEXPR_VERSION=(sls "numexpr==(.*)" .\etc\requirements.txt -ca).matches.groups[1].value
+  - ps: $env:TALIB_VERSION=(sls "TA-Lib==(.*)" .\etc\requirements_talib.txt -ca).matches.groups[1].value
+  - conda create -n testenv --yes -q --use-local pip python=%PYTHON_VERSION% numpy=%NUMPY_VERSION% scipy=%SCIPY_VERSION% ta-lib=%TALIB_VERSION% bcolz=%BCOLZ_VERSION% numexpr=%NUMEXPR_VERSION% -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+  - activate testenv
+  - SET CACHE_DIR=%LOCALAPPDATA%\pip\Cache\pip_np%CONDA_NPY%py%CONDA_PY%
+  - pip install -r etc/requirements.txt --cache-dir=%CACHE_DIR%
+  - pip install -r etc/requirements_dev.txt --cache-dir=%CACHE_DIR%
+  # this uses git requirements right now
+  - pip install -r etc/requirements_blaze.txt --cache-dir=%CACHE_DIR%
+  - pip install -r etc/requirements_talib.txt --cache-dir=%CACHE_DIR%
+  - pip install -e .[all] --cache-dir=%CACHE_DIR%
+  - pip freeze | sort
+
+test_script:
+  - nosetests tests/
+  - flake8 zipline tests
+
+branches:
+  only:
+    - master
