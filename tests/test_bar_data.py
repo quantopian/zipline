@@ -17,18 +17,19 @@ from unittest import TestCase
 from testfixtures import TempDirectory
 import pandas as pd
 import numpy as np
+from nose_parameterized import parameterized
 
 from zipline._protocol import handle_non_market_minutes
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import BcolzMinuteBarWriter, \
     US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
 from zipline.data.us_equity_pricing import BcolzDailyBarReader, \
-    SQLiteAdjustmentReader
+    SQLiteAdjustmentReader, SQLiteAdjustmentWriter
 from zipline.finance.trading import TradingEnvironment
 from zipline.protocol import BarData
 from zipline.testing.core import write_minute_data_for_asset, \
     create_daily_df_for_asset, DailyBarWriterFromDataFrames, \
-    create_mock_adjustments, str_to_seconds
+    create_mock_adjustments, str_to_seconds, MockDailyBarReader
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -539,14 +540,17 @@ class TestDailyBarData(TestBarDataBase):
                 'start_date': cls.days[0],
                 'end_date': cls.days[-1],
                 'symbol': "ASSET{0}".format(sid)
-            } for sid in [1, 2, 3, 4]
+            } for sid in [1, 2, 3, 4, 5, 6, 7, 8]
         })
 
         cls.ASSET1 = cls.env.asset_finder.retrieve_asset(1)
         cls.ASSET2 = cls.env.asset_finder.retrieve_asset(2)
         cls.SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(3)
         cls.ILLIQUID_SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(4)
-
+        cls.MERGER_ASSET = cls.env.asset_finder.retrieve_asset(5)
+        cls.ILLIQUID_MERGER_ASSET = cls.env.asset_finder.retrieve_asset(6)
+        cls.DIVIDEND_ASSET = cls.env.asset_finder.retrieve_asset(7)
+        cls.ILLIQUID_DIVIDEND_ASSET = cls.env.asset_finder.retrieve_asset(8)
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
 
         cls.adjustments_reader = cls.create_adjustments_reader()
@@ -562,19 +566,78 @@ class TestDailyBarData(TestBarDataBase):
 
     @classmethod
     def create_adjustments_reader(cls):
-        path = create_mock_adjustments(
-            cls.tempdir,
-            cls.days,
-            splits=[{
+        path = cls.tempdir.getpath("test_adjustments.db")
+
+        adj_writer = SQLiteAdjustmentWriter(
+            path,
+            cls.env.trading_days,
+            MockDailyBarReader()
+        )
+
+        splits = pd.DataFrame([
+            {
                 'effective_date': str_to_seconds("2016-01-06"),
                 'ratio': 0.5,
                 'sid': cls.SPLIT_ASSET.sid
-            }, {
+            },
+            {
                 'effective_date': str_to_seconds("2016-01-07"),
                 'ratio': 0.5,
                 'sid': cls.ILLIQUID_SPLIT_ASSET.sid
-            }]
+            }
+        ])
+
+        mergers = pd.DataFrame([
+            {
+                'effective_date': str_to_seconds("2016-01-06"),
+                'ratio': 0.5,
+                'sid': cls.MERGER_ASSET.sid
+            },
+            {
+                'effective_date': str_to_seconds("2016-01-07"),
+                'ratio': 0.6,
+                'sid': cls.ILLIQUID_MERGER_ASSET.sid
+            }
+        ])
+
+        # we're using a fake daily reader in the adjustments writer which
+        # returns every daily price as 100, so dividend amounts of 2.0 and 4.0
+        # correspond to 2% and 4% dividends, respectively.
+        dividends = pd.DataFrame([
+            {
+                # only care about ex date, the other dates don't matter here
+                'ex_date':
+                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                'record_date':
+                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                'declared_date':
+                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                'pay_date':
+                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                'amount': 2.0,
+                'sid': cls.DIVIDEND_ASSET.sid
+            },
+            {
+                'ex_date':
+                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                'record_date':
+                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                'declared_date':
+                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                'pay_date':
+                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                'amount': 4.0,
+                'sid': cls.ILLIQUID_DIVIDEND_ASSET.sid
+            }],
+            columns=['ex_date',
+                     'record_date',
+                     'declared_date',
+                     'pay_date',
+                     'amount',
+                     'sid']
         )
+
+        adj_writer.write(splits, mergers, dividends)
 
         return SQLiteAdjustmentReader(path)
 
@@ -589,6 +652,14 @@ class TestDailyBarData(TestBarDataBase):
             ),
             3: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
             4: create_daily_df_for_asset(
+                cls.env, cls.days[0], cls.days[-1], interval=2
+            ),
+            5: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
+            6: create_daily_df_for_asset(
+                cls.env, cls.days[0], cls.days[-1], interval=2
+            ),
+            7: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
+            8: create_daily_df_for_asset(
                 cls.env, cls.days[0], cls.days[-1], interval=2
             ),
         }
@@ -712,37 +783,60 @@ class TestDailyBarData(TestBarDataBase):
             else:
                 self.assertEqual(self.days[1], last_traded_dt)
 
-    def test_spot_price_adjustments(self):
-        # verify there is a split for SPLIT_ASSET
-        splits = self.adjustments_reader.get_adjustments_for_sid(
-            "splits",
-            self.SPLIT_ASSET.sid
+    @parameterized.expand([
+        ("split", 2, 3, 3, 1.5),
+        ("merger", 2, 3, 3, 1.8),
+        ("dividend", 2, 3, 3, 2.88)
+    ])
+    def test_spot_price_adjustments(self,
+                                    adjustment_type,
+                                    liquid_day_0_price,
+                                    liquid_day_1_price,
+                                    illiquid_day_0_price,
+                                    illiquid_day_1_price_adjusted):
+        """Test the behaviour of spot prices during adjustments."""
+        table_name = adjustment_type + 's'
+        liquid_asset = getattr(self, (adjustment_type.upper() + "_ASSET"))
+        illiquid_asset = getattr(
+            self,
+            ("ILLIQUID_" + adjustment_type.upper() + "_ASSET")
+        )
+        # verify there is an adjustment for liquid_asset
+        adjustments = self.adjustments_reader.get_adjustments_for_sid(
+            table_name,
+            liquid_asset.sid
         )
 
-        self.assertEqual(1, len(splits))
-        split = splits[0]
+        self.assertEqual(1, len(adjustments))
+        adjustment = adjustments[0]
         self.assertEqual(
-            split[0],
+            adjustment[0],
             pd.Timestamp("2016-01-06", tz='UTC')
         )
 
         # ... but that's it's not applied when using spot value
         bar_data = BarData(self.data_portal, lambda: self.days[0], "daily")
-        self.assertEqual(2, bar_data.current(self.SPLIT_ASSET, "price"))
-
+        self.assertEqual(
+            liquid_day_0_price,
+            bar_data.current(liquid_asset, "price")
+        )
         bar_data = BarData(self.data_portal, lambda: self.days[1], "daily")
-        self.assertEqual(3, bar_data.current(self.SPLIT_ASSET, "price"))
+        self.assertEqual(
+            liquid_day_1_price,
+            bar_data.current(liquid_asset, "price")
+        )
 
         # ... except when we have to forward fill across a day boundary
         # ILLIQUID_ASSET has no data on days 0 and 2, and a split on day 2
         bar_data = BarData(self.data_portal, lambda: self.days[1], "daily")
         self.assertEqual(
-            3, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
+            illiquid_day_0_price, bar_data.current(illiquid_asset, "price")
         )
 
         bar_data = BarData(self.data_portal, lambda: self.days[2], "daily")
 
         # 3 (price from previous day) * 0.5 (split ratio)
-        self.assertEqual(
-            1.5, bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
+        self.assertAlmostEqual(
+            illiquid_day_1_price_adjusted,
+            bar_data.current(illiquid_asset, "price")
         )
