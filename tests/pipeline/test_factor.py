@@ -14,6 +14,7 @@ from numpy import (
     datetime64,
     empty,
     eye,
+    log1p,
     nan,
     ones,
     rot90,
@@ -657,8 +658,9 @@ class FactorTestCase(BasePipelineTestCase):
         shape = (6, 6)
 
         # Shuffle the input rows to verify that we don't depend on the order.
-        # Div by 2 to ensure that we don't depend on inputs being integral.
-        factor_data = permute(arange(36, dtype=float).reshape(shape)) / 2.0
+        # Take the log to ensure that we don't depend on linear scaling or
+        # integrality of inputs
+        factor_data = permute(log1p(arange(36, dtype=float).reshape(shape)))
 
         f = self.f
         terms = {
@@ -719,8 +721,9 @@ class FactorTestCase(BasePipelineTestCase):
         shape = (7, 7)
 
         # Shuffle the input rows to verify that we don't depend on the order.
-        # Div by 2 to ensure that we don't depend on inputs being integral.
-        factor_data = permute(arange(49, dtype=float).reshape(shape)) / 2.0
+        # Take the log to ensure that we don't depend on linear scaling or
+        # integrality of inputs
+        factor_data = permute(log1p(arange(49, dtype=float).reshape(shape)))
         factor_data_w_nans = where(
             permute(rot90(self.eye_mask(shape=shape))),
             factor_data,
