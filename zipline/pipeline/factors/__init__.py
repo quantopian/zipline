@@ -1,8 +1,8 @@
 from .factor import (
-    Factor,
     CustomFactor,
+    Factor,
+    Latest
 )
-from .latest import Latest
 from .events import (
     BusinessDaysSinceCashBuybackAuth,
     BusinessDaysUntilNextEarnings,

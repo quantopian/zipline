@@ -107,9 +107,18 @@ class BcolzMinuteBarMetadata(object):
                  if (i % 390) == 0], dtype='datetime64[ns]').astype(
                 'datetime64[m]')
             ohlc_ratio = raw_data['ohlc_ratio']
-            return cls(first_trading_day, minute_index, ohlc_ratio)
+            return cls(first_trading_day,
+                       minute_index,
+                       None,  # currently only writing market_opens
+                       None,  # currently only writing market_closes
+                       ohlc_ratio)
 
-    def __init__(self, first_trading_day, minute_index, ohlc_ratio):
+    def __init__(self,
+                 first_trading_day,
+                 minute_index,
+                 market_opens,
+                 market_closes,
+                 ohlc_ratio):
         """
         Parameters:
         -----------
@@ -118,12 +127,18 @@ class BcolzMinuteBarMetadata(object):
         minute_index : pd.DatetimeIndex
             The minutes which act as an index into the corresponding values
             written into each sid's ctable.
+        market_opens : pd.DatetimeIndex
+            The market opens for each day in the data set. (Not yet required.)
+        market_closes : pd.DatetimeIndex
+            The market closes for each day in the data set. (Not yet required.)
         ohlc_ratio : int
              The factor by which the pricing data is multiplied so that the
              float data can be stored as an integer.
         """
         self.first_trading_day = first_trading_day
         self.minute_index = minute_index
+        self.market_opens = market_opens
+        self.market_closes = market_closes
         self.ohlc_ratio = ohlc_ratio
 
     def write(self, rootdir):
@@ -144,6 +159,12 @@ class BcolzMinuteBarMetadata(object):
         metadata = {
             'first_trading_day': str(self.first_trading_day.date()),
             'minute_index': self.minute_index.asi8.tolist(),
+            'market_opens': self.market_opens.values.
+            astype('datetime64[m]').
+            astype(int).tolist(),
+            'market_closes': self.market_closes.values.
+            astype('datetime64[m]').
+            astype(int).tolist(),
             'ohlc_ratio': self.ohlc_ratio,
         }
         with open(self.metadata_path(rootdir), 'w+') as fp:
@@ -197,6 +218,7 @@ class BcolzMinuteBarWriter(object):
                  first_trading_day,
                  rootdir,
                  market_opens,
+                 market_closes,
                  minutes_per_day,
                  ohlc_ratio=OHLC_RATIO,
                  expectedlen=DEFAULT_EXPECTEDLEN):
@@ -219,6 +241,19 @@ class BcolzMinuteBarWriter(object):
 
             The values are datetime64-like UTC market opens for each day in the
             index.
+
+        market_closes : pd.Series
+            The market closes that correspond with the market opens,
+
+            The index of the series is expected to be a DatetimeIndex of the
+            UTC midnight of each trading day.
+
+            The values are datetime64-like UTC market opens for each day in the
+            index.
+
+            The closes are written so that the reader can filter out non-market
+            minutes even though the tail end of early closes are written in
+            the data arrays to keep a regular shape.
 
         minutes_per_day : int
             The number of minutes per each period. Defaults to 390, the mode
@@ -246,6 +281,8 @@ class BcolzMinuteBarWriter(object):
         self._first_trading_day = first_trading_day
         self._market_opens = market_opens[
             market_opens.index.slice_indexer(start=self._first_trading_day)]
+        self._market_closes = market_closes[
+            market_closes.index.slice_indexer(start=self._first_trading_day)]
         self._trading_days = market_opens.index
         self._minutes_per_day = minutes_per_day
         self._expectedlen = expectedlen
@@ -257,6 +294,8 @@ class BcolzMinuteBarWriter(object):
         metadata = BcolzMinuteBarMetadata(
             self._first_trading_day,
             self._minute_index,
+            self._market_opens,
+            self._market_closes,
             self._ohlc_ratio,
         )
         metadata.write(self._rootdir)

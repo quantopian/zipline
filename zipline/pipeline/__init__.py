@@ -1,10 +1,10 @@
 from __future__ import print_function
 from zipline.assets import AssetFinder
 
-from .classifier import Classifier
+from .classifiers import Classifier, CustomClassifier
 from .engine import SimplePipelineEngine
 from .factors import Factor, CustomFactor
-from .filters import Filter
+from .filters import Filter, CustomFilter
 from .term import Term
 from .graph import TermGraph
 from .pipeline import Pipeline
@@ -53,6 +53,8 @@ def engine_from_files(daily_bar_path,
 __all__ = (
     'Classifier',
     'CustomFactor',
+    'CustomFilter',
+    'CustomClassifier',
     'engine_from_files',
     'Factor',
     'Filter',
