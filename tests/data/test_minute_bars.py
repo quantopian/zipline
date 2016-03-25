@@ -47,11 +47,13 @@ class BcolzMinuteBarTestCase(TestCase):
     def setUpClass(cls):
         cls.env = TradingEnvironment()
         all_market_opens = cls.env.open_and_closes.market_open
+        all_market_closes = cls.env.open_and_closes.market_close
         indexer = all_market_opens.index.slice_indexer(
             start=TEST_CALENDAR_START,
             end=TEST_CALENDAR_STOP
         )
         cls.market_opens = all_market_opens[indexer]
+        cls.market_closes = all_market_closes[indexer]
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
 
@@ -65,6 +67,7 @@ class BcolzMinuteBarTestCase(TestCase):
             TEST_CALENDAR_START,
             self.dest,
             self.market_opens,
+            self.market_closes,
             US_EQUITIES_MINUTES_PER_DAY,
         )
         self.reader = BcolzMinuteBarReader(self.dest)
