@@ -95,10 +95,12 @@ Currently supported platforms include:
 
 -  GNU/Linux 64-bit
 -  OSX 64-bit
+-  Windows 64-bit
 
 .. note::
 
-   Windows may work; however, it is currently untested.
+   Windows 32-bit may work; however, it is not currently included in
+   continuous integration tests.
 
 Quickstart
 ==========
