@@ -38,14 +38,14 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # 26 27 28 29 30 31
 
         # half an hour into july 9, getting a 4-"day" window should get us
-        # all the minutes of 7/6, 7/7, 7/8, and 30 minutes of 7/9
+        # all the minutes of 7/6, 7/7, 7/8, and 31 minutes of 7/9
 
         july_9_dt = self.env.get_open_and_close(
             pd.Timestamp("2015-07-09")
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(
-            (3 * 390) + 30,
+            (3 * 390) + 31,
             self.data_portal._get_minute_count_for_transform(july_9_dt, 4)
         )
 
@@ -61,13 +61,13 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # nov 27th was an early close
 
         # half an hour into nov 30, getting a 4-"day" window should get us
-        # all the minutes of 11/24, 11/25, 11/27 (half day!), and 30 minutes
+        # all the minutes of 11/24, 11/25, 11/27 (half day!), and 31 minutes
         # of 11/30
         nov_30_dt = self.env.get_open_and_close(
             pd.Timestamp("2015-11-30")
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(
-            390 + 390 + 210 + 30,
+            390 + 390 + 210 + 31,
             self.data_portal._get_minute_count_for_transform(nov_30_dt, 4)
         )
