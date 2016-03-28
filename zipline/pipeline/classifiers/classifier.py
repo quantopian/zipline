@@ -1,13 +1,16 @@
 """
 classifier.py
 """
+from numbers import Number
+
 from numpy import where, isnan, nan, zeros
 
 from zipline.lib.quantiles import quantiles
 from zipline.pipeline.term import ComputableTerm
+from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import int64_dtype
 
-from ..filters import NullFilter
+from ..filters import NullFilter, NumExprFilter
 from ..mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -40,6 +43,48 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         A Filter producing True for values where this term has complete data.
         """
         return ~self.isnull()
+
+    # We explicitly don't support classifier to classifier comparisons, since
+    # the numbers likely don't mean the same thing. This may be relaxed in the
+    # future, but for now we're starting conservatively.
+    @expect_types(other=Number)
+    def eq(self, other):
+        """
+        Construct a Filter returning True for asset/date pairs where the output
+        of ``self`` matches ``other.
+        """
+        # We treat this as an error because missing_values have NaN semantics,
+        # which means this would return an array of all False, which is almost
+        # certainly not what the user wants.
+        if other == self.missing_value:
+            raise ValueError(
+                "Comparison against self.missing_value ({value}) in"
+                " {typename}.eq().\n"
+                "Missing values have NaN semantics, so the "
+                "requested comparison would always produce False.\n"
+                "Use the isnull() method to check for missing values.".format(
+                    value=other,
+                    typename=(type(self).__name__),
+                )
+            )
+        return NumExprFilter.create(
+            "x_0 == {other}".format(other=int(other)),
+            binds=(self,),
+        )
+
+    @expect_types(other=Number)
+    def __ne__(self, other):
+        """
+        Construct a Filter returning True for asset/date pairs where the output
+        of ``self`` matches ``other.
+        """
+        return NumExprFilter.create(
+            "((x_0 != {other}) & (x_0 != {missing}))".format(
+                other=int(other),
+                missing=self.missing_value,
+            ),
+            binds=(self,),
+        )
 
 
 class Everything(Classifier):
