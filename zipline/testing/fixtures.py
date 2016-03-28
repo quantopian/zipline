@@ -354,6 +354,7 @@ class WithBcolzMinutes(WithTempdir,
             cls.env.first_trading_day,
             cls.tempdir.path,
             cls.env.open_and_closes.market_open,
+            cls.env.open_and_closes.market_close,
             cls.BCOLZ_MINUTES_PER_DAY,
         )
         for sid, data in iteritems(cls.make_bcolz_minute_bar_data()):

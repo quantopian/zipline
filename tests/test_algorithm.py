@@ -1031,11 +1031,14 @@ class TestBeforeTradingStart(TestCase):
 
         market_opens = cls.env.open_and_closes.market_open.loc[
             cls.trading_days]
+        market_closes = cls.env.open_and_closes.market_close.loc[
+            cls.trading_days]
 
         minute_writer = BcolzMinuteBarWriter(
             cls.trading_days[0],
             cls.tempdir.path,
             market_opens,
+            market_closes,
             US_EQUITIES_MINUTES_PER_DAY
         )
 
@@ -2401,11 +2404,13 @@ class TestOrderCancelation(TestCase):
     @classmethod
     def build_minute_data(cls):
         market_opens = cls.env.open_and_closes.market_open.loc[cls.days]
+        market_closes = cls.env.open_and_closes.market_close.loc[cls.days]
 
         writer = BcolzMinuteBarWriter(
             cls.days[0],
             cls.tempdir.path,
             market_opens,
+            market_closes,
             US_EQUITIES_MINUTES_PER_DAY
         )
 
@@ -2663,6 +2668,7 @@ class TestEquityAutoClose(TestCase):
         env = TradingEnvironment()
         env.write_data(equities_data=asset_info)
         market_opens = env.open_and_closes.market_open.loc[self.test_days]
+        market_closes = env.open_and_closes.market_close.loc[self.test_days]
 
         if frequency == 'daily':
             dates = self.test_days
@@ -2693,6 +2699,7 @@ class TestEquityAutoClose(TestCase):
                 self.test_days[0],
                 self.tempdir.path,
                 market_opens,
+                market_closes,
                 US_EQUITIES_MINUTES_PER_DAY
             )
             trade_data_by_sid = make_trade_data_for_asset_info(

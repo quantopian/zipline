@@ -480,11 +480,14 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
     def create_data(cls):
         market_opens = cls.env.open_and_closes.market_open.loc[
             cls.trading_days]
+        market_closes = cls.env.open_and_closes.market_close.loc[
+            cls.trading_days]
 
         writer = BcolzMinuteBarWriter(
             cls.trading_days[0],
             cls.tempdir.path,
             market_opens,
+            market_closes,
             US_EQUITIES_MINUTES_PER_DAY
         )
 
@@ -1040,11 +1043,14 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 
         market_opens = cls.env.open_and_closes.market_open.loc[
             cls.trading_days]
+        market_closes = cls.env.open_and_closes.market_close.loc[
+            cls.trading_days]
 
         minute_writer = BcolzMinuteBarWriter(
             cls.trading_days[0],
             cls.tempdir.path,
             market_opens,
+            market_closes,
             US_EQUITIES_MINUTES_PER_DAY
         )
 

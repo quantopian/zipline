@@ -154,11 +154,13 @@ class TestMinuteBarData(TestBarDataBase):
     @classmethod
     def build_minute_data(cls):
         market_opens = cls.env.open_and_closes.market_open.loc[cls.days]
+        market_closes = cls.env.open_and_closes.market_close.loc[cls.days]
 
         writer = BcolzMinuteBarWriter(
             cls.days[0],
             cls.tempdir.path,
             market_opens,
+            market_closes,
             US_EQUITIES_MINUTES_PER_DAY
         )
 
