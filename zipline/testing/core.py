@@ -803,11 +803,13 @@ def create_data_portal(env, tempdir, sim_params, sids, adjustment_reader=None):
 
 def write_bcolz_minute_data(env, days, path, df_dict):
     market_opens = env.open_and_closes.market_open.loc[days]
+    market_closes = env.open_and_closes.market_close.loc[days]
 
     writer = BcolzMinuteBarWriter(
         days[0],
         path,
         market_opens,
+        market_closes,
         US_EQUITIES_MINUTES_PER_DAY
     )
 
