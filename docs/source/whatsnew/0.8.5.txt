@@ -69,7 +69,9 @@ None
 Build
 ~~~~~
 
-None
+* Added AppVeyor for continuous integration on Windows.  Added conda build of
+  zipline and its dependencies to AppVeyor and Travis builds, which upload
+  their results to anaconda.org labeled with "ci". (:issue:`981`)
 
 Documentation
 ~~~~~~~~~~~~~
