@@ -811,6 +811,47 @@ class FactorTestCase(BasePipelineTestCase):
         for key, (res, exp) in dzip_exact(results, expected).items():
             check_arrays(res, exp)
 
+    def test_quantiles_uneven_buckets(self):
+        permute = partial(permute_rows, 5)
+        shape = (5, 5)
+
+        factor_data = permute(log1p(arange(25, dtype=float).reshape(shape)))
+        mask_data = permute(self.eye_mask(shape=shape))
+
+        f = F()
+        m = Mask()
+
+        terms = {
+            '3_masked': f.quantiles(bins=3, mask=m),
+            '7_masked': f.quantiles(bins=20, mask=m),
+        }
+
+        expected = {
+            '3_masked': [[-1, 0,  0,  1,  2],
+                         [0, -1,  0,  1,  2],
+                         [0,  0, -1,  1,  2],
+                         [0,  0,  1, -1,  2],
+                         [0,  0,  1,  2, -1]],
+            '7_masked': [[-1, 0,  2,  4,  6],
+                         [0, -1,  2,  4,  6],
+                         [0,  2, -1,  4,  6],
+                         [0,  2,  4, -1,  6],
+                         [0,  2,  4,  6, -1]],
+        }
+
+        graph = TermGraph(terms)
+        results = self.run_graph(
+            graph,
+            initial_workspace={
+                f: factor_data,
+                m: mask_data,
+            },
+            mask=self.build_mask(self.ones_mask(shape=shape)),
+        )
+
+        for key, (res, exp) in dzip_exact(results, expected).items():
+            check_arrays(res, exp)
+
     def test_quantile_helpers(self):
         f = self.f
         m = Mask()
