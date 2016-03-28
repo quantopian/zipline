@@ -461,7 +461,7 @@ class FactorTestCase(BasePipelineTestCase):
              [1, 1, 2, 2],
              [1, 1, 2, 2],
              [1, 1, 2, 2]],
-            dtype=int,
+            dtype=int64_dtype,
         )
 
         terms = {
@@ -553,7 +553,7 @@ class FactorTestCase(BasePipelineTestCase):
 
         # Cycles of 0, 1, 2, 0, 1, 2, ...
         classifier_data = (
-            (self.arange_data(shape=shape, dtype=int) + seed_value) % 3
+            (self.arange_data(shape=shape, dtype=int64_dtype) + seed_value) % 3
         )
         # With -1s on main diagonal.
         classifier_data_eyenulls = where(eyemask, classifier_data, -1)
@@ -665,7 +665,7 @@ class FactorTestCase(BasePipelineTestCase):
         # expectations. Doing it this way makes it obvious that our
         # expectation corresponds to our input, while still testing against
         # a range of input orderings.
-        permuted_array = compose(permute, partial(array, dtype=int))
+        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
         self.check_terms(
             terms={
                 '2': f.quantiles(bins=2),
@@ -730,7 +730,7 @@ class FactorTestCase(BasePipelineTestCase):
         # expectations. Doing it this way makes it obvious that our
         # expectation corresponds to our input, while still testing against
         # a range of input orderings.
-        permuted_array = compose(permute, partial(array, dtype=int))
+        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
 
         self.check_terms(
             terms={
@@ -807,7 +807,7 @@ class FactorTestCase(BasePipelineTestCase):
         f = F()
         m = Mask()
 
-        permuted_array = compose(permute, partial(array, dtype=int))
+        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
         self.check_terms(
             terms={
                 '3_masked': f.quantiles(bins=3, mask=m),
