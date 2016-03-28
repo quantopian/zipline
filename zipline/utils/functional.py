@@ -74,8 +74,9 @@ def dzip_exact(*dicts):
 
     Example
     -------
-    >>> dzip_exact({'a': 1, 'b': 2}, {'a': 3, 'b': 4})
-    {'a': (1, 3), 'b': (2, 4)}
+    >>> result = dzip_exact({'a': 1, 'b': 2}, {'a': 3, 'b': 4})
+    >>> result == {'a': (1, 3), 'b': (2, 4)}
+    True
     """
     if not same(*map(viewkeys, dicts)):
         raise ValueError(
