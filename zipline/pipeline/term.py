@@ -28,6 +28,8 @@ NotSpecified = sentinel(
     'Singleton sentinel value used for Term defaults.',
 )
 
+NotSpecifiedType = type(NotSpecified)
+
 
 class Term(with_metaclass(ABCMeta, object)):
     """
@@ -396,14 +398,14 @@ class ComputableTerm(Term):
         )
 
     def _validate(self):
-        """
-        Assert that this term is well-formed.  This should be called exactly
-        once, at the end of Term._init().
-        """
+        super(ComputableTerm, self)._validate()
+
         if self.inputs is NotSpecified:
             raise TermInputsNotSpecified(termname=type(self).__name__)
+
         if self.window_length is NotSpecified:
             raise WindowLengthNotSpecified(termname=type(self).__name__)
+
         if self.mask is NotSpecified:
             # This isn't user error, this is a bug in our code.
             raise AssertionError("{term} has no mask".format(term=self))
@@ -412,8 +414,6 @@ class ComputableTerm(Term):
             for child in self.inputs:
                 if child.windowed:
                     raise WindowedInputToWindowedTerm(parent=self, child=child)
-
-        return super(ComputableTerm, self)._validate()
 
     def _compute(self, inputs, dates, assets, mask):
         """

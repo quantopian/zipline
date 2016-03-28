@@ -8,7 +8,9 @@ from operator import (
     methodcaller,
     mul,
     ne,
+    sub,
 )
+from string import ascii_uppercase
 from unittest import TestCase
 
 import numpy
@@ -32,7 +34,7 @@ from zipline.pipeline.expression import (
     NumericalExpression,
     NUMEXPR_MATH_FUNCS,
 )
-from zipline.testing import check_arrays
+from zipline.testing import check_allclose
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
 
@@ -89,7 +91,7 @@ class NumericalExpressionTestCase(TestCase):
             self.mask.columns,
             self.mask.values,
         )
-        check_arrays(result, expected)
+        check_allclose(result, expected)
 
     def check_constant_output(self, expr, expected):
         self.assertFalse(isnan(expected))
@@ -147,13 +149,48 @@ class NumericalExpressionTestCase(TestCase):
         with self.assertRaises(TypeError):
             (f > f) > f
 
+    def test_many_inputs(self):
+        """
+        Test adding NumericalExpressions with >10 inputs.
+        """
+        # Create an initial NumericalExpression by adding two factors together.
+        f = self.f
+        expr = f + f
+
+        self.fake_raw_data = {f: full((5, 5), 0, float)}
+        expected = 0
+
+        # Alternate between adding and subtracting factors. Because subtraction
+        # is not commutative, this ensures that we are combining factors in the
+        # correct order.
+        ops = (add, sub)
+
+        for i, name in enumerate(ascii_uppercase):
+            op = ops[i % 2]
+            NewFactor = type(
+                name,
+                (Factor,),
+                dict(dtype=float64_dtype, inputs=(), window_length=0),
+            )
+            new_factor = NewFactor()
+
+            # Again we need a NumericalExpression, so add two factors together.
+            new_expr = new_factor + new_factor
+            self.fake_raw_data[new_factor] = full((5, 5), i + 1, float)
+            expr = op(expr, new_expr)
+
+            # Double the expected output since each factor is counted twice.
+            expected = op(expected, (i + 1) * 2)
+
+        self.check_output(expr, full((5, 5), expected, float))
+
     def test_combine_datetimes(self):
         with self.assertRaises(TypeError) as e:
             self.d + self.d
         message = e.exception.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] + datetime64[ns].\n"
-            "Arithmetic operators are only supported on Factors of dtype "
+            "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
         self.assertEqual(message, expected)
@@ -164,7 +201,7 @@ class NumericalExpressionTestCase(TestCase):
         message = e.exception.args[0]
         expected = (
             "Don't know how to compute datetime64[ns] * datetime64[ns].\n"
-            "Arithmetic operators are only supported on Factors of dtype "
+            "Arithmetic operators are only supported between Factors of dtype "
             "'float64'."
         )
         self.assertEqual(message, expected)
@@ -178,8 +215,8 @@ class NumericalExpressionTestCase(TestCase):
                 message = e.exception.args[0]
                 expected = (
                     "Don't know how to compute float64 {sym} datetime64[ns].\n"
-                    "Arithmetic operators are only supported on Factors of "
-                    "dtype 'float64'."
+                    "Arithmetic operators are only supported between Factors"
+                    " of dtype 'float64'."
                 ).format(sym=sym)
                 self.assertEqual(message, expected)
 
@@ -188,8 +225,8 @@ class NumericalExpressionTestCase(TestCase):
                 message = e.exception.args[0]
                 expected = (
                     "Don't know how to compute datetime64[ns] {sym} float64.\n"
-                    "Arithmetic operators are only supported on Factors of "
-                    "dtype 'float64'."
+                    "Arithmetic operators are only supported between Factors"
+                    " of dtype 'float64'."
                 ).format(sym=sym)
                 self.assertEqual(message, expected)
 

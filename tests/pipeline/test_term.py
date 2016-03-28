@@ -13,7 +13,7 @@ from zipline.errors import (
     UnsupportedDType,
     WindowLengthNotSpecified,
 )
-from zipline.pipeline import Factor, Filter, TermGraph
+from zipline.pipeline import Classifier, Factor, Filter, TermGraph
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
@@ -343,11 +343,34 @@ class ObjectIdentityTestCase(TestCase):
         with self.assertRaises(UnsupportedDType):
             SomeFactor(dtype=complex128_dtype)
 
+    def test_require_super_call_in_validate(self):
+
+        class MyFactor(Factor):
+            inputs = ()
+            dtype = float64_dtype
+            window_length = 0
+
+            def _validate(self):
+                "Woops, I didn't call super()!"
+
+        with self.assertRaises(AssertionError) as e:
+            MyFactor()
+
+        errmsg = str(e.exception)
+        self.assertEqual(
+            errmsg,
+            "Term._validate() was not called.\n"
+            "This probably means that you overrode _validate"
+            " without calling super()."
+        )
+
     def test_latest_on_different_dtypes(self):
-        factor_dtypes = (int64_dtype, float64_dtype, datetime64ns_dtype)
+        factor_dtypes = (float64_dtype, datetime64ns_dtype)
         for column in TestingDataSet.columns:
             if column.dtype == bool_dtype:
                 self.assertIsInstance(column.latest, Filter)
+            elif column.dtype == int64_dtype:
+                self.assertIsInstance(column.latest, Classifier)
             elif column.dtype in factor_dtypes:
                 self.assertIsInstance(column.latest, Factor)
             else:

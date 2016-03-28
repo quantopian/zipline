@@ -195,15 +195,15 @@ def install_requires(strict_bounds=False, conda_format=False):
 
 
 def extras_requires(conda_format=False):
-    dev_reqs = read_requirements('etc/requirements_dev.txt',
+    extras = {
+        extra: read_requirements('etc/requirements_{0}.txt'.format(extra),
                                  strict_bounds=True,
                                  conda_format=conda_format)
-    talib_reqs = ['TA-Lib==0.4.9']
-    return {
-        'dev': dev_reqs,
-        'talib': talib_reqs,
-        'all': dev_reqs + talib_reqs,
+        for extra in ('dev', 'talib')
     }
+    extras['all'] = [req for reqs in extras.values() for req in reqs]
+
+    return extras
 
 
 def module_requirements(requirements_path, module_names, strict_bounds,

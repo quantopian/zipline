@@ -280,7 +280,7 @@ class PreprocessTestCase(TestCase):
         self.assertIs(c_ret, good_c)
 
         with self.assertRaises(TypeError) as e:
-            foo(good_a, arange(3), good_c)
+            foo(good_a, arange(3, dtype='int64'), good_c)
 
         expected_message = (
             "{qualname}() expected a value with dtype 'datetime64[ns]'"

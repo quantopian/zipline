@@ -173,7 +173,8 @@ class SeededRandomLoader(PrecomputedLoader):
         """
         Return uniformly-distributed integers between 0 and 100.
         """
-        return self.state.random_integers(low=0, high=100, size=shape)
+        return (self.state.random_integers(low=0, high=100, size=shape)
+                .astype('int64'))  # default is system int
 
     def _datetime_values(self, shape):
         """

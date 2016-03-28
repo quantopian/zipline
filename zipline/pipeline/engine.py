@@ -122,31 +122,32 @@ class SimplePipelineEngine(object):
         The algorithm implemented here can be broken down into the following
         stages:
 
-        0. Build a dependency graph of all terms in `terms`.  Topologically
-        sort the graph to determine an order in which we can compute the terms.
+        0. Build a dependency graph of all terms in `pipeline`.  Topologically
+           sort the graph to determine an order in which we can compute the
+           terms.
 
         1. Ask our AssetFinder for a "lifetimes matrix", which should contain,
-        for each date between start_date and end_date, a boolean value for each
-        known asset indicating whether the asset existed on that date.
+           for each date between start_date and end_date, a boolean value for
+           each known asset indicating whether the asset existed on that date.
 
         2. Compute each term in the dependency order determined in (0), caching
-        the results in a a dictionary to that they can be fed into future
-        terms.
+           the results in a a dictionary to that they can be fed into future
+           terms.
 
-        3. For each date, determine the number of assets passing **all**
-        filters. The sum, N, of all these values is the total number of rows in
-        our output frame, so we pre-allocate an output array of length N for
-        each factor in `terms`.
+        3. For each date, determine the number of assets passing
+           pipeline.screen.  The sum, N, of all these values is the total
+           number of rows in our output frame, so we pre-allocate an output
+           array of length N for each factor in `terms`.
 
         4. Fill in the arrays allocated in (3) by copying computed values from
-        our output cache into the corresponding rows.
+           our output cache into the corresponding rows.
 
         5. Stick the values computed in (4) into a DataFrame and return it.
 
-        Step 0 is performed by `zipline.pipeline.graph.TermGraph`.
-        Step 1 is performed in `self._compute_root_mask`.
-        Step 2 is performed in `self.compute_chunk`.
-        Steps 3, 4, and 5 are performed in self._format_factor_matrix.
+        Step 0 is performed by ``Pipeline.to_graph``.
+        Step 1 is performed in ``SimplePipelineEngine._compute_root_mask``.
+        Step 2 is performed in ``SimplePipelineEngine.compute_chunk``.
+        Steps 3, 4, and 5 are performed in ``SimplePiplineEngine._to_narrow``.
 
         See Also
         --------

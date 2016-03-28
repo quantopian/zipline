@@ -2,17 +2,20 @@
 
 package:
   name: zipline
-  version: {{ environ.get('GIT_DESCRIBE_TAG', '')}}
+  version: {{ GIT_DESCRIBE_TAG|replace('v', '') }}
 
 build:
-  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+  number: {{ GIT_DESCRIBE_NUMBER|int }}
+  string: np{{ NPY_VER|replace('.', '') }}py{{ PY_VER|replace('.', '') }}_{{ (
+    GIT_BUILD_STR if GIT_DESCRIBE_NUMBER|int != 0 else '0'
+  ) }}
 
 source:
   git_url: ../../
 
 requirements:
   build:
-    - python
+    - python {{ PY_VER }}*
     {% for req in data.get('build_requires', []) -%}
     - {{req}}
     {% endfor %}

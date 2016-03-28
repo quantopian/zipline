@@ -1,16 +1,16 @@
 language: python
 sudo: false
-matrix:
-  fast_finish: true
-  include:
-  - python: 2.7
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 CACHE_DIR=$HOME/.cache/.pip/pip_np19
-  - python: 2.7
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1 CACHE_DIR=$HOME/.cache/.pip/pip_np110
-  - python: 3.4
-    env: PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1 CACHE_DIR=$HOME/.cache/.pip/pip_np19
-  - python: 3.4
-    env: PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.2 SCIPY_VERSION=0.16.1 CACHE_DIR=$HOME/.cache/.pip/pip_np110
+fast_finish: true
+python:
+  - 2.7
+  - 3.4
+env:
+  global:
+    # ANACONDA_TOKEN with api:write
+    - secure: "RJJjjQloUjCSkhII93QM+YAsr6YYq7hPFvlbnT07ogn1NeUPsVCyJ97oiZfKtPgdbd24hdQP/CHfB0HgTTES8n996tN3QWc4hZj0e10kFyIlas9qnkrRYRR1jxGShBDXrLdx/tGh8z1qnnCm1fy+fDhAF7Zerouwy4EA2YEzxdE="
+  matrix:
+    - PANDAS_VERSION=0.16.1 NUMPY_VERSION=1.9.2 SCIPY_VERSION=0.15.1
+    - PANDAS_VERSION=0.17.1 NUMPY_VERSION=1.10.4 SCIPY_VERSION=0.16.1
 cache:
   directories:
     - $HOME/.cache/.pip/
@@ -24,18 +24,46 @@ before_install:
   - sed -i "s/pandas==.*/pandas==$PANDAS_VERSION/" etc/requirements.txt
   - sed -i "s/scipy==.*/scipy==$SCIPY_VERSION/" etc/requirements.txt
 install:
-  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=0.4.9
+  - conda install conda-build=1.19.2 anaconda-client=1.3.1 --yes
+
+  - TALIB_VERSION=$(cat ./etc/requirements_talib.txt | sed "s/TA-Lib==\(.*\)/\1/")
+  - conda create -n testenv --yes -c quantopian pip python=$TRAVIS_PYTHON_VERSION numpy=$NUMPY_VERSION scipy=$SCIPY_VERSION libgfortran=1.0 ta-lib=$TALIB_VERSION
   - source activate testenv
+  - IFS='.' read -r -a NPY_VERSION_ARR <<< "$NUMPY_VERSION"
+  - CONDA_NPY=${NPY_VERSION_ARR[0]}${NPY_VERSION_ARR[1]}
+  - CONDA_PY=$TRAVIS_PYTHON_VERSION
+  - CACHE_DIR="$HOME/.cache/.pip/pip_np""$CONDA_NPY"
   - pip install --upgrade pip coverage coveralls --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_dev.txt --cache-dir=$CACHE_DIR
   - pip install -r etc/requirements_blaze.txt --cache-dir=$CACHE_DIR  # this uses git requirements right now
-  - pip install -e . --cache-dir=$CACHE_DIR
+  - pip install -r etc/requirements_talib.txt --cache-dir=$CACHE_DIR
+  - pip install -e .[all] --cache-dir=$CACHE_DIR
 before_script:
   - pip freeze | sort
 script:
   - nosetests tests/
   - flake8 zipline tests
+  # deactive env to get access to anaconda command
+  - source deactivate
+  - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" && "$TRAVIS_BRANCH" = "master" && "$TRAVIS_PULL_REQUEST" = "false" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi
+  - |
+    for recipe in $(ls -d conda/*/ | xargs -I {} basename {}); do
+      if [[ "$recipe" = "zipline" ]]; then continue; fi
+
+      conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --skip-existing -c quantopian -c https://conda.anaconda.org/quantopian/label/ci
+      RECIPE_OUTPUT=$(conda build conda/$recipe --python=$CONDA_PY --numpy=$CONDA_NPY --output)
+      if [[ -f "$RECIPE_OUTPUT" && "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload "$RECIPE_OUTPUT" -u quantopian --label ci; fi
+    done
+
+  # unshallow the clone so the conda build can clone it.
+  - git fetch --unshallow
+  - exec 3>&1; ZP_OUT=$(conda build conda/zipline --python=$CONDA_PY --numpy=$CONDA_NPY -c quantopian -c https://conda.anaconda.org/quantopian/label/ci | tee >(cat - >&3))
+  - ZP_OUTPUT=$(echo "$ZP_OUT" | grep "anaconda upload" | awk '{print $NF}')
+  - if [[ "$DO_UPLOAD" = "true" ]]; then anaconda -t $ANACONDA_TOKEN upload $ZP_OUTPUT -u quantopian --label ci; fi
+  # reactivate env (necessary for coveralls)
+  - source activate testenv
+
 after_success:
   - coveralls
 
