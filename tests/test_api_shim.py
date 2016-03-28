@@ -512,7 +512,7 @@ class TestAPIShim(TestCase):
 
             # now verify the transform values
             # minute price
-            # 2016-01-11 14:31:00+00:00    1562
+            # 2016-01-11 14:31:00+00:00    1561
             # ...
             # 2016-01-14 20:59:00+00:00    3119
             # 2016-01-14 21:00:00+00:00    3120
@@ -533,16 +533,16 @@ class TestAPIShim(TestCase):
             # 2016-01-14 00:00:00+00:00       9
             # 2016-01-15 00:00:00+00:00    3123
 
-            # mavg = average of all the prices = (1562 + 3123) / 2 = 2342.5
+            # mavg = average of all the prices = (1561 + 3123) / 2 = 2342
             # vwap = sum(price * volume) / sum(volumes)
-            #      = 888875859300.0 / 365898500.0
-            #      = 2429.296264674493
-            # stddev = stddev(price, ddof=1) = 1.5811388300841898
+            #      = 889119531400.0 / 366054600.0
+            #      = 2428.9259891830343
+            # stddev = stddev(price, ddof=1) = 451.3435498597493
             # returns = (todayprice - yesterdayprice) / yesterdayprice
             #         = (3123 - 9) / 9 = 346
-            self.assertEqual(2342.5, algo.mavg)
-            self.assertAlmostEqual(2429.29626, algo.vwap, places=5)
-            self.assertAlmostEqual(451.05487, algo.stddev, places=5)
+            self.assertEqual(2342, algo.mavg)
+            self.assertAlmostEqual(2428.92599, algo.vwap, places=5)
+            self.assertAlmostEqual(451.34355, algo.stddev, places=5)
             self.assertAlmostEqual(346, algo.returns)
 
     def test_manipulation(self):
