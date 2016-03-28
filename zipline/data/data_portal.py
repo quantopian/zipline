@@ -1761,7 +1761,8 @@ class DataPortal(object):
 
         # add the minutes for today
         today_open = self.env.get_open_and_close(ending_minute)[0]
-        minutes_count += ((ending_minute - today_open).total_seconds() // 60) + 1
+        minutes_count += \
+            ((ending_minute - today_open).total_seconds() // 60) + 1
 
         return minutes_count
 
