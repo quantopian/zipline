@@ -13,10 +13,11 @@ from pandas import date_range, Int64Index, DataFrame
 from pandas.util.testing import assert_series_equal
 from six import iteritems
 
-from zipline.pipeline import Pipeline
+from zipline.pipeline import Pipeline, TermGraph
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.testing import (
+    check_arrays,
     ExplodingObject,
     gen_calendars,
     make_simple_equity_info,
@@ -24,6 +25,7 @@ from zipline.testing import (
     tmp_asset_finder,
 )
 
+from zipline.utils.functional import dzip_exact
 from zipline.utils.numpy_utils import (
     NaTD,
     make_datetime64D
@@ -124,6 +126,16 @@ class BasePipelineTestCase(TestCase):
             assets,
             initial_workspace,
         )
+
+    def check_terms(self, terms, expected, initial_workspace, mask):
+        """
+        Compile the given terms into a TermGraph, compute it with
+        initial_workspace, and compare the results with ``expected``.
+        """
+        graph = TermGraph(terms)
+        results = self.run_graph(graph, initial_workspace, mask)
+        for key, (res, exp) in dzip_exact(results, expected).items():
+            check_arrays(res, exp)
 
     def build_mask(self, array):
         """
