@@ -164,13 +164,6 @@ class TestAPIShim(TestCase):
             env=cls.env
         )
 
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-            equity_daily_reader=cls.build_daily_data(),
-            adjustment_reader=cls.adj_reader
-        )
-
     @classmethod
     def build_daily_data(cls):
         path = cls.tempdir.getpath("testdaily.bcolz")
@@ -227,6 +220,14 @@ class TestAPIShim(TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.tempdir.cleanup()
+
+    def setUp(self):
+        self.data_portal = DataPortal(
+            self.env,
+            equity_minute_reader=BcolzMinuteBarReader(self.tempdir.path),
+            equity_daily_reader=self.build_daily_data(),
+            adjustment_reader=self.adj_reader
+        )
 
     @classmethod
     def create_algo(cls, code, filename=None, sim_params=None):
