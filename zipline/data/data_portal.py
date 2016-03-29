@@ -154,7 +154,10 @@ class DailyHistoryAggregator(object):
             else:
                 try:
                     last_visited_dt, first_open = entries[asset]
-                    if not pd.isnull(first_open):
+                    if last_visited_dt == dt_value:
+                        opens.append(first_open)
+                        continue
+                    elif not pd.isnull(first_open):
                         opens.append(first_open)
                         entries[asset] = (dt_value, first_open)
                         continue
@@ -212,7 +215,10 @@ class DailyHistoryAggregator(object):
             else:
                 try:
                     last_visited_dt, last_max = entries[asset]
-                    if last_visited_dt == prev_dt:
+                    if last_visited_dt == dt_value:
+                        highs.append(last_max)
+                        continue
+                    elif last_visited_dt == prev_dt:
                         curr_val = self._minute_reader.get_value(
                             asset, dt, 'high')
                         if pd.isnull(curr_val):
@@ -270,7 +276,10 @@ class DailyHistoryAggregator(object):
             else:
                 try:
                     last_visited_dt, last_min = entries[asset]
-                    if last_visited_dt == prev_dt:
+                    if last_visited_dt == dt_value:
+                        lows.append(last_min)
+                        continue
+                    elif last_visited_dt == prev_dt:
                         curr_val = self._minute_reader.get_value(
                             asset, dt, 'low')
                         val = np.nanmin([last_min, curr_val])
@@ -329,7 +338,10 @@ class DailyHistoryAggregator(object):
             else:
                 try:
                     last_visited_dt, last_close = entries[asset]
-                    if last_visited_dt == prev_dt:
+                    if last_visited_dt == dt_value:
+                        closes.append(last_close)
+                        continue
+                    elif last_visited_dt == prev_dt:
                         val = self._minute_reader.get_value(
                             asset, dt, 'close')
                         if pd.isnull(val):
@@ -386,7 +398,10 @@ class DailyHistoryAggregator(object):
             else:
                 try:
                     last_visited_dt, last_total = entries[asset]
-                    if last_visited_dt == prev_dt:
+                    if last_visited_dt == dt_value:
+                        volumes.append(last_total)
+                        continue
+                    elif last_visited_dt == prev_dt:
                         val = self._minute_reader.get_value(
                             asset, dt, 'volume')
                         val += last_total
