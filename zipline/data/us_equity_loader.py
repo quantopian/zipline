@@ -12,14 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numpy import dtype, around, full, nan, concatenate
+from abc import (
+    ABCMeta,
+    abstractmethod,
+    abstractproperty,
+)
+from numpy import dtype, around
+from pandas.tslib import normalize_date
 
-from six import iteritems
+from six import iteritems, with_metaclass
 
 from zipline.pipeline.data.equity_pricing import USEquityPricing
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib.adjustment import Float64Multiply
 from zipline.utils.cache import CachedObject, Expired
+from zipline.utils.memoize import lazyval
 
 
 class SlidingWindow(object):
@@ -60,28 +67,36 @@ class SlidingWindow(object):
         return self.current
 
 
-class USEquityHistoryLoader(object):
+class USEquityHistoryLoader(with_metaclass(ABCMeta)):
     """
     Loader for sliding history windows of adjusted US Equity Pricing data.
 
     Parameters
     ----------
-    daily_reader : DailyBarReader
-        Reader for daily bars.
+    reader : DailyBarReader, MinuteBarReader
+        Reader for pricing bars.
     adjustment_reader : SQLiteAdjustmentReader
         Reader for adjustment data.
     """
-
-    def __init__(self, env, daily_reader, adjustment_reader):
+    def __init__(self, env, reader, adjustment_reader):
         self.env = env
-        self._daily_reader = daily_reader
-        self._calendar = daily_reader._calendar
+        self._reader = reader
         self._adjustments_reader = adjustment_reader
-        self._daily_window_blocks = {}
+        self._window_blocks = {}
 
-        self._prefetch_length = 40
+    @abstractproperty
+    def _prefetch_length(self):
+        pass
 
-    def _get_adjustments_in_range(self, assets, days, field):
+    @abstractproperty
+    def _calendar(self):
+        pass
+
+    @abstractmethod
+    def _array(self, start, end, assets, field):
+        pass
+
+    def _get_adjustments_in_range(self, assets, dts, field):
         """
         Get the Float64Multiply objects to pass to an AdjustedArrayWindow.
 
@@ -111,8 +126,8 @@ class USEquityHistoryLoader(object):
         out : The adjustments as a dict of loc -> Float64Multiply
         """
         sids = {int(asset): i for i, asset in enumerate(assets)}
-        start = days[0]
-        end = days[-1]
+        start = normalize_date(dts[0])
+        end = normalize_date(dts[-1])
         adjs = {}
         for sid, i in iteritems(sids):
             if field != 'volume':
@@ -121,7 +136,7 @@ class USEquityHistoryLoader(object):
                 for m in mergers:
                     dt = m[0]
                     if start < dt <= end:
-                        end_loc = days.get_loc(dt)
+                        end_loc = dts.searchsorted(dt)
                         mult = Float64Multiply(0,
                                                end_loc - 1,
                                                i,
@@ -136,7 +151,7 @@ class USEquityHistoryLoader(object):
                 for d in divs:
                     dt = d[0]
                     if start < dt <= end:
-                        end_loc = days.get_loc(dt)
+                        end_loc = dts.searchsorted(dt)
                         mult = Float64Multiply(0,
                                                end_loc - 1,
                                                i,
@@ -155,7 +170,7 @@ class USEquityHistoryLoader(object):
                 else:
                     ratio = s[1]
                 if start < dt <= end:
-                    end_loc = days.get_loc(dt)
+                    end_loc = dts.searchsorted(dt)
                     mult = Float64Multiply(0,
                                            end_loc - 1,
                                            i,
@@ -168,10 +183,11 @@ class USEquityHistoryLoader(object):
         return adjs
 
     def _ensure_sliding_window(
-            self, assets, start, end, size, field):
+            self, assets, dts, size, field):
+        end = dts[-1]
         assets_key = frozenset(assets)
         try:
-            block_cache = self._daily_window_blocks[(assets_key, field, size)]
+            block_cache = self._window_blocks[(assets_key, field, size)]
             try:
                 return block_cache.unwrap(end)
             except Expired:
@@ -179,49 +195,24 @@ class USEquityHistoryLoader(object):
         except KeyError:
             pass
 
-        # Handle case where data is request before the start of data available
-        # in the daily_reader. In that case, prepend nans until the start
-        # of data.
-        pre_array = None
-        if start < self._daily_reader._calendar[0]:
-            start_ix = 0
-            td = self.env.trading_days
-            offset = td.get_loc(start) - td.get_loc(
-                self._daily_reader._calendar[0])
-            if end < self._daily_reader._calendar[0]:
-                fill_size = size
-                end_ix = 0
-            else:
-                pre_slice = self._calendar.slice_indexer(start, end)
-                fill_size = pre_slice.stop - pre_slice.start
-                end_ix = self._calendar.get_loc(end)
-            if field != 'volume':
-                pre_array = full((fill_size, 1), nan)
-            else:
-                pre_array = full((fill_size, 1), 0)
-        else:
-            offset = 0
-            start_ix = self._calendar.get_loc(start)
-            end_ix = self._calendar.get_loc(end)
+        start = dts[0]
 
-        col = getattr(USEquityPricing, field)
+        offset = 0
+        start_ix = self._calendar.get_loc(start)
+        end_ix = self._calendar.get_loc(end)
+
         cal = self._calendar
         prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
         prefetch_end = cal[prefetch_end_ix]
-
-        days = cal[start_ix:prefetch_end_ix + 1]
-        array = self._daily_reader.load_raw_arrays(
-            [col], days[0], prefetch_end, assets)[0]
+        prefetch_dts = cal[start_ix:prefetch_end_ix + 1]
+        array = self._array(prefetch_dts, assets, field)
         if self._adjustments_reader:
-            adjs = self._get_adjustments_in_range(assets, days, col)
+            adjs = self._get_adjustments_in_range(assets, prefetch_dts, field)
         else:
             adjs = {}
         if field == 'volume':
             array = array.astype('float64')
         dtype_ = dtype('float64')
-
-        if pre_array is not None:
-            array = concatenate([pre_array, array])
 
         window = Float64Window(
             array,
@@ -231,7 +222,7 @@ class USEquityHistoryLoader(object):
             size
         )
         block = SlidingWindow(window, size, start_ix, offset)
-        self._daily_window_blocks[(assets_key, field, size)] = CachedObject(
+        self._window_blocks[(assets_key, field, size)] = CachedObject(
             block, prefetch_end)
         return block
 
@@ -256,12 +247,40 @@ class USEquityHistoryLoader(object):
         -------
         out : np.ndarray with shape(len(days between start, end), len(assets))
         """
-        start = dts[0]
-        end = dts[-1]
         size = len(dts)
-        block = self._ensure_sliding_window(assets, start, end, size, field)
-        if end > self._calendar[0]:
-            end_ix = self._calendar.get_loc(end)
-        else:
-            end_ix = size
+        block = self._ensure_sliding_window(assets, dts, size, field)
+        end_ix = self._calendar.get_loc(dts[-1])
         return block.get(end_ix)
+
+
+class USEquityDailyHistoryLoader(USEquityHistoryLoader):
+
+    @property
+    def _prefetch_length(self):
+        return 40
+
+    @property
+    def _calendar(self):
+        return self._reader._calendar
+
+    def _array(self, dts, assets, field):
+        col = getattr(USEquityPricing, field)
+        return self._reader.load_raw_arrays(
+            [col], dts[0], dts[-1], assets)[0]
+
+
+class USEquityMinuteHistoryLoader(USEquityHistoryLoader):
+
+    @property
+    def _prefetch_length(self):
+        return 1560
+
+    @lazyval
+    def _calendar(self):
+        mm = self.env.market_minutes
+        return mm[mm.slice_indexer(start=self._reader.first_trading_day,
+                                   end=self._reader.last_available_dt)]
+
+    def _array(self, dts, assets, field):
+        return self._reader.unadjusted_window(
+            [field], dts[0], dts[-1], assets)[0].T

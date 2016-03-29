@@ -158,7 +158,7 @@ class TestAPIShim(TestCase):
         cls.adj_reader = cls.create_adjustments_reader()
 
         cls.sim_params = SimulationParameters(
-            period_start=cls.trading_days[0],
+            period_start=cls.trading_days[3],
             period_end=cls.trading_days[-1],
             data_frequency="minute",
             env=cls.env
