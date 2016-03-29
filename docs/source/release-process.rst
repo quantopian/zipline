@@ -42,6 +42,9 @@ To upgrade the version use the git tag command like:
 
 This will push the the code and the tag information.
 
+Next, click the "Draft a new release" button on the `zipline releases page
+<https://github.com/quantopian/zipline/releases>`__.  For the new release,
+choose the tag you just pushed, and publish the release.
 
 Uploading PyPI packages
 ~~~~~~~~~~~~~~~~~~~~~~~
