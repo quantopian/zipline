@@ -19,7 +19,6 @@ from .core import (  # noqa
     make_simple_equity_info,
     make_test_handler,
     make_trade_panel_for_asset_info,
-    num_days_in_range,
     parameter_space,
     permute_rows,
     powerset,

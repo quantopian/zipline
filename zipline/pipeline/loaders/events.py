@@ -5,7 +5,7 @@ from toolz import merge
 
 from .base import PipelineLoader
 from .frame import DataFrameLoader
-from .utils import previous_event_frame, next_date_frame
+from .utils import previous_event_frame, next_event_frame
 from zipline.pipeline.common import TS_FIELD_NAME
 from zipline.utils.numpy_utils import NaTD
 
@@ -167,10 +167,30 @@ class EventsLoader(PipelineLoader):
     def _next_event_date_loader(self, next_date_field, event_date_field_name):
         return DataFrameLoader(
             next_date_field,
-            next_date_frame(
-                self.all_dates,
+            next_event_frame(
                 self.events_by_sid,
+                self.all_dates,
+                next_date_field.missing_value,
+                next_date_field.dtype,
+                event_date_field_name,
                 event_date_field_name
+            ),
+            adjustments=None,
+        )
+
+    def _next_event_value_loader(self,
+                                 next_value_field,
+                                 event_date_field_name,
+                                 value_field_name):
+        return DataFrameLoader(
+            next_value_field,
+            next_event_frame(
+                self.events_by_sid,
+                self.all_dates,
+                next_value_field.missing_value,
+                next_value_field.dtype,
+                event_date_field_name,
+                value_field_name
             ),
             adjustments=None,
         )

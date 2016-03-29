@@ -786,14 +786,6 @@ def to_series(knowledge_dates, earning_dates):
     )
 
 
-def num_days_in_range(dates, start, end):
-    """
-    Return the number of days in `dates` between start and end, inclusive.
-    """
-    start_idx, stop_idx = dates.slice_locs(start, end)
-    return stop_idx - start_idx
-
-
 def gen_calendars(start, stop, critical_dates):
     """
     Generate calendars to use as inputs.
