@@ -12,7 +12,10 @@ Development
 Highlights
 ~~~~~~~~~~
 
-None
+* Added classifiers and normalization methods to pipeline, along with new
+  datasets and factors.
+
+* Added support for Windows with continuous integration on AppVeyor.
 
 Enhancements
 ~~~~~~~~~~~~
@@ -35,6 +38,7 @@ Enhancements
 * Implemented :class:`zipline.pipeline.Classifier`, a new core pipeline API
   term representing grouping keys.  Classifiers are primarily used by passing
   them as the ``groupby`` parameter to factor normalization methods.
+  (:issue:`1046`)
 
 * Added factor normalization methods:
   :meth:`zipline.pipeline.Factor.demean` and
