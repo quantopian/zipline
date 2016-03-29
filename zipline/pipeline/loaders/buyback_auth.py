@@ -2,7 +2,7 @@
 Reference implementation for buyback auth loaders.
 """
 
-from ..data.buyback_auth import (
+from ..data import (
     CashBuybackAuthorizations,
     ShareBuybackAuthorizations
 )

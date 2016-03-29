@@ -7,9 +7,11 @@ from zipline.pipeline.common import (
     CASH_FIELD_NAME,
     SHARE_COUNT_FIELD_NAME
 )
-from zipline.pipeline.data import (CashBuybackAuthorizations,
-                                   ShareBuybackAuthorizations)
-from zipline.pipeline.loaders.buyback_auth import (
+from zipline.pipeline.data import (
+    CashBuybackAuthorizations,
+    ShareBuybackAuthorizations
+)
+from zipline.pipeline.loaders import (
     CashBuybackAuthorizationsLoader,
     ShareBuybackAuthorizationsLoader,
 )
