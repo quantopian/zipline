@@ -171,7 +171,15 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
 Uploading conda packages
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-To build the conda packages for zipline run:
+Travis and AppVeyor build zipline conda packages for us.  Once they have built
+and uploaded to anaconda.org the packages (and their dependencies) for the
+release commit to master, we should move those packages from the "ci" label to
+the "main" label.  You can do this from the anaconda.org web interface.
+
+Travis and AppVeyor only build and upload linux-64 and win-64 packages.  We'll
+need to build and upload osx-64 packages manually on an OSX machine.
+
+To build the conda packages for zipline locally, run:
 
 .. code-block:: bash
 
