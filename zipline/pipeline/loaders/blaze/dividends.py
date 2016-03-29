@@ -6,12 +6,12 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.pipeline.data.dividends import (
+from zipline.pipeline.data import (
     DividendsByExDate,
     DividendsByAnnouncementDate,
     DividendsByPayDate
 )
-from zipline.pipeline.loaders.dividends import (
+from zipline.pipeline.loaders import (
     DividendsByAnnouncementDateLoader,
     DividendsByPayDateLoader,
     DividendsByExDateLoader

@@ -4,7 +4,7 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.data import EarningsCalendar
-from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
+from zipline.pipeline.loaders import EarningsCalendarLoader
 from .events import BlazeEventsLoader
 
 

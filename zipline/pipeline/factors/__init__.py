@@ -5,6 +5,9 @@ from .factor import (
 )
 from .events import (
     BusinessDaysSinceCashBuybackAuth,
+    BusinessDaysSinceDividendAnnouncement,
+    BusinessDaysUntilNextExDate,
+    BusinessDaysSincePreviousExDate,
     BusinessDaysUntilNextEarnings,
     BusinessDaysSincePreviousEarnings,
     BusinessDaysSinceShareBuybackAuth,
@@ -25,6 +28,9 @@ from .technical import (
 
 __all__ = [
     'BusinessDaysSinceCashBuybackAuth',
+    'BusinessDaysSinceDividendAnnouncement',
+    'BusinessDaysUntilNextExDate',
+    'BusinessDaysSincePreviousExDate',
     'BusinessDaysUntilNextEarnings',
     'BusinessDaysSincePreviousEarnings',
     'BusinessDaysSinceShareBuybackAuth',

@@ -5,7 +5,7 @@ from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME
 )
 from zipline.pipeline.loaders.events import EventsLoader
-from zipline.pipeline.data.dividends import (
+from ..data import (
     DividendsByExDate,
     DividendsByAnnouncementDate,
     DividendsByPayDate

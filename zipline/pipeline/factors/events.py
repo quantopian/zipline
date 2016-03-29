@@ -3,15 +3,13 @@ Factors describing information about event data (e.g. earnings
 announcements, acquisitions, dividends, etc.).
 """
 from numpy import newaxis
-from zipline.pipeline.data.buyback_auth import (
+from ..data import (
     CashBuybackAuthorizations,
-    ShareBuybackAuthorizations
-)
-from zipline.pipeline.data.dividends import (
+    ShareBuybackAuthorizations,
     DividendsByAnnouncementDate,
-    DividendsByExDate
+    DividendsByExDate,
+    EarningsCalendar
 )
-from zipline.pipeline.data.earnings import EarningsCalendar
 from zipline.utils.numpy_utils import (
     NaTD,
     busday_count_mask_NaT,

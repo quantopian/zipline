@@ -29,11 +29,29 @@ Enhancements
   blaze-based implementations can be found in
   :mod:`zipline.pipeline.loaders.blaze.buyback_auth`. (:issue:`1022`).
 
+* Added new datasets
+  :class:`~zipline.pipeline.data.dividends.DividendsByExDate`,
+  :class:`~zipline.pipeline.data.dividends.DividendsByPayDate`, and
+  :class:`~zipline.pipeline.data.dividends.DividendsByAnnouncementDate`
+  for use in the Pipeline API.  These datasets provide an abstract interface for
+  adding dividends data organized by ex date, pay date, and announcement date,
+  respectively, to a new algorithm. pandas-based reference implementations for
+  these datasets can be found in :mod:`zipline.pipeline.loaders.dividends`, and
+  experimental blaze-based implementations can be found in
+  :mod:`zipline.pipeline.loaders.blaze.dividends`. (:issue:`1093`).
+
 * Added new built-in factors,
   :class:`zipline.pipeline.factors.BusinessDaysSinceCashBuybackAuth` and
   :class:`zipline.pipeline.factors.BusinessDaysSinceShareBuybackAuth`.  These
   factors use the new ``CashBuybackAuthorizations`` and
   ``ShareBuybackAuthorizations`` datasets, respectively. (:issue:`1022`).
+
+* Added new built-in factors,
+  :class:`zipline.pipeline.factors.BusinessDaysSinceDividendAnnouncement`,
+  :class:`zipline.pipeline.factors.BusinessDaysUntilNextExDate`, and
+  :class:`zipline.pipeline.factors.BusinessDaysSincePreviousExDate`.  These
+  factors use the new ``DividendsByAnnouncementDate` and ``DividendsByExDate``
+  datasets, respectively. (:issue:`1093`).
 
 * Implemented :class:`zipline.pipeline.Classifier`, a new core pipeline API
   term representing grouping keys.  Classifiers are primarily used by passing
