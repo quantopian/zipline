@@ -308,7 +308,7 @@ class TradingAlgorithm(object):
         self._before_trading_start = None
         self._analyze = None
 
-        self._in_bts = False
+        self._in_before_trading_start = False
 
         self.event_manager = EventManager(
             create_context=kwargs.pop('create_event_context', None),
@@ -394,13 +394,13 @@ class TradingAlgorithm(object):
         if self._before_trading_start is None:
             return
 
-        self._in_bts = True
+        self._in_before_trading_start = True
 
         with handle_non_market_minutes(data) if \
                 self.data_frequency == "minute" else ExitStack():
             self._before_trading_start(self, data)
 
-        self._in_bts = False
+        self._in_before_trading_start = False
 
     def handle_data(self, data):
         self._handle_data(self, data)
@@ -1250,9 +1250,16 @@ class TradingAlgorithm(object):
             stacklevel=4
         )
 
-        assets = self._calculate_universe()
+        return self.get_history_window(
+            bar_count,
+            frequency,
+            self._calculate_universe(),
+            field,
+            ffill
+        )
 
-        if not self._in_bts:
+    def get_history_window(self, bar_count, frequency, assets, field, ffill):
+        if not self._in_before_trading_start:
             return self.data_portal.get_history_window(
                 assets,
                 self.datetime,
@@ -1286,7 +1293,7 @@ class TradingAlgorithm(object):
             )
             window = window * adjs
 
-        return window
+            return window
 
     ####################
     # Account Controls #
