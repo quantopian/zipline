@@ -26,7 +26,8 @@ from six.moves import reduce
 from zipline.assets import Asset, Future, Equity
 from zipline.data.us_equity_pricing import NoDataOnDate
 from zipline.data.us_equity_loader import (
-    USEquityHistoryLoader,
+    USEquityDailyHistoryLoader,
+    USEquityMinuteHistoryLoader,
 )
 
 from zipline.utils import tradingcalendar
@@ -451,7 +452,7 @@ class DataPortal(object):
 
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
-            self._equity_history_loader = USEquityHistoryLoader(
+            self._equity_history_loader = USEquityDailyHistoryLoader(
                 self.env,
                 self._equity_daily_reader,
                 self._adjustment_reader
@@ -466,6 +467,11 @@ class DataPortal(object):
             self._equity_daily_aggregator = DailyHistoryAggregator(
                 self.env.open_and_closes.market_open,
                 self._equity_minute_reader)
+            self._equity_minute_history_loader = USEquityMinuteHistoryLoader(
+                self.env,
+                self._equity_minute_reader,
+                self._adjustment_reader
+            )
             self.MINUTE_PRICE_ADJUSTMENT_FACTOR = \
                 self._equity_minute_reader._ohlc_inverse
 
@@ -496,6 +502,16 @@ class DataPortal(object):
             'price': None
         }
         self._equity_daily_reader_array_data = {}
+        # See above comment for `_equity_daily_reader_array_keys`.
+        self._equity_minute_loader_array_keys = {
+            'open': None,
+            'high': None,
+            'low': None,
+            'close': None,
+            'volume': None,
+            'price': None
+        }
+        self._equity_minute_loader_array_data = {}
 
         self._in_bts = False
 
@@ -1283,101 +1299,10 @@ class DataPortal(object):
 
     def _get_minute_window_for_equities(
             self, assets, field, minutes_for_window):
-        # each sid's minutes are stored in a bcolz file
-        # the bcolz file has 390 bars per day, regardless
-        # of when the asset started trading and regardless of half days.
-        # for a half day, the second half is filled with zeroes.
-        # all the minutely bcolz files start on the same day.
-
-        try:
-            start_idx = self._equity_minute_reader._find_position_of_minute(
-                minutes_for_window[0])
-        except KeyError:
-            start_idx = 0
-
-        try:
-            end_idx = self._equity_minute_reader._find_position_of_minute(
-                minutes_for_window[-1]) + 1
-        except KeyError:
-            end_idx = 0
-
-        if end_idx == 0:
-            # No data to return for minute window.
-            return np.full((len(minutes_for_window), len(assets), np.nan))
-
-        num_minutes = len(minutes_for_window)
-        start_date = normalize_date(minutes_for_window[0])
-        end_date = normalize_date(minutes_for_window[-1])
-
-        return_data = np.zeros((len(minutes_for_window), len(assets)),
-                               dtype=np.float64)
-
-        for i, asset in enumerate(assets):
-            # find the position of start_dt in the entire timeline, go back
-            # bar_count bars, and that's the unadjusted data
-            raw_data = self._equity_minute_reader._open_minute_file(
-                field, asset)
-
-            data_to_copy = raw_data[start_idx:end_idx]
-
-            # data_to_copy contains all the zeros (from 1pm to 4pm of an early
-            # close).  num_minutes is the number of actual trading minutes.  if
-            # these two have different lengths, that means that we need to trim
-            # away data due to early closes.
-            if len(data_to_copy) != num_minutes:
-                # get a copy of the minutes in Eastern time, since we depend on
-                # an early close being at 1pm Eastern.
-                eastern_minutes = minutes_for_window.tz_convert("US/Eastern")
-
-                # accumulate a list of indices of the last minute of an early
-                # close day.  For example, if data_to_copy starts at 12:55 pm,
-                # and there are five minutes of real data before 180 zeroes,
-                # we would put 5 into last_minute_idx_of_early_close_day,
-                # because the fifth minute is the last "real" minute of
-                # the day.
-                last_minute_idx_of_early_close_day = []
-                for minute_idx, minute_dt in enumerate(eastern_minutes):
-                    if minute_idx == (num_minutes - 1):
-                        break
-
-                    if minute_dt.hour == 13 and minute_dt.minute == 0:
-                        next_minute = eastern_minutes[minute_idx + 1]
-                        if next_minute.hour != 13:
-                            # minute_dt is the last minute of an early close
-                            # day
-                            last_minute_idx_of_early_close_day.append(
-                                minute_idx)
-
-                # spin through the list of early close markers, and use them to
-                # chop off 180 minutes at a time from data_to_copy.
-                for idx, early_close_minute_idx in enumerate(
-                        last_minute_idx_of_early_close_day):
-                    early_close_minute_idx -= (180 * idx)
-                    data_to_copy = np.delete(
-                        data_to_copy,
-                        range(
-                            early_close_minute_idx + 1,
-                            early_close_minute_idx + 181
-                        )
-                    )
-
-            return_data[0:len(data_to_copy), i] = data_to_copy
-            if start_date != end_date:
-                self._apply_all_adjustments(
-                    return_data[:, i],
-                    asset,
-                    minutes_for_window,
-                    field,
-                    self.MINUTE_PRICE_ADJUSTMENT_FACTOR
-                )
-
-        if start_date == end_date:
-            if field != 'volume':
-                # TODO: Use reader for this value.
-                return_data[return_data == 0] = np.nan
-                return_data *= self.MINUTE_PRICE_ADJUSTMENT_FACTOR
-
-        return return_data
+        window = self._equity_minute_loader_arrays(field,
+                                                   minutes_for_window,
+                                                   assets)
+        return window
 
     def _apply_all_adjustments(self, data, asset, dts, field,
                                price_adj_factor=1.0):
@@ -1442,17 +1367,11 @@ class DataPortal(object):
                 True
             )
 
-            data *= price_adj_factor
-
-            # if anything is zero, it's a missing bar, so replace it with NaN.
-            # we only want to do this for non-volume fields, because a missing
-            # volume should be 0.
-            data[data == 0] = np.NaN
-
-        np.around(data, 3, out=data)
+            if price_adj_factor is not None:
+                data *= price_adj_factor
+                np.around(data, 3, out=data)
 
     def _equity_daily_reader_arrays(self, field, dts, assets):
-        # Temporary cache shim before loader is pulled in.
         # Custom memoization, because of unhashable types.
         assets_key = frozenset(assets)
         key = (field, dts[0], dts[-1], assets_key)
@@ -1464,6 +1383,20 @@ class DataPortal(object):
                                                        field)
             self._equity_daily_reader_array_keys[field] = key
             self._equity_daily_reader_array_data[field] = data
+            return data
+
+    def _equity_minute_loader_arrays(self, field, dts, assets):
+        # Custom memoization, because of unhashable types.
+        assets_key = frozenset(assets)
+        key = (field, dts[0], dts[-1], assets_key)
+        if self._equity_minute_loader_array_keys[field] == key:
+            return self._equity_minute_loader_array_data[field]
+        else:
+            data = self._equity_minute_history_loader.history(assets,
+                                                              dts,
+                                                              field)
+            self._equity_minute_loader_array_keys[field] = key
+            self._equity_minute_loader_array_data[field] = data
             return data
 
     def _get_daily_window_for_sids(

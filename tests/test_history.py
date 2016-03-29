@@ -107,7 +107,9 @@ class HistoryTestCaseBase(TestCase):
         cls.adj_reader = cls.create_adjustments_reader()
 
         cls.create_data()
-        cls.create_data_portal()
+
+    def setUp(self):
+        self.create_data_portal()
 
     @classmethod
     def create_data_portal(cls):
@@ -655,6 +657,9 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             check_internal_consistency(
                 bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, "1m"
             )
+
+        # Reset data portal because it has advanced past next test date.
+        self.create_data_portal()
 
         # choose a window that contains the last minute of the asset
         bar_data = BarData(self.data_portal, lambda: minutes[15], "minute")
@@ -1274,7 +1279,11 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 "volume"
             )[asset]
 
-            np.testing.assert_array_equal(window2_volume, [100, 300])
+            if asset == self.SPLIT_ASSET:
+                # first value should be doubled, second value unadjusted
+                np.testing.assert_array_equal(window2_volume, [400, 300])
+            elif asset == self.MERGER_ASSET:
+                np.testing.assert_array_equal(window2_volume, [200, 300])
 
             # straddling both events
             window3 = self.data_portal.get_history_window(
@@ -1295,7 +1304,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 "volume"
             )[asset]
 
-            np.testing.assert_array_equal(window3_volume, [50, 150, 400])
+            if asset == self.SPLIT_ASSET:
+                np.testing.assert_array_equal(window3_volume, [800, 600, 400])
+            elif asset == self.MERGER_ASSET:
+                np.testing.assert_array_equal(window3_volume, [200, 300, 400])
 
     def test_daily_dividends(self):
         # self.DIVIDEND_ASSET had dividends on 1/6 and 1/7

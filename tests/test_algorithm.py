@@ -1545,9 +1545,18 @@ def handle_data(context, data):
             self.trades_by_sid
         )
 
+        sim_params = SimulationParameters(
+            period_start=pd.Timestamp('2006-02-01', tz='UTC'),
+            period_end=pd.Timestamp('2006-03-01', tz='UTC'),
+            capital_base=self.sim_params.capital_base,
+            data_frequency=self.sim_params.data_frequency,
+            emission_rate=self.sim_params.emission_rate,
+            env=self.env,
+        )
+
         test_algo = TradingAlgorithm(
             script=call_without_kwargs,
-            sim_params=self.sim_params,
+            sim_params=sim_params,
             env=self.env,
         )
         test_algo.run(data_portal)
@@ -1564,9 +1573,18 @@ def handle_data(context, data):
             self.trades_by_sid
         )
 
+        sim_params = SimulationParameters(
+            period_start=pd.Timestamp('2006-02-01', tz='UTC'),
+            period_end=pd.Timestamp('2006-03-01', tz='UTC'),
+            capital_base=self.sim_params.capital_base,
+            data_frequency=self.sim_params.data_frequency,
+            emission_rate=self.sim_params.emission_rate,
+            env=self.env,
+        )
+
         test_algo = TradingAlgorithm(
             script=call_with_kwargs,
-            sim_params=self.sim_params,
+            sim_params=sim_params,
             env=self.env,
         )
         test_algo.run(data_portal)
