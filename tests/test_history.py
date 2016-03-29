@@ -1688,6 +1688,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
         # First test each minute in order.
         method_name = field + 's'
         results = []
+        repeat_results = []
         asset = self.EQUITIES[sid]
         for minute in self.minutes:
             value = getattr(self.equity_daily_aggregator, method_name)(
@@ -1695,7 +1696,19 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
             # Prevent regression on building an array when scalar is intended.
             self.assertIsInstance(value, Real)
             results.append(value)
+
+            # Call a second time with the same dt, to prevent regression
+            # against case where crossed start and end dts caused a crash
+            # instead of the last value.
+            value = getattr(self.equity_daily_aggregator, method_name)(
+                [asset], minute)[0]
+            # Prevent regression on building an array when scalar is intended.
+            self.assertIsInstance(value, Real)
+            repeat_results.append(value)
+
         assert_almost_equal(results, self.expected_values[asset][field],
+                            err_msg="sid={0} field={1}".format(asset, field))
+        assert_almost_equal(repeat_results, self.expected_values[asset][field],
                             err_msg="sid={0} field={1}".format(asset, field))
 
     @parameterized.expand([
@@ -1727,12 +1740,25 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
                                 err_msg="sid={0} field={1} dt={2}".format(
                                     sid, field, minute))
 
+            # Call a second time with the same dt, to prevent regression
+            # against case where crossed start and end dts caused a crash
+            # instead of the last value.
+            value = getattr(self.equity_daily_aggregator, method_name)(
+                [asset], minute)[0]
+            # Prevent regression on building an array when scalar is intended.
+            self.assertIsInstance(value, Real)
+            assert_almost_equal(value,
+                                self.expected_values[sid][field][i],
+                                err_msg="sid={0} field={1} dt={2}".format(
+                                    sid, field, minute))
+
     @parameterized.expand(OHLCV)
     def test_contiguous_minutes_multiple(self, field):
         # First test each minute in order.
         method_name = field + 's'
         assets = sorted(self.EQUITIES.values())
         results = {asset: [] for asset in assets}
+        repeat_results = {asset: [] for asset in assets}
         for minute in self.minutes:
             values = getattr(self.equity_daily_aggregator, method_name)(
                 assets, minute)
@@ -1742,8 +1768,24 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
                 # intended.
                 self.assertIsInstance(value, Real)
                 results[asset].append(value)
+
+            # Call a second time with the same dt, to prevent regression
+            # against case where crossed start and end dts caused a crash
+            # instead of the last value.
+            values = getattr(self.equity_daily_aggregator, method_name)(
+                assets, minute)
+            for j, asset in enumerate(assets):
+                value = values[j]
+                # Prevent regression on building an array when scalar is
+                # intended.
+                self.assertIsInstance(value, Real)
+                repeat_results[asset].append(value)
         for asset in assets:
             assert_almost_equal(results[asset],
+                                self.expected_values[asset][field],
+                                err_msg="sid={0} field={1}".format(
+                                    asset, field))
+            assert_almost_equal(repeat_results[asset],
                                 self.expected_values[asset][field],
                                 err_msg="sid={0} field={1}".format(
                                     asset, field))
@@ -1756,6 +1798,22 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
         assets = sorted(self.EQUITIES.values())
         for i in [1, 5]:
             minute = self.minutes[i]
+            values = getattr(self.equity_daily_aggregator, method_name)(
+                assets, minute)
+            for j, asset in enumerate(assets):
+                value = values[j]
+                # Prevent regression on building an array when scalar is
+                # intended.
+                self.assertIsInstance(value, Real)
+                assert_almost_equal(
+                    value,
+                    self.expected_values[asset][field][i],
+                    err_msg="sid={0} field={1} dt={2}".format(
+                        asset, field, minute))
+
+            # Call a second time with the same dt, to prevent regression
+            # against case where crossed start and end dts caused a crash
+            # instead of the last value.
             values = getattr(self.equity_daily_aggregator, method_name)(
                 assets, minute)
             for j, asset in enumerate(assets):
