@@ -32,13 +32,20 @@ Enhancements
   factors use the new ``CashBuybackAuthorizations`` and
   ``ShareBuybackAuthorizations`` datasets, respectively. (:issue:`1022`).
 
+* Implemented :class:`zipline.pipeline.Classifier`, a new core pipeline API
+  term representing grouping keys.  Classifiers are primarily used by passing
+  them as the ``groupby`` parameter to factor normalization methods.
+
 * Added factor normalization methods:
   :meth:`zipline.pipeline.Factor.demean` and
   :meth:`zipline.pipeline.Factor.zscore`. (:issue:`1046`)
 
-* Implemented :class:`zipline.pipeline.Classifier`, a new core pipeline API
-  term representing grouping keys.  Classifiers are primarily used by passing
-  them as the ``groupby`` parameter to factor normalization methods.
+* Added :meth:`zipline.pipeline.Factor.quantiles`, a method for computing a
+  Classifier from a Factor by partitioning into equally-sized buckets. Also
+  added helpers for common quantile sizes
+  (:meth:`zipline.pipeline.Factor.quartiles`,
+  :meth:`zipline.pipeline.Factor.quartiles`, and
+  :meth:`zipline.pipeline.Factor.deciles`) (:issue:`1075`).
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

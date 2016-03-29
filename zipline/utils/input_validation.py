@@ -159,39 +159,41 @@ def expect_dtypes(*_pos, **named):
                     name=name, dtype=dtype,
                 )
             )
+
+    def _expect_dtype(_dtype_or_dtype_tuple):
+        """
+        Factory for dtype-checking functions that work the @preprocess
+        decorator.
+        """
+        # Slightly different messages for dtype and tuple of dtypes.
+        if isinstance(_dtype_or_dtype_tuple, tuple):
+            allowed_dtypes = _dtype_or_dtype_tuple
+        else:
+            allowed_dtypes = (_dtype_or_dtype_tuple,)
+        template = (
+            "%(funcname)s() expected a value with dtype {dtype_str} "
+            "for argument '%(argname)s', but got %(actual)r instead."
+        ).format(dtype_str=' or '.join(repr(d.name) for d in allowed_dtypes))
+
+        def check_dtype(value):
+            return getattr(value, 'dtype', None) not in allowed_dtypes
+
+        def display_bad_value(value):
+            # If the bad value has a dtype, but it's wrong, show the dtype
+            # name.
+            try:
+                return value.dtype.name
+            except AttributeError:
+                return value
+
+        return make_check(
+            exc_type=TypeError,
+            template=template,
+            pred=check_dtype,
+            actual=display_bad_value,
+        )
+
     return preprocess(**valmap(_expect_dtype, named))
-
-
-def _expect_dtype(_dtype_or_dtype_tuple):
-    """
-    Factory for dtype-checking functions that work the @preprocess decorator.
-    """
-    # Slightly different messages for dtype and tuple of dtypes.
-    if isinstance(_dtype_or_dtype_tuple, tuple):
-        allowed_dtypes = _dtype_or_dtype_tuple
-    else:
-        allowed_dtypes = (_dtype_or_dtype_tuple,)
-    template = (
-        "%(funcname)s() expected a value with dtype {dtype_str} "
-        "for argument '%(argname)s', but got %(actual)r instead."
-    ).format(dtype_str=' or '.join(repr(d.name) for d in allowed_dtypes))
-
-    def check_dtype(value):
-        return getattr(value, 'dtype', None) not in allowed_dtypes
-
-    def display_bad_value(value):
-        # If the bad value has a dtype, but it's wrong, show the dtype name.
-        try:
-            return value.dtype.name
-        except AttributeError:
-            return value
-
-    return make_check(
-        exc_type=TypeError,
-        template=template,
-        pred=check_dtype,
-        actual=display_bad_value,
-    )
 
 
 def expect_types(*_pos, **named):
@@ -222,6 +224,26 @@ def expect_types(*_pos, **named):
                     name=name, type_=type_,
                 )
             )
+
+    def _expect_type(type_):
+        # Slightly different messages for type and tuple of types.
+        _template = (
+            "%(funcname)s() expected a value of type {type_or_types} "
+            "for argument '%(argname)s', but got %(actual)s instead."
+        )
+        if isinstance(type_, tuple):
+            template = _template.format(
+                type_or_types=' or '.join(map(_qualified_name, type_))
+            )
+        else:
+            template = _template.format(type_or_types=_qualified_name(type_))
+
+        return make_check(
+            TypeError,
+            template,
+            lambda v: not isinstance(v, type_),
+            compose(_qualified_name, type),
+        )
 
     return preprocess(**valmap(_expect_type, named))
 
@@ -271,30 +293,6 @@ def make_check(exc_type, template, pred, actual):
             )
         return argvalue
     return _check
-
-
-def _expect_type(type_):
-    """
-    Factory for type-checking functions that work the @preprocess decorator.
-    """
-    # Slightly different messages for type and tuple of types.
-    _template = (
-        "%(funcname)s() expected a value of type {type_or_types} "
-        "for argument '%(argname)s', but got %(actual)s instead."
-    )
-    if isinstance(type_, tuple):
-        template = _template.format(
-            type_or_types=' or '.join(map(_qualified_name, type_))
-        )
-    else:
-        template = _template.format(type_or_types=_qualified_name(type_))
-
-    return make_check(
-        TypeError,
-        template,
-        lambda v: not isinstance(v, type_),
-        compose(_qualified_name, type),
-    )
 
 
 def optional(type_):
@@ -350,7 +348,61 @@ def expect_element(*_pos, **named):
     if _pos:
         raise TypeError("expect_element() only takes keyword arguments.")
 
+    def _expect_element(collection):
+        template = (
+            "%(funcname)s() expected a value in {collection} "
+            "for argument '%(argname)s', but got %(actual)s instead."
+        ).format(collection=collection)
+        return make_check(
+            ValueError,
+            template,
+            complement(op.contains(collection)),
+            repr,
+        )
     return preprocess(**valmap(_expect_element, named))
+
+
+def expect_dimensions(**dimensions):
+    """
+    Preprocessing decorator that verifies inputs are numpy arrays with a
+    specific dimensionality.
+
+    Usage
+    -----
+    >>> from numpy import array
+    >>> @expect_dimensions(x=1, y=2)
+    ... def foo(x, y):
+    ...    return x[0] + y[0, 0]
+    ...
+    >>> foo(array([1, 1]), array([[1, 1], [2, 2]]))
+    2
+    >>> foo(array([1, 1], array([1, 1])))
+    Traceback (most recent call last):
+       ...
+    TypeError: foo() expected a 2-D array for argument 'y', but got a 1-D array instead.  # noqa
+    """
+    def _expect_dimension(expected_ndim):
+        def _check(func, argname, argvalue):
+            funcname = _qualified_name(func)
+            actual_ndim = argvalue.ndim
+            if actual_ndim != expected_ndim:
+                if actual_ndim == 0:
+                    actual_repr = 'scalar'
+                else:
+                    actual_repr = "%d-D array" % actual_ndim
+                raise ValueError(
+                    "{func}() expected a {expected:d}-D array"
+                    " for argument {argname!r}, but got a {actual}"
+                    " instead.".format(
+                        func=funcname,
+                        expected=expected_ndim,
+                        argname=argname,
+                        actual=actual_repr,
+                    )
+                )
+            return argvalue
+        return _check
+    return preprocess(**valmap(_expect_dimension, dimensions))
 
 
 def coerce(from_, to, **to_kwargs):
@@ -391,16 +443,3 @@ def coerce(from_, to, **to_kwargs):
 
 
 coerce_string = partial(coerce, string_types)
-
-
-def _expect_element(collection):
-    template = (
-        "%(funcname)s() expected a value in {collection} "
-        "for argument '%(argname)s', but got %(actual)s instead."
-    ).format(collection=collection)
-    return make_check(
-        ValueError,
-        template,
-        complement(op.contains(collection)),
-        repr,
-    )

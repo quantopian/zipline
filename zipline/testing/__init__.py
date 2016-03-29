@@ -21,6 +21,7 @@ from .core import (  # noqa
     make_trade_panel_for_asset_info,
     num_days_in_range,
     parameter_space,
+    permute_rows,
     powerset,
     product_upper_triangle,
     seconds_to_timestamp,

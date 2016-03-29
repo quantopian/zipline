@@ -6,12 +6,13 @@ from types import FunctionType
 from unittest import TestCase
 
 from nose_parameterized import parameterized
-from numpy import arange, dtype
+from numpy import arange, array, dtype
 import pytz
 from six import PY3
 
 from zipline.utils.preprocess import call, preprocess
 from zipline.utils.input_validation import (
+    expect_dimensions,
     ensure_timezone,
     expect_element,
     expect_dtypes,
@@ -367,3 +368,38 @@ class PreprocessTestCase(TestCase):
         with self.assertRaises(TypeError) as e:
             f('a')
         self.assertIs(e.exception, error)
+
+    def test_expect_dimensions(self):
+
+        @expect_dimensions(x=2)
+        def foo(x, y):
+            return x[0, 0]
+
+        self.assertEqual(foo(arange(1).reshape(1, 1), 10), 0)
+
+        with self.assertRaises(ValueError) as e:
+            foo(arange(1), 1)
+        errmsg = str(e.exception)
+        expected = (
+            "{qualname}() expected a 2-D array for argument 'x', but got"
+            " a 1-D array instead.".format(qualname=qualname(foo))
+        )
+        self.assertEqual(errmsg, expected)
+
+        with self.assertRaises(ValueError) as e:
+            foo(arange(1).reshape(1, 1, 1), 1)
+        errmsg = str(e.exception)
+        expected = (
+            "{qualname}() expected a 2-D array for argument 'x', but got"
+            " a 3-D array instead.".format(qualname=qualname(foo))
+        )
+        self.assertEqual(errmsg, expected)
+
+        with self.assertRaises(ValueError) as e:
+            foo(array(0), 1)
+        errmsg = str(e.exception)
+        expected = (
+            "{qualname}() expected a 2-D array for argument 'x', but got"
+            " a scalar instead.".format(qualname=qualname(foo))
+        )
+        self.assertEqual(errmsg, expected)

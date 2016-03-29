@@ -5,13 +5,13 @@ from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
-from numpy import inf, where, nanstd
+from numpy import inf, where
 from toolz import curry
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d
-from zipline.pipeline.classifiers import Classifier, Everything
+from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -43,7 +43,7 @@ from zipline.pipeline.filters import (
     NullFilter,
 )
 from zipline.utils.input_validation import expect_types
-from zipline.utils.math_utils import nanmean
+from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.numpy_utils import (
     bool_dtype,
     coerce_to_dtype,
@@ -576,8 +576,13 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
+        # This is a named function so that it has a __name__ for use in the
+        # graph repr of GroupedRowTransform.
+        def demean(row):
+            return row - nanmean(row)
+
         return GroupedRowTransform(
-            transform=lambda row: row - nanmean(row),
+            transform=demean,
             factor=self,
             mask=mask,
             groupby=groupby,
@@ -637,8 +642,13 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
+        # This is a named function so that it has a __name__ for use in the
+        # graph repr of GroupedRowTransform.
+        def zscore(row):
+            return (row - nanmean(row)) / nanstd(row)
+
         return GroupedRowTransform(
-            transform=lambda row: (row - nanmean(row)) / nanstd(row),
+            transform=zscore,
             factor=self,
             mask=mask,
             groupby=groupby,
@@ -684,6 +694,105 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :class:`zipline.pipeline.factors.factor.Rank`
         """
         return Rank(self, method=method, ascending=ascending, mask=mask)
+
+    @expect_types(bins=int, mask=(Filter, NotSpecifiedType))
+    def quantiles(self, bins, mask=NotSpecified):
+        """
+        Construct a Classifier computing quantiles of the output of ``self``.
+
+        Every non-NaN data point the output is labelled with an integer value
+        from 0 to (bins - 1).  NaNs are labelled with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        bins : int
+            Number of bins labels to compute.
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing quantiles.
+
+        Returns
+        -------
+        quantiles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to (bins - 1).
+        """
+        if mask is NotSpecified:
+            mask = self.mask
+        return Quantiles(inputs=(self,), bins=bins, mask=mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    def quartiles(self, mask=NotSpecified):
+        """
+        Construct a Classifier computing quartiles over the output of ``self``.
+
+        Every non-NaN data point the output is labelled with a value of either
+        0, 1, 2, or 3, corresponding to the first, second, third, or fourth
+        quartile over each row.  NaN data points are labelled with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing quartiles.
+
+        Returns
+        -------
+        quartiles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to 3.
+        """
+        return self.quantiles(bins=4, mask=mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    def quintiles(self, mask=NotSpecified):
+        """
+        Construct a Classifier computing quintile labels on ``self``.
+
+        Every non-NaN data point the output is labelled with a value of either
+        0, 1, 2, or 3, 4, corresonding to quintiles over each row.  NaN data
+        points are labelled with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing quintiles.
+
+        Returns
+        -------
+        quintiles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to 4.
+        """
+        return self.quantiles(bins=5, mask=mask)
+
+    @expect_types(mask=(Filter, NotSpecifiedType))
+    def deciles(self, mask=NotSpecified):
+        """
+        Construct a Classifier computing decile labels on ``self``.
+
+        Every non-NaN data point the output is labelled with a value from 0 to
+        9 corresonding to deciles over each row.  NaN data points are labelled
+        with -1.
+
+        If ``mask`` is supplied, ignore data points in locations for which
+        ``mask`` produces False, and emit a label of -1 at those locations.
+
+        Parameters
+        ----------
+        mask : zipline.pipeline.Filter, optional
+            Mask of values to ignore when computing deciles.
+
+        Returns
+        -------
+        deciles : zipline.pipeline.classifiers.Quantiles
+            A Classifier producing integer labels ranging from 0 to 9.
+        """
+        return self.quantiles(bins=10, mask=mask)
 
     def top(self, N, mask=NotSpecified):
         """
@@ -922,6 +1031,13 @@ class GroupedRowTransform(Factor):
             ),
             self.missing_value,
         )
+
+    @property
+    def transform_name(self):
+        return self._transform.__name__
+
+    def short_repr(self):
+        return type(self).__name__ + '(%r)' % self.transform_name
 
 
 class Rank(SingleInputMixin, Factor):
