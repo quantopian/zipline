@@ -9,7 +9,7 @@ from six import itervalues, iteritems
 from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
-from .term import LoadableTerm
+from .term import ComputableTerm, LoadableTerm
 
 
 class CyclicDependency(Exception):
@@ -190,8 +190,23 @@ class TermGraph(DiGraph):
         # Number of extra rows we need to compute for this term's dependencies.
         dependency_extra_rows = extra_rows + term.extra_input_rows
 
+        if isinstance(term, ComputableTerm):
+            # For computable terms, we want to manually add the term's mask to
+            # the graph with zero extra rows. A computable term does not
+            # directly require its mask to have any extra rows. Only loadable
+            # terms should dictate how many extra rows a mask should compute.
+            self._add_to_graph(
+                term.mask,
+                parents,
+                extra_rows=0,
+            )
+            self.add_edge(term.mask, term)
+            dependencies = term.inputs
+        else:
+            dependencies = term.dependencies
+
         # Recursively add dependencies.
-        for dependency in term.dependencies:
+        for dependency in dependencies:
             self._add_to_graph(
                 dependency,
                 parents,

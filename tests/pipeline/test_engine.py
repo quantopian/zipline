@@ -62,6 +62,7 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
+from zipline.pipeline.term import NotSpecified
 from zipline.testing import (
     make_rotating_equity_info,
     make_simple_equity_info,
@@ -93,6 +94,14 @@ class AssetID(CustomFactor):
 
     def compute(self, today, assets, out, close):
         out[:] = assets
+
+
+class OpenPrice(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.open]
+
+    def compute(self, today, assets, out, open):
+        out[:] = open
 
 
 def assert_multi_index_is_product(testcase, index, *levels):
@@ -353,6 +362,62 @@ class ConstantInputTestCase(TestCase):
             avg_result,
             DataFrame(expected_avg, index=dates, columns=self.assets),
         )
+
+    def test_masked_factor(self):
+        """
+        Test that a Custom Factor computes the correct values when passed a
+        mask. The mask/filter should be applied prior to computing any values,
+        as opposed to computing the factor across the entire universe of
+        assets. Any assets that are filtered out should be filled with missing
+        values.
+        """
+        loader = self.loader
+        dates = self.dates[5:10]
+        assets = self.assets
+        asset_ids = self.asset_ids
+        constants = self.constants
+        num_dates = len(dates)
+        open = USEquityPricing.open
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+
+        # These are the expected values for the OpenPrice factor. If we pass
+        # OpenPrice a mask, any assets that are filtered out should have all
+        # NaN values. Otherwise, we expect its computed values to be the
+        # asset's open price.
+        values = array([constants[open]] * num_dates, dtype=float)
+        missing_values = array([nan] * num_dates)
+
+        for asset_id in asset_ids:
+            mask = AssetID() <= asset_id
+            factor1 = OpenPrice(mask=mask)
+
+            # Test running our pipeline both with and without a second factor.
+            # We do not explicitly test the resulting values of the second
+            # factor; we just want to implicitly ensure that the addition of
+            # another factor to the pipeline term graph does not cause any
+            # unexpected exceptions when calling `run_pipeline`.
+            for factor2 in (None,
+                            RollingSumDifference(mask=NotSpecified),
+                            RollingSumDifference(mask=mask)):
+                if factor2 is None:
+                    columns = {'factor1': factor1}
+                else:
+                    columns = {'factor1': factor1, 'factor2': factor2}
+                pipeline = Pipeline(columns=columns)
+                results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+                factor1_results = results['factor1'].unstack()
+
+                expected = {
+                    asset: values if asset.sid <= asset_id else missing_values
+                    for asset in assets
+                }
+
+                assert_frame_equal(
+                    factor1_results,
+                    DataFrame(expected, index=dates, columns=assets),
+                )
 
     def test_rolling_and_nonrolling(self):
         open_ = USEquityPricing.open

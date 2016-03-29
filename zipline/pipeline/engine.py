@@ -242,8 +242,11 @@ class SimplePipelineEngine(object):
         Load mask and mask row labels for term.
         """
         mask = term.mask
-        offset = graph.extra_rows[mask] - graph.extra_rows[term]
-        return workspace[mask][offset:], dates[offset:]
+        mask_offset = graph.extra_rows[mask] - graph.extra_rows[term]
+        dates_offset = (
+            graph.extra_rows[self._root_mask_term] - graph.extra_rows[term]
+        )
+        return workspace[mask][mask_offset:], dates[dates_offset:]
 
     @staticmethod
     def _inputs_for_term(term, workspace, graph):

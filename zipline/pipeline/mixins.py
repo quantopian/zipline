@@ -70,6 +70,7 @@ class CustomTermMixin(object):
     def __new__(cls,
                 inputs=NotSpecified,
                 window_length=NotSpecified,
+                mask=NotSpecified,
                 dtype=NotSpecified,
                 missing_value=NotSpecified,
                 **kwargs):
@@ -88,6 +89,7 @@ class CustomTermMixin(object):
             cls,
             inputs=inputs,
             window_length=window_length,
+            mask=mask,
             dtype=dtype,
             missing_value=missing_value,
             **kwargs
@@ -104,7 +106,6 @@ class CustomTermMixin(object):
         Call the user's `compute` function on each window with a pre-built
         output array.
         """
-        # TODO: Make mask available to user's `compute`.
         compute = self.compute
         missing_value = self.missing_value
         params = self.params
@@ -113,14 +114,18 @@ class CustomTermMixin(object):
             # TODO: Consider pre-filtering columns that are all-nan at each
             # time-step?
             for idx, date in enumerate(dates):
+                col_mask = mask[idx]
+                masked_out = out[idx][col_mask]
+                masked_assets = assets[col_mask]
+
                 compute(
                     date,
-                    assets,
-                    out[idx],
-                    *(next(w) for w in windows),
+                    masked_assets,
+                    masked_out,
+                    *(next(w)[:, col_mask] for w in windows),
                     **params
                 )
-        out[~mask] = missing_value
+                out[idx][col_mask] = masked_out
         return out
 
     def short_repr(self):
