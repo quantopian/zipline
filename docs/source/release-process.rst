@@ -40,7 +40,7 @@ To upgrade the version use the git tag command like:
 .. code-block:: bash
 
    $ git tag <major>.<minor>.<micro>
-   $ git push --follow-tags
+   $ git push && git push --tags
 
 
 This will push the the code and the tag information.
