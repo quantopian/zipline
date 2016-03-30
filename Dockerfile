@@ -9,22 +9,27 @@
 #
 # To access Jupyter when running docker locally (you may need to add NAT rules):
 #
-#    https://127.0.0.1:8888
+#    https://127.0.0.1
 #
-# You can also run an algo using the docker exec command.  For example:
-#
-#    docker exec -it zipline run_algo.py -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 \
-#         --symbols XOP -o /projects/result.pickle
-#
-FROM python:2.7
-
-# 
 # default password is jupyter.  to provide another, see:
 #    http://jupyter-notebook.readthedocs.org/en/latest/public_server.html#preparing-a-hashed-password
 # 
 # once generated, you can pass the new value via `docker run --env` the first time
 # you start the container.
 # 
+# You can also run an algo using the docker exec command.  For example:
+#
+#    docker exec -it zipline run_algo.py -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 \
+#         --symbols XOP -o /projects/result.pickle
+#
+# For developers who want to access source inside the zipline container, try running this from 
+# within the root of the zipline source tree:
+# 
+#    docker run -v=/path/to/your/notebooks:/projects -v=`pwd`:/zipline -p 443:8888/tcp \
+#         --name zipline -it quantopian/zipline
+# 
+
+FROM python:2.7
 
 #
 # set up environment
@@ -61,27 +66,37 @@ RUN pip install numpy==1.9.2 \
   && pip install TA-Lib \
   && pip install jupyter
 
+#
+# This is then only file we need from source to remain in the
+# image after build and install.
+#
+
+ADD ./etc/docker_cmd.sh /
+
 # 
-# make volumes and ports available 
+# make port available. /zipline is made a volume
+# for developer testing.
 # 
-VOLUME ${PROJECT_DIR}
 EXPOSE ${NOTEBOOK_PORT}
 
 #
-# install zipline from source
-# 
+# build and install the zipline package into the image
+#
+
 ADD . /zipline
 WORKDIR /zipline
-RUN rm -rf /zipline/dist || /bin/true
 RUN python setup.py install
 
-
 #
-# run the startup script.  CMD is used rather than ENTRYPOINT
-# to preserve compatibility with PyCharm docker plugin.
-WORKDIR ${PROJECT_DIR}
+# clean up the build artifacts and recreate the folder for 
+# developer mount
+#
+
+RUN rm -rf /zipline && mkdir /zipline
 
 #
 # start the jupyter server
 #
-CMD /zipline/etc/docker_cmd.sh
+
+WORKDIR ${PROJECT_DIR}
+CMD /docker_cmd.sh
