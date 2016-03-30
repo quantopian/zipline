@@ -1,13 +1,8 @@
-Development
------------
+Release 0.9.0
+-------------
 
-:Release: 0.8.5
-:Date: TBD
-
-.. warning::
-   This release is still under active development.  All changes listed are
-   subject to change at any time.
-
+:Release: 0.9.0
+:Date: March 29, 2016
 
 Highlights
 ~~~~~~~~~~
