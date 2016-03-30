@@ -56,7 +56,7 @@ To build the ``sdist`` (source distribution) run:
 
 .. code-block:: bash
 
-   $ python setup.by sdist
+   $ python setup.py sdist
 
 
 from the zipline root. This will create a gzipped tarball that includes all the
