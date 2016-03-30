@@ -10,3 +10,5 @@ zipline.egg-info
 tests
 etc
 docs
+# PyCharm config
+.idea
