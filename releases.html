@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Release Notes &mdash; Zipline 0.8.4 documentation</title>
+  <title>Release Notes &mdash; Zipline 0.9.0+2.g488d638 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 0.8.4 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 0.9.0+2.g488d638 documentation" href="index.html"/>
         <link rel="next" title="API Reference" href="appendix.html"/>
         <link rel="prev" title="Zipline beginner tutorial" href="beginner-tutorial.html"/> 
 
@@ -99,7 +99,7 @@
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#development">Development</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#highlights">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#experimental-features">Experimental Features</a></li>
@@ -111,8 +111,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#release-0-8-3">Release 0.8.3</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#release-0-9-0">Release 0.9.0</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#id1">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id2">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id3">Experimental Features</a></li>
@@ -121,26 +120,51 @@
 <li class="toctree-l3"><a class="reference internal" href="#id6">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id7">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id8">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id26">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id9">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id10">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id11">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id12">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id13">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id14">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id27">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id28">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id29">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id30">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id31">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id32">Build</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#contributors">Contributors</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#release-0-6-1">Release 0.6.1</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id15">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id16">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id17">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id18">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id19">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id20">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id21">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id33">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id34">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id35">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id36">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id37">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id38">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id39">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -204,6 +228,179 @@
             
   <div class="section" id="release-notes">
 <h1>Release Notes<a class="headerlink" href="#release-notes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="development">
+<h2>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Release:</th><td class="field-body">0.9.1</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Date:</th><td class="field-body">TBD</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">This release is still under active development.  All changes listed are
+subject to change at any time.</p>
+</div>
+<div class="section" id="highlights">
+<h3>Highlights<a class="headerlink" href="#highlights" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="enhancements">
+<h3>Enhancements<a class="headerlink" href="#enhancements" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="experimental-features">
+<h3>Experimental Features<a class="headerlink" href="#experimental-features" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Experimental features are subject to change.</p>
+</div>
+<p>None</p>
+</div>
+<div class="section" id="bug-fixes">
+<h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="performance">
+<h3>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="maintenance-and-refactorings">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#maintenance-and-refactorings" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="build">
+<h3>Build<a class="headerlink" href="#build" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="documentation">
+<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="miscellaneous">
+<h3>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+</div>
+<div class="section" id="release-0-9-0">
+<h2>Release 0.9.0<a class="headerlink" href="#release-0-9-0" title="Permalink to this headline">¶</a></h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Release:</th><td class="field-body">0.9.0</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Date:</th><td class="field-body">March 29, 2016</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="id1">
+<h3>Highlights<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Added classifiers and normalization methods to pipeline, along with new
+datasets and factors.</li>
+<li>Added support for Windows with continuous integration on AppVeyor.</li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>Enhancements<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Added new datasets
+<code class="xref py py-class docutils literal"><span class="pre">CashBuybackAuthorizations</span></code>
+and <code class="xref py py-class docutils literal"><span class="pre">ShareBuybackAuthorizations</span></code>
+for use in the Pipeline API.  These datasets provide an abstract interface for
+adding cash and share buyback authorizations data, respectively, to a new
+algorithm. pandas-based reference implementations for these datasets can be
+found in <code class="xref py py-mod docutils literal"><span class="pre">zipline.pipeline.loaders.buyback_auth</span></code>, and experimental
+blaze-based implementations can be found in
+<code class="xref py py-mod docutils literal"><span class="pre">zipline.pipeline.loaders.blaze.buyback_auth</span></code>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1022">#1022</a>).</li>
+<li>Added new datasets
+<code class="xref py py-class docutils literal"><span class="pre">DividendsByExDate</span></code>,
+<code class="xref py py-class docutils literal"><span class="pre">DividendsByPayDate</span></code>, and
+<code class="xref py py-class docutils literal"><span class="pre">DividendsByAnnouncementDate</span></code>
+for use in the Pipeline API.  These datasets provide an abstract interface for
+adding dividends data organized by ex date, pay date, and announcement date,
+respectively, to a new algorithm. pandas-based reference implementations for
+these datasets can be found in <code class="xref py py-mod docutils literal"><span class="pre">zipline.pipeline.loaders.dividends</span></code>, and
+experimental blaze-based implementations can be found in
+<code class="xref py py-mod docutils literal"><span class="pre">zipline.pipeline.loaders.blaze.dividends</span></code>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1093">#1093</a>).</li>
+<li>Added new built-in factors,
+<code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysSinceCashBuybackAuth</span></code> and
+<code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysSinceShareBuybackAuth</span></code>.  These
+factors use the new <code class="docutils literal"><span class="pre">CashBuybackAuthorizations</span></code> and
+<code class="docutils literal"><span class="pre">ShareBuybackAuthorizations</span></code> datasets, respectively. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1022">#1022</a>).</li>
+<li>Added new built-in factors,
+<code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysSinceDividendAnnouncement</span></code>,
+<code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysUntilNextExDate</span></code>, and
+<code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.BusinessDaysSincePreviousExDate</span></code>.  These
+factors use the new <code class="docutils literal"><span class="pre">DividendsByAnnouncementDate`</span> <span class="pre">and</span> <span class="pre">``DividendsByExDate</span></code>
+datasets, respectively. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1093">#1093</a>).</li>
+<li>Implemented <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.Classifier</span></code>, a new core pipeline API
+term representing grouping keys.  Classifiers are primarily used by passing
+them as the <code class="docutils literal"><span class="pre">groupby</span></code> parameter to factor normalization methods.
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/1046">#1046</a>)</li>
+<li>Added factor normalization methods:
+<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.demean()</span></code> and
+<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.zscore()</span></code>. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1046">#1046</a>)</li>
+<li>Added <code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quantiles()</span></code>, a method for computing a
+Classifier from a Factor by partitioning into equally-sized buckets. Also
+added helpers for common quantile sizes
+(<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quartiles()</span></code>,
+<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.quartiles()</span></code>, and
+<code class="xref py py-meth docutils literal"><span class="pre">zipline.pipeline.Factor.deciles()</span></code>) (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1075">#1075</a>).</li>
+</ul>
+</div>
+<div class="section" id="id3">
+<h3>Experimental Features<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Experimental features are subject to change.</p>
+</div>
+<p>None</p>
+</div>
+<div class="section" id="id4">
+<h3>Bug Fixes<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Fixed a bug where merging two numerical expressions failed given too many
+inputs. This caused running a pipeline to fail when combining more than ten
+factors or filters. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/1072">#1072</a>)</li>
+</ul>
+</div>
+<div class="section" id="id5">
+<h3>Performance<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="id6">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="id7">
+<h3>Build<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Added AppVeyor for continuous integration on Windows.  Added conda build of
+zipline and its dependencies to AppVeyor and Travis builds, which upload
+their results to anaconda.org labeled with &#8220;ci&#8221;. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/981">#981</a>)</li>
+</ul>
+</div>
+<div class="section" id="id8">
+<h3>Documentation<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<p>None</p>
+</div>
+<div class="section" id="id9">
+<h3>Miscellaneous<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Adds <code class="xref py py-class docutils literal"><span class="pre">ZiplineTestCase</span></code> which provides hooks
+to consume test fixtures. Fixtures are things like:
+<code class="xref py py-class docutils literal"><span class="pre">WithAssetFinder</span></code> which will make
+<code class="docutils literal"><span class="pre">self.asset_finder</span></code> available to your test with some mock data
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/1042">#1042</a>).</li>
+</ul>
+</div>
+</div>
 <div class="section" id="release-0-8-4">
 <h2>Release 0.8.4<a class="headerlink" href="#release-0-8-4" title="Permalink to this headline">¶</a></h2>
 <table class="docutils field-list" frame="void" rules="none">
@@ -216,8 +413,8 @@
 </tr>
 </tbody>
 </table>
-<div class="section" id="highlights">
-<h3>Highlights<a class="headerlink" href="#highlights" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id10">
+<h3>Highlights<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Added a new <a class="reference internal" href="appendix.html#zipline.pipeline.data.EarningsCalendar" title="zipline.pipeline.data.EarningsCalendar"><code class="xref py py-class docutils literal"><span class="pre">EarningsCalendar</span></code></a> dataset
 for use in the Pipeline API. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/905">#905</a>).</li>
@@ -233,8 +430,8 @@ is of dtype <code class="docutils literal"><span class="pre">bool</span></code>.
 Using <code class="docutils literal"><span class="pre">history</span></code> is recommended as an alternative.</li>
 </ul>
 </div>
-<div class="section" id="enhancements">
-<h3>Enhancements<a class="headerlink" href="#enhancements" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id11">
+<h3>Enhancements<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Adds a way for users to provide a context manager to use when executing the
 scheduled functions (including <code class="docutils literal"><span class="pre">handle_data</span></code>). This context manager will be
@@ -294,10 +491,16 @@ simulation. The data will be made available on the next day (<a class="reference
 a <code class="docutils literal"><span class="pre">missing_value</span></code> when dtype is integral. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/962">#962</a>)</li>
 <li>It is also now possible to specify custom <code class="docutils literal"><span class="pre">missing_value</span></code> values for
 <code class="docutils literal"><span class="pre">float</span></code>, <code class="docutils literal"><span class="pre">datetime</span></code>, and <code class="docutils literal"><span class="pre">bool</span></code> Pipeline terms. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/962">#962</a>)</li>
+<li>Added auto-close support for equities. Any positions held in an equity that
+reaches its <code class="docutils literal"><span class="pre">auto_close_date</span></code> will be liquidated for cash according to the
+equity&#8217;s last sale price. Furthermore, any open orders for that equity will
+be canceled. Both futures and equities are now auto-closed on the morning of
+their <code class="docutils literal"><span class="pre">auto_close_date</span></code>, immediately prior to <code class="docutils literal"><span class="pre">before_trading_start</span></code>.
+(<a class="reference external" href="https://github.com/quantopian/zipline/issues/982">#982</a>)</li>
 </ul>
 </div>
-<div class="section" id="experimental-features">
-<h3>Experimental Features<a class="headerlink" href="#experimental-features" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id12">
+<h3>Experimental Features<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h3>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Experimental features are subject to change.</p>
@@ -310,8 +513,8 @@ the factor&#8217;s <code class="docutils literal"><span class="pre">compute</spa
 in future releases.</li>
 </ul>
 </div>
-<div class="section" id="bug-fixes">
-<h3>Bug Fixes<a class="headerlink" href="#bug-fixes" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id13">
+<h3>Bug Fixes<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Fixes an issue that would cause the daily/minutely method caching to change
 the <code class="docutils literal"><span class="pre">len</span></code> of a <code class="xref py py-class docutils literal"><span class="pre">SIDData</span></code> object. This would cause
@@ -342,8 +545,8 @@ python, where Assets did not compare properly with int64s (<a class="reference e
 unconditionally (<a class="reference external" href="https://github.com/quantopian/zipline/issues/969">#969</a>).</li>
 </ul>
 </div>
-<div class="section" id="performance">
-<h3>Performance<a class="headerlink" href="#performance" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id14">
+<h3>Performance<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Speeds up <a class="reference internal" href="appendix.html#zipline.assets.assets.AssetFinder.lookup_symbol" title="zipline.assets.assets.AssetFinder.lookup_symbol"><code class="xref py py-meth docutils literal"><span class="pre">lookup_symbol()</span></code></a> by adding
 an extension, <a class="reference internal" href="appendix.html#zipline.assets.assets.AssetFinderCachedEquities" title="zipline.assets.assets.AssetFinderCachedEquities"><code class="xref py py-class docutils literal"><span class="pre">AssetFinderCachedEquities</span></code></a>, that
@@ -355,8 +558,8 @@ to find matching equities (<a class="reference external" href="https://github.co
 batched queries. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/817">#817</a>).</li>
 </ul>
 </div>
-<div class="section" id="maintenance-and-refactorings">
-<h3>Maintenance and Refactorings<a class="headerlink" href="#maintenance-and-refactorings" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id15">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Asset databases now contain version information to ensure compatibility
 with current Zipline version (<a class="reference external" href="https://github.com/quantopian/zipline/issues/815">#815</a>).</li>
@@ -365,8 +568,8 @@ with current Zipline version (<a class="reference external" href="https://github
 <li>Upgrade <code class="docutils literal"><span class="pre">Cython</span></code> version to 0.23.4 (<a class="reference external" href="https://github.com/quantopian/zipline/commit/5f49fa2">5f49fa2</a>).</li>
 </ul>
 </div>
-<div class="section" id="build">
-<h3>Build<a class="headerlink" href="#build" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id16">
+<h3>Build<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Makes zipline install requirements more flexible (<a class="reference external" href="https://github.com/quantopian/zipline/issues/825">#825</a>).</li>
 <li>Use <code class="docutils literal"><span class="pre">versioneer</span></code> to manage the project <code class="docutils literal"><span class="pre">__version__</span></code> and setup.py version
@@ -378,8 +581,8 @@ of sync (<a class="reference external" href="https://github.com/quantopian/zipli
 <li>Require <code class="docutils literal"><span class="pre">setuptools</span></code> &gt; 18.0 (<a class="reference external" href="https://github.com/quantopian/zipline/issues/951">#951</a>).</li>
 </ul>
 </div>
-<div class="section" id="documentation">
-<h3>Documentation<a class="headerlink" href="#documentation" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id17">
+<h3>Documentation<a class="headerlink" href="#id17" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Document the release process for developers (<a class="reference external" href="https://github.com/quantopian/zipline/issues/835">#835</a>).</li>
 <li>Added reference docs for the Pipeline API. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/864">#864</a>).</li>
@@ -390,8 +593,8 @@ and functions. (<a class="reference external" href="https://github.com/quantopia
 dependencies. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/883">#883</a>).</li>
 </ul>
 </div>
-<div class="section" id="miscellaneous">
-<h3>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id18">
+<h3>Miscellaneous<a class="headerlink" href="#id18" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Added a <code class="xref py py-meth docutils literal"><span class="pre">show_graph()</span></code> method to render
 a Pipeline as an image (<a class="reference external" href="https://github.com/quantopian/zipline/issues/836">#836</a>).</li>
@@ -436,8 +639,8 @@ pypi. There are no code changes in this version.</p>
 </tr>
 </tbody>
 </table>
-<div class="section" id="id1">
-<h3>Highlights<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id19">
+<h3>Highlights<a class="headerlink" href="#id19" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>New documentation system with a new website at
 <a class="reference external" href="http://www.zipline.io">zipline.io</a></li>
@@ -452,8 +655,8 @@ pypi. There are no code changes in this version.</p>
 <li>Support for trading futures.</li>
 </ul>
 </div>
-<div class="section" id="id2">
-<h3>Enhancements<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id20">
+<h3>Enhancements<a class="headerlink" href="#id20" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p class="first">Account object: Adds an account object to context to track information about
 the trading account.
@@ -581,8 +784,8 @@ trading guard that prevents your algorithm from over leveraging itself
 </li>
 </ul>
 </div>
-<div class="section" id="id3">
-<h3>Experimental Features<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id21">
+<h3>Experimental Features<a class="headerlink" href="#id21" title="Permalink to this headline">¶</a></h3>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">Experimental features are subject to change.</p>
@@ -596,8 +799,8 @@ from any format blaze understands and use it in the Pipeline
 API. (<a class="reference external" href="https://github.com/quantopian/zipline/issues/775">#775</a>).</li>
 </ul>
 </div>
-<div class="section" id="id4">
-<h3>Bug Fixes<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id22">
+<h3>Bug Fixes<a class="headerlink" href="#id22" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Fix a bug where the reported returns could sharply dip for random periods of
 time (<a class="reference external" href="https://github.com/quantopian/zipline/issues/378">#378</a>).</li>
@@ -613,25 +816,25 @@ called if it was passed as a keyword argument to
 <a class="reference internal" href="appendix.html#zipline.algorithm.TradingAlgorithm" title="zipline.algorithm.TradingAlgorithm"><code class="xref py py-class docutils literal"><span class="pre">TradingAlgorithm</span></code></a> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/819">#819</a>).</li>
 </ul>
 </div>
-<div class="section" id="id5">
-<h3>Performance<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id23">
+<h3>Performance<a class="headerlink" href="#id23" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Major performance enhancements to history (by Dale Jung) (<a class="reference external" href="https://github.com/quantopian/zipline/issues/488">#488</a>).</li>
 </ul>
 </div>
-<div class="section" id="id6">
-<h3>Maintenance and Refactorings<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id24">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#id24" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Remove simple transform code. These are available as methods of
 <code class="xref py py-class docutils literal"><span class="pre">SIDData</span></code> (<a class="reference external" href="https://github.com/quantopian/zipline/issues/550">#550</a>).</li>
 </ul>
 </div>
-<div class="section" id="id7">
-<h3>Build<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id25">
+<h3>Build<a class="headerlink" href="#id25" title="Permalink to this headline">¶</a></h3>
 <p>None</p>
 </div>
-<div class="section" id="id8">
-<h3>Documentation<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id26">
+<h3>Documentation<a class="headerlink" href="#id26" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Switched to sphinx for the documentation (<a class="reference external" href="https://github.com/quantopian/zipline/issues/816">#816</a>).</li>
 </ul>
@@ -649,8 +852,8 @@ called if it was passed as a keyword argument to
 </tr>
 </tbody>
 </table>
-<div class="section" id="id9">
-<h3>Highlights<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id27">
+<h3>Highlights<a class="headerlink" href="#id27" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Command line interface to run algorithms directly.</li>
 <li>IPython Magic <code class="docutils literal"><span class="pre">%%zipline</span></code> that runs algorithm defined in an IPython
@@ -663,8 +866,8 @@ undesired short positions.</li>
 tutorial</a>.</li>
 </ul>
 </div>
-<div class="section" id="id10">
-<h3>Enhancements<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id28">
+<h3>Enhancements<a class="headerlink" href="#id28" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p class="first">CLI: Adds a CLI and IPython magic for zipline.
 Example:</p>
@@ -767,28 +970,28 @@ and an <a class="reference external" href="https://github.com/quantopian/zipline
 </li>
 </ul>
 </div>
-<div class="section" id="id11">
-<h3>Bug Fixes<a class="headerlink" href="#id11" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id29">
+<h3>Bug Fixes<a class="headerlink" href="#id29" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Fix alignment of trading days and open and closes in trading
 environment (<a class="reference external" href="https://github.com/quantopian/zipline/issues/331">#331</a>).</li>
 <li>RollingPanel fix when adding/dropping new fields (<a class="reference external" href="https://github.com/quantopian/zipline/issues/349">#349</a>).</li>
 </ul>
 </div>
-<div class="section" id="id12">
-<h3>Performance<a class="headerlink" href="#id12" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id30">
+<h3>Performance<a class="headerlink" href="#id30" title="Permalink to this headline">¶</a></h3>
 <p>None</p>
 </div>
-<div class="section" id="id13">
-<h3>Maintenance and Refactorings<a class="headerlink" href="#id13" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id31">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#id31" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Removed undocumented and untested HDF5 and CSV data sources (<a class="reference external" href="https://github.com/quantopian/zipline/issues/267">#267</a>).</li>
 <li>Refactor sim_params (<a class="reference external" href="https://github.com/quantopian/zipline/issues/352">#352</a>).</li>
 <li>Refactoring of history (<a class="reference external" href="https://github.com/quantopian/zipline/issues/340">#340</a>).</li>
 </ul>
 </div>
-<div class="section" id="id14">
-<h3>Build<a class="headerlink" href="#id14" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id32">
+<h3>Build<a class="headerlink" href="#id32" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p class="first">The following dependencies have been updated (zipline might work with
 other versions too):</p>
@@ -860,8 +1063,8 @@ numbers of commit:</p>
 </tr>
 </tbody>
 </table>
-<div class="section" id="id15">
-<h3>Highlights<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id33">
+<h3>Highlights<a class="headerlink" href="#id33" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Major fixes to risk calculations, see Bug Fixes section.</li>
 <li>Port of <code class="docutils literal"><span class="pre">history()</span></code> function, see Enhancements section</li>
@@ -870,8 +1073,8 @@ section.</li>
 <li>conda package manager support, see Build section.</li>
 </ul>
 </div>
-<div class="section" id="id16">
-<h3>Enhancements<a class="headerlink" href="#id16" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id34">
+<h3>Enhancements<a class="headerlink" href="#id34" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p class="first">Always process new orders
 i.e. on bars where <code class="docutils literal"><span class="pre">handle_data</span></code> isn&#8217;t called, but there is &#8216;clock&#8217;
@@ -984,8 +1187,8 @@ allows the return a full DataFrame on the first bar.</p>
 </li>
 </ul>
 </div>
-<div class="section" id="id17">
-<h3>Bug Fixes<a class="headerlink" href="#id17" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id35">
+<h3>Bug Fixes<a class="headerlink" href="#id35" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p class="first">Adjust benchmark events to match market hours (<a class="reference external" href="https://github.com/quantopian/zipline/issues/241">#241</a>).
 Previously benchmark events were emitted at 0:00 on the day the
@@ -1117,8 +1320,8 @@ both inputs into the Sortino calculation.</p>
 </li>
 </ul>
 </div>
-<div class="section" id="id18">
-<h3>Performance<a class="headerlink" href="#id18" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id36">
+<h3>Performance<a class="headerlink" href="#id36" title="Permalink to this headline">¶</a></h3>
 <ul class="simple">
 <li>Removed <code class="docutils literal"><span class="pre">alias_dt</span></code> transform in favor of property on SIDData.
 Adding a copy of the Event&#8217;s dt field as datetime via the <code class="docutils literal"><span class="pre">alias_dt</span></code>
@@ -1144,8 +1347,8 @@ though the that volatility has high noise-to-signal strength because it
 uses only two values as an input.)</li>
 </ul>
 </div>
-<div class="section" id="id19">
-<h3>Maintenance and Refactorings<a class="headerlink" href="#id19" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id37">
+<h3>Maintenance and Refactorings<a class="headerlink" href="#id37" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p class="first">Allow <code class="docutils literal"><span class="pre">sim_params</span></code> to provide data frequency for the algorithm.
 In the case that <code class="docutils literal"><span class="pre">data_frequency</span></code> of the algorithm is None, allow the
@@ -1154,8 +1357,8 @@ In the case that <code class="docutils literal"><span class="pre">data_frequency
 </li>
 </ul>
 </div>
-<div class="section" id="id20">
-<h3>Build<a class="headerlink" href="#id20" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id38">
+<h3>Build<a class="headerlink" href="#id38" title="Permalink to this headline">¶</a></h3>
 <ul>
 <li><p class="first">Added support for building and releasing via conda
 For those who prefer building with <a class="reference external" href="http://conda.pydata.org/">http://conda.pydata.org/</a> to compiling
@@ -1167,8 +1370,8 @@ The following should install Zipline on many systems.</p>
 </li>
 </ul>
 </div>
-<div class="section" id="id21">
-<h3>Contributors<a class="headerlink" href="#id21" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id39">
+<h3>Contributors<a class="headerlink" href="#id39" title="Permalink to this headline">¶</a></h3>
 <p>The following people have contributed to this release, ordered by
 numbers of commit:</p>
 <div class="highlight-python"><div class="highlight"><pre>49  Eddie Hebert
@@ -1225,7 +1428,7 @@ numbers of commit:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.8.4',
+            VERSION:'0.9.0+2.g488d638',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
