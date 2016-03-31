@@ -528,11 +528,16 @@ class BcolzMinuteBarWriter(object):
                                  dts.astype('datetime64[ns]'))
 
         ohlc_ratio = self._ohlc_ratio
-        open_col[dt_ixs] = (cols['open'] * ohlc_ratio).astype(np.uint32)
-        high_col[dt_ixs] = (cols['high'] * ohlc_ratio).astype(np.uint32)
-        low_col[dt_ixs] = (cols['low'] * ohlc_ratio).astype(np.uint32)
-        close_col[dt_ixs] = (cols['close'] * ohlc_ratio).astype(
-            np.uint32)
+
+        def convert_col(col):
+            """Adapt float column into a uint32 column.
+            """
+            return (np.nan_to_num(col) * ohlc_ratio).astype(np.uint32)
+
+        open_col[dt_ixs] = convert_col(cols['open'])
+        high_col[dt_ixs] = convert_col(cols['high'])
+        low_col[dt_ixs] = convert_col(cols['low'])
+        close_col[dt_ixs] = convert_col(cols['close'])
         vol_col[dt_ixs] = cols['volume'].astype(np.uint32)
 
         table.append([

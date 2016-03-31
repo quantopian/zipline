@@ -12,56 +12,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import timedelta
 
-from unittest import TestCase
-from testfixtures import TempDirectory
-
-from zipline.finance.trading import TradingEnvironment
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
     SetPortfolioAlgorithm,
 )
-from zipline.testing import (
-    setup_logger,
-    teardown_logger
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    ZiplineTestCase,
 )
-import zipline.utils.factory as factory
-from zipline.testing.core import create_data_portal
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
 
 
-class ExceptionTestCase(TestCase):
+class ExceptionTestCase(WithDataPortal, ZiplineTestCase):
+    SIM_PARAMS_END = None
+    SIM_PARAMS_NUM_DAYS = 4
+
+    sid = 133
 
     @classmethod
-    def setUpClass(cls):
-        cls.sid = 133
-        cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[cls.sid])
-
-        cls.tempdir = TempDirectory()
-
-        cls.sim_params = factory.create_simulation_parameters(
-            num_days=4,
-            env=cls.env
+    def make_equities_info(cls):
+        return make_simple_equity_info(
+            [cls.sid],
+            cls.SIM_PARAMS_START,
+            cls.SIM_PARAMS_START + timedelta(days=7),
         )
-
-        cls.data_portal = create_data_portal(
-            env=cls.env,
-            tempdir=cls.tempdir,
-            sim_params=cls.sim_params,
-            sids=[cls.sid]
-        )
-
-        setup_logger(cls)
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        cls.tempdir.cleanup()
-        teardown_logger(cls)
 
     def test_exception_in_handle_data(self):
         algo = ExceptionAlgorithm('handle_data',
