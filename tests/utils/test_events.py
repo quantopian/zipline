@@ -335,6 +335,17 @@ class TestStatelessRules(RuleTestCase):
         self.assertTrue(should_trigger(FULL_DAY))
         self.assertFalse(should_trigger(HALF_DAY))
 
+    def test_NthTradingDayOfWeek_day_zero(self):
+        """
+        Test that we don't blow up when trying to call week_start's
+        should_trigger on the first day of a trading environment.
+        """
+        self.assertTrue(
+            NthTradingDayOfWeek(0).should_trigger(
+                self.env.trading_days[0], self.env
+            )
+        )
+
     @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NthTradingDayOfWeek(self, n):
         should_trigger = partial(NthTradingDayOfWeek(n).should_trigger,

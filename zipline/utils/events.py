@@ -482,9 +482,19 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
     def get_first_trading_day_of_week(dt, env):
         prev = dt
         dt = env.previous_trading_day(dt)
+        # If we're on the first trading day of the TradingEnvironment,
+        # calling previous_trading_day on it will return None, which
+        # will blow up when we try and call .date() on it. The first
+        # trading day of the env is also the first trading day of the
+        # week(in the TradingEnvironment, at least), so just return
+        # that date.
+        if dt is None:
+            return prev
         while dt.date().weekday() < prev.date().weekday():
             prev = dt
             dt = env.previous_trading_day(dt)
+            if dt is None:
+                return prev
         return prev.date()
 
     date_func = get_first_trading_day_of_week
