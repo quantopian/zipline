@@ -190,9 +190,8 @@ class PerformanceTracker(object):
             self.saved_dt = date
             self.todays_performance.period_close = self.saved_dt
 
-    def get_portfolio(self, performance_needs_update, dt):
+    def get_portfolio(self, performance_needs_update):
         if performance_needs_update:
-            self.position_tracker.sync_last_sale_prices(dt)
             self.update_performance()
             self.account_needs_update = True
         return self.cumulative_performance.as_portfolio()
@@ -202,9 +201,8 @@ class PerformanceTracker(object):
         self.cumulative_performance.calculate_performance()
         self.todays_performance.calculate_performance()
 
-    def get_account(self, performance_needs_update, dt):
+    def get_account(self, performance_needs_update):
         if performance_needs_update:
-            self.position_tracker.sync_last_sale_prices(dt)
             self.update_performance()
             self.account_needs_update = True
         if self.account_needs_update:
@@ -329,10 +327,10 @@ class PerformanceTracker(object):
             A tuple of the minute perf packet and daily perf packet.
             If the market day has not ended, the daily perf packet is None.
         """
-        self.position_tracker.sync_last_sale_prices(dt)
+        self.position_tracker.sync_last_sale_prices(dt, False)
         self.update_performance()
         todays_date = normalize_date(dt)
-        account = self.get_account(False, dt)
+        account = self.get_account(False)
 
         bench_returns = self.all_benchmark_returns.loc[todays_date:dt]
         # cumulative returns
@@ -357,10 +355,10 @@ class PerformanceTracker(object):
         Function called after handle_data when running with daily emission
         rate.
         """
-        self.position_tracker.sync_last_sale_prices(dt)
+        self.position_tracker.sync_last_sale_prices(dt, False)
         self.update_performance()
         completed_date = self.day
-        account = self.get_account(False, dt)
+        account = self.get_account(False)
 
         benchmark_value = self.all_benchmark_returns[completed_date]
 

@@ -35,7 +35,8 @@ from zipline.api import FixedSlippage
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import BcolzMinuteBarWriter, \
     US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
-from zipline.data.us_equity_pricing import BcolzDailyBarReader
+from zipline.data.us_equity_pricing import BcolzDailyBarReader, \
+    SQLiteAdjustmentWriter, SQLiteAdjustmentReader
 from zipline.finance.commission import PerShare
 from zipline.finance.execution import LimitOrder
 from zipline.finance.order import ORDER_STATUS
@@ -48,6 +49,7 @@ from zipline.testing.core import (
     create_data_portal_from_trade_history,
     DailyBarWriterFromDataFrames,
     create_daily_df_for_asset, write_minute_data_for_asset,
+    MockDailyBarReader,
     make_test_handler)
 from zipline.errors import (
     OrderDuringInitialize,
@@ -108,6 +110,7 @@ from zipline.testing import (
     setup_logger,
     teardown_logger,
     parameter_space,
+    str_to_seconds
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
 from zipline.utils.context_tricks import CallbackManager
@@ -1018,7 +1021,7 @@ class TestBeforeTradingStart(TestCase):
         )
 
         equities_data = {}
-        for sid in [1, 2]:
+        for sid in [1, 2, 3]:
             equities_data[sid] = {
                 "start_date": cls.trading_days[0],
                 "end_date": cls.trading_days[-1],
@@ -1029,6 +1032,7 @@ class TestBeforeTradingStart(TestCase):
 
         cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
         cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
+        cls.SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(3)
 
         market_opens = cls.env.open_and_closes.market_open.loc[
             cls.trading_days]
@@ -1049,6 +1053,24 @@ class TestBeforeTradingStart(TestCase):
                 cls.trading_days[-1], sid
             )
 
+        # Write data with split asset
+        asset_minutes = cls.env.minutes_for_days_in_range(
+            cls.trading_days[0], cls.trading_days[-1])
+        minutes_count = len(asset_minutes)
+        minutes_arr = np.array(range(1, 1 + minutes_count))
+
+        df = pd.DataFrame({
+            "open": minutes_arr + 1,
+            "high": minutes_arr + 2,
+            "low": minutes_arr - 1,
+            "close": minutes_arr,
+            "volume": 100 * minutes_arr,
+            "dt": asset_minutes
+        }).set_index("dt")
+        df.iloc[780:] = df.iloc[780:] / 2.0
+
+        minute_writer.write(3, df)
+
         # asset2 only trades every 50 minutes
         write_minute_data_for_asset(
             cls.env, minute_writer, cls.trading_days[0],
@@ -1056,12 +1078,15 @@ class TestBeforeTradingStart(TestCase):
         )
 
         cls.minute_reader = BcolzMinuteBarReader(cls.tempdir.path)
+        cls.adj_reader = cls.create_adjustments_reader()
 
         cls.daily_path = cls.tempdir.getpath("testdaily.bcolz")
         dfs = {
             1: create_daily_df_for_asset(cls.env, cls.trading_days[0],
                                          cls.trading_days[-1]),
             2: create_daily_df_for_asset(cls.env, cls.trading_days[0],
+                                         cls.trading_days[-1]),
+            3: create_daily_df_for_asset(cls.env, cls.trading_days[0],
                                          cls.trading_days[-1])
         }
         daily_writer = DailyBarWriterFromDataFrames(dfs)
@@ -1077,8 +1102,44 @@ class TestBeforeTradingStart(TestCase):
         cls.data_portal = DataPortal(
             env=cls.env,
             equity_daily_reader=BcolzDailyBarReader(cls.daily_path),
-            equity_minute_reader=cls.minute_reader
+            equity_minute_reader=cls.minute_reader,
+            adjustment_reader=cls.adj_reader
         )
+
+    @classmethod
+    def create_adjustments_reader(cls):
+        path = cls.tempdir.getpath("test_adjustments.db")
+
+        adj_writer = SQLiteAdjustmentWriter(
+            path,
+            cls.env.trading_days,
+            MockDailyBarReader()
+        )
+
+        splits = pd.DataFrame([
+            {
+                'effective_date': str_to_seconds("2016-01-07"),
+                'ratio': 0.5,
+                'sid': cls.SPLIT_ASSET.sid
+            }
+        ])
+
+        # Mergers and Dividends are not tested, but we need to have these
+        # anyway
+        mergers = pd.DataFrame({}, columns=['effective_date', 'ratio', 'sid'])
+        mergers.effective_date = mergers.effective_date.astype(int)
+        mergers.ratio = mergers.ratio.astype(float)
+        mergers.sid = mergers.sid.astype(int)
+
+        dividends = pd.DataFrame({}, columns=['ex_date', 'record_date',
+                                              'declared_date', 'pay_date',
+                                              'amount', 'sid'])
+        dividends.amount = dividends.amount.astype(float)
+        dividends.sid = dividends.sid.astype(int)
+
+        adj_writer.write(splits, mergers, dividends)
+
+        return SQLiteAdjustmentReader(path)
 
     @classmethod
     def tearDownClass(cls):
@@ -1264,6 +1325,70 @@ class TestBeforeTradingStart(TestCase):
         # second bar of 1/06, where the price is 391, and costs the default
         # commission of 1. On 1/07, the price is 780, and the increase in
         # portfolio value is 780-392-1
+        self.assertEqual(results.port_value.iloc[0], 10000)
+        self.assertAlmostEqual(results.port_value.iloc[1],
+                               10000 + 780 - 392 - 1)
+
+    def test_portfolio_bts_with_overnight_split(self):
+        algo_code = dedent("""
+        from zipline.api import order, sid, record
+
+        def initialize(context):
+            context.ordered = False
+
+        def before_trading_start(context, data):
+            record(pos_value=context.portfolio.positions_value)
+            record(pos_amount=context.portfolio.positions[sid(3)]['amount'])
+
+        def handle_data(context, data):
+            if not context.ordered:
+                order(sid(3), 1)
+                context.ordered = True
+        """)
+
+        algo = TradingAlgorithm(
+            script=algo_code,
+            data_frequency="minute",
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        results = algo.run(self.data_portal)
+
+        # On 1/07, positions value should by 780, same as without split
+        self.assertEqual(results.pos_value.iloc[0], 0)
+        self.assertEqual(results.pos_value.iloc[1], 780)
+
+        # On 1/07, after applying the split, 1 share becomes 2
+        self.assertEqual(results.pos_amount.iloc[0], 0)
+        self.assertEqual(results.pos_amount.iloc[1], 2)
+
+    def test_account_bts_with_overnight_split(self):
+        algo_code = dedent("""
+        from zipline.api import order, sid, record
+
+        def initialize(context):
+            context.ordered = False
+
+        def before_trading_start(context, data):
+            record(port_value=context.account.equity_with_loan)
+
+        def handle_data(context, data):
+            if not context.ordered:
+                order(sid(3), 1)
+                context.ordered = True
+        """)
+
+        algo = TradingAlgorithm(
+            script=algo_code,
+            data_frequency="minute",
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        results = algo.run(self.data_portal)
+
+        # On 1/07, portfolio value is the same as without split
         self.assertEqual(results.port_value.iloc[0], 10000)
         self.assertAlmostEqual(results.port_value.iloc[1],
                                10000 + 780 - 392 - 1)
