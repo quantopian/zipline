@@ -166,9 +166,6 @@ class AlgorithmSimulator(object):
             # before cleaning up expired assets.
             self._cleanup_expired_assets(midnight_dt, position_assets)
 
-            # call before trading start
-            algo.before_trading_start(current_data)
-
             perf_tracker = algo.perf_tracker
 
             # handle any splits that impact any positions or any open orders.
@@ -182,6 +179,9 @@ class AlgorithmSimulator(object):
                 if splits:
                     algo.blotter.process_splits(splits)
                     perf_tracker.position_tracker.handle_splits(splits)
+
+            # call before trading start
+            algo.before_trading_start(current_data)
 
         def handle_benchmark(date):
             algo.perf_tracker.all_benchmark_returns[date] = \

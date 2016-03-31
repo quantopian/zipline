@@ -169,9 +169,6 @@ class PerformanceTracker(object):
         self.day_count = 0.0
         self.txn_count = 0
 
-        self.account_needs_update = True
-        self._account = None
-
     def __repr__(self):
         return "%s(%r)" % (
             self.__class__.__name__,
@@ -194,7 +191,6 @@ class PerformanceTracker(object):
         if performance_needs_update:
             self.position_tracker.sync_last_sale_prices(dt)
             self.update_performance()
-            self.account_needs_update = True
         return self.cumulative_performance.as_portfolio()
 
     def update_performance(self):
@@ -206,14 +202,7 @@ class PerformanceTracker(object):
         if performance_needs_update:
             self.position_tracker.sync_last_sale_prices(dt)
             self.update_performance()
-            self.account_needs_update = True
-        if self.account_needs_update:
-            self._update_account()
-        return self._account
-
-    def _update_account(self):
-        self._account = self.cumulative_performance.as_account()
-        self.account_needs_update = False
+        return self.cumulative_performance.as_account()
 
     def to_dict(self, emission_type=None):
         """

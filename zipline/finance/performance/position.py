@@ -103,6 +103,10 @@ class Position(object):
         self.cost_basis = new_cost_basis
         self.amount = full_share_count
 
+        # adjust the last sale price so the portfolio is up-to-date in
+        # before_trading_start
+        self.last_sale_price = round(self.last_sale_price * ratio, 2)
+
         return_cash = round(float(fractional_share_count * new_cost_basis), 2)
 
         log.info("after split: " + str(self))
