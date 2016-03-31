@@ -173,9 +173,7 @@ if __name__ == '__main__':
     data = data.dropna()
 
     # Create and run the algorithm.
-    olmar = TradingAlgorithm(handle_data=handle_data,
-                             initialize=initialize,
-                             identifiers=STOCKS)
+    olmar = TradingAlgorithm(handle_data=handle_data, initialize=initialize)
     results = olmar.run(data)
 
     # Plot the portfolio data.

@@ -1,5 +1,4 @@
 from textwrap import dedent
-from unittest import TestCase
 
 from numbers import Real
 
@@ -9,49 +8,47 @@ from numpy import nan
 from numpy.testing import assert_almost_equal
 
 from nose_parameterized import parameterized
-from testfixtures import TempDirectory
 
 from zipline import TradingAlgorithm
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets import Asset
-from zipline.data.data_portal import DataPortal, DailyHistoryAggregator
-from zipline.data.minute_bars import (
-    BcolzMinuteBarReader,
-    BcolzMinuteBarWriter,
-    US_EQUITIES_MINUTES_PER_DAY
-)
-from zipline.data.us_equity_pricing import (
-    SQLiteAdjustmentWriter,
-    SQLiteAdjustmentReader,
-    BcolzDailyBarReader)
+from zipline.data.data_portal import DailyHistoryAggregator
 from zipline.errors import (
     HistoryInInitialize,
     HistoryWindowStartsBeforeData,
 )
-from zipline.finance.trading import (
-    TradingEnvironment,
-    SimulationParameters
-)
+from zipline.finance.trading import SimulationParameters
 from zipline.protocol import BarData
-from zipline.testing import str_to_seconds
-from zipline.testing.core import (
-    write_minute_data_for_asset,
-    DailyBarWriterFromDataFrames,
-    MockDailyBarReader
+from zipline.testing import (
+    create_minute_df_for_asset,
+    str_to_seconds,
+    MockDailyBarReader,
 )
 from zipline.testing.fixtures import (
-    WithBcolzMinutes,
+    WithBcolzMinuteBarReader,
+    WithDataPortal,
     ZiplineTestCase
 )
 
 
-OHLC = ["open", "high", "low", "close"]
-OHLCV = OHLC + ["volume"]
-OHLCP = OHLC + ["price"]
-ALL_FIELDS = OHLCP + ["volume"]
+OHLC = ['open', 'high', 'low', 'close']
+OHLCV = OHLC + ['volume']
+OHLCP = OHLC + ['price']
+ALL_FIELDS = OHLCP + ['volume']
 
 
-class HistoryTestCaseBase(TestCase):
+class WithHistory(WithDataPortal):
+    TRADING_START_DT = TRADING_ENV_MIN_DATE = SIM_PARAMS_START = pd.Timestamp(
+        '2014-02-03',
+        tz='UTC',
+    )
+    TRADING_END_DT = SIM_PARAMS_END = pd.Timestamp('2016-01-29', tz='UTC')
+
+    SPLIT_ASSET_SID = 4
+    DIVIDEND_ASSET_SID = 5
+    MERGER_ASSET_SID = 6
+    HALF_DAY_TEST_ASSET_SID = 7
+    SHORT_ASSET_SID = 8
     # asset1:
     # - 2014-03-01 (rounds up to TRADING_START_DT) to 2016-01-29.
     # - every minute/day.
@@ -79,182 +76,160 @@ class HistoryTestCaseBase(TestCase):
     # - trades every minute
     # - merger on 2015-01-05 and 2015-01-06
     @classmethod
-    def setUpClass(cls):
-        cls.tempdir = TempDirectory()
-
-        # trading_start (when bcolz files start) = 2014-02-01
-        cls.TRADING_START_DT = pd.Timestamp("2014-02-03", tz='UTC')
-        cls.TRADING_END_DT = pd.Timestamp("2016-01-29", tz='UTC')
-
-        cls.env = TradingEnvironment(min_date=cls.TRADING_START_DT)
-
+    def init_class_fixtures(cls):
+        super(WithHistory, cls).init_class_fixtures()
         cls.trading_days = cls.env.days_in_range(
             start=cls.TRADING_START_DT,
             end=cls.TRADING_END_DT
         )
 
-        cls.create_assets()
-
-        cls.ASSET1 = cls.env.asset_finder.retrieve_asset(1)
-        cls.ASSET2 = cls.env.asset_finder.retrieve_asset(2)
-        cls.ASSET3 = cls.env.asset_finder.retrieve_asset(3)
-        cls.SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(4)
-        cls.DIVIDEND_ASSET = cls.env.asset_finder.retrieve_asset(5)
-        cls.MERGER_ASSET = cls.env.asset_finder.retrieve_asset(6)
-        cls.HALF_DAY_TEST_ASSET = cls.env.asset_finder.retrieve_asset(7)
-        cls.SHORT_ASSET = cls.env.asset_finder.retrieve_asset(8)
-
-        cls.adj_reader = cls.create_adjustments_reader()
-
-        cls.create_data()
-
-    def setUp(self):
-        self.create_data_portal()
-
-    @classmethod
-    def create_data_portal(cls):
-        raise NotImplementedError()
-
-    @classmethod
-    def create_data(cls):
-        raise NotImplementedError()
-
-    @classmethod
-    def create_assets(cls):
-        jan_5_2015 = pd.Timestamp("2015-01-05", tz='UTC')
-        day_after_12312015 = cls.env.next_trading_day(
-            pd.Timestamp("2015-12-31", tz='UTC')
+        cls.ASSET1 = cls.asset_finder.retrieve_asset(1)
+        cls.ASSET2 = cls.asset_finder.retrieve_asset(2)
+        cls.ASSET3 = cls.asset_finder.retrieve_asset(3)
+        cls.SPLIT_ASSET = cls.asset_finder.retrieve_asset(
+            cls.SPLIT_ASSET_SID,
+        )
+        cls.DIVIDEND_ASSET = cls.asset_finder.retrieve_asset(
+            cls.DIVIDEND_ASSET_SID,
+        )
+        cls.MERGER_ASSET = cls.asset_finder.retrieve_asset(
+            cls.MERGER_ASSET_SID,
+        )
+        cls.HALF_DAY_TEST_ASSET = cls.asset_finder.retrieve_asset(
+            cls.HALF_DAY_TEST_ASSET_SID,
+        )
+        cls.SHORT_ASSET = cls.asset_finder.retrieve_asset(
+            cls.SHORT_ASSET_SID,
         )
 
-        cls.env.write_data(equities_data={
-            1: {
-                "start_date": pd.Timestamp("2014-01-03", tz='UTC'),
-                "end_date": cls.TRADING_END_DT,
-                "symbol": "ASSET1"
-            },
-            2: {
-                "start_date": jan_5_2015,
-                "end_date": day_after_12312015,
-                "symbol": "ASSET2"
-            },
-            3: {
-                "start_date": jan_5_2015,
-                "end_date": day_after_12312015,
-                "symbol": "ASSET3"
-            },
-            4: {
-                "start_date": jan_5_2015,
-                "end_date": day_after_12312015,
-                "symbol": "SPLIT_ASSET"
-            },
-            5: {
-                "start_date": jan_5_2015,
-                "end_date": day_after_12312015,
-                "symbol": "DIVIDEND_ASSET"
-            },
-            6: {
-                "start_date": jan_5_2015,
-                "end_date": day_after_12312015,
-                "symbol": "MERGER_ASSET"
-            },
-            7: {
-                "start_date": pd.Timestamp("2014-07-02", tz='UTC'),
-                "end_date": day_after_12312015,
-                "symbol": "HALF_DAY_TEST_ASSET"
-            },
-            8: {
-                "start_date": pd.Timestamp("2015-01-05", tz='UTC'),
-                "end_date": pd.Timestamp("2015-01-06", tz='UTC'),
-                "symbol": "SHORT_ASSET"
-            }
-        })
-
     @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
+    def make_equities_info(cls):
+        jan_5_2015 = pd.Timestamp('2015-01-05', tz='UTC')
+        day_after_12312015 = pd.Timestamp('2016-01-04', tz='UTC')
 
-    @classmethod
-    def create_adjustments_reader(cls):
-        path = cls.tempdir.getpath("test_adjustments.db")
-
-        adj_writer = SQLiteAdjustmentWriter(
-            path,
-            cls.env.trading_days,
-            MockDailyBarReader()
+        return pd.DataFrame.from_dict(
+            {
+                1: {
+                    'start_date': pd.Timestamp('2014-01-03', tz='UTC'),
+                    'end_date': cls.TRADING_END_DT,
+                    'symbol': 'ASSET1'
+                },
+                2: {
+                    'start_date': jan_5_2015,
+                    'end_date': day_after_12312015,
+                    'symbol': 'ASSET2'
+                },
+                3: {
+                    'start_date': jan_5_2015,
+                    'end_date': day_after_12312015,
+                    'symbol': 'ASSET3'
+                },
+                cls.SPLIT_ASSET_SID: {
+                    'start_date': jan_5_2015,
+                    'end_date': day_after_12312015,
+                    'symbol': 'SPLIT_ASSET'
+                },
+                cls.DIVIDEND_ASSET_SID: {
+                    'start_date': jan_5_2015,
+                    'end_date': day_after_12312015,
+                    'symbol': 'DIVIDEND_ASSET'
+                },
+                cls.MERGER_ASSET_SID: {
+                    'start_date': jan_5_2015,
+                    'end_date': day_after_12312015,
+                    'symbol': 'MERGER_ASSET'
+                },
+                cls.HALF_DAY_TEST_ASSET_SID: {
+                    'start_date': pd.Timestamp('2014-07-02', tz='UTC'),
+                    'end_date': day_after_12312015,
+                    'symbol': 'HALF_DAY_TEST_ASSET'
+                },
+                cls.SHORT_ASSET_SID: {
+                    'start_date': pd.Timestamp('2015-01-05', tz='UTC'),
+                    'end_date': pd.Timestamp('2015-01-06', tz='UTC'),
+                    'symbol': 'SHORT_ASSET'
+                }
+            },
+            'index',
         )
 
-        splits = pd.DataFrame([
+    @classmethod
+    def make_splits_data(cls):
+        return pd.DataFrame([
             {
-                'effective_date': str_to_seconds("2015-01-06"),
+                'effective_date': str_to_seconds('2015-01-06'),
                 'ratio': 0.5,
-                'sid': cls.SPLIT_ASSET.sid
+                'sid': cls.SPLIT_ASSET_SID,
             },
             {
-                'effective_date': str_to_seconds("2015-01-07"),
+                'effective_date': str_to_seconds('2015-01-07'),
                 'ratio': 0.5,
-                'sid': cls.SPLIT_ASSET.sid
+                'sid': cls.SPLIT_ASSET_SID,
             },
         ])
 
-        mergers = pd.DataFrame([
+    @classmethod
+    def make_mergers_data(cls):
+        return pd.DataFrame([
             {
-                'effective_date': str_to_seconds("2015-01-06"),
+                'effective_date': str_to_seconds('2015-01-06'),
                 'ratio': 0.5,
-                'sid': cls.MERGER_ASSET.sid
+                'sid': cls.MERGER_ASSET_SID,
             },
             {
-                'effective_date': str_to_seconds("2015-01-07"),
+                'effective_date': str_to_seconds('2015-01-07'),
                 'ratio': 0.5,
-                'sid': cls.MERGER_ASSET.sid
+                'sid': cls.MERGER_ASSET_SID,
             }
         ])
 
-        # we're using a fake daily reader in the adjustments writer which
-        # returns every daily price as 100, so dividend amounts of 2.0 and 4.0
-        # correspond to 2% and 4% dividends, respectively.
-        dividends = pd.DataFrame([
+    @classmethod
+    def make_dividends_data(cls):
+        return pd.DataFrame([
             {
                 # only care about ex date, the other dates don't matter here
                 'ex_date':
-                    pd.Timestamp("2015-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
                 'record_date':
-                    pd.Timestamp("2015-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
                 'declared_date':
-                    pd.Timestamp("2015-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
                 'pay_date':
-                    pd.Timestamp("2015-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-06', tz='UTC').to_datetime64(),
                 'amount': 2.0,
-                'sid': cls.DIVIDEND_ASSET.sid
+                'sid': cls.DIVIDEND_ASSET_SID,
             },
             {
                 'ex_date':
-                    pd.Timestamp("2015-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
                 'record_date':
-                    pd.Timestamp("2015-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
                 'declared_date':
-                    pd.Timestamp("2015-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
                 'pay_date':
-                    pd.Timestamp("2015-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2015-01-07', tz='UTC').to_datetime64(),
                 'amount': 4.0,
-                'sid': cls.DIVIDEND_ASSET.sid
+                'sid': cls.DIVIDEND_ASSET_SID,
             }],
-            columns=['ex_date',
-                     'record_date',
-                     'declared_date',
-                     'pay_date',
-                     'amount',
-                     'sid']
+            columns=[
+                'ex_date',
+                'record_date',
+                'declared_date',
+                'pay_date',
+                'amount',
+                'sid',
+            ],
         )
 
-        adj_writer.write(splits, mergers, dividends)
-
-        return SQLiteAdjustmentReader(path)
+    @classmethod
+    def make_adjustment_writer_daily_bar_reader(cls):
+        return MockDailyBarReader()
 
     def verify_regular_dt(self, idx, dt, mode, fields=None, assets=None):
-        if mode == "daily":
-            freq = "1d"
+        if mode == 'daily':
+            freq = '1d'
         else:
-            freq = "1m"
+            freq = '1m'
 
         fields = fields if fields is not None else ALL_FIELDS
         assets = assets if assets is not None else [self.ASSET2, self.ASSET3]
@@ -295,7 +270,7 @@ class HistoryTestCaseBase(TestCase):
                                 np.full(10, np.nan),
                                 asset_series
                             )
-                    elif field == "volume":
+                    elif field == 'volume':
                         if asset == self.ASSET2:
                             # asset2 should have some zeros (instead of nans)
                             np.testing.assert_array_equal(
@@ -348,7 +323,7 @@ class HistoryTestCaseBase(TestCase):
                                 asset3_answer_key,
                                 asset_series
                             )
-                    elif field == "volume":
+                    elif field == 'volume':
                         asset3_answer_key = np.zeros(10)
                         asset3_answer_key[-position_from_end] = \
                             value_for_asset3 * 100
@@ -366,7 +341,7 @@ class HistoryTestCaseBase(TestCase):
                                 asset3_answer_key,
                                 asset_series
                             )
-                    elif field == "price":
+                    elif field == 'price':
                         # price is always forward filled
 
                         # asset2 has prices every minute, so it's easy
@@ -460,78 +435,45 @@ def check_internal_consistency(bar_data, assets, fields, bar_count, freq):
 # for example, the open is always 1 higher than the close, the high
 # is always 2 higher than the close, etc.
 MINUTE_FIELD_INFO = {
-    "open": 1,
-    "high": 2,
-    "low": -1,
-    "close": 0,
-    "price": 0,
-    "volume": 0,      # unused, later we'll multiply by 100
+    'open': 1,
+    'high': 2,
+    'low': -1,
+    'close': 0,
+    'price': 0,
+    'volume': 0,      # unused, later we'll multiply by 100
 }
 
 
-class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
+class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     @classmethod
-    def create_data_portal(cls):
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-            adjustment_reader=cls.adj_reader
-        )
-
-    @classmethod
-    def create_data(cls):
-        market_opens = cls.env.open_and_closes.market_open.loc[
-            cls.trading_days]
-        market_closes = cls.env.open_and_closes.market_close.loc[
-            cls.trading_days]
-
-        writer = BcolzMinuteBarWriter(
-            cls.trading_days[0],
-            cls.tempdir.path,
-            market_opens,
-            market_closes,
-            US_EQUITIES_MINUTES_PER_DAY
-        )
-
-        write_minute_data_for_asset(
-            cls.env,
-            writer,
-            pd.Timestamp("2014-01-03", tz='UTC'),
-            pd.Timestamp("2016-01-30", tz='UTC'),
-            1,
-            start_val=2
-        )
-
-        for sid in [2, 4, 5, 6, cls.SHORT_ASSET.sid]:
-            asset = cls.env.asset_finder.retrieve_asset(sid)
-            write_minute_data_for_asset(
+    def make_minute_bar_data(cls):
+        data = {}
+        sids = {2, 4, 5, 6, cls.SHORT_ASSET_SID, cls.HALF_DAY_TEST_ASSET_SID}
+        for sid in sids:
+            asset = cls.asset_finder.retrieve_asset(sid)
+            data[sid] = create_minute_df_for_asset(
                 cls.env,
-                writer,
                 asset.start_date,
                 asset.end_date,
-                asset.sid,
-                start_val=2
+                start_val=2,
             )
 
-        write_minute_data_for_asset(
+        data[1] = create_minute_df_for_asset(
             cls.env,
-            writer,
-            cls.HALF_DAY_TEST_ASSET.start_date,
-            cls.HALF_DAY_TEST_ASSET.end_date,
-            cls.HALF_DAY_TEST_ASSET.sid,
-            start_val=2
+            pd.Timestamp('2014-01-03', tz='utc'),
+            pd.Timestamp('2016-01-30', tz='utc'),
+            start_val=2,
         )
 
-        asset3 = cls.env.asset_finder.retrieve_asset(3)
-        write_minute_data_for_asset(
+        asset3 = cls.asset_finder.retrieve_asset(3)
+        data[3] = create_minute_df_for_asset(
             cls.env,
-            writer,
             asset3.start_date,
             asset3.end_date,
-            asset3.sid,
+            start_val=2,
             interval=10,
-            start_val=2
         )
+        return data
 
     def test_history_in_initialize(self):
         algo_text = dedent(
@@ -552,7 +494,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         sim_params = SimulationParameters(
             period_start=start,
             period_end=end,
-            capital_base=float("1.0e5"),
+            capital_base=float('1.0e5'),
             data_frequency='minute',
             emission_rate='daily',
             env=self.env,
@@ -572,22 +514,22 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # since asset2 and asset3 both started trading on 1/5/2015, let's do
         # some history windows that are completely before that
         minutes = self.env.market_minutes_for_day(
-            self.env.previous_trading_day(pd.Timestamp("2015-01-05", tz='UTC'))
+            self.env.previous_trading_day(pd.Timestamp('2015-01-05', tz='UTC'))
         )[0:60]
 
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, 'minute')
             check_internal_consistency(
-                bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, "1m"
+                bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, '1m'
             )
 
             for field in ALL_FIELDS:
                 # OHLCP should be NaN
                 # Volume should be 0
-                asset2_series = bar_data.history(self.ASSET2, field, 10, "1m")
-                asset3_series = bar_data.history(self.ASSET3, field, 10, "1m")
+                asset2_series = bar_data.history(self.ASSET2, field, 10, '1m')
+                asset3_series = bar_data.history(self.ASSET3, field, 10, '1m')
 
-                if field == "volume":
+                if field == 'volume':
                     np.testing.assert_array_equal(np.zeros(10), asset2_series)
                     np.testing.assert_array_equal(np.zeros(10), asset3_series)
                 else:
@@ -620,49 +562,49 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         asset = self.env.asset_finder.retrieve_asset(sid)
 
         minutes = self.env.market_minutes_for_day(
-            pd.Timestamp("2015-01-05", tz='UTC')
+            pd.Timestamp('2015-01-05', tz='UTC')
         )[0:60]
 
         for idx, minute in enumerate(minutes):
-            self.verify_regular_dt(idx, minute, "minute",
+            self.verify_regular_dt(idx, minute, 'minute',
                                    assets=[asset],
                                    fields=[field])
 
     def test_minute_midnight(self):
-        midnight = pd.Timestamp("2015-01-06", tz='UTC')
+        midnight = pd.Timestamp('2015-01-06', tz='UTC')
         last_minute = self.env.previous_open_and_close(midnight)[1]
 
         midnight_bar_data = \
-            BarData(self.data_portal, lambda: midnight, "minute")
+            BarData(self.data_portal, lambda: midnight, 'minute')
 
         yesterday_bar_data = \
-            BarData(self.data_portal, lambda: last_minute, "minute")
+            BarData(self.data_portal, lambda: last_minute, 'minute')
 
         with handle_non_market_minutes(midnight_bar_data):
             for field in ALL_FIELDS:
                 np.testing.assert_array_equal(
-                    midnight_bar_data.history(self.ASSET2, field, 30, "1m"),
-                    yesterday_bar_data.history(self.ASSET2, field, 30, "1m")
+                    midnight_bar_data.history(self.ASSET2, field, 30, '1m'),
+                    yesterday_bar_data.history(self.ASSET2, field, 30, '1m')
                 )
 
     def test_minute_after_asset_stopped(self):
         # SHORT_ASSET's last day was 2015-01-06
         # get some history windows that straddle the end
         minutes = self.env.market_minutes_for_day(
-            pd.Timestamp("2015-01-07", tz='UTC')
+            pd.Timestamp('2015-01-07', tz='UTC')
         )[0:60]
 
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, 'minute')
             check_internal_consistency(
-                bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, "1m"
+                bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, '1m'
             )
 
         # Reset data portal because it has advanced past next test date.
-        self.create_data_portal()
+        data_portal = self.make_data_portal()
 
         # choose a window that contains the last minute of the asset
-        bar_data = BarData(self.data_portal, lambda: minutes[15], "minute")
+        bar_data = BarData(data_portal, lambda: minutes[15], 'minute')
 
         #                             close  high  low  open  price  volume
         # 2015-01-06 20:47:00+00:00    768   770  767   769    768   76800
@@ -696,18 +638,18 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # 2015-01-07 14:45:00+00:00    NaN   NaN  NaN   NaN    NaN       0
         # 2015-01-07 14:46:00+00:00    NaN   NaN  NaN   NaN    NaN       0
 
-        window = bar_data.history(self.SHORT_ASSET, ALL_FIELDS, 30, "1m")
+        window = bar_data.history(self.SHORT_ASSET, ALL_FIELDS, 30, '1m')
 
         # there should be 14 values and 16 NaNs/0s
         for field in ALL_FIELDS:
-            if field == "volume":
+            if field == 'volume':
                 np.testing.assert_array_equal(
                     range(76800, 78101, 100),
-                    window["volume"][0:14]
+                    window['volume'][0:14]
                 )
                 np.testing.assert_array_equal(
                     np.zeros(16),
-                    window["volume"][-16:]
+                    window['volume'][-16:]
                 )
             else:
                 np.testing.assert_array_equal(
@@ -721,11 +663,11 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
         # now do a smaller window that is entirely contained after the asset
         # ends
-        window = bar_data.history(self.SHORT_ASSET, ALL_FIELDS, 5, "1m")
+        window = bar_data.history(self.SHORT_ASSET, ALL_FIELDS, 5, '1m')
 
         for field in ALL_FIELDS:
-            if field == "volume":
-                np.testing.assert_array_equal(np.zeros(5), window["volume"])
+            if field == 'volume':
+                np.testing.assert_array_equal(np.zeros(5), window['volume'])
             else:
                 np.testing.assert_array_equal(np.full(5, np.nan),
                                               window[field])
@@ -734,7 +676,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
         # on 1/6 and 1/7
 
-        jan5 = pd.Timestamp("2015-01-05", tz='UTC')
+        jan5 = pd.Timestamp('2015-01-05', tz='UTC')
 
         # the assets' close column starts at 2 on the first minute of
         # 1/5, then goes up one per minute forever
@@ -745,8 +687,8 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
                 [asset],
                 self.env.get_open_and_close(jan5)[1],
                 10,
-                "1m",
-                "close"
+                '1m',
+                'close'
             )[asset]
 
             np.testing.assert_array_equal(np.array(range(382, 392)), window1)
@@ -754,10 +696,10 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             # straddling the first event
             window2 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-06 14:35", tz='UTC'),
+                pd.Timestamp('2015-01-06 14:35', tz='UTC'),
                 10,
-                "1m",
-                "close"
+                '1m',
+                'close'
             )[asset]
 
             # five minutes from 1/5 should be halved
@@ -769,10 +711,10 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             # straddling both events!
             window3 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-07 14:35", tz='UTC'),
+                pd.Timestamp('2015-01-07 14:35', tz='UTC'),
                 400,    # 5 minutes of 1/7, 390 of 1/6, and 5 minutes of 1/5
-                "1m",
-                "close"
+                '1m',
+                'close'
             )[asset]
 
             # first five minutes should be 387-391, but quartered
@@ -783,7 +725,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
             # next 390 minutes should be 392-781, but halved
             np.testing.assert_array_equal(
-                np.array(range(392, 782), dtype="float64") / 2,
+                np.array(range(392, 782), dtype='float64') / 2,
                 window3[5:395]
             )
 
@@ -793,10 +735,10 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             # after last event
             window4 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-07 14:40", tz='UTC'),
+                pd.Timestamp('2015-01-07 14:40', tz='UTC'),
                 5,
-                "1m",
-                "close"
+                '1m',
+                'close'
             )[asset]
 
             # should not be adjusted, should be 787 to 791
@@ -808,10 +750,10 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # before any of the dividends
         window1 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-05 21:00", tz='UTC'),
+            pd.Timestamp('2015-01-05 21:00', tz='UTC'),
             10,
-            "1m",
-            "close"
+            '1m',
+            'close'
         )[self.DIVIDEND_ASSET]
 
         np.testing.assert_array_equal(np.array(range(382, 392)), window1)
@@ -819,16 +761,16 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # straddling the first dividend
         window2 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-06 14:35", tz='UTC'),
+            pd.Timestamp('2015-01-06 14:35', tz='UTC'),
             10,
-            "1m",
-            "close"
+            '1m',
+            'close'
         )[self.DIVIDEND_ASSET]
 
         # first dividend is 2%, so the first five values should be 2% lower
         # than before
         np.testing.assert_array_almost_equal(
-            np.array(range(387, 392), dtype="float64") * 0.98,
+            np.array(range(387, 392), dtype='float64') * 0.98,
             window2[0:5]
         )
 
@@ -838,21 +780,21 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # straddling both dividends
         window3 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-07 14:35", tz='UTC'),
+            pd.Timestamp('2015-01-07 14:35', tz='UTC'),
             400,    # 5 minutes of 1/7, 390 of 1/6, and 5 minutes of 1/5
-            "1m",
-            "close"
+            '1m',
+            'close'
         )[self.DIVIDEND_ASSET]
 
         # first five minute from 1/7 should be hit by 0.9408 (= 0.98 * 0.96)
         np.testing.assert_array_almost_equal(
-            np.around(np.array(range(387, 392), dtype="float64") * 0.9408, 3),
+            np.around(np.array(range(387, 392), dtype='float64') * 0.9408, 3),
             window3[0:5]
         )
 
         # next 390 minutes should be hit by 0.96 (second dividend)
         np.testing.assert_array_almost_equal(
-            np.array(range(392, 782), dtype="float64") * 0.96,
+            np.array(range(392, 782), dtype='float64') * 0.96,
             window3[5:395]
         )
 
@@ -861,8 +803,8 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
     def test_overnight_adjustments(self):
         # Should incorporate adjustments on midnight 01/06
-        current_dt = pd.Timestamp("2015-01-06 8:45", tz='US/Eastern')
-        bar_data = BarData(self.data_portal, lambda: current_dt, "minute")
+        current_dt = pd.Timestamp('2015-01-06 8:45', tz='US/Eastern')
+        bar_data = BarData(self.data_portal, lambda: current_dt, 'minute')
 
         expected = {
             'open': np.arange(383, 393) / 2.0,
@@ -924,14 +866,14 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         #
         # five minutes into the day after the early close, get 20 1m bars
 
-        dt = pd.Timestamp("2014-07-07 13:35:00", tz='UTC')
+        dt = pd.Timestamp('2014-07-07 13:35:00', tz='UTC')
 
         window = self.data_portal.get_history_window(
             [self.HALF_DAY_TEST_ASSET],
             dt,
             20,
-            "1m",
-            "close"
+            '1m',
+            'close'
         )[self.HALF_DAY_TEST_ASSET]
 
         # 390 minutes for 7/2, 210 minutes for 7/3, 7/4-7/6 closed
@@ -942,12 +884,12 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
         self.assertEqual(
             window.index[-6],
-            pd.Timestamp("2014-07-03 17:00", tz='UTC')
+            pd.Timestamp('2014-07-03 17:00', tz='UTC')
         )
 
         self.assertEqual(
             window.index[-5],
-            pd.Timestamp("2014-07-07 13:31", tz='UTC')
+            pd.Timestamp('2014-07-07 13:31', tz='UTC')
         )
 
     def test_minute_different_lifetimes(self):
@@ -967,8 +909,8 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             [self.ASSET1, self.ASSET2],
             self.env.get_open_and_close(day)[0],
             100,
-            "1m",
-            "close"
+            '1m',
+            'close'
         )
 
         np.testing.assert_array_equal(
@@ -987,99 +929,64 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             self.TRADING_START_DT
         )
         exp_msg = (
-            "History window extends before 2014-02-03. To use this history "
-            "window, start the backtest on or after 2014-02-04."
+            'History window extends before 2014-02-03. To use this history '
+            'window, start the backtest on or after 2014-02-04.'
         )
         for field in OHLCP:
             with self.assertRaisesRegexp(
                     HistoryWindowStartsBeforeData, exp_msg):
                 self.data_portal.get_history_window(
-                    [self.ASSET1], first_day_minutes[5], 15, "1m", "price"
+                    [self.ASSET1], first_day_minutes[5], 15, '1m', 'price'
                 )[self.ASSET1]
 
 
-class DailyEquityHistoryTestCase(HistoryTestCaseBase):
+class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     @classmethod
-    def create_data_portal(cls):
-        daily_path = cls.tempdir.getpath("testdaily.bcolz")
-
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_daily_reader=BcolzDailyBarReader(daily_path),
-            equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-            adjustment_reader=cls.adj_reader
+    def make_daily_bar_data(cls):
+        yield 1, cls.create_df_for_asset(
+            cls.sim_params.period_start,
+            pd.Timestamp('2016-01-30', tz='UTC')
+        )
+        yield 3, cls.create_df_for_asset(
+            pd.Timestamp('2015-01-05', tz='UTC'),
+            pd.Timestamp('2015-12-31', tz='UTC'),
+            interval=10,
+            force_zeroes=True
+        )
+        yield cls.SHORT_ASSET_SID, cls.create_df_for_asset(
+            pd.Timestamp('2015-01-05', tz='UTC'),
+            pd.Timestamp('2015-01-06', tz='UTC'),
         )
 
-    @classmethod
-    def create_data(cls):
-        path = cls.tempdir.getpath("testdaily.bcolz")
-
-        dfs = {
-            1: cls.create_df_for_asset(
-                cls.TRADING_START_DT,
-                pd.Timestamp("2016-01-30", tz='UTC')
-            ),
-            3: cls.create_df_for_asset(
-                pd.Timestamp("2015-01-05", tz='UTC'),
-                pd.Timestamp("2015-12-31", tz='UTC'),
-                interval=10,
-                force_zeroes=True
-            ),
-            cls.SHORT_ASSET.sid: cls.create_df_for_asset(
-                pd.Timestamp("2015-01-05", tz='UTC'),
-                pd.Timestamp("2015-01-06", tz='UTC'),
-            )
-        }
-
-        for sid in [2, 4, 5, 6]:
-            asset = cls.env.asset_finder.retrieve_asset(sid)
-            dfs[sid] = cls.create_df_for_asset(
+        for sid in {2, 4, 5, 6}:
+            asset = cls.asset_finder.retrieve_asset(sid)
+            yield sid, cls.create_df_for_asset(
                 asset.start_date,
-                asset.end_date
+                asset.end_date,
             )
 
-        days = cls.env.days_in_range(
-            cls.TRADING_START_DT,
-            cls.TRADING_END_DT
-        )
-
-        daily_writer = DailyBarWriterFromDataFrames(dfs)
-        daily_writer.write(path, days, dfs)
-
-        market_opens = cls.env.open_and_closes.market_open.loc[
-            cls.trading_days]
-        market_closes = cls.env.open_and_closes.market_close.loc[
-            cls.trading_days]
-
-        minute_writer = BcolzMinuteBarWriter(
-            cls.trading_days[0],
-            cls.tempdir.path,
-            market_opens,
-            market_closes,
-            US_EQUITIES_MINUTES_PER_DAY
-        )
-
-        write_minute_data_for_asset(
-            cls.env,
-            minute_writer,
-            cls.ASSET1.start_date,
-            cls.ASSET1.end_date,
-            cls.ASSET1.sid,
-            start_val=2
-        )
-
-        write_minute_data_for_asset(
-            cls.env,
-            minute_writer,
-            cls.ASSET2.start_date,
-            cls.ASSET2.end_date,
-            cls.ASSET2.sid,
-            start_val=2,
-            minute_blacklist=[
-                pd.Timestamp('2015-01-08 14:31', tz='UTC'),
-                pd.Timestamp('2015-01-08 21:00', tz='UTC'),
-            ]
-        )
+    @classmethod
+    def make_minute_bar_data(cls):
+        asset1 = cls.asset_finder.retrieve_asset(1)
+        asset2 = cls.asset_finder.retrieve_asset(2)
+        return {
+            asset1.sid: create_minute_df_for_asset(
+                cls.env,
+                asset1.start_date,
+                asset1.end_date,
+                start_val=2,
+            ),
+            asset2.sid: create_minute_df_for_asset(
+                cls.env,
+                asset2.start_date,
+                cls.env.previous_trading_day(asset2.end_date),
+                start_val=2,
+                minute_blacklist=[
+                    pd.Timestamp('2015-01-08 14:31', tz='UTC'),
+                    pd.Timestamp('2015-01-08 21:00', tz='UTC'),
+                ],
+            ),
+        }
 
     @classmethod
     def create_df_for_asset(cls, start_day, end_day, interval=1,
@@ -1091,13 +998,16 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # want to start with a 0
         days_arr = np.array(range(2, days_count + 2))
 
-        df = pd.DataFrame({
-            "open": days_arr + 1,
-            "high": days_arr + 2,
-            "low": days_arr - 1,
-            "close": days_arr,
-            "volume": 100 * days_arr,
-        })
+        df = pd.DataFrame(
+            {
+                'open': days_arr + 1,
+                'high': days_arr + 2,
+                'low': days_arr - 1,
+                'close': days_arr,
+                'volume': 100 * days_arr,
+            },
+            index=days,
+        )
 
         if interval > 1:
             counter = 0
@@ -1105,31 +1015,29 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 df[counter:(counter + interval - 1)] = 0
                 counter += interval
 
-        df["day"] = [day.value for day in days]
-
         return df
 
     def test_daily_before_assets_trading(self):
         # asset2 and asset3 both started trading in 2015
 
         days = self.env.days_in_range(
-            start=pd.Timestamp("2014-12-15", tz='UTC'),
-            end=pd.Timestamp("2014-12-18", tz='UTC'),
+            start=pd.Timestamp('2014-12-15', tz='UTC'),
+            end=pd.Timestamp('2014-12-18', tz='UTC'),
         )
 
         for idx, day in enumerate(days):
-            bar_data = BarData(self.data_portal, lambda: day, "daily")
+            bar_data = BarData(self.data_portal, lambda: day, 'daily')
             check_internal_consistency(
-                bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, "1d"
+                bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, '1d'
             )
 
             for field in ALL_FIELDS:
                 # OHLCP should be NaN
                 # Volume should be 0
-                asset2_series = bar_data.history(self.ASSET2, field, 10, "1d")
-                asset3_series = bar_data.history(self.ASSET3, field, 10, "1d")
+                asset2_series = bar_data.history(self.ASSET2, field, 10, '1d')
+                asset3_series = bar_data.history(self.ASSET3, field, 10, '1d')
 
-                if field == "volume":
+                if field == 'volume':
                     np.testing.assert_array_equal(np.zeros(10), asset2_series)
                     np.testing.assert_array_equal(np.zeros(10), asset3_series)
                 else:
@@ -1148,7 +1056,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # 10 days
 
         # get the first 30 days of 2015
-        jan5 = pd.Timestamp("2015-01-04")
+        jan5 = pd.Timestamp('2015-01-04')
 
         days = self.env.days_in_range(
             start=jan5,
@@ -1156,19 +1064,19 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         )
 
         for idx, day in enumerate(days):
-            self.verify_regular_dt(idx, day, "daily")
+            self.verify_regular_dt(idx, day, 'daily')
 
     def test_daily_some_assets_stopped(self):
         # asset1 ends on 2016-01-30
         # asset2 ends on 2015-12-13
 
         bar_data = BarData(self.data_portal,
-                           lambda: pd.Timestamp("2016-01-06", tz='UTC'),
-                           "daily")
+                           lambda: pd.Timestamp('2016-01-06', tz='UTC'),
+                           'daily')
 
         for field in OHLCP:
             window = bar_data.history(
-                [self.ASSET1, self.ASSET2], field, 15, "1d"
+                [self.ASSET1, self.ASSET2], field, 15, '1d'
             )
 
             # last 2 values for asset2 should be NaN (# of days since asset2
@@ -1182,7 +1090,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             self.assertFalse(np.isnan(window[self.ASSET2][-3]))
 
         volume_window = bar_data.history(
-            [self.ASSET1, self.ASSET2], "volume", 15, "1d"
+            [self.ASSET1, self.ASSET2], 'volume', 15, '1d'
         )
 
         np.testing.assert_array_equal(
@@ -1196,20 +1104,20 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # SHORT_ASSET trades on 1/5, 1/6, that's it.
 
         days = self.env.days_in_range(
-            start=pd.Timestamp("2015-01-07", tz='UTC'),
-            end=pd.Timestamp("2015-01-08", tz='UTC')
+            start=pd.Timestamp('2015-01-07', tz='UTC'),
+            end=pd.Timestamp('2015-01-08', tz='UTC')
         )
 
         # days has 1/7, 1/8
         for idx, day in enumerate(days):
-            bar_data = BarData(self.data_portal, lambda: day, "daily")
+            bar_data = BarData(self.data_portal, lambda: day, 'daily')
             check_internal_consistency(
-                bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, "1d"
+                bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, '1d'
             )
 
             for field in ALL_FIELDS:
                 asset_series = bar_data.history(
-                    self.SHORT_ASSET, field, 2, "1d"
+                    self.SHORT_ASSET, field, 2, '1d'
                 )
 
                 if idx == 0:
@@ -1221,7 +1129,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                         )
 
                         self.assertTrue(np.isnan(asset_series.iloc[1]))
-                    elif field == "volume":
+                    elif field == 'volume':
                         self.assertEqual(300, asset_series.iloc[0])
                         self.assertEqual(0, asset_series.iloc[1])
                 else:
@@ -1229,7 +1137,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                     if field in OHLCP:
                         self.assertTrue(np.isnan(asset_series.iloc[0]))
                         self.assertTrue(np.isnan(asset_series.iloc[1]))
-                    elif field == "volume":
+                    elif field == 'volume':
                         self.assertEqual(0, asset_series.iloc[0])
                         self.assertEqual(0, asset_series.iloc[1])
 
@@ -1241,20 +1149,20 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             # before any of the adjustments
             window1 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-05", tz='UTC'),
+                pd.Timestamp('2015-01-05', tz='UTC'),
                 1,
-                "1d",
-                "close"
+                '1d',
+                'close'
             )[asset]
 
             np.testing.assert_array_equal(window1, [2])
 
             window1_volume = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-05", tz='UTC'),
+                pd.Timestamp('2015-01-05', tz='UTC'),
                 1,
-                "1d",
-                "volume"
+                '1d',
+                'volume'
             )[asset]
 
             np.testing.assert_array_equal(window1_volume, [200])
@@ -1262,10 +1170,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             # straddling the first event
             window2 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-06", tz='UTC'),
+                pd.Timestamp('2015-01-06', tz='UTC'),
                 2,
-                "1d",
-                "close"
+                '1d',
+                'close'
             )[asset]
 
             # first value should be halved, second value unadjusted
@@ -1273,10 +1181,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 
             window2_volume = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-06", tz='UTC'),
+                pd.Timestamp('2015-01-06', tz='UTC'),
                 2,
-                "1d",
-                "volume"
+                '1d',
+                'volume'
             )[asset]
 
             if asset == self.SPLIT_ASSET:
@@ -1288,20 +1196,20 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             # straddling both events
             window3 = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-07", tz='UTC'),
+                pd.Timestamp('2015-01-07', tz='UTC'),
                 3,
-                "1d",
-                "close"
+                '1d',
+                'close'
             )[asset]
 
             np.testing.assert_array_equal([0.5, 1.5, 4], window3)
 
             window3_volume = self.data_portal.get_history_window(
                 [asset],
-                pd.Timestamp("2015-01-07", tz='UTC'),
+                pd.Timestamp('2015-01-07', tz='UTC'),
                 3,
-                "1d",
-                "volume"
+                '1d',
+                'volume'
             )[asset]
 
             if asset == self.SPLIT_ASSET:
@@ -1315,10 +1223,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # before any dividend
         window1 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-05", tz='UTC'),
+            pd.Timestamp('2015-01-05', tz='UTC'),
             1,
-            "1d",
-            "close"
+            '1d',
+            'close'
         )[self.DIVIDEND_ASSET]
 
         np.testing.assert_array_equal(window1, [2])
@@ -1326,10 +1234,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # straddling the first dividend
         window2 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-06", tz='UTC'),
+            pd.Timestamp('2015-01-06', tz='UTC'),
             2,
-            "1d",
-            "close"
+            '1d',
+            'close'
         )[self.DIVIDEND_ASSET]
 
         # first dividend is 2%, so the first value should be 2% lower than
@@ -1339,10 +1247,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # straddling both dividends
         window3 = self.data_portal.get_history_window(
             [self.DIVIDEND_ASSET],
-            pd.Timestamp("2015-01-07", tz='UTC'),
+            pd.Timestamp('2015-01-07', tz='UTC'),
             3,
-            "1d",
-            "close"
+            '1d',
+            'close'
         )[self.DIVIDEND_ASSET]
 
         # second dividend is 0.96
@@ -1355,12 +1263,12 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # asset2 ends on 2016-01-04
 
         bar_data = BarData(self.data_portal,
-                           lambda: pd.Timestamp("2016-01-06 16:00", tz='UTC'),
-                           "daily")
+                           lambda: pd.Timestamp('2016-01-06 16:00', tz='UTC'),
+                           'daily')
 
         for field in OHLCP:
             window = bar_data.history(
-                [self.ASSET1, self.ASSET2], field, 15, "1d"
+                [self.ASSET1, self.ASSET2], field, 15, '1d'
             )
 
             # last 2 values for asset2 should be NaN
@@ -1373,7 +1281,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             self.assertFalse(np.isnan(window[self.ASSET2][-3]))
 
         volume_window = bar_data.history(
-            [self.ASSET1, self.ASSET2], "volume", 15, "1d"
+            [self.ASSET1, self.ASSET2], 'volume', 15, '1d'
         )
 
         np.testing.assert_array_equal(
@@ -1388,7 +1296,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # last day
 
         # January 2015 has both daily and minute data for ASSET2
-        day = pd.Timestamp("2015-01-07", tz='UTC')
+        day = pd.Timestamp('2015-01-07', tz='UTC')
         minutes = self.env.market_minutes_for_day(day)
 
         # minute data, baseline:
@@ -1403,13 +1311,13 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                     [self.ASSET2],
                     minute,
                     3,
-                    "1d",
+                    '1d',
                     field
                 )[self.ASSET2]
 
                 self.assertEqual(len(window), 3)
 
-                if field == "volume":
+                if field == 'volume':
                     self.assertEqual(window[0], 200)
                     self.assertEqual(window[1], 300)
                 else:
@@ -1418,19 +1326,19 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 
                 last_val = -1
 
-                if field == "open":
+                if field == 'open':
                     last_val = 783
-                elif field == "high":
+                elif field == 'high':
                     # since we increase monotonically, it's just the last
                     # value
                     last_val = 784 + idx
-                elif field == "low":
+                elif field == 'low':
                     # since we increase monotonically, the low is the first
                     # value of the day
                     last_val = 781
-                elif field == "close" or field == "price":
+                elif field == 'close' or field == 'price':
                     last_val = 782 + idx
-                elif field == "volume":
+                elif field == 'volume':
                     # for volume, we sum up all the minutely volumes so far
                     # today
 
@@ -1444,7 +1352,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # last day
 
         # January 2015 has both daily and minute data for ASSET2
-        day = pd.Timestamp("2015-01-08", tz='UTC')
+        day = pd.Timestamp('2015-01-08', tz='UTC')
         minutes = self.env.market_minutes_for_day(day)
 
         # minute data, baseline:
@@ -1458,13 +1366,13 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 [self.ASSET2],
                 minute,
                 3,
-                "1d",
+                '1d',
                 field
             )[self.ASSET2]
 
             self.assertEqual(len(window), 3)
 
-            if field == "volume":
+            if field == 'volume':
                 self.assertEqual(window[0], 300)
                 self.assertEqual(window[1], 400)
             else:
@@ -1473,12 +1381,12 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 
             last_val = -1
 
-            if field == "open":
+            if field == 'open':
                 if idx == 0:
                     last_val = np.nan
                 else:
                     last_val = 1174.0
-            elif field == "high":
+            elif field == 'high':
                 # since we increase monotonically, it's just the last
                 # value
                 if idx == 0:
@@ -1487,28 +1395,28 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                     last_val = 1562.0
                 else:
                     last_val = 1174.0 + idx
-            elif field == "low":
+            elif field == 'low':
                 # since we increase monotonically, the low is the first
                 # value of the day
                 if idx == 0:
                     last_val = np.nan
                 else:
                     last_val = 1172.0
-            elif field == "close":
+            elif field == 'close':
                 if idx == 0:
                     last_val = np.nan
                 elif idx == 389:
                     last_val = 1172.0 + 388
                 else:
                     last_val = 1172.0 + idx
-            elif field == "price":
+            elif field == 'price':
                 if idx == 0:
                     last_val = 4
                 elif idx == 389:
                     last_val = 1172.0 + 388
                 else:
                     last_val = 1172.0 + idx
-            elif field == "volume":
+            elif field == 'volume':
                 # for volume, we sum up all the minutely volumes so far
                 # today
                 if idx == 0:
@@ -1521,7 +1429,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                         np.array(range(1173, 1172 + idx + 1)) * 100)
 
             np.testing.assert_almost_equal(window[-1], last_val,
-                                           err_msg="field={0} minute={1}".
+                                           err_msg='field={0} minute={1}'.
                                            format(field, minute))
 
     def test_history_window_before_first_trading_day(self):
@@ -1531,8 +1439,8 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         second_day = self.env.next_trading_day(self.TRADING_START_DT)
 
         exp_msg = (
-            "History window extends before 2014-02-03. To use this history "
-            "window, start the backtest on or after 2014-02-07."
+            'History window extends before 2014-02-03. To use this history '
+            'window, start the backtest on or after 2014-02-07.'
         )
 
         with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
@@ -1540,8 +1448,8 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 [self.ASSET1],
                 second_day,
                 4,
-                "1d",
-                "price"
+                '1d',
+                'price'
             )[self.ASSET1]
 
         with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
@@ -1549,8 +1457,8 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 [self.ASSET1],
                 second_day,
                 4,
-                "1d",
-                "volume"
+                '1d',
+                'volume'
             )[self.ASSET1]
 
         # Use a minute to force minute mode.
@@ -1562,12 +1470,12 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 [self.ASSET2],
                 first_minute,
                 4,
-                "1d",
-                "close"
+                '1d',
+                'close'
             )[self.ASSET2]
 
 
-class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
+class MinuteToDailyAggregationTestCase(WithBcolzMinuteBarReader,
                                        ZiplineTestCase):
 
     #    March 2016
@@ -1578,8 +1486,12 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
     # 20 21 22 23 24 25 26
     # 27 28 29 30 31
 
-    TRADING_ENV_MIN_DATE = pd.Timestamp("2016-03-01", tz="UTC")
-    TRADING_ENV_MAX_DATE = pd.Timestamp("2016-03-31", tz="UTC")
+    TRADING_ENV_MIN_DATE = SIM_PARAMS_START = pd.Timestamp(
+        '2016-03-01', tz='UTC',
+    )
+    TRADING_ENV_MAX_DATE = SIM_PARAMS_END = pd.Timestamp(
+        '2016-03-31', tz='UTC',
+    )
 
     minutes = pd.date_range('2016-03-15 9:31',
                             '2016-03-15 9:36',
@@ -1588,22 +1500,24 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
 
     @classmethod
     def make_equities_info(cls):
-        return pd.DataFrame.from_dict({
-            1: {
-                "start_date": pd.Timestamp("2016-03-01", tz="UTC"),
-                "end_date": pd.Timestamp("2016-03-31", tz="UTC"),
-                "symbol": "EQUITY1",
+        return pd.DataFrame.from_dict(
+            {
+                1: {
+                    'start_date': pd.Timestamp('2016-03-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2016-03-31', tz='UTC'),
+                    'symbol': 'EQUITY1',
+                },
+                2: {
+                    'start_date': pd.Timestamp('2016-03-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2016-03-31', tz='UTC'),
+                    'symbol': 'EQUITY2'
+                },
             },
-            2: {
-                "start_date": pd.Timestamp("2016-03-01", tz='UTC'),
-                "end_date": pd.Timestamp("2016-03-31", tz='UTC'),
-                "symbol": "EQUITY2"
-            },
-        },
-            orient='index')
+            orient='index',
+        )
 
     @classmethod
-    def make_bcolz_minute_bar_data(cls):
+    def make_minute_bar_data(cls):
         return {
             # sid data is created so that at least one high is lower than a
             # previous high, and the inverse for low
@@ -1619,15 +1533,16 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
             ),
             # sid 2 is included to provide data on different bars than sid 1,
             # as will as illiquidty mid-day
-            2: pd.DataFrame({
-                'open': [201.50, nan, 204.50, nan, 200.50, 202.50],
-                'high': [201.90, nan, 204.90, nan, 200.90, 202.90],
-                'low': [201.10, nan, 204.10, nan, 200.10, 202.10],
-                'close': [201.30, nan, 203.50, nan, 200.30, 202.30],
-                'volume': [2001, 0, 2004, 0, 2000, 2002],
-            },
+            2: pd.DataFrame(
+                {
+                    'open': [201.50, nan, 204.50, nan, 200.50, 202.50],
+                    'high': [201.90, nan, 204.90, nan, 200.90, 202.90],
+                    'low': [201.10, nan, 204.10, nan, 200.10, 202.10],
+                    'close': [201.30, nan, 203.50, nan, 200.30, 202.30],
+                    'volume': [2001, 0, 2004, 0, 2000, 2002],
+                },
                 index=cls.minutes,
-            )
+            ),
         }
 
     expected_values = {
@@ -1707,9 +1622,9 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
             repeat_results.append(value)
 
         assert_almost_equal(results, self.expected_values[asset][field],
-                            err_msg="sid={0} field={1}".format(asset, field))
+                            err_msg='sid={0} field={1}'.format(asset, field))
         assert_almost_equal(repeat_results, self.expected_values[asset][field],
-                            err_msg="sid={0} field={1}".format(asset, field))
+                            err_msg='sid={0} field={1}'.format(asset, field))
 
     @parameterized.expand([
         ('open_sid_1', 'open', 1),
@@ -1737,7 +1652,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
             self.assertIsInstance(value, Real)
             assert_almost_equal(value,
                                 self.expected_values[sid][field][i],
-                                err_msg="sid={0} field={1} dt={2}".format(
+                                err_msg='sid={0} field={1} dt={2}'.format(
                                     sid, field, minute))
 
             # Call a second time with the same dt, to prevent regression
@@ -1749,7 +1664,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
             self.assertIsInstance(value, Real)
             assert_almost_equal(value,
                                 self.expected_values[sid][field][i],
-                                err_msg="sid={0} field={1} dt={2}".format(
+                                err_msg='sid={0} field={1} dt={2}'.format(
                                     sid, field, minute))
 
     @parameterized.expand(OHLCV)
@@ -1783,11 +1698,11 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
         for asset in assets:
             assert_almost_equal(results[asset],
                                 self.expected_values[asset][field],
-                                err_msg="sid={0} field={1}".format(
+                                err_msg='sid={0} field={1}'.format(
                                     asset, field))
             assert_almost_equal(repeat_results[asset],
                                 self.expected_values[asset][field],
-                                err_msg="sid={0} field={1}".format(
+                                err_msg='sid={0} field={1}'.format(
                                     asset, field))
 
     @parameterized.expand(OHLCV)
@@ -1808,7 +1723,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
                 assert_almost_equal(
                     value,
                     self.expected_values[asset][field][i],
-                    err_msg="sid={0} field={1} dt={2}".format(
+                    err_msg='sid={0} field={1} dt={2}'.format(
                         asset, field, minute))
 
             # Call a second time with the same dt, to prevent regression
@@ -1824,5 +1739,5 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
                 assert_almost_equal(
                     value,
                     self.expected_values[asset][field][i],
-                    err_msg="sid={0} field={1} dt={2}".format(
+                    err_msg='sid={0} field={1} dt={2}'.format(
                         asset, field, minute))

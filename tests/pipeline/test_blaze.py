@@ -20,6 +20,7 @@ from pandas.util.testing import assert_frame_equal
 from toolz import keymap, valmap, concatv
 from toolz.curried import operator as op
 
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.pipeline import Pipeline, CustomFactor
 from zipline.pipeline.data import DataSet, BoundColumn
 from zipline.pipeline.engine import SimplePipelineEngine
@@ -38,10 +39,7 @@ from zipline.utils.numpy_utils import (
     int64_dtype,
     repeat_last_axis,
 )
-from zipline.testing import (
-    tmp_asset_finder,
-    make_simple_equity_info,
-)
+from zipline.testing import tmp_asset_finder
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
