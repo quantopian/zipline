@@ -9,13 +9,13 @@ from numpy import arange, prod
 from pandas import date_range, Int64Index, DataFrame
 from six import iteritems
 
-from zipline.pipeline import TermGraph
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline import TermGraph
 from zipline.pipeline.term import AssetExists
 from zipline.testing import (
     check_arrays,
     ExplodingObject,
-    make_simple_equity_info,
     tmp_asset_finder,
 )
 

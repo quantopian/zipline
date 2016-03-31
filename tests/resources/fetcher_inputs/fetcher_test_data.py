@@ -68,41 +68,6 @@ aapl,1/9/06 5:31AM, 1
 aapl,1/9/06 11:30AM, 4
 """.strip()
 
-IBM_CSV_DATA = """
-symbol,date,signal
-ibm,1/1/06,1
-ibm,2/1/06,0
-ibm,3/1/06,0
-ibm,4/1/06,0
-ibm,5/1/06,1
-ibm,6/1/06,1
-ibm,7/1/06,1
-ibm,8/1/06,1
-ibm,9/1/06,0
-ibm,10/1/06,1
-ibm,11/1/06,1
-ibm,12/1/06,5
-ibm,1/1/07,1
-ibm,2/1/07,0
-ibm,3/1/07,1
-ibm,4/1/07,0
-ibm,5/1/07,1
-""".strip()
-
-ANNUAL_AAPL_CSV_DATA = """
-symbol,date,signal
-aapl,1/2/06,1
-aapl,1/15/06,1
-aapl,3/1/06,1
-aapl,3/15/06,1
-aapl,6/1/06,1
-aapl,6/15/06,1
-aapl,9/1/06,1
-aapl,9/15/06,1
-aapl,12/1/06,1
-aapl,12/15/06,1
-""".strip()
-
 AAPL_IBM_CSV_DATA = """
 symbol,date,signal
 aapl,1/1/06,1

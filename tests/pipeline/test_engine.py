@@ -3,7 +3,6 @@ Tests for SimplePipelineEngine
 """
 from __future__ import division
 from collections import OrderedDict
-from unittest import TestCase
 from itertools import product
 
 from nose_parameterized import parameterized
@@ -34,24 +33,25 @@ from pandas import (
 from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
 from six import iteritems, itervalues
-from testfixtures import TempDirectory
 from toolz import merge
 
-from zipline.data.us_equity_pricing import BcolzDailyBarReader
-from zipline.finance.trading import TradingEnvironment
-from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline.loaders.synthetic import (
-    PrecomputedLoader,
-    NullAdjustmentReader,
-    SyntheticDailyBarWriter,
+from zipline.assets.synthetic import (
+    make_rotating_equity_info,
+    make_simple_equity_info,
 )
+from zipline.lib.adjustment import MULTIPLY
+from zipline.pipeline.loaders.synthetic import PrecomputedLoader
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data import USEquityPricing, DataSet, Column
-from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
+from zipline.pipeline.loaders.synthetic import (
+    make_daily_bar_data,
+    expected_daily_bar_values_2d,
+)
 from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline import CustomFactor
 from zipline.pipeline.factors import (
     AverageDollarVolume,
@@ -63,10 +63,13 @@ from zipline.pipeline.factors import (
     SimpleMovingAverage,
 )
 from zipline.testing import (
-    make_rotating_equity_info,
-    make_simple_equity_info,
     product_upper_triangle,
     check_arrays,
+)
+from zipline.testing.fixtures import (
+    WithAdjustmentReader,
+    WithTradingEnvironment,
+    ZiplineTestCase,
 )
 from zipline.utils.memoize import lazyval
 
@@ -146,10 +149,23 @@ class RollingSumSum(CustomFactor):
         out[:] = sum(inputs).sum(axis=0)
 
 
-class ConstantInputTestCase(TestCase):
+class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
+    asset_ids = 1, 2, 3
+    start = Timestamp('2014-01-01', tz='utc')
+    end = Timestamp('2014-03-01', tz='utc')
 
-    def setUp(self):
-        self.constants = {
+    @classmethod
+    def make_equities_info(cls):
+        return make_simple_equity_info(
+            cls.asset_ids,
+            start_date=cls.start,
+            end_date=cls.end,
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(ConstantInputTestCase, cls).init_class_fixtures()
+        cls.constants = {
             # Every day, assume every stock starts at 2, goes down to 1,
             # goes up to 4, and finishes at 3.
             USEquityPricing.low: 1,
@@ -157,23 +173,13 @@ class ConstantInputTestCase(TestCase):
             USEquityPricing.close: 3,
             USEquityPricing.high: 4,
         }
-        self.asset_ids = [1, 2, 3]
-        self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
-        self.loader = PrecomputedLoader(
-            constants=self.constants,
-            dates=self.dates,
-            sids=self.asset_ids,
+        cls.dates = date_range(cls.start, cls.end, freq='D', tz='UTC')
+        cls.loader = PrecomputedLoader(
+            constants=cls.constants,
+            dates=cls.dates,
+            sids=cls.asset_ids,
         )
-
-        self.asset_info = make_simple_equity_info(
-            self.asset_ids,
-            start_date=self.dates[0],
-            end_date=self.dates[-1],
-        )
-        environment = TradingEnvironment()
-        environment.write_data(equities_df=self.asset_info)
-        self.asset_finder = environment.asset_finder
-        self.assets = self.asset_finder.retrieve_all(self.asset_ids)
+        cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
 
     def test_bad_dates(self):
         loader = self.loader
@@ -510,34 +516,29 @@ class ConstantInputTestCase(TestCase):
                                                   Loader2DataSet.col2)})
 
 
-class FrameInputTestCase(TestCase):
+class FrameInputTestCase(WithTradingEnvironment, ZiplineTestCase):
+    asset_ids = 1, 2, 3
+    start = Timestamp('2015-01-01', tz='utc')
+    end = Timestamp('2015-01-31', tz='utc')
 
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        day = cls.env.trading_day
+    def make_equities_info(cls):
+        return make_simple_equity_info(
+            cls.asset_ids,
+            start_date=cls.start,
+            end_date=cls.end,
+        )
 
-        cls.asset_ids = [1, 2, 3]
+    @classmethod
+    def init_class_fixtures(cls):
+        super(FrameInputTestCase, cls).init_class_fixtures()
         cls.dates = date_range(
-            '2015-01-01',
-            '2015-01-31',
-            freq=day,
+            cls.start,
+            cls.end,
+            freq=cls.env.trading_day,
             tz='UTC',
         )
-
-        asset_info = make_simple_equity_info(
-            cls.asset_ids,
-            start_date=cls.dates[0],
-            end_date=cls.dates[-1],
-        )
-        cls.env.write_data(equities_df=asset_info)
-        cls.asset_finder = cls.env.asset_finder
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        del cls.asset_finder
 
     @lazyval
     def base_mask(self):
@@ -627,54 +628,38 @@ class FrameInputTestCase(TestCase):
                 assert_frame_equal(high_results, high_base.iloc[iloc_bounds])
 
 
-class SyntheticBcolzTestCase(TestCase):
+class SyntheticBcolzTestCase(WithAdjustmentReader,
+                             ZiplineTestCase):
+    first_asset_start = Timestamp('2015-04-01', tz='UTC')
+    SIM_PARAMS_START = Timestamp('2015-01-01', tz='utc')
+    SIM_PARAMS_END = Timestamp('2015-08-01', tz='utc')
 
     @classmethod
-    def setUpClass(cls):
-        cls.first_asset_start = Timestamp('2015-04-01', tz='UTC')
-        cls.env = TradingEnvironment()
-        cls.trading_day = day = cls.env.trading_day
-        cls.calendar = date_range('2015', '2015-08', tz='UTC', freq=day)
-
-        cls.asset_info = make_rotating_equity_info(
+    def make_equities_info(cls):
+        return make_rotating_equity_info(
             num_assets=6,
             first_start=cls.first_asset_start,
-            frequency=day,
+            frequency=cls.TRADING_ENV_TRADING_CALENDAR.trading_day,
             periods_between_starts=4,
             asset_lifetime=8,
         )
-        cls.last_asset_end = cls.asset_info['end_date'].max()
-        cls.all_asset_ids = cls.asset_info.index
-
-        cls.env.write_data(equities_df=cls.asset_info)
-        cls.finder = cls.env.asset_finder
-
-        cls.temp_dir = TempDirectory()
-        cls.temp_dir.create()
-
-        try:
-            cls.writer = SyntheticDailyBarWriter(
-                asset_info=cls.asset_info[['start_date', 'end_date']],
-                calendar=cls.calendar,
-            )
-            table = cls.writer.write(
-                cls.temp_dir.getpath('testdata.bcolz'),
-                cls.calendar,
-                cls.all_asset_ids,
-            )
-
-            cls.pipeline_loader = USEquityPricingLoader(
-                BcolzDailyBarReader(table),
-                NullAdjustmentReader(),
-            )
-        except:
-            cls.temp_dir.cleanup()
-            raise
 
     @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        cls.temp_dir.cleanup()
+    def make_daily_bar_data(cls):
+        return make_daily_bar_data(
+            cls.asset_finder.equities_info,
+            cls.bcolz_daily_bar_days,
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(SyntheticBcolzTestCase, cls).init_class_fixtures()
+        cls.all_asset_ids = cls.asset_finder.sids
+        cls.last_asset_end = cls.asset_finder.equities_info['end_date'].max()
+        cls.pipeline_loader = USEquityPricingLoader(
+            cls.bcolz_daily_bar_reader,
+            cls.adjustment_reader,
+        )
 
     def write_nans(self, df):
         """
@@ -709,14 +694,14 @@ class SyntheticBcolzTestCase(TestCase):
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
             self.env.trading_days,
-            self.finder,
+            self.asset_finder,
         )
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.trading_day,
+            self.first_asset_start + self.env.trading_day,
             self.last_asset_end,
-            freq=self.trading_day,
+            freq=self.env.trading_day,
         )
         dates_to_test = dates[window_length:]
 
@@ -735,8 +720,10 @@ class SyntheticBcolzTestCase(TestCase):
         # computed results to be computed using values anchored on the
         # **previous** day's data.
         expected_raw = rolling_mean(
-            self.writer.expected_values_2d(
-                dates - self.trading_day, asset_ids, 'close',
+            expected_daily_bar_values_2d(
+                dates - self.env.trading_day,
+                self.asset_finder.equities_info,
+                'close',
             ),
             window_length,
             min_periods=1,
@@ -746,7 +733,7 @@ class SyntheticBcolzTestCase(TestCase):
             # Truncate off the extra rows needed to compute the SMAs.
             expected_raw[window_length:],
             index=dates_to_test,  # dates_to_test is dates[window_length:]
-            columns=self.finder.retrieve_all(asset_ids),
+            columns=self.asset_finder.retrieve_all(asset_ids),
         )
         self.write_nans(expected)
         result = results['sma'].unstack()
@@ -761,14 +748,14 @@ class SyntheticBcolzTestCase(TestCase):
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
             self.env.trading_days,
-            self.finder,
+            self.asset_finder,
         )
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.trading_day,
+            self.first_asset_start + self.env.trading_day,
             self.last_asset_end,
-            freq=self.trading_day,
+            freq=self.env.trading_day,
         )
         dates_to_test = dates[window_length:]
 
@@ -788,7 +775,7 @@ class SyntheticBcolzTestCase(TestCase):
         expected = DataFrame(
             data=zeros((len(dates_to_test), len(asset_ids)), dtype=float),
             index=dates_to_test,
-            columns=self.finder.retrieve_all(asset_ids),
+            columns=self.asset_finder.retrieve_all(asset_ids),
         )
         self.write_nans(expected)
         result = results['drawdown'].unstack()
@@ -796,27 +783,29 @@ class SyntheticBcolzTestCase(TestCase):
         assert_frame_equal(expected, result)
 
 
-class ParameterizedFactorTestCase(TestCase):
+class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
+    sids = Int64Index([1, 2, 3])
+
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
+    def make_equities_info(cls):
+        return make_simple_equity_info(
+            cls.sids,
+            start_date=Timestamp('2015-01-31', tz='UTC'),
+            end_date=Timestamp('2015-03-01', tz='UTC'),
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(ParameterizedFactorTestCase, cls).init_class_fixtures()
         day = cls.env.trading_day
 
-        cls.sids = sids = Int64Index([1, 2, 3])
         cls.dates = dates = date_range(
             '2015-02-01',
             '2015-02-28',
             freq=day,
             tz='UTC',
         )
-
-        asset_info = make_simple_equity_info(
-            cls.sids,
-            start_date=Timestamp('2015-01-31', tz='UTC'),
-            end_date=Timestamp('2015-03-01', tz='UTC'),
-        )
-        cls.env.write_data(equities_df=asset_info)
-        cls.asset_finder = cls.env.asset_finder
+        sids = cls.sids
 
         cls.raw_data = DataFrame(
             data=arange(len(dates) * len(sids), dtype=float).reshape(
@@ -840,11 +829,6 @@ class ParameterizedFactorTestCase(TestCase):
             cls.dates,
             cls.asset_finder,
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        del cls.asset_finder
 
     def expected_ewma(self, window_length, decay_rate):
         alpha = 1 - decay_rate
