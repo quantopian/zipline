@@ -16,6 +16,7 @@ from collections import namedtuple
 import datetime
 from datetime import timedelta
 
+import logbook
 from logbook import TestHandler, WARNING
 from mock import MagicMock
 from nose_parameterized import parameterized
@@ -46,8 +47,8 @@ from zipline.testing.core import (
     create_data_portal,
     create_data_portal_from_trade_history,
     DailyBarWriterFromDataFrames,
-    create_daily_df_for_asset, write_minute_data_for_asset
-)
+    create_daily_df_for_asset, write_minute_data_for_asset,
+    make_test_handler)
 from zipline.errors import (
     OrderDuringInitialize,
     RegisterTradingControlPostInit,
@@ -3194,3 +3195,78 @@ class TestEquityAutoClose(TestCase):
                 'order_id': None,  # Auto-close txns emit Nones for order_id.
             },
         )
+
+
+class TestOrderAfterDelist(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+
+        cls.days = cls.env.days_in_range(
+            start=pd.Timestamp("2016-01-05", tz='UTC'),
+            end=pd.Timestamp("2016-01-15", tz='UTC')
+        )
+
+        # asset goes from 1/5 to 1/6.
+        # asset liquidate date is 1/11.
+        cls.env.write_data(equities_data={
+            1: {
+                'start_date': cls.days[0],
+                'end_date': cls.days[1],
+                'auto_close_date': cls.days[4],
+                'symbol': "ASSET1"
+            }
+        })
+
+        cls.data_portal = FakeDataPortal(cls.env)
+
+    def test_order_in_quiet_period(self):
+        algo_code = dedent("""
+        from zipline.api import (
+            sid,
+            order,
+            order_value,
+            order_percent,
+            order_target,
+            order_target_percent,
+            order_target_value
+        )
+
+        def initialize(context):
+            pass
+
+        def handle_data(context, data):
+            order(sid(1), 1)
+            order_value(sid(1), 100)
+            order_percent(sid(1), 0.5)
+            order_target(sid(1), 50)
+            order_target_percent(sid(1), 0.5)
+            order_target_value(sid(1), 50)
+        """)
+
+        # run algo from 1/7 to 1/8
+        algo = TradingAlgorithm(
+            script=algo_code,
+            env=self.env,
+            sim_params=SimulationParameters(
+                period_start=pd.Timestamp("2016-01-07", tz='UTC'),
+                period_end=pd.Timestamp("2016-01-07", tz='UTC'),
+                env=self.env,
+                data_frequency="minute"
+            )
+        )
+
+        with make_test_handler(self) as log_catcher:
+            algo.run(self.data_portal)
+
+            warnings = [r for r in log_catcher.records
+                        if r.level == logbook.WARNING]
+
+            self.assertEqual(6 * 390, len(warnings))
+
+            for w in warnings:
+                self.assertEqual("Cannot place order for ASSET1, as it has "
+                                 "de-listed. Any existing positions for this "
+                                 "asset will be liquidated on "
+                                 "2016-01-11 00:00:00+00:00.",
+                                 w.message)

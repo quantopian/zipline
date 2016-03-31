@@ -15,6 +15,7 @@
 import warnings
 from copy import copy
 
+import logbook
 import pytz
 import pandas as pd
 from contextlib2 import ExitStack
@@ -112,6 +113,9 @@ from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
+
+
+log = logbook.Logger("ZiplineLog")
 
 
 class TradingAlgorithm(object):
@@ -877,7 +881,7 @@ class TradingAlgorithm(object):
         elif normalized_date > asset.end_date:
             raise CannotOrderDelistedAsset(
                 msg="Cannot order {0}, as it stopped trading on"
-                    "{1}.".format(asset.symbol, asset.end_date)
+                    " {1}.".format(asset.symbol, asset.end_date)
             )
         else:
             last_price = \
@@ -906,6 +910,28 @@ class TradingAlgorithm(object):
 
         return value / (last_price * value_multiplier)
 
+    def _can_order_asset(self, asset):
+        if not isinstance(asset, Asset):
+            raise UnsupportedOrderParameters(
+                msg="Passing non-Asset argument to 'order()' is not supported."
+                    " Use 'sid()' or 'symbol()' methods to look up an Asset."
+            )
+
+        current_dt = self.get_datetime()
+        if asset.auto_close_date:
+            if asset.end_date < current_dt < asset.auto_close_date:
+                # we are between the asset's end date and auto close date,
+                # so warn the user that they can't place an order for this
+                # asset, and return None.
+                log.warn("Cannot place order for {0}, as it has de-listed. "
+                         "Any existing positions for this asset will be "
+                         "liquidated on "
+                         "{1}.".format(asset.symbol, asset.auto_close_date))
+
+                return False
+
+        return True
+
     @api_method
     def order(self, asset, amount,
               limit_price=None,
@@ -914,6 +940,9 @@ class TradingAlgorithm(object):
         """
         Place an order using the specified parameters.
         """
+        if not self._can_order_asset(asset):
+            return None
+
         # Truncate to the integer share count that's either within .0001 of
         # amount or closer to zero.
         # E.g. 3.9999 -> 4.0; 5.5 -> 5.0; -5.5 -> -5.0
@@ -961,12 +990,6 @@ class TradingAlgorithm(object):
                     msg="Passing both stop_price and style is not supported."
                 )
 
-        if not isinstance(asset, Asset):
-            raise UnsupportedOrderParameters(
-                msg="Passing non-Asset argument to 'order()' is not supported."
-                    " Use 'sid()' or 'symbol()' methods to look up an Asset."
-            )
-
         for control in self.trading_controls:
             control.validate(asset,
                              amount,
@@ -1013,6 +1036,9 @@ class TradingAlgorithm(object):
         Stop order:      order(sid, value, None, stop_price)
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
+        if not self._can_order_asset(sid):
+            return None
+
         amount = self._calculate_order_value_amount(sid, value)
         return self.order(sid, amount,
                           limit_price=limit_price,
@@ -1150,6 +1176,9 @@ class TradingAlgorithm(object):
 
         Note that percent must expressed as a decimal (0.50 means 50\%).
         """
+        if not self._can_order_asset(sid):
+            return None
+
         value = self.portfolio.portfolio_value * percent
         return self.order_value(sid, value,
                                 limit_price=limit_price,
@@ -1166,6 +1195,9 @@ class TradingAlgorithm(object):
         order for the difference between the target number of shares and the
         current number of shares.
         """
+        if not self._can_order_asset(asset):
+            return None
+
         if sid in self.portfolio.positions:
             current_position = self.portfolio.positions[sid].amount
             req_shares = target - current_position
@@ -1191,6 +1223,9 @@ class TradingAlgorithm(object):
         If the Asset being ordered is a Future, the 'target value' calculated
         is actually the target exposure, as Futures have no 'value'.
         """
+        if not self._can_order_asset(sid):
+            return None
+
         target_amount = self._calculate_order_value_amount(sid, target)
         return self.order_target(sid, target_amount,
                                  limit_price=limit_price,
@@ -1209,6 +1244,9 @@ class TradingAlgorithm(object):
 
         Note that target must expressed as a decimal (0.50 means 50\%).
         """
+        if not self._can_order_asset(sid):
+            return None
+
         target_value = self.portfolio.portfolio_value * target
         return self.order_target_value(sid, target_value,
                                        limit_price=limit_price,

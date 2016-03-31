@@ -834,10 +834,10 @@ def handle_data(context, data):
 """
 
 call_order_in_init = """
-from zipline.api import (order)
+from zipline.api import (sid, order)
 
 def initialize(context):
-    order(0, 10)
+    order(sid(0), 10)
     pass
 
 def handle_data(context, data):
