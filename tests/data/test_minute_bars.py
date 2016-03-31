@@ -17,14 +17,23 @@ import os
 
 from unittest import TestCase
 
-from numpy import nan, array
-from numpy.testing import assert_almost_equal
+from numpy import (
+    arange,
+    array,
+    int64,
+    float64,
+    full,
+    nan,
+    zeros,
+)
+from numpy.testing import assert_almost_equal, assert_array_equal
 from pandas import (
     DataFrame,
     DatetimeIndex,
     Timestamp,
     Timedelta,
     NaT,
+    date_range,
 )
 from testfixtures import TempDirectory
 
@@ -450,6 +459,86 @@ class BcolzMinuteBarTestCase(TestCase):
         volume_price = self.reader.get_value(sid, minute, 'volume')
 
         self.assertEquals(100.0, volume_price)
+
+    def test_nans(self):
+        """
+        Test writing empty data.
+        """
+        sid = 1
+        last_date = self.writer.last_date_in_output_for_sid(sid)
+        self.assertIs(last_date, NaT)
+
+        self.writer.pad(sid, TEST_CALENDAR_START)
+
+        last_date = self.writer.last_date_in_output_for_sid(sid)
+        self.assertEqual(last_date, TEST_CALENDAR_START)
+
+        freq = self.market_opens.index.freq
+        minute = self.market_opens[TEST_CALENDAR_START + freq]
+        minutes = date_range(minute, periods=9, freq='min')
+        data = DataFrame(
+            data={
+                'open': full(9, nan),
+                'high': full(9, nan),
+                'low': full(9, nan),
+                'close': full(9, nan),
+                'volume': full(9, 0),
+            },
+            index=[minutes])
+        self.writer.write(sid, data)
+
+        fields = ['open', 'high', 'low', 'close', 'volume']
+
+        ohlcv_window = self.reader.unadjusted_window(
+            fields, minutes[0], minutes[-1], [sid])
+
+        for i, field in enumerate(fields):
+            if field != 'volume':
+                assert_array_equal(full(9, nan), ohlcv_window[i][0])
+            else:
+                assert_array_equal(zeros(9), ohlcv_window[i][0])
+
+    def test_differing_nans(self):
+        """
+        Also test nans of differing values/construction.
+        """
+        sid = 1
+        last_date = self.writer.last_date_in_output_for_sid(sid)
+        self.assertIs(last_date, NaT)
+
+        self.writer.pad(sid, TEST_CALENDAR_START)
+
+        last_date = self.writer.last_date_in_output_for_sid(sid)
+        self.assertEqual(last_date, TEST_CALENDAR_START)
+
+        freq = self.market_opens.index.freq
+        minute = self.market_opens[TEST_CALENDAR_START + freq]
+        minutes = date_range(minute, periods=9, freq='min')
+        data = DataFrame(
+            data={
+                'open': ((0b11111111111 << 52) + arange(1, 10, dtype=int64)).
+                view(float64),
+                'high': ((0b11111111111 << 52) + arange(11, 20, dtype=int64)).
+                view(float64),
+                'low': ((0b11111111111 << 52) + arange(21, 30, dtype=int64)).
+                view(float64),
+                'close': ((0b11111111111 << 52) + arange(31, 40, dtype=int64)).
+                view(float64),
+                'volume': full(9, 0),
+            },
+            index=[minutes])
+        self.writer.write(sid, data)
+
+        fields = ['open', 'high', 'low', 'close', 'volume']
+
+        ohlcv_window = self.reader.unadjusted_window(
+            fields, minutes[0], minutes[-1], [sid])
+
+        for i, field in enumerate(fields):
+            if field != 'volume':
+                assert_array_equal(full(9, nan), ohlcv_window[i][0])
+            else:
+                assert_array_equal(zeros(9), ohlcv_window[i][0])
 
     def test_write_cols(self):
         minute_0 = self.market_opens[self.test_calendar_start]
