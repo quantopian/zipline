@@ -567,6 +567,8 @@ class BcolzMinuteBarReader(object):
         self._market_open_values = metadata.market_opens.values.\
             astype('datetime64[m]').astype(int)
         self._market_closes = metadata.market_closes
+        self._market_close_values = metadata.market_closes.values.\
+            astype('datetime64[m]').astype(int)
 
         self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
 
@@ -634,8 +636,8 @@ class BcolzMinuteBarReader(object):
         """
         itree = IntervalTree()
         for minute_range in self._minutes_to_exclude():
-            start_pos = self._find_position_of_minute(minute_range[0])
-            end_pos = self._find_position_of_minute(minute_range[-1])
+            start_pos = self._find_position_of_minute(minute_range[0], False)
+            end_pos = self._find_position_of_minute(minute_range[-1], False)
             data = (start_pos, end_pos)
             itree[start_pos:end_pos + 1] = data
         return itree
@@ -702,7 +704,7 @@ class BcolzMinuteBarReader(object):
             Returns the integer value of the volume.
             (A volume of 0 signifies no trades for the given dt.)
         """
-        minute_pos = self._find_position_of_minute(dt)
+        minute_pos = self._find_position_of_minute(dt, True)
         value = self._open_minute_file(field, sid)[minute_pos]
         if value == 0:
             if field == 'volume':
@@ -729,6 +731,7 @@ class BcolzMinuteBarReader(object):
 
         return find_last_traded_position_internal(
             self._market_open_values,
+            self._market_close_values,
             dt_minutes,
             start_date_minutes,
             volumes,
@@ -745,11 +748,11 @@ class BcolzMinuteBarReader(object):
         return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
 
     @remember_last
-    def _find_position_of_minute(self, minute_dt):
+    def _find_position_of_minute(self, minute_dt, adjust_half_day_minutes):
         """
         Internal method that returns the position of the given minute in the
         list of every trading minute since market open of the first trading
-        day.
+        day. Adjusts non market minutes to the last close.
 
         ex. this method would return 1 for 2002-01-02 9:32 AM Eastern, if
         2002-01-02 is the first trading day of the dataset.
@@ -759,17 +762,21 @@ class BcolzMinuteBarReader(object):
         minute_dt: pd.Timestamp
             The minute whose position should be calculated.
 
+        adjust_half_day_minutes: boolean
+            Whether or not we want to adjust minutes to early close on half
+            days.
+
         Returns
         -------
         int: The position of the given minute in the list of all trading
         minutes since market open on the first trading day.
         """
-        # NOTE: This method will return an inaccurate value when the minute_dt
-        # is not a trading minute (midnight, for example)
         return find_position_of_minute(
             self._market_open_values,
+            self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
-            US_EQUITIES_MINUTES_PER_DAY
+            US_EQUITIES_MINUTES_PER_DAY,
+            adjust_half_day_minutes
         )
 
     def unadjusted_window(self, fields, start_dt, end_dt, sids):
@@ -792,8 +799,8 @@ class BcolzMinuteBarReader(object):
             (sids, minutes in range) with a dtype of float64, containing the
             values for the respective field over start and end dt range.
         """
-        start_idx = self._find_position_of_minute(start_dt)
-        end_idx = self._find_position_of_minute(end_dt)
+        start_idx = self._find_position_of_minute(start_dt, True)
+        end_idx = self._find_position_of_minute(end_dt, True)
 
         num_minutes = (end_idx - start_idx + 1)
 
