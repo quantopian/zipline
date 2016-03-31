@@ -17,7 +17,7 @@ import os
 
 from unittest import TestCase
 
-from numpy import nan, array
+from numpy import nan, array, arange
 from numpy.testing import assert_almost_equal
 from pandas import (
     DataFrame,
@@ -605,3 +605,92 @@ class BcolzMinuteBarTestCase(TestCase):
             for j, sid in enumerate(sids):
                 assert_almost_equal(data[sid].loc[minutes, col],
                                     arrays[i][j][minute_locs])
+
+    def test_adjust_non_trading_minutes(self):
+        start_day = Timestamp('2015-06-01', tz='UTC')
+        end_day = Timestamp('2015-06-02', tz='UTC')
+
+        sid = 1
+        cols = {
+            'open': arange(1, 781),
+            'high': arange(1, 781),
+            'low': arange(1, 781),
+            'close': arange(1, 781),
+            'volume': arange(1, 781)
+        }
+        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
+        self.writer.write_cols(sid, dts, cols)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-01 20:00:00', tz='UTC'),
+                'open'),
+            390)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-02 20:00:00', tz='UTC'),
+                'open'),
+            780)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-02', tz='UTC'),
+                'open'),
+            390)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-02 20:01:00', tz='UTC'),
+                'open'),
+            780)
+
+    def test_adjust_non_trading_minutes_half_days(self):
+        # half day
+        start_day = Timestamp('2015-11-27', tz='UTC')
+        end_day = Timestamp('2015-11-30', tz='UTC')
+
+        sid = 1
+        cols = {
+            'open': arange(1, 601),
+            'high': arange(1, 601),
+            'low': arange(1, 601),
+            'close': arange(1, 601),
+            'volume': arange(1, 601)
+        }
+        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
+        self.writer.write_cols(sid, dts, cols)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-27 18:00:00', tz='UTC'),
+                'open'),
+            210)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-30 21:00:00', tz='UTC'),
+                'open'),
+            600)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-27 18:01:00', tz='UTC'),
+                'open'),
+            210)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-30', tz='UTC'),
+                'open'),
+            210)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-30 21:01:00', tz='UTC'),
+                'open'),
+            600)

@@ -1066,7 +1066,13 @@ class TradingAlgorithm(object):
 
         self.portfolio_needs_update = True
         self.account_needs_update = True
-        self.performance_needs_update = True
+
+        # Do not update performance if we are at midnight. Portfolio and
+        # Account have already been adjusted for splits
+        if not normalize_date(dt) == dt:
+            self.performance_needs_update = True
+        else:
+            self.performance_needs_update = False
 
     @api_method
     def get_datetime(self, tz=None):

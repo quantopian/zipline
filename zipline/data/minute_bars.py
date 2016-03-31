@@ -27,6 +27,7 @@ from zipline.gens.sim_engine import NANOS_IN_MINUTE
 from zipline.data._minute_bar_internal import (
     minute_value,
     find_position_of_minute,
+    find_position_of_minute_half_day_unadjusted,
     find_last_traded_position_internal
 )
 
@@ -567,6 +568,8 @@ class BcolzMinuteBarReader(object):
         self._market_open_values = metadata.market_opens.values.\
             astype('datetime64[m]').astype(int)
         self._market_closes = metadata.market_closes
+        self._market_close_values = metadata.market_closes.values.\
+            astype('datetime64[m]').astype(int)
 
         self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
 
@@ -634,8 +637,10 @@ class BcolzMinuteBarReader(object):
         """
         itree = IntervalTree()
         for minute_range in self._minutes_to_exclude():
-            start_pos = self._find_position_of_minute(minute_range[0])
-            end_pos = self._find_position_of_minute(minute_range[-1])
+            start_pos = self._find_position_of_minute_half_day_unadjusted(
+                minute_range[0])
+            end_pos = self._find_position_of_minute_half_day_unadjusted(
+                minute_range[-1])
             data = (start_pos, end_pos)
             itree[start_pos:end_pos + 1] = data
         return itree
@@ -729,6 +734,7 @@ class BcolzMinuteBarReader(object):
 
         return find_last_traded_position_internal(
             self._market_open_values,
+            self._market_close_values,
             dt_minutes,
             start_date_minutes,
             volumes,
@@ -749,7 +755,7 @@ class BcolzMinuteBarReader(object):
         """
         Internal method that returns the position of the given minute in the
         list of every trading minute since market open of the first trading
-        day.
+        day. Adjusts non market minutes to the last close.
 
         ex. this method would return 1 for 2002-01-02 9:32 AM Eastern, if
         2002-01-02 is the first trading day of the dataset.
@@ -764,9 +770,38 @@ class BcolzMinuteBarReader(object):
         int: The position of the given minute in the list of all trading
         minutes since market open on the first trading day.
         """
-        # NOTE: This method will return an inaccurate value when the minute_dt
-        # is not a trading minute (midnight, for example)
         return find_position_of_minute(
+            self._market_open_values,
+            self._market_close_values,
+            minute_dt.value / NANOS_IN_MINUTE,
+            US_EQUITIES_MINUTES_PER_DAY
+        )
+
+    @remember_last
+    def _find_position_of_minute_half_day_unadjusted(self, minute_dt):
+        """
+        Internal method that returns the position of the given minute in the
+        list of every trading minute since market open of the first trading
+        day. Does not adjust for half days. In other words, if the day in
+        question is a half day, and the minute falls between the half day
+        and full day close, then the position is determined as if the day
+        was a full day
+
+        ex. if 2015-11-27 is the first trading day of the dataset, given that
+        it is a half day, 2015-11-27 4:00 PM Eastern would return 390 instead
+        of 210.
+
+        Parameters
+        ----------
+        minute_dt: pd.Timestamp
+            The minute whose position should be calculated.
+
+        Returns
+        -------
+        int: The position of the given minute in the list of all trading
+        minutes since market open on the first trading day.
+        """
+        return find_position_of_minute_half_day_unadjusted(
             self._market_open_values,
             minute_dt.value / NANOS_IN_MINUTE,
             US_EQUITIES_MINUTES_PER_DAY
