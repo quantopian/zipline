@@ -12,56 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import pandas as pd
 
-from unittest import TestCase
-from testfixtures import TempDirectory
-
-from zipline.finance.trading import TradingEnvironment
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
     SetPortfolioAlgorithm,
 )
-from zipline.testing import (
-    setup_logger,
-    teardown_logger
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    WithSimParams,
+    ZiplineTestCase,
 )
-import zipline.utils.factory as factory
-from zipline.testing.core import create_data_portal
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
 
 
-class ExceptionTestCase(TestCase):
+class ExceptionTestCase(WithDataPortal, WithSimParams, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    START_DATE = pd.Timestamp('2006-01-07', tz='utc')
 
-    @classmethod
-    def setUpClass(cls):
-        cls.sid = 133
-        cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[cls.sid])
-
-        cls.tempdir = TempDirectory()
-
-        cls.sim_params = factory.create_simulation_parameters(
-            num_days=4,
-            env=cls.env
-        )
-
-        cls.data_portal = create_data_portal(
-            env=cls.env,
-            tempdir=cls.tempdir,
-            sim_params=cls.sim_params,
-            sids=[cls.sid]
-        )
-
-        setup_logger(cls)
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        cls.tempdir.cleanup()
-        teardown_logger(cls)
+    sid, = ASSET_FINDER_EQUITY_SIDS = 133,
 
     def test_exception_in_handle_data(self):
         algo = ExceptionAlgorithm('handle_data',

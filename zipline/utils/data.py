@@ -12,20 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import bisect
 import datetime
-from collections import MutableMapping
 from copy import deepcopy
-
-try:
-    from six.moves._thread import get_ident
-except ImportError:
-    from six.moves._dummy_thread import get_ident
 
 import numpy as np
 import pandas as pd
-from toolz import merge
 
 
 def _ensure_index(x):
@@ -399,82 +390,3 @@ class MutableIndexRollingPanel(object):
             self.buffer.loc[non_nan_items, :, non_nan_cols])
 
         self.buffer = new_buffer
-
-
-class SortedDict(MutableMapping):
-    """A mapping of key-value pairs sorted by key according to the sort_key
-    function provided to the mapping.  Ties from the sort_key are broken by
-    comparing the original keys.  `iter` traverses the keys in sort order.
-
-    Parameters
-    ----------
-    key : callable
-        Called on keys in the mapping to produce the values by which those keys
-        are sorted.
-    mapping : mapping, optional
-    **kwargs
-        The initial mapping.
-
-    >>> d = SortedDict(abs)
-    >>> d[-1] = 'negative one'
-    >>> d[0] = 'zero'
-    >>> d[2] = 'two'
-    >>> d  # doctest: +NORMALIZE_WHITESPACE
-    SortedDict(<built-in function abs>,
-               [(0, 'zero'), (-1, 'negative one'), (2, 'two')])
-    >>> d[1] = 'one'  # Mutating the mapping maintains the sort order.
-    >>> d  # doctest: +NORMALIZE_WHITESPACE
-    SortedDict(<built-in function abs>,
-               [(0, 'zero'), (-1, 'negative one'), (1, 'one'), (2, 'two')])
-    >>> del d[0]
-    >>> d  # doctest: +NORMALIZE_WHITESPACE
-    SortedDict(<built-in function abs>,
-               [(-1, 'negative one'), (1, 'one'), (2, 'two')])
-    >>> del d[2]
-    >>> d
-    SortedDict(<built-in function abs>, [(-1, 'negative one'), (1, 'one')])
-    """
-    def __init__(self, key, mapping=None, **kwargs):
-        self._map = {}
-        self._sorted_key_names = []
-        self._sort_key = key
-
-        self.update(merge(mapping or {}, kwargs))
-
-    def __getitem__(self, name):
-        return self._map[name]
-
-    def __setitem__(self, name, value, _bisect_right=bisect.bisect_right):
-        self._map[name] = value
-        if len(self._map) > len(self._sorted_key_names):
-            key = self._sort_key(name)
-            pair = (key, name)
-            idx = _bisect_right(self._sorted_key_names, pair)
-            self._sorted_key_names.insert(idx, pair)
-
-    def __delitem__(self, name, _bisect_left=bisect.bisect_left):
-        del self._map[name]
-        idx = _bisect_left(self._sorted_key_names,
-                           (self._sort_key(name), name))
-        del self._sorted_key_names[idx]
-
-    def __iter__(self):
-        for key, name in self._sorted_key_names:
-            yield name
-
-    def __len__(self):
-        return len(self._map)
-
-    def __repr__(self, _repr_running={}):
-        # Based on OrderedDict/defaultdict
-        call_key = id(self), get_ident()
-        if call_key in _repr_running:
-            return '...'
-        _repr_running[call_key] = 1
-        try:
-            if not self:
-                return '%s(%r)' % (self.__class__.__name__, self._sort_key)
-            return '%s(%r, %r)' % (self.__class__.__name__, self._sort_key,
-                                   list(self.items()))
-        finally:
-            del _repr_running[call_key]

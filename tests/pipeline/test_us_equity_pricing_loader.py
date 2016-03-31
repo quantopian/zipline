@@ -15,8 +15,6 @@
 """
 Tests for USEquityPricingLoader and related classes.
 """
-from unittest import TestCase
-
 from numpy import (
     arange,
     datetime64,
@@ -34,29 +32,28 @@ from pandas import (
     Int64Index,
     Timestamp,
 )
-from testfixtures import TempDirectory
 from toolz.curried.operator import getitem
 
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     NullAdjustmentReader,
-    SyntheticDailyBarWriter,
-)
-from zipline.data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    SQLiteAdjustmentReader,
-    SQLiteAdjustmentWriter,
+    make_daily_bar_data,
+    expected_daily_bar_values_2d,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
 
 from zipline.errors import WindowLengthTooLong
-from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.testing import (
     seconds_to_timestamp,
     str_to_seconds,
+    MockDailyBarReader,
+)
+from zipline.testing.fixtures import (
+    WithAdjustmentReader,
+    ZiplineTestCase,
 )
 
 # Test calendar ranges over the month of June 2015
@@ -257,41 +254,44 @@ DIVIDENDS_EXPECTED = DataFrame(
 )
 
 
-class MockDailyBarSpotReader(object):
-    """
-    A BcolzDailyBarReader which returns a constant value for spot price.
-    """
-    def spot_price(self, sid, day, column):
-        return 100.0
-
-
-class USEquityPricingLoaderTestCase(TestCase):
+class USEquityPricingLoaderTestCase(WithAdjustmentReader,
+                                    ZiplineTestCase):
+    START_DATE = TEST_CALENDAR_START
+    END_DATE = TEST_CALENDAR_STOP
+    asset_ids = 1, 2, 3
 
     @classmethod
-    def setUpClass(cls):
-        cls.test_data_dir = TempDirectory()
-        cls.db_path = cls.test_data_dir.getpath('adjustments.db')
-        all_days = TradingEnvironment().trading_days
-        cls.calendar_days = all_days[
-            all_days.slice_indexer(TEST_CALENDAR_START, TEST_CALENDAR_STOP)
-        ]
-        daily_bar_reader = MockDailyBarSpotReader()
-        writer = SQLiteAdjustmentWriter(cls.db_path, cls.calendar_days,
-                                        daily_bar_reader)
-        writer.write(SPLITS, MERGERS, DIVIDENDS)
+    def make_equity_info(cls):
+        return EQUITY_INFO
 
+    @classmethod
+    def make_splits_data(cls):
+        return SPLITS
+
+    @classmethod
+    def make_mergers_data(cls):
+        return MERGERS
+
+    @classmethod
+    def make_dividends_data(cls):
+        return DIVIDENDS
+
+    @classmethod
+    def make_adjustment_writer_daily_bar_reader(cls):
+        return MockDailyBarReader()
+
+    @classmethod
+    def make_daily_bar_data(cls):
+        return make_daily_bar_data(
+            EQUITY_INFO,
+            cls.bcolz_daily_bar_days,
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(USEquityPricingLoaderTestCase, cls).init_class_fixtures()
         cls.assets = TEST_QUERY_ASSETS
         cls.asset_info = EQUITY_INFO
-        cls.bcolz_writer = SyntheticDailyBarWriter(
-            cls.asset_info,
-            cls.calendar_days,
-        )
-        cls.bcolz_path = cls.test_data_dir.getpath('equity_pricing.bcolz')
-        cls.bcolz_writer.write(cls.bcolz_path, cls.calendar_days, cls.assets)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.test_data_dir.cleanup()
 
     def test_input_sanity(self):
         # Ensure that the input data doesn't contain adjustments during periods
@@ -306,13 +306,13 @@ class USEquityPricingLoaderTestCase(TestCase):
                 self.assertLessEqual(eff_date, asset_end)
 
     def calendar_days_between(self, start_date, end_date, shift=0):
-        slice_ = self.calendar_days.slice_indexer(start_date, end_date)
+        slice_ = self.bcolz_daily_bar_days.slice_indexer(start_date, end_date)
         start = slice_.start + shift
         stop = slice_.stop + shift
         if start < 0:
             raise KeyError(start_date, shift)
 
-        return self.calendar_days[start:stop]
+        return self.bcolz_daily_bar_days[start:stop]
 
     def expected_adjustments(self, start_date, end_date):
         price_adjustments = {}
@@ -357,14 +357,13 @@ class USEquityPricingLoaderTestCase(TestCase):
         return price_adjustments, volume_adjustments
 
     def test_load_adjustments_from_sqlite(self):
-        reader = SQLiteAdjustmentReader(self.db_path)
         columns = [USEquityPricing.close, USEquityPricing.volume]
         query_days = self.calendar_days_between(
             TEST_QUERY_START,
             TEST_QUERY_STOP,
         )
 
-        adjustments = reader.load_adjustments(
+        adjustments = self.adjustment_reader.load_adjustments(
             columns,
             query_days,
             self.assets,
@@ -417,9 +416,8 @@ class USEquityPricingLoaderTestCase(TestCase):
         )
         self.assertEqual(adjustments, [{}, {}])
 
-        baseline_reader = BcolzDailyBarReader(self.bcolz_path)
         pricing_loader = USEquityPricingLoader(
-            baseline_reader,
+            self.bcolz_daily_bar_reader,
             adjustment_reader,
         )
 
@@ -431,14 +429,14 @@ class USEquityPricingLoaderTestCase(TestCase):
         )
         closes, volumes = map(getitem(results), columns)
 
-        expected_baseline_closes = self.bcolz_writer.expected_values_2d(
+        expected_baseline_closes = expected_daily_bar_values_2d(
             shifted_query_days,
-            self.assets,
+            self.asset_info,
             'close',
         )
-        expected_baseline_volumes = self.bcolz_writer.expected_values_2d(
+        expected_baseline_volumes = expected_daily_bar_values_2d(
             shifted_query_days,
-            self.assets,
+            self.asset_info,
             'volume',
         )
 
@@ -495,11 +493,9 @@ class USEquityPricingLoaderTestCase(TestCase):
             shift=-1,
         )
 
-        baseline_reader = BcolzDailyBarReader(self.bcolz_path)
-        adjustment_reader = SQLiteAdjustmentReader(self.db_path)
         pricing_loader = USEquityPricingLoader(
-            baseline_reader,
-            adjustment_reader,
+            self.bcolz_daily_bar_reader,
+            self.adjustment_reader,
         )
 
         results = pricing_loader.load_adjusted_array(
@@ -510,14 +506,14 @@ class USEquityPricingLoaderTestCase(TestCase):
         )
         highs, volumes = map(getitem(results), columns)
 
-        expected_baseline_highs = self.bcolz_writer.expected_values_2d(
+        expected_baseline_highs = expected_daily_bar_values_2d(
             shifted_query_days,
-            self.assets,
+            self.asset_info,
             'high',
         )
-        expected_baseline_volumes = self.bcolz_writer.expected_values_2d(
+        expected_baseline_volumes = expected_daily_bar_values_2d(
             shifted_query_days,
-            self.assets,
+            self.asset_info,
             'volume',
         )
 

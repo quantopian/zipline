@@ -25,9 +25,13 @@ from .assets import (
     AssetConvertible,
     AssetFinderCachedEquities
 )
+from .asset_db_schema import ASSET_DB_VERSION
+from .asset_writer import AssetDBWriter
 
 __all__ = [
+    'ASSET_DB_VERSION',
     'Asset',
+    'AssetDBWriter',
     'Equity',
     'Future',
     'AssetFinder',

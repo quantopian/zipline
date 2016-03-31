@@ -12,24 +12,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import TestCase
-
-from testfixtures import TempDirectory
-import pandas as pd
-import numpy as np
 from nose_parameterized import parameterized
+import numpy as np
+import pandas as pd
+from toolz import merge
 
 from zipline._protocol import handle_non_market_minutes
-from zipline.data.data_portal import DataPortal
-from zipline.data.minute_bars import BcolzMinuteBarWriter, \
-    US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
-from zipline.data.us_equity_pricing import BcolzDailyBarReader, \
-    SQLiteAdjustmentReader, SQLiteAdjustmentWriter
-from zipline.finance.trading import TradingEnvironment
 from zipline.protocol import BarData
-from zipline.testing.core import write_minute_data_for_asset, \
-    create_daily_df_for_asset, DailyBarWriterFromDataFrames, \
-    create_mock_adjustments, str_to_seconds, MockDailyBarReader
+from zipline.testing import (
+    MockDailyBarReader,
+    create_daily_df_for_asset,
+    create_minute_df_for_asset,
+    str_to_seconds,
+)
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    ZiplineTestCase,
+)
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -44,7 +43,7 @@ field_info = {
 }
 
 
-class TestBarDataBase(TestCase):
+class WithBarDataChecks(object):
     def assert_same(self, val1, val2):
         try:
             self.assertEqual(val1, val2)
@@ -89,117 +88,92 @@ class TestBarDataBase(TestCase):
                 getattr(bar_data, field)
 
 
-class TestMinuteBarData(TestBarDataBase):
-    @classmethod
-    def setUpClass(cls):
-        cls.tempdir = TempDirectory()
+class TestMinuteBarData(WithBarDataChecks,
+                        WithDataPortal,
+                        ZiplineTestCase):
+    START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
+    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp(
+        '2016-01-07',
+        tz='UTC',
+    )
 
+    ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4, 5
+
+    SPLIT_ASSET_SID = 3
+    ILLIQUID_SPLIT_ASSET_SID = 4
+    HILARIOUSLY_ILLIQUID_ASSET_SID = 5
+
+    @classmethod
+    def make_minute_bar_data(cls):
         # asset1 has trades every minute
         # asset2 has trades every 10 minutes
         # split_asset trades every minute
         # illiquid_split_asset trades every 10 minutes
-
-        cls.env = TradingEnvironment()
-
-        cls.days = cls.env.days_in_range(
-            start=pd.Timestamp("2016-01-05", tz='UTC'),
-            end=pd.Timestamp("2016-01-07", tz='UTC')
+        return merge(
+            {
+                sid: create_minute_df_for_asset(
+                    cls.env,
+                    cls.bcolz_minute_bar_days[0],
+                    cls.bcolz_minute_bar_days[-1],
+                )
+                for sid in (1, cls.SPLIT_ASSET_SID)
+            },
+            {
+                sid: create_minute_df_for_asset(
+                    cls.env,
+                    cls.bcolz_minute_bar_days[0],
+                    cls.bcolz_minute_bar_days[-1],
+                    10,
+                )
+                for sid in (2, cls.ILLIQUID_SPLIT_ASSET_SID)
+            },
+            {
+                cls.HILARIOUSLY_ILLIQUID_ASSET_SID: create_minute_df_for_asset(
+                    cls.env,
+                    cls.bcolz_minute_bar_days[0],
+                    cls.bcolz_minute_bar_days[-1],
+                    50,
+                )
+            },
         )
 
-        cls.env.write_data(equities_data={
-            sid: {
-                'start_date': cls.days[0],
-                'end_date': cls.days[-1],
-                'symbol': "ASSET{0}".format(sid)
-            } for sid in [1, 2, 3, 4, 5]
-        })
+    @classmethod
+    def make_splits_data(cls):
+        return pd.DataFrame([
+            {
+                'effective_date': str_to_seconds("2016-01-06"),
+                'ratio': 0.5,
+                'sid': cls.SPLIT_ASSET_SID,
+            },
+            {
+                'effective_date': str_to_seconds("2016-01-06"),
+                'ratio': 0.5,
+                'sid': cls.ILLIQUID_SPLIT_ASSET_SID,
+            },
+        ])
 
-        cls.ASSET1 = cls.env.asset_finder.retrieve_asset(1)
-        cls.ASSET2 = cls.env.asset_finder.retrieve_asset(2)
-        cls.SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(3)
-        cls.ILLIQUID_SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(4)
-        cls.HILARIOUSLY_ILLIQUID_ASSET = cls.env.asset_finder.retrieve_asset(5)
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestMinuteBarData, cls).init_class_fixtures()
+
+        cls.ASSET1 = cls.asset_finder.retrieve_asset(1)
+        cls.ASSET2 = cls.asset_finder.retrieve_asset(2)
+        cls.SPLIT_ASSET = cls.asset_finder.retrieve_asset(
+            cls.SPLIT_ASSET_SID,
+        )
+        cls.ILLIQUID_SPLIT_ASSET = cls.asset_finder.retrieve_asset(
+            cls.ILLIQUID_SPLIT_ASSET_SID,
+        )
+        cls.HILARIOUSLY_ILLIQUID_ASSET = cls.asset_finder.retrieve_asset(
+            cls.HILARIOUSLY_ILLIQUID_ASSET_SID,
+        )
 
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
-
-        cls.adjustments_reader = cls.create_adjustments_reader()
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_minute_reader=cls.build_minute_data(),
-            adjustment_reader=cls.adjustments_reader
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.data_portal
-        del cls.adjustments_reader
-        cls.tempdir.cleanup()
-
-    @classmethod
-    def create_adjustments_reader(cls):
-        path = create_mock_adjustments(
-            cls.tempdir,
-            cls.days,
-            splits=[{
-                'effective_date': str_to_seconds("2016-01-06"),
-                'ratio': 0.5,
-                'sid': cls.SPLIT_ASSET.sid
-            }, {
-                'effective_date': str_to_seconds("2016-01-06"),
-                'ratio': 0.5,
-                'sid': cls.ILLIQUID_SPLIT_ASSET.sid
-            }]
-        )
-
-        return SQLiteAdjustmentReader(path)
-
-    @classmethod
-    def build_minute_data(cls):
-        market_opens = cls.env.open_and_closes.market_open.loc[cls.days]
-        market_closes = cls.env.open_and_closes.market_close.loc[cls.days]
-
-        writer = BcolzMinuteBarWriter(
-            cls.days[0],
-            cls.tempdir.path,
-            market_opens,
-            market_closes,
-            US_EQUITIES_MINUTES_PER_DAY
-        )
-
-        for sid in [cls.ASSET1.sid, cls.SPLIT_ASSET.sid]:
-            write_minute_data_for_asset(
-                cls.env,
-                writer,
-                cls.days[0],
-                cls.days[-1],
-                sid
-            )
-
-        for sid in [cls.ASSET2.sid, cls.ILLIQUID_SPLIT_ASSET.sid]:
-            write_minute_data_for_asset(
-                cls.env,
-                writer,
-                cls.days[0],
-                cls.days[-1],
-                sid,
-                10
-            )
-
-        write_minute_data_for_asset(
-            cls.env,
-            writer,
-            cls.days[0],
-            cls.days[-1],
-            cls.HILARIOUSLY_ILLIQUID_ASSET.sid,
-            50
-        )
-
-        return BcolzMinuteBarReader(cls.tempdir.path)
 
     def test_minute_before_assets_trading(self):
         # grab minutes that include the day before the asset start
         minutes = self.env.market_minutes_for_day(
-            self.env.previous_trading_day(self.days[0])
+            self.env.previous_trading_day(self.bcolz_minute_bar_days[0])
         )
 
         # this entire day is before either asset has started trading
@@ -225,7 +199,9 @@ class TestMinuteBarData(TestBarDataBase):
                         self.assertTrue(asset_value is pd.NaT)
 
     def test_regular_minute(self):
-        minutes = self.env.market_minutes_for_day(self.days[0])
+        minutes = self.env.market_minutes_for_day(
+            self.bcolz_minute_bar_days[0],
+        )
 
         for idx, minute in enumerate(minutes):
             # day2 has prices
@@ -315,7 +291,9 @@ class TestMinuteBarData(TestBarDataBase):
                                              asset2_value)
 
     def test_minute_of_last_day(self):
-        minutes = self.env.market_minutes_for_day(self.days[-1])
+        minutes = self.env.market_minutes_for_day(
+            self.bcolz_daily_bar_days[-1],
+        )
 
         # this is the last day the assets exist
         for idx, minute in enumerate(minutes):
@@ -326,11 +304,11 @@ class TestMinuteBarData(TestBarDataBase):
 
     def test_minute_after_assets_stopped(self):
         minutes = self.env.market_minutes_for_day(
-            self.env.next_trading_day(self.days[-1])
+            self.env.next_trading_day(self.bcolz_minute_bar_days[-1])
         )
 
         last_trading_minute = \
-            self.env.market_minutes_for_day(self.days[-1])[-1]
+            self.env.market_minutes_for_day(self.bcolz_minute_bar_days[-1])[-1]
 
         # this entire day is after both assets have stopped trading
         for idx, minute in enumerate(minutes):
@@ -357,7 +335,7 @@ class TestMinuteBarData(TestBarDataBase):
 
     def test_spot_price_is_unadjusted(self):
         # verify there is a split for SPLIT_ASSET
-        splits = self.adjustments_reader.get_adjustments_for_sid(
+        splits = self.adjustment_reader.get_adjustments_for_sid(
             "splits",
             self.SPLIT_ASSET.sid
         )
@@ -371,7 +349,8 @@ class TestMinuteBarData(TestBarDataBase):
 
         # ... but that's it's not applied when using spot value
         minutes = self.env.minutes_for_days_in_range(
-            start=self.days[0], end=self.days[1]
+            start=self.bcolz_minute_bar_days[0],
+            end=self.bcolz_minute_bar_days[1],
         )
 
         for idx, minute in enumerate(minutes):
@@ -384,8 +363,12 @@ class TestMinuteBarData(TestBarDataBase):
     def test_spot_price_is_adjusted_if_needed(self):
         # on cls.days[1], the first 9 minutes of ILLIQUID_SPLIT_ASSET are
         # missing. let's get them.
-        day0_minutes = self.env.market_minutes_for_day(self.days[0])
-        day1_minutes = self.env.market_minutes_for_day(self.days[1])
+        day0_minutes = self.env.market_minutes_for_day(
+            self.bcolz_minute_bar_days[0],
+        )
+        day1_minutes = self.env.market_minutes_for_day(
+            self.bcolz_minute_bar_days[1],
+        )
 
         for idx, minute in enumerate(day0_minutes[-10:-1]):
             bar_data = BarData(self.data_portal, lambda: minute, "minute")
@@ -415,7 +398,7 @@ class TestMinuteBarData(TestBarDataBase):
     def test_spot_price_at_midnight(self):
         # make sure that if we try to get a minute price at a non-market
         # minute, we use the previous market close's timestamp
-        day = self.days[1]
+        day = self.bcolz_minute_bar_days[1]
 
         eight_fortyfive_am_eastern = \
             pd.Timestamp("{0}-{1}-{2} 8:45".format(
@@ -457,7 +440,9 @@ class TestMinuteBarData(TestBarDataBase):
     def test_can_trade_at_midnight(self):
         # make sure that if we use `can_trade` at midnight, we don't pretend
         # we're in the previous day's last minute
-        the_day_after = self.env.next_trading_day(self.days[-1])
+        the_day_after = self.env.next_trading_day(
+            self.bcolz_minute_bar_days[-1],
+        )
 
         bar_data = BarData(self.data_portal, lambda: the_day_after, "minute")
 
@@ -468,7 +453,11 @@ class TestMinuteBarData(TestBarDataBase):
                 self.assertFalse(bar_data.can_trade(asset))
 
         # but make sure it works when the assets are alive
-        bar_data2 = BarData(self.data_portal, lambda: self.days[1], "minute")
+        bar_data2 = BarData(
+            self.data_portal,
+            lambda: self.bcolz_minute_bar_days[1],
+            "minute",
+        )
         for asset in [self.ASSET1, self.HILARIOUSLY_ILLIQUID_ASSET]:
             self.assertTrue(bar_data2.can_trade(asset))
 
@@ -476,14 +465,18 @@ class TestMinuteBarData(TestBarDataBase):
                 self.assertTrue(bar_data2.can_trade(asset))
 
     def test_is_stale_at_midnight(self):
-        bar_data = BarData(self.data_portal, lambda: self.days[1], "minute")
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_minute_bar_days[1],
+            "minute",
+        )
 
         with handle_non_market_minutes(bar_data):
             self.assertTrue(bar_data.is_stale(self.HILARIOUSLY_ILLIQUID_ASSET))
 
     def test_overnight_adjustments(self):
         # verify there is a split for SPLIT_ASSET
-        splits = self.adjustments_reader.get_adjustments_for_sid(
+        splits = self.adjustment_reader.get_adjustments_for_sid(
             "splits",
             self.SPLIT_ASSET.sid
         )
@@ -496,7 +489,7 @@ class TestMinuteBarData(TestBarDataBase):
         )
 
         # Current day is 1/06/16
-        day = self.days[1]
+        day = self.bcolz_daily_bar_days[1]
         eight_fortyfive_am_eastern = \
             pd.Timestamp("{0}-{1}-{2} 8:45".format(
                 day.year, day.month, day.day),
@@ -524,160 +517,135 @@ class TestMinuteBarData(TestBarDataBase):
                 self.assertEqual(value, expected[field])
 
 
-class TestDailyBarData(TestBarDataBase):
-    @classmethod
-    def setUpClass(cls):
-        cls.tempdir = TempDirectory()
+class TestDailyBarData(WithBarDataChecks,
+                       WithDataPortal,
+                       ZiplineTestCase):
+    START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
+    END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp(
+        '2016-01-08',
+        tz='UTC',
+    )
 
-        # asset1 has a daily data for each day (1/5, 1/6, 1/7)
-        # asset2 only has daily data for day2 (1/6)
+    sids = ASSET_FINDER_EQUITY_SIDS = set(range(1, 9))
 
-        cls.env = TradingEnvironment()
-
-        cls.days = cls.env.days_in_range(
-            start=pd.Timestamp("2016-01-05", tz='UTC'),
-            end=pd.Timestamp("2016-01-08", tz='UTC')
-        )
-
-        cls.env.write_data(equities_data={
-            sid: {
-                'start_date': cls.days[0],
-                'end_date': cls.days[-1],
-                'symbol': "ASSET{0}".format(sid)
-            } for sid in [1, 2, 3, 4, 5, 6, 7, 8]
-        })
-
-        cls.ASSET1 = cls.env.asset_finder.retrieve_asset(1)
-        cls.ASSET2 = cls.env.asset_finder.retrieve_asset(2)
-        cls.SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(3)
-        cls.ILLIQUID_SPLIT_ASSET = cls.env.asset_finder.retrieve_asset(4)
-        cls.MERGER_ASSET = cls.env.asset_finder.retrieve_asset(5)
-        cls.ILLIQUID_MERGER_ASSET = cls.env.asset_finder.retrieve_asset(6)
-        cls.DIVIDEND_ASSET = cls.env.asset_finder.retrieve_asset(7)
-        cls.ILLIQUID_DIVIDEND_ASSET = cls.env.asset_finder.retrieve_asset(8)
-        cls.ASSETS = [cls.ASSET1, cls.ASSET2]
-
-        cls.adjustments_reader = cls.create_adjustments_reader()
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_daily_reader=cls.build_daily_data(),
-            adjustment_reader=cls.adjustments_reader
-        )
+    SPLIT_ASSET_SID = 3
+    ILLIQUID_SPLIT_ASSET_SID = 4
+    MERGER_ASSET_SID = 5
+    ILLIQUID_MERGER_ASSET_SID = 6
+    DIVIDEND_ASSET_SID = 7
+    ILLIQUID_DIVIDEND_ASSET_SID = 8
 
     @classmethod
-    def tearDownClass(cls):
-        del cls.data_portal
-        del cls.adjustments_reader
-        cls.tempdir.cleanup()
-
-    @classmethod
-    def create_adjustments_reader(cls):
-        path = cls.tempdir.getpath("test_adjustments.db")
-
-        adj_writer = SQLiteAdjustmentWriter(
-            path,
-            cls.env.trading_days,
-            MockDailyBarReader()
-        )
-
-        splits = pd.DataFrame([
+    def make_splits_data(cls):
+        return pd.DataFrame.from_records([
             {
                 'effective_date': str_to_seconds("2016-01-06"),
                 'ratio': 0.5,
-                'sid': cls.SPLIT_ASSET.sid
+                'sid': cls.SPLIT_ASSET_SID,
             },
             {
                 'effective_date': str_to_seconds("2016-01-07"),
                 'ratio': 0.5,
-                'sid': cls.ILLIQUID_SPLIT_ASSET.sid
-            }
+                'sid': cls.ILLIQUID_SPLIT_ASSET_SID,
+            },
         ])
 
-        mergers = pd.DataFrame([
+    @classmethod
+    def make_mergers_data(cls):
+        return pd.DataFrame.from_records([
             {
-                'effective_date': str_to_seconds("2016-01-06"),
+                'effective_date': str_to_seconds('2016-01-06'),
                 'ratio': 0.5,
-                'sid': cls.MERGER_ASSET.sid
+                'sid': cls.MERGER_ASSET_SID,
             },
             {
-                'effective_date': str_to_seconds("2016-01-07"),
+                'effective_date': str_to_seconds('2016-01-07'),
                 'ratio': 0.6,
-                'sid': cls.ILLIQUID_MERGER_ASSET.sid
+                'sid': cls.ILLIQUID_MERGER_ASSET_SID,
             }
         ])
 
-        # we're using a fake daily reader in the adjustments writer which
-        # returns every daily price as 100, so dividend amounts of 2.0 and 4.0
-        # correspond to 2% and 4% dividends, respectively.
-        dividends = pd.DataFrame([
+    @classmethod
+    def make_dividends_data(cls):
+        return pd.DataFrame.from_records([
             {
                 # only care about ex date, the other dates don't matter here
                 'ex_date':
-                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
                 'record_date':
-                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
                 'declared_date':
-                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
                 'pay_date':
-                    pd.Timestamp("2016-01-06", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-06', tz='UTC').to_datetime64(),
                 'amount': 2.0,
-                'sid': cls.DIVIDEND_ASSET.sid
+                'sid': cls.DIVIDEND_ASSET_SID,
             },
             {
                 'ex_date':
-                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
                 'record_date':
-                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
                 'declared_date':
-                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
                 'pay_date':
-                    pd.Timestamp("2016-01-07", tz='UTC').to_datetime64(),
+                    pd.Timestamp('2016-01-07', tz='UTC').to_datetime64(),
                 'amount': 4.0,
-                'sid': cls.ILLIQUID_DIVIDEND_ASSET.sid
+                'sid': cls.ILLIQUID_DIVIDEND_ASSET_SID,
             }],
-            columns=['ex_date',
-                     'record_date',
-                     'declared_date',
-                     'pay_date',
-                     'amount',
-                     'sid']
+            columns=[
+                'ex_date',
+                'record_date',
+                'declared_date',
+                'pay_date',
+                'amount',
+                'sid',
+            ]
         )
 
-        adj_writer.write(splits, mergers, dividends)
-
-        return SQLiteAdjustmentReader(path)
+    @classmethod
+    def make_adjustment_writer_daily_bar_reader(cls):
+        return MockDailyBarReader()
 
     @classmethod
-    def build_daily_data(cls):
-        path = cls.tempdir.getpath("testdaily.bcolz")
+    def make_daily_bar_data(cls):
+        for sid in cls.sids:
+            yield sid, create_daily_df_for_asset(
+                cls.env,
+                cls.bcolz_daily_bar_days[0],
+                cls.bcolz_daily_bar_days[-1],
+                interval=2 - sid % 2
+            )
 
-        dfs = {
-            1: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
-            2: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-1], interval=2
-            ),
-            3: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
-            4: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-1], interval=2
-            ),
-            5: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
-            6: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-1], interval=2
-            ),
-            7: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
-            8: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-1], interval=2
-            ),
-        }
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestDailyBarData, cls).init_class_fixtures()
 
-        daily_writer = DailyBarWriterFromDataFrames(dfs)
-        daily_writer.write(path, cls.days, dfs)
-
-        return BcolzDailyBarReader(path)
+        cls.ASSET1 = cls.asset_finder.retrieve_asset(1)
+        cls.ASSET2 = cls.asset_finder.retrieve_asset(2)
+        cls.SPLIT_ASSET = cls.asset_finder.retrieve_asset(
+            cls.SPLIT_ASSET_SID,
+        )
+        cls.ILLIQUID_SPLIT_ASSET = cls.asset_finder.retrieve_asset(
+            cls.ILLIQUID_SPLIT_ASSET_SID,
+        )
+        cls.MERGER_ASSET = cls.asset_finder.retrieve_asset(
+            cls.MERGER_ASSET_SID,
+        )
+        cls.ILLIQUID_MERGER_ASSET = cls.asset_finder.retrieve_asset(
+            cls.ILLIQUID_MERGER_ASSET_SID,
+        )
+        cls.DIVIDEND_ASSET = cls.asset_finder.retrieve_asset(
+            cls.DIVIDEND_ASSET_SID,
+        )
+        cls.ILLIQUID_DIVIDEND_ASSET = cls.asset_finder.retrieve_asset(
+            cls.ILLIQUID_DIVIDEND_ASSET_SID,
+        )
+        cls.ASSETS = [cls.ASSET1, cls.ASSET2]
 
     def test_day_before_assets_trading(self):
-        # use the day before self.days[0]
-        day = self.env.previous_trading_day(self.days[0])
+        # use the day before self.bcolz_daily_bar_days[0]
+        day = self.env.previous_trading_day(self.bcolz_daily_bar_days[0])
 
         bar_data = BarData(self.data_portal, lambda: day, "daily")
         self.check_internal_consistency(bar_data)
@@ -700,8 +668,12 @@ class TestDailyBarData(TestBarDataBase):
                     self.assertTrue(asset_value is pd.NaT)
 
     def test_semi_active_day(self):
-        # on self.days[0], only asset1 has data
-        bar_data = BarData(self.data_portal, lambda: self.days[0], "daily")
+        # on self.bcolz_daily_bar_days[0], only asset1 has data
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_daily_bar_days[0],
+            "daily",
+        )
         self.check_internal_consistency(bar_data)
 
         self.assertTrue(bar_data.can_trade(self.ASSET1))
@@ -719,7 +691,7 @@ class TestDailyBarData(TestBarDataBase):
         self.assertEqual(2, bar_data.current(self.ASSET1, "close"))
         self.assertEqual(200, bar_data.current(self.ASSET1, "volume"))
         self.assertEqual(2, bar_data.current(self.ASSET1, "price"))
-        self.assertEqual(self.days[0],
+        self.assertEqual(self.bcolz_daily_bar_days[0],
                          bar_data.current(self.ASSET1, "last_traded"))
 
         for field in OHLCP:
@@ -732,10 +704,14 @@ class TestDailyBarData(TestBarDataBase):
         )
 
     def test_fully_active_day(self):
-        bar_data = BarData(self.data_portal, lambda: self.days[1], "daily")
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_daily_bar_days[1],
+            "daily",
+        )
         self.check_internal_consistency(bar_data)
 
-        # on self.days[1], both assets have data
+        # on self.bcolz_daily_bar_days[1], both assets have data
         for asset in self.ASSETS:
             self.assertTrue(bar_data.can_trade(asset))
             self.assertFalse(bar_data.is_stale(asset))
@@ -747,12 +723,16 @@ class TestDailyBarData(TestBarDataBase):
             self.assertEqual(300, bar_data.current(asset, "volume"))
             self.assertEqual(3, bar_data.current(asset, "price"))
             self.assertEqual(
-                self.days[1],
+                self.bcolz_daily_bar_days[1],
                 bar_data.current(asset, "last_traded")
             )
 
     def test_last_active_day(self):
-        bar_data = BarData(self.data_portal, lambda: self.days[-1], "daily")
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_daily_bar_days[-1],
+            "daily",
+        )
         self.check_internal_consistency(bar_data)
 
         for asset in self.ASSETS:
@@ -768,7 +748,7 @@ class TestDailyBarData(TestBarDataBase):
 
     def test_after_assets_dead(self):
         # both assets end on self.day[-1], so let's try the next day
-        next_day = self.env.next_trading_day(self.days[-1])
+        next_day = self.env.next_trading_day(self.bcolz_daily_bar_days[-1])
 
         bar_data = BarData(self.data_portal, lambda: next_day, "daily")
         self.check_internal_consistency(bar_data)
@@ -785,9 +765,9 @@ class TestDailyBarData(TestBarDataBase):
             last_traded_dt = bar_data.current(asset, "last_traded")
 
             if asset == self.ASSET1:
-                self.assertEqual(self.days[-2], last_traded_dt)
+                self.assertEqual(self.bcolz_daily_bar_days[-2], last_traded_dt)
             else:
-                self.assertEqual(self.days[1], last_traded_dt)
+                self.assertEqual(self.bcolz_daily_bar_days[1], last_traded_dt)
 
     @parameterized.expand([
         ("split", 2, 3, 3, 1.5),
@@ -808,7 +788,7 @@ class TestDailyBarData(TestBarDataBase):
             ("ILLIQUID_" + adjustment_type.upper() + "_ASSET")
         )
         # verify there is an adjustment for liquid_asset
-        adjustments = self.adjustments_reader.get_adjustments_for_sid(
+        adjustments = self.adjustment_reader.get_adjustments_for_sid(
             table_name,
             liquid_asset.sid
         )
@@ -821,12 +801,20 @@ class TestDailyBarData(TestBarDataBase):
         )
 
         # ... but that's it's not applied when using spot value
-        bar_data = BarData(self.data_portal, lambda: self.days[0], "daily")
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_daily_bar_days[0],
+            "daily",
+        )
         self.assertEqual(
             liquid_day_0_price,
             bar_data.current(liquid_asset, "price")
         )
-        bar_data = BarData(self.data_portal, lambda: self.days[1], "daily")
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_daily_bar_days[1],
+            "daily",
+        )
         self.assertEqual(
             liquid_day_1_price,
             bar_data.current(liquid_asset, "price")
@@ -834,12 +822,20 @@ class TestDailyBarData(TestBarDataBase):
 
         # ... except when we have to forward fill across a day boundary
         # ILLIQUID_ASSET has no data on days 0 and 2, and a split on day 2
-        bar_data = BarData(self.data_portal, lambda: self.days[1], "daily")
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_daily_bar_days[1],
+            "daily",
+        )
         self.assertEqual(
             illiquid_day_0_price, bar_data.current(illiquid_asset, "price")
         )
 
-        bar_data = BarData(self.data_portal, lambda: self.days[2], "daily")
+        bar_data = BarData(
+            self.data_portal,
+            lambda: self.bcolz_daily_bar_days[2],
+            "daily",
+        )
 
         # 3 (price from previous day) * 0.5 (split ratio)
         self.assertAlmostEqual(

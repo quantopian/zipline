@@ -5,9 +5,9 @@ from six import with_metaclass
 
 from zipline.utils.final import (
     FinalMeta,
-    final_meta_factory,
     final,
 )
+from zipline.utils.metautils import compose_types
 
 
 class FinalMetaTestCase(TestCase):
@@ -159,7 +159,7 @@ class FinalMetaTestCase(TestCase):
 class FinalABCMetaTestCase(FinalMetaTestCase):
     @classmethod
     def setUpClass(cls):
-        FinalABCMeta = final_meta_factory(ABCMeta)
+        FinalABCMeta = compose_types(FinalMeta, ABCMeta)
 
         class ABCWithFinal(with_metaclass(FinalABCMeta, object)):
             a = final('ABCWithFinal: a')

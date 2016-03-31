@@ -1,0 +1,64 @@
+Development
+-----------
+
+:Release: 1.0.0
+:Date: TBD
+
+.. warning::
+   This release is still under active development.  All changes listed are
+   subject to change at any time.
+
+
+Highlights
+~~~~~~~~~~
+
+None
+
+Enhancements
+~~~~~~~~~~~~
+
+* Made the data loading classes have more consistent interfaces. This includes
+  the equity bar writers, adjustment writer, and asset db writer. The new
+  interface is that the resource to be written to is passed at construction time
+  and the data to write is provided later to the `write` method as a
+  dataframe. This model allows us to pass these writer objects around as a
+  resource for other classes and functions to consume (:issue:`1109`).
+
+Experimental Features
+~~~~~~~~~~~~~~~~~~~~~
+
+.. warning::
+
+   Experimental features are subject to change.
+
+None
+
+Bug Fixes
+~~~~~~~~~
+
+None
+
+Performance
+~~~~~~~~~~~
+
+None
+
+Maintenance and Refactorings
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+None
+
+Build
+~~~~~
+
+None
+
+Documentation
+~~~~~~~~~~~~~
+
+None
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+None

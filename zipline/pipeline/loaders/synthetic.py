@@ -1,8 +1,6 @@
 """
 Synthetic data loaders for testing.
 """
-from bcolz import ctable
-
 from numpy import (
     arange,
     array,
@@ -20,7 +18,6 @@ from sqlite3 import connect as sqlite3_connect
 from .base import PipelineLoader
 from .frame import DataFrameLoader
 from zipline.data.us_equity_pricing import (
-    BcolzDailyBarWriter,
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
     US_EQUITY_PRICING_BCOLZ_COLUMNS,
@@ -195,9 +192,29 @@ class SeededRandomLoader(PrecomputedLoader):
         return self.state.randn(*shape) < 0
 
 
-class SyntheticDailyBarWriter(BcolzDailyBarWriter):
+OHLCV = ('open', 'high', 'low', 'close', 'volume')
+OHLC = ('open', 'high', 'low', 'close')
+PSEUDO_EPOCH = Timestamp('2000-01-01', tz='UTC')
+
+
+def asset_start(asset_info, asset):
+    ret = asset_info.loc[asset]['start_date']
+    if ret.tz is None:
+        ret = ret.tz_localize('UTC')
+    assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
+    return ret
+
+
+def asset_end(asset_info, asset):
+    ret = asset_info.loc[asset]['end_date']
+    if ret.tz is None:
+        ret = ret.tz_localize('UTC')
+    assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
+    return ret
+
+
+def make_daily_bar_data(asset_info, calendar):
     """
-    Bcolz writer that creates synthetic data based on asset lifetime metadata.
 
     For a given asset/date/column combination, we generate a corresponding raw
     value using the following formula for OHLCV columns:
@@ -221,50 +238,50 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
     ----------
     asset_info : DataFrame
         DataFrame with asset_id as index and 'start_date'/'end_date' columns.
-    calendar : DatetimeIndex
-        Calendar to use for constructing asset lifetimes.
+    calendar : pd.DatetimeIndex
+        The trading calendar to use.
+
+    Yields
+    ------
+    p : (int, pd.DataFrame)
+        A sid, data pair to be passed to BcolzDailyDailyBarWriter.write
     """
-    OHLCV = ('open', 'high', 'low', 'close', 'volume')
-    OHLC = ('open', 'high', 'low', 'close')
-    PSEUDO_EPOCH = Timestamp('2000-01-01', tz='UTC')
+    assert (
+        # Using .value here to avoid having to care about UTC-aware dates.
+        PSEUDO_EPOCH.value <
+        calendar.min().value <=
+        asset_info['start_date'].min().value
+    ), "calendar.min(): %s\nasset_info['start_date'].min(): %s" % (
+        calendar.min(),
+        asset_info['start_date'].min(),
+    )
 
-    def __init__(self, asset_info, calendar):
-        super(SyntheticDailyBarWriter, self).__init__()
-        assert (
-            # Using .value here to avoid having to care about UTC-aware dates.
-            self.PSEUDO_EPOCH.value <
-            calendar.min().value <=
-            asset_info['start_date'].min().value
-        )
-        assert (asset_info['start_date'] < asset_info['end_date']).all()
-        self._asset_info = asset_info
-        self._calendar = calendar
+    assert (asset_info['start_date'] < asset_info['end_date']).all()
 
-    def _raw_data_for_asset(self, asset_id):
+    def _raw_data_for_asset(asset_id):
         """
         Generate 'raw' data that encodes information about the asset.
 
-        See class docstring for a description of the data format.
+        See docstring for a description of the data format.
         """
         # Get the dates for which this asset existed according to our asset
         # info.
-        dates = self._calendar[
-            self._calendar.slice_indexer(
-                self.asset_start(asset_id), self.asset_end(asset_id)
-            )
-        ]
+        dates = calendar[calendar.slice_indexer(
+            asset_start(asset_info, asset_id),
+            asset_end(asset_info, asset_id),
+        )]
 
         data = full(
             (len(dates), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
-            asset_id * (100 * 1000),
+            asset_id * 100 * 1000,
             dtype=uint32,
         )
 
         # Add 10,000 * column-index to OHLCV columns
-        data[:, :5] += arange(5, dtype=uint32) * (10 * 1000)
+        data[:, :5] += arange(5, dtype=uint32) * 1000
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += (dates - self.PSEUDO_EPOCH).days[:, None].astype(uint32)
+        data[:, :5] += (dates - PSEUDO_EPOCH).days[:, None].astype(uint32)
 
         frame = DataFrame(
             data,
@@ -274,76 +291,53 @@ class SyntheticDailyBarWriter(BcolzDailyBarWriter):
 
         frame['day'] = nanos_to_seconds(dates.asi8)
         frame['id'] = asset_id
+        return frame
 
-        return ctable.fromdataframe(frame)
+    for asset in asset_info.index:
+        yield asset, _raw_data_for_asset(asset)
 
-    def asset_start(self, asset):
-        ret = self._asset_info.loc[asset]['start_date']
-        if ret.tz is None:
-            ret = ret.tz_localize('UTC')
-        assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
-        return ret
 
-    def asset_end(self, asset):
-        ret = self._asset_info.loc[asset]['end_date']
-        if ret.tz is None:
-            ret = ret.tz_localize('UTC')
-        assert ret.tzname() == 'UTC', "Unexpected non-UTC timestamp"
-        return ret
+def expected_daily_bar_value(asset_id, date, colname):
+    """
+    Check that the raw value for an asset/date/column triple is as
+    expected.
 
-    @classmethod
-    def expected_value(cls, asset_id, date, colname):
-        """
-        Check that the raw value for an asset/date/column triple is as
-        expected.
+    Used by tests to verify data written by a writer.
+    """
+    from_asset = asset_id * 100000
+    from_colname = OHLCV.index(colname) * 1000
+    from_date = (date - PSEUDO_EPOCH).days
+    return from_asset + from_colname + from_date
 
-        Used by tests to verify data written by a writer.
-        """
-        from_asset = asset_id * 100 * 1000
-        from_colname = cls.OHLCV.index(colname) * (10 * 1000)
-        from_date = (date - cls.PSEUDO_EPOCH).days
-        return from_asset + from_colname + from_date
 
-    def expected_values_2d(self, dates, assets, colname):
-        """
-        Return an 2D array containing cls.expected_value(asset_id, date,
-        colname) for each date/asset pair in the inputs.
+def expected_daily_bar_values_2d(dates, asset_info, colname):
+    """
+    Return an 2D array containing cls.expected_value(asset_id, date,
+    colname) for each date/asset pair in the inputs.
 
-        Values before/after an assets lifetime are filled with 0 for volume and
-        NaN for price columns.
-        """
-        if colname == 'volume':
-            dtype = uint32
-            missing = 0
-        else:
-            dtype = float64
-            missing = float('nan')
+    Values before/after an assets lifetime are filled with 0 for volume and
+    NaN for price columns.
+    """
+    if colname == 'volume':
+        dtype = uint32
+        missing = 0
+    else:
+        dtype = float64
+        missing = float('nan')
 
-        data = full((len(dates), len(assets)), missing, dtype=dtype)
-        for j, asset in enumerate(assets):
-            start, end = self.asset_start(asset), self.asset_end(asset)
-            for i, date in enumerate(dates):
-                # No value expected for dates outside the asset's start/end
-                # date.
-                if not (start <= date <= end):
-                    continue
-                data[i, j] = self.expected_value(asset, date, colname)
-        return data
+    assets = asset_info.index
 
-    # BEGIN SUPERCLASS INTERFACE
-    def gen_tables(self, assets):
-        for asset in assets:
-            yield asset, self._raw_data_for_asset(asset)
-
-    def to_uint32(self, array, colname):
-        if colname in {'open', 'high', 'low', 'close'}:
-            # Data is stored as 1000 * raw value.
-            assert array.max() < (UINT_32_MAX / 1000), "Test data overflow!"
-            return array * 1000
-        else:
-            assert colname in ('volume', 'day'), "Unknown column: %s" % colname
-            return array
-    # END SUPERCLASS INTERFACE
+    data = full((len(dates), len(assets)), missing, dtype=dtype)
+    for j, asset in enumerate(assets):
+        start = asset_start(asset_info, asset)
+        end = asset_end(asset_info, asset)
+        for i, date in enumerate(dates):
+            # No value expected for dates outside the asset's start/end
+            # date.
+            if not (start <= date <= end):
+                continue
+            data[i, j] = expected_daily_bar_value(asset, date, colname)
+    return data
 
 
 class NullAdjustmentReader(SQLiteAdjustmentReader):

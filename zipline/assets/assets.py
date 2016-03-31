@@ -101,6 +101,8 @@ class AssetFinder(object):
     PERSISTENT_TOKEN = "<AssetFinder>"
 
     def __init__(self, engine):
+        if isinstance(engine, str):
+            engine = sa.create_engine('sqlite:///' + engine)
 
         self.engine = engine
         metadata = sa.MetaData(bind=engine)
@@ -212,7 +214,7 @@ class AssetFinder(object):
 
         Returns
         -------
-        assets : list[int or None]
+        assets : list[Asset or None]
             A list of the same length as `sids` containing Assets (or Nones)
             corresponding to the requested sids.
 
@@ -684,12 +686,30 @@ class AssetFinder(object):
 
         return sids
 
-    @property
-    def sids(self):
-        return tuple(map(
-            itemgetter('sid'),
-            sa.select((self.asset_router.c.sid,)).execute().fetchall(),
-        ))
+    def _make_sids(tblattr):
+        def _(self):
+            return tuple(map(
+                itemgetter('sid'),
+                sa.select((
+                    getattr(self, tblattr).c.sid,
+                )).execute().fetchall(),
+            ))
+
+        return _
+
+    sids = property(
+        _make_sids('asset_router'),
+        doc='All the sids in the asset finder.',
+    )
+    equities_sids = property(
+        _make_sids('equities'),
+        doc='All of the sids for equities in the asset finder.',
+    )
+    futures_sids = property(
+        _make_sids('futures_contracts'),
+        doc='All of the sids for futures consracts in the asset finder.',
+    )
+    del _make_sids
 
     def _lookup_generic_scalar(self,
                                asset_convertible,
@@ -928,35 +948,35 @@ class NotAssetConvertible(ValueError):
 
 class AssetFinderCachedEquities(AssetFinder):
     """
-    An extension to AssetFinder that loads all equities from equities table
-    into memory and overrides the methods that lookup_symbol uses to look up
-    those equities.
+    An extension to AssetFinder that preloads all equities from equities table
+    into memory and does lookups from there.
+
+    To have any changes in the underlying assets db reflected by this asset
+    finder one must manually call the ``rehash_equities`` method.
     """
 
     def __init__(self, engine):
         super(AssetFinderCachedEquities, self).__init__(engine)
-        self.fuzzy_symbol_hashed_equities = {}
-        self.company_share_class_hashed_equities = {}
-        self.hashed_equities = sa.select(self.equities.c).execute().fetchall()
-        self._load_hashed_equities()
+        self._fuzzy_symbol_cache = {}
+        self._company_share_class_cache = {}
 
-    def _load_hashed_equities(self):
+        self.rehash_equities()
+
+    def rehash_equities(self):
+        """Reload the underlying assets db into the in memory cache.
         """
-        Populates two maps - fuzzy symbol to list of equities having that
-        fuzzy symbol and company symbol/share class symbol to list of
-        equities having that combination of company symbol/share class symbol.
-        """
-        for equity in self.hashed_equities:
+        for equity in sa.select(self.equities.c).execute().fetchall():
             company_symbol = equity['company_symbol']
             share_class_symbol = equity['share_class_symbol']
             fuzzy_symbol = equity['fuzzy_symbol']
             asset = self._convert_row_to_equity(equity)
-            self.company_share_class_hashed_equities.setdefault(
+            self._company_share_class_cache.setdefault(
                 (company_symbol, share_class_symbol),
                 []
             ).append(asset)
-            self.fuzzy_symbol_hashed_equities.setdefault(
-                fuzzy_symbol, []
+            self._fuzzy_symbol_cache.setdefault(
+                fuzzy_symbol,
+                [],
             ).append(asset)
 
     def _convert_row_to_equity(self, row):
@@ -966,7 +986,7 @@ class AssetFinderCachedEquities(AssetFinder):
         return Equity(**_convert_asset_timestamp_fields(dict(row)))
 
     def _get_fuzzy_candidates(self, fuzzy_symbol):
-        return self.fuzzy_symbol_hashed_equities.get(fuzzy_symbol, ())
+        return self._fuzzy_symbol_cache.get(fuzzy_symbol, ())
 
     def _get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
         return only_active_assets(
@@ -975,7 +995,7 @@ class AssetFinderCachedEquities(AssetFinder):
         )
 
     def _get_split_candidates(self, company_symbol, share_class_symbol):
-        return self.company_share_class_hashed_equities.get(
+        return self._company_share_class_cache.get(
             (company_symbol, share_class_symbol),
             (),
         )
@@ -998,7 +1018,8 @@ class AssetFinderCachedEquities(AssetFinder):
                                         share_class_symbol,
                                         ad_value):
         equities = self._get_split_candidates(
-            company_symbol, share_class_symbol
+            company_symbol,
+            share_class_symbol
         )
         partial_candidates = []
         for equity in equities:

@@ -1,53 +1,53 @@
+from abc import ABCMeta, abstractmethod, abstractproperty
 from contextlib import contextmanager
 from functools import wraps
+import gzip
 from inspect import getargspec
 from itertools import (
     combinations,
     count,
     product,
 )
-from nose.tools import nottest
 import operator
 import os
+from os.path import abspath, dirname, join, realpath
 import shutil
-from string import ascii_uppercase
 import tempfile
-from bcolz import ctable
 
-from logbook import FileHandler, TestHandler
+from logbook import TestHandler
 from mock import patch
+from nose.tools import nottest
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
-from pandas.tseries.offsets import MonthBegin
-from six import iteritems, itervalues
+from six import itervalues, iteritems, with_metaclass
 from six.moves import filter, map
 from sqlalchemy import create_engine
+from testfixtures import TempDirectory
 from toolz import concat
 
-from zipline.assets import AssetFinder
-from zipline.assets.asset_writer import AssetDBWriterFromDataFrame
-from zipline.assets.futures import CME_CODE_TO_MONTH
+from zipline.assets import AssetFinder, AssetDBWriter
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
 from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
     US_EQUITIES_MINUTES_PER_DAY
 )
-from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, OHLC, \
-    UINT32_MAX, BcolzDailyBarWriter, BcolzDailyBarReader
+from zipline.data.us_equity_pricing import (
+    BcolzDailyBarReader,
+    BcolzDailyBarWriter,
+    SQLiteAdjustmentWriter,
+)
+from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
-from zipline.finance.trading import TradingEnvironment
 from zipline.utils import security_list
 from zipline.utils.input_validation import expect_dimensions
+from zipline.utils.sentinel import sentinel
 from zipline.utils.tradingcalendar import trading_days
 import numpy as np
-from numpy import (
-    float64,
-    uint32,
-    int64,
-)
+from numpy import float64
 
 
 EPOCH = pd.Timestamp(0, tz='UTC')
@@ -73,16 +73,6 @@ def str_to_seconds(s):
     1388534400
     """
     return int((pd.Timestamp(s, tz='UTC') - EPOCH).total_seconds())
-
-
-def setup_logger(test, path='test.log'):
-    test.log_handler = FileHandler(path)
-    test.log_handler.push_application()
-
-
-def teardown_logger(test):
-    test.log_handler.pop_application()
-    test.log_handler.close()
 
 
 def drain_zipline(test, zipline):
@@ -311,132 +301,6 @@ def chrange(start, stop):
     return list(map(chr, range(ord(start), ord(stop) + 1)))
 
 
-def make_rotating_equity_info(num_assets,
-                              first_start,
-                              frequency,
-                              periods_between_starts,
-                              asset_lifetime):
-    """
-    Create a DataFrame representing lifetimes of assets that are constantly
-    rotating in and out of existence.
-
-    Parameters
-    ----------
-    num_assets : int
-        How many assets to create.
-    first_start : pd.Timestamp
-        The start date for the first asset.
-    frequency : str or pd.tseries.offsets.Offset (e.g. trading_day)
-        Frequency used to interpret next two arguments.
-    periods_between_starts : int
-        Create a new asset every `frequency` * `periods_between_new`
-    asset_lifetime : int
-        Each asset exists for `frequency` * `asset_lifetime` days.
-
-    Returns
-    -------
-    info : pd.DataFrame
-        DataFrame representing newly-created assets.
-    """
-    return pd.DataFrame(
-        {
-            'symbol': [chr(ord('A') + i) for i in range(num_assets)],
-            # Start a new asset every `periods_between_starts` days.
-            'start_date': pd.date_range(
-                first_start,
-                freq=(periods_between_starts * frequency),
-                periods=num_assets,
-            ),
-            # Each asset lasts for `asset_lifetime` days.
-            'end_date': pd.date_range(
-                first_start + (asset_lifetime * frequency),
-                freq=(periods_between_starts * frequency),
-                periods=num_assets,
-            ),
-            'exchange': 'TEST',
-        },
-        index=range(num_assets),
-    )
-
-
-def make_simple_equity_info(sids, start_date, end_date, symbols=None):
-    """
-    Create a DataFrame representing assets that exist for the full duration
-    between `start_date` and `end_date`.
-
-    Parameters
-    ----------
-    sids : array-like of int
-    start_date : pd.Timestamp
-    end_date : pd.Timestamp
-    symbols : list, optional
-        Symbols to use for the assets.
-        If not provided, symbols are generated from the sequence 'A', 'B', ...
-
-    Returns
-    -------
-    info : pd.DataFrame
-        DataFrame representing newly-created assets.
-    """
-    num_assets = len(sids)
-    if symbols is None:
-        symbols = list(ascii_uppercase[:num_assets])
-    return pd.DataFrame(
-        {
-            'symbol': symbols,
-            'start_date': [start_date] * num_assets,
-            'end_date': [end_date] * num_assets,
-            'exchange': 'TEST',
-        },
-        index=sids,
-    )
-
-
-def make_jagged_equity_info(num_assets,
-                            start_date,
-                            first_end,
-                            frequency,
-                            periods_between_ends,
-                            auto_close_delta):
-    """
-    Create a dictionary representing assets that all begin at the same start
-    date, but have cascading end dates.
-    Parameters
-    ----------
-    num_assets : int
-        How many assets to create.
-    start_date : pd.Timestamp
-        The start date for all the assets.
-    first_end : pd.Timestamp
-        The date at which the first equity will end.
-    frequency : str or pd.tseries.offsets.Offset (e.g. trading_day)
-        Frequency used to interpret the next argument.
-    periods_between_ends : int
-        Starting after the first end date, end each asset every
-        `frequency` * `periods_between_ends`.
-    auto_close_delta : int
-        The constant delta that cascades the auto_close_date
-    Returns
-    -------
-    info : pd.DataFrame
-        DataFrame representing newly-created assets.
-    """
-    equity_info = {}
-
-    for sid in range(num_assets):
-        equity_info[sid] = {
-            'symbol': chr(ord('A') + sid),
-            'start_date': start_date,
-            'end_date': first_end + sid * periods_between_ends * frequency,
-            'exchange': 'TEST',
-            'auto_close_date':
-                auto_close_delta + first_end + sid * periods_between_ends *
-                frequency
-        }
-
-    return equity_info
-
-
 def make_trade_data_for_asset_info(dates,
                                    asset_info,
                                    price_start,
@@ -448,14 +312,12 @@ def make_trade_data_for_asset_info(dates,
                                    frequency,
                                    writer=None):
     """
-    Convert the asset info dict to a dataframe of trade data for each sid, and
-    write to the writer if provided. Write NaNs for locations where assets did
-    not exist. Return a dict of the dataframes, keyed by sid.
-    locations where assets did not exist.
+    Convert the asset info dataframe into a dataframe of trade data for each
+    sid, and write to the writer if provided. Write NaNs for locations where
+    assets did not exist. Return a dict of the dataframes, keyed by sid.
     """
     trade_data = {}
-    sids = asset_info.keys()
-    date_field = 'day' if frequency == 'daily' else 'dt'
+    sids = asset_info.index
 
     price_sid_deltas = np.arange(len(sids), dtype=float64) * price_step_by_sid
     price_date_deltas = (np.arange(len(dates), dtype=float64) *
@@ -467,31 +329,24 @@ def make_trade_data_for_asset_info(dates,
     volumes = (volume_sid_deltas + volume_date_deltas[:, None]) + volume_start
 
     for j, sid in enumerate(sids):
-        start_date = asset_info[sid]['start_date']
-        end_date = asset_info[sid]['end_date']
+        start_date, end_date = asset_info.loc[sid, ['start_date', 'end_date']]
         # Normalize here so the we still generate non-NaN values on the minutes
         # for an asset's last trading day.
         for i, date in enumerate(dates.normalize()):
             if not (start_date <= date <= end_date):
-                prices[i, j] = np.nan
+                prices[i, j] = 0
                 volumes[i, j] = 0
 
-        if frequency == 'daily':
-            dates_arr = [date.value for date in dates]
-        else:
-            dates_arr = dates
-
-        df = pd.DataFrame({
-            "open": prices[:, j],
-            "high": prices[:, j],
-            "low": prices[:, j],
-            "close": prices[:, j],
-            "volume": volumes[:, j],
-            date_field: dates_arr
-        })
-
-        if frequency == 'minute':
-            df = df.set_index(date_field)
+        df = pd.DataFrame(
+            {
+                "open": prices[:, j],
+                "high": prices[:, j],
+                "low": prices[:, j],
+                "close": prices[:, j],
+                "volume": volumes[:, j],
+            },
+            index=dates,
+        )
 
         if writer:
             writer.write(sid, df)
@@ -499,148 +354,6 @@ def make_trade_data_for_asset_info(dates,
         trade_data[sid] = df
 
     return trade_data
-
-
-def make_future_info(first_sid,
-                     root_symbols,
-                     years,
-                     notice_date_func,
-                     expiration_date_func,
-                     start_date_func,
-                     month_codes=None):
-    """
-    Create a DataFrame representing futures for `root_symbols` during `year`.
-
-    Generates a contract per triple of (symbol, year, month) supplied to
-    `root_symbols`, `years`, and `month_codes`.
-
-    Parameters
-    ----------
-    first_sid : int
-        The first sid to use for assigning sids to the created contracts.
-    root_symbols : list[str]
-        A list of root symbols for which to create futures.
-    years : list[int or str]
-        Years (e.g. 2014), for which to produce individual contracts.
-    notice_date_func : (Timestamp) -> Timestamp
-        Function to generate notice dates from first of the month associated
-        with asset month code.  Return NaT to simulate futures with no notice
-        date.
-    expiration_date_func : (Timestamp) -> Timestamp
-        Function to generate expiration dates from first of the month
-        associated with asset month code.
-    start_date_func : (Timestamp) -> Timestamp, optional
-        Function to generate start dates from first of the month associated
-        with each asset month code.  Defaults to a start_date one year prior
-        to the month_code date.
-    month_codes : dict[str -> [1..12]], optional
-        Dictionary of month codes for which to create contracts.  Entries
-        should be strings mapped to values from 1 (January) to 12 (December).
-        Default is zipline.futures.CME_CODE_TO_MONTH
-
-    Returns
-    -------
-    futures_info : pd.DataFrame
-        DataFrame of futures data suitable for passing to an
-        AssetDBWriterFromDataFrame.
-    """
-    if month_codes is None:
-        month_codes = CME_CODE_TO_MONTH
-
-    year_strs = list(map(str, years))
-    years = [pd.Timestamp(s, tz='UTC') for s in year_strs]
-
-    # Pairs of string/date like ('K06', 2006-05-01)
-    contract_suffix_to_beginning_of_month = tuple(
-        (month_code + year_str[-2:], year + MonthBegin(month_num))
-        for ((year, year_str), (month_code, month_num))
-        in product(
-            zip(years, year_strs),
-            iteritems(month_codes),
-        )
-    )
-
-    contracts = []
-    parts = product(root_symbols, contract_suffix_to_beginning_of_month)
-    for sid, (root_sym, (suffix, month_begin)) in enumerate(parts, first_sid):
-        contracts.append({
-            'sid': sid,
-            'root_symbol': root_sym,
-            'symbol': root_sym + suffix,
-            'start_date': start_date_func(month_begin),
-            'notice_date': notice_date_func(month_begin),
-            'expiration_date': notice_date_func(month_begin),
-            'multiplier': 500,
-        })
-    return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
-
-
-def make_commodity_future_info(first_sid,
-                               root_symbols,
-                               years,
-                               month_codes=None):
-    """
-    Make futures testing data that simulates the notice/expiration date
-    behavior of physical commodities like oil.
-
-    Parameters
-    ----------
-    first_sid : int
-    root_symbols : list[str]
-    years : list[int]
-    month_codes : dict[str -> int]
-
-    Expiration dates are on the 20th of the month prior to the month code.
-    Notice dates are are on the 20th two months prior to the month code.
-    Start dates are one year before the contract month.
-
-    See Also
-    --------
-    make_future_info
-    """
-    nineteen_days = pd.Timedelta(days=19)
-    one_year = pd.Timedelta(days=365)
-    return make_future_info(
-        first_sid=first_sid,
-        root_symbols=root_symbols,
-        years=years,
-        notice_date_func=lambda dt: dt - MonthBegin(2) + nineteen_days,
-        expiration_date_func=lambda dt: dt - MonthBegin(1) + nineteen_days,
-        start_date_func=lambda dt: dt - one_year,
-        month_codes=month_codes,
-    )
-
-
-def make_simple_asset_info(assets, start_date, end_date, symbols=None):
-    """
-    Create a DataFrame representing assets that exist for the full duration
-    between `start_date` and `end_date`.
-    Parameters
-    ----------
-    assets : array-like
-    start_date : pd.Timestamp
-    end_date : pd.Timestamp
-    symbols : list, optional
-        Symbols to use for the assets.
-        If not provided, symbols are generated from the sequence 'A', 'B', ...
-    Returns
-    -------
-    info : pd.DataFrame
-        DataFrame representing newly-created assets.
-    """
-    num_assets = len(assets)
-    if symbols is None:
-        symbols = list(ascii_uppercase[:num_assets])
-    return pd.DataFrame(
-        {
-            'sid': assets,
-            'symbol': symbols,
-            'asset_type': ['equity'] * num_assets,
-            'start_date': [start_date] * num_assets,
-            'end_date': [end_date] * num_assets,
-            'exchange': 'TEST',
-        }
-    )
 
 
 def check_allclose(actual,
@@ -699,87 +412,53 @@ class ExplodingObject(object):
         raise UnexpectedAttributeAccess(name)
 
 
-class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
-    _csv_dtypes = {
-        'open': float64,
-        'high': float64,
-        'low': float64,
-        'close': float64,
-        'volume': float64,
-    }
-
-    def __init__(self, asset_map):
-        self._asset_map = asset_map
-
-    def gen_tables(self, assets):
-        for asset in assets:
-            yield asset, ctable.fromdataframe(assets[asset])
-
-    def to_uint32(self, array, colname):
-        arrmax = array.max()
-        if colname in OHLC:
-            self.check_uint_safe(arrmax * 1000, colname)
-            return (array * 1000).astype(uint32)
-        elif colname == 'volume':
-            self.check_uint_safe(arrmax, colname)
-            return array.astype(uint32)
-        elif colname == 'day':
-            nanos_per_second = (1000 * 1000 * 1000)
-            self.check_uint_safe(arrmax.view(int64) / nanos_per_second,
-                                 colname)
-            return (array.view(int64) / nanos_per_second).astype(uint32)
-
-    @staticmethod
-    def check_uint_safe(value, colname):
-        if value >= UINT32_MAX:
-            raise ValueError(
-                "Value %s from column '%s' is too large" % (value, colname)
-            )
-
-
 def write_minute_data(env, tempdir, minutes, sids):
-    assets = {}
-
-    length = len(minutes)
-
-    for sid_idx, sid in enumerate(sids):
-        assets[sid] = pd.DataFrame({
-            "open": (np.array(range(10, 10 + length)) + sid_idx),
-            "high": (np.array(range(15, 15 + length)) + sid_idx),
-            "low": (np.array(range(8, 8 + length)) + sid_idx),
-            "close": (np.array(range(10, 10 + length)) + sid_idx),
-            "volume": np.array(range(100, 100 + length)) + sid_idx,
-            "dt": minutes
-        }).set_index("dt")
-
     write_bcolz_minute_data(
         env,
         env.days_in_range(minutes[0], minutes[-1]),
         tempdir.path,
-        assets
+        create_minute_bar_data(minutes, sids),
     )
-
     return tempdir.path
+
+
+def create_minute_bar_data(minutes, sids):
+    length = len(minutes)
+    return {
+        sid: pd.DataFrame(
+            {
+                'open': np.arange(length) + 10 + sid_idx,
+                'high': np.arange(length) + 15 + sid_idx,
+                'low': np.arange(length) + 8 + sid_idx,
+                'close': np.arange(length) + 10 + sid_idx,
+                'volume': np.arange(length) + 100 + sid_idx,
+            },
+            index=minutes,
+        )
+        for sid_idx, sid in enumerate(sids)
+    }
+
+
+def create_daily_bar_data(trading_days, sids):
+    length = len(trading_days)
+    for sid_idx, sid in enumerate(sids):
+        yield sid, pd.DataFrame(
+            {
+                "open": (np.array(range(10, 10 + length)) + sid_idx),
+                "high": (np.array(range(15, 15 + length)) + sid_idx),
+                "low": (np.array(range(8, 8 + length)) + sid_idx),
+                "close": (np.array(range(10, 10 + length)) + sid_idx),
+                "volume": np.array(range(100, 100 + length)) + sid_idx,
+                "day": [day.value for day in trading_days]
+            },
+            index=trading_days,
+        )
 
 
 def write_daily_data(tempdir, sim_params, sids):
     path = os.path.join(tempdir.path, "testdaily.bcolz")
-    assets = {}
-    length = sim_params.days_in_period
-    for sid_idx, sid in enumerate(sids):
-        assets[sid] = pd.DataFrame({
-            "open": (np.array(range(10, 10 + length)) + sid_idx),
-            "high": (np.array(range(15, 15 + length)) + sid_idx),
-            "low": (np.array(range(8, 8 + length)) + sid_idx),
-            "close": (np.array(range(10, 10 + length)) + sid_idx),
-            "volume": np.array(range(100, 100 + length)) + sid_idx,
-            "day": [day.value for day in sim_params.trading_days]
-        }, index=sim_params.trading_days)
-
-    DailyBarWriterFromDataFrames(assets).write(
-        path,
-        sim_params.trading_days,
-        assets
+    BcolzDailyBarWriter(path, sim_params.trading_days).write(
+        create_daily_bar_data(sim_params.trading_days, sids),
     )
 
     return path
@@ -829,22 +508,27 @@ def write_bcolz_minute_data(env, days, path, df_dict):
         writer.write(sid, df)
 
 
-def write_minute_data_for_asset(env, writer, start_dt, end_dt, sid,
-                                interval=1, start_val=1,
-                                minute_blacklist=None):
+def create_minute_df_for_asset(env,
+                               start_dt,
+                               end_dt,
+                               interval=1,
+                               start_val=1,
+                               minute_blacklist=None):
 
     asset_minutes = env.minutes_for_days_in_range(start_dt, end_dt)
     minutes_count = len(asset_minutes)
     minutes_arr = np.array(range(start_val, start_val + minutes_count))
 
-    df = pd.DataFrame({
-        "open": minutes_arr + 1,
-        "high": minutes_arr + 2,
-        "low": minutes_arr - 1,
-        "close": minutes_arr,
-        "volume": 100 * minutes_arr,
-        "dt": asset_minutes
-    }).set_index("dt")
+    df = pd.DataFrame(
+        {
+            "open": minutes_arr + 1,
+            "high": minutes_arr + 2,
+            "low": minutes_arr - 1,
+            "close": minutes_arr,
+            "volume": 100 * minutes_arr,
+        },
+        index=asset_minutes,
+    )
 
     if interval > 1:
         counter = 0
@@ -856,22 +540,24 @@ def write_minute_data_for_asset(env, writer, start_dt, end_dt, sid,
         for minute in minute_blacklist:
             df.loc[minute] = 0
 
-    writer.write(sid, df)
+    return df
 
 
 def create_daily_df_for_asset(env, start_day, end_day, interval=1):
     days = env.days_in_range(start_day, end_day)
     days_count = len(days)
-    days_arr = np.array(range(2, days_count + 2))
+    days_arr = np.arange(days_count) + 2
 
-    df = pd.DataFrame({
-        "open": days_arr + 1,
-        "high": days_arr + 2,
-        "low": days_arr - 1,
-        "close": days_arr,
-        "volume": days_arr * 100,
-        "day": [day.value for day in days]
-    })
+    df = pd.DataFrame(
+        {
+            "open": days_arr + 1,
+            "high": days_arr + 2,
+            "low": days_arr - 1,
+            "close": days_arr,
+            "volume": days_arr * 100,
+        },
+        index=days,
+    )
 
     if interval > 1:
         # only keep every 'interval' rows
@@ -886,37 +572,38 @@ def create_daily_df_for_asset(env, start_day, end_day, interval=1):
     return df
 
 
+def trades_by_sid_to_dfs(trades_by_sid, index):
+    for sidint, trades in iteritems(trades_by_sid):
+        opens = []
+        highs = []
+        lows = []
+        closes = []
+        volumes = []
+        for trade in trades:
+            opens.append(trade["open_price"])
+            highs.append(trade["high"])
+            lows.append(trade["low"])
+            closes.append(trade["close_price"])
+            volumes.append(trade["volume"])
+
+        yield sidint, pd.DataFrame(
+            {
+                "open": opens,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "volume": volumes,
+            },
+            index=index,
+        )
+
+
 def create_data_portal_from_trade_history(env, tempdir, sim_params,
                                           trades_by_sid):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
-        assets = {}
-        for sidint, trades in iteritems(trades_by_sid):
-            opens = []
-            highs = []
-            lows = []
-            closes = []
-            volumes = []
-            for trade in trades:
-                opens.append(trade["open_price"])
-                highs.append(trade["high"])
-                lows.append(trade["low"])
-                closes.append(trade["close_price"])
-                volumes.append(trade["volume"])
-
-            assets[sidint] = pd.DataFrame({
-                "open": np.array(opens),
-                "high": np.array(highs),
-                "low": np.array(lows),
-                "close": np.array(closes),
-                "volume": np.array(volumes),
-                "day": [day.value for day in sim_params.trading_days]
-            }, index=sim_params.trading_days)
-
-        DailyBarWriterFromDataFrames(assets).write(
-            path,
-            sim_params.trading_days,
-            assets
+        BcolzDailyBarWriter(path, sim_params.trading_days).write(
+            trades_by_sid_to_dfs(trades_by_sid, sim_params.trading_days),
         )
 
         equity_daily_reader = BcolzDailyBarReader(path)
@@ -1039,30 +726,50 @@ class tmp_assets_db(object):
 
     Parameters
     ----------
-    data : pd.DataFrame, optional
-        The data to feed to the writer. By default this maps:
+    **frames
+        The frames to pass to the AssetDBWriter.
+        By default this maps equities:
         ('A', 'B', 'C') -> map(ord, 'ABC')
+
+    See Also
+    --------
+    empty_assets_db
+    tmp_asset_finder
     """
-    def __init__(self, **frames):
+    _default_equities = sentinel('_default_equities')
+
+    def __init__(self, equities=_default_equities, **frames):
         self._eng = None
-        if not frames:
-            frames = {
-                'equities': make_simple_equity_info(
-                    list(map(ord, 'ABC')),
-                    pd.Timestamp(0),
-                    pd.Timestamp('2015'),
-                )
-            }
-        self._data = AssetDBWriterFromDataFrame(**frames)
+        if equities is self._default_equities:
+            equities = make_simple_equity_info(
+                list(map(ord, 'ABC')),
+                pd.Timestamp(0),
+                pd.Timestamp('2015'),
+            )
+
+        frames['equities'] = equities
+        self._frames = frames
+        self._eng = None  # set in enter and exit
 
     def __enter__(self):
         self._eng = eng = create_engine('sqlite://')
-        self._data.write_all(eng)
+        AssetDBWriter(eng).write(**self._frames)
         return eng
 
     def __exit__(self, *excinfo):
         assert self._eng is not None, '_eng was not set in __enter__'
         self._eng.dispose()
+        self._eng = None
+
+
+def empty_assets_db():
+    """Context manager for creating an empty assets db.
+
+    See Also
+    --------
+    tmp_assets_db
+    """
+    return tmp_assets_db(equities=None)
 
 
 class tmp_asset_finder(tmp_assets_db):
@@ -1070,8 +777,14 @@ class tmp_asset_finder(tmp_assets_db):
 
     Parameters
     ----------
-    data : dict, optional
-        The data to feed to the writer
+    finder_cls : type, optional
+        The type of asset finder to create from the assets db.
+    **frames
+        Forwarded to ``tmp_assets_db``.
+
+    See Also
+    --------
+    tmp_assets_db
     """
     def __init__(self, finder_cls=AssetFinder, **frames):
         self._finder_cls = finder_cls
@@ -1079,6 +792,43 @@ class tmp_asset_finder(tmp_assets_db):
 
     def __enter__(self):
         return self._finder_cls(super(tmp_asset_finder, self).__enter__())
+
+
+def empty_asset_finder():
+    """Context manager for creating an empty asset finder.
+
+    See Also
+    --------
+    empty_assets_db
+    tmp_assets_db
+    tmp_asset_finder
+    """
+    return tmp_asset_finder(equities=None)
+
+
+class tmp_trading_env(tmp_asset_finder):
+    """Create a temporary trading environment.
+
+    Parameters
+    ----------
+    finder_cls : type, optional
+        The type of asset finder to create from the assets db.
+    **frames
+        Forwarded to ``tmp_assets_db``.
+
+    See Also
+    --------
+    empty_trading_env
+    tmp_asset_finder
+    """
+    def __enter__(self):
+        return TradingEnvironment(
+            asset_db_path=super(tmp_trading_env, self).__enter__().engine,
+        )
+
+
+def empty_trading_env():
+    return tmp_trading_env(equities=None)
 
 
 class SubTestFailures(AssertionError):
@@ -1178,48 +928,31 @@ class MockDailyBarReader(object):
         return 100
 
 
-def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
-                            mergers=None):
-    path = tempdir.getpath("test_adjustments.db")
-
-    # create a split for the last day
-    writer = SQLiteAdjustmentWriter(path, days, MockDailyBarReader())
+def create_mock_adjustment_data(splits=None, dividends=None, mergers=None):
     if splits is None:
         splits = create_empty_splits_mergers_frame()
-    else:
+    elif not isinstance(splits, pd.DataFrame):
         splits = pd.DataFrame(splits)
 
     if mergers is None:
         mergers = create_empty_splits_mergers_frame()
-    else:
+    elif not isinstance(mergers, pd.DataFrame):
         mergers = pd.DataFrame(mergers)
 
     if dividends is None:
-        data = {
-            # Hackery to make the dtypes correct on an empty frame.
-            'ex_date': np.array([], dtype='datetime64[ns]'),
-            'pay_date': np.array([], dtype='datetime64[ns]'),
-            'record_date': np.array([], dtype='datetime64[ns]'),
-            'declared_date': np.array([], dtype='datetime64[ns]'),
-            'amount': np.array([], dtype=float64),
-            'sid': np.array([], dtype=int64),
-        }
-        dividends = pd.DataFrame(
-            data,
-            index=pd.DatetimeIndex([], tz='UTC'),
-            columns=['ex_date',
-                     'pay_date',
-                     'record_date',
-                     'declared_date',
-                     'amount',
-                     'sid']
-        )
-    else:
-        if not isinstance(dividends, pd.DataFrame):
-            dividends = pd.DataFrame(dividends)
+        dividends = create_empty_dividends_frame()
+    elif not isinstance(dividends, pd.DataFrame):
+        dividends = pd.DataFrame(dividends)
 
-    writer.write(splits, mergers, dividends)
+    return splits, mergers, dividends
 
+
+def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
+                            mergers=None):
+    path = tempdir.getpath("test_adjustments.db")
+    SQLiteAdjustmentWriter(path, MockDailyBarReader(), days).write(
+        *create_mock_adjustment_data(splits, dividends, mergers)
+    )
     return path
 
 
@@ -1359,16 +1092,34 @@ def parameter_space(**params):
     return decorator
 
 
+def create_empty_dividends_frame():
+    return pd.DataFrame(
+        np.array(
+            [],
+            dtype=[
+                ('ex_date', 'datetime64[ns]'),
+                ('pay_date', 'datetime64[ns]'),
+                ('record_date', 'datetime64[ns]'),
+                ('declared_date', 'datetime64[ns]'),
+                ('amount', 'float64'),
+                ('sid', 'int32'),
+            ],
+        ),
+        index=pd.DatetimeIndex([], tz='UTC'),
+    )
+
+
 def create_empty_splits_mergers_frame():
     return pd.DataFrame(
-        {
-            # Hackery to make the dtypes correct on an empty frame.
-            'effective_date': np.array([], dtype=int64),
-            'ratio': np.array([], dtype=float64),
-            'sid': np.array([], dtype=int64),
-        },
+        np.array(
+            [],
+            dtype=[
+                ('effective_date', 'int64'),
+                ('ratio', 'float64'),
+                ('sid', 'int64'),
+            ],
+        ),
         index=pd.DatetimeIndex([]),
-        columns=['effective_date', 'ratio', 'sid'],
     )
 
 
@@ -1409,3 +1160,156 @@ def make_test_handler(testcase, *args, **kwargs):
     handler = TestHandler(*args, **kwargs)
     testcase.addCleanup(handler.close)
     return handler
+
+
+def write_compressed(path, content):
+    """
+    Write a compressed (gzipped) file to `path`.
+    """
+    with gzip.open(path, 'wb') as f:
+        f.write(content)
+
+
+def read_compressed(path):
+    """
+    Write a compressed (gzipped) file from `path`.
+    """
+    with gzip.open(path, 'rb') as f:
+        return f.read()
+
+
+zipline_git_root = abspath(
+    join(realpath(dirname(__file__)), '..', '..'),
+)
+
+
+def test_resource_path(*path_parts):
+    return os.path.join(zipline_git_root, 'tests', 'resources', *path_parts)
+
+
+@contextmanager
+def patch_os_environment(remove=None, **values):
+    """
+    Context manager for patching the operating system environment.
+    """
+    old_values = {}
+    remove = remove or []
+    for key in remove:
+        old_values[key] = os.environ.pop(key)
+    for key, value in values.iteritems():
+        old_values[key] = os.getenv(key)
+        os.environ[key] = value
+    try:
+        yield
+    finally:
+        for old_key, old_value in old_values.iteritems():
+            if old_value is None:
+                # Value was not present when we entered, so del it out if it's
+                # still present.
+                try:
+                    del os.environ[key]
+                except KeyError:
+                    pass
+            else:
+                # Restore the old value.
+                os.environ[old_key] = old_value
+
+
+class tmp_dir(TempDirectory, object):
+    """New style class that wrapper for TempDirectory in python 2.
+    """
+    pass
+
+
+class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
+    """A helper for tmp_bcolz_minute_bar_reader and tmp_bcolz_daily_bar_reader.
+
+    Parameters
+    ----------
+    env : TradingEnvironment
+        The trading env.
+    days : pd.DatetimeIndex
+        The days to write for.
+    data : dict[int -> pd.DataFrame]
+        The data to write.
+    path : str, optional
+        The path to the directory to write the data into. If not given, this
+        will be a unique name.
+    """
+    @abstractproperty
+    def _reader_cls(self):
+        raise NotImplementedError('_reader')
+
+    @abstractmethod
+    def _write(self, env, days, path, data):
+        raise NotImplementedError('_write')
+
+    def __init__(self, env, days, data, path=None):
+        super(_TmpBarReader, self).__init__(path=path)
+        self._env = env
+        self._days = days
+        self._data = data
+
+    def __enter__(self):
+        tmpdir = super(_TmpBarReader, self).__enter__()
+        env = self._env
+        try:
+            self._write(
+                env,
+                self._days,
+                tmpdir.path,
+                self._data,
+            )
+            return self._reader_cls(tmpdir.path)
+        except:
+            self.__exit__(None, None, None)
+            raise
+
+
+class tmp_bcolz_minute_bar_reader(_TmpBarReader):
+    """A temporary BcolzMinuteBarReader object.
+
+    Parameters
+    ----------
+    env : TradingEnvironment
+        The trading env.
+    days : pd.DatetimeIndex
+        The days to write for.
+    data : iterable[(int, pd.DataFrame)]
+        The data to write.
+    path : str, optional
+        The path to the directory to write the data into. If not given, this
+        will be a unique name.
+
+    See Also
+    --------
+    tmp_bcolz_daily_bar_reader
+    """
+    _reader_cls = BcolzMinuteBarReader
+    _write = staticmethod(write_bcolz_minute_data)
+
+
+class tmp_bcolz_daily_bar_reader(_TmpBarReader):
+    """A temporary BcolzDailyBarReader object.
+
+    Parameters
+    ----------
+    env : TradingEnvironment
+        The trading env.
+    days : pd.DatetimeIndex
+        The days to write for.
+    data : dict[int -> pd.DataFrame]
+        The data to write.
+    path : str, optional
+        The path to the directory to write the data into. If not given, this
+        will be a unique name.
+
+    See Also
+    --------
+    tmp_bcolz_daily_bar_reader
+    """
+    _reader_cls = BcolzDailyBarReader
+
+    @staticmethod
+    def _write(env, days, path, data):
+        BcolzDailyBarWriter(path, days).write(data)

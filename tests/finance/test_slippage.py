@@ -8,133 +8,95 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the License is distributed on an 'AS IS' BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
+'''
 Unit tests for finance.slippage
-"""
+'''
 import datetime
 
 import pytz
 
-from unittest import TestCase
-
 from nose_parameterized import parameterized
 
-import numpy as np
 import pandas as pd
 from pandas.tslib import normalize_date
-from testfixtures import TempDirectory
 
 from zipline.finance.slippage import VolumeShareSlippage
-from zipline.finance.trading import TradingEnvironment, SimulationParameters
 
 from zipline.protocol import DATASOURCE_TYPE
 from zipline.finance.blotter import Order
 
-from zipline.data.minute_bars import BcolzMinuteBarReader
 from zipline.data.data_portal import DataPortal
 from zipline.protocol import BarData
-from zipline.testing.core import write_bcolz_minute_data
+from zipline.testing import tmp_bcolz_minute_bar_reader
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    WithSimParams,
+    ZiplineTestCase,
+)
 
 
-class SlippageTestCase(TestCase):
+class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-05 14:31', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-05 14:36', tz='utc')
+    SIM_PARAMS_CAPITAL_BASE = 1.0e5
+    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+    SIM_PARAMS_EMISSION_RATE = 'daily'
+
+    ASSET_FINDER_EQUITY_SIDS = (133,)
+    ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp('2006-01-07', tz='utc')
+    minutes = pd.DatetimeIndex(
+        start=START_DATE,
+        end=END_DATE - pd.Timedelta('1 minute'),
+        freq='1min'
+    )
 
     @classmethod
-    def setUpClass(cls):
-        cls.tempdir = TempDirectory()
-        cls.env = TradingEnvironment()
-
-        cls.sim_params = SimulationParameters(
-            period_start=pd.Timestamp("2006-01-05 14:31", tz="utc"),
-            period_end=pd.Timestamp("2006-01-05 14:36", tz="utc"),
-            capital_base=1.0e5,
-            data_frequency="minute",
-            emission_rate='daily',
-            env=cls.env
-        )
-
-        cls.sids = [133]
-
-        cls.minutes = pd.DatetimeIndex(
-            start=pd.Timestamp("2006-01-05 14:31", tz="utc"),
-            end=pd.Timestamp("2006-01-05 14:35", tz="utc"),
-            freq="1min"
-        )
-
-        assets = {
-            133: pd.DataFrame({
-                "open": np.array([3.0, 3.0, 3.5, 4.0, 3.5]),
-                "high": np.array([3.15, 3.15, 3.15, 3.15, 3.15]),
-                "low": np.array([2.85, 2.85, 2.85, 2.85, 2.85]),
-                "close": np.array([3.0, 3.5, 4.0, 3.5, 3.0]),
-                "volume": [2000, 2000, 2000, 2000, 2000],
-                "dt": cls.minutes
-            }).set_index("dt")
+    def make_minute_bar_data(cls):
+        return {
+            133: pd.DataFrame(
+                {
+                    'open': [3.0, 3.0, 3.5, 4.0, 3.5],
+                    'high': [3.15, 3.15, 3.15, 3.15, 3.15],
+                    'low': [2.85, 2.85, 2.85, 2.85, 2.85],
+                    'close': [3.0, 3.5, 4.0, 3.5, 3.0],
+                    'volume': [2000, 2000, 2000, 2000, 2000],
+                },
+                index=cls.minutes,
+            ),
         }
 
-        write_bcolz_minute_data(
-            cls.env,
-            pd.date_range(
-                start=normalize_date(cls.minutes[0]),
-                end=normalize_date(cls.minutes[-1])
-            ),
-            cls.tempdir.path,
-            assets
-        )
-
-        cls.env.write_data(equities_data={
-            133: {
-                "start_date": pd.Timestamp("2006-01-05", tz='utc'),
-                "end_date": pd.Timestamp("2006-01-07", tz='utc')
-            }
-        })
-
+    @classmethod
+    def init_class_fixtures(cls):
+        super(SlippageTestCase, cls).init_class_fixtures()
         cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
 
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
-        del cls.env
-
     def test_volume_share_slippage(self):
-        tempdir = TempDirectory()
-
-        try:
-            assets = {
-                133: pd.DataFrame({
-                    "open": [3.00],
-                    "high": [3.15],
-                    "low": [2.85],
-                    "close": [3.00],
-                    "volume": [200],
-                    "dt": [self.minutes[0]]
-                }).set_index("dt")
-            }
-
-            write_bcolz_minute_data(
-                self.env,
-                pd.date_range(
-                    start=normalize_date(self.minutes[0]),
-                    end=normalize_date(self.minutes[-1])
-                ),
-                tempdir.path,
-                assets
-            )
-
-            equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
-
+        assets = {
+            133: pd.DataFrame(
+                {
+                    'open': [3.00],
+                    'high': [3.15],
+                    'low': [2.85],
+                    'close': [3.00],
+                    'volume': [200],
+                },
+                index=[self.minutes[0]],
+            ),
+        }
+        days = pd.date_range(
+            start=normalize_date(self.minutes[0]),
+            end=normalize_date(self.minutes[-1])
+        )
+        with tmp_bcolz_minute_bar_reader(self.env, days, assets) as reader:
             data_portal = DataPortal(
                 self.env,
-                equity_minute_reader=equity_minute_reader,
+                equity_minute_reader=reader,
             )
 
             slippage_model = VolumeShareSlippage()
@@ -200,9 +162,6 @@ class SlippageTestCase(TestCase):
             ))
 
             self.assertEquals(len(orders_txns), 0)
-
-        finally:
-            tempdir.cleanup()
 
     def test_orders_limit(self):
         slippage_model = VolumeShareSlippage()
@@ -502,39 +461,30 @@ class SlippageTestCase(TestCase):
         for name, case in STOP_ORDER_CASES.items()
     ])
     def test_orders_stop(self, name, order_data, event_data, expected):
-        tempdir = TempDirectory()
-        try:
-            data = order_data
-            data['sid'] = self.ASSET133
+        data = order_data
+        data['sid'] = self.ASSET133
+        order = Order(**data)
 
-            order = Order(**data)
-
-            assets = {
-                133: pd.DataFrame({
-                    "open": [event_data["open"]],
-                    "high": [event_data["high"]],
-                    "low": [event_data["low"]],
-                    "close": [event_data["close"]],
-                    "volume": [event_data["volume"]],
-                    "dt": [pd.Timestamp('2006-01-05 14:31', tz='UTC')]
-                }).set_index("dt")
-            }
-
-            write_bcolz_minute_data(
-                self.env,
-                pd.date_range(
-                    start=normalize_date(self.minutes[0]),
-                    end=normalize_date(self.minutes[-1])
-                ),
-                tempdir.path,
-                assets
-            )
-
-            equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
-
+        assets = {
+            133: pd.DataFrame(
+                {
+                    'open': [event_data['open']],
+                    'high': [event_data['high']],
+                    'low': [event_data['low']],
+                    'close': [event_data['close']],
+                    'volume': [event_data['volume']],
+                },
+                index=[pd.Timestamp('2006-01-05 14:31', tz='UTC')],
+            ),
+        }
+        days = pd.date_range(
+            start=normalize_date(self.minutes[0]),
+            end=normalize_date(self.minutes[-1])
+        )
+        with tmp_bcolz_minute_bar_reader(self.env, days, assets) as reader:
             data_portal = DataPortal(
                 self.env,
-                equity_minute_reader=equity_minute_reader,
+                equity_minute_reader=reader,
             )
 
             slippage_model = VolumeShareSlippage()
@@ -559,8 +509,6 @@ class SlippageTestCase(TestCase):
 
                 for key, value in expected['transaction'].items():
                     self.assertEquals(value, txn[key])
-        finally:
-            tempdir.cleanup()
 
     def test_orders_stop_limit(self):
         slippage_model = VolumeShareSlippage()

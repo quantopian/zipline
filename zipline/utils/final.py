@@ -1,8 +1,6 @@
 from abc import ABCMeta, abstractmethod
-from weakref import WeakKeyDictionary
 
 from six import with_metaclass, iteritems
-from toolz import memoize
 
 # Consistent error to be thrown in various cases regarding overriding
 # `final` attributes.
@@ -30,51 +28,38 @@ def is_final(name, mro):
                for c in bases_mro(mro))
 
 
-@memoize(cache=WeakKeyDictionary())
-def final_meta_factory(base):
+class FinalMeta(type):
+    """A metaclass template for classes the want to prevent subclassess from
+    overriding a some methods or attributes.
     """
-    Creates a metaclass that inherits from `base` that also checks for `final`
-    attributes.
-
-    This will cause class construction to fail if the class attempts to
-    override a final method or attribute.
-    """
-    class _FinalMeta(base):
-        def __new__(mcls, name, bases, dict_):
-            for k, v in iteritems(dict_):
-                if is_final(k, bases):
-                    raise _type_error
-
-            setattr_ = dict_.get('__setattr__')
-            if setattr_ is None:
-                # No `__setattr__` was explicitly defined, look up the super
-                # class's. `bases[0]` will have a `__setattr__` because
-                # `object` does so we don't need to worry about the mro.
-                setattr_ = bases[0].__setattr__
-
-            if not is_final('__setattr__', bases) \
-               and not isinstance(setattr_, final):
-                # implicitly make the `__setattr__` a `final` object so that
-                # users cannot just avoid the descriptor protocol.
-                dict_['__setattr__'] = final(setattr_)
-
-            return base.__new__(mcls, name, bases, dict_)
-
-        def __setattr__(self, name, value):
-            """
-            This stops the `final` attributes from being reassigned on the
-            class object.
-            """
-            if is_final(name, self.__mro__):
+    def __new__(mcls, name, bases, dict_):
+        for k, v in iteritems(dict_):
+            if is_final(k, bases):
                 raise _type_error
 
-            base.__setattr__(self, name, value)
+        setattr_ = dict_.get('__setattr__')
+        if setattr_ is None:
+            # No `__setattr__` was explicitly defined, look up the super
+            # class's. `bases[0]` will have a `__setattr__` because
+            # `object` does so we don't need to worry about the mro.
+            setattr_ = bases[0].__setattr__
 
-    _FinalMeta.__name__ = '%sFinalMeta' % base.__name__
-    return _FinalMeta
+        if not is_final('__setattr__', bases) \
+           and not isinstance(setattr_, final):
+            # implicitly make the `__setattr__` a `final` object so that
+            # users cannot just avoid the descriptor protocol.
+            dict_['__setattr__'] = final(setattr_)
 
+        return super(FinalMeta, mcls).__new__(mcls, name, bases, dict_)
 
-FinalMeta = final_meta_factory(type)
+    def __setattr__(self, name, value):
+        """This stops the `final` attributes from being reassigned on the
+        class object.
+        """
+        if is_final(name, self.__mro__):
+            raise _type_error
+
+        super(FinalMeta, self).__setattr__(name, value)
 
 
 class final(with_metaclass(ABCMeta)):

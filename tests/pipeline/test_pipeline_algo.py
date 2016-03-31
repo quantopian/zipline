@@ -1,8 +1,6 @@
 """
 Tests for Algorithms using the Pipeline API.
 """
-import os
-from unittest import TestCase
 from os.path import (
     dirname,
     join,
@@ -19,6 +17,7 @@ from numpy import (
     uint32,
 )
 from numpy.testing import assert_almost_equal
+import pandas as pd
 from pandas import (
     concat,
     DataFrame,
@@ -28,7 +27,6 @@ from pandas import (
     Timestamp,
 )
 from six import iteritems, itervalues
-from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.api import (
@@ -36,19 +34,11 @@ from zipline.api import (
     pipeline_output,
     get_datetime,
 )
-from zipline.data.data_portal import DataPortal
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     PipelineOutputDuringInitialize,
     NoSuchPipeline,
 )
-from zipline.data.us_equity_pricing import (
-    BcolzDailyBarReader,
-    DailyBarWriterFromCSVs,
-    SQLiteAdjustmentWriter,
-    SQLiteAdjustmentReader,
-)
-from zipline.finance import trading
 from zipline.lib.adjustment import MULTIPLY
 from zipline.pipeline import Pipeline
 from zipline.pipeline.factors import VWAP
@@ -58,15 +48,19 @@ from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
 from zipline.testing import (
-    make_simple_equity_info,
     str_to_seconds
 )
-from zipline.testing.core import DailyBarWriterFromDataFrames, \
-    create_empty_splits_mergers_frame, FakeDataPortal
-from zipline.utils.tradingcalendar import (
-    trading_day,
-    trading_days,
+from zipline.testing import (
+    create_empty_splits_mergers_frame,
+    FakeDataPortal,
 )
+from zipline.testing.fixtures import (
+    WithAdjustmentReader,
+    WithBcolzDailyBarReaderFromCSVs,
+    WithDataPortal,
+    ZiplineTestCase,
+)
+from zipline.utils.tradingcalendar import trading_day
 
 
 TEST_RESOURCE_PATH = join(
@@ -89,100 +83,82 @@ def rolling_vwap(df, length):
     return Series(out, index=df.index)
 
 
-class ClosesOnly(TestCase):
+class ClosesOnly(WithDataPortal, ZiplineTestCase):
+    sids = 1, 2, 3
+    START_DATE = pd.Timestamp('2014-01-01', tz='utc')
+    END_DATE = pd.Timestamp('2014-02-01', tz='utc')
+    dates = date_range(START_DATE, END_DATE, freq=trading_day, tz='utc')
 
     @classmethod
-    def setUpClass(cls):
-        cls.tempdir = TempDirectory()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
-
-    def setUp(self):
-        self.env = env = trading.TradingEnvironment()
-        self.dates = date_range(
-            '2014-01-01', '2014-02-01', freq=trading_day, tz='UTC'
-        )
-        asset_info = DataFrame.from_records([
+    def make_equity_info(cls):
+        cls.equity_info = ret = DataFrame.from_records([
             {
                 'sid': 1,
                 'symbol': 'A',
-                'start_date': self.dates[10],
-                'end_date': self.dates[13],
+                'start_date': cls.dates[10],
+                'end_date': cls.dates[13],
                 'exchange': 'TEST',
             },
             {
                 'sid': 2,
                 'symbol': 'B',
-                'start_date': self.dates[11],
-                'end_date': self.dates[14],
+                'start_date': cls.dates[11],
+                'end_date': cls.dates[14],
                 'exchange': 'TEST',
             },
             {
                 'sid': 3,
                 'symbol': 'C',
-                'start_date': self.dates[12],
-                'end_date': self.dates[15],
+                'start_date': cls.dates[12],
+                'end_date': cls.dates[15],
                 'exchange': 'TEST',
             },
         ])
-        self.first_asset_start = min(asset_info.start_date)
-        self.last_asset_end = max(asset_info.end_date)
-        env.write_data(equities_df=asset_info)
-        self.asset_finder = finder = env.asset_finder
+        return ret
 
-        sids = (1, 2, 3)
-        self.assets = finder.retrieve_all(sids)
-
-        # View of the baseline data.
-        self.closes = DataFrame(
-            {sid: arange(1, len(self.dates) + 1) * sid for sid in sids},
-            index=self.dates,
+    @classmethod
+    def make_daily_bar_data(cls):
+        cls.closes = DataFrame(
+            {sid: arange(1, len(cls.dates) + 1) * sid for sid in cls.sids},
+            index=cls.dates,
             dtype=float,
         )
+        for sid in cls.sids:
+            yield sid, DataFrame(
+                {
+                    'open': cls.closes[sid].values,
+                    'high': cls.closes[sid].values,
+                    'low': cls.closes[sid].values,
+                    'close': cls.closes[sid].values,
+                    'volume': cls.closes[sid].values,
+                },
+                index=cls.dates,
+            )
 
-        # Create a data portal holding the data in self.closes
-        data = {}
-        for sid in sids:
-            data[sid] = DataFrame({
-                "open": self.closes[sid].values,
-                "high": self.closes[sid].values,
-                "low": self.closes[sid].values,
-                "close": self.closes[sid].values,
-                "volume": self.closes[sid].values,
-                "day": [day.value for day in self.dates]
-            })
-
-        path = os.path.join(self.tempdir.path, "testdaily.bcolz")
-
-        DailyBarWriterFromDataFrames(data).write(
-            path,
-            self.dates,
-            data
-        )
-
-        daily_bar_reader = BcolzDailyBarReader(path)
-
-        self.data_portal = DataPortal(
-            self.env,
-            equity_daily_reader=daily_bar_reader,
-        )
+    @classmethod
+    def init_class_fixtures(cls):
+        super(ClosesOnly, cls).init_class_fixtures()
+        cls.first_asset_start = min(cls.equity_info.start_date)
+        cls.last_asset_end = max(cls.equity_info.end_date)
+        cls.assets = cls.asset_finder.retrieve_all(cls.sids)
 
         # Add a split for 'A' on its second date.
-        self.split_asset = self.assets[0]
-        self.split_date = self.split_asset.start_date + trading_day
-        self.split_ratio = 0.5
-        self.adjustments = DataFrame.from_records([
+        cls.split_asset = cls.assets[0]
+        cls.split_date = cls.split_asset.start_date + trading_day
+        cls.split_ratio = 0.5
+        cls.adjustments = DataFrame.from_records([
             {
-                'sid': self.split_asset.sid,
-                'value': self.split_ratio,
+                'sid': cls.split_asset.sid,
+                'value': cls.split_ratio,
                 'kind': MULTIPLY,
                 'start_date': Timestamp('NaT'),
-                'end_date': self.split_date,
-                'apply_date': self.split_date,
+                'end_date': cls.split_date,
+                'apply_date': cls.split_date,
             }
         ])
+
+    def init_instance_fixtures(self):
+        super(ClosesOnly, self).init_instance_fixtures()
 
         # View of the data on/after the split.
         self.adj_closes = adj_closes = self.closes.copy()
@@ -361,87 +337,70 @@ class MockDailyBarSpotReader(object):
         return 100.0
 
 
-class PipelineAlgorithmTestCase(TestCase):
+class PipelineAlgorithmTestCase(WithBcolzDailyBarReaderFromCSVs,
+                                WithAdjustmentReader,
+                                ZiplineTestCase):
+    AAPL = 1
+    MSFT = 2
+    BRK_A = 3
+    assets = ASSET_FINDER_EQUITY_SIDS = AAPL, MSFT, BRK_A
+    ASSET_FINDER_EQUITY_SYMBOLS = 'AAPL', 'MSFT', 'BRK_A'
+    START_DATE = Timestamp('2014')
+    END_DATE = Timestamp('2015')
+    BCOLZ_DAILY_BAR_USE_FULL_CALENDAR = True
 
     @classmethod
-    def setUpClass(cls):
-        cls.AAPL = 1
-        cls.MSFT = 2
-        cls.BRK_A = 3
-        cls.assets = [cls.AAPL, cls.MSFT, cls.BRK_A]
-        asset_info = make_simple_equity_info(
-            cls.assets,
-            Timestamp('2014'),
-            Timestamp('2015'),
-            ['AAPL', 'MSFT', 'BRK_A'],
-        )
-        cls.env = trading.TradingEnvironment()
-        cls.env.write_data(equities_df=asset_info)
-        cls.tempdir = tempdir = TempDirectory()
-        tempdir.create()
-        try:
-            cls.raw_data, bar_reader = cls.create_bar_reader(tempdir)
-            adj_reader = cls.create_adjustment_reader(tempdir)
-            cls.pipeline_loader = USEquityPricingLoader(
-                bar_reader, adj_reader
-            )
-        except:
-            cls.tempdir.cleanup()
-            raise
-
-        cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
-        cls.AAPL_split_date = Timestamp("2014-06-09", tz='UTC')
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.pipeline_loader
-        del cls.env
-        cls.tempdir.cleanup()
-
-    @classmethod
-    def create_bar_reader(cls, tempdir):
+    def make_daily_bar_data(cls):
         resources = {
             cls.AAPL: join(TEST_RESOURCE_PATH, 'AAPL.csv'),
             cls.MSFT: join(TEST_RESOURCE_PATH, 'MSFT.csv'),
             cls.BRK_A: join(TEST_RESOURCE_PATH, 'BRK-A.csv'),
         }
-        raw_data = {
+        cls.raw_data = raw_data = {
             asset: read_csv(path, parse_dates=['day']).set_index('day')
-            for asset, path in iteritems(resources)
+            for asset, path in resources.items()
         }
         # Add 'price' column as an alias because all kinds of stuff in zipline
         # depends on it being present. :/
         for frame in raw_data.values():
             frame['price'] = frame['close']
 
-        writer = DailyBarWriterFromCSVs(resources)
-        data_path = tempdir.getpath('testdata.bcolz')
-        table = writer.write(data_path, trading_days, cls.assets)
-        return raw_data, BcolzDailyBarReader(table)
+        return resources
 
     @classmethod
-    def create_adjustment_reader(cls, tempdir):
-        dbpath = tempdir.getpath('adjustments.sqlite')
-        writer = SQLiteAdjustmentWriter(dbpath, cls.env.trading_days,
-                                        MockDailyBarSpotReader())
-        splits = DataFrame.from_records([
+    def make_splits_data(cls):
+        return DataFrame.from_records([
             {
                 'effective_date': str_to_seconds('2014-06-09'),
                 'ratio': (1 / 7.0),
                 'sid': cls.AAPL,
             }
         ])
-        mergers = create_empty_splits_mergers_frame()
-        dividends = DataFrame({
-            'sid': array([], dtype=uint32),
-            'amount': array([], dtype=float64),
-            'record_date': array([], dtype='datetime64[ns]'),
-            'ex_date': array([], dtype='datetime64[ns]'),
-            'declared_date': array([], dtype='datetime64[ns]'),
-            'pay_date': array([], dtype='datetime64[ns]'),
-        })
-        writer.write(splits, mergers, dividends)
-        return SQLiteAdjustmentReader(dbpath)
+
+    @classmethod
+    def make_mergers_data(cls):
+        return create_empty_splits_mergers_frame()
+
+    @classmethod
+    def make_dividends_data(cls):
+        return pd.DataFrame(array([], dtype=[
+            ('sid', uint32),
+            ('amount', float64),
+            ('record_date', 'datetime64[ns]'),
+            ('ex_date', 'datetime64[ns]'),
+            ('declared_date', 'datetime64[ns]'),
+            ('pay_date', 'datetime64[ns]'),
+        ]))
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(PipelineAlgorithmTestCase, cls).init_class_fixtures()
+        cls.pipeline_loader = USEquityPricingLoader(
+            cls.bcolz_daily_bar_reader,
+            cls.adjustment_reader,
+        )
+        cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')
+        cls.AAPL_split_date = Timestamp("2014-06-09", tz='UTC')
 
     def compute_expected_vwaps(self, window_lengths):
         AAPL, MSFT, BRK_A = self.AAPL, self.MSFT, self.BRK_A

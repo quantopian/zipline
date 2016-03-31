@@ -46,6 +46,5 @@ if __name__ == '__main__':
         end=end,
     )
 
-    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data,
-                            identifiers=stocks)
+    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
     results = algo.run(input_data)

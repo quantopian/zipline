@@ -12,73 +12,66 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-from unittest import TestCase
-from datetime import timedelta
 import numpy as np
 import pandas as pd
-from testfixtures import TempDirectory
-from zipline.data.us_equity_pricing import SQLiteAdjustmentWriter, \
-    SQLiteAdjustmentReader
+
+from zipline.data.data_portal import DataPortal
 from zipline.errors import (
     BenchmarkAssetNotAvailableTooEarly,
     BenchmarkAssetNotAvailableTooLate,
     InvalidBenchmarkAsset)
 
-from zipline.finance.trading import TradingEnvironment
 from zipline.sources.benchmark_source import BenchmarkSource
-from zipline.utils import factory
-from zipline.testing.core import create_data_portal, write_minute_data, \
-    create_empty_splits_mergers_frame
-from .test_perf_tracking import MockDailyBarSpotReader
+from zipline.testing import (
+    MockDailyBarReader,
+    create_minute_bar_data,
+    tmp_bcolz_minute_bar_reader,
+)
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    WithSimParams,
+    ZiplineTestCase,
+)
 
 
-class TestBenchmark(TestCase):
+class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    END_DATE = pd.Timestamp('2006-12-29', tz='utc')
+
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.tempdir = TempDirectory()
-
-        cls.sim_params = factory.create_simulation_parameters()
-
-        cls.env.write_data(equities_data={
-            1: {
-                "start_date": cls.sim_params.trading_days[0],
-                "end_date": cls.sim_params.trading_days[-1] + timedelta(days=1)
+    def make_equity_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                1: {
+                    "start_date": cls.START_DATE,
+                    "end_date": cls.END_DATE + pd.Timedelta(days=1)
+                },
+                2: {
+                    "start_date": cls.START_DATE,
+                    "end_date": cls.END_DATE + pd.Timedelta(days=1)
+                },
+                3: {
+                    "start_date": pd.Timestamp('2006-05-26', tz='utc'),
+                    "end_date": pd.Timestamp('2006-08-09', tz='utc')
+                },
+                4: {
+                    "start_date": cls.START_DATE,
+                    "end_date": cls.END_DATE + pd.Timedelta(days=1)
+                },
             },
-            2: {
-                "start_date": cls.sim_params.trading_days[0],
-                "end_date": cls.sim_params.trading_days[-1] + timedelta(days=1)
-            },
-            3: {
-                "start_date": cls.sim_params.trading_days[100],
-                "end_date": cls.sim_params.trading_days[-100]
-            },
-            4: {
-                "start_date": cls.sim_params.trading_days[0],
-                "end_date": cls.sim_params.trading_days[-1] + timedelta(days=1)
-            }
+            orient='index',
+        )
 
-        })
+    @classmethod
+    def make_adjustment_writer_daily_bar_reader(cls):
+        return MockDailyBarReader()
 
-        dbpath = os.path.join(cls.tempdir.path, "adjustments.db")
-
-        writer = SQLiteAdjustmentWriter(dbpath, cls.env.trading_days,
-                                        MockDailyBarSpotReader())
-        splits = mergers = create_empty_splits_mergers_frame()
-        dividends = pd.DataFrame({
-            'sid': np.array([], dtype=np.uint32),
-            'amount': np.array([], dtype=np.float64),
-            'declared_date': np.array([], dtype='datetime64[ns]'),
-            'ex_date': np.array([], dtype='datetime64[ns]'),
-            'pay_date': np.array([], dtype='datetime64[ns]'),
-            'record_date': np.array([], dtype='datetime64[ns]'),
-        })
+    @classmethod
+    def make_stock_dividends_data(cls):
         declared_date = cls.sim_params.trading_days[45]
         ex_date = cls.sim_params.trading_days[50]
         record_date = pay_date = cls.sim_params.trading_days[55]
-
-        stock_dividends = pd.DataFrame({
+        return pd.DataFrame({
             'sid': np.array([4], dtype=np.uint32),
             'payment_sid': np.array([5], dtype=np.uint32),
             'ratio': np.array([2], dtype=np.float64),
@@ -87,22 +80,6 @@ class TestBenchmark(TestCase):
             'record_date': np.array([record_date], dtype='datetime64[ns]'),
             'pay_date': np.array([pay_date], dtype='datetime64[ns]'),
         })
-        writer.write(splits, mergers, dividends,
-                     stock_dividends=stock_dividends)
-
-        cls.data_portal = create_data_portal(
-            cls.env,
-            cls.tempdir,
-            cls.sim_params,
-            [1, 2, 3, 4],
-            adjustment_reader=SQLiteAdjustmentReader(dbpath)
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.data_portal
-        del cls.env
-        cls.tempdir.cleanup()
 
     def test_normal(self):
         days_to_use = self.sim_params.trading_days[1:]
@@ -162,36 +139,43 @@ class TestBenchmark(TestCase):
             self.sim_params.trading_days[5]
         )
 
-        path = write_minute_data(
+        tmp_reader = tmp_bcolz_minute_bar_reader(
             self.env,
-            self.tempdir,
-            minutes,
-            [2]
+            self.env.trading_days,
+            create_minute_bar_data(minutes, [2]),
         )
-
-        self.data_portal._minutes_equities_path = path
-
-        source = BenchmarkSource(
-            2,
-            self.env,
-            self.sim_params.trading_days,
-            self.data_portal
-        )
-
-        days_to_use = self.sim_params.trading_days
-
-        # first value should be 0.0, coming from daily data
-        self.assertAlmostEquals(0.0, source.get_value(days_to_use[0]))
-
-        manually_calculated = self.data_portal.get_history_window(
-            [2], days_to_use[-1], len(days_to_use), "1d", "close"
-        )[2].pct_change()
-
-        for idx, day in enumerate(days_to_use[1:]):
-            self.assertEqual(
-                source.get_value(day),
-                manually_calculated[idx + 1]
+        with tmp_reader as reader:
+            data_portal = DataPortal(
+                self.env,
+                equity_minute_reader=reader,
+                equity_daily_reader=self.bcolz_daily_bar_reader,
+                adjustment_reader=self.adjustment_reader,
             )
+
+            source = BenchmarkSource(
+                2,
+                self.env,
+                self.sim_params.trading_days,
+                data_portal
+            )
+
+            days_to_use = self.sim_params.trading_days
+
+            # first value should be 0.0, coming from daily data
+            self.assertAlmostEquals(0.0, source.get_value(days_to_use[0]))
+
+            manually_calculated = data_portal.get_history_window(
+                [2], days_to_use[-1],
+                len(days_to_use),
+                "1d",
+                "close",
+            )[2].pct_change()
+
+            for idx, day in enumerate(days_to_use[1:]):
+                self.assertEqual(
+                    source.get_value(day),
+                    manually_calculated[idx + 1]
+                )
 
     def test_no_stock_dividends_allowed(self):
         # try to use sid(4) as benchmark, should blow up due to the presence

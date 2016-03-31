@@ -1,21 +1,23 @@
 import warnings
-from unittest import TestCase
+
 from mock import patch
-import pandas as pd
 import numpy as np
-from testfixtures import TempDirectory
+import pandas as pd
 
 from zipline import TradingAlgorithm
-from zipline.data.data_portal import DataPortal
-from zipline.data.minute_bars import BcolzMinuteBarWriter, \
-    US_EQUITIES_MINUTES_PER_DAY, BcolzMinuteBarReader
-from zipline.data.us_equity_pricing import BcolzDailyBarReader, \
-    SQLiteAdjustmentReader, SQLiteAdjustmentWriter
-from zipline.finance.trading import TradingEnvironment, SimulationParameters
+from zipline.finance.trading import SimulationParameters
 from zipline.protocol import BarData
-from zipline.testing.core import write_minute_data_for_asset, \
-    create_daily_df_for_asset, DailyBarWriterFromDataFrames, MockDailyBarReader
-from zipline.testing import str_to_seconds
+from zipline.testing import (
+    MockDailyBarReader,
+    create_daily_df_for_asset,
+    create_minute_df_for_asset,
+    str_to_seconds,
+)
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    WithSimParams,
+    ZiplineTestCase,
+)
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 simple_algo = """
@@ -111,137 +113,63 @@ def handle_data(context, data):
 """
 
 
-class TestAPIShim(TestCase):
+class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
+    START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
+    END_DATE = pd.Timestamp("2016-01-28", tz='UTC')
+    SIM_PARAMS_DATA_FREQUENCY = 'minute'
+
+    sids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
+
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.tempdir = TempDirectory()
+    def make_minute_bar_data(cls):
+        return {
+            sid: create_minute_df_for_asset(
+                cls.env,
+                cls.SIM_PARAMS_START,
+                cls.SIM_PARAMS_END,
+            )
+            for sid in cls.sids
+        }
 
-        cls.trading_days = cls.env.days_in_range(
-            start=pd.Timestamp("2016-01-05", tz='UTC'),
-            end=pd.Timestamp("2016-01-28", tz='UTC')
-        )
+    @classmethod
+    def make_daily_bar_data(cls):
+        for sid in cls.sids:
+            yield sid, create_daily_df_for_asset(
+                cls.env,
+                cls.SIM_PARAMS_START,
+                cls.SIM_PARAMS_END,
+            )
 
-        equities_data = {}
-        for sid in [1, 2, 3]:
-            equities_data[sid] = {
-                "start_date": cls.trading_days[0],
-                "end_date": cls.env.next_trading_day(cls.trading_days[-1]),
-                "symbol": "ASSET{0}".format(sid),
+    @classmethod
+    def make_splits_data(cls):
+        return pd.DataFrame([
+            {
+                'effective_date': str_to_seconds('2016-01-06'),
+                'ratio': 0.5,
+                'sid': 3,
             }
+        ])
 
-        cls.env.write_data(equities_data=equities_data)
+    @classmethod
+    def make_adjustment_writer_daily_bar_reader(cls):
+        return MockDailyBarReader()
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestAPIShim, cls).init_class_fixtures()
 
         cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
         cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
         cls.asset3 = cls.env.asset_finder.retrieve_asset(3)
 
-        market_opens = cls.env.open_and_closes.market_open.loc[
-            cls.trading_days]
-        market_closes = cls.env.open_and_closes.market_close.loc[
-            cls.trading_days]
-
-        minute_writer = BcolzMinuteBarWriter(
-            cls.trading_days[0],
-            cls.tempdir.path,
-            market_opens,
-            market_closes,
-            US_EQUITIES_MINUTES_PER_DAY
-        )
-
-        for sid in [1, 2, 3]:
-            write_minute_data_for_asset(
-                cls.env, minute_writer, cls.trading_days[0],
-                cls.trading_days[-1], sid
-            )
-
-        cls.adj_reader = cls.create_adjustments_reader()
-
-        cls.sim_params = SimulationParameters(
-            period_start=cls.trading_days[0],
-            period_end=cls.trading_days[-1],
-            data_frequency="minute",
-            env=cls.env
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.adj_reader
-        cls.tempdir.cleanup()
-
-    @classmethod
-    def build_daily_data(cls):
-        path = cls.tempdir.getpath("testdaily.bcolz")
-
-        dfs = {
-            1: create_daily_df_for_asset(cls.env, cls.trading_days[0],
-                                         cls.trading_days[-1]),
-            2: create_daily_df_for_asset(cls.env, cls.trading_days[0],
-                                         cls.trading_days[-1]),
-            3: create_daily_df_for_asset(cls.env, cls.trading_days[0],
-                                         cls.trading_days[-1])
-        }
-
-        daily_writer = DailyBarWriterFromDataFrames(dfs)
-        daily_writer.write(path, cls.trading_days, dfs)
-
-        return BcolzDailyBarReader(path)
-
-    @classmethod
-    def create_adjustments_reader(cls):
-        path = cls.tempdir.getpath("test_adjustments.db")
-
-        adj_writer = SQLiteAdjustmentWriter(
-            path,
-            cls.env.trading_days,
-            MockDailyBarReader()
-        )
-
-        splits = pd.DataFrame([
-            {
-                'effective_date': str_to_seconds("2016-01-06"),
-                'ratio': 0.5,
-                'sid': cls.asset3.sid
-            }
-        ])
-
-        # Mergers and Dividends are not tested, but we need to have these
-        # anyway
-        mergers = pd.DataFrame({}, columns=['effective_date', 'ratio', 'sid'])
-        mergers.effective_date = mergers.effective_date.astype(np.int64)
-        mergers.ratio = mergers.ratio.astype(np.float64)
-        mergers.sid = mergers.sid.astype(np.int64)
-
-        dividends = pd.DataFrame({}, columns=['ex_date', 'record_date',
-                                              'declared_date', 'pay_date',
-                                              'amount', 'sid'])
-        dividends.amount = dividends.amount.astype(np.float64)
-        dividends.sid = dividends.sid.astype(np.int64)
-
-        adj_writer.write(splits, mergers, dividends)
-
-        return SQLiteAdjustmentReader(path)
-
-    def setUp(self):
-        self.data_portal = DataPortal(
-            self.env,
-            equity_minute_reader=BcolzMinuteBarReader(self.tempdir.path),
-            equity_daily_reader=self.build_daily_data(),
-            adjustment_reader=self.adj_reader
-        )
-
-    def tearDown(self):
-        del self.data_portal
-
-    @classmethod
-    def create_algo(cls, code, filename=None, sim_params=None):
+    def create_algo(self, code, filename=None, sim_params=None):
         if sim_params is None:
-            sim_params = cls.sim_params
+            sim_params = self.sim_params
 
         return TradingAlgorithm(
             script=code,
             sim_params=sim_params,
-            env=cls.env,
+            env=self.env,
             algo_filename=filename
         )
 
@@ -254,10 +182,10 @@ class TestAPIShim(TestCase):
         similar) hit the same code paths on the DataPortal.
         """
         test_start_minute = self.env.market_minutes_for_day(
-            self.trading_days[0]
+            self.sim_params.trading_days[0]
         )[1]
         test_end_minute = self.env.market_minutes_for_day(
-            self.trading_days[0]
+            self.sim_params.trading_days[0]
         )[-1]
         bar_data = BarData(
             self.data_portal,
@@ -450,7 +378,7 @@ class TestAPIShim(TestCase):
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             sim_params = SimulationParameters(
-                period_start=self.trading_days[1],
+                period_start=self.sim_params.trading_days[1],
                 period_end=self.sim_params.period_end,
                 capital_base=self.sim_params.capital_base,
                 data_frequency=self.sim_params.data_frequency,
@@ -495,8 +423,8 @@ class TestAPIShim(TestCase):
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             sim_params = SimulationParameters(
-                period_start=self.trading_days[8],
-                period_end=self.trading_days[-1],
+                period_start=self.sim_params.trading_days[8],
+                period_end=self.sim_params.trading_days[-1],
                 data_frequency="minute",
                 env=self.env
             )

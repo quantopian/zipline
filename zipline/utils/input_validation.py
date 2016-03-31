@@ -71,7 +71,10 @@ def ensure_upper_case(func, argname, arg):
         raise TypeError(
             "{0}() expected argument '{1}' to"
             " be a string, but got {2} instead.".format(
-                func.__name__, argname, arg,)
+                func.__name__,
+                argname,
+                arg,
+            ),
         )
 
 

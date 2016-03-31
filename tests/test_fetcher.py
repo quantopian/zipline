@@ -12,119 +12,82 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from unittest import TestCase
 from nose_parameterized import parameterized
 
 import pandas as pd
 import numpy as np
-import responses
 from mock import patch
+
 from zipline import TradingAlgorithm
 from zipline.errors import UnsupportedOrderParameters
-from zipline.finance.trading import TradingEnvironment
 from zipline.sources.requests_csv import mask_requests_args
-
 from zipline.utils import factory
-from zipline.testing.core import FetcherDataPortal
-
+from zipline.testing import FetcherDataPortal
+from zipline.testing.fixtures import (
+    WithResponses,
+    WithSimParams,
+    ZiplineTestCase,
+)
 from .resources.fetcher_inputs.fetcher_test_data import (
-    MULTI_SIGNAL_CSV_DATA,
     AAPL_CSV_DATA,
-    AAPL_MINUTE_CSV_DATA,
-    IBM_CSV_DATA,
-    ANNUAL_AAPL_CSV_DATA,
     AAPL_IBM_CSV_DATA,
+    AAPL_MINUTE_CSV_DATA,
     CPIAUCSL_DATA,
-    PALLADIUM_DATA,
+    FETCHER_ALTERNATE_COLUMN_HEADER,
     FETCHER_UNIVERSE_DATA,
+    FETCHER_UNIVERSE_DATA_TICKER_COLUMN,
+    MULTI_SIGNAL_CSV_DATA,
     NON_ASSET_FETCHER_UNIVERSE_DATA,
-    FETCHER_UNIVERSE_DATA_TICKER_COLUMN, FETCHER_ALTERNATE_COLUMN_HEADER)
+    PALLADIUM_DATA,
+)
 
 
-class FetcherTestCase(TestCase):
+class FetcherTestCase(WithResponses,
+                      WithSimParams,
+                      ZiplineTestCase):
+
     @classmethod
-    def setUpClass(cls):
-        responses.start()
-        responses.add(responses.GET,
-                      'https://fake.urls.com/aapl_minute_csv_data.csv',
-                      body=AAPL_MINUTE_CSV_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/aapl_csv_data.csv',
-                      body=AAPL_CSV_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/multi_signal_csv_data.csv',
-                      body=MULTI_SIGNAL_CSV_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/cpiaucsl_data.csv',
-                      body=CPIAUCSL_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/ibm_csv_data.csv',
-                      body=IBM_CSV_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/aapl_ibm_csv_data.csv',
-                      body=AAPL_IBM_CSV_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/palladium_data.csv',
-                      body=PALLADIUM_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/fetcher_universe_data.csv',
-                      body=FETCHER_UNIVERSE_DATA, content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/bad_fetcher_universe_data.csv',
-                      body=NON_ASSET_FETCHER_UNIVERSE_DATA,
-                      content_type='text/csv')
-        responses.add(responses.GET,
-                      'https://fake.urls.com/annual_aapl_csv_data.csv',
-                      body=ANNUAL_AAPL_CSV_DATA, content_type='text/csv')
-
-        cls.sim_params = factory.create_simulation_parameters()
-        cls.env = TradingEnvironment()
-        cls.env.write_data(
-            equities_data={
+    def make_equity_info(cls):
+        return pd.DataFrame.from_dict(
+            {
                 24: {
-                    "start_date": pd.Timestamp("2006-01-01", tz='UTC'),
-                    "end_date": pd.Timestamp("2007-01-01", tz='UTC'),
-                    'symbol': "AAPL",
-                    "asset_type": "equity",
-                    "exchange": "nasdaq"
+                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'symbol': 'AAPL',
+                    'asset_type': 'equity',
+                    'exchange': 'nasdaq'
                 },
                 3766: {
-                    "start_date": pd.Timestamp("2006-01-01", tz='UTC'),
-                    "end_date": pd.Timestamp("2007-01-01", tz='UTC'),
-                    'symbol': "IBM",
-                    "asset_type": "equity",
-                    "exchange": "nasdaq"
+                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'symbol': 'IBM',
+                    'asset_type': 'equity',
+                    'exchange': 'nasdaq'
                 },
                 5061: {
-                    "start_date": pd.Timestamp("2006-01-01", tz='UTC'),
-                    "end_date": pd.Timestamp("2007-01-01", tz='UTC'),
-                    'symbol': "MSFT",
-                    "asset_type": "equity",
-                    "exchange": "nasdaq"
+                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'symbol': 'MSFT',
+                    'asset_type': 'equity',
+                    'exchange': 'nasdaq'
                 },
                 14848: {
-                    "start_date": pd.Timestamp("2006-01-01", tz='UTC'),
-                    "end_date": pd.Timestamp("2007-01-01", tz='UTC'),
-                    'symbol': "YHOO",
-                    "asset_type": "equity",
-                    "exchange": "nasdaq"
+                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'symbol': 'YHOO',
+                    'asset_type': 'equity',
+                    'exchange': 'nasdaq'
                 },
                 25317: {
-                    "start_date": pd.Timestamp("2006-01-01", tz='UTC'),
-                    "end_date": pd.Timestamp("2007-01-01", tz='UTC'),
-                    'symbol': "DELL",
-                    "asset_type": "equity",
-                    "exchange": "nasdaq"
+                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
+                    'symbol': 'DELL',
+                    'asset_type': 'equity',
+                    'exchange': 'nasdaq'
                 }
-            }
-
+            },
+            orient='index',
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        responses.stop()
-        responses.reset()
 
     def run_algo(self, code, sim_params=None, data_frequency="daily"):
         if sim_params is None:
@@ -141,7 +104,14 @@ class FetcherTestCase(TestCase):
 
         return results
 
-    def test_fetch_minute_granularity(self):
+    def test_minutely_fetcher(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/aapl_minute_csv_data.csv',
+            body=AAPL_MINUTE_CSV_DATA,
+            content_type='text/csv',
+        )
+
         sim_params = factory.create_simulation_parameters(
             start=pd.Timestamp("2006-01-03", tz='UTC'),
             end=pd.Timestamp("2006-01-10", tz='UTC'),
@@ -195,6 +165,13 @@ def handle_data(context, data):
         np.testing.assert_array_equal([4] * 780, signal[1560:])
 
     def test_fetch_csv_with_multi_symbols(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/multi_signal_csv_data.csv',
+            body=MULTI_SIGNAL_CSV_DATA,
+            content_type='text/csv',
+        )
+
         results = self.run_algo(
             """
 from zipline.api import fetch_csv, record, sid
@@ -212,6 +189,13 @@ def handle_data(context, data):
         self.assertEqual(5, results["dell_signal"].iloc[-1])
 
     def test_fetch_csv_with_pure_signal_file(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/cpiaucsl_data.csv',
+            body=CPIAUCSL_DATA,
+            content_type='text/csv',
+        )
+
         results = self.run_algo(
             """
 from zipline.api import fetch_csv, sid, record
@@ -237,6 +221,13 @@ def handle_data(context, data):
         self.assertEqual(results["cpi"][-1], 203.1)
 
     def test_algo_fetch_csv(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/aapl_csv_data.csv',
+            body=AAPL_CSV_DATA,
+            content_type='text/csv',
+        )
+
         results = self.run_algo(
             """
 from zipline.api import fetch_csv, record, sid
@@ -262,6 +253,13 @@ def handle_data(context, data):
         self.assertEqual(24, results["price"][-1])  # fake value
 
     def test_algo_fetch_csv_with_extra_symbols(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/aapl_ibm_csv_data.csv',
+            body=AAPL_IBM_CSV_DATA,
+            content_type='text/csv',
+        )
+
         results = self.run_algo(
             """
 from zipline.api import fetch_csv, record, sid
@@ -293,6 +291,13 @@ def handle_data(context, data):
                            ("without date", "usecols=['Value']"),
                            ("with date", "usecols=('Value', 'Date')")])
     def test_usecols(self, testname, usecols):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/cpiaucsl_data.csv',
+            body=CPIAUCSL_DATA,
+            content_type='text/csv',
+        )
+
         code = """
 from zipline.api import fetch_csv, sid, record
 
@@ -442,6 +447,13 @@ def handle_data(context, data):
             self.assertEqual(4, results["sid_count"].iloc[2])
 
     def test_fetcher_universe_non_security_return(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/bad_fetcher_universe_data.csv',
+            body=NON_ASSET_FETCHER_UNIVERSE_DATA,
+            content_type='text/csv',
+        )
+
         sim_params = factory.create_simulation_parameters(
             start=pd.Timestamp("2006-01-09", tz='UTC'),
             end=pd.Timestamp("2006-01-10", tz='UTC')
@@ -465,6 +477,13 @@ def handle_data(context, data):
         )
 
     def test_order_against_data(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/palladium_data.csv',
+            body=PALLADIUM_DATA,
+            content_type='text/csv',
+        )
+
         with self.assertRaises(UnsupportedOrderParameters):
             self.run_algo("""
 from zipline.api import fetch_csv, order, sid
@@ -486,6 +505,13 @@ def handle_data(context, data):
             """)
 
     def test_fetcher_universe_minute(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/fetcher_universe_data.csv',
+            body=FETCHER_UNIVERSE_DATA,
+            content_type='text/csv',
+        )
+
         sim_params = factory.create_simulation_parameters(
             start=pd.Timestamp("2006-01-09", tz='UTC'),
             end=pd.Timestamp("2006-01-11", tz='UTC'),

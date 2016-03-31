@@ -18,8 +18,6 @@ Tests for the zipline.finance package
 """
 from datetime import datetime, timedelta
 import os
-from unittest import TestCase
-
 
 from nose.tools import timed
 import numpy as np
@@ -28,23 +26,27 @@ import pytz
 from six.moves import range
 from testfixtures import TempDirectory
 
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.finance.blotter import Blotter
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.trading import SimulationParameters
-from zipline.testing import (
-    setup_logger,
-    teardown_logger
-)
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.data.minute_bars import BcolzMinuteBarReader
-
 from zipline.data.data_portal import DataPortal
+from zipline.data.us_equity_pricing import BcolzDailyBarWriter
 from zipline.finance.slippage import FixedSlippage
 from zipline.protocol import BarData
-from zipline.testing.core import write_bcolz_minute_data
-from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
+from zipline.testing import (
+    tmp_trading_env,
+    write_bcolz_minute_data,
+)
+from zipline.testing.fixtures import (
+    WithLogger,
+    WithTradingEnvironment,
+    ZiplineTestCase,
+)
 
 import zipline.utils.factory as factory
 
@@ -54,26 +56,16 @@ EXTENDED_TIMEOUT = 90
 _multiprocess_can_split_ = False
 
 
-class FinanceTestCase(TestCase):
+class FinanceTestCase(WithLogger,
+                      WithTradingEnvironment,
+                      ZiplineTestCase):
+    ASSET_FINDER_EQUITY_SIDS = 1, 2, 133
+    start = START_DATE = pd.Timestamp('2006-01-01', tz='utc')
+    end = END_DATE = pd.Timestamp('2006-12-31', tz='utc')
 
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[1, 2, 133])
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
-    def setUp(self):
-        self.zipline_test_config = {
-            'sid': 133,
-        }
-
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
+    def init_instance_fixtures(self):
+        super(FinanceTestCase, self).init_instance_fixtures()
+        self.zipline_test_config = {'sid': 133}
 
     # TODO: write tests for short sales
     # TODO: write a test to do massive buying or shorting.
@@ -174,33 +166,35 @@ class FinanceTestCase(TestCase):
         self.transaction_sim(**params1)
 
     def transaction_sim(self, **params):
-        """ This is a utility method that asserts expected
+        """This is a utility method that asserts expected
         results for conversion of orders to transactions given a
-        trade history"""
-        tempdir = TempDirectory()
-        try:
-            trade_count = params['trade_count']
-            trade_interval = params['trade_interval']
-            order_count = params['order_count']
-            order_amount = params['order_amount']
-            order_interval = params['order_interval']
-            expected_txn_count = params['expected_txn_count']
-            expected_txn_volume = params['expected_txn_volume']
+        trade history
+        """
+        trade_count = params['trade_count']
+        trade_interval = params['trade_interval']
+        order_count = params['order_count']
+        order_amount = params['order_amount']
+        order_interval = params['order_interval']
+        expected_txn_count = params['expected_txn_count']
+        expected_txn_volume = params['expected_txn_volume']
 
-            # optional parameters
-            # ---------------------
-            # if present, alternate between long and short sales
-            alternate = params.get('alternate')
+        # optional parameters
+        # ---------------------
+        # if present, alternate between long and short sales
+        alternate = params.get('alternate')
 
-            # if present, expect transaction amounts to match orders exactly.
-            complete_fill = params.get('complete_fill')
+        # if present, expect transaction amounts to match orders exactly.
+        complete_fill = params.get('complete_fill')
 
-            env = TradingEnvironment()
-
-            sid = 1
+        sid = 1
+        metadata = make_simple_equity_info([sid], self.start, self.end)
+        with TempDirectory() as tempdir, \
+                tmp_trading_env(equities=metadata) as env:
 
             if trade_interval < timedelta(days=1):
                 sim_params = factory.create_simulation_parameters(
+                    start=self.start,
+                    end=self.end,
                     data_frequency="minute"
                 )
 
@@ -253,8 +247,7 @@ class FinanceTestCase(TestCase):
                 }
 
                 path = os.path.join(tempdir.path, "testdata.bcolz")
-                DailyBarWriterFromDataFrames(assets).write(
-                    path, days, assets)
+                BcolzDailyBarWriter(path, days).write(assets.items())
 
                 equity_daily_reader = BcolzDailyBarReader(path)
 
@@ -271,13 +264,6 @@ class FinanceTestCase(TestCase):
 
             blotter = Blotter(sim_params.data_frequency, self.env.asset_finder,
                               slippage_func)
-
-            env.write_data(equities_data={
-                sid: {
-                    "start_date": sim_params.trading_days[0],
-                    "end_date": sim_params.trading_days[-1]
-                }
-            })
 
             start_date = sim_params.first_open
 
@@ -356,8 +342,6 @@ class FinanceTestCase(TestCase):
             # the open orders should not contain sid.
             oo = blotter.open_orders
             self.assertNotIn(sid, oo, "Entry is removed when no open orders")
-        finally:
-            tempdir.cleanup()
 
     def test_blotter_processes_splits(self):
         blotter = Blotter('daily', self.env.asset_finder,
@@ -393,25 +377,12 @@ class FinanceTestCase(TestCase):
         self.assertEqual(2, fls_order['sid'])
 
 
-class TradingEnvironmentTestCase(TestCase):
+class TradingEnvironmentTestCase(WithLogger,
+                                 WithTradingEnvironment,
+                                 ZiplineTestCase):
     """
     Tests for date management utilities in zipline.finance.trading.
     """
-
-    def setUp(self):
-        setup_logger(self)
-
-    def tearDown(self):
-        teardown_logger(self)
-
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
     @timed(DEFAULT_TIMEOUT)
     def test_is_trading_day(self):
         # holidays taken from: http://www.nyse.com/press/1191407641943.html

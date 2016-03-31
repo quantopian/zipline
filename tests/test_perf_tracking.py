@@ -22,8 +22,6 @@ from datetime import (
 )
 import logging
 
-from testfixtures import TempDirectory
-import unittest
 import nose.tools as nt
 import pytz
 
@@ -32,6 +30,7 @@ import numpy as np
 from six.moves import range, zip
 
 from zipline.assets import Asset
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.us_equity_pricing import (
     SQLiteAdjustmentWriter,
     SQLiteAdjustmentReader,
@@ -43,14 +42,24 @@ import zipline.utils.math_utils as zp_math
 
 from zipline.finance.blotter import Order
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
-from zipline.finance.trading import TradingEnvironment
 from zipline.finance.performance.position import Position
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
-from zipline.testing.core import create_data_portal_from_trade_history, \
-    create_empty_splits_mergers_frame
+from zipline.testing import (
+    MockDailyBarReader,
+    create_data_portal_from_trade_history,
+    create_empty_splits_mergers_frame,
+    tmp_trading_env,
+)
+from zipline.testing.fixtures import (
+    WithInstanceTmpDir,
+    WithSimParams,
+    WithTmpDir,
+    WithTradingEnvironment,
+    ZiplineTestCase,
+)
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -248,29 +257,25 @@ def setup_env_data(env, sim_params, sids, futures_sids=[]):
     env.write_data(futures_data=futures_data)
 
 
-class TestSplitPerformance(unittest.TestCase):
+class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-04', tz='utc')
+    SIM_PARAMS_CAPITAL_BASE = 10e3
+
+    ASSET_FINDER_EQUITY_SIDS = 1, 2
+
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.sim_params = create_simulation_parameters(num_days=2,
-                                                      capital_base=10e3)
-
-        setup_env_data(cls.env, cls.sim_params, [1, 2])
-
-        cls.tempdir = TempDirectory()
+    def init_class_fixtures(cls):
+        super(TestSplitPerformance, cls).init_class_fixtures()
         cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
 
     def test_multiple_splits(self):
         # if multiple positions all have splits at the same time, verify that
         # the total leftover cash is correct
         perf_tracker = perf.PerformanceTracker(self.sim_params, self.env)
 
-        asset1 = self.env.asset_finder.retrieve_asset(1)
-        asset2 = self.env.asset_finder.retrieve_asset(2)
+        asset1 = self.asset_finder.retrieve_asset(1)
+        asset2 = self.asset_finder.retrieve_asset(2)
 
         perf_tracker.position_tracker.positions[1] = \
             Position(asset1, amount=10, cost_basis=10, last_sale_price=11)
@@ -303,7 +308,7 @@ class TestSplitPerformance(unittest.TestCase):
         # 100 shares at $20 apiece = $2000 position
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -387,21 +392,16 @@ class TestSplitPerformance(unittest.TestCase):
                                  (i, perf_kind, perf_result['returns']))
 
 
-class TestCommissionEvents(unittest.TestCase):
+class TestCommissionEvents(WithSimParams, WithTmpDir, ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-09', tz='utc')
+    ASSET_FINDER_EQUITY_SIDS = 0, 1, 133
+    SIM_PARAMS_CAPITAL_BASE = 10e3
+
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.sim_params = create_simulation_parameters(num_days=5,
-                                                      capital_base=10e3)
-        setup_env_data(cls.env, cls.sim_params, [0, 1, 133])
-
-        cls.tempdir = TempDirectory()
-
+    def init_class_fixtures(cls):
+        super(TestCommissionEvents, cls).init_class_fixtures()
         cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
 
     def test_commission_event(self):
         trade_events = factory.create_trade_history(
@@ -422,7 +422,7 @@ class TestCommissionEvents(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.tmpdir,
             self.sim_params,
             {1: trade_events},
         )
@@ -506,7 +506,7 @@ class TestCommissionEvents(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -548,7 +548,7 @@ class TestCommissionEvents(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -569,34 +569,19 @@ class TestCommissionEvents(unittest.TestCase):
                          9700)
 
 
-class MockDailyBarSpotReader(object):
-
-    def spot_price(self, sid, day, colname):
-        return 100.0
-
-
-class TestDividendPerformance(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.sim_params = create_simulation_parameters(num_days=6,
-                                                      capital_base=10e3)
-
-        setup_env_data(cls.env, cls.sim_params, [1, 2])
-
-        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
-        cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
+class TestDividendPerformance(WithSimParams,
+                              WithInstanceTmpDir,
+                              ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-10', tz='utc')
+    ASSET_FINDER_EQUITY_SIDS = 1, 2
+    SIM_PARAMS_CAPITAL_BASE = 10e3
 
     @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
-    def setUp(self):
-        self.tempdir = TempDirectory()
-
-    def tearDown(self):
-        self.tempdir.cleanup()
+    def init_class_fixtures(cls):
+        super(TestDividendPerformance, cls).init_class_fixtures()
+        cls.asset1 = cls.asset_finder.retrieve_asset(1)
+        cls.asset2 = cls.asset_finder.retrieve_asset(2)
 
     def test_market_hours_calculations(self):
         # DST in US/Eastern began on Sunday March 14, 2010
@@ -619,10 +604,13 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -634,10 +622,9 @@ class TestDividendPerformance(unittest.TestCase):
         })
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
-
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -682,10 +669,13 @@ class TestDividendPerformance(unittest.TestCase):
                 env=self.env
             )
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([], dtype=np.uint32),
@@ -710,7 +700,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             events,
         )
@@ -753,10 +743,13 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -771,7 +764,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -811,10 +804,13 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -829,7 +825,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -869,10 +865,13 @@ class TestDividendPerformance(unittest.TestCase):
             self.sim_params,
             env=self.env
         )
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
 
         dividends = pd.DataFrame({
@@ -888,7 +887,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -932,10 +931,13 @@ class TestDividendPerformance(unittest.TestCase):
         for i in range(30):
             pay_date = factory.get_next_trading_dt(pay_date, oneday, self.env)
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -950,7 +952,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -990,10 +992,13 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -1008,7 +1013,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -1045,10 +1050,13 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -1063,7 +1071,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: events},
         )
@@ -1098,10 +1106,13 @@ class TestDividendPerformance(unittest.TestCase):
             env=self.env
         )
 
-        dbpath = self.tempdir.getpath('adjustments.sqlite')
+        dbpath = self.instance_tmpdir.getpath('adjustments.sqlite')
 
-        writer = SQLiteAdjustmentWriter(dbpath, self.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            MockDailyBarReader(),
+            self.env.trading_days,
+        )
         splits = mergers = create_empty_splits_mergers_frame()
         dividends = pd.DataFrame({
             'sid': np.array([1], dtype=np.uint32),
@@ -1128,7 +1139,7 @@ class TestDividendPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             sim_params,
             {1: events},
         )
@@ -1163,44 +1174,42 @@ class TestDividendPerformanceHolidayStyle(TestDividendPerformance):
     # two days ahead. Any tests that hard code events
     # to be start + oneday will fail, since those events will
     # be skipped by the simulation.
+    START_DATE = pd.Timestamp('2003-11-30', tz='utc')
+    END_DATE = pd.Timestamp('2003-12-08', tz='utc')
 
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        cls.sim_params = create_simulation_parameters(
-            num_days=6,
-            capital_base=10e3,
-            start=pd.Timestamp("2003-11-30", tz='UTC'),
-            end=pd.Timestamp("2003-12-08", tz='UTC')
+
+class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
+    def create_environment_stuff(self,
+                                 num_days=4,
+                                 sids=[1, 2],
+                                 futures_sids=[3]):
+        start = pd.Timestamp('2006-01-01', tz='utc')
+        end = start + timedelta(days=num_days * 2)
+        equities = make_simple_equity_info(sids, start, end)
+        futures = pd.DataFrame.from_dict(
+            {
+                sid: {
+                    'start_date': start,
+                    'end_date': end,
+                    'multiplier': 100,
+                }
+                for sid in futures_sids
+            },
+            orient='index',
+        )
+        self.env = self.enter_instance_context(tmp_trading_env(
+            equities=equities,
+            futures=futures,
+        ))
+        self.sim_params = create_simulation_parameters(
+            start=start,
+            num_days=num_days,
         )
 
-        setup_env_data(cls.env, cls.sim_params, [1, 2])
-
-        cls.asset1 = cls.env.asset_finder.retrieve_asset(1)
-        cls.asset2 = cls.env.asset_finder.retrieve_asset(2)
-
-
-class TestPositionPerformance(unittest.TestCase):
-
-    def setUp(self):
-        self.tempdir = TempDirectory()
-
-    def create_environment_stuff(self, num_days=4, sids=[1, 2],
-                                 futures_sids=[3]):
-        self.env = TradingEnvironment()
-        self.sim_params = create_simulation_parameters(num_days=num_days)
-
-        setup_env_data(self.env, self.sim_params, sids, futures_sids)
-
         self.finder = self.env.asset_finder
-
         self.asset1 = self.env.asset_finder.retrieve_asset(1)
         self.asset2 = self.env.asset_finder.retrieve_asset(2)
         self.asset3 = self.env.asset_finder.retrieve_asset(3)
-
-    def tearDown(self):
-        self.tempdir.cleanup()
-        del self.env
 
     def test_long_short_positions(self):
         """
@@ -1232,7 +1241,7 @@ class TestPositionPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: trades_1, 2: trades_2}
         )
@@ -1328,7 +1337,7 @@ class TestPositionPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[1].dt, 10.0, 1000)
@@ -1419,7 +1428,7 @@ class TestPositionPerformance(unittest.TestCase):
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[1].dt, 10.0, 100)
@@ -1536,7 +1545,7 @@ single short-sale transaction"""
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: trades})
 
@@ -1767,7 +1776,7 @@ cost of sole txn in test"
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {3: trades}
         )
@@ -1886,7 +1895,7 @@ single short-sale transaction"""
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {3: trades}
         )
@@ -2130,7 +2139,7 @@ trade after cover"""
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: trades})
 
@@ -2218,7 +2227,7 @@ shares in position"
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
-            self.tempdir,
+            self.instance_tmpdir,
             self.sim_params,
             {1: trades})
 
@@ -2363,27 +2372,21 @@ shares in position"
         self.assertEqual(pp.positions[1].cost_basis, cost_bases[-1])
 
 
-class TestPositionTracker(unittest.TestCase):
+class TestPositionTracker(WithTradingEnvironment,
+                          WithInstanceTmpDir,
+                          ZiplineTestCase):
+    ASSET_FINDER_EQUITY_SIDS = 1, 2
 
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        futures_metadata = {3: {'multiplier': 1000},
-                            4: {'multiplier': 1000},
-                            1032201401: {'multiplier': 50},
-                            }
-        cls.env.write_data(equities_identifiers=[1, 2],
-                           futures_data=futures_metadata)
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
-    def setUp(self):
-        self.tempdir = TempDirectory()
-
-    def tearDown(self):
-        self.tempdir.cleanup()
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                3: {'multiplier': 1000},
+                4: {'multiplier': 1000},
+                1032201401: {'multiplier': 50},
+            },
+            orient='index',
+        )
 
     def test_empty_positions(self):
         """

@@ -115,8 +115,7 @@ if __name__ == '__main__':
                            end=end)
 
     # Create and run the algorithm.
-    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data,
-                            identifiers=['AAPL'])
+    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
     results = algo.run(data).dropna()
 
     # Plot the portfolio and asset data.

@@ -12,16 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import os
 from nose_parameterized import parameterized
-from unittest import TestCase
-from testfixtures import TempDirectory
+
 import pandas as pd
 
-import zipline.utils.factory as factory
-
-from zipline.finance import trading
 from zipline.finance.blotter import Blotter
 from zipline.finance.order import ORDER_STATUS
 from zipline.finance.execution import (
@@ -31,88 +25,51 @@ from zipline.finance.execution import (
     StopOrder,
 )
 
-from zipline.testing import(
-    setup_logger,
-    teardown_logger,
-)
 from zipline.gens.sim_engine import DAY_END, BAR
 from zipline.finance.cancel_policy import EODCancel, NeverCancel
-from zipline.finance.slippage import DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT, \
-    FixedSlippage
-from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
-from zipline.data.us_equity_pricing import BcolzDailyBarReader
-from zipline.data.data_portal import DataPortal
+from zipline.finance.slippage import (
+    DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
+    FixedSlippage,
+)
 from zipline.protocol import BarData
+from zipline.testing.fixtures import (
+    WithDataPortal,
+    WithLogger,
+    WithSimParams,
+    ZiplineTestCase,
+)
 
 
-class BlotterTestCase(TestCase):
+class BlotterTestCase(WithLogger,
+                      WithDataPortal,
+                      WithSimParams,
+                      ZiplineTestCase):
+    START_DATE = pd.Timestamp('2006-01-05', tz='utc')
+    END_DATE = pd.Timestamp('2006-01-06', tz='utc')
+    ASSET_FINDER_EQUITY_SIDS = 24, 25
 
     @classmethod
-    def setUpClass(cls):
-        setup_logger(cls)
-        cls.env = trading.TradingEnvironment()
-
-        cls.sim_params = factory.create_simulation_parameters(
-            start=pd.Timestamp("2006-01-05", tz='UTC'),
-            end=pd.Timestamp("2006-01-06", tz='UTC')
-        )
-
-        cls.env.write_data(equities_data={
-            24: {
-                'start_date': cls.sim_params.trading_days[0],
-                'end_date': cls.env.next_trading_day(
-                    cls.sim_params.trading_days[-1]
-                )
+    def make_daily_bar_data(cls):
+        yield 24, pd.DataFrame(
+            {
+                'open': [50, 50],
+                'high': [50, 50],
+                'low': [50, 50],
+                'close': [50, 50],
+                'volume': [100, 400],
             },
-            25: {
-                'start_date': cls.sim_params.trading_days[0],
-                'end_date': cls.env.next_trading_day(
-                    cls.sim_params.trading_days[-1]
-                )
-            }
-        })
-
-        cls.tempdir = TempDirectory()
-
-        assets = {
-            24: pd.DataFrame({
-                "open": [50, 50],
-                "high": [50, 50],
-                "low": [50, 50],
-                "close": [50, 50],
-                "volume": [100, 400],
-                "day": [day.value for day in cls.sim_params.trading_days]
-            }),
-            25: pd.DataFrame({
-                "open": [50, 50],
-                "high": [50, 50],
-                "low": [50, 50],
-                "close": [50, 50],
-                "volume": [100, 400],
-                "day": [day.value for day in cls.sim_params.trading_days]
-            })
-        }
-
-        path = os.path.join(cls.tempdir.path, "tempdata.bcolz")
-
-        DailyBarWriterFromDataFrames(assets).write(
-            path,
-            cls.sim_params.trading_days,
-            assets
+            index=cls.sim_params.trading_days,
         )
-
-        equity_daily_reader = BcolzDailyBarReader(path)
-
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_daily_reader=equity_daily_reader,
+        yield 25, pd.DataFrame(
+            {
+                'open': [50, 50],
+                'high': [50, 50],
+                'low': [50, 50],
+                'close': [50, 50],
+                'volume': [100, 400],
+            },
+            index=cls.sim_params.trading_days,
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        cls.tempdir.cleanup()
-        teardown_logger(cls)
 
     @parameterized.expand([(MarketOrder(), None, None),
                            (LimitOrder(10), 10, None),
