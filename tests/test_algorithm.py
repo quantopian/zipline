@@ -1202,6 +1202,47 @@ class TestBeforeTradingStart(TestCase):
         self.assertTrue(np.isnan(algo.history_values[0]["high"][2][0]))
         self.assertEqual(350, algo.history_values[0]["price"][2][0])
 
+    def test_portfolio_and_account_bts(self):
+        algo_code = dedent("""
+        from zipline.api import order, sid, get_datetime, record
+
+        def initialize(context):
+            context.ordered = False
+
+        def before_trading_start(context, data):
+            record(pos_value=context.portfolio.positions_value)
+            record(port_value=context.account.equity_with_loan)
+
+        def handle_data(context, data):
+            if not context.ordered:
+                order(sid(1), 1)
+                context.ordered = True
+        """)
+
+        algo = TradingAlgorithm(
+            script=algo_code,
+            data_frequency="minute",
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        results = algo.run(self.data_portal)
+
+        # Asset starts with price 1 on 1/05 and increases by 1 every minute.
+        # Simulation starts on 1/06, where the price in bts is 390, and
+        # positions_value is 0. On 1/07, price is 780, and after buying one
+        # share on the first bar of 1/06, positions_value is 780
+        self.assertEqual(results.pos_value.iloc[0], 0)
+        self.assertEqual(results.pos_value.iloc[1], 780)
+
+        # Starting portfolio value is 10000. Order for the asset fills on the
+        # second bar of 1/06, where the price is 391, and costs the default
+        # commission of 1. On 1/07, the price is 780, and the increase in
+        # portfolio value is 780-392-1
+        self.assertEqual(results.port_value.iloc[0], 10000)
+        self.assertAlmostEqual(results.port_value.iloc[1],
+                               10000 + 780 - 392 - 1)
+
 
 class TestAlgoScript(TestCase):
 
