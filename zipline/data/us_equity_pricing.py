@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import (
-    ABCMeta,
-    abstractmethod,
-    abstractproperty,
-)
+from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import ENOENT
+from functools import reduce, partial
+import operator as op
 from os import remove
 from os.path import exists
 import sqlite3
@@ -27,12 +25,12 @@ from bcolz import (
     open as open_ctable,
 )
 from collections import namedtuple
-from click import progressbar
+import logbook
+import numpy as np
 from numpy import (
     array,
     int64,
     float64,
-    floating,
     full,
     iinfo,
     integer,
@@ -48,40 +46,36 @@ from pandas import (
     NaT,
     isnull,
 )
+from pandas.tslib import iNaT
 from six import (
     iteritems,
     with_metaclass,
+    viewkeys,
 )
+from toolz import valmap
 
+from zipline.utils.functional import unzip, apply
 from zipline.utils.input_validation import coerce_string, preprocess
 from zipline.utils.sqlite_utils import group_into_chunks
-
+from zipline.utils.memoize import lazyval
+from zipline.utils.cli import maybe_show_progress
 from ._equities import _compute_row_slices, _read_bcolz_data
 from ._adjustments import load_adjustments_from_sqlite
 
-import logbook
+
 logger = logbook.Logger('UsEquityPricing')
 
 OHLC = frozenset(['open', 'high', 'low', 'close'])
-US_EQUITY_PRICING_BCOLZ_COLUMNS = [
+US_EQUITY_PRICING_BCOLZ_COLUMNS = (
     'open', 'high', 'low', 'close', 'volume', 'day', 'id'
-]
-SQLITE_ADJUSTMENT_COLUMNS = frozenset(['effective_date', 'ratio', 'sid'])
+)
 SQLITE_ADJUSTMENT_COLUMN_DTYPES = {
     'effective_date': integer,
-    'ratio': floating,
+    'ratio': float,
     'sid': integer,
 }
 SQLITE_ADJUSTMENT_TABLENAMES = frozenset(['splits', 'dividends', 'mergers'])
 
-
-SQLITE_DIVIDEND_PAYOUT_COLUMNS = frozenset(
-    ['sid',
-     'ex_date',
-     'declared_date',
-     'pay_date',
-     'record_date',
-     'amount'])
 SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
     'sid': integer,
     'ex_date': integer,
@@ -91,15 +85,6 @@ SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
     'amount': float,
 }
 
-
-SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMNS = frozenset(
-    ['sid',
-     'ex_date',
-     'declared_date',
-     'record_date',
-     'pay_date',
-     'payment_sid',
-     'ratio'])
 SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
     'sid': integer,
     'ex_date': integer,
@@ -119,54 +104,112 @@ class NoDataOnDate(Exception):
     pass
 
 
-class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
+def check_uint32_safe(value, colname):
+    if value >= UINT32_MAX:
+        raise ValueError(
+            "Value %s from column '%s' is too large" % (value, colname)
+        )
+
+
+def winsorise_uint32(df, column, *columns):
+    """Drops any record where a value would not fit into a uint32.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe to winsorise.
+    *columns : iterable[str]
+        The names of the columns to check.
+
+    Returns
+    -------
+    truncated : pd.DataFrame
+        ``df`` with rows that contain values that do not fit into a uint32
+        zeroed out.
+    """
+    columns = (column,) + columns
+    df[reduce(op.or_, (df[c] > UINT32_MAX for c in columns))] = 0
+    return df
+
+
+def ctable_from_dict(d, **bcolz_kwargs):
+    """
+    Construct a ctable from a dict mapping column name to numpy array.
+    """
+    names, columns = unzip(iteritems(d))
+    return ctable(columns=columns, names=names, **bcolz_kwargs)
+
+
+def to_ctable(raw_data):
+    if isinstance(raw_data, ctable):
+        # we already have a ctable so do nothing
+        return raw_data
+
+    columns = {}
+    for colname in OHLC:
+        coldata = raw_data[colname]
+        check_uint32_safe(coldata.max() * 1000, colname)
+        columns[colname] = coldata * 1000
+
+    winsorise_uint32(raw_data, 'volume', *OHLC)
+    columns = valmap(op.methodcaller('astype', 'uint32'), columns)
+    raw_data.index = dates = raw_data.index.values.astype('datetime64[s]')
+    check_uint32_safe(dates.max().view(int), 'day')
+    columns['day'] = dates.astype('uint32')
+    columns['volume'] = raw_data.volume.astype('uint32')
+    return ctable_from_dict(columns)
+
+
+def _snd_to_ctable(tup):
+    return tup[0], to_ctable(tup[1])
+
+
+class BcolzDailyBarWriter(object):
     """
     Class capable of writing daily OHLCV data to disk in a format that can be
     read efficiently by BcolzDailyOHLCVReader.
+
+    Parameters
+    ----------
+    filename : str
+        The location at which we should write our output.
+    calendar : pandas.DatetimeIndex
+        Calendar to use to compute asset calendar offsets.
 
     See Also
     --------
     BcolzDailyBarReader : Consumer of the data written by this class.
     """
-    @abstractmethod
-    def gen_tables(self, assets):
-        """
-        Return an iterator of pairs of (asset_id, bcolz.ctable).
-        """
-        raise NotImplementedError()
+    _csv_dtypes = {
+        'open': float64,
+        'high': float64,
+        'low': float64,
+        'close': float64,
+        'volume': float64,
+    }
 
-    @abstractmethod
-    def to_uint32(self, array, colname):
-        """
-        Convert raw column values produced by gen_tables into uint32 values.
+    def __init__(self, filename, calendar):
+        self._filename = filename
+        self._calendar = calendar
 
-        Parameters
-        ----------
-        array : np.array
-            An array of raw values.
-        colname : str, {'open', 'high', 'low', 'close', 'volume', 'day'}
-            The name of the column being loaded.
+    @property
+    def progress_bar_message(self):
+        return "Merging asset files:"
 
-        For output being read by the default BcolzOHLCVReader, data should be
-        stored in the following manner:
+    def progress_bar_item_show_func(self, value):
+        return value if value is None else str(value[0])
 
-        - Pricing columns (Open, High, Low, Close) should be stored as 1000 *
-          as-traded dollar value.
-        - Volume should be the as-traded volume.
-        - Dates should be stored as seconds since midnight UTC, Jan 1, 1970.
-        """
-        raise NotImplementedError()
-
-    def write(self, filename, calendar, assets, show_progress=False):
+    def write(self, data, assets=None, show_progress=False):
         """
         Parameters
         ----------
-        filename : str
-            The location at which we should write our output.
-        calendar : pandas.DatetimeIndex
-            Calendar to use to compute asset calendar offsets.
-        assets : pandas.Int64Index
-            The assets for which to write data.
+        data : iterable[tuple[int, pandas.DataFrame or bcolz.ctable]]
+            The data chunks to write. Each chunk should be a tuple of sid
+            and the data for that asset.
+        assets : set[int], optional
+            The assets that should be in ``data``. If this is provided
+            we will check ``data`` against the assets and provide better
+            progress information.
         show_progress : bool
             Whether or not to show a progress bar while writing.
 
@@ -175,19 +218,40 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
         table : bcolz.ctable
             The newly-written table.
         """
-        _iterator = self.gen_tables(assets)
-        if show_progress:
-            pbar = progressbar(
-                _iterator,
-                length=len(assets),
-                item_show_func=lambda i: i if i is None else str(i[0]),
-                label="Merging asset files:",
-            )
-            with pbar as pbar_iterator:
-                return self._write_internal(filename, calendar, pbar_iterator)
-        return self._write_internal(filename, calendar, _iterator)
+        ctx = maybe_show_progress(
+            map(_snd_to_ctable, data),
+            show_progress=show_progress,
+            item_show_func=self.progress_bar_item_show_func,
+            label=self.progress_bar_message,
+            length=len(assets) if assets is not None else None,
+        )
+        with ctx as it:
+            return self._write_internal(it, assets)
 
-    def _write_internal(self, filename, calendar, iterator):
+    def write_csvs(self, asset_map, show_progress=False):
+        """Read CSVs as DataFrames from our asset map.
+
+        Parameters
+        ----------
+        asset_map : dict[int -> str]
+            A mapping from asset id to file path with the CSV data for that
+            asset
+        show_progress : bool
+            Whether or not to show a progress bar while writing.
+        """
+        read = partial(
+            read_csv,
+            parse_dates=['day'],
+            index_col='day',
+            dtype=self._csv_dtypes,
+        )
+        return self.write(
+            ((asset, read(path)) for asset, path in iteritems(asset_map)),
+            assets=viewkeys(asset_map),
+            show_progress=show_progress,
+        )
+
+    def _write_internal(self, iterator, assets):
         """
         Internal implementation of write.
 
@@ -205,6 +269,15 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
         }
 
         earliest_date = None
+        calendar = self._calendar
+
+        if assets is not None:
+            @apply
+            def iterator(iterator=iterator, assets=set(assets)):
+                for asset_id, table in iterator:
+                    if asset_id not in assets:
+                        raise ValueError('unknown asset id %r' % asset_id)
+                    yield asset_id, table
 
         for asset_id, table in iterator:
             nrows = len(table)
@@ -212,11 +285,12 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
                 if column_name == 'id':
                     # We know what the content of this column is, so don't
                     # bother reading it.
-                    columns['id'].append(full((nrows,), asset_id, uint32))
+                    columns['id'].append(
+                        full((nrows,), asset_id, dtype='uint32'),
+                    )
                     continue
-                columns[column_name].append(
-                    self.to_uint32(table[column_name][:], column_name)
-                )
+
+                columns[column_name].append(table[column_name])
 
             if earliest_date is None:
                 earliest_date = table["day"][0]
@@ -237,11 +311,7 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
             # Calculate the number of trading days between the first date
             # in the stored data and the first date of **this** asset. This
             # offset used for output alignment by the reader.
-
-            # HACK: Index with a list so that we get back an array we can pass
-            # to self.to_uint32.  We could try to extract this in the loop
-            # above, but that makes the logic a lot messier.
-            asset_first_day = self.to_uint32(table['day'][[0]], 'day')[0]
+            asset_first_day = table['day'][0]
             calendar_offset[asset_key] = calendar.get_loc(
                 Timestamp(asset_first_day, unit='s', tz='UTC'),
             )
@@ -253,79 +323,20 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
                 for colname in US_EQUITY_PRICING_BCOLZ_COLUMNS
             ],
             names=US_EQUITY_PRICING_BCOLZ_COLUMNS,
-            rootdir=filename,
+            rootdir=self._filename,
             mode='w',
         )
 
-        full_table.attrs['first_trading_day'] = \
-            int(earliest_date / 1e6)
+        full_table.attrs['first_trading_day'] = (
+            earliest_date // 1e6
+            if earliest_date is not None else
+            iNaT
+        )
         full_table.attrs['first_row'] = first_row
         full_table.attrs['last_row'] = last_row
         full_table.attrs['calendar_offset'] = calendar_offset
         full_table.attrs['calendar'] = calendar.asi8.tolist()
         return full_table
-
-
-class DailyBarWriterFromCSVs(BcolzDailyBarWriter):
-    """
-    BcolzDailyBarWriter constructed from a map from csvs to assets.
-
-    Parameters
-    ----------
-    asset_map : dict
-        A map from asset_id -> path to csv with data for that asset.
-
-    CSVs should have the following columns:
-        day : datetime64
-        open : float64
-        high : float64
-        low : float64
-        close : float64
-        volume : int64
-    """
-    _csv_dtypes = {
-        'open': float64,
-        'high': float64,
-        'low': float64,
-        'close': float64,
-        'volume': float64,
-    }
-
-    def __init__(self, asset_map):
-        self._asset_map = asset_map
-
-    def gen_tables(self, assets):
-        """
-        Read CSVs as DataFrames from our asset map.
-        """
-        dtypes = self._csv_dtypes
-        for asset in assets:
-            path = self._asset_map.get(asset)
-            if path is None:
-                raise KeyError("No path supplied for asset %s" % asset)
-            data = read_csv(path, parse_dates=['day'], dtype=dtypes)
-            yield asset, ctable.fromdataframe(data)
-
-    def to_uint32(self, array, colname):
-        arrmax = array.max()
-        if colname in OHLC:
-            self.check_uint_safe(arrmax * 1000, colname)
-            return (array * 1000).astype(uint32)
-        elif colname == 'volume':
-            self.check_uint_safe(arrmax, colname)
-            return array.astype(uint32)
-        elif colname == 'day':
-            nanos_per_second = (1000 * 1000 * 1000)
-            self.check_uint_safe(arrmax.view(int64) / nanos_per_second,
-                                 colname)
-            return (array.view(int64) / nanos_per_second).astype(uint32)
-
-    @staticmethod
-    def check_uint_safe(value, colname):
-        if value >= UINT32_MAX:
-            raise ValueError(
-                "Value %s from column '%s' is too large" % (value, colname)
-            )
 
 
 class DailyBarReader(with_metaclass(ABCMeta)):
@@ -401,36 +412,58 @@ class BcolzDailyBarReader(DailyBarReader):
     def __init__(self, table):
 
         self._table = table
-        self._calendar = DatetimeIndex(table.attrs['calendar'], tz='UTC')
-        self._first_rows = {
-            int(asset_id): start_index
-            for asset_id, start_index in iteritems(table.attrs['first_row'])
-        }
-        self._last_rows = {
-            int(asset_id): end_index
-            for asset_id, end_index in iteritems(table.attrs['last_row'])
-        }
-        self._calendar_offsets = {
-            int(id_): offset
-            for id_, offset in iteritems(table.attrs['calendar_offset'])
-        }
-
-        try:
-            self._first_trading_day = Timestamp(
-                table.attrs['first_trading_day'],
-                unit='ms',
-                tz='UTC'
-            )
-        except KeyError:
-            self._first_trading_day = None
-
         # Cache of fully read np.array for the carrays in the daily bar table.
         # raw_array does not use the same cache, but it could.
         # Need to test keeping the entire array in memory for the course of a
         # process first.
         self._spot_cols = {}
-
         self.PRICE_ADJUSTMENT_FACTOR = 0.001
+
+    @lazyval
+    def _calendar(self):
+        return DatetimeIndex(self._table.attrs['calendar'], tz='UTC')
+
+    @lazyval
+    def _first_rows(self):
+        return {
+            int(asset_id): start_index
+            for asset_id, start_index in iteritems(
+                self._table.attrs['first_row'],
+            )
+        }
+
+    @lazyval
+    def _last_rows(self):
+        return {
+            int(asset_id): end_index
+            for asset_id, end_index in iteritems(
+                self._table.attrs['last_row'],
+            )
+        }
+
+    @lazyval
+    def _calendar_offsets(self):
+        return {
+            int(id_): offset
+            for id_, offset in iteritems(
+                self._table.attrs['calendar_offset'],
+            )
+        }
+
+    @lazyval
+    def first_trading_day(self):
+        try:
+            return Timestamp(
+                self._table.attrs['first_trading_day'],
+                unit='ms',
+                tz='UTC'
+            )
+        except KeyError:
+            return None
+
+    @property
+    def last_available_dt(self):
+        return self._calendar[-1]
 
     def _compute_slices(self, start_idx, end_idx, assets):
         """
@@ -491,14 +524,6 @@ class BcolzDailyBarReader(DailyBarReader):
             last_rows,
             offsets,
         )
-
-    @property
-    def first_trading_day(self):
-        return self._first_trading_day
-
-    @property
-    def last_available_dt(self):
-        return self._calendar[-1]
 
     def _spot_col(self, colname):
         """
@@ -704,6 +729,8 @@ class SQLiteAdjustmentWriter(object):
     ----------
     conn_or_path : str or sqlite3.Connection
         A handle to the target sqlite database.
+    daily_bar_reader : BcolzDailyBarReader
+        Daily bar reader to use for dividend writes.
     overwrite : bool, optional, default=False
         If True and conn_or_path is a string, remove any existing files at the
         given path before connecting.
@@ -713,7 +740,10 @@ class SQLiteAdjustmentWriter(object):
     SQLiteAdjustmentReader
     """
 
-    def __init__(self, conn_or_path, calendar, daily_bar_reader,
+    def __init__(self,
+                 conn_or_path,
+                 daily_bar_reader,
+                 calendar,
                  overwrite=False):
         if isinstance(conn_or_path, sqlite3.Connection):
             self.conn = conn_or_path
@@ -725,98 +755,80 @@ class SQLiteAdjustmentWriter(object):
                     if e.errno != ENOENT:
                         raise
             self.conn = sqlite3.connect(conn_or_path)
+            self.uri = conn_or_path
         else:
             raise TypeError("Unknown connection type %s" % type(conn_or_path))
 
         self._daily_bar_reader = daily_bar_reader
         self._calendar = calendar
 
-    def write_frame(self, tablename, frame):
-        if frozenset(frame.columns) != SQLITE_ADJUSTMENT_COLUMNS:
-            raise ValueError(
-                "Unexpected frame columns:\n"
-                "Expected Columns: %s\n"
-                "Received Columns: %s" % (
-                    SQLITE_ADJUSTMENT_COLUMNS,
-                    frame.columns.tolist(),
-                )
+    def _write(self, tablename, expected_dtypes, frame):
+        if frame is None or frame.empty:
+            # keeping the dtypes correct for empty frames is not easy
+            frame = DataFrame(
+                np.array([], dtype=list(expected_dtypes.items())),
             )
-        elif tablename not in SQLITE_ADJUSTMENT_TABLENAMES:
-            raise ValueError(
-                "Adjustment table %s not in %s" % (
-                    tablename, SQLITE_ADJUSTMENT_TABLENAMES
-                )
-            )
-
-        expected_dtypes = SQLITE_ADJUSTMENT_COLUMN_DTYPES
-        actual_dtypes = frame.dtypes
-        for colname, expected in iteritems(expected_dtypes):
-            actual = actual_dtypes[colname]
-            if not issubdtype(actual, expected):
-                raise TypeError(
-                    "Expected data of type {expected} for column '{colname}', "
-                    "but got {actual}.".format(
-                        expected=expected,
-                        colname=colname,
-                        actual=actual,
+        else:
+            if frozenset(frame.columns) != viewkeys(expected_dtypes):
+                raise ValueError(
+                    "Unexpected frame columns:\n"
+                    "Expected Columns: %s\n"
+                    "Received Columns: %s" % (
+                        set(expected_dtypes),
+                        frame.columns.tolist(),
                     )
                 )
-        return frame.to_sql(tablename, self.conn)
+
+            actual_dtypes = frame.dtypes
+            for colname, expected in iteritems(expected_dtypes):
+                actual = actual_dtypes[colname]
+                if not issubdtype(actual, expected):
+                    raise TypeError(
+                        "Expected data of type {expected} for column"
+                        " '{colname}', but got '{actual}'.".format(
+                            expected=expected,
+                            colname=colname,
+                            actual=actual,
+                        ),
+                    )
+
+        frame.to_sql(
+            tablename,
+            self.conn,
+            if_exists='append',
+            chunksize=50000,
+        )
+
+    def write_frame(self, tablename, frame):
+        if tablename not in SQLITE_ADJUSTMENT_TABLENAMES:
+            raise ValueError(
+                "Adjustment table %s not in %s" % (
+                    tablename,
+                    SQLITE_ADJUSTMENT_TABLENAMES,
+                )
+            )
+        return self._write(
+            tablename,
+            SQLITE_ADJUSTMENT_COLUMN_DTYPES,
+            frame,
+        )
 
     def write_dividend_payouts(self, frame):
         """
         Write dividend payout data to SQLite table `dividend_payouts`.
         """
-        if frozenset(frame.columns) != SQLITE_DIVIDEND_PAYOUT_COLUMNS:
-            raise ValueError(
-                "Unexpected frame columns:\n"
-                "Expected Columns: %s\n"
-                "Received Columns: %s" % (
-                    sorted(SQLITE_DIVIDEND_PAYOUT_COLUMNS),
-                    sorted(frame.columns.tolist()),
-                )
-            )
-
-        expected_dtypes = SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES
-        actual_dtypes = frame.dtypes
-        for colname, expected in iteritems(expected_dtypes):
-            actual = actual_dtypes[colname]
-            if not issubdtype(actual, expected):
-                raise TypeError(
-                    "Expected data of type {expected} for column '{colname}', "
-                    "but got {actual}.".format(
-                        expected=expected,
-                        colname=colname,
-                        actual=actual,
-                    )
-                )
-        return frame.to_sql('dividend_payouts', self.conn)
+        return self._write(
+            'dividend_payouts',
+            SQLITE_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+            frame,
+        )
 
     def write_stock_dividend_payouts(self, frame):
-        if frozenset(frame.columns) != SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMNS:
-            raise ValueError(
-                "Unexpected frame columns:\n"
-                "Expected Columns: %s\n"
-                "Received Columns: %s" % (
-                    sorted(SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMNS),
-                    sorted(frame.columns.tolist()),
-                )
-            )
-
-        expected_dtypes = SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES
-        actual_dtypes = frame.dtypes
-        for colname, expected in iteritems(expected_dtypes):
-            actual = actual_dtypes[colname]
-            if not issubdtype(actual, expected):
-                raise TypeError(
-                    "Expected data of type {expected} for column '{colname}', "
-                    "but got {actual}.".format(
-                        expected=expected,
-                        colname=colname,
-                        actual=actual,
-                    )
-                )
-        return frame.to_sql('stock_dividend_payouts', self.conn)
+        return self._write(
+            'stock_dividend_payouts',
+            SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES,
+            frame,
+        )
 
     def calc_dividend_ratios(self, dividends):
         """
@@ -832,6 +844,15 @@ class SQLiteAdjustmentWriter(object):
             - effective_date, the date in seconds on which to apply the ratio.
             - ratio, the ratio to apply to backwards looking pricing data.
         """
+        if dividends is None:
+            return DataFrame(np.array(
+                [],
+                dtype=[
+                    ('sid', uint32),
+                    ('effective_date', uint32),
+                    ('ratio',  float64),
+                ],
+            ))
         ex_dates = dividends.ex_date.values
 
         sids = dividends.sid.values
@@ -841,14 +862,12 @@ class SQLiteAdjustmentWriter(object):
 
         daily_bar_reader = self._daily_bar_reader
 
-        calendar = self._calendar
-
         effective_dates = full(len(amounts), -1, dtype=int64)
-
+        calendar = self._calendar
         for i, amount in enumerate(amounts):
             sid = sids[i]
             ex_date = ex_dates[i]
-            day_loc = calendar.get_loc(ex_date)
+            day_loc = calendar.get_loc(ex_date, method='bfill')
             prev_close_date = calendar[day_loc - 1]
             try:
                 prev_close = daily_bar_reader.spot_price(
@@ -881,28 +900,29 @@ class SQLiteAdjustmentWriter(object):
             'ratio': ratios,
         })
 
-    def write_dividend_data(self, dividends, stock_dividends=None):
-        """
-        Write both dividend payouts and the derived price adjustment ratios.
-        """
-
-        # First write the dividend payouts.
-        dividend_payouts = dividends.copy()
-        dividend_payouts['ex_date'] = dividend_payouts['ex_date'].values.\
-            astype('datetime64[s]').astype(integer)
-        dividend_payouts['record_date'] = \
-            dividend_payouts['record_date'].values.astype('datetime64[s]').\
-            astype(integer)
-        dividend_payouts['declared_date'] = \
-            dividend_payouts['declared_date'].values.astype('datetime64[s]').\
-            astype(integer)
-        dividend_payouts['pay_date'] = \
-            dividend_payouts['pay_date'].values.astype('datetime64[s]').\
-            astype(integer)
+    def _write_dividends(self, dividends):
+        if dividends is None:
+            dividend_payouts = None
+        else:
+            dividend_payouts = dividends.copy()
+            dividend_payouts['ex_date'] = dividend_payouts['ex_date'].values.\
+                astype('datetime64[s]').astype(integer)
+            dividend_payouts['record_date'] = \
+                dividend_payouts['record_date'].values.astype('datetime64[s]').\
+                astype(integer)
+            dividend_payouts['declared_date'] = \
+                dividend_payouts['declared_date'].values.astype('datetime64[s]').\
+                astype(integer)
+            dividend_payouts['pay_date'] = \
+                dividend_payouts['pay_date'].values.astype('datetime64[s]').\
+                astype(integer)
 
         self.write_dividend_payouts(dividend_payouts)
 
-        if stock_dividends is not None:
+    def _write_stock_dividends(self, stock_dividends):
+        if stock_dividends is None:
+            stock_dividend_payouts = None
+        else:
             stock_dividend_payouts = stock_dividends.copy()
             stock_dividend_payouts['ex_date'] = \
                 stock_dividend_payouts['ex_date'].values.\
@@ -916,26 +936,26 @@ class SQLiteAdjustmentWriter(object):
             stock_dividend_payouts['pay_date'] = \
                 stock_dividend_payouts['pay_date'].\
                 values.astype('datetime64[s]').astype(integer)
-        else:
-            stock_dividend_payouts = DataFrame({
-                'sid': array([], dtype=uint32),
-                'record_date': array([], dtype=uint32),
-                'ex_date': array([], dtype=uint32),
-                'declared_date': array([], dtype=uint32),
-                'pay_date': array([], dtype=uint32),
-                'payment_sid': array([], dtype=uint32),
-                'ratio': array([], dtype=float),
-            })
-
         self.write_stock_dividend_payouts(stock_dividend_payouts)
 
+    def write_dividend_data(self, dividends, stock_dividends=None):
+        """
+        Write both dividend payouts and the derived price adjustment ratios.
+        """
+
+        # First write the dividend payouts.
+        self._write_dividends(dividends)
+        self._write_stock_dividends(stock_dividends)
+
         # Second from the dividend payouts, calculate ratios.
-
         dividend_ratios = self.calc_dividend_ratios(dividends)
-
         self.write_frame('dividends', dividend_ratios)
 
-    def write(self, splits, mergers, dividends, stock_dividends=None):
+    def write(self,
+              splits=None,
+              mergers=None,
+              dividends=None,
+              stock_dividends=None):
         """
         Writes data to a SQLite file to be read by SQLiteAdjustmentReader.
 

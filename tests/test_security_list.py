@@ -1,19 +1,17 @@
 import pandas as pd
 
 from datetime import timedelta
-from unittest import TestCase
-from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
-from zipline.finance.trading import TradingEnvironment
 from zipline.testing import (
     add_security_data,
+    create_data_portal,
     security_list_copy,
-    setup_logger,
-    teardown_logger,
+    tmp_dir,
+    tmp_trading_env,
 )
-from zipline.testing.core import create_data_portal
+from zipline.testing.fixtures import WithLogger, ZiplineTestCase
 from zipline.utils import factory
 from zipline.utils.security_list import (
     SecurityListSet,
@@ -64,58 +62,47 @@ class IterateRLAlgo(TradingAlgorithm):
                 self.found = True
 
 
-class SecurityListTestCase(TestCase):
+class SecurityListTestCase(WithLogger, ZiplineTestCase):
 
     @classmethod
-    def setUpClass(cls):
+    def init_class_fixtures(cls):
+        super(SecurityListTestCase, cls).init_class_fixtures()
         # this is ugly, but we need to create two different
         # TradingEnvironment/DataPortal pairs
 
-        cls.env = TradingEnvironment()
-        cls.env2 = TradingEnvironment()
-
-        cls.extra_knowledge_date = pd.Timestamp("2015-01-27", tz='UTC')
-        cls.trading_day_before_first_kd = pd.Timestamp("2015-01-23", tz='UTC')
-
+        start = list(LEVERAGED_ETFS.keys())[0]
+        end = pd.Timestamp('2015-02-17', tz='utc')
+        cls.extra_knowledge_date = pd.Timestamp('2015-01-27', tz='utc')
+        cls.trading_day_before_first_kd = pd.Timestamp('2015-01-23', tz='utc')
         symbols = ['AAPL', 'GOOG', 'BZQ', 'URTY', 'JFT']
 
-        days = cls.env.days_in_range(
-            list(LEVERAGED_ETFS.keys())[0],
-            pd.Timestamp("2015-02-17", tz='UTC')
-        )
-
+        cls.env = cls.enter_class_context(tmp_trading_env(
+            equities=pd.DataFrame.from_records([{
+                'start_date': start,
+                'end_date': end,
+                'symbol': symbol
+            } for symbol in symbols]),
+        ))
         cls.sim_params = factory.create_simulation_parameters(
-            start=list(LEVERAGED_ETFS.keys())[0],
+            start=start,
             num_days=4,
             env=cls.env
         )
 
-        cls.sim_params2 = factory.create_simulation_parameters(
+        cls.sim_params2 = sp2 = factory.create_simulation_parameters(
             start=cls.trading_day_before_first_kd, num_days=4
         )
 
-        equities_metadata = {}
-
-        for i, symbol in enumerate(symbols):
-            equities_metadata[i] = {
-                'start_date': days[0],
-                'end_date': days[-1],
+        cls.env2 = cls.enter_class_context(tmp_trading_env(
+            equities=pd.DataFrame.from_records([{
+                'start_date': sp2.period_start,
+                'end_date': sp2.period_end,
                 'symbol': symbol
-            }
+            } for symbol in symbols]),
+        ))
 
-        equities_metadata2 = {}
-        for i, symbol in enumerate(symbols):
-            equities_metadata2[i] = {
-                'start_date': cls.sim_params2.period_start,
-                'end_date': cls.sim_params2.period_end,
-                'symbol': symbol
-            }
-
-        cls.env.write_data(equities_data=equities_metadata)
-        cls.env2.write_data(equities_data=equities_metadata2)
-
-        cls.tempdir = TempDirectory()
-        cls.tempdir2 = TempDirectory()
+        cls.tempdir = cls.enter_class_context(tmp_dir())
+        cls.tempdir2 = cls.enter_class_context(tmp_dir())
 
         cls.data_portal = create_data_portal(
             env=cls.env,
@@ -130,15 +117,6 @@ class SecurityListTestCase(TestCase):
             sim_params=cls.sim_params2,
             sids=range(0, 5)
         )
-
-        setup_logger(cls)
-
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-        cls.tempdir.cleanup()
-        cls.tempdir2.cleanup()
-        teardown_logger(cls)
 
     def test_iterate_over_restricted_list(self):
         algo = IterateRLAlgo(symbol='BZQ', sim_params=self.sim_params,
@@ -271,41 +249,33 @@ class SecurityListTestCase(TestCase):
             self.check_algo_exception(algo, ctx, 0)
 
     def test_algo_without_rl_violation_after_delete(self):
-        new_tempdir = TempDirectory()
-        try:
-            with security_list_copy():
-                # add a delete statement removing bzq
-                # write a new delete statement file to disk
-                add_security_data([], ['BZQ'])
+        sim_params = factory.create_simulation_parameters(
+            start=self.extra_knowledge_date,
+            num_days=4,
+        )
+        equities = pd.DataFrame.from_records([{
+            'symbol': 'BZQ',
+            'start_date': sim_params.period_start,
+            'end_date': sim_params.period_end,
+        }])
+        with tmp_dir() as new_tempdir, \
+                security_list_copy(), \
+                tmp_trading_env(equities=equities) as env:
+            # add a delete statement removing bzq
+            # write a new delete statement file to disk
+            add_security_data([], ['BZQ'])
 
-                # now fast-forward to self.extra_knowledge_date.  requires
-                # a new env, simparams, and dataportal
-                env = TradingEnvironment()
-                sim_params = factory.create_simulation_parameters(
-                    start=self.extra_knowledge_date, num_days=4, env=env)
+            data_portal = create_data_portal(
+                env,
+                new_tempdir,
+                sim_params,
+                range(0, 5)
+            )
 
-                env.write_data(equities_data={
-                    "0": {
-                        'symbol': 'BZQ',
-                        'start_date': sim_params.period_start,
-                        'end_date': sim_params.period_end,
-                    }
-                })
-
-                data_portal = create_data_portal(
-                    env,
-                    new_tempdir,
-                    sim_params,
-                    range(0, 5)
-                )
-
-                algo = RestrictedAlgoWithoutCheck(
-                    symbol='BZQ', sim_params=sim_params, env=env
-                )
-                algo.run(data_portal)
-
-        finally:
-            new_tempdir.cleanup()
+            algo = RestrictedAlgoWithoutCheck(
+                symbol='BZQ', sim_params=sim_params, env=env
+            )
+            algo.run(data_portal)
 
     def test_algo_with_rl_violation_after_add(self):
         with security_list_copy():

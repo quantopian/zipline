@@ -1,5 +1,5 @@
 """
-Cached object with an expiration date.
+Caching utilities for zipline
 """
 from collections import namedtuple
 

@@ -29,7 +29,6 @@ from zipline.pipeline.loaders.earnings import EarningsCalendarLoader
 from zipline.pipeline.loaders.blaze import (
     BlazeEarningsCalendarLoader,
 )
-
 from zipline.testing import tmp_asset_finder
 
 earnings_cases = [

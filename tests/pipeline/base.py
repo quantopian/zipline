@@ -13,13 +13,13 @@ from pandas import date_range, Int64Index, DataFrame
 from pandas.util.testing import assert_series_equal
 from six import iteritems
 
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.pipeline import Pipeline
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.testing import (
     ExplodingObject,
     gen_calendars,
-    make_simple_equity_info,
     num_days_in_range,
     tmp_asset_finder,
 )

@@ -12,8 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import warnings
 from copy import copy
+import operator as op
+import warnings
 
 import pytz
 import pandas as pd
@@ -32,6 +33,7 @@ from six import (
 )
 
 from zipline._protocol import handle_non_market_minutes
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
 from zipline.errors import (
     AttachPipelineAfterInitialize,
@@ -248,11 +250,18 @@ class TradingAlgorithm(object):
             self.trading_environment = TradingEnvironment()
 
         # Update the TradingEnvironment with the provided asset metadata
-        self.trading_environment.write_data(
-            equities_data=kwargs.pop('equities_metadata', {}),
-            equities_identifiers=kwargs.pop('identifiers', []),
-            futures_data=kwargs.pop('futures_metadata', {}),
-        )
+        if 'equities_metadata' in kwargs or 'futures_metadata' in kwargs:
+            warnings.warn(
+                'passing metadata to TradingAlgorithm is deprecated; please'
+                ' write this data into the asset db before passing it to the'
+                ' trading environment',
+                DeprecationWarning,
+                stacklevel=1,
+            )
+            self.trading_environment.write_data(
+                equities=kwargs.pop('equities_metadata', None),
+                futures=kwargs.pop('futures_metadata', None),
+            )
 
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
@@ -613,7 +622,7 @@ class TradingAlgorithm(object):
     def _write_and_map_id_index_to_sids(self, identifiers, as_of_date):
         # Build new Assets for identifiers that can't be resolved as
         # sids/Assets
-        identifiers_to_build = []
+        identifiers_to_build = set()
         for identifier in identifiers:
             asset = None
 
@@ -624,10 +633,19 @@ class TradingAlgorithm(object):
                 asset = self.asset_finder.retrieve_asset(sid=identifier,
                                                          default_none=True)
             if asset is None:
-                identifiers_to_build.append(identifier)
+                identifiers_to_build.add(op.index(identifier))
 
-        self.trading_environment.write_data(
-            equities_identifiers=identifiers_to_build)
+        if identifiers_to_build:
+            warnings.warn(
+                'writing unknown identifiers into the assets db of the trading'
+                ' environment is deprecated; please write this information'
+                ' to the assets db before constructing the environment',
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self.trading_environment.write_data(
+                equities=make_simple_equity_info(identifiers_to_build),
+            )
 
         # We need to clear out any cache misses that were stored while trying
         # to do lookups.  The real fix for this problem is to not construct an
