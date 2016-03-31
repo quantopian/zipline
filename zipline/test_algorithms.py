@@ -488,18 +488,18 @@ class SetMaxLeverageAlgorithm(TradingAlgorithm):
 
 
 class SetMaxPositionSizeAlgorithm(TradingAlgorithm):
-    def initialize(self, sid=None, max_shares=None, max_notional=None):
+    def initialize(self, asset=None, max_shares=None, max_notional=None):
         self.set_slippage(FixedSlippage())
         self.order_count = 0
-        self.set_max_position_size(sid=sid,
+        self.set_max_position_size(asset=asset,
                                    max_shares=max_shares,
                                    max_notional=max_notional)
 
 
 class SetMaxOrderSizeAlgorithm(TradingAlgorithm):
-    def initialize(self, sid=None, max_shares=None, max_notional=None):
+    def initialize(self, asset=None, max_shares=None, max_notional=None):
         self.order_count = 0
-        self.set_max_order_size(sid=sid,
+        self.set_max_order_size(asset=asset,
                                 max_shares=max_shares,
                                 max_notional=max_notional)
 

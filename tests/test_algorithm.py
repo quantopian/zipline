@@ -1702,8 +1702,15 @@ class TestTradingControls(TestCase):
             133: {
                 'start_date': cls.sim_params.period_start,
                 'end_date': cls.env.next_trading_day(cls.sim_params.period_end)
+            },
+            134: {
+                'start_date': cls.sim_params.period_start,
+                'end_date': cls.env.next_trading_day(cls.sim_params.period_end)
             }
         })
+
+        cls.asset = cls.env.asset_finder.retrieve_asset(cls.sid)
+        cls.another_asset = cls.env.asset_finder.retrieve_asset(134)
 
         cls.tempdir = TempDirectory()
 
@@ -1746,7 +1753,7 @@ class TestTradingControls(TestCase):
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 1)
             algo.order_count += 1
-        algo = SetMaxPositionSizeAlgorithm(sid=self.sid,
+        algo = SetMaxPositionSizeAlgorithm(asset=self.asset,
                                            max_shares=10,
                                            max_notional=500.0,
                                            sim_params=self.sim_params,
@@ -1759,7 +1766,7 @@ class TestTradingControls(TestCase):
             algo.order(algo.sid(self.sid), 3)
             algo.order_count += 1
 
-        algo = SetMaxPositionSizeAlgorithm(sid=self.sid,
+        algo = SetMaxPositionSizeAlgorithm(asset=self.asset,
                                            max_shares=10,
                                            max_notional=500.0,
                                            sim_params=self.sim_params,
@@ -1772,7 +1779,7 @@ class TestTradingControls(TestCase):
             algo.order(algo.sid(self.sid), 3)
             algo.order_count += 1
 
-        algo = SetMaxPositionSizeAlgorithm(sid=self.sid,
+        algo = SetMaxPositionSizeAlgorithm(asset=self.asset,
                                            max_shares=10,
                                            max_notional=67.0,
                                            sim_params=self.sim_params,
@@ -1784,7 +1791,7 @@ class TestTradingControls(TestCase):
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
-        algo = SetMaxPositionSizeAlgorithm(sid=self.sid + 1,
+        algo = SetMaxPositionSizeAlgorithm(asset=self.another_asset,
                                            max_shares=10,
                                            max_notional=67.0,
                                            sim_params=self.sim_params,
@@ -1836,7 +1843,7 @@ class TestTradingControls(TestCase):
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 1)
             algo.order_count += 1
-        algo = SetMaxOrderSizeAlgorithm(sid=self.sid,
+        algo = SetMaxOrderSizeAlgorithm(asset=self.asset,
                                         max_shares=10,
                                         max_notional=500.0,
                                         sim_params=self.sim_params,
@@ -1849,7 +1856,7 @@ class TestTradingControls(TestCase):
             algo.order(algo.sid(self.sid), algo.order_count + 1)
             algo.order_count += 1
 
-        algo = SetMaxOrderSizeAlgorithm(sid=self.sid,
+        algo = SetMaxOrderSizeAlgorithm(asset=self.asset,
                                         max_shares=3,
                                         max_notional=500.0,
                                         sim_params=self.sim_params,
@@ -1862,7 +1869,7 @@ class TestTradingControls(TestCase):
             algo.order(algo.sid(self.sid), algo.order_count + 1)
             algo.order_count += 1
 
-        algo = SetMaxOrderSizeAlgorithm(sid=self.sid,
+        algo = SetMaxOrderSizeAlgorithm(asset=self.asset,
                                         max_shares=10,
                                         max_notional=40.0,
                                         sim_params=self.sim_params,
@@ -1874,7 +1881,7 @@ class TestTradingControls(TestCase):
         def handle_data(algo, data):
             algo.order(algo.sid(self.sid), 10000)
             algo.order_count += 1
-        algo = SetMaxOrderSizeAlgorithm(sid=self.sid + 1,
+        algo = SetMaxOrderSizeAlgorithm(asset=self.another_asset,
                                         max_shares=1,
                                         max_notional=1.0,
                                         sim_params=self.sim_params,

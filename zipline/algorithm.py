@@ -1020,11 +1020,11 @@ class TradingAlgorithm(object):
             return MarketOrder()
 
     @api_method
-    def order_value(self, sid, value,
+    def order_value(self, asset, value,
                     limit_price=None, stop_price=None, style=None):
         """
         Place an order by desired value rather than desired number of shares.
-        If the requested sid exists, the requested value is
+        If the requested asset exists, the requested value is
         divided by its price to imply the number of shares to transact.
         If the Asset being ordered is a Future, the 'value' calculated
         is actually the exposure, as Futures have no 'value'.
@@ -1036,11 +1036,11 @@ class TradingAlgorithm(object):
         Stop order:      order(sid, value, None, stop_price)
         StopLimit order: order(sid, value, limit_price, stop_price)
         """
-        if not self._can_order_asset(sid):
+        if not self._can_order_asset(asset):
             return None
 
-        amount = self._calculate_order_value_amount(sid, value)
-        return self.order(sid, amount,
+        amount = self._calculate_order_value_amount(asset, value)
+        return self.order(asset, amount,
                           limit_price=limit_price,
                           stop_price=stop_price,
                           style=style)
@@ -1147,7 +1147,7 @@ class TradingAlgorithm(object):
     @api_method
     def set_symbol_lookup_date(self, dt):
         """
-        Set the date for which symbols will be resolved to their sids
+        Set the date for which symbols will be resolved to their assets
         (symbols may map to different firms or underlying assets at
         different times)
         """
@@ -1168,7 +1168,7 @@ class TradingAlgorithm(object):
         self.sim_params.data_frequency = value
 
     @api_method
-    def order_percent(self, sid, percent,
+    def order_percent(self, asset, percent,
                       limit_price=None, stop_price=None, style=None):
         """
         Place an order in the specified asset corresponding to the given
@@ -1176,17 +1176,17 @@ class TradingAlgorithm(object):
 
         Note that percent must expressed as a decimal (0.50 means 50\%).
         """
-        if not self._can_order_asset(sid):
+        if not self._can_order_asset(asset):
             return None
 
         value = self.portfolio.portfolio_value * percent
-        return self.order_value(sid, value,
+        return self.order_value(asset, value,
                                 limit_price=limit_price,
                                 stop_price=stop_price,
                                 style=style)
 
     @api_method
-    def order_target(self, sid, target,
+    def order_target(self, asset, target,
                      limit_price=None, stop_price=None, style=None):
         """
         Place an order to adjust a position to a target number of shares. If
@@ -1198,21 +1198,21 @@ class TradingAlgorithm(object):
         if not self._can_order_asset(asset):
             return None
 
-        if sid in self.portfolio.positions:
-            current_position = self.portfolio.positions[sid].amount
+        if asset in self.portfolio.positions:
+            current_position = self.portfolio.positions[asset].amount
             req_shares = target - current_position
-            return self.order(sid, req_shares,
+            return self.order(asset, req_shares,
                               limit_price=limit_price,
                               stop_price=stop_price,
                               style=style)
         else:
-            return self.order(sid, target,
+            return self.order(asset, target,
                               limit_price=limit_price,
                               stop_price=stop_price,
                               style=style)
 
     @api_method
-    def order_target_value(self, sid, target,
+    def order_target_value(self, asset, target,
                            limit_price=None, stop_price=None, style=None):
         """
         Place an order to adjust a position to a target value. If
@@ -1223,17 +1223,17 @@ class TradingAlgorithm(object):
         If the Asset being ordered is a Future, the 'target value' calculated
         is actually the target exposure, as Futures have no 'value'.
         """
-        if not self._can_order_asset(sid):
+        if not self._can_order_asset(asset):
             return None
 
-        target_amount = self._calculate_order_value_amount(sid, target)
-        return self.order_target(sid, target_amount,
+        target_amount = self._calculate_order_value_amount(asset, target)
+        return self.order_target(asset, target_amount,
                                  limit_price=limit_price,
                                  stop_price=stop_price,
                                  style=style)
 
     @api_method
-    def order_target_percent(self, sid, target,
+    def order_target_percent(self, asset, target,
                              limit_price=None, stop_price=None, style=None):
         """
         Place an order to adjust a position to a target percent of the
@@ -1244,25 +1244,25 @@ class TradingAlgorithm(object):
 
         Note that target must expressed as a decimal (0.50 means 50\%).
         """
-        if not self._can_order_asset(sid):
+        if not self._can_order_asset(asset):
             return None
 
         target_value = self.portfolio.portfolio_value * target
-        return self.order_target_value(sid, target_value,
+        return self.order_target_value(asset, target_value,
                                        limit_price=limit_price,
                                        stop_price=stop_price,
                                        style=style)
 
     @api_method
-    def get_open_orders(self, sid=None):
-        if sid is None:
+    def get_open_orders(self, asset=None):
+        if asset is None:
             return {
                 key: [order.to_api_obj() for order in orders]
                 for key, orders in iteritems(self.blotter.open_orders)
                 if orders
             }
-        if sid in self.blotter.open_orders:
-            orders = self.blotter.open_orders[sid]
+        if asset in self.blotter.open_orders:
+            orders = self.blotter.open_orders[asset]
             return [order.to_api_obj() for order in orders]
         return []
 
@@ -1374,7 +1374,7 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_max_position_size(self,
-                              sid=None,
+                              asset=None,
                               max_shares=None,
                               max_notional=None):
         """
@@ -1389,13 +1389,14 @@ class TradingAlgorithm(object):
         increasing the absolute value of shares/dollar value exceeding one of
         these limits, raise a TradingControlException.
         """
-        control = MaxPositionSize(asset=sid,
+        control = MaxPositionSize(asset=asset,
                                   max_shares=max_shares,
                                   max_notional=max_notional)
         self.register_trading_control(control)
 
     @api_method
-    def set_max_order_size(self, sid=None, max_shares=None, max_notional=None):
+    def set_max_order_size(self, asset=None, max_shares=None,
+                           max_notional=None):
         """
         Set a limit on the number of shares and/or dollar value of any single
         order placed for sid.  Limits are treated as absolute values and are
@@ -1404,7 +1405,7 @@ class TradingAlgorithm(object):
         If an algorithm attempts to place an order that would result in
         exceeding one of these limits, raise a TradingControlException.
         """
-        control = MaxOrderSize(asset=sid,
+        control = MaxOrderSize(asset=asset,
                                max_shares=max_shares,
                                max_notional=max_notional)
         self.register_trading_control(control)
@@ -1421,7 +1422,7 @@ class TradingAlgorithm(object):
     @api_method
     def set_do_not_order_list(self, restricted_list):
         """
-        Set a restriction on which sids can be ordered.
+        Set a restriction on which assets can be ordered.
         """
         control = RestrictedListOrder(restricted_list)
         self.register_trading_control(control)
