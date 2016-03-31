@@ -4,6 +4,7 @@ announcements, acquisitions, dividends, etc.).
 """
 from numpy import newaxis
 from ..data import (
+    _13DFilings,
     CashBuybackAuthorizations,
     ShareBuybackAuthorizations,
     DividendsByAnnouncementDate,
@@ -203,3 +204,14 @@ class BusinessDaysSincePreviousExDate(
     zipline.pipeline.factors.BusinessDaysSinceDividendAnnouncement
     """
     inputs = [DividendsByExDate.previous_date]
+
+
+class BusinessDaysSince13DFilingsDate(
+    BusinessDaysSincePreviousEvents
+):
+    """
+    Factor returning the number of **business days** (not trading days!) since
+    the most recent 13d filings for each asset.
+
+    """
+    inputs = [_13DFilings.disclosure_date]

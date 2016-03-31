@@ -1,3 +1,4 @@
+from ._13d_filings import _13DFilingsLoader
 from .earnings import EarningsCalendarLoader
 from .consensus_estimates import ConsensusEstimatesLoader
 from .buyback_auth import (
@@ -12,6 +13,7 @@ from .dividends import (
 from .equity_pricing_loader import USEquityPricingLoader
 
 __all__ = [
+    '_13DFilingsLoader',
     'CashBuybackAuthorizationsLoader',
     'DividendsByAnnouncementDateLoader',
     'DividendsByExDateLoader',
