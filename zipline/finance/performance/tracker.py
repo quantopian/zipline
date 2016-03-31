@@ -194,7 +194,7 @@ class PerformanceTracker(object):
         if performance_needs_update:
             self.position_tracker.sync_last_sale_prices(dt)
             self.update_performance()
-            self.account_needs_update = True
+        self.account_needs_update = True
         return self.cumulative_performance.as_portfolio()
 
     def update_performance(self):
