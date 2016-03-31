@@ -1,12 +1,8 @@
 """
 Tests for the reference loader for 13d filings.
 """
-from unittest import TestCase
-
-from contextlib2 import ExitStack
 import pandas as pd
 
-from .base import EventLoaderCommonMixin
 from zipline.pipeline.common import(
     DAYS_SINCE_PREV_DISCLOSURE,
     DISCLOSURE_DATE,
@@ -25,10 +21,24 @@ from zipline.pipeline.loaders.utils import (
     zip_with_floats,
     zip_with_dates
 )
-from zipline.testing import tmp_asset_finder
+from zipline.testing.fixtures import WithPipelineEventDataLoader
+from zipline.testing.fixtures import ZiplineTestCase
 
-date_intervals = [[None, '2014-01-04'], ['2014-01-05', '2014-01-09'],
+date_intervals = [[None, '2014-01-04'],
+                  ['2014-01-05', '2014-01-09'],
                   ['2014-01-10', None]]
+
+empty_df = pd.DataFrame(
+    columns=[NUM_SHARES,
+             PERCENT_SHARES,
+             DISCLOSURE_DATE,
+             TS_FIELD_NAME],
+)
+
+empty_df[NUM_SHARES] = empty_df[NUM_SHARES].astype('float')
+empty_df[PERCENT_SHARES] = empty_df[PERCENT_SHARES].astype('float')
+empty_df[TS_FIELD_NAME] = empty_df[TS_FIELD_NAME].astype('datetime64[ns]')
+empty_df[DISCLOSURE_DATE] = empty_df[DISCLOSURE_DATE].astype('datetime64[ns]')
 
 _13d_filngs_cases = [
     pd.DataFrame({
@@ -37,29 +47,25 @@ _13d_filngs_cases = [
         TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
         DISCLOSURE_DATE: pd.to_datetime(['2014-01-04', '2014-01-09'])
     }),
-    pd.DataFrame(
-        columns=[NUM_SHARES,
-                 PERCENT_SHARES,
-                 DISCLOSURE_DATE,
-                 TS_FIELD_NAME],
-        dtype='datetime64[ns]'
-    ),
+    empty_df
 ]
 
 
 def get_expected_previous_values(zip_date_index_with_vals,
-                                 dates,
-                                 vals_for_date_intervals):
+                                 vals,
+                                 date_intervals,
+                                 dates):
     return pd.DataFrame({
         0: get_values_for_date_ranges(zip_date_index_with_vals,
-                                      vals_for_date_intervals,
+                                      vals,
                                       date_intervals,
                                       dates),
         1: zip_date_index_with_vals(dates, ['NaN'] * len(dates)),
     }, index=dates)
 
 
-class _13DFilingsLoaderTestCase(TestCase, EventLoaderCommonMixin):
+class _13DFilingsLoaderTestCase(WithPipelineEventDataLoader,
+                                ZiplineTestCase):
     """
     Test for _13_filings dataset.
     """
@@ -79,37 +85,27 @@ class _13DFilingsLoaderTestCase(TestCase, EventLoaderCommonMixin):
         return range(2)
 
     @classmethod
-    def setUpClass(cls):
-        cls._cleanup_stack = stack = ExitStack()
-        cls.finder = stack.enter_context(
-            tmp_asset_finder(equities=cls.get_equity_info()),
-        )
-        cls.cols = {}
-        cls.dataset = {sid:
-                       frame
-                       for sid, frame
-                       in enumerate(_13d_filngs_cases)}
-        cls.loader_type = _13DFilingsLoader
+    def get_dataset(cls):
+        return {sid: frame
+                for sid, frame
+                in enumerate(_13d_filngs_cases)}
 
-    @classmethod
-    def tearDownClass(cls):
-        cls._cleanup_stack.close()
+    loader_type = _13DFilingsLoader
 
     def setup(self, dates):
-        _expected_previous_num_shares = get_expected_previous_values(
-            zip_with_floats, dates,
-            ['NaN', 1, 15]
-        )
-        _expected_previous_percent_shares = get_expected_previous_values(
-            zip_with_floats, dates,
-            ['NaN', 10, 20]
-        )
-        self.cols[
+        cols = {}
+        cols[
             PREVIOUS_DISCLOSURE_DATE
-        ] = get_expected_previous_values(zip_with_dates, dates,
-                                         ['NaT', '2014-01-04', '2014-01-09'])
-        self.cols[PREVIOUS_NUM_SHARES] = _expected_previous_num_shares
-        self.cols[PREVIOUS_PERCENT_SHARES] = _expected_previous_percent_shares
-        self.cols[DAYS_SINCE_PREV_DISCLOSURE] = self._compute_busday_offsets(
-            self.cols[PREVIOUS_DISCLOSURE_DATE]
+        ] = get_expected_previous_values(zip_with_dates,
+                                         ['NaT', '2014-01-04', '2014-01-09'],
+                                         date_intervals, dates)
+        cols[PREVIOUS_NUM_SHARES] = get_expected_previous_values(
+            zip_with_floats, ['NaN', 1, 15], date_intervals, dates
         )
+        cols[PREVIOUS_PERCENT_SHARES] = get_expected_previous_values(
+            zip_with_floats, ['NaN', 10, 20], date_intervals, dates
+        )
+        cols[DAYS_SINCE_PREV_DISCLOSURE] = self._compute_busday_offsets(
+            cols[PREVIOUS_DISCLOSURE_DATE]
+        )
+        return cols

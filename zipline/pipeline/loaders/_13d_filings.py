@@ -24,6 +24,7 @@ class _13DFilingsLoader(EventsLoader):
     expected_cols = frozenset([DISCLOSURE_DATE,
                                PERCENT_SHARES,
                                NUM_SHARES])
+    event_date_col = DISCLOSURE_DATE
 
     def __init__(self, all_dates, events_by_sid,
                  infer_timestamps=False,
@@ -36,14 +37,12 @@ class _13DFilingsLoader(EventsLoader):
     def disclosure_date_loader(self):
         return self._previous_event_date_loader(
             self.dataset.disclosure_date,
-            DISCLOSURE_DATE
         )
 
     @lazyval
     def percent_shares_loader(self):
         return self._previous_event_value_loader(
             self.dataset.percent_shares,
-            DISCLOSURE_DATE,
             PERCENT_SHARES
         )
 
@@ -51,6 +50,5 @@ class _13DFilingsLoader(EventsLoader):
     def number_shares_loader(self):
         return self._previous_event_value_loader(
             self.dataset.number_shares,
-            DISCLOSURE_DATE,
             NUM_SHARES
         )

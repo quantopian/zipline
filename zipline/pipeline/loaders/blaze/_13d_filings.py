@@ -65,4 +65,4 @@ class Blaze_13DFilingsLoader(BlazeEventsLoader):
     })
 
     concrete_loader = _13DFilingsLoader
-    concrete_dataset=_13DFilings
+    concrete_dataset = _13DFilings

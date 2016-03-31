@@ -5,6 +5,7 @@ from .factor import (
     RecarrayField,
 )
 from .events import (
+    BusinessDaysSince13DFilingsDate,
     BusinessDaysSinceCashBuybackAuth,
     BusinessDaysSinceDividendAnnouncement,
     BusinessDaysUntilNextExDate,
@@ -28,6 +29,7 @@ from .technical import (
 )
 
 __all__ = [
+    'BusinessDaysSince13DFilingsDate',
     'BusinessDaysSinceCashBuybackAuth',
     'BusinessDaysSinceDividendAnnouncement',
     'BusinessDaysUntilNextExDate',
