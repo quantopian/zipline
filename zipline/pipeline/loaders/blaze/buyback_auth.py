@@ -7,9 +7,11 @@ from zipline.pipeline.common import (
     CASH_FIELD_NAME,
     SHARE_COUNT_FIELD_NAME
 )
-from zipline.pipeline.data import (CashBuybackAuthorizations,
-                                   ShareBuybackAuthorizations)
-from zipline.pipeline.loaders.buyback_auth import (
+from zipline.pipeline.data import (
+    CashBuybackAuthorizations,
+    ShareBuybackAuthorizations
+)
+from zipline.pipeline.loaders import (
     CashBuybackAuthorizationsLoader,
     ShareBuybackAuthorizationsLoader,
 )
@@ -68,24 +70,7 @@ class BlazeCashBuybackAuthorizationsLoader(BlazeEventsLoader):
     })
 
     concrete_loader = CashBuybackAuthorizationsLoader
-
-    def __init__(self,
-                 expr,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 dataset=CashBuybackAuthorizations,
-                 **kwargs):
-        super(
-            BlazeCashBuybackAuthorizationsLoader, self
-        ).__init__(expr,
-                   resources=resources,
-                   odo_kwargs=odo_kwargs,
-                   data_query_time=data_query_time,
-                   data_query_tz=data_query_tz,
-                   dataset=dataset,
-                   **kwargs)
+    default_dataset = CashBuybackAuthorizations
 
 
 class BlazeShareBuybackAuthorizationsLoader(BlazeEventsLoader):
@@ -140,21 +125,4 @@ class BlazeShareBuybackAuthorizationsLoader(BlazeEventsLoader):
     })
 
     concrete_loader = ShareBuybackAuthorizationsLoader
-
-    def __init__(self,
-                 expr,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 dataset=ShareBuybackAuthorizations,
-                 **kwargs):
-        super(
-            BlazeShareBuybackAuthorizationsLoader, self
-        ).__init__(expr,
-                   resources=resources,
-                   odo_kwargs=odo_kwargs,
-                   data_query_time=data_query_time,
-                   data_query_tz=data_query_tz,
-                   dataset=dataset,
-                   **kwargs)
+    default_dataset = ShareBuybackAuthorizations

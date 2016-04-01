@@ -8,9 +8,15 @@ from six.moves import zip
 from zipline.utils.numpy_utils import NaTns
 
 
-def next_date_frame(dates, events_by_sid, event_date_field_name):
+def next_event_frame(events_by_sid,
+                     dates,
+                     missing_value,
+                     field_dtype,
+                     event_date_field_name,
+                     return_field_name):
     """
-    Make a DataFrame representing the simulated next known date for an event.
+    Make a DataFrame representing the simulated next known dates or values
+    for an event.
 
     Parameters
     ----------
@@ -36,28 +42,36 @@ def next_date_frame(dates, events_by_sid, event_date_field_name):
     --------
     previous_date_frame
     """
-    cols = {
+    date_cols = {
         equity: np.full_like(dates, NaTns) for equity in events_by_sid
     }
+    value_cols = {
+        equity: np.full(len(dates), missing_value, dtype=field_dtype)
+        for equity in events_by_sid
+    }
+
     raw_dates = dates.values
     for equity, df in iteritems(events_by_sid):
         event_dates = df[event_date_field_name]
-        data = cols[equity]
+        values = df[return_field_name]
+        data = date_cols[equity]
         if not event_dates.index.is_monotonic_increasing:
             event_dates = event_dates.sort_index()
 
         # Iterate over the raw Series values, since we're comparing against
         # numpy arrays anyway.
-        iterkv = zip(event_dates.index.values, event_dates.values)
-        for knowledge_date, event_date in iterkv:
+        iter_date_vals = zip(event_dates.index.values, event_dates.values,
+                             values)
+        for knowledge_date, event_date, value in iter_date_vals:
             date_mask = (
                 (knowledge_date <= raw_dates) &
                 (raw_dates <= event_date)
             )
             value_mask = (event_date <= data) | (data == NaTns)
-            data[date_mask & value_mask] = event_date
-
-    return pd.DataFrame(index=dates, data=cols)
+            data_indices = np.where(date_mask & value_mask)
+            data[data_indices] = event_date
+            value_cols[equity][data_indices] = value
+    return pd.DataFrame(index=dates, data=value_cols)
 
 
 def previous_event_frame(events_by_sid,
@@ -260,3 +274,57 @@ def check_data_query_args(data_query_time, data_query_tz):
                 data_query_tz,
             ),
         )
+
+
+def zip_with_floats(dates, flts):
+        return pd.Series(flts, index=dates, dtype='float')
+
+
+def num_days_in_range(dates, start, end):
+    """
+    Return the number of days in `dates` between start and end, inclusive.
+    """
+    start_idx, stop_idx = dates.slice_locs(start, end)
+    return stop_idx - start_idx
+
+
+def zip_with_dates(index_dates, dts):
+    return pd.Series(pd.to_datetime(dts), index=index_dates)
+
+
+def get_values_for_date_ranges(zip_date_index_with_vals,
+                               vals_for_date_intervals,
+                               date_intervals,
+                               date_index):
+    """
+    Returns a Series of values indexed by date based on values for the given
+    date intervals.
+
+    Parameters
+    ----------
+    zip_date_index_with_vals : callable
+        A function that takes in a list of dates and a list of values and
+        returns a pd.Series with the values indexed by the dates.
+    vals_for_date_intervals : list
+        A list of values for each date interval in `date_intervals`.
+    date_intervals : list
+        A list of pairs of dates, where each pair represents a date interval
+        that corresponds to the value at the same index in
+        `vals_for_date_intervals`.
+    date_index : DatetimeIndex
+        The DatetimeIndex containing all dates for which values were requested.
+
+    Returns
+    -------
+    date_index_with_vals : pd.Series
+        A Series indexed by the given DatetimeIndex and with values assigned
+        to dates based on the given date intervals.
+    """
+    # Fill in given values for given date ranges.
+    return zip_date_index_with_vals(
+        date_index,
+        np.repeat(vals_for_date_intervals,
+                  [num_days_in_range(date_index, *date_interval)
+                   for date_interval in
+                   date_intervals]),
+    )

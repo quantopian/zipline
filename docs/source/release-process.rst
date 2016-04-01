@@ -24,6 +24,9 @@ longer be pending release.
 Update the title of the release from "Development" to "Release x.x.x" and
 update the underline of the title to match the title's width.
 
+If you are renaming the release at this point, you'll need to git mv the file
+and also update releases.rst to reference the renamed file.
+
 Updating the ``__version__``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -37,12 +40,14 @@ To upgrade the version use the git tag command like:
 .. code-block:: bash
 
    $ git tag <major>.<minor>.<micro>
-   $ git push
-   $ git push --tags
+   $ git push && git push --tags
 
 
 This will push the the code and the tag information.
 
+Next, click the "Draft a new release" button on the `zipline releases page
+<https://github.com/quantopian/zipline/releases>`__.  For the new release,
+choose the tag you just pushed, and publish the release.
 
 Uploading PyPI packages
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -54,7 +59,7 @@ To build the ``sdist`` (source distribution) run:
 
 .. code-block:: bash
 
-   $ python setup.by sdist
+   $ python setup.py sdist
 
 
 from the zipline root. This will create a gzipped tarball that includes all the
@@ -172,7 +177,16 @@ Once we are happy, push the updated docs to the GitHub ``gh-pages`` branch.
 Uploading conda packages
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-To build the conda packages for zipline run:
+Travis and AppVeyor build zipline conda packages for us.  Once they have built
+and uploaded to anaconda.org the packages (and their dependencies) for the
+release commit to master, we should move those packages from the "ci" label to
+the "main" label.  You can do this from the anaconda.org web interface.  This
+is also a good time to remove all the old "ci" packages from anaconda.
+
+Travis and AppVeyor only build and upload linux-64 and win-64 packages.  We'll
+need to build and upload osx-64 packages manually on an OSX machine.
+
+To build the conda packages for zipline locally, run:
 
 .. code-block:: bash
 

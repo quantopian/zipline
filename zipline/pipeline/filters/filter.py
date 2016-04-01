@@ -82,7 +82,7 @@ def binary_operator(op):
             )
         elif isinstance(other, int):  # Note that this is true for bool as well
             return NumExprFilter.create(
-                "x_0 {op} ({constant})".format(op=op, constant=int(other)),
+                "x_0 {op} {constant}".format(op=op, constant=int(other)),
                 binds=(self,),
             )
         raise BadBinaryOperator(op, self, other)

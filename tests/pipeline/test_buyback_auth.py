@@ -1,16 +1,10 @@
 """
 Tests for the reference loader for Buyback Authorizations.
 """
-from functools import partial
-from unittest import TestCase
-
 import blaze as bz
 from blaze.compute.core import swap_resources_into_scope
-from contextlib2 import ExitStack
-import itertools
 import pandas as pd
 from six import iteritems
-from .base import EventLoaderCommonMixin
 
 from zipline.pipeline.common import(
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
@@ -39,7 +33,14 @@ from zipline.pipeline.loaders.blaze import (
     BlazeCashBuybackAuthorizationsLoader,
     BlazeShareBuybackAuthorizationsLoader,
 )
-from zipline.testing import tmp_asset_finder
+from zipline.pipeline.loaders.utils import (
+    get_values_for_date_ranges,
+    zip_with_floats,
+    zip_with_dates
+)
+from zipline.testing.fixtures import (
+    WithPipelineEventDataLoader, ZiplineTestCase
+)
 
 date_intervals = [[None, '2014-01-04'], ['2014-01-05', '2014-01-09'],
                   ['2014-01-10', None]]
@@ -62,48 +63,20 @@ buyback_authorizations_cases = [
 ]
 
 
-def get_values_for_date_ranges(zip_with_floats_dates,
-                               num_days_between_dates,
-                               vals_for_date_intervals):
-    # Fill in given values for given date ranges.
-    return zip_with_floats_dates(
-        list(
-            itertools.chain(*[
-                [val] * num_days_between_dates(*date_intervals[i])
-                for i, val in enumerate(vals_for_date_intervals)
-            ])
-        )
-    )
-
-
-def get_expected_previous_values(zip_with_floats_dates,
-                                 num_days_between_dates,
+def get_expected_previous_values(zip_date_index_with_vals,
                                  dates,
                                  vals_for_date_intervals):
     return pd.DataFrame({
-        0: get_values_for_date_ranges(zip_with_floats_dates,
-                                      num_days_between_dates,
-                                      vals_for_date_intervals),
-        1: zip_with_floats_dates(['NaN'] * len(dates)),
+        0: get_values_for_date_ranges(zip_date_index_with_vals,
+                                      vals_for_date_intervals,
+                                      date_intervals,
+                                      dates),
+        1: zip_date_index_with_vals(dates, ['NaN'] * len(dates)),
     }, index=dates)
 
 
-def get_expected_previous_dates(zip_with_dates_for_dates,
-                                num_days_between_for_dates,
-                                dates):
-    return pd.DataFrame({
-        0: zip_with_dates_for_dates(
-            ['NaT'] * num_days_between_for_dates(None, '2014-01-04') +
-            ['2014-01-04'] * num_days_between_for_dates('2014-01-05',
-                                                        '2014-01-09') +
-            ['2014-01-09'] * num_days_between_for_dates('2014-01-10',
-                                                        None),
-        ),
-        1: zip_with_dates_for_dates(['NaT'] * len(dates))
-    })
-
-
-class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
+class CashBuybackAuthLoaderTestCase(WithPipelineEventDataLoader,
+                                    ZiplineTestCase):
     """
     Test for cash buyback authorizations dataset.
     """
@@ -121,43 +94,33 @@ class CashBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
         return range(2)
 
     @classmethod
-    def setUpClass(cls):
-        cls._cleanup_stack = stack = ExitStack()
-        cls.finder = stack.enter_context(
-            tmp_asset_finder(equities=cls.get_equity_info()),
-        )
-        cls.cols = {}
-        cls.dataset = {sid:
-                       frame.drop(SHARE_COUNT_FIELD_NAME, axis=1)
-                       for sid, frame
-                       in enumerate(buyback_authorizations_cases)}
-        cls.loader_type = CashBuybackAuthorizationsLoader
+    def get_dataset(cls):
+        return {sid:
+                frame.drop(SHARE_COUNT_FIELD_NAME, axis=1)
+                for sid, frame
+                in enumerate(buyback_authorizations_cases)}
 
-    @classmethod
-    def tearDownClass(cls):
-        cls._cleanup_stack.close()
+    loader_type = CashBuybackAuthorizationsLoader
 
     def setup(self, dates):
-        zip_with_floats_dates = partial(self.zip_with_floats, dates)
-        num_days_between_dates = partial(self.num_days_between, dates)
-        num_days_between_for_dates = partial(self.num_days_between, dates)
-        zip_with_dates_for_dates = partial(self.zip_with_dates, dates)
+        cols = {}
         _expected_previous_cash = get_expected_previous_values(
-            zip_with_floats_dates, num_days_between_dates, dates,
+            zip_with_floats, dates,
             ['NaN', 10, 20]
         )
-        self.cols[
+        cols[
             PREVIOUS_BUYBACK_ANNOUNCEMENT
-        ] = get_expected_previous_dates(zip_with_dates_for_dates,
-                                        num_days_between_for_dates,
-                                        dates)
-        self.cols[PREVIOUS_BUYBACK_CASH] = _expected_previous_cash
-        self.cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
-            self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
+        ] = get_expected_previous_values(zip_with_dates, dates,
+                                         ['NaT', '2014-01-04', '2014-01-09'])
+        cols[PREVIOUS_BUYBACK_CASH] = _expected_previous_cash
+        cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
+            cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
         )
+        return cols
 
 
-class ShareBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
+class ShareBuybackAuthLoaderTestCase(WithPipelineEventDataLoader,
+                                     ZiplineTestCase):
     """
     Test for share buyback authorizations dataset.
     """
@@ -175,56 +138,41 @@ class ShareBuybackAuthLoaderTestCase(TestCase, EventLoaderCommonMixin):
         return range(2)
 
     @classmethod
-    def setUpClass(cls):
-        cls._cleanup_stack = stack = ExitStack()
-        cls.finder = stack.enter_context(
-            tmp_asset_finder(equities=cls.get_equity_info()),
-        )
-        cls.cols = {}
-        cls.dataset = {sid:
-                       frame.drop(CASH_FIELD_NAME, axis=1)
-                       for sid, frame
-                       in enumerate(buyback_authorizations_cases)}
-        cls.loader_type = ShareBuybackAuthorizationsLoader
+    def get_dataset(cls):
+        return {sid:
+                frame.drop(CASH_FIELD_NAME, axis=1)
+                for sid, frame
+                in enumerate(buyback_authorizations_cases)}
 
-    @classmethod
-    def tearDownClass(cls):
-        cls._cleanup_stack.close()
+    loader_type = ShareBuybackAuthorizationsLoader
 
     def setup(self, dates):
-        zip_with_floats_dates = partial(self.zip_with_floats, dates)
-        num_days_between_dates = partial(self.num_days_between, dates)
-        num_days_between_for_dates = partial(self.num_days_between, dates)
-        zip_with_dates_for_dates = partial(self.zip_with_dates, dates)
-
-        self.cols[
+        cols = {}
+        cols[
             PREVIOUS_BUYBACK_SHARE_COUNT
-        ] = get_expected_previous_values(zip_with_floats_dates,
-                                         num_days_between_dates, dates,
+        ] = get_expected_previous_values(zip_with_floats,
+                                         dates,
                                          ['NaN', 1, 15])
-        self.cols[
+        cols[
             PREVIOUS_BUYBACK_ANNOUNCEMENT
-        ] = get_expected_previous_dates(zip_with_dates_for_dates,
-                                        num_days_between_for_dates,
-                                        dates)
-        self.cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
-            self.cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
+        ] = get_expected_previous_values(zip_with_dates, dates,
+                                         ['NaT', '2014-01-04', '2014-01-09'])
+        cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
+            cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
         )
+        return cols
 
 
 class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):
     """ Test case for loading via blaze.
     """
-    @classmethod
-    def setUpClass(cls):
-        super(BlazeCashBuybackAuthLoaderTestCase, cls).setUpClass()
-        cls.loader_type = BlazeCashBuybackAuthorizationsLoader
+    loader_type = BlazeCashBuybackAuthorizationsLoader
 
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         _, mapping = super(
             BlazeCashBuybackAuthLoaderTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return (bz.data(pd.concat(
             pd.DataFrame({
                 BUYBACK_ANNOUNCEMENT_FIELD_NAME:
@@ -242,16 +190,13 @@ class BlazeCashBuybackAuthLoaderTestCase(CashBuybackAuthLoaderTestCase):
 class BlazeShareBuybackAuthLoaderTestCase(ShareBuybackAuthLoaderTestCase):
     """ Test case for loading via blaze.
     """
-    @classmethod
-    def setUpClass(cls):
-        super(BlazeShareBuybackAuthLoaderTestCase, cls).setUpClass()
-        cls.loader_type = BlazeShareBuybackAuthorizationsLoader
+    loader_type = BlazeShareBuybackAuthorizationsLoader
 
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         _, mapping = super(
             BlazeShareBuybackAuthLoaderTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return (bz.data(pd.concat(
             pd.DataFrame({
                 BUYBACK_ANNOUNCEMENT_FIELD_NAME:
@@ -270,11 +215,11 @@ class BlazeShareBuybackAuthLoaderNotInteractiveTestCase(
         BlazeShareBuybackAuthLoaderTestCase):
     """Test case for passing a non-interactive symbol and a dict of resources.
     """
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         (bound_expr,) = super(
             BlazeShareBuybackAuthLoaderNotInteractiveTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return swap_resources_into_scope(bound_expr, {})
 
 
@@ -282,9 +227,9 @@ class BlazeCashBuybackAuthLoaderNotInteractiveTestCase(
         BlazeCashBuybackAuthLoaderTestCase):
     """Test case for passing a non-interactive symbol and a dict of resources.
     """
-    def loader_args(self, dates):
+    def pipeline_event_loader_args(self, dates):
         (bound_expr,) = super(
             BlazeCashBuybackAuthLoaderNotInteractiveTestCase,
             self,
-        ).loader_args(dates)
+        ).pipeline_event_loader_args(dates)
         return swap_resources_into_scope(bound_expr, {})

@@ -8,7 +8,7 @@ from numbers import Number
 import numexpr
 from numexpr.necompiler import getExprNames
 from numpy import (
-    empty,
+    full,
     inf,
 )
 
@@ -229,7 +229,7 @@ class NumericalExpression(ComputableTerm):
         """
         Compute our stored expression string with numexpr.
         """
-        out = empty(mask.shape, dtype=self.dtype)
+        out = full(mask.shape, self.missing_value, dtype=self.dtype)
         # This writes directly into our output buffer.
         numexpr.evaluate(
             self._expr,

@@ -16,11 +16,11 @@ from textwrap import dedent
 import bcolz
 from bcolz import ctable
 from intervaltree import IntervalTree
+from numpy import nan_to_num, timedelta64
 from os.path import join
 import json
 import os
 import numpy as np
-from numpy import timedelta64
 import pandas as pd
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
 
@@ -528,11 +528,14 @@ class BcolzMinuteBarWriter(object):
                                  dts.astype('datetime64[ns]'))
 
         ohlc_ratio = self._ohlc_ratio
-        open_col[dt_ixs] = (cols['open'] * ohlc_ratio).astype(np.uint32)
-        high_col[dt_ixs] = (cols['high'] * ohlc_ratio).astype(np.uint32)
-        low_col[dt_ixs] = (cols['low'] * ohlc_ratio).astype(np.uint32)
-        close_col[dt_ixs] = (cols['close'] * ohlc_ratio).astype(
-            np.uint32)
+        open_col[dt_ixs] = (nan_to_num(cols['open']) * ohlc_ratio).\
+            astype(np.uint32)
+        high_col[dt_ixs] = (nan_to_num(cols['high']) * ohlc_ratio).\
+            astype(np.uint32)
+        low_col[dt_ixs] = (nan_to_num(cols['low']) * ohlc_ratio).\
+            astype(np.uint32)
+        close_col[dt_ixs] = (nan_to_num(cols['close']) * ohlc_ratio).\
+            astype(np.uint32)
         vol_col[dt_ixs] = cols['volume'].astype(np.uint32)
 
         table.append([
