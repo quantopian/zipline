@@ -3251,12 +3251,12 @@ class TestOrderAfterDelist(TestCase):
             order_target_value(sid(1), 50)
         """)
 
-        # run algo from 1/7 to 1/8
+        # run algo from 1/6 to 1/7
         algo = TradingAlgorithm(
             script=algo_code,
             env=self.env,
             sim_params=SimulationParameters(
-                period_start=pd.Timestamp("2016-01-07", tz='UTC'),
+                period_start=pd.Timestamp("2016-01-06", tz='UTC'),
                 period_end=pd.Timestamp("2016-01-07", tz='UTC'),
                 env=self.env,
                 data_frequency="minute"
@@ -3269,6 +3269,7 @@ class TestOrderAfterDelist(TestCase):
             warnings = [r for r in log_catcher.records
                         if r.level == logbook.WARNING]
 
+            # one warning per order on the second day
             self.assertEqual(6 * 390, len(warnings))
 
             for w in warnings:

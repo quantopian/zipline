@@ -917,9 +917,10 @@ class TradingAlgorithm(object):
                     " Use 'sid()' or 'symbol()' methods to look up an Asset."
             )
 
-        current_dt = self.get_datetime()
         if asset.auto_close_date:
-            if asset.end_date < current_dt < asset.auto_close_date:
+            day = normalize_date(self.get_datetime())
+
+            if asset.end_date < day < asset.auto_close_date:
                 # we are between the asset's end date and auto close date,
                 # so warn the user that they can't place an order for this
                 # asset, and return None.
