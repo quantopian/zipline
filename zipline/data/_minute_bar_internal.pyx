@@ -61,7 +61,24 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
         The number of minutes per day (e.g. 390 for NYSE).
 
     adjust_half_day_minutes: boolean
-        Whether or not we want to adjust minutes to early close on half days
+        Whether or not we want to adjust non trading minutes to early close on
+        half days as opposed to normal close.
+
+    Further explanation of the use adjust_half_day_minutes:
+        adjust_half_day_minutes=True:
+            We are using this method for the purpose finding a value for a
+            minute, and therefore, all non market minutes must be adjusted to
+            the last available (e.g. 9 pm EST -> 4 pm EST, 2 pm EST -> 1 pm EST
+            on a half day)
+
+        adjust_half_day_minutes=False:
+            We are using this method for the purpose of finding the positions
+            of minutes we want to ignore (1 pm to 4 pm EST on half days).
+            The minute bar reader tape has 390 bars per day, with 0's filled in
+            for the extra bars on half days. If we index a minute between
+            1:01 pm and 4 pm on a half day, we want a position for that
+            unadjusted time, not adjusted to 1 pm as in the above case
+            (e.g. for all days: 9 pm EST -> 4 pm EST, 2 pm EST -> 2 pm EST)
 
     Returns
     -------
@@ -100,6 +117,9 @@ def find_last_traded_position_internal(
     ----------
     market_opens: numpy array of ints
         Market opens, in minute epoch values.
+
+    market_closes: numpy array of ints
+        Market closes, in minute epoch values.
 
     end_minute: int
         The minute from which to start looking backwards, as a minute epoch.

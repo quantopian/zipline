@@ -636,6 +636,8 @@ class BcolzMinuteBarReader(object):
         """
         itree = IntervalTree()
         for minute_range in self._minutes_to_exclude():
+            # setting adjust_half_day_minutes to False because we want to find
+            # the positions of minutes 211 to 390 on a 390-bar day
             start_pos = self._find_position_of_minute(minute_range[0], False)
             end_pos = self._find_position_of_minute(minute_range[-1], False)
             data = (start_pos, end_pos)
