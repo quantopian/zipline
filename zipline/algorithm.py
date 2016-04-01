@@ -195,8 +195,6 @@ class TradingAlgorithm(object):
 
         self.logger = None
 
-        self.benchmark_return_source = None
-
         # default components for transact
         self.slippage = VolumeShareSlippage()
         self.commission = PerShare()
@@ -518,6 +516,7 @@ class TradingAlgorithm(object):
 
         """
 
+        self.benchmark_return_source = benchmark_return_source
         # Ensure that source is a DataSource object
         if isinstance(source, list):
             if overwrite_sim_params:
