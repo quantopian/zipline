@@ -1,5 +1,6 @@
 from numpy cimport ndarray, long_t
 from numpy import searchsorted
+from cpython cimport bool
 cimport cython
 
 from bcolz.carray_ext cimport carray
@@ -37,21 +38,30 @@ def minute_value(ndarray[long_t, ndim=1] market_opens,
     return market_opens[q] + r
 
 def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
+                            ndarray[long_t, ndim=1] market_closes,
                             long_t minute_val,
-                            short minutes_per_day):
+                            short minutes_per_day,
+                            bool adjust_half_day_minutes):
     """
     Finds the position of a given minute in the given array of market opens.
+    If not a market minute, adjusts to the last market minute.
 
     Parameters
     ----------
     market_opens: numpy array of ints
         Market opens, in minute epoch values.
 
+    market_closes: numpy array of ints
+        Market closes, in minute epoch values.
+
     minute_val: int
         The desired minute, as a minute epoch.
 
     minutes_per_day: int
         The number of minutes per day (e.g. 390 for NYSE).
+
+    adjust_half_day_minutes: boolean
+        Whether or not we want to adjust minutes to early close on half days
 
     Returns
     -------
@@ -62,12 +72,22 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
     market_open_loc = \
         searchsorted(market_opens, minute_val, side='right') - 1
     market_open = market_opens[market_open_loc]
-    delta = minute_val - market_open
+    market_close = market_closes[market_open_loc]
+
+    if adjust_half_day_minutes:
+        # The min of the distance to market open from minute_val and number
+        # of trading minutes for that day
+        delta = int_min(minute_val - market_open, market_close - market_open)
+    else:
+        # The min of the distance to market open from minute_val and number
+        # of trading minutes for a normal day (390)
+        delta = int_min(minute_val - market_open, minutes_per_day)
 
     return (market_open_loc * minutes_per_day) + delta
 
 def find_last_traded_position_internal(
         ndarray[long_t, ndim=1] market_opens,
+        ndarray[long_t, ndim=1] market_closes,
         long_t end_minute,
         long_t start_minute,
         carray volumes,
@@ -101,7 +121,8 @@ def find_last_traded_position_internal(
     cdef Py_ssize_t minute_pos, current_minute
 
     minute_pos = int_min(
-        find_position_of_minute(market_opens, end_minute, minutes_per_day),
+        find_position_of_minute(market_opens, market_closes, end_minute,
+                                minutes_per_day, True),
         len(volumes) - 1
     )
 
