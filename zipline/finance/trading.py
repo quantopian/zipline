@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ from zipline.assets.asset_writer import (
 from zipline.errors import (
     NoFurtherDataError
 )
-
+from zipline.utils.memoize import remember_last, lazyval
 
 log = logbook.Logger('Trading')
 
@@ -122,6 +122,11 @@ class TradingEnvironment(object):
             self.asset_finder = AssetFinder(engine)
         else:
             self.asset_finder = None
+
+    @lazyval
+    def market_minutes(self):
+        return self.minutes_for_days_in_range(self.first_trading_day,
+                                              self.last_trading_day)
 
     def write_data(self,
                    engine=None,
@@ -298,8 +303,11 @@ class TradingEnvironment(object):
         return self.trading_days[idx]
 
     def days_in_range(self, start, end):
-        mask = ((self.trading_days >= start) &
-                (self.trading_days <= end))
+        start_date = self.normalize_date(start)
+        end_date = self.normalize_date(end)
+
+        mask = ((self.trading_days >= start_date) &
+                (self.trading_days <= end_date))
         return self.trading_days[mask]
 
     def opens_in_range(self, start, end):
@@ -315,9 +323,20 @@ class TradingEnvironment(object):
         start_date = self.normalize_date(start)
         end_date = self.normalize_date(end)
 
+        o_and_c = self.open_and_closes[
+            self.open_and_closes.index.slice_indexer(start_date, end_date)]
+
+        opens = o_and_c.market_open
+        closes = o_and_c.market_close
+
+        one_min = pd.Timedelta(1, unit='m')
+
         all_minutes = []
-        for day in self.days_in_range(start_date, end_date):
-            day_minutes = self.market_minutes_for_day(day)
+        for i in range(0, len(o_and_c.index)):
+            market_open = opens[i]
+            market_close = closes[i]
+            day_minutes = np.arange(market_open, market_close + one_min,
+                                    dtype='datetime64[m]')
             all_minutes.append(day_minutes)
 
         # Concatenate all minutes and truncate minutes before start/after end.
@@ -372,6 +391,7 @@ class TradingEnvironment(object):
         # then return the open of the *next* trading day.
         return self.next_open_and_close(start)[0]
 
+    @remember_last
     def previous_market_minute(self, start):
         """
         Get the next market minute before @start. This is either the immediate

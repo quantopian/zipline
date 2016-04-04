@@ -1,0 +1,2 @@
+# Caching and other utilities
+functools32==3.2.3.post2

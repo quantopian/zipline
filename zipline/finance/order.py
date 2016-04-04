@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@ from copy import copy
 import math
 import uuid
 
-from six import text_type, iteritems
+from six import text_type
 
 import zipline.protocol as zp
-from zipline.utils.serialization_utils import VERSION_LABEL
+from zipline.assets import Asset
 from zipline.utils.enum import enum
 
 ORDER_STATUS = enum(
@@ -41,12 +41,14 @@ class Order(object):
                  commission=None, id=None):
         """
         @dt - datetime.datetime that the order was placed
-        @sid - stock sid of the order
+        @sid - asset for the order.  called sid for historical reasons.
         @amount - the number of shares to buy/sell
                   a positive sign indicates a buy
                   a negative sign indicates a sell
         @filled - how many shares of the order have been filled so far
         """
+        assert isinstance(sid, Asset)
+
         # get a string representation of the uuid.
         self.id = id or self.make_id()
         self.dt = dt
@@ -79,23 +81,23 @@ class Order(object):
         obj = zp.Order(initial_values=pydict)
         return obj
 
-    def check_triggers(self, event):
+    def check_triggers(self, price, dt):
         """
         Update internal state based on price triggers and the
         trade event's price.
         """
         stop_reached, limit_reached, sl_stop_reached = \
-            self.check_order_triggers(event)
+            self.check_order_triggers(price)
         if (stop_reached, limit_reached) \
                 != (self.stop_reached, self.limit_reached):
-            self.dt = event.dt
+            self.dt = dt
         self.stop_reached = stop_reached
         self.limit_reached = limit_reached
         if sl_stop_reached:
             # Change the STOP LIMIT order into a LIMIT order
             self.stop = None
 
-    def check_order_triggers(self, event):
+    def check_order_triggers(self, current_price):
         """
         Given an order and a trade event, return a tuple of
         (stop_reached, limit_reached).
@@ -129,34 +131,32 @@ class Order(object):
             order_type |= LIMIT
 
         if order_type == BUY | STOP | LIMIT:
-            if event.price >= self.stop:
+            if current_price >= self.stop:
                 sl_stop_reached = True
-                if event.price <= self.limit:
+                if current_price <= self.limit:
                     limit_reached = True
         elif order_type == SELL | STOP | LIMIT:
-            if event.price <= self.stop:
+            if current_price <= self.stop:
                 sl_stop_reached = True
-                if event.price >= self.limit:
+                if current_price >= self.limit:
                     limit_reached = True
         elif order_type == BUY | STOP:
-            if event.price >= self.stop:
+            if current_price >= self.stop:
                 stop_reached = True
         elif order_type == SELL | STOP:
-            if event.price <= self.stop:
+            if current_price <= self.stop:
                 stop_reached = True
         elif order_type == BUY | LIMIT:
-            if event.price <= self.limit:
+            if current_price <= self.limit:
                 limit_reached = True
         elif order_type == SELL | LIMIT:
             # This is a SELL LIMIT order
-            if event.price >= self.limit:
+            if current_price >= self.limit:
                 limit_reached = True
 
         return (stop_reached, limit_reached, sl_stop_reached)
 
-    def handle_split(self, split_event):
-        ratio = split_event.ratio
-
+    def handle_split(self, ratio):
         # update the amount, limit_price, and stop_price
         # by the split's ratio
 
@@ -203,6 +203,14 @@ class Order(object):
         return self.status in [ORDER_STATUS.OPEN, ORDER_STATUS.HELD]
 
     @property
+    def asset(self):
+        """
+        Convenience accessor to hide away a historical API that we'd like to
+        change at some point.
+        """
+        return self.sid
+
+    @property
     def triggered(self):
         """
         For a market order, True.
@@ -232,26 +240,3 @@ class Order(object):
         Unicode representation for this object.
         """
         return text_type(repr(self))
-
-    def __getstate__(self):
-
-        state_dict = \
-            {k: v for k, v in iteritems(self.__dict__)
-                if not k.startswith('_')}
-
-        state_dict['_status'] = self._status
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Order saved state is too old.")
-
-        self.__dict__.update(state)

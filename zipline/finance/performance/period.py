@@ -88,10 +88,6 @@ from six import itervalues, iteritems
 
 import zipline.protocol as zp
 
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
-
 log = logbook.Logger('Performance')
 TRADE_TYPE = zp.DATASOURCE_TYPE.TRADE
 
@@ -136,13 +132,19 @@ class PerformancePeriod(object):
             self,
             starting_cash,
             asset_finder,
+            data_frequency,
+            data_portal,
             period_open=None,
             period_close=None,
             keep_transactions=True,
             keep_orders=False,
-            serialize_positions=True):
+            serialize_positions=True,
+            name=None):
 
         self.asset_finder = asset_finder
+        self.data_frequency = data_frequency
+
+        self._data_portal = data_portal
 
         self.period_open = period_open
         self.period_close = period_close
@@ -166,6 +168,8 @@ class PerformancePeriod(object):
         self.rollover()
         self.keep_transactions = keep_transactions
         self.keep_orders = keep_orders
+
+        self.name = name
 
         # An object to recycle via assigning new values
         # when returning portfolio information.
@@ -483,47 +487,3 @@ class PerformancePeriod(object):
         account.net_liquidation = getattr(self, 'net_liquidation',
                                           period_stats.net_liquidation)
         return account
-
-    def __getstate__(self):
-        state_dict = {k: v for k, v in iteritems(self.__dict__)
-                      if not k.startswith('_')}
-
-        state_dict['_portfolio_store'] = self._portfolio_store
-        state_dict['_account_store'] = self._account_store
-
-        state_dict['processed_transactions'] = \
-            dict(self.processed_transactions)
-        state_dict['orders_by_id'] = \
-            dict(self.orders_by_id)
-        state_dict['orders_by_modified'] = \
-            dict(self.orders_by_modified)
-        state_dict['_payout_last_sale_prices'] = \
-            self._payout_last_sale_prices
-
-        STATE_VERSION = 3
-        state_dict[VERSION_LABEL] = STATE_VERSION
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 3
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("PerformancePeriod saved state is too old.")
-
-        processed_transactions = {}
-        processed_transactions.update(state.pop('processed_transactions'))
-
-        orders_by_id = OrderedDict()
-        orders_by_id.update(state.pop('orders_by_id'))
-
-        orders_by_modified = {}
-        orders_by_modified.update(state.pop('orders_by_modified'))
-        self.processed_transactions = processed_transactions
-        self.orders_by_id = orders_by_id
-        self.orders_by_modified = orders_by_modified
-
-        self._execution_cash_flow_multipliers = {}
-
-        self.__dict__.update(state)

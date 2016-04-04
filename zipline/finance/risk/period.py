@@ -34,10 +34,6 @@ from . risk import (
     sortino_ratio,
 )
 
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
-
 log = logbook.Logger('Risk Period')
 
 choose_treasury = functools.partial(risk.choose_treasury,
@@ -323,23 +319,3 @@ class RiskMetricsPeriod(object):
             return 0.0
         else:
             return max(self.algorithm_leverages)
-
-    def __getstate__(self):
-        state_dict = {k: v for k, v in iteritems(self.__dict__)
-                      if not k.startswith('_')}
-
-        STATE_VERSION = 3
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 3
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("RiskMetricsPeriod saved state \
-                    is too old.")
-
-        self.__dict__.update(state)

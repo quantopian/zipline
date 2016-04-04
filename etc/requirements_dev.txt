@@ -59,5 +59,8 @@ futures==3.0.5
 requests-futures==0.9.7
 piprot==0.9.6
 
+# For mocking out requests fetches
+responses==0.4.0
+
 # For asset db management
 alembic==0.7.7

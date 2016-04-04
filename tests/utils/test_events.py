@@ -15,6 +15,7 @@
 from collections import namedtuple
 import datetime
 from functools import partial
+from inspect import isabstract
 from itertools import islice
 import random
 from unittest import TestCase
@@ -190,7 +191,7 @@ class TestEventRule(TestCase):
             super(Always, Always()).should_trigger('a', env=None)
 
 
-def minutes_for_days():
+def minutes_for_days(ordered_days=False):
     """
     500 randomly selected days.
     This is used to make sure our test coverage is unbaised towards any rules.
@@ -203,19 +204,44 @@ def minutes_for_days():
     true.
 
     This returns a generator of tuples each wrapping a single generator.
-    Iterating over this yeilds a single day, iterating over the day yields
+    Iterating over this yields a single day, iterating over the day yields
     the minutes for that day.
     """
     env = TradingEnvironment()
     random.seed('deterministic')
-    return ((env.market_minutes_for_day(random.choice(env.trading_days)),)
-            for _ in range(500))
+    if ordered_days:
+        # Get a list of 500 trading days, in order. As a performance
+        # optimization in AfterOpen and BeforeClose, we rely on the fact that
+        # the clock only ever moves forward in a simulation. For those cases,
+        # we guarantee that the list of trading days we test is ordered.
+        ordered_day_list = random.sample(list(env.trading_days), 500)
+        ordered_day_list.sort()
+
+        def day_picker(day):
+            return ordered_day_list[day]
+    else:
+        # Other than AfterOpen and BeforeClose, we don't rely on the the nature
+        # of the clock, so we don't care.
+        def day_picker(day):
+            return random.choice(env.trading_days[:-1])
+
+    return ((env.market_minutes_for_day(day_picker(cnt)),)
+            for cnt in range(500))
 
 
 class RuleTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
+        # On the AfterOpen and BeforeClose tests, we want ensure that the
+        # functions are pure, and that running them with the same input will
+        # provide the same output, regardless of whether the function is run 1
+        # or N times. (For performance reasons, we cache some internal state
+        # in AfterOpen and BeforeClose, but we don't want it to affect
+        # purity). Hence, we use the same before_close and after_open across
+        # subtests.
+        cls.before_close = BeforeClose(hours=1, minutes=5)
+        cls.after_open = AfterOpen(hours=1, minutes=5)
         cls.class_ = None  # Mark that this is the base class.
 
     @classmethod
@@ -233,7 +259,8 @@ class RuleTestCase(TestCase):
             k for k, v in iteritems(vars(zipline.utils.events))
             if isinstance(v, type) and
             issubclass(v, self.class_) and
-            v is not self.class_
+            v is not self.class_ and
+            not isabstract(v)
         }
         ds = {
             k[5:] for k in dir(self)
@@ -273,10 +300,10 @@ class TestStatelessRules(RuleTestCase):
         should_trigger = partial(Never().should_trigger, env=self.env)
         self.assertFalse(any(map(should_trigger, ms)))
 
-    @subtest(minutes_for_days(), 'ms')
+    @subtest(minutes_for_days(ordered_days=True), 'ms')
     def test_AfterOpen(self, ms):
         should_trigger = partial(
-            AfterOpen(minutes=5, hours=1).should_trigger,
+            self.after_open.should_trigger,
             env=self.env,
         )
         for m in islice(ms, 64):
@@ -285,15 +312,16 @@ class TestStatelessRules(RuleTestCase):
             # at 13:30 UTC, meaning the first minute of data has an
             # offset of 1.
             self.assertFalse(should_trigger(m))
+
         for m in islice(ms, 64, None):
             # Check the rest of the day.
             self.assertTrue(should_trigger(m))
 
-    @subtest(minutes_for_days(), 'ms')
+    @subtest(minutes_for_days(ordered_days=True), 'ms')
     def test_BeforeClose(self, ms):
         ms = list(ms)
         should_trigger = partial(
-            BeforeClose(hours=1, minutes=5).should_trigger,
+            self.before_close.should_trigger,
             env=self.env
         )
         for m in ms[0:-66]:
@@ -306,6 +334,17 @@ class TestStatelessRules(RuleTestCase):
         should_trigger = partial(NotHalfDay().should_trigger, env=self.env)
         self.assertTrue(should_trigger(FULL_DAY))
         self.assertFalse(should_trigger(HALF_DAY))
+
+    def test_NthTradingDayOfWeek_day_zero(self):
+        """
+        Test that we don't blow up when trying to call week_start's
+        should_trigger on the first day of a trading environment.
+        """
+        self.assertTrue(
+            NthTradingDayOfWeek(0).should_trigger(
+                self.env.trading_days[0], self.env
+            )
+        )
 
     @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NthTradingDayOfWeek(self, n):

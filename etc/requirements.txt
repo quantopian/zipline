@@ -54,3 +54,5 @@ toolz==0.7.4
 
 # Asset writer and finder
 sqlalchemy==1.0.8
+
+intervaltree==2.1.0
