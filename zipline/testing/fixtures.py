@@ -5,6 +5,14 @@ from logbook import NullHandler
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
+from six import iteritems
+from testfixtures import TempDirectory
+
+from ..data.minute_bars import (
+    BcolzMinuteBarReader,
+    BcolzMinuteBarWriter,
+    US_EQUITIES_MINUTES_PER_DAY
+)
 from pandas.util.testing import assert_series_equal
 from six import with_metaclass
 
@@ -226,6 +234,10 @@ class WithTradingEnvironment(WithAssetFinder):
     This behavior can be altered by overriding `make_trading_environment` as a
     class method.
     """
+    TRADING_ENV_MIN_DATE = None
+    TRADING_ENV_MAX_DATE = None
+    TRADING_ENV_TRADING_CALENDAR = tradingcalendar
+
     @classmethod
     def make_load_function(cls):
         return None
@@ -235,6 +247,9 @@ class WithTradingEnvironment(WithAssetFinder):
         return TradingEnvironment(
             load=cls.make_load_function(),
             asset_db_path=cls.asset_finder.engine,
+            min_date=cls.TRADING_ENV_MIN_DATE,
+            max_date=cls.TRADING_ENV_MAX_DATE,
+            env_trading_calendar=cls.TRADING_ENV_TRADING_CALENDAR,
         )
 
     @classmethod
@@ -298,6 +313,74 @@ class WithNYSETradingDays(object):
         start_loc = end_loc - cls.TRADING_DAY_COUNT
 
         cls.trading_days = all_days[start_loc:end_loc + 1]
+
+
+class WithTempdir(object):
+    """
+    ZiplineTestCase mixin providing cls.tempdir as a class-level fixture.
+
+    After init_class_fixtures has been called, `cls.tempdir` is populated
+    with a TempDirectory object.
+
+    The default value of TEMPDIR_PATH is None.
+    Inheritors can override TEMPDIR_PATH to path argument to `TempDirectory`
+    """
+
+    TEMPDIR_PATH = None
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithTempdir, cls).init_class_fixtures()
+
+        cls.tempdir = TempDirectory(path=cls.TEMPDIR_PATH)
+
+        cls.add_class_callback(cls.tempdir.cleanup)
+
+
+class WithBcolzMinutes(WithTempdir,
+                       WithTradingEnvironment):
+    """
+    ZiplineTestCase mixin providing cls.boclz_minute_bar_reader as a
+    class-level fixture.
+
+    After init_class_fixtures has been called, `cls.bcolz_minute_bar_reader`
+    is populated with `BcolzMinuteBarReader` with data defined by
+    `make_bcolz_minute_bar_data`
+
+    The default value of BCOLZ_MINUTES_PER_DAY is US_EQUITIES_MINUTES_PER_DAY.
+    Inheritors can override BCOLZ_MINUTES_PER_DAY to write data for assets
+    that trade over a different period length.
+    """
+
+    BCOLZ_MINUTES_PER_DAY = US_EQUITIES_MINUTES_PER_DAY
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithBcolzMinutes, cls).init_class_fixtures()
+
+        writer = BcolzMinuteBarWriter(
+            cls.env.first_trading_day,
+            cls.tempdir.path,
+            cls.env.open_and_closes.market_open,
+            cls.env.open_and_closes.market_close,
+            cls.BCOLZ_MINUTES_PER_DAY,
+        )
+        for sid, data in iteritems(cls.make_bcolz_minute_bar_data()):
+            writer.write(sid, data)
+        cls.bcolz_minute_bar_reader = BcolzMinuteBarReader(cls.tempdir.path)
+
+    @classmethod
+    def make_bcolz_minute_bar_data(cls):
+        """
+        Returns
+        -------
+        A dict of sid -> DataFrame with columns ('open', 'high', 'low',
+        'close', 'volume') and an index of the minutes on which the prices
+        occurred.
+
+        See, zipline.data.minute_bars.BcolzMinuteBarWriter
+        """
+        return {}
 
 
 class WithPipelineEventDataLoader(WithAssetFinder):

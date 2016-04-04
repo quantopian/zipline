@@ -18,7 +18,6 @@ from .core import (  # noqa
     make_rotating_equity_info,
     make_simple_equity_info,
     make_test_handler,
-    make_trade_panel_for_asset_info,
     parameter_space,
     permute_rows,
     powerset,

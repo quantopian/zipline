@@ -17,8 +17,7 @@
 Tests for the zipline.finance package
 """
 from datetime import datetime, timedelta
-import itertools
-import operator
+import os
 from unittest import TestCase
 
 
@@ -27,22 +26,27 @@ import numpy as np
 import pandas as pd
 import pytz
 from six.moves import range
+from testfixtures import TempDirectory
 
 from zipline.finance.blotter import Blotter
 from zipline.finance.execution import MarketOrder, LimitOrder
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.trading import SimulationParameters
-from zipline.gens.composites import date_sorted_sources
-import zipline.protocol
-from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.testing import(
+from zipline.testing import (
     setup_logger,
-    teardown_logger,
-    assert_single_position
+    teardown_logger
 )
+from zipline.data.us_equity_pricing import BcolzDailyBarReader
+from zipline.data.minute_bars import BcolzMinuteBarReader
+
+from zipline.data.data_portal import DataPortal
+from zipline.finance.slippage import FixedSlippage
+from zipline.protocol import BarData
+from zipline.testing.core import write_bcolz_minute_data
+from .utils.daily_bar_writer import DailyBarWriterFromDataFrames
+
 import zipline.utils.factory as factory
-import zipline.utils.simfactory as simfactory
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
@@ -55,7 +59,7 @@ class FinanceTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        cls.env.write_data(equities_identifiers=[1, 133])
+        cls.env.write_data(equities_identifiers=[1, 2, 133])
 
     @classmethod
     def tearDownClass(cls):
@@ -71,34 +75,6 @@ class FinanceTestCase(TestCase):
     def tearDown(self):
         teardown_logger(self)
 
-    @timed(DEFAULT_TIMEOUT)
-    def test_factory_daily(self):
-        sim_params = factory.create_simulation_parameters()
-        trade_source = factory.create_daily_trade_source(
-            [133],
-            sim_params,
-            env=self.env,
-        )
-        prev = None
-        for trade in trade_source:
-            if prev:
-                self.assertTrue(trade.dt > prev.dt)
-            prev = trade
-
-    @timed(EXTENDED_TIMEOUT)
-    def test_full_zipline(self):
-        # provide enough trades to ensure all orders are filled.
-        self.zipline_test_config['order_count'] = 100
-        # making a small order amount, so that each order is filled
-        # in a single transaction, and txn_count == order_count.
-        self.zipline_test_config['order_amount'] = 25
-        # No transactions can be filled on the first trade, so
-        # we have one extra trade to ensure all orders are filled.
-        self.zipline_test_config['trade_count'] = 101
-        full_zipline = simfactory.create_test_zipline(
-            **self.zipline_test_config)
-        assert_single_position(self, full_zipline)
-
     # TODO: write tests for short sales
     # TODO: write a test to do massive buying or shorting.
 
@@ -109,16 +85,17 @@ class FinanceTestCase(TestCase):
         # so that orders must be spread out over several trades.
         params = {
             'trade_count': 360,
-            'trade_amount': 100,
             'trade_interval': timedelta(minutes=1),
             'order_count': 2,
             'order_amount': 100,
             'order_interval': timedelta(minutes=1),
-            # because we placed an order for 100 shares, and the volume
-            # of each trade is 100, the simulator should spread the order
-            # into 4 trades of 25 shares per order.
-            'expected_txn_count': 8,
-            'expected_txn_volume': 2 * 100
+            # because we placed two orders for 100 shares each, and the volume
+            # of each trade is 100, and by default you can take up 2.5% of the
+            # bar's volume, the simulator should spread the order into 100
+            # trades of 2 shares per order.
+            'expected_txn_count': 100,
+            'expected_txn_volume': 2 * 100,
+            'default_slippage': True
         }
 
         self.transaction_sim(**params)
@@ -126,13 +103,13 @@ class FinanceTestCase(TestCase):
         # same scenario, but with short sales
         params2 = {
             'trade_count': 360,
-            'trade_amount': 100,
             'trade_interval': timedelta(minutes=1),
             'order_count': 2,
             'order_amount': -100,
             'order_interval': timedelta(minutes=1),
-            'expected_txn_count': 8,
-            'expected_txn_volume': 2 * -100
+            'expected_txn_count': 100,
+            'expected_txn_volume': 2 * -100,
+            'default_slippage': True
         }
 
         self.transaction_sim(**params2)
@@ -144,7 +121,6 @@ class FinanceTestCase(TestCase):
         # but are represented by multiple transactions.
         params1 = {
             'trade_count': 6,
-            'trade_amount': 100,
             'trade_interval': timedelta(hours=1),
             'order_count': 24,
             'order_amount': 1,
@@ -159,7 +135,6 @@ class FinanceTestCase(TestCase):
         # second verse, same as the first. except short!
         params2 = {
             'trade_count': 6,
-            'trade_amount': 100,
             'trade_interval': timedelta(hours=1),
             'order_count': 24,
             'order_amount': -1,
@@ -173,7 +148,6 @@ class FinanceTestCase(TestCase):
         # Ensuring that our delay works for daily intervals as well.
         params3 = {
             'trade_count': 6,
-            'trade_amount': 100,
             'trade_interval': timedelta(days=1),
             'order_count': 24,
             'order_amount': 1,
@@ -188,7 +162,6 @@ class FinanceTestCase(TestCase):
         # create a scenario where we alternate buys and sells
         params1 = {
             'trade_count': int(6.5 * 60 * 4),
-            'trade_amount': 100,
             'trade_interval': timedelta(minutes=1),
             'order_count': 4,
             'order_amount': 10,
@@ -204,136 +177,201 @@ class FinanceTestCase(TestCase):
         """ This is a utility method that asserts expected
         results for conversion of orders to transactions given a
         trade history"""
+        tempdir = TempDirectory()
+        try:
+            trade_count = params['trade_count']
+            trade_interval = params['trade_interval']
+            order_count = params['order_count']
+            order_amount = params['order_amount']
+            order_interval = params['order_interval']
+            expected_txn_count = params['expected_txn_count']
+            expected_txn_volume = params['expected_txn_volume']
 
-        trade_count = params['trade_count']
-        trade_interval = params['trade_interval']
-        order_count = params['order_count']
-        order_amount = params['order_amount']
-        order_interval = params['order_interval']
-        expected_txn_count = params['expected_txn_count']
-        expected_txn_volume = params['expected_txn_volume']
-        # optional parameters
-        # ---------------------
-        # if present, alternate between long and short sales
-        alternate = params.get('alternate')
-        # if present, expect transaction amounts to match orders exactly.
-        complete_fill = params.get('complete_fill')
+            # optional parameters
+            # ---------------------
+            # if present, alternate between long and short sales
+            alternate = params.get('alternate')
 
-        sid = 1
-        sim_params = factory.create_simulation_parameters()
-        blotter = Blotter()
-        price = [10.1] * trade_count
-        volume = [100] * trade_count
-        start_date = sim_params.first_open
+            # if present, expect transaction amounts to match orders exactly.
+            complete_fill = params.get('complete_fill')
 
-        generated_trades = factory.create_trade_history(
-            sid,
-            price,
-            volume,
-            trade_interval,
-            sim_params,
-            env=self.env,
-        )
+            env = TradingEnvironment()
 
-        if alternate:
-            alternator = -1
-        else:
-            alternator = 1
+            sid = 1
 
-        order_date = start_date
-        for i in range(order_count):
+            if trade_interval < timedelta(days=1):
+                sim_params = factory.create_simulation_parameters(
+                    data_frequency="minute"
+                )
 
-            blotter.set_date(order_date)
-            blotter.order(sid, order_amount * alternator ** i, MarketOrder())
+                minutes = env.market_minute_window(
+                    sim_params.first_open,
+                    int((trade_interval.total_seconds() / 60) * trade_count)
+                    + 100)
 
-            order_date = order_date + order_interval
-            # move after market orders to just after market next
-            # market open.
-            if order_date.hour >= 21:
-                if order_date.minute >= 00:
-                    order_date = order_date + timedelta(days=1)
-                    order_date = order_date.replace(hour=14, minute=30)
+                price_data = np.array([10.1] * len(minutes))
+                assets = {
+                    sid: pd.DataFrame({
+                        "open": price_data,
+                        "high": price_data,
+                        "low": price_data,
+                        "close": price_data,
+                        "volume": np.array([100] * len(minutes)),
+                        "dt": minutes
+                    }).set_index("dt")
+                }
 
-        # there should now be one open order list stored under the sid
-        oo = blotter.open_orders
-        self.assertEqual(len(oo), 1)
-        self.assertTrue(sid in oo)
-        order_list = oo[sid][:]  # make copy
-        self.assertEqual(order_count, len(order_list))
+                write_bcolz_minute_data(
+                    env,
+                    env.days_in_range(minutes[0], minutes[-1]),
+                    tempdir.path,
+                    assets
+                )
 
-        for i in range(order_count):
-            order = order_list[i]
-            self.assertEqual(order.sid, sid)
-            self.assertEqual(order.amount, order_amount * alternator ** i)
+                equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
-        tracker = PerformanceTracker(sim_params, env=self.env)
+                data_portal = DataPortal(
+                    env,
+                    equity_minute_reader=equity_minute_reader,
+                )
+            else:
+                sim_params = factory.create_simulation_parameters(
+                    data_frequency="daily"
+                )
 
-        benchmark_returns = [
-            Event({'dt': dt,
-                   'returns': ret,
-                   'type':
-                   zipline.protocol.DATASOURCE_TYPE.BENCHMARK,
-                   'source_id': 'benchmarks'})
-            for dt, ret in self.env.benchmark_returns.iteritems()
-            if dt.date() >= sim_params.period_start.date() and
-            dt.date() <= sim_params.period_end.date()
-        ]
+                days = sim_params.trading_days
 
-        generated_events = date_sorted_sources(generated_trades,
-                                               benchmark_returns)
+                assets = {
+                    1: pd.DataFrame({
+                        "open": [10.1] * len(days),
+                        "high": [10.1] * len(days),
+                        "low": [10.1] * len(days),
+                        "close": [10.1] * len(days),
+                        "volume": [100] * len(days),
+                        "day": [day.value for day in days]
+                    }, index=days)
+                }
 
-        # this approximates the loop inside TradingSimulationClient
-        transactions = []
-        for dt, events in itertools.groupby(generated_events,
-                                            operator.attrgetter('dt')):
-            for event in events:
-                if event.type == DATASOURCE_TYPE.TRADE:
+                path = os.path.join(tempdir.path, "testdata.bcolz")
+                DailyBarWriterFromDataFrames(assets).write(
+                    path, days, assets)
 
-                    for txn, order in blotter.process_trade(event):
-                        transactions.append(txn)
+                equity_daily_reader = BcolzDailyBarReader(path)
+
+                data_portal = DataPortal(
+                    env,
+                    equity_daily_reader=equity_daily_reader,
+                )
+
+            if "default_slippage" not in params or \
+               not params["default_slippage"]:
+                slippage_func = FixedSlippage()
+            else:
+                slippage_func = None
+
+            blotter = Blotter(sim_params.data_frequency, self.env.asset_finder,
+                              slippage_func)
+
+            env.write_data(equities_data={
+                sid: {
+                    "start_date": sim_params.trading_days[0],
+                    "end_date": sim_params.trading_days[-1]
+                }
+            })
+
+            start_date = sim_params.first_open
+
+            if alternate:
+                alternator = -1
+            else:
+                alternator = 1
+
+            tracker = PerformanceTracker(sim_params, self.env, data_portal)
+
+            # replicate what tradesim does by going through every minute or day
+            # of the simulation and processing open orders each time
+            if sim_params.data_frequency == "minute":
+                ticks = minutes
+            else:
+                ticks = days
+
+            transactions = []
+
+            order_list = []
+            order_date = start_date
+            for tick in ticks:
+                blotter.current_dt = tick
+                if tick >= order_date and len(order_list) < order_count:
+                    # place an order
+                    direction = alternator ** len(order_list)
+                    order_id = blotter.order(
+                        blotter.asset_finder.retrieve_asset(sid),
+                        order_amount * direction,
+                        MarketOrder())
+                    order_list.append(blotter.orders[order_id])
+                    order_date = order_date + order_interval
+                    # move after market orders to just after market next
+                    # market open.
+                    if order_date.hour >= 21:
+                        if order_date.minute >= 00:
+                            order_date = order_date + timedelta(days=1)
+                            order_date = order_date.replace(hour=14, minute=30)
+                else:
+                    bar_data = BarData(
+                        data_portal,
+                        lambda: tick,
+                        sim_params.data_frequency
+                    )
+                    txns, _ = blotter.get_transactions(bar_data)
+                    for txn in txns:
                         tracker.process_transaction(txn)
-                elif event.type == DATASOURCE_TYPE.BENCHMARK:
-                    tracker.process_benchmark(event)
-                elif event.type == DATASOURCE_TYPE.TRADE:
-                    tracker.process_trade(event)
+                        transactions.append(txn)
 
-        if complete_fill:
-            self.assertEqual(len(transactions), len(order_list))
-
-        total_volume = 0
-        for i in range(len(transactions)):
-            txn = transactions[i]
-            total_volume += txn.amount
-            if complete_fill:
+            for i in range(order_count):
                 order = order_list[i]
-                self.assertEqual(order.amount, txn.amount)
+                self.assertEqual(order.sid, sid)
+                self.assertEqual(order.amount, order_amount * alternator ** i)
 
-        self.assertEqual(total_volume, expected_txn_volume)
-        self.assertEqual(len(transactions), expected_txn_count)
+            if complete_fill:
+                self.assertEqual(len(transactions), len(order_list))
 
-        cumulative_pos = tracker.cumulative_performance.positions[sid]
-        self.assertEqual(total_volume, cumulative_pos.amount)
+            total_volume = 0
+            for i in range(len(transactions)):
+                txn = transactions[i]
+                total_volume += txn.amount
+                if complete_fill:
+                    order = order_list[i]
+                    self.assertEqual(order.amount, txn.amount)
 
-        # the open orders should not contain sid.
-        oo = blotter.open_orders
-        self.assertNotIn(sid, oo, "Entry is removed when no open orders")
+            self.assertEqual(total_volume, expected_txn_volume)
+
+            self.assertEqual(len(transactions), expected_txn_count)
+
+            cumulative_pos = tracker.position_tracker.positions[sid]
+            if total_volume == 0:
+                self.assertIsNone(cumulative_pos)
+            else:
+                self.assertEqual(total_volume, cumulative_pos.amount)
+
+            # the open orders should not contain sid.
+            oo = blotter.open_orders
+            self.assertNotIn(sid, oo, "Entry is removed when no open orders")
+        finally:
+            tempdir.cleanup()
 
     def test_blotter_processes_splits(self):
-        sim_params = factory.create_simulation_parameters()
-        blotter = Blotter()
-        blotter.set_date(sim_params.period_start)
+        blotter = Blotter('daily', self.env.asset_finder,
+                          slippage_func=FixedSlippage())
 
         # set up two open limit orders with very low limit prices,
         # one for sid 1 and one for sid 2
-        blotter.order(1, 100, LimitOrder(10))
-        blotter.order(2, 100, LimitOrder(10))
+        blotter.order(
+            blotter.asset_finder.retrieve_asset(1), 100, LimitOrder(10))
+        blotter.order(
+            blotter.asset_finder.retrieve_asset(2), 100, LimitOrder(10))
 
         # send in a split for sid 2
-        split_event = factory.create_split(2, 0.33333,
-                                           sim_params.period_start +
-                                           timedelta(days=1))
-
-        blotter.process_split(split_event)
+        blotter.process_splits([(2, 0.3333)])
 
         for sid in [1, 2]:
             order_lists = blotter.open_orders[sid]

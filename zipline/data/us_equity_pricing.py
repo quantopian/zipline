@@ -14,6 +14,7 @@
 from abc import (
     ABCMeta,
     abstractmethod,
+    abstractproperty,
 )
 from errno import ENOENT
 from os import remove
@@ -25,6 +26,7 @@ from bcolz import (
     ctable,
     open as open_ctable,
 )
+from collections import namedtuple
 from click import progressbar
 from numpy import (
     array,
@@ -43,6 +45,8 @@ from pandas import (
     DatetimeIndex,
     read_csv,
     Timestamp,
+    NaT,
+    isnull,
 )
 from six import (
     iteritems,
@@ -50,6 +54,7 @@ from six import (
 )
 
 from zipline.utils.input_validation import coerce_string, preprocess
+from zipline.utils.sqlite_utils import group_into_chunks
 
 from ._equities import _compute_row_slices, _read_bcolz_data
 from ._adjustments import load_adjustments_from_sqlite
@@ -123,7 +128,6 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
     --------
     BcolzDailyBarReader : Consumer of the data written by this class.
     """
-
     @abstractmethod
     def gen_tables(self, assets):
         """
@@ -200,6 +204,8 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
             for k in US_EQUITY_PRICING_BCOLZ_COLUMNS
         }
 
+        earliest_date = None
+
         for asset_id, table in iterator:
             nrows = len(table)
             for column_name in columns:
@@ -211,6 +217,11 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
                 columns[column_name].append(
                     self.to_uint32(table[column_name][:], column_name)
                 )
+
+            if earliest_date is None:
+                earliest_date = table["day"][0]
+            else:
+                earliest_date = min(earliest_date, table["day"][0])
 
             # Bcolz doesn't support ints as keys in `attrs`, so convert
             # assets to strings for use as attr keys.
@@ -245,6 +256,9 @@ class BcolzDailyBarWriter(with_metaclass(ABCMeta)):
             rootdir=filename,
             mode='w',
         )
+
+        full_table.attrs['first_trading_day'] = \
+            int(earliest_date / 1e6)
         full_table.attrs['first_row'] = first_row
         full_table.attrs['last_row'] = last_row
         full_table.attrs['calendar_offset'] = calendar_offset
@@ -314,7 +328,24 @@ class DailyBarWriterFromCSVs(BcolzDailyBarWriter):
             )
 
 
-class BcolzDailyBarReader(object):
+class DailyBarReader(with_metaclass(ABCMeta)):
+    """
+    Reader for OHCLV pricing data at a daily frequency.
+    """
+    @abstractmethod
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        pass
+
+    @abstractmethod
+    def spot_price(self, sid, day, colname):
+        pass
+
+    @abstractproperty
+    def last_available_dt(self):
+        pass
+
+
+class BcolzDailyBarReader(DailyBarReader):
     """
     Reader for raw pricing data written by BcolzDailyOHLCVWriter.
 
@@ -383,11 +414,23 @@ class BcolzDailyBarReader(object):
             int(id_): offset
             for id_, offset in iteritems(table.attrs['calendar_offset'])
         }
+
+        try:
+            self._first_trading_day = Timestamp(
+                table.attrs['first_trading_day'],
+                unit='ms',
+                tz='UTC'
+            )
+        except KeyError:
+            self._first_trading_day = None
+
         # Cache of fully read np.array for the carrays in the daily bar table.
         # raw_array does not use the same cache, but it could.
         # Need to test keeping the entire array in memory for the course of a
         # process first.
         self._spot_cols = {}
+
+        self.PRICE_ADJUSTMENT_FACTOR = 0.001
 
     def _compute_slices(self, start_idx, end_idx, assets):
         """
@@ -449,6 +492,14 @@ class BcolzDailyBarReader(object):
             offsets,
         )
 
+    @property
+    def first_trading_day(self):
+        return self._first_trading_day
+
+    @property
+    def last_available_dt(self):
+        return self._calendar[-1]
+
     def _spot_col(self, colname):
         """
         Get the colname from daily_bar_table and read all of it into memory,
@@ -468,8 +519,32 @@ class BcolzDailyBarReader(object):
         try:
             col = self._spot_cols[colname]
         except KeyError:
-            col = self._spot_cols[colname] = self._table[colname][:]
+            col = self._spot_cols[colname] = self._table[colname]
         return col
+
+    def get_last_traded_dt(self, asset, day):
+        volumes = self._spot_col('volume')
+
+        if day >= asset.end_date:
+            # go back to one day before the asset ended
+            search_day = self._calendar[
+                self._calendar.searchsorted(asset.end_date) - 1
+            ]
+        else:
+            search_day = day
+
+        while True:
+            try:
+                ix = self.sid_day_index(asset, search_day)
+            except NoDataOnDate:
+                return None
+            if volumes[ix] != 0:
+                return search_day
+            prev_day_ix = self._calendar.get_loc(search_day) - 1
+            if prev_day_ix > -1:
+                search_day = self._calendar[prev_day_ix]
+            else:
+                return None
 
     def sid_day_index(self, sid, day):
         """
@@ -487,7 +562,11 @@ class BcolzDailyBarReader(object):
             Raises a NoDataOnDate exception if the given day and sid is before
             or after the date range of the equity.
         """
-        day_loc = self._calendar.get_loc(day)
+        try:
+            day_loc = self._calendar.get_loc(day)
+        except:
+            raise NoDataOnDate("day={0} is outside of calendar={1}".format(
+                day, self._calendar))
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
             raise NoDataOnDate(
@@ -528,6 +607,93 @@ class BcolzDailyBarReader(object):
             return price * 0.001
         else:
             return price
+
+
+class PanelDailyBarReader(DailyBarReader):
+    """
+    Reader for data passed as Panel.
+
+    DataPanel Structure
+    -------
+    items : Int64Index, asset identifiers
+    major_axis : DatetimeIndex, days provided by the Panel.
+    minor_axis : ['open', 'high', 'low', 'close', 'volume']
+
+    Attributes
+    ----------
+    The table with which this loader interacts contains the following
+    attributes:
+
+    panel : pd.Panel
+        The panel from which to read OHLCV data.
+    first_trading_day : pd.Timestamp
+        The first trading day in the dataset.
+    """
+    def __init__(self, calendar, panel):
+        panel = panel.copy()
+        if 'volume' not in panel.items:
+            # Fake volume if it does not exist.
+            panel.loc[:, :, 'volume'] = int(1e9)
+
+        self.first_trading_day = panel.major_axis[0]
+        self._calendar = calendar
+
+        self.panel = panel
+
+    @property
+    def last_available_dt(self):
+        return self._calendar[-1]
+
+    def load_raw_arrays(self, columns, start_date, end_date, assets):
+        col_names = [col.name for col in columns]
+        cal = self._calendar
+        index = cal[cal.slice_indexer(start_date, end_date)]
+        result = self.panel.loc[assets, start_date:end_date, col_names]
+        return result.reindex_axis(index, 1).values
+
+    def spot_price(self, sid, day, colname):
+        """
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        day : datetime64-like
+            Midnight of the day for which data is requested.
+        colname : string
+            The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
+
+        Returns
+        -------
+        float
+            The spot price for colname of the given sid on the given day.
+            Raises a NoDataOnDate exception if the given day and sid is before
+            or after the date range of the equity.
+            Returns -1 if the day is within the date range, but the price is
+            0.
+        """
+        return self.panel[sid, day, colname]
+
+    def get_last_traded_dt(self, sid, dt):
+        """
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        dt : datetime64-like
+            Midnight of the day for which data is requested.
+
+        Returns
+        -------
+        pd.Timestamp : The last know dt for the asset and dt;
+                       NaT if no trade is found before the given dt.
+        """
+        while dt in self.panel.major_axis:
+            freq = self.panel.major_axis.freq
+            if not isnull(self.panel.loc[sid, dt, 'close']):
+                return dt
+            dt -= freq
+        else:
+            return NaT
 
 
 class SQLiteAdjustmentWriter(object):
@@ -900,6 +1066,23 @@ class SQLiteAdjustmentWriter(object):
         self.conn.close()
 
 
+UNPAID_QUERY_TEMPLATE = """
+SELECT sid, amount, pay_date from dividend_payouts
+WHERE ex_date=? AND sid IN ({0})
+"""
+
+Dividend = namedtuple('Dividend', ['asset', 'amount', 'pay_date'])
+
+UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE = """
+SELECT sid, payment_sid, ratio, pay_date from stock_dividend_payouts
+WHERE ex_date=? AND sid IN ({0})
+"""
+
+StockDividend = namedtuple(
+    'StockDividend',
+    ['asset', 'payment_asset', 'ratio', 'pay_date'])
+
+
 class SQLiteAdjustmentReader(object):
     """
     Loads adjustments based on corporate actions from a SQLite database.
@@ -923,3 +1106,62 @@ class SQLiteAdjustmentReader(object):
             dates,
             assets,
         )
+
+    def get_adjustments_for_sid(self, table_name, sid):
+        t = (sid,)
+        c = self.conn.cursor()
+        adjustments_for_sid = c.execute(
+            "SELECT effective_date, ratio FROM %s WHERE sid = ?" %
+            table_name, t).fetchall()
+        c.close()
+
+        return [[Timestamp(adjustment[0], unit='s', tz='UTC'), adjustment[1]]
+                for adjustment in
+                adjustments_for_sid]
+
+    def get_dividends_with_ex_date(self, assets, date, asset_finder):
+        seconds = date.value / int(1e9)
+        c = self.conn.cursor()
+
+        divs = []
+        for chunk in group_into_chunks(assets):
+            query = UNPAID_QUERY_TEMPLATE.format(
+                ",".join(['?' for _ in chunk]))
+            t = (seconds,) + tuple(map(lambda x: int(x), chunk))
+
+            c.execute(query, t)
+
+            rows = c.fetchall()
+            for row in rows:
+                div = Dividend(
+                    asset_finder.retrieve_asset(row[0]),
+                    row[1], Timestamp(row[2], unit='s', tz='UTC'))
+                divs.append(div)
+        c.close()
+
+        return divs
+
+    def get_stock_dividends_with_ex_date(self, assets, date, asset_finder):
+        seconds = date.value / int(1e9)
+        c = self.conn.cursor()
+
+        stock_divs = []
+        for chunk in group_into_chunks(assets):
+            query = UNPAID_STOCK_DIVIDEND_QUERY_TEMPLATE.format(
+                ",".join(['?' for _ in chunk]))
+            t = (seconds,) + tuple(map(lambda x: int(x), chunk))
+
+            c.execute(query, t)
+
+            rows = c.fetchall()
+
+            for row in rows:
+                stock_div = StockDividend(
+                    asset_finder.retrieve_asset(row[0]),    # asset
+                    asset_finder.retrieve_asset(row[1]),    # payment_asset
+                    row[2],
+                    Timestamp(row[3], unit='s', tz='UTC'))
+                stock_divs.append(stock_div)
+        c.close()
+
+        return stock_divs
