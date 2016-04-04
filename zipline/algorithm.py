@@ -1056,9 +1056,10 @@ class TradingAlgorithm(object):
 
     def updated_portfolio(self):
         if self.portfolio_needs_update:
+            self.perf_tracker.position_tracker.sync_last_sale_prices(
+                self.datetime, self._in_before_trading_start)
             self._portfolio = \
-                self.perf_tracker.get_portfolio(self.performance_needs_update,
-                                                self.datetime)
+                self.perf_tracker.get_portfolio(self.performance_needs_update)
             self.portfolio_needs_update = False
             self.performance_needs_update = False
         return self._portfolio
@@ -1069,9 +1070,10 @@ class TradingAlgorithm(object):
 
     def updated_account(self):
         if self.account_needs_update:
+            self.perf_tracker.position_tracker.sync_last_sale_prices(
+                self.datetime, self._in_before_trading_start)
             self._account = \
-                self.perf_tracker.get_account(self.performance_needs_update,
-                                              self.datetime)
+                self.perf_tracker.get_account(self.performance_needs_update)
             self.account_needs_update = False
             self.performance_needs_update = False
         return self._account
