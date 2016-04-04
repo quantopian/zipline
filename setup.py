@@ -108,11 +108,18 @@ STR_TO_CMP = {
 }
 
 
-def _filter_requirements(lines_iter):
+def _filter_requirements(lines_iter, filter_names=None):
     for line in lines_iter:
         line = line.strip()
         if line and not line.startswith('#'):
-            yield line
+            match = REQ_PATTERN.match(line)
+            if match is None:
+                raise AssertionError(
+                    "Could not parse requirement: '%s'" % line)
+
+            name = match.group('name')
+            if filter_names is None or name in filter_names:
+                yield line
 
 
 # We don't currently have any known upper bounds.
@@ -159,7 +166,8 @@ def _conda_format(req):
 
 def read_requirements(path,
                       strict_bounds,
-                      conda_format=False):
+                      conda_format=False,
+                      filter_names=None):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
 
@@ -168,7 +176,7 @@ def read_requirements(path,
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        reqs = _filter_requirements(f.readlines())
+        reqs = _filter_requirements(f.readlines(), filter_names=filter_names)
 
         if not strict_bounds:
             reqs = map(_with_bounds, reqs)
@@ -197,34 +205,25 @@ def extras_requires(conda_format=False):
     return extras
 
 
-def module_requirements(requirements_path, module_names, strict_bounds,
-                        conda_format=False):
+def setup_requirements(requirements_path, module_names, strict_bounds,
+                       conda_format=False):
     module_names = set(module_names)
-    found = set()
-    module_lines = []
-    for line in read_requirements(requirements_path,
-                                  strict_bounds=strict_bounds):
-        match = REQ_PATTERN.match(line)
-        if match is None:
-            raise AssertionError("Could not parse requirement: '%s'" % line)
+    module_lines = read_requirements(requirements_path,
+                                     strict_bounds=strict_bounds,
+                                     conda_format=conda_format,
+                                     filter_names=module_names)
 
-        name = match.group('name')
-        if name in module_names:
-            found.add(name)
-            if conda_format:
-                line = _conda_format(line)
-            module_lines.append(line)
-
-    if found != module_names:
+    if len(set(module_lines)) != len(module_names):
         raise AssertionError(
-            "No requirements found for %s." % (module_names - found)
+            "Missing requirements. Looking for %s, but found %s."
+            % (module_names, module_lines)
         )
     return module_lines
 
 conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
                                                 'conda-build-script.py')  # win
 
-setup_requires = module_requirements(
+setup_requires = setup_requirements(
     'etc/requirements.txt',
     ('Cython', 'numpy'),
     strict_bounds=conda_build,
