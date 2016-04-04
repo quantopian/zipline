@@ -42,7 +42,7 @@ install:
 before_script:
   - pip freeze | sort
 script:
-  - nosetests tests/
+  - nosetests --with-coverage tests/
   - flake8 zipline tests
   # deactive env to get access to anaconda command
   - source deactivate
