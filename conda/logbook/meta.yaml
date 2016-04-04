@@ -30,11 +30,9 @@ requirements:
   build:
     - python
     - setuptools
-    - six >=1.4.0
 
   run:
     - python
-    - six >=1.4.0
 
 test:
   # Python imports

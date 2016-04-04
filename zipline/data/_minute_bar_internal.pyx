@@ -3,8 +3,6 @@ from numpy import searchsorted
 from cpython cimport bool
 cimport cython
 
-from bcolz.carray_ext cimport carray
-
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
 @cython.cdivision(True)
@@ -107,7 +105,7 @@ def find_last_traded_position_internal(
         ndarray[long_t, ndim=1] market_closes,
         long_t end_minute,
         long_t start_minute,
-        carray volumes,
+        volumes,
         short minutes_per_day):
 
     """
