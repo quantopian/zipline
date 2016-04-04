@@ -16,15 +16,15 @@ from __future__ import division
 
 from copy import copy
 
+from zipline.assets import Asset
 from zipline.protocol import DATASOURCE_TYPE
-from zipline.utils.serialization_utils import (
-    VERSION_LABEL
-)
 
 
 class Transaction(object):
 
     def __init__(self, sid, amount, dt, price, order_id, commission=None):
+        assert isinstance(sid, Asset)
+
         self.sid = sid
         self.amount = amount
         self.dt = dt
@@ -41,27 +41,8 @@ class Transaction(object):
         del py['type']
         return py
 
-    def __getstate__(self):
 
-        state_dict = copy(self.__dict__)
-
-        STATE_VERSION = 1
-        state_dict[VERSION_LABEL] = STATE_VERSION
-
-        return state_dict
-
-    def __setstate__(self, state):
-
-        OLDEST_SUPPORTED_STATE = 1
-        version = state.pop(VERSION_LABEL)
-
-        if version < OLDEST_SUPPORTED_STATE:
-            raise BaseException("Transaction saved state is too old.")
-
-        self.__dict__.update(state)
-
-
-def create_transaction(event, order, price, amount):
+def create_transaction(order, dt, price, amount):
 
     # floor the amount to protect against non-whole number orders
     # TODO: Investigate whether we can add a robust check in blotter
@@ -72,9 +53,9 @@ def create_transaction(event, order, price, amount):
         raise Exception("Transaction magnitude must be at least 1.")
 
     transaction = Transaction(
-        sid=event.sid,
+        sid=order.sid,
         amount=int(amount),
-        dt=event.dt,
+        dt=dt,
         price=price,
         order_id=order.id
     )

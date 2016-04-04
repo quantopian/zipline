@@ -27,16 +27,19 @@ from cpython.object cimport (
     Py_GT,
     Py_LT,
 )
-
-from numbers import Integral
+from cpython cimport bool
 
 import numpy as np
+from numpy cimport int64_t
 import warnings
 cimport numpy as np
+
 
 # IMPORTANT NOTE: You must change this template if you change
 # Asset.__reduce__, or else we'll attempt to unpickle an old version of this
 # class
+from pandas.tslib import normalize_date
+
 CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v6.cache'
 
 cdef class Asset:
@@ -174,6 +177,38 @@ cdef class Asset:
         Build an Asset instance from a dict.
         """
         return cls(**dict_)
+
+    def _is_alive(self, dt, bool normalized):
+        """
+        Returns whether the asset is alive at the given dt.
+
+        Parameters
+        ----------
+        dt: pd.Timestamp
+            The desired timestamp.
+
+        normalized: boolean
+            Whether the date has already been normalized.  If not, we need
+            to first normalize the date before doing the alive check.  If the
+            date is already normalized, this method runs up to 80% faster.
+
+        Returns
+        -------
+        boolean: whether the asset is alive at the given dt.
+        """
+        cdef int64_t dt_value
+        cdef int64_t ref_start
+        cdef int64_t ref_end
+
+        if not normalized:
+            dt_value = normalize_date(dt).value
+        else:
+            dt_value = dt.value
+
+        ref_start = self.start_date.value
+        ref_end = self.end_date.value
+
+        return ref_start <= dt_value <= ref_end
 
 
 cdef class Equity(Asset):

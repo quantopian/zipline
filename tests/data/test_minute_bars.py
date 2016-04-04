@@ -47,7 +47,7 @@ from zipline.finance.trading import TradingEnvironment
 
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
-TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
+TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
 class BcolzMinuteBarTestCase(TestCase):
@@ -637,3 +637,149 @@ class BcolzMinuteBarTestCase(TestCase):
         for i, col in enumerate(columns):
             for j, sid in enumerate(sids):
                 assert_almost_equal(data[sid][col], arrays[i][j])
+
+    def test_unadjusted_minutes_early_close(self):
+        """
+        Test unadjusted minute window, ensuring that early closes are filtered
+        out.
+        """
+        day_before_thanksgiving = Timestamp('2015-11-25', tz='UTC')
+        xmas_eve = Timestamp('2015-12-24', tz='UTC')
+        market_day_after_xmas = Timestamp('2015-12-28', tz='UTC')
+
+        minutes = [self.market_closes[day_before_thanksgiving] -
+                   Timedelta('2 min'),
+                   self.market_closes[xmas_eve] - Timedelta('1 min'),
+                   self.market_opens[market_day_after_xmas] +
+                   Timedelta('1 min')]
+        sids = [1, 2]
+        data_1 = DataFrame(
+            data={
+                'open': [
+                    15.0, 15.1, 15.2],
+                'high': [17.0, 17.1, 17.2],
+                'low': [11.0, 11.1, 11.3],
+                'close': [14.0, 14.1, 14.2],
+                'volume': [1000, 1001, 1002],
+            },
+            index=minutes)
+        self.writer.write(sids[0], data_1)
+
+        data_2 = DataFrame(
+            data={
+                'open': [25.0, 25.1, 25.2],
+                'high': [27.0, 27.1, 27.2],
+                'low': [21.0, 21.1, 21.2],
+                'close': [24.0, 24.1, 24.2],
+                'volume': [2000, 2001, 2002],
+            },
+            index=minutes)
+        self.writer.write(sids[1], data_2)
+
+        reader = BcolzMinuteBarReader(self.dest)
+
+        columns = ['open', 'high', 'low', 'close', 'volume']
+        sids = [sids[0], sids[1]]
+        arrays = reader.unadjusted_window(
+            columns, minutes[0], minutes[-1], sids)
+
+        data = {sids[0]: data_1, sids[1]: data_2}
+
+        start_minute_loc = self.env.market_minutes.get_loc(minutes[0])
+        minute_locs = [self.env.market_minutes.get_loc(minute) -
+                       start_minute_loc
+                       for minute in minutes]
+
+        for i, col in enumerate(columns):
+            for j, sid in enumerate(sids):
+                assert_almost_equal(data[sid].loc[minutes, col],
+                                    arrays[i][j][minute_locs])
+
+    def test_adjust_non_trading_minutes(self):
+        start_day = Timestamp('2015-06-01', tz='UTC')
+        end_day = Timestamp('2015-06-02', tz='UTC')
+
+        sid = 1
+        cols = {
+            'open': arange(1, 781),
+            'high': arange(1, 781),
+            'low': arange(1, 781),
+            'close': arange(1, 781),
+            'volume': arange(1, 781)
+        }
+        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
+        self.writer.write_cols(sid, dts, cols)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-01 20:00:00', tz='UTC'),
+                'open'),
+            390)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-02 20:00:00', tz='UTC'),
+                'open'),
+            780)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-02', tz='UTC'),
+                'open'),
+            390)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-06-02 20:01:00', tz='UTC'),
+                'open'),
+            780)
+
+    def test_adjust_non_trading_minutes_half_days(self):
+        # half day
+        start_day = Timestamp('2015-11-27', tz='UTC')
+        end_day = Timestamp('2015-11-30', tz='UTC')
+
+        sid = 1
+        cols = {
+            'open': arange(1, 601),
+            'high': arange(1, 601),
+            'low': arange(1, 601),
+            'close': arange(1, 601),
+            'volume': arange(1, 601)
+        }
+        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
+        self.writer.write_cols(sid, dts, cols)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-27 18:00:00', tz='UTC'),
+                'open'),
+            210)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-30 21:00:00', tz='UTC'),
+                'open'),
+            600)
+
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-27 18:01:00', tz='UTC'),
+                'open'),
+            210)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-30', tz='UTC'),
+                'open'),
+            210)
+        self.assertEqual(
+            self.reader.get_value(
+                sid,
+                Timestamp('2015-11-30 21:01:00', tz='UTC'),
+                'open'),
+            600)
