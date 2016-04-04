@@ -31,11 +31,11 @@ from zipline.finance.trading import (
     SimulationParameters, TradingEnvironment, noop_load
 )
 from zipline.sources.test_source import create_trade
+from zipline.data.loader import (  # For backwards compatibility
+    load_from_yahoo,
+    load_bars_from_yahoo,
+)
 
-
-# For backwards compatibility
-from zipline.data.loader import (load_from_yahoo,
-                                 load_bars_from_yahoo)
 
 __all__ = ['load_from_yahoo', 'load_bars_from_yahoo']
 

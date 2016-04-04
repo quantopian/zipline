@@ -6,6 +6,7 @@ from blaze.compute.core import swap_resources_into_scope
 import pandas as pd
 from six import iteritems
 
+from zipline.assets.synthetic import make_simple_equity_info
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
     DAYS_SINCE_PREV_DIVIDEND_ANNOUNCEMENT,

@@ -58,6 +58,14 @@ class CallbackManager(object):
     def __call__(self, *args, **kwargs):
         return _ManagedCallbackContext(self.pre, self.post, args, kwargs)
 
+    # special case, if no extra args are passed make this a context manager
+    # which forwards no args to pre and post
+    def __enter__(self):
+        return self.pre()
+
+    def __exit__(self, *excinfo):
+        self.post()
+
 
 class _ManagedCallbackContext(object):
     def __init__(self, pre, post, args, kwargs):

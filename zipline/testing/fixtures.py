@@ -1,3 +1,4 @@
+import sqlite3
 from unittest import TestCase
 
 from contextlib2 import ExitStack
@@ -5,20 +6,35 @@ from logbook import NullHandler
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from six import iteritems
-from testfixtures import TempDirectory
+from pandas.util.testing import assert_series_equal
+import responses
+from six import with_metaclass, iteritems
 
+from ..assets.synthetic import make_simple_equity_info
+from .core import (
+    create_daily_bar_data,
+    create_minute_bar_data,
+    gen_calendars,
+    tmp_asset_finder,
+    tmp_dir,
+)
+from ..data.data_portal import DataPortal
+from ..data.us_equity_pricing import (
+    SQLiteAdjustmentReader,
+    SQLiteAdjustmentWriter,
+)
+from ..finance.trading import TradingEnvironment
+from ..data.us_equity_pricing import (
+    BcolzDailyBarReader,
+    BcolzDailyBarWriter,
+)
 from ..data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
     US_EQUITIES_MINUTES_PER_DAY
 )
-from pandas.util.testing import assert_series_equal
-from six import with_metaclass
-
-from .core import tmp_asset_finder, make_simple_equity_info, gen_calendars
-from ..finance.trading import TradingEnvironment
 from ..utils import tradingcalendar, factory
+from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.utils.numpy_utils import make_datetime64D
@@ -45,6 +61,10 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
     @final
     @classmethod
     def setUpClass(cls):
+        # Hold a set of all the "static" attributes on the class. These are
+        # things that are not populated after the class was created like
+        # methods or other class level attributes.
+        cls._static_class_attributes = set(vars(cls))
         cls._class_teardown_stack = ExitStack()
         try:
             cls._base_init_fixtures_was_called = False
@@ -73,6 +93,12 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
     @classmethod
     def tearDownClass(cls):
         cls._class_teardown_stack.close()
+        for name in set(vars(cls)) - cls._static_class_attributes:
+            # Remove all of the attributes that were added after the class was
+            # constructed. This cleans up any large test data that is class
+            # scoped while still allowing subclasses to access class level
+            # attributes.
+            delattr(cls, name)
 
     @final
     @classmethod
@@ -126,7 +152,7 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
         return self._instance_teardown_stack.enter_context(context_manager)
 
     @final
-    def add_instance_callback(self, callback):
+    def add_instance_callback(self, callback, *args, **kwargs):
         """
         Register a callback to be executed during tearDown.
 
@@ -201,23 +227,24 @@ class WithAssetFinder(object):
     @classmethod
     def make_asset_finder(cls):
         return cls.enter_class_context(tmp_asset_finder(
-            equities=cls.equities_info,
-            futures=cls.futures_info,
-            exchanges=cls.exchanges_info,
-            root_symbols=cls.root_symbols_info,
+            equities=cls.make_equities_info(),
+            futures=cls.make_futures_info(),
+            exchanges=cls.make_exchanges_info(),
+            root_symbols=cls.make_root_symbols_info(),
         ))
 
     @classmethod
     def init_class_fixtures(cls):
         super(WithAssetFinder, cls).init_class_fixtures()
-
-        # TODO: Move this to consumers that actually depend on it.
-        #       These are misleading if make_asset_finder is overridden.
-        cls.equities_info = cls.make_equities_info()
-        cls.futures_info = cls.make_futures_info()
-        cls.exchanges_info = cls.make_exchanges_info()
-        cls.root_symbols_info = cls.make_root_symbols_info()
         cls.asset_finder = cls.make_asset_finder()
+
+    @classproperty
+    def equities_info(cls):
+        return cls.asset_finder.equities_info
+
+    @classproperty
+    def futures_info(cls):
+        return cls.asset_finder.futures_info
 
 
 class WithTradingEnvironment(WithAssetFinder):
@@ -231,8 +258,6 @@ class WithTradingEnvironment(WithAssetFinder):
     The ``load`` function may be provided by overriding the
     ``make_load_function`` class method.
 
-    This behavior can be altered by overriding `make_trading_environment` as a
-    class method.
     """
     TRADING_ENV_MIN_DATE = None
     TRADING_ENV_MAX_DATE = None
@@ -268,8 +293,8 @@ class WithSimParams(WithTradingEnvironment):
     ``WithTradingEnvironment``.
     """
     SIM_PARAMS_YEAR = None
-    SIM_PARAMS_START = pd.Timestamp('2006-01-01')
-    SIM_PARAMS_END = pd.Timestamp('2006-12-31')
+    SIM_PARAMS_START = pd.Timestamp('2006-01-03', tz='utc')
+    SIM_PARAMS_END = pd.Timestamp('2006-12-29', tz='utc')
     SIM_PARAMS_CAPITAL_BASE = float("1.0e5")
     SIM_PARAMS_NUM_DAYS = None
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
@@ -282,6 +307,7 @@ class WithSimParams(WithTradingEnvironment):
             year=cls.SIM_PARAMS_YEAR,
             start=cls.SIM_PARAMS_START,
             end=cls.SIM_PARAMS_END,
+            num_days=cls.SIM_PARAMS_NUM_DAYS,
             capital_base=cls.SIM_PARAMS_CAPITAL_BASE,
             data_frequency=cls.SIM_PARAMS_DATA_FREQUENCY,
             emission_rate=cls.SIM_PARAMS_EMISSION_RATE,
@@ -301,7 +327,7 @@ class WithNYSETradingDays(object):
     The default value of TRADING_DAY_COUNT is 126 (half a trading-year).
     Inheritors can override TRADING_DAY_COUNT to request more or less data.
     """
-    DATA_MAX_DAY = pd.Timestamp('2016-01-04')
+    DATA_MAX_DAY = pd.Timestamp('2016-01-04', tz='utc')
     TRADING_DAY_COUNT = 126
 
     @classmethod
@@ -315,72 +341,218 @@ class WithNYSETradingDays(object):
         cls.trading_days = all_days[start_loc:end_loc + 1]
 
 
-class WithTempdir(object):
+class WithTmpDir(object):
     """
-    ZiplineTestCase mixin providing cls.tempdir as a class-level fixture.
+    ZiplineTestCase mixing providing cls.tmpdir as a class-level fixture.
 
-    After init_class_fixtures has been called, `cls.tempdir` is populated
-    with a TempDirectory object.
+    After init_class_fixtures has been called, `cls.tmpdir` is populated with
+    a `testfixtures.TempDirectory` object whose path is `cls.TMP_DIR_PATH`.
 
-    The default value of TEMPDIR_PATH is None.
-    Inheritors can override TEMPDIR_PATH to path argument to `TempDirectory`
+    The default value of TMP_DIR_PATH is None which will create a unique
+    directory in /tmp.
     """
-
-    TEMPDIR_PATH = None
+    TMP_DIR_PATH = None
 
     @classmethod
     def init_class_fixtures(cls):
-        super(WithTempdir, cls).init_class_fixtures()
-
-        cls.tempdir = TempDirectory(path=cls.TEMPDIR_PATH)
-
-        cls.add_class_callback(cls.tempdir.cleanup)
+        super(WithTmpDir, cls).init_class_fixtures()
+        cls.tmpdir = cls.enter_class_context(tmp_dir(cls.TMP_DIR_PATH))
 
 
-class WithBcolzMinutes(WithTempdir,
-                       WithTradingEnvironment):
+class WithInstanceTmpDir(object):
     """
-    ZiplineTestCase mixin providing cls.boclz_minute_bar_reader as a
-    class-level fixture.
+    ZiplineTestCase mixing providing self.tmpdir as an instance-level fixture.
 
-    After init_class_fixtures has been called, `cls.bcolz_minute_bar_reader`
-    is populated with `BcolzMinuteBarReader` with data defined by
-    `make_bcolz_minute_bar_data`
+    After init_instance_fixtures has been called, `self.tmpdir` is populated
+    with a `testfixtures.TempDirectory` object whose path is
+    `cls.TMP_DIR_PATH`.
 
-    The default value of BCOLZ_MINUTES_PER_DAY is US_EQUITIES_MINUTES_PER_DAY.
-    Inheritors can override BCOLZ_MINUTES_PER_DAY to write data for assets
-    that trade over a different period length.
+    The default value of TMP_DIR_PATH is None which will create a unique
+    directory in /tmp.
     """
+    TMP_DIR_PATH = None
 
-    BCOLZ_MINUTES_PER_DAY = US_EQUITIES_MINUTES_PER_DAY
+    def init_instance_fixtures(self):
+        super(WithInstanceTmpDir, self).init_instance_fixtures()
+        self.tmpdir = self.enter_instance_context(tmp_dir(self.TMP_DIR_PATH))
+
+
+class WithBcolzDailyBarReader(WithTmpDir, WithSimParams):
+    """
+    ZiplineTestCase mixin providing cls.bcolz_daily_bar_path,
+    cls.bcolz_daily_bar_ctable, and cls.bcolz_daily_bar_reader class level
+    fixtures.
+
+    After init_class_fixtures has been called:
+    - `cls.bcolz_daily_bar_path` is populated with
+      `cls.tmpdir.getpath(cls.BCOLZ_DAILY_BAR_PATH)`.
+    - `cls.bcolz_daily_bar_ctable` is populated with data returned from
+      `cls.make_daily_bar_data`. By default this calls
+      :func:`zipline.pipeline.loaders.synthetic.make_daily_bar_data`.
+    - `cls.bcolz_daily_bar_reader` is a daily bar reader pointing to the
+      directory that was just written to.
+
+    See Also
+    --------
+    WithBcolzMinuteBarReader
+    WithDataPortal
+    """
+    BCOLZ_DAILY_BAR_PATH = 'daily_equity_pricing.bcolz'
+    BCOLZ_DAILY_BAR_LOOKBACK_DAYS = 0
+    BCOLZ_DAILY_BAR_FROM_CSVS = False
+    BCOLZ_DAILY_BAR_USE_FULL_CALENDAR = False
 
     @classmethod
-    def init_class_fixtures(cls):
-        super(WithBcolzMinutes, cls).init_class_fixtures()
-
-        writer = BcolzMinuteBarWriter(
-            cls.env.first_trading_day,
-            cls.tempdir.path,
-            cls.env.open_and_closes.market_open,
-            cls.env.open_and_closes.market_close,
-            cls.BCOLZ_MINUTES_PER_DAY,
+    def make_daily_bar_data(cls):
+        return create_daily_bar_data(
+            cls.bcolz_daily_bar_days,
+            cls.asset_finder.sids,
         )
-        for sid, data in iteritems(cls.make_bcolz_minute_bar_data()):
-            writer.write(sid, data)
-        cls.bcolz_minute_bar_reader = BcolzMinuteBarReader(cls.tempdir.path)
 
     @classmethod
-    def make_bcolz_minute_bar_data(cls):
-        """
-        Returns
-        -------
-        A dict of sid -> DataFrame with columns ('open', 'high', 'low',
-        'close', 'volume') and an index of the minutes on which the prices
-        occurred.
+    def init_class_fixtures(cls):
+        super(WithBcolzDailyBarReader, cls).init_class_fixtures()
+        cls.bcolz_daily_bar_path = p = cls.tmpdir.makedir(
+            cls.BCOLZ_DAILY_BAR_PATH,
+        )
+        cls.bcolz_daily_bar_days = days = (
+            cls.env.trading_days
+            if cls.BCOLZ_DAILY_BAR_USE_FULL_CALENDAR else
+            cls.env.days_in_range(
+                cls.env.trading_days[
+                    cls.env.get_index(cls.sim_params.period_start) -
+                    cls.BCOLZ_DAILY_BAR_LOOKBACK_DAYS
+                ],
+                cls.sim_params.period_end,
+            )
+        )
+        cls.bcolz_daily_bar_ctable = t = getattr(
+            BcolzDailyBarWriter(p, days),
+            'write_csvs' if cls.BCOLZ_DAILY_BAR_FROM_CSVS else 'write',
+        )(cls.make_daily_bar_data())
 
-        See, zipline.data.minute_bars.BcolzMinuteBarWriter
-        """
-        return {}
+        cls.bcolz_daily_bar_reader = BcolzDailyBarReader(t)
+
+
+class WithBcolzMinuteBarReader(WithTmpDir, WithSimParams):
+    """
+    ZiplineTestCase mixin providing cls.bcolz_minute_bar_path,
+    cls.bcolz_minute_bar_ctable, and cls.bcolz_minute_bar_reader class level
+    fixtures.
+
+    After init_class_fixtures has been called:
+    - `cls.bcolz_minute_bar_path` is populated with
+      `cls.tmpdir.getpath(cls.BCOLZ_MINUTE_BAR_PATH)`.
+    - `cls.bcolz_minute_bar_ctable` is populated with data returned from
+      `cls.make_minute_bar_data`. By default this calls
+      :func:`zipline.pipeline.loaders.synthetic.make_minute_bar_data`.
+    - `cls.bcolz_minute_bar_reader` is a minute bar reader pointing to the
+      directory that was just written to.
+
+    See Also
+    --------
+    WithBcolzDailyBarReader
+    WithDataPortal
+    """
+    BCOLZ_MINUTE_BAR_PATH = 'minute_equity_pricing.bcolz'
+    BCOLZ_MINUTE_BAR_LOOKBACK_DAYS = 0
+    BCOLZ_MINUTE_BAR_USE_FULL_CALENDAR = False
+
+    @classmethod
+    def make_minute_bar_data(cls):
+        return create_minute_bar_data(
+            cls.env.minutes_for_days_in_range(
+                cls.bcolz_minute_bar_days[0],
+                cls.bcolz_minute_bar_days[-1],
+            ),
+            cls.asset_finder.sids,
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithBcolzMinuteBarReader, cls).init_class_fixtures()
+        cls.bcolz_minute_bar_path = p = cls.tmpdir.makedir(
+            cls.BCOLZ_MINUTE_BAR_PATH,
+        )
+        cls.bcolz_minute_bar_days = days = (
+            cls.env.trading_days
+            if cls.BCOLZ_MINUTE_BAR_USE_FULL_CALENDAR else
+            cls.env.days_in_range(
+                cls.env.trading_days[
+                    cls.env.get_index(cls.sim_params.period_start) -
+                    cls.BCOLZ_MINUTE_BAR_LOOKBACK_DAYS
+                ],
+                cls.sim_params.period_end,
+            )
+        )
+        writer = BcolzMinuteBarWriter(
+            days[0],
+            p,
+            cls.env.open_and_closes.market_open.loc[days],
+            cls.env.open_and_closes.market_close.loc[days],
+            US_EQUITIES_MINUTES_PER_DAY
+        )
+        cls.bcolz_minute_bar_data = df_dict = cls.make_minute_bar_data()
+        for sid, df in iteritems(df_dict):
+            writer.write(sid, df)
+
+        cls.bcolz_minute_bar_reader = BcolzMinuteBarReader(p)
+
+
+class WithAdjustmentReader(WithBcolzDailyBarReader):
+    """
+    ZiplineTestCase mixin providing cls.adjustment_reader as a class level
+    fixture.
+
+    After init_class_fixtures has been called, `cls.adjustment_reader` will be
+    populated with a new SQLiteAdjustmentReader object. The data that will be
+    written can be passed by overriding `make_{field}_data` where field may
+    be `splits`, `mergers` `dividends`, or `stock_dividends`.
+    The daily bar reader used for this adjustment reader may be customized
+    by overriding `make_adjustment_writer_daily_bar_reader`. This is useful
+    to providing a `MockDailyBarReader`.
+
+    For more advanced configuration, `make_adjustment_writer` may be
+    overwritten directly.
+
+    See Also
+    --------
+    zipline.testing.MockDailyBarReader
+    """
+    @classmethod
+    def _make_data(cls):
+        return None
+
+    make_splits_data = _make_data
+    make_mergers_data = _make_data
+    make_dividends_data = _make_data
+    make_stock_dividends_data = _make_data
+
+    del _make_data
+
+    @classmethod
+    def make_adjustment_writer(cls):
+        return SQLiteAdjustmentWriter(
+            cls.adjustment_db_conn,
+            cls.make_adjustment_writer_daily_bar_reader(),
+            cls.bcolz_daily_bar_days,
+        )
+
+    @classmethod
+    def make_adjustment_writer_daily_bar_reader(cls):
+        return cls.bcolz_daily_bar_reader
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithAdjustmentReader, cls).init_class_fixtures()
+        cls.adjustment_db_conn = conn = sqlite3.connect(':memory:')
+        cls.make_adjustment_writer().write(
+            splits=cls.make_splits_data(),
+            mergers=cls.make_mergers_data(),
+            dividends=cls.make_dividends_data(),
+            stock_dividends=cls.make_stock_dividends_data(),
+        )
+        cls.adjustment_reader = SQLiteAdjustmentReader(conn)
 
 
 class WithPipelineEventDataLoader(WithAssetFinder):
@@ -500,3 +672,64 @@ class WithPipelineEventDataLoader(WithAssetFinder):
                 assert_series_equal(result[col_name].xs(sid, level=1),
                                     cols[col_name][sid],
                                     check_names=False)
+
+
+class WithDataPortal(WithAdjustmentReader, WithBcolzMinuteBarReader):
+    """
+    ZiplineTestCase mixin providing self.data_portal as an instance level
+    fixture.
+
+    After init_instance_fixtures has been called, `self.data_portal` will be
+    populated with a new data portal created by passing in the class's
+    trading env, `cls.bcolz_minute_bar_reader`, `cls.bcolz_daily_bar_reader`,
+    and `cls.adjustment_reader`.
+
+    Any of the three readers may be set to false by overriding:
+    DATA_PORTAL_USE_DAILY_DATA = False
+    DATA_PORTAL_USE_MINUTE_DATA = False
+    DATA_PORTAL_USE_ADJUSTMENTS = False
+    """
+    DATA_PORTAL_USE_DAILY_DATA = True
+    DATA_PORTAL_USE_MINUTE_DATA = True
+    DATA_PORTAL_USE_ADJUSTMENTS = True
+
+    @classmethod
+    def make_data_portal(cls):
+        return DataPortal(
+            cls.env,
+            equity_daily_reader=(
+                cls.bcolz_daily_bar_reader
+                if cls.DATA_PORTAL_USE_DAILY_DATA else
+                None
+            ),
+            equity_minute_reader=(
+                cls.bcolz_minute_bar_reader
+                if cls.DATA_PORTAL_USE_MINUTE_DATA else
+                None
+            ),
+            adjustment_reader=(
+                cls.adjustment_reader
+                if cls.DATA_PORTAL_USE_ADJUSTMENTS else
+                None
+            ),
+        )
+
+    def init_instance_fixtures(self):
+        super(WithDataPortal, self).init_instance_fixtures()
+        self.data_portal = self.make_data_portal()
+
+
+class WithResponses(object):
+    """
+    ZiplineTestCase mixin that provides self.responses as an instance
+    fixture.
+
+    After init_instance_fixtures has been called, `self.responses` will be
+    a new `responses.RequestsMock` object. Users may add new endpoints to this
+    with the `self.responses.add` method.
+    """
+    def init_instance_fixtures(self):
+        super(WithResponses, self).init_instance_fixtures()
+        self.responses = self.enter_instance_context(
+            responses.RequestsMock(),
+        )

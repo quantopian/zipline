@@ -26,7 +26,6 @@ from zipline.pipeline.loaders.utils import (
     get_values_for_date_ranges,
     zip_with_dates
 )
-
 from zipline.testing.fixtures import (
     WithPipelineEventDataLoader,
     ZiplineTestCase

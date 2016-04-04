@@ -18,6 +18,7 @@ import os
 import argparse
 from copy import copy
 
+import click
 from six import print_
 from six.moves import configparser
 import pandas as pd
@@ -32,6 +33,7 @@ except:
 
 import zipline
 from zipline.errors import NoSourceError, PipelineDateError
+from .context_tricks import CallbackManager
 
 DEFAULTS = {
     'data_frequency': 'daily',
@@ -251,3 +253,33 @@ def run_pipeline(print_algo=True, **kwargs):
         perf.to_pickle(output_fname)
 
     return perf
+
+
+def maybe_show_progress(it, show_progress, **kwargs):
+    """Optionally show a progress bar for the given iterator.
+
+    Parameters
+    ----------
+    it : iterable
+        The underlying iterator.
+    show_progress : bool
+        Should progress be shown.
+    **kwargs
+        Forwarded to the click progress bar.
+
+    Returns
+    -------
+    itercontext : context manager
+        A context manager whose enter is the actual iterator to use.
+
+    Examples
+    --------
+    with maybe_show_progress([1, 2, 3], True) as ns:
+         for n in ns:
+             ...
+    """
+    if show_progress:
+        return click.progressbar(it, **kwargs)
+
+    # context manager that just return `it` when we enter it
+    return CallbackManager(lambda it=it: it)
