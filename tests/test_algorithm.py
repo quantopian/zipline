@@ -1270,14 +1270,21 @@ class TestBeforeTradingStart(TestCase):
 
         def initialize(context):
             context.ordered = False
+            context.hd_portfolio = context.portfolio
 
         def before_trading_start(context, data):
-            record(pos_value=context.portfolio.positions_value)
+            bts_portfolio = context.portfolio
+
+            # Assert that the portfolio in BTS is the same as the last
+            # portfolio in handle_data
+            assert (context.hd_portfolio == bts_portfolio)
+            record(pos_value=bts_portfolio.positions_value)
 
         def handle_data(context, data):
             if not context.ordered:
                 order(sid(1), 1)
                 context.ordered = True
+            context.hd_portfolio = context.portfolio
         """)
 
         algo = TradingAlgorithm(
@@ -1302,14 +1309,21 @@ class TestBeforeTradingStart(TestCase):
 
         def initialize(context):
             context.ordered = False
+            context.hd_account = context.account
 
         def before_trading_start(context, data):
-            record(port_value=context.account.equity_with_loan)
+            bts_account = context.account
+
+            # Assert that the account in BTS is the same as the last account
+            # in handle_data
+            assert (context.hd_account == bts_account)
+            record(port_value=bts_account.equity_with_loan)
 
         def handle_data(context, data):
             if not context.ordered:
                 order(sid(1), 1)
                 context.ordered = True
+            context.hd_acount = context.account
         """)
 
         algo = TradingAlgorithm(
@@ -1335,15 +1349,28 @@ class TestBeforeTradingStart(TestCase):
 
         def initialize(context):
             context.ordered = False
+            context.hd_portfolio = context.portfolio
 
         def before_trading_start(context, data):
-            record(pos_value=context.portfolio.positions_value)
-            record(pos_amount=context.portfolio.positions[sid(3)]['amount'])
+            bts_portfolio = context.portfolio
+
+            # Assert that the portfolio in BTS is the same as the last
+            # portfolio in handle_data, except for the positions
+            for k in bts_portfolio.__dict__:
+                if k != 'positions':
+                    assert (context.hd_portfolio.__dict__[k]
+                            == bts_portfolio.__dict__[k])
+
+            record(pos_value=bts_portfolio.positions_value)
+            record(pos_amount=bts_portfolio.positions[sid(3)]['amount'])
+            record(last_sale_price=bts_portfolio.positions[sid(3)]
+                   ['last_sale_price'])
 
         def handle_data(context, data):
             if not context.ordered:
                 order(sid(3), 1)
                 context.ordered = True
+            context.hd_portfolio = context.portfolio
         """)
 
         algo = TradingAlgorithm(
@@ -1363,20 +1390,31 @@ class TestBeforeTradingStart(TestCase):
         self.assertEqual(results.pos_amount.iloc[0], 0)
         self.assertEqual(results.pos_amount.iloc[1], 2)
 
+        # On 1/07, after applying the split, last sale price is halved
+        self.assertEqual(results.last_sale_price.iloc[0], 0)
+        self.assertEqual(results.last_sale_price.iloc[1], 390)
+
     def test_account_bts_with_overnight_split(self):
         algo_code = dedent("""
         from zipline.api import order, sid, record
 
         def initialize(context):
             context.ordered = False
+            context.hd_account = context.account
 
         def before_trading_start(context, data):
-            record(port_value=context.account.equity_with_loan)
+            bts_account = context.account
+
+            # Assert that the account in BTS is the same as the last account
+            # in handle_data
+            assert (context.hd_account == bts_account)
+            record(port_value=bts_account.equity_with_loan)
 
         def handle_data(context, data):
             if not context.ordered:
-                order(sid(3), 1)
+                order(sid(1), 1)
                 context.ordered = True
+            context.hd_account = context.account
         """)
 
         algo = TradingAlgorithm(
