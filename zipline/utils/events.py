@@ -364,11 +364,7 @@ class AfterOpen(StatelessRule):
         ):
             self.calculate_dates(dt, env)
 
-        if self._period_start <= dt < self._period_end:
-            # haven't made it past the offset yet
-            return False
-        else:
-            return True
+        return dt == self._period_end
 
 
 class BeforeClose(StatelessRule):
@@ -394,7 +390,7 @@ class BeforeClose(StatelessRule):
         # given a dt, find that day's close and period start (close - offset)
         self._period_end = env.get_open_and_close(dt)[1]
         self._period_start = \
-            self._period_end - self.offset - self._one_minute
+            self._period_end - self.offset
         self._period_close = self._period_end
 
     def should_trigger(self, dt, env):
@@ -413,8 +409,7 @@ class BeforeClose(StatelessRule):
         ):
             self.calculate_dates(dt, env)
 
-        # Return true if we're within the interval specified.
-        return self._period_start < dt <= self._period_end
+        return self._period_start == dt
 
 
 class NotHalfDay(StatelessRule):

@@ -16,7 +16,6 @@ from collections import namedtuple
 import datetime
 from functools import partial
 from inspect import isabstract
-from itertools import islice
 import random
 from unittest import TestCase
 
@@ -306,16 +305,12 @@ class TestStatelessRules(RuleTestCase):
             self.after_open.should_trigger,
             env=self.env,
         )
-        for m in islice(ms, 64):
-            # Check the first 64 minutes of data.
-            # We use 64 because the offset is from market open
-            # at 13:30 UTC, meaning the first minute of data has an
-            # offset of 1.
-            self.assertFalse(should_trigger(m))
-
-        for m in islice(ms, 64, None):
-            # Check the rest of the day.
-            self.assertTrue(should_trigger(m))
+        for i, m in enumerate(ms):
+            # Should only trigger at the 64th minute
+            if i != 64:
+                self.assertFalse(should_trigger(m))
+            else:
+                self.assertTrue(should_trigger(m))
 
     @subtest(minutes_for_days(ordered_days=True), 'ms')
     def test_BeforeClose(self, ms):
@@ -324,10 +319,12 @@ class TestStatelessRules(RuleTestCase):
             self.before_close.should_trigger,
             env=self.env
         )
-        for m in ms[0:-66]:
-            self.assertFalse(should_trigger(m))
-        for m in ms[-66:]:
-            self.assertTrue(should_trigger(m))
+        for m in ms:
+            # Should only trigger at the 65th-to-last minute
+            if m != ms[-66]:
+                self.assertFalse(should_trigger(m))
+            else:
+                self.assertTrue(should_trigger(m))
 
     @subtest(minutes_for_days(), 'ms')
     def test_NotHalfDay(self, ms):
