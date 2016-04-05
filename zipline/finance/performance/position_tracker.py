@@ -372,15 +372,28 @@ class PositionTracker(object):
                 positions.append(pos.to_dict())
         return positions
 
-    def sync_last_sale_prices(self, dt):
+    def sync_last_sale_prices(self, dt, handle_non_market_minutes):
         data_portal = self._data_portal
-        for asset, position in iteritems(self.positions):
-            last_sale_price = data_portal.get_spot_value(
-                asset, 'price', dt, self.data_frequency
-            )
+        if not handle_non_market_minutes:
+            for asset, position in iteritems(self.positions):
+                last_sale_price = data_portal.get_spot_value(
+                    asset, 'price', dt, self.data_frequency
+                )
 
-            if not np.isnan(last_sale_price):
-                position.last_sale_price = last_sale_price
+                if not np.isnan(last_sale_price):
+                    position.last_sale_price = last_sale_price
+        else:
+            for asset, position in iteritems(self.positions):
+                last_sale_price = data_portal.get_adjusted_value(
+                    asset,
+                    'price',
+                    data_portal.env.previous_market_minute(dt),
+                    dt,
+                    self.data_frequency
+                )
+
+                if not np.isnan(last_sale_price):
+                    position.last_sale_price = last_sale_price
 
     def stats(self):
         amounts = []

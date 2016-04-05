@@ -190,7 +190,8 @@ def calculate_results(sim_params,
             pass
 
         msg = perf_tracker.handle_market_close_daily(date)
-        msg['account'] = perf_tracker.get_account(True, date)
+        perf_tracker.position_tracker.sync_last_sale_prices(date, False)
+        msg['account'] = perf_tracker.get_account(True)
         results.append(copy.deepcopy(msg))
     return results
 
@@ -1251,7 +1252,7 @@ class TestPositionPerformance(unittest.TestCase):
         pp.handle_execution(txn2)
 
         dt = trades_1[-2].dt
-        pt.sync_last_sale_prices(dt)
+        pt.sync_last_sale_prices(dt, False)
 
         pp.calculate_performance()
 
@@ -1279,7 +1280,7 @@ class TestPositionPerformance(unittest.TestCase):
                       net_liquidation=1000.0)
 
         dt = trades_1[-1].dt
-        pt.sync_last_sale_prices(dt)
+        pt.sync_last_sale_prices(dt, False)
 
         pp.calculate_performance()
 
@@ -1354,7 +1355,7 @@ class TestPositionPerformance(unittest.TestCase):
             shorts_count=0)
 
         # Validate that the account attributes were updated.
-        pt.sync_last_sale_prices(trades[-2].dt)
+        pt.sync_last_sale_prices(trades[-2].dt, False)
 
         # Validate that the account attributes were updated.
         account = pp.as_account()
@@ -1372,7 +1373,7 @@ class TestPositionPerformance(unittest.TestCase):
                       net_liquidation=1000.0)
 
         # now simulate a price jump to $11
-        pt.sync_last_sale_prices(trades[-1].dt)
+        pt.sync_last_sale_prices(trades[-1].dt, False)
 
         pp.calculate_performance()
 
@@ -1443,7 +1444,7 @@ class TestPositionPerformance(unittest.TestCase):
         # stocks with a last sale price of 0.
         self.assertEqual(pp.positions[1].last_sale_price, 10.0)
 
-        pt.sync_last_sale_prices(trades[-1].dt)
+        pt.sync_last_sale_prices(trades[-1].dt, False)
 
         pp.calculate_performance()
 
@@ -1554,7 +1555,7 @@ single short-sale transaction"""
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
-        pt.sync_last_sale_prices(trades_1[-1].dt)
+        pt.sync_last_sale_prices(trades_1[-1].dt, False)
 
         pp.calculate_performance()
 
@@ -1610,7 +1611,7 @@ single short-sale transaction"""
         # simulate a rollover to a new period
         pp.rollover()
 
-        pt.sync_last_sale_prices(trades[-1].dt)
+        pt.sync_last_sale_prices(trades[-1].dt, False)
 
         pp.calculate_performance()
 
@@ -1674,7 +1675,7 @@ single short-sale transaction"""
         ptTotal.execute_transaction(txn)
         ppTotal.handle_execution(txn)
 
-        ptTotal.sync_last_sale_prices(trades[-1].dt)
+        ptTotal.sync_last_sale_prices(trades[-1].dt, False)
 
         ppTotal.calculate_performance()
 
@@ -1794,7 +1795,7 @@ cost of sole txn in test"
         # stocks with a last sale price of 0.
         self.assertEqual(pp.positions[3].last_sale_price, 10.0)
 
-        pt.sync_last_sale_prices(trades[-1].dt)
+        pt.sync_last_sale_prices(trades[-1].dt, False)
         pp.calculate_performance()
 
         self.assertEqual(
@@ -1908,7 +1909,7 @@ single short-sale transaction"""
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
-        pt.sync_last_sale_prices(trades[-3].dt)
+        pt.sync_last_sale_prices(trades[-3].dt, False)
         pp.calculate_performance()
 
         self.assertEqual(
@@ -1968,7 +1969,7 @@ single short-sale transaction"""
         # simulate a rollover to a new period
         pp.rollover()
 
-        pt.sync_last_sale_prices(trades_2[-1].dt)
+        pt.sync_last_sale_prices(trades_2[-1].dt, False)
         pp.calculate_performance()
 
         self.assertEqual(
@@ -2034,13 +2035,13 @@ single short-sale transaction"""
         ppTotal.position_tracker = ptTotal
 
         for trade in trades_1:
-            ptTotal.sync_last_sale_prices(trade.dt)
+            ptTotal.sync_last_sale_prices(trade.dt, False)
 
         ptTotal.execute_transaction(txn)
         ppTotal.handle_execution(txn)
 
         for trade in trades_2:
-            ptTotal.sync_last_sale_prices(trade.dt)
+            ptTotal.sync_last_sale_prices(trade.dt, False)
 
         ppTotal.calculate_performance()
 
@@ -2155,7 +2156,7 @@ trade after cover"""
         pt.execute_transaction(cover_txn)
         pp.handle_execution(cover_txn)
 
-        pt.sync_last_sale_prices(trades[-1].dt)
+        pt.sync_last_sale_prices(trades[-1].dt, False)
 
         pp.calculate_performance()
 
@@ -2263,7 +2264,7 @@ shares in position"
             "should have a cost basis of 11"
         )
 
-        pt.sync_last_sale_prices(dt)
+        pt.sync_last_sale_prices(dt, False)
 
         pp.calculate_performance()
 
@@ -2280,7 +2281,7 @@ shares in position"
         pp.handle_execution(sale_txn)
 
         dt = down_tick.dt
-        pt.sync_last_sale_prices(dt)
+        pt.sync_last_sale_prices(dt, False)
 
         pp.calculate_performance()
         self.assertEqual(
@@ -2316,7 +2317,7 @@ shares in position"
         pp3.handle_execution(sale_txn)
 
         trades.append(down_tick)
-        pt3.sync_last_sale_prices(trades[-1].dt)
+        pt3.sync_last_sale_prices(trades[-1].dt, False)
 
         pp3.calculate_performance()
         self.assertEqual(
