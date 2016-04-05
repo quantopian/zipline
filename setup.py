@@ -107,19 +107,37 @@ STR_TO_CMP = {
     '>=': ge,
 }
 
+SYS_VERSION = '.'.join(list(map(str, sys.version_info[:3])))
 
-def _filter_requirements(lines_iter, filter_names=None):
+
+def _filter_requirements(lines_iter, filter_names=None,
+                         filter_sys_version=False):
     for line in lines_iter:
         line = line.strip()
-        if line and not line.startswith('#'):
-            match = REQ_PATTERN.match(line)
-            if match is None:
-                raise AssertionError(
-                    "Could not parse requirement: '%s'" % line)
+        if not line or line.startswith('#'):
+            continue
 
-            name = match.group('name')
-            if filter_names is None or name in filter_names:
-                yield line
+        match = REQ_PATTERN.match(line)
+        if match is None:
+            raise AssertionError(
+                "Could not parse requirement: '%s'" % line)
+
+        name = match.group('name')
+        if filter_names is not None and name not in filter_names:
+            continue
+
+        if filter_sys_version and match.group('pyspec'):
+            pycomp, pyspec = match.group('pycomp', 'pyspec')
+            comp = STR_TO_CMP[pycomp]
+            pyver_spec = StrictVersion(pyspec)
+            if comp(SYS_VERSION, pyver_spec):
+                # pip install -r understands lines with ;python_version<'3.0',
+                # but pip install -e does not.  Filter here, removing the
+                # env marker.
+                yield line.split(';')[0]
+            continue
+
+        yield line
 
 
 # We don't currently have any known upper bounds.
@@ -176,7 +194,8 @@ def read_requirements(path,
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        reqs = _filter_requirements(f.readlines(), filter_names=filter_names)
+        reqs = _filter_requirements(f.readlines(), filter_names=filter_names,
+                                    filter_sys_version=not conda_format)
 
         if not strict_bounds:
             reqs = map(_with_bounds, reqs)
