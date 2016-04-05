@@ -41,6 +41,7 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
     Resources that need to be cleaned up should be registered using
     either `enter_{class,instance}_context` or `add_{class,instance}_callback}.
     """
+    _in_setup = False
 
     @final
     @classmethod
@@ -67,6 +68,12 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
         Subclass implementations of this should always invoke this with super()
         to ensure that fixture mixins work properly.
         """
+        if cls._in_setup:
+            raise ValueError(
+                'Called init_class_fixtures from init_instance_fixtures.'
+                'Did you write super(..., self).init_class_fixtures() instead'
+                ' of super(..., self).init_instance_fixtures()?',
+            )
         cls._base_init_fixtures_was_called = True
 
     @final
@@ -80,6 +87,11 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
         """
         Enter a context manager to be exited during the tearDownClass
         """
+        if cls._in_setup:
+            raise ValueError(
+                'Attempted to enter a class context in init_instance_fixtures.'
+                '\nDid you mean to call enter_instance_context?',
+            )
         return cls._class_teardown_stack.enter_context(context_manager)
 
     @final
@@ -93,10 +105,16 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
         callback : callable
             The callback to invoke at the end of the test suite.
         """
+        if cls._in_setup:
+            raise ValueError(
+                'Attempted to add a class callback in init_instance_fixtures.'
+                '\nDid you mean to call add_instance_callback?',
+            )
         return cls._class_teardown_stack.callback(callback)
 
     @final
     def setUp(self):
+        type(self)._in_setup = True
         self._instance_teardown_stack = ExitStack()
         try:
             self._init_instance_fixtures_was_called = False
@@ -110,6 +128,8 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
         except:
             self.tearDown()
             raise
+        finally:
+            type(self)._in_setup = False
 
     def init_instance_fixtures(self):
         self._init_instance_fixtures_was_called = True
