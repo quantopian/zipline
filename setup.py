@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import print_function
-from functools import partial
 import os
 import re
 import sys
@@ -108,39 +107,37 @@ STR_TO_CMP = {
     '>=': ge,
 }
 
+SYS_VERSION = '.'.join(list(map(str, sys.version_info[:3])))
 
-def _filter_requirements(lines_iter):
+
+def _filter_requirements(lines_iter, filter_names=None,
+                         filter_sys_version=False):
     for line in lines_iter:
         line = line.strip()
         if not line or line.startswith('#'):
             continue
 
-        # pip install -r understands line with ;python_version<'3.0', but
-        # whatever happens inside extras_requires doesn't.  Parse the line
-        # manually and conditionally add it if needed.
-        if ';' not in line:
-            yield line
+        match = REQ_PATTERN.match(line)
+        if match is None:
+            raise AssertionError(
+                "Could not parse requirement: '%s'" % line)
+
+        name = match.group('name')
+        if filter_names is not None and name not in filter_names:
             continue
 
-        requirement, version_spec = line.split(';')
-        try:
-            groups = re.match(
-                "(python_version)([<>=]{1,2})(')([0-9\.]+)(')(.*)",
-                version_spec,
-            ).groups()
-            comp = STR_TO_CMP[groups[1]]
-            version_spec = StrictVersion(groups[3])
-        except Exception as e:
-            # My kingdom for a 'raise from'!
-            raise AssertionError(
-                "Couldn't parse requirement line; '%s'\n"
-                "Error was:\n"
-                "%r" % (line, e)
-            )
+        if filter_sys_version and match.group('pyspec'):
+            pycomp, pyspec = match.group('pycomp', 'pyspec')
+            comp = STR_TO_CMP[pycomp]
+            pyver_spec = StrictVersion(pyspec)
+            if comp(SYS_VERSION, pyver_spec):
+                # pip install -r understands lines with ;python_version<'3.0',
+                # but pip install -e does not.  Filter here, removing the
+                # env marker.
+                yield line.split(';')[0]
+            continue
 
-        sys_version = '.'.join(list(map(str, sys.version_info[:3])))
-        if comp(sys_version, version_spec):
-            yield requirement
+        yield line
 
 
 # We don't currently have any known upper bounds.
@@ -160,30 +157,35 @@ def _with_bounds(req):
         return ''.join(with_bounds)
 
 
-REQ_PATTERN = re.compile("([^=<>]+)([<=>]{1,2})(.*)")
+REQ_PATTERN = re.compile("(?P<name>[^=<>]+)(?P<comp>[<=>]{1,2})(?P<spec>[^;]+)"
+                         "(?:(;\W*python_version\W*(?P<pycomp>[<=>]{1,2})\W*"
+                         "(?P<pyspec>[0-9\.]+)))?")
 
 
-def _conda_format(req, selector=None):
-    match = REQ_PATTERN.match(req)
-    if match and match.group(1).lower() == 'numpy':
-        line = 'numpy x.x'
-    else:
-        line = REQ_PATTERN.sub(
-            lambda m: '%s %s%s' % (m.group(1).lower(), m.group(2), m.group(3)),
-            req,
-            1,
-        )
+def _conda_format(req):
+    def _sub(m):
+        name = m.group('name').lower()
+        if name == 'numpy':
+            return 'numpy x.x'
 
-    if selector is not None:
-        line += ' # [%s]' % selector
+        formatted = '%s %s%s' % ((name,) + m.group('comp', 'spec'))
+        pycomp, pyspec = m.group('pycomp', 'pyspec')
+        if pyspec:
+            # Compare the two-digit string versions as ints.
+            selector = ' # [int(py) %s int(%s)]' % (
+                pycomp, ''.join(pyspec.split('.')[:2]).ljust(2, '0')
+            )
+            return formatted + selector
 
-    return line
+        return formatted
+
+    return REQ_PATTERN.sub(_sub, req, 1)
 
 
 def read_requirements(path,
                       strict_bounds,
                       conda_format=False,
-                      conda_selector=None):
+                      filter_names=None):
     """
     Read a requirements.txt file, expressed as a path relative to Zipline root.
 
@@ -192,28 +194,22 @@ def read_requirements(path,
     """
     real_path = join(dirname(abspath(__file__)), path)
     with open(real_path) as f:
-        reqs = _filter_requirements(f.readlines())
+        reqs = _filter_requirements(f.readlines(), filter_names=filter_names,
+                                    filter_sys_version=not conda_format)
 
         if not strict_bounds:
             reqs = map(_with_bounds, reqs)
 
         if conda_format:
-            reqs = map(partial(_conda_format, selector=conda_selector), reqs)
+            reqs = map(_conda_format, reqs)
 
         return list(reqs)
 
 
 def install_requires(strict_bounds=False, conda_format=False):
-    reqs = read_requirements('etc/requirements.txt',
+    return read_requirements('etc/requirements.txt',
                              strict_bounds=strict_bounds,
                              conda_format=conda_format)
-    if sys.version_info.major == 2 or conda_format:
-        reqs += read_requirements('etc/requirements_py2.txt',
-                                  strict_bounds=strict_bounds,
-                                  conda_format=conda_format,
-                                  conda_selector='py2k')
-
-    return reqs
 
 
 def extras_requires(conda_format=False):
@@ -228,34 +224,25 @@ def extras_requires(conda_format=False):
     return extras
 
 
-def module_requirements(requirements_path, module_names, strict_bounds,
-                        conda_format=False):
+def setup_requirements(requirements_path, module_names, strict_bounds,
+                       conda_format=False):
     module_names = set(module_names)
-    found = set()
-    module_lines = []
-    for line in read_requirements(requirements_path,
-                                  strict_bounds=strict_bounds):
-        match = REQ_PATTERN.match(line)
-        if match is None:
-            raise AssertionError("Could not parse requirement: '%s'" % line)
+    module_lines = read_requirements(requirements_path,
+                                     strict_bounds=strict_bounds,
+                                     conda_format=conda_format,
+                                     filter_names=module_names)
 
-        name = match.group(1)
-        if name in module_names:
-            found.add(name)
-            if conda_format:
-                line = _conda_format(line)
-            module_lines.append(line)
-
-    if found != module_names:
+    if len(set(module_lines)) != len(module_names):
         raise AssertionError(
-            "No requirements found for %s." % (module_names - found)
+            "Missing requirements. Looking for %s, but found %s."
+            % (module_names, module_lines)
         )
     return module_lines
 
 conda_build = os.path.basename(sys.argv[0]) in ('conda-build',  # unix
                                                 'conda-build-script.py')  # win
 
-setup_requires = module_requirements(
+setup_requires = setup_requirements(
     'etc/requirements.txt',
     ('Cython', 'numpy'),
     strict_bounds=conda_build,
