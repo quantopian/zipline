@@ -104,9 +104,9 @@ class TermGraph(DiGraph):
         zipline.pipeline.engine.SimplePipelineEngine._inputs_for_term
         zipline.pipeline.engine.SimplePipelineEngine._mask_and_dates_for_term
         """
-        return {(term, dep): self.extra_rows[dep] - term.extra_input_rows
+        return {(term, dep): self.extra_rows[dep] - additional_extra_rows
                 for term in self
-                for dep in term.dependencies}
+                for dep, additional_extra_rows in term.dependencies.items()}
 
     @lazyval
     def extra_rows(self):
@@ -119,10 +119,9 @@ class TermGraph(DiGraph):
         Notes
         ----
         This value depends on the other terms in the graph that require `term`
-        **as an input**.  This is not to be confused with
-        `term.extra_input_rows`, which is how many extra rows of `term`'s
-        inputs we need to load, and which is determined entirely by `Term`
-        itself.
+        **as an input**.  This is not to be confused with `term.dependencies`,
+        which describes how many additional rows of `term`'s inputs we need to
+        load, and which is determined entirely by `Term` itself.
 
         Example
         -------
@@ -144,7 +143,7 @@ class TermGraph(DiGraph):
         See Also
         --------
         zipline.pipeline.graph.TermGraph.offset
-        zipline.pipeline.term.Term.extra_input_rows
+        zipline.pipeline.term.Term.dependencies
         """
         return {
             term: attrs['extra_rows']
@@ -187,30 +186,12 @@ class TermGraph(DiGraph):
         # Make sure we're going to compute at least `extra_rows` of `term`.
         self._ensure_extra_rows(term, extra_rows)
 
-        # Number of extra rows we need to compute for this term's dependencies.
-        dependency_extra_rows = extra_rows + term.extra_input_rows
-
-        if isinstance(term, ComputableTerm):
-            # For computable terms, we want to manually add the term's mask to
-            # the graph with zero extra rows. A computable term does not
-            # directly require its mask to have any extra rows. Only loadable
-            # terms should dictate how many extra rows a mask should compute.
-            self._add_to_graph(
-                term.mask,
-                parents,
-                extra_rows=0,
-            )
-            self.add_edge(term.mask, term)
-            dependencies = term.inputs
-        else:
-            dependencies = term.dependencies
-
         # Recursively add dependencies.
-        for dependency in dependencies:
+        for dependency, additional_extra_rows in term.dependencies.items():
             self._add_to_graph(
                 dependency,
                 parents,
-                extra_rows=dependency_extra_rows,
+                extra_rows=extra_rows + additional_extra_rows,
             )
             self.add_edge(dependency, term)
 
