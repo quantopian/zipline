@@ -294,13 +294,13 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         raise NotImplementedError('mask')
 
-    @lazyval
+    @abstractproperty
     def dependencies(self):
         """
-        A tuple containing all terms that must be computed before this term can
-        be loaded or computed.
+        A dictionary mapping terms that must be computed before `self` to the
+        number of extra rows needed for those terms.
         """
-        return self.inputs + (self.mask,)
+        raise NotImplementedError('dependencies')
 
 
 class AssetExists(Term):
@@ -319,9 +319,8 @@ class AssetExists(Term):
     """
     dtype = bool_dtype
     dataset = None
-    extra_input_rows = 0
     inputs = ()
-    dependencies = ()
+    dependencies = {}
     mask = None
     windowed = False
 
@@ -335,8 +334,11 @@ class LoadableTerm(Term):
 
     This is the base class for :class:`zipline.pipeline.data.BoundColumn`.
     """
-    inputs = ()
     windowed = False
+
+    @lazyval
+    def dependencies(self):
+        return {self.mask: 0}
 
 
 class ComputableTerm(Term):
@@ -442,12 +444,17 @@ class ComputableTerm(Term):
         )
 
     @lazyval
-    def extra_input_rows(self):
+    def dependencies(self):
         """
         The number of extra rows needed for each of our inputs to compute this
         term.
         """
-        return max(0, self.window_length - 1)
+        extra_input_rows = max(0, self.window_length - 1)
+        out = {}
+        for term in self.inputs:
+            out[term] = extra_input_rows
+        out[self.mask] = 0
+        return out
 
     def __repr__(self):
         return (
