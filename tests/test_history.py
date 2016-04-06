@@ -26,6 +26,7 @@ from zipline.finance.trading import (
 from zipline.protocol import BarData
 from zipline.utils.test_utils import str_to_seconds, MockDailyBarReader, \
     DailyBarWriterFromDataFrames, write_minute_data_for_asset
+from zipline.utils.calendars import default_nyse_schedule
 
 
 OHLC = ["open", "high", "low", "close"]
@@ -69,7 +70,7 @@ class HistoryTestCaseBase(TestCase):
         cls.TRADING_START_DT = pd.Timestamp("2014-02-03", tz='UTC')
         cls.TRADING_END_DT = pd.Timestamp("2016-01-30", tz='UTC')
 
-        cls.trading_days = cls.env.days_in_range(
+        cls.trading_days = default_nyse_schedule.execution_days_in_range(
             start=cls.TRADING_START_DT,
             end=cls.TRADING_END_DT
         )
@@ -101,14 +102,14 @@ class HistoryTestCaseBase(TestCase):
     @classmethod
     def create_assets(cls):
         jan_5_2015 = pd.Timestamp("2015-01-05", tz='UTC')
-        day_after_12312015 = cls.env.next_trading_day(
+        day_after_12312015 = default_nyse_schedule.next_execution_day(
             pd.Timestamp("2015-12-31", tz='UTC')
         )
 
         cls.env.write_data(equities_data={
             1: {
                 "start_date": pd.Timestamp("2014-01-03", tz='UTC'),
-                "end_date": cls.env.next_trading_day(
+                "end_date": default_nyse_schedule.next_execution_day(
                     pd.Timestamp("2016-01-30", tz='UTC')
                 ),
                 "symbol": "ASSET1"
@@ -160,7 +161,7 @@ class HistoryTestCaseBase(TestCase):
 
         adj_writer = SQLiteAdjustmentWriter(
             path,
-            cls.env.trading_days,
+            default_nyse_schedule.all_execution_days,
             MockDailyBarReader()
         )
 
@@ -439,14 +440,14 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
     @classmethod
     def create_data_portal(cls):
         cls.data_portal = DataPortal(
-            cls.env,
+            cls.env, default_nyse_schedule,
             equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
             adjustment_reader=cls.adj_reader
         )
 
     @classmethod
     def create_data(cls):
-        market_opens = cls.env.open_and_closes.market_open.loc[
+        market_opens = default_nyse_schedule.schedule.market_open.loc[
             cls.trading_days]
 
         writer = BcolzMinuteBarWriter(
@@ -457,7 +458,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         )
 
         write_minute_data_for_asset(
-            cls.env,
+            default_nyse_schedule,
             writer,
             pd.Timestamp("2014-01-03", tz='UTC'),
             pd.Timestamp("2016-01-30", tz='UTC'),
@@ -467,7 +468,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
         for sid in [2, 4, 5, 6]:
             write_minute_data_for_asset(
-                cls.env,
+                default_nyse_schedule,
                 writer,
                 pd.Timestamp("2015-01-05", tz='UTC'),
                 pd.Timestamp("2015-12-31", tz='UTC'),
@@ -476,7 +477,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             )
 
         write_minute_data_for_asset(
-            cls.env,
+            default_nyse_schedule,
             writer,
             pd.Timestamp("2014-07-02", tz='UTC'),
             pd.Timestamp("2015-12-31", tz='UTC'),
@@ -485,7 +486,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         )
 
         write_minute_data_for_asset(
-            cls.env,
+            default_nyse_schedule,
             writer,
             pd.Timestamp("2015-01-05", tz='UTC'),
             pd.Timestamp("2015-12-31", tz='UTC'),
@@ -516,7 +517,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             capital_base=float("1.0e5"),
             data_frequency='minute',
             emission_rate='daily',
-            env=self.env,
+            trading_schedule=default_nyse_schedule,
         )
 
         test_algo = TradingAlgorithm(
@@ -532,8 +533,8 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
     def test_minute_before_assets_trading(self):
         # since asset2 and asset3 both started trading on 1/5/2015, let's do
         # some history windows that are completely before that
-        minutes = self.env.market_minutes_for_day(
-            self.env.previous_trading_day(pd.Timestamp("2015-01-05", tz='UTC'))
+        minutes = default_nyse_schedule.execution_minutes_for_day(
+            default_nyse_schedule.previous_execution_day(pd.Timestamp("2015-01-05", tz='UTC'))
         )[0:60]
 
         for idx, minute in enumerate(minutes):
@@ -566,7 +567,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # asset2 and asset3 both started on 1/5/2015, but asset3 trades every
         # 10 minutes
 
-        minutes = self.env.market_minutes_for_day(
+        minutes = default_nyse_schedule.execution_minutes_for_day(
             pd.Timestamp("2015-01-05", tz='UTC')
         )[0:60]
 
@@ -577,11 +578,11 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # asset2 stopped at 1/4/16
 
         #  get some history windows that straddle the end
-        minutes = self.env.market_minutes_for_day(
+        minutes = default_nyse_schedule.execution_minutes_for_day(
             pd.Timestamp("2016-01-04", tz='UTC')
         )[0:60]
 
-        all_asset2_minutes = self.env.minutes_for_days_in_range(
+        all_asset2_minutes = default_nyse_schedule.execution_minutes_for_days_in_range(
             start=self.ASSET2.start_date,
             end=self.ASSET2.end_date
         )
@@ -662,7 +663,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
             # before any of the adjustments, last 10 minutes of jan 5
             window1 = self.data_portal.get_history_window(
                 [asset],
-                self.env.get_open_and_close(jan5)[1],
+                default_nyse_schedule.start_and_end(jan5)[1],
                 10,
                 "1m",
                 "close"
@@ -812,20 +813,20 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
     def test_minute_different_lifetimes(self):
         # at trading start, only asset1 existed
-        day = self.env.next_trading_day(self.TRADING_START_DT)
+        day = default_nyse_schedule.next_execution_day(self.TRADING_START_DT)
 
-        asset1_minutes = self.env.minutes_for_days_in_range(
+        asset1_minutes = default_nyse_schedule.execution_minutes_for_days_in_range(
             start=self.ASSET1.start_date,
             end=self.ASSET1.end_date
         )
 
         asset1_idx = asset1_minutes.searchsorted(
-            self.env.get_open_and_close(day)[0]
+            default_nyse_schedule.start_and_end(day)[0]
         )
 
         window = self.data_portal.get_history_window(
             [self.ASSET1, self.ASSET2],
-            self.env.get_open_and_close(day)[0],
+            default_nyse_schedule.start_and_end(day)[0],
             100,
             "1m",
             "close"
@@ -844,7 +845,7 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
 
-        first_day_minutes = self.env.market_minutes_for_day(
+        first_day_minutes = default_nyse_schedule.execution_minutes_for_day(
             self.TRADING_START_DT
         )
 
@@ -872,7 +873,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         daily_path = cls.tempdir.getpath("testdaily.bcolz")
 
         cls.data_portal = DataPortal(
-            cls.env,
+            cls.env, default_nyse_schedule,
             equity_daily_reader=BcolzDailyBarReader(daily_path),
             equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
             adjustment_reader=cls.adj_reader
@@ -905,7 +906,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 pd.Timestamp("2015-12-31", tz='UTC')
             )
 
-        days = cls.env.days_in_range(
+        days = default_nyse_schedule.execution_days_in_range(
             cls.TRADING_START_DT,
             cls.TRADING_END_DT
         )
@@ -913,7 +914,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         daily_writer = DailyBarWriterFromDataFrames(dfs)
         daily_writer.write(path, days, dfs)
 
-        market_opens = cls.env.open_and_closes.market_open.loc[
+        market_opens = default_nyse_schedule.schedule.market_open.loc[
             cls.trading_days]
 
         minute_writer = BcolzMinuteBarWriter(
@@ -924,10 +925,10 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         )
 
         write_minute_data_for_asset(
-            cls.env,
+            default_nyse_schedule,
             minute_writer,
             cls.ASSET2.start_date,
-            cls.env.previous_trading_day(cls.ASSET2.end_date),
+            default_nyse_schedule.previous_execution_day(cls.ASSET2.end_date),
             2,
             start_val=2
         )
@@ -935,7 +936,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
     @classmethod
     def create_df_for_asset(cls, start_day, end_day, interval=1,
                             force_zeroes=False):
-        days = cls.env.days_in_range(start_day, end_day)
+        days = default_nyse_schedule.execution_days_in_range(start_day, end_day)
         days_count = len(days)
 
         # default to 2 because the low array subtracts 1, and we don't
@@ -963,7 +964,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
     def test_daily_before_assets_trading(self):
         # asset2 and asset3 both started trading in 2015
 
-        days = self.env.days_in_range(
+        days = default_nyse_schedule.execution_days_in_range(
             start=pd.Timestamp("2014-12-15", tz='UTC'),
             end=pd.Timestamp("2014-12-18", tz='UTC'),
         )
@@ -1001,9 +1002,9 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # get the first 30 days of 2015
         jan5 = pd.Timestamp("2015-01-04")
 
-        days = self.env.days_in_range(
+        days = default_nyse_schedule.execution_days_in_range(
             start=jan5,
-            end=self.env.add_trading_days(30, jan5)
+            end=default_nyse_schedule.add_execution_days(30, jan5)
         )
 
         for idx, day in enumerate(days):
@@ -1012,9 +1013,9 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
     def test_daily_after_asset_stopped(self):
         # SHORT_ASSET trades on 1/5, 1/6, that's it.
 
-        days = self.env.days_in_range(
+        days = default_nyse_schedule.execution_days_in_range(
             start=self.SHORT_ASSET.end_date,
-            end=self.env.next_trading_day(self.SHORT_ASSET.end_date)
+            end=default_nyse_schedule.next_execution_day(self.SHORT_ASSET.end_date)
         )
 
         # days has 1/7, 1/8, 1/9
@@ -1166,7 +1167,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
 
         # January 2015 has both daily and minute data for ASSET2
         day = pd.Timestamp("2015-01-07", tz='UTC')
-        minutes = self.env.market_minutes_for_day(day)
+        minutes = default_nyse_schedule.execution_minutes_for_day(day)
 
         # minute data, baseline:
         # Jan 5: 2 to 391
@@ -1219,7 +1220,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
 
-        second_day = self.env.next_trading_day(self.TRADING_START_DT)
+        second_day = default_nyse_schedule.next_execution_day(self.TRADING_START_DT)
 
         window = self.data_portal.get_history_window(
             [self.ASSET1],
@@ -1246,7 +1247,7 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
             [0, 0, 200, 300], window)
 
         # Use a minute to force minute mode.
-        first_minute = self.env.open_and_closes.market_open[
+        first_minute = default_nyse_schedule.open_and_closes.market_open[
             self.TRADING_START_DT]
 
         window = self.data_portal.get_history_window(

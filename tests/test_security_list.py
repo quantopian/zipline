@@ -1,18 +1,19 @@
-import pandas as pd
-
 from datetime import timedelta
 from unittest import TestCase
+
+import pandas as pd
 from testfixtures import TempDirectory
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.errors import TradingControlViolation
 from zipline.finance.trading import TradingEnvironment
-from zipline.utils.test_utils import (
-    setup_logger, teardown_logger, security_list_copy, add_security_data,)
 from zipline.utils import factory
+from zipline.utils.calendars import default_nyse_schedule
 from zipline.utils.security_list import (
     SecurityListSet, load_from_directory)
 from zipline.utils.test_utils import create_data_portal
+from zipline.utils.test_utils import (
+    setup_logger, teardown_logger, security_list_copy, add_security_data,)
 
 LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 
@@ -73,7 +74,7 @@ class SecurityListTestCase(TestCase):
 
         symbols = ['AAPL', 'GOOG', 'BZQ', 'URTY', 'JFT']
 
-        days = cls.env.days_in_range(
+        days = default_nyse_schedule.execution_days_in_range(
             list(LEVERAGED_ETFS.keys())[0],
             pd.Timestamp("2015-02-17", tz='UTC')
         )
@@ -81,7 +82,7 @@ class SecurityListTestCase(TestCase):
         cls.sim_params = factory.create_simulation_parameters(
             start=list(LEVERAGED_ETFS.keys())[0],
             num_days=4,
-            env=cls.env
+            trading_schedule=default_nyse_schedule
         )
 
         cls.sim_params2 = factory.create_simulation_parameters(
@@ -116,13 +117,15 @@ class SecurityListTestCase(TestCase):
             tempdir=cls.tempdir,
             sim_params=cls.sim_params,
             sids=range(0, 5),
+            trading_schedule=default_nyse_schedule,
         )
 
         cls.data_portal2 = create_data_portal(
             env=cls.env2,
             tempdir=cls.tempdir2,
             sim_params=cls.sim_params2,
-            sids=range(0, 5)
+            sids=range(0, 5),
+            trading_schedule=default_nyse_schedule,
         )
 
         setup_logger(cls)
@@ -234,7 +237,8 @@ class SecurityListTestCase(TestCase):
             self.env,
             self.tempdir,
             sim_params=sim_params,
-            sids=range(0, 5)
+            sids=range(0, 5),
+            trading_schedule=default_nyse_schedule,
         )
 
         algo = RestrictedAlgoWithoutCheck(symbol='BZQ',
@@ -290,7 +294,8 @@ class SecurityListTestCase(TestCase):
                     env,
                     new_tempdir,
                     sim_params,
-                    range(0, 5)
+                    range(0, 5),
+                    trading_schedule=default_nyse_schedule,
                 )
 
                 algo = RestrictedAlgoWithoutCheck(

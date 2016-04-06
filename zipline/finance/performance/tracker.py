@@ -81,28 +81,28 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params, env, data_portal):
+    def __init__(self, sim_params, trading_schedule, env, data_portal):
         self.sim_params = sim_params
-        self.env = env
+        self.trading_schedule = trading_schedule
+        self.asset_finder = env.asset_finder
+        self.treasury_curves = env.treasury_curves
 
         self.period_start = self.sim_params.period_start
         self.period_end = self.sim_params.period_end
         self.last_close = self.sim_params.last_close
-        first_open = self.sim_params.first_open.tz_convert(
-            self.env.exchange_tz
-        )
+        first_open = self.sim_params.first_open.tz_convert(trading_schedule.tz)
         self.day = pd.Timestamp(datetime(first_open.year, first_open.month,
                                          first_open.day), tz='UTC')
-        self.market_open, self.market_close = env.get_open_and_close(self.day)
+        self.market_open, self.market_close = trading_schedule.start_and_end(
+            self.day
+        )
         self.total_days = self.sim_params.days_in_period
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
 
-        all_trading_days = env.trading_days
-        mask = ((all_trading_days >= normalize_date(self.period_start)) &
-                (all_trading_days <= normalize_date(self.period_end)))
-
-        self.trading_days = all_trading_days[mask]
+        self.trading_dates = trading_schedule.trading_dates(
+            self.period_start, self.period_end
+        )
 
         self._data_portal = data_portal
         if data_portal is not None:
@@ -111,23 +111,31 @@ class PerformanceTracker(object):
             self._adjustment_reader = None
 
         self.position_tracker = PositionTracker(
-            asset_finder=env.asset_finder,
+            asset_finder=self.asset_finder,
             data_portal=data_portal,
             data_frequency=self.sim_params.data_frequency)
 
         if self.emission_rate == 'daily':
             self.all_benchmark_returns = pd.Series(
-                index=self.trading_days)
+                index=self.trading_dates)
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params, self.env)
+                risk.RiskMetricsCumulative(
+                    self.sim_params,
+                    self.treasury_curves,
+                    self.trading_schedule
+                )
         elif self.emission_rate == 'minute':
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
                 self.sim_params.first_open, self.sim_params.last_close,
                 freq='Min'))
 
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params, self.env,
-                                           create_first_day_stats=True)
+                risk.RiskMetricsCumulative(
+                    self.sim_params,
+                    self.treasury_curves,
+                    self.trading_schedule,
+                    create_first_day_stats=True
+                )
 
         # this performance period will span the entire simulation from
         # inception.
@@ -145,7 +153,7 @@ class PerformanceTracker(object):
             keep_orders=False,
             # don't serialize positions for cumulative period
             serialize_positions=False,
-            asset_finder=self.env.asset_finder,
+            asset_finder=self.asset_finder,
             name="Cumulative"
         )
         self.cumulative_performance.position_tracker = self.position_tracker
@@ -162,7 +170,7 @@ class PerformanceTracker(object):
             keep_transactions=True,
             keep_orders=True,
             serialize_positions=True,
-            asset_finder=self.env.asset_finder,
+            asset_finder=self.asset_finder,
             name="Daily"
         )
         self.todays_performance.position_tracker = self.position_tracker
@@ -304,14 +312,12 @@ class PerformanceTracker(object):
         # date comes.
 
         if held_sids:
-            asset_finder = self.env.asset_finder
-
             cash_dividends = self._adjustment_reader.\
                 get_dividends_with_ex_date(held_sids, next_trading_day,
-                                           asset_finder)
+                                           self.asset_finder)
             stock_dividends = self._adjustment_reader.\
                 get_stock_dividends_with_ex_date(held_sids, next_trading_day,
-                                                 asset_finder)
+                                                 self.asset_finder)
 
             position_tracker.earn_dividends(
                 cash_dividends,
@@ -394,7 +400,9 @@ class PerformanceTracker(object):
 
         # Get the next trading day and, if it is past the bounds of this
         # simulation, return the daily perf packet
-        next_trading_day = self.env.next_trading_day(completed_date)
+        next_trading_day = self.trading_schedule.next_execution_day(
+            completed_date
+        )
 
         # Take a snapshot of our current performance to return to the
         # browser.
@@ -407,9 +415,10 @@ class PerformanceTracker(object):
             return daily_update
 
         # move the market day markers forward
+        # TODO Is this redundant with next_trading_day above?
+        self.day = self.trading_schedule.next_execution_day(self.day)
         self.market_open, self.market_close = \
-            self.env.next_open_and_close(self.day)
-        self.day = self.env.next_trading_day(self.day)
+            self.trading_schedule.start_and_end(self.day)
 
         # Roll over positions to current day.
         self.todays_performance.rollover()
@@ -449,7 +458,9 @@ class PerformanceTracker(object):
             self.sim_params,
             benchmark_returns=bms,
             algorithm_leverages=acl,
-            env=self.env)
+            trading_schedule=self.trading_schedule,
+            treasury_curves=self.treasury_curves,
+        )
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict

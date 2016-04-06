@@ -2,9 +2,10 @@
 Tests for SimplePipelineEngine
 """
 from __future__ import division
+
 from collections import OrderedDict
-from unittest import TestCase
 from itertools import product
+from unittest import TestCase
 
 from nose_parameterized import parameterized
 from numpy import (
@@ -36,23 +37,14 @@ from pandas.util.testing import assert_frame_equal
 from six import iteritems, itervalues
 from testfixtures import TempDirectory
 from toolz import merge
+from zipline.lib.adjustment import MULTIPLY
 
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
 from zipline.finance.trading import TradingEnvironment
-from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline.loaders.synthetic import (
-    PrecomputedLoader,
-    NullAdjustmentReader,
-    SyntheticDailyBarWriter,
-)
+from zipline.pipeline import CustomFactor
 from zipline.pipeline import Pipeline
 from zipline.pipeline.data import USEquityPricing, DataSet, Column
-from zipline.pipeline.loaders.frame import DataFrameLoader
-from zipline.pipeline.loaders.equity_pricing_loader import (
-    USEquityPricingLoader,
-)
 from zipline.pipeline.engine import SimplePipelineEngine
-from zipline.pipeline import CustomFactor
 from zipline.pipeline.factors import (
     AverageDollarVolume,
     EWMA,
@@ -62,6 +54,16 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
+from zipline.pipeline.loaders.equity_pricing_loader import (
+    USEquityPricingLoader,
+)
+from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.pipeline.loaders.synthetic import (
+    PrecomputedLoader,
+    NullAdjustmentReader,
+    SyntheticDailyBarWriter,
+)
+from zipline.utils.calendars import default_nyse_schedule
 from zipline.utils.memoize import lazyval
 from zipline.utils.test_utils import (
     make_rotating_equity_info,
@@ -515,7 +517,7 @@ class FrameInputTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        day = cls.env.trading_day
+        day = default_nyse_schedule.day
 
         cls.asset_ids = [1, 2, 3]
         cls.dates = date_range(
@@ -633,7 +635,7 @@ class SyntheticBcolzTestCase(TestCase):
     def setUpClass(cls):
         cls.first_asset_start = Timestamp('2015-04-01', tz='UTC')
         cls.env = TradingEnvironment()
-        cls.trading_day = day = cls.env.trading_day
+        cls.trading_day = day = default_nyse_schedule.day
         cls.calendar = date_range('2015', '2015-08', tz='UTC', freq=day)
 
         cls.asset_info = make_rotating_equity_info(
@@ -708,7 +710,7 @@ class SyntheticBcolzTestCase(TestCase):
     def test_SMA(self):
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.env.trading_days,
+            default_nyse_schedule.all_execution_days,
             self.finder,
         )
         window_length = 5
@@ -760,7 +762,7 @@ class SyntheticBcolzTestCase(TestCase):
         # valuable.
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.env.trading_days,
+            default_nyse_schedule.all_execution_days,
             self.finder,
         )
         window_length = 5
@@ -800,7 +802,7 @@ class ParameterizedFactorTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.env = TradingEnvironment()
-        day = cls.env.trading_day
+        day = default_nyse_schedule.day
 
         cls.sids = sids = Int64Index([1, 2, 3])
         cls.dates = dates = date_range(

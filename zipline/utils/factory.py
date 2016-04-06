@@ -17,20 +17,21 @@
 """
 Factory functions to prepare useful data.
 """
-import pytz
-
-import pandas as pd
-import numpy as np
 from datetime import timedelta
 
+import numpy as np
+import pandas as pd
+import pytz
+
+from zipline.finance.trading import (
+    SimulationParameters, TradingEnvironment, noop_load
+)
 from zipline.protocol import Event, DATASOURCE_TYPE
 from zipline.sources import (SpecificEquityTrades,
                              DataFrameSource,
                              DataPanelSource)
-from zipline.finance.trading import (
-    SimulationParameters, TradingEnvironment, noop_load
-)
 from zipline.sources.test_source import create_trade
+from zipline.utils.calendars import default_nyse_schedule
 
 
 # For backwards compatibility
@@ -45,16 +46,16 @@ def create_simulation_parameters(year=2006, start=None, end=None,
                                  num_days=None,
                                  data_frequency='daily',
                                  emission_rate='daily',
-                                 env=None):
-    if env is None:
-        # Construct a complete environment with reasonable defaults
-        env = TradingEnvironment(load=noop_load)
+                                 trading_schedule=default_nyse_schedule):
     if start is None:
         start = pd.Timestamp("{0}-01-01".format(year), tz='UTC')
     if end is None:
         if num_days:
-            start_index = env.trading_days.searchsorted(start)
-            end = env.trading_days[start_index + num_days - 1]
+            start_index = trading_schedule.all_execution_days\
+                .searchsorted(start)
+            end = trading_schedule.all_execution_days[
+                start_index + num_days - 1
+            ]
         else:
             end = pd.Timestamp("{0}-12-31".format(year), tz='UTC')
     sim_params = SimulationParameters(
@@ -63,31 +64,31 @@ def create_simulation_parameters(year=2006, start=None, end=None,
         capital_base=capital_base,
         data_frequency=data_frequency,
         emission_rate=emission_rate,
-        env=env,
+        trading_schedule=trading_schedule,
     )
 
     return sim_params
 
 
-def get_next_trading_dt(current, interval, env):
-    next_dt = pd.Timestamp(current).tz_convert(env.exchange_tz)
+def get_next_trading_dt(current, interval, trading_schedule):
+    next_dt = pd.Timestamp(current).tz_convert(trading_schedule.tz)
 
     while True:
         # Convert timestamp to naive before adding day, otherwise the when
         # stepping over EDT an hour is added.
         next_dt = pd.Timestamp(next_dt.replace(tzinfo=None))
         next_dt = next_dt + interval
-        next_dt = pd.Timestamp(next_dt, tz=env.exchange_tz)
+        next_dt = pd.Timestamp(next_dt, tz=trading_schedule.tz)
         next_dt_utc = next_dt.tz_convert('UTC')
-        if env.is_market_hours(next_dt_utc):
+        if trading_schedule.is_executing_on_minute(next_dt_utc):
             break
-        next_dt = next_dt_utc.tz_convert(env.exchange_tz)
+        next_dt = next_dt_utc.tz_convert(trading_schedule.tz)
 
     return next_dt_utc
 
 
-def create_trade_history(sid, prices, amounts, interval, sim_params, env,
-                         source_id="test_factory"):
+def create_trade_history(sid, prices, amounts, interval, sim_params,
+                         trading_schedule, source_id="test_factory"):
     trades = []
     current = sim_params.first_open
 
@@ -100,7 +101,7 @@ def create_trade_history(sid, prices, amounts, interval, sim_params, env,
             trade_dt = current
         trade = create_trade(sid, price, amount, trade_dt, source_id)
         trades.append(trade)
-        current = get_next_trading_dt(current, interval, env)
+        current = get_next_trading_dt(current, interval, trading_schedule)
 
     assert len(trades) == len(prices)
     return trades
@@ -171,12 +172,13 @@ def create_commission(sid, value, datetime):
     return txn
 
 
-def create_txn_history(sid, priceList, amtList, interval, sim_params, env):
+def create_txn_history(sid, priceList, amtList, interval, sim_params,
+                       trading_schedule):
     txns = []
     current = sim_params.first_open
 
     for price, amount in zip(priceList, amtList):
-        current = get_next_trading_dt(current, interval, env)
+        current = get_next_trading_dt(current, interval, trading_schedule)
 
         txns.append(create_txn(sid, price, amount, current))
         current = current + interval
@@ -193,7 +195,8 @@ def create_returns_from_list(returns, sim_params):
                      data=returns)
 
 
-def create_daily_trade_source(sids, sim_params, env, concurrent=False):
+def create_daily_trade_source(sids, sim_params, env, trading_schedule,
+                              concurrent=False):
     """
     creates trade_count trades for each sid in sids list.
     first trade will be on sim_params.period_start, and daily
@@ -205,11 +208,13 @@ def create_daily_trade_source(sids, sim_params, env, concurrent=False):
         timedelta(days=1),
         sim_params,
         env=env,
+        trading_schedule=trading_schedule,
         concurrent=concurrent,
     )
 
 
-def create_minutely_trade_source(sids, sim_params, env, concurrent=False):
+def create_minutely_trade_source(sids, sim_params, env, trading_schedule,
+                                 concurrent=False):
     """
     creates trade_count trades for each sid in sids list.
     first trade will be on sim_params.period_start, and every minute
@@ -221,16 +226,17 @@ def create_minutely_trade_source(sids, sim_params, env, concurrent=False):
         timedelta(minutes=1),
         sim_params,
         env=env,
+        trading_schedule=trading_schedule,
         concurrent=concurrent,
     )
 
 
 def create_trade_source(sids, trade_time_increment, sim_params, env,
-                        concurrent=False):
+                        trading_schedule, concurrent=False):
 
     # If the sim_params define an end that is during market hours, that will be
     # used as the end of the data source
-    if env.is_market_hours(sim_params.period_end):
+    if trading_schedule.is_executing_on_minute(sim_params.period_end):
         end = sim_params.period_end
     # Otherwise, the last_close after the period_end is used as the end of the
     # data source
@@ -246,6 +252,7 @@ def create_trade_source(sids, trade_time_increment, sim_params, env,
         'filter': sids,
         'concurrent': concurrent,
         'env': env,
+        'trading_schedule': trading_schedule,
     }
     source = SpecificEquityTrades(*args, **kwargs)
 

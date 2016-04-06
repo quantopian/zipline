@@ -66,6 +66,7 @@ from zipline.utils.tradingcalendar import (
     trading_day,
     trading_days,
 )
+from zipline.utils.calendars import default_nyse_schedule
 
 
 TEST_RESOURCE_PATH = join(
@@ -164,7 +165,7 @@ class ClosesOnly(TestCase):
         daily_bar_reader = BcolzDailyBarReader(path)
 
         self.data_portal = DataPortal(
-            self.env,
+            self.env, default_nyse_schedule,
             equity_daily_reader=daily_bar_reader,
         )
 
@@ -420,8 +421,11 @@ class PipelineAlgorithmTestCase(TestCase):
     @classmethod
     def create_adjustment_reader(cls, tempdir):
         dbpath = tempdir.getpath('adjustments.sqlite')
-        writer = SQLiteAdjustmentWriter(dbpath, cls.env.trading_days,
-                                        MockDailyBarSpotReader())
+        writer = SQLiteAdjustmentWriter(
+            dbpath,
+            trading.default_nyse_schedule.schedule.index,
+            MockDailyBarSpotReader()
+        )
         splits = DataFrame.from_records([
             {
                 'effective_date': str_to_seconds('2014-06-09'),

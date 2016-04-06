@@ -72,8 +72,8 @@ class USEquityHistoryLoader(object):
         Reader for adjustment data.
     """
 
-    def __init__(self, env, daily_reader, adjustment_reader):
-        self.env = env
+    def __init__(self, trading_schedule, daily_reader, adjustment_reader):
+        self.trading_schedule = trading_schedule
         self._daily_reader = daily_reader
         self._calendar = daily_reader._calendar
         self._adjustments_reader = adjustment_reader
@@ -185,7 +185,7 @@ class USEquityHistoryLoader(object):
         pre_array = None
         if start < self._daily_reader._calendar[0]:
             start_ix = 0
-            td = self.env.trading_days
+            td = self.trading_schedule.all_execution_days
             offset = td.get_loc(start) - td.get_loc(
                 self._daily_reader._calendar[0])
             if end < self._daily_reader._calendar[0]:

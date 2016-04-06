@@ -72,6 +72,7 @@ from zipline.errors import (
     AssetDBImpossibleDowngrade,
 )
 from zipline.finance.trading import TradingEnvironment, noop_load
+from zipline.utils.calendars import default_nyse_schedule
 from zipline.utils.test_utils import (
     all_subindices,
     make_commodity_future_info,
@@ -844,13 +845,13 @@ class AssetFinderTestCase(TestCase):
 
     def test_compute_lifetimes(self):
         num_assets = 4
-        trading_day = self.env.trading_day
+        trading_day = default_nyse_schedule.day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
         frame = make_rotating_equity_info(
             num_assets=num_assets,
             first_start=first_start,
-            frequency=self.env.trading_day,
+            frequency=trading_day,
             periods_between_starts=3,
             asset_lifetime=5
         )

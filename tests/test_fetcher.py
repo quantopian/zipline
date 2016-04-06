@@ -27,6 +27,7 @@ from zipline.sources.requests_csv import mask_requests_args
 
 from zipline.utils import factory
 from zipline.utils.test_utils import FetcherDataPortal
+from zipline.utils.calendars import default_nyse_schedule
 
 from .resources.fetcher_inputs.fetcher_test_data import (
     MULTI_SIGNAL_CSV_DATA,
@@ -136,7 +137,8 @@ class FetcherTestCase(TestCase):
             data_frequency=data_frequency
         )
 
-        results = test_algo.run(FetcherDataPortal(self.env))
+        results = test_algo.run(FetcherDataPortal(self.env,
+                                                  default_nyse_schedule))
 
         return results
 
@@ -162,7 +164,8 @@ def handle_data(context, data):
         # manually setting data portal and getting generator because we need
         # the minutely emission packets here.  TradingAlgorithm.run() only
         # returns daily packets.
-        test_algo.data_portal = FetcherDataPortal(self.env)
+        test_algo.data_portal = FetcherDataPortal(self.env,
+                                                  default_nyse_schedule)
         gen = test_algo.get_generator()
         perf_packets = list(gen)
 

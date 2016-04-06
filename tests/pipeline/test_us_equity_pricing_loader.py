@@ -36,24 +36,23 @@ from pandas import (
 )
 from testfixtures import TempDirectory
 from toolz.curried.operator import getitem
-
 from zipline.lib.adjustment import Float64Multiply
-from zipline.pipeline.loaders.synthetic import (
-    NullAdjustmentReader,
-    SyntheticDailyBarWriter,
-)
+
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
 )
+from zipline.errors import WindowLengthTooLong
+from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
 )
-
-from zipline.errors import WindowLengthTooLong
-from zipline.finance.trading import TradingEnvironment
-from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders.synthetic import (
+    NullAdjustmentReader,
+    SyntheticDailyBarWriter,
+)
+from zipline.utils.calendars import default_nyse_schedule
 from zipline.utils.test_utils import (
     seconds_to_timestamp,
     str_to_seconds,
@@ -271,7 +270,7 @@ class USEquityPricingLoaderTestCase(TestCase):
     def setUpClass(cls):
         cls.test_data_dir = TempDirectory()
         cls.db_path = cls.test_data_dir.getpath('adjustments.db')
-        all_days = TradingEnvironment().trading_days
+        all_days = default_nyse_schedule.all_execution_days
         cls.calendar_days = all_days[
             all_days.slice_indexer(TEST_CALENDAR_START, TEST_CALENDAR_STOP)
         ]

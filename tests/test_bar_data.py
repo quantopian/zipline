@@ -28,6 +28,7 @@ from zipline.protocol import BarData
 from zipline.utils.test_utils import write_minute_data_for_asset, \
     create_daily_df_for_asset, DailyBarWriterFromDataFrames, \
     create_mock_adjustments, str_to_seconds
+from zipline.utils.calendars import default_nyse_schedule
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -90,12 +91,13 @@ class TestMinuteBarData(TestBarDataBase):
         # split_asset trades every minute
         # illiquid_split_asset trades every 10 minutes
 
-        cls.env = TradingEnvironment()
-
-        cls.days = cls.env.days_in_range(
+        cls.trading_schedule = default_nyse_schedule
+        cls.days = cls.trading_schedule.execution_days_in_range(
             start=pd.Timestamp("2016-01-05", tz='UTC'),
             end=pd.Timestamp("2016-01-07", tz='UTC')
         )
+
+        cls.env = TradingEnvironment()
 
         cls.env.write_data(equities_data={
             sid: {
@@ -114,7 +116,7 @@ class TestMinuteBarData(TestBarDataBase):
 
         cls.adjustments_reader = cls.create_adjustments_reader()
         cls.data_portal = DataPortal(
-            cls.env,
+            cls.env, default_nyse_schedule,
             equity_minute_reader=cls.build_minute_data(),
             adjustment_reader=cls.adjustments_reader
         )
@@ -143,7 +145,8 @@ class TestMinuteBarData(TestBarDataBase):
 
     @classmethod
     def build_minute_data(cls):
-        market_opens = cls.env.open_and_closes.market_open.loc[cls.days]
+        market_opens = \
+            cls.trading_schedule.schedule.market_open.loc[cls.days]
 
         writer = BcolzMinuteBarWriter(
             cls.days[0],
@@ -154,7 +157,7 @@ class TestMinuteBarData(TestBarDataBase):
 
         for sid in [cls.ASSET1.sid, cls.SPLIT_ASSET.sid]:
             write_minute_data_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 writer,
                 cls.days[0],
                 cls.days[-1],
@@ -163,7 +166,7 @@ class TestMinuteBarData(TestBarDataBase):
 
         for sid in [cls.ASSET2.sid, cls.ILLIQUID_SPLIT_ASSET.sid]:
             write_minute_data_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 writer,
                 cls.days[0],
                 cls.days[-1],
@@ -175,8 +178,8 @@ class TestMinuteBarData(TestBarDataBase):
 
     def test_minute_before_assets_trading(self):
         # grab minutes that include the day before the asset start
-        minutes = self.env.market_minutes_for_day(
-            self.env.previous_trading_day(self.days[0])
+        minutes = self.trading_schedule.execution_minutes_for_day(
+            self.trading_schedule.previous_execution_day(self.days[0])
         )
 
         # this entire day is before either asset has started trading
@@ -202,7 +205,7 @@ class TestMinuteBarData(TestBarDataBase):
                         self.assertTrue(asset_value is pd.NaT)
 
     def test_regular_minute(self):
-        minutes = self.env.market_minutes_for_day(self.days[0])
+        minutes = self.trading_schedule.execution_minutes_for_day(self.days[0])
 
         for idx, minute in enumerate(minutes):
             # day2 has prices
@@ -292,12 +295,12 @@ class TestMinuteBarData(TestBarDataBase):
                                              asset2_value)
 
     def test_minute_after_assets_stopped(self):
-        minutes = self.env.market_minutes_for_day(
-            self.env.next_trading_day(self.days[-1])
+        minutes = self.trading_schedule.execution_minutes_for_day(
+            self.trading_schedule.next_execution_day(self.days[-1])
         )
 
         last_trading_minute = \
-            self.env.market_minutes_for_day(self.days[-1])[-1]
+            self.trading_schedule.execution_minutes_for_day(self.days[-1])[-1]
 
         # this entire day is after both assets have stopped trading
         for idx, minute in enumerate(minutes):
@@ -337,7 +340,7 @@ class TestMinuteBarData(TestBarDataBase):
         )
 
         # ... but that's it's not applied when using spot value
-        minutes = self.env.minutes_for_days_in_range(
+        minutes = self.trading_schedule.execution_minutes_for_days_in_range(
             start=self.days[0], end=self.days[1]
         )
 
@@ -351,8 +354,10 @@ class TestMinuteBarData(TestBarDataBase):
     def test_spot_price_is_adjusted_if_needed(self):
         # on cls.days[1], the first 9 minutes of ILLIQUID_SPLIT_ASSET are
         # missing. let's get them.
-        day0_minutes = self.env.market_minutes_for_day(self.days[0])
-        day1_minutes = self.env.market_minutes_for_day(self.days[1])
+        day0_minutes = \
+            self.trading_schedule.execution_minutes_for_day(self.days[0])
+        day1_minutes = \
+            self.trading_schedule.execution_minutes_for_day(self.days[1])
 
         for idx, minute in enumerate(day0_minutes[-10:-1]):
             bar_data = BarData(self.data_portal, lambda: minute, "minute")
@@ -388,12 +393,13 @@ class TestDailyBarData(TestBarDataBase):
         # asset1 has a daily data for each day (1/5, 1/6, 1/7)
         # asset2 only has daily data for day2 (1/6)
 
-        cls.env = TradingEnvironment()
-
-        cls.days = cls.env.days_in_range(
+        cls.trading_schedule = default_nyse_schedule
+        cls.days = cls.trading_schedule.execution_days_in_range(
             start=pd.Timestamp("2016-01-05", tz='UTC'),
             end=pd.Timestamp("2016-01-08", tz='UTC')
         )
+
+        cls.env = TradingEnvironment()
 
         cls.env.write_data(equities_data={
             sid: {
@@ -412,7 +418,7 @@ class TestDailyBarData(TestBarDataBase):
 
         cls.adjustments_reader = cls.create_adjustments_reader()
         cls.data_portal = DataPortal(
-            cls.env,
+            cls.env, default_nyse_schedule,
             equity_daily_reader=cls.build_daily_data(),
             adjustment_reader=cls.adjustments_reader
         )
@@ -444,13 +450,15 @@ class TestDailyBarData(TestBarDataBase):
         path = cls.tempdir.getpath("testdaily.bcolz")
 
         dfs = {
-            1: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
+            1: create_daily_df_for_asset(
+                cls.trading_schedule, cls.days[0], cls.days[-1]),
             2: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-1], interval=2
+                cls.trading_schedule, cls.days[0], cls.days[-1], interval=2
             ),
-            3: create_daily_df_for_asset(cls.env, cls.days[0], cls.days[-1]),
+            3: create_daily_df_for_asset(
+                cls.trading_schedule, cls.days[0], cls.days[-1]),
             4: create_daily_df_for_asset(
-                cls.env, cls.days[0], cls.days[-1], interval=2
+                cls.trading_schedule, cls.days[0], cls.days[-1], interval=2
             ),
         }
 
@@ -461,7 +469,7 @@ class TestDailyBarData(TestBarDataBase):
 
     def test_day_before_assets_trading(self):
         # use the day before self.days[0]
-        day = self.env.previous_trading_day(self.days[0])
+        day = self.trading_schedule.previous_execution_day(self.days[0])
 
         bar_data = BarData(self.data_portal, lambda: day, "daily")
         self.check_internal_consistency(bar_data)
@@ -552,7 +560,7 @@ class TestDailyBarData(TestBarDataBase):
 
     def test_after_assets_dead(self):
         # both assets end on self.day[-1], so let's try the next day
-        next_day = self.env.next_trading_day(self.days[-1])
+        next_day = self.trading_schedule.next_execution_day(self.days[-1])
 
         bar_data = BarData(self.data_portal, lambda: next_day, "daily")
         self.check_internal_consistency(bar_data)

@@ -12,21 +12,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import namedtuple
 import datetime
-from functools import partial
+import random
+from collections import namedtuple
 from inspect import isabstract
 from itertools import islice
-import random
 from unittest import TestCase
 
-from nose_parameterized import parameterized
 import pandas as pd
+from nose_parameterized import parameterized
 from six import iteritems
 from six.moves import range, map
 
-from zipline.finance.trading import TradingEnvironment
 import zipline.utils.events
+from zipline.utils.calendars import get_calendar
 from zipline.utils.events import (
     EventRule,
     StatelessRule,
@@ -51,7 +50,6 @@ from zipline.utils.events import (
     MAX_WEEK_RANGE,
 )
 from zipline.utils.test_utils import subtest
-
 
 # A day known to be a half day.
 HALF_DAY = datetime.datetime(year=2014, month=7, day=3)
@@ -165,7 +163,7 @@ class TestEventManager(TestCase):
         class CountingRule(Always):
             count = 0
 
-            def should_trigger(self, dt, env):
+            def should_trigger(self, dt):
                 CountingRule.count += 1
                 return True
 
@@ -174,9 +172,7 @@ class TestEventManager(TestCase):
                     Event(r(), lambda context, data: None)
                 )
 
-        mock_algo_class = namedtuple('FakeAlgo', ['trading_environment'])
-        mock_algo = mock_algo_class(trading_environment="fake_env")
-        self.em.handle_data(mock_algo, None, datetime.datetime.now())
+        self.em.handle_data(None, None, datetime.datetime.now())
 
         self.assertEqual(CountingRule.count, 5)
 
@@ -188,7 +184,7 @@ class TestEventRule(TestCase):
 
     def test_not_implemented(self):
         with self.assertRaises(NotImplementedError):
-            super(Always, Always()).should_trigger('a', env=None)
+            super(Always, Always()).should_trigger('a')
 
 
 def minutes_for_days():
@@ -207,21 +203,18 @@ def minutes_for_days():
     Iterating over this yeilds a single day, iterating over the day yields
     the minutes for that day.
     """
-    env = TradingEnvironment()
+    cal = get_calendar('NYSE')
     random.seed('deterministic')
-    return ((env.market_minutes_for_day(random.choice(env.trading_days[:-1])),)
+    return ((cal.trading_minutes_for_day(random.choice(
+        cal.all_trading_days[:-1])),)
             for _ in range(500))
 
 
 class RuleTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.env = TradingEnvironment()
         cls.class_ = None  # Mark that this is the base class.
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
 
     def test_completeness(self):
         """
@@ -255,32 +248,32 @@ class TestStatelessRules(RuleTestCase):
 
         cls.class_ = StatelessRule
 
-        cls.sept_days = cls.env.days_in_range(
+        cls.nyse_cal = get_calendar('NYSE')
+
+        cls.sept_days = cls.nyse_cal.trading_days_in_range(
             pd.Timestamp('2014-09-01'),
             pd.Timestamp('2014-09-30'),
         )
 
-        cls.sept_week = cls.env.minutes_for_days_in_range(
+        cls.sept_week = cls.nyse_cal.trading_minutes_for_days_in_range(
             datetime.date(year=2014, month=9, day=21),
             datetime.date(year=2014, month=9, day=26),
         )
 
     @subtest(minutes_for_days(), 'ms')
     def test_Always(self, ms):
-        should_trigger = partial(Always().should_trigger, env=self.env)
+        should_trigger = Always().should_trigger
         self.assertTrue(all(map(should_trigger, ms)))
 
     @subtest(minutes_for_days(), 'ms')
     def test_Never(self, ms):
-        should_trigger = partial(Never().should_trigger, env=self.env)
+        should_trigger = Never().should_trigger
         self.assertFalse(any(map(should_trigger, ms)))
 
     @subtest(minutes_for_days(), 'ms')
     def test_AfterOpen(self, ms):
-        should_trigger = partial(
-            AfterOpen(minutes=5, hours=1).should_trigger,
-            env=self.env,
-        )
+        should_trigger = AfterOpen(minutes=5, hours=1).should_trigger
+
         for m in islice(ms, 64):
             # Check the first 64 minutes of data.
             # We use 64 because the offset is from market open
@@ -295,10 +288,7 @@ class TestStatelessRules(RuleTestCase):
     @subtest(minutes_for_days(), 'ms')
     def test_BeforeClose(self, ms):
         ms = list(ms)
-        should_trigger = partial(
-            BeforeClose(hours=1, minutes=5).should_trigger,
-            env=self.env
-        )
+        should_trigger = BeforeClose(hours=1, minutes=5).should_trigger
         for m in ms[0:-66]:
             self.assertFalse(should_trigger(m))
         for m in ms[-66:]:
@@ -306,14 +296,13 @@ class TestStatelessRules(RuleTestCase):
 
     @subtest(minutes_for_days(), 'ms')
     def test_NotHalfDay(self, ms):
-        should_trigger = partial(NotHalfDay().should_trigger, env=self.env)
+        should_trigger = NotHalfDay().should_trigger
         self.assertTrue(should_trigger(FULL_DAY))
         self.assertFalse(should_trigger(HALF_DAY))
 
     @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NthTradingDayOfWeek(self, n):
-        should_trigger = partial(NthTradingDayOfWeek(n).should_trigger,
-                                 env=self.env)
+        should_trigger = NthTradingDayOfWeek(n).should_trigger
         prev_day = self.sept_week[0].date()
         n_tdays = 0
         for m in self.sept_week:
@@ -328,27 +317,24 @@ class TestStatelessRules(RuleTestCase):
 
     @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfWeek(self, n):
-        should_trigger = partial(
-            NDaysBeforeLastTradingDayOfWeek(n).should_trigger, env=self.env
-        )
+        should_trigger = NDaysBeforeLastTradingDayOfWeek(n).should_trigger
         for m in self.sept_week:
             if should_trigger(m):
                 n_tdays = 0
                 date = m.to_datetime().date()
-                next_date = self.env.next_trading_day(date)
+                next_date = self.nyse_cal.next_trading_day(date)
                 while next_date.weekday() > date.weekday():
                     date = next_date
-                    next_date = self.env.next_trading_day(date)
+                    next_date = self.nyse_cal.next_trading_day(date)
                     n_tdays += 1
 
                 self.assertEqual(n_tdays, n)
 
     @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NthTradingDayOfMonth(self, n):
-        should_trigger = partial(NthTradingDayOfMonth(n).should_trigger,
-                                 env=self.env)
+        should_trigger = NthTradingDayOfMonth(n).should_trigger
         for n_tdays, d in enumerate(self.sept_days):
-            for m in self.env.market_minutes_for_day(d):
+            for m in self.nyse_cal.trading_minutes_for_day(d):
                 if should_trigger(m):
                     self.assertEqual(n_tdays, n)
                 else:
@@ -356,11 +342,9 @@ class TestStatelessRules(RuleTestCase):
 
     @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfMonth(self, n):
-        should_trigger = partial(
-            NDaysBeforeLastTradingDayOfMonth(n).should_trigger, env=self.env
-        )
+        should_trigger = NDaysBeforeLastTradingDayOfMonth(n).should_trigger
         for n_days_before, d in enumerate(reversed(self.sept_days)):
-            for m in self.env.market_minutes_for_day(d):
+            for m in self.nyse_cal.trading_minutes_for_day(d):
                 if should_trigger(m):
                     self.assertEqual(n_days_before, n)
                 else:
@@ -372,7 +356,7 @@ class TestStatelessRules(RuleTestCase):
         rule2 = Never()
 
         composed = rule1 & rule2
-        should_trigger = partial(composed.should_trigger, env=self.env)
+        should_trigger = composed.should_trigger
         self.assertIsInstance(composed, ComposedRule)
         self.assertIs(composed.first, rule1)
         self.assertIs(composed.second, rule2)
@@ -395,14 +379,14 @@ class TestStatefulRules(RuleTestCase):
             """
             count = 0
 
-            def should_trigger(self, dt, env):
-                st = self.rule.should_trigger(dt, env)
+            def should_trigger(self, dt):
+                st = self.rule.should_trigger(dt)
                 if st:
                     self.count += 1
                 return st
 
         rule = RuleCounter(OncePerDay())
         for m in ms:
-            rule.should_trigger(m, env=self.env)
+            rule.should_trigger(m)
 
         self.assertEqual(rule.count, 1)

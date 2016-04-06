@@ -54,12 +54,14 @@ HISTORY_FREQUENCIES = set(["1m", "1d"])
 class DataPortal(object):
     def __init__(self,
                  env,
+                 trading_schedule,
                  equity_daily_reader=None,
                  equity_minute_reader=None,
                  future_daily_reader=None,
                  future_minute_reader=None,
                  adjustment_reader=None):
         self.env = env
+        self.trading_schedule = trading_schedule
 
         self.views = {}
 
@@ -92,7 +94,7 @@ class DataPortal(object):
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
             self._equity_history_loader = USEquityHistoryLoader(
-                self.env,
+                self.trading_schedule,
                 self._equity_daily_reader,
                 self._adjustment_reader
             )
@@ -166,15 +168,16 @@ class DataPortal(object):
         # holding that data.
 
         if sim_params.emission_rate == "daily":
-            source_date_index = self.env.days_in_range(
+            source_date_index = self.trading_schedule.execution_days_in_range(
                 start=sim_params.period_start,
                 end=sim_params.period_end
             )
         else:
-            source_date_index = self.env.minutes_for_days_in_range(
-                start=sim_params.period_start,
-                end=sim_params.period_end
-            )
+            source_date_index = \
+                self.trading_schedule.execution_minutes_for_days_in_range(
+                    start=sim_params.period_start,
+                    end=sim_params.period_end
+                )
 
         # Break the source_df up into one dataframe per sid.  This lets
         # us (more easily) calculate accurate start/end dates for each sid,
@@ -590,7 +593,7 @@ class DataPortal(object):
 
         # get all the minutes for the days NOT including today
         for day in days_for_window[:-1]:
-            minutes = self.env.market_minutes_for_day(day)
+            minutes = self.trading_schedule.execution_minutes_for_day(day)
 
             values_for_day = np.zeros(len(minutes), dtype=np.float64)
 
@@ -605,7 +608,7 @@ class DataPortal(object):
 
         # get the minutes for today
         last_day_minutes = pd.date_range(
-            start=self.env.get_open_and_close(end_dt)[0],
+            start=self.trading_schedule.start_and_end(end_dt)[0],
             end=end_dt,
             freq="T"
         )
@@ -640,7 +643,7 @@ class DataPortal(object):
 
     @remember_last
     def _get_market_minutes_for_day(self, end_date):
-        return self.env.market_minutes_for_day(pd.Timestamp(end_date))
+        return self.trading_schedule.execution_minutes_for_day(pd.Timestamp(end_date))
 
     def _get_history_daily_window_equities(
             self, assets, days_for_window, end_dt, field_to_use):
@@ -703,7 +706,7 @@ class DataPortal(object):
         of minute frequency for the given sids.
         """
         # get all the minutes for this window
-        minutes_for_window = self.env.market_minute_window(
+        minutes_for_window = self.trading_schedule.minute_window(
             end_dt, bar_count, step=-1)[::-1]
 
         first_trading_day = self._equity_minute_reader.first_trading_day

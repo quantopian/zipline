@@ -14,18 +14,17 @@
 # limitations under the License.
 
 from unittest import TestCase
+
 from testfixtures import TempDirectory
 
 import zipline.utils.factory as factory
-
+from zipline.finance.trading import TradingEnvironment
 from zipline.test_algorithms import (
     ExceptionAlgorithm,
     DivByZeroAlgorithm,
     SetPortfolioAlgorithm,
 )
-from zipline.finance.trading import TradingEnvironment
-
-
+from zipline.utils.calendars import default_nyse_schedule
 from zipline.utils.test_utils import (
     setup_logger,
     teardown_logger,
@@ -46,16 +45,14 @@ class ExceptionTestCase(TestCase):
 
         cls.tempdir = TempDirectory()
 
-        cls.sim_params = factory.create_simulation_parameters(
-            num_days=4,
-            env=cls.env
-        )
+        cls.sim_params = factory.create_simulation_parameters(num_days=4)
 
         cls.data_portal = create_data_portal(
             env=cls.env,
             tempdir=cls.tempdir,
             sim_params=cls.sim_params,
-            sids=[cls.sid]
+            sids=[cls.sid],
+            trading_schedule=default_nyse_schedule,
         )
 
         setup_logger(cls)

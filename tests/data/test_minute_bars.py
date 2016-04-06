@@ -12,9 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from datetime import timedelta
 import os
-
+from datetime import timedelta
 from unittest import TestCase
 
 from numpy import nan, array
@@ -33,8 +32,7 @@ from zipline.data.minute_bars import (
     BcolzMinuteOverlappingData,
     US_EQUITIES_MINUTES_PER_DAY,
 )
-from zipline.finance.trading import TradingEnvironment
-
+from zipline.utils.calendars import get_calendar
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
@@ -44,13 +42,9 @@ class BcolzMinuteBarTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        all_market_opens = cls.env.open_and_closes.market_open
-        indexer = all_market_opens.index.slice_indexer(
-            start=TEST_CALENDAR_START,
-            end=TEST_CALENDAR_STOP
-        )
-        cls.market_opens = all_market_opens[indexer]
+        cls.market_opens = get_calendar('NYSE').trading_days(
+            TEST_CALENDAR_START, TEST_CALENDAR_STOP
+        ).market_open
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
 

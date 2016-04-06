@@ -30,15 +30,15 @@ from pandas import (
 from pandas.util.testing import assert_index_equal
 from testfixtures import TempDirectory
 
-from zipline.pipeline.loaders.synthetic import (
-    SyntheticDailyBarWriter,
-)
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
     NoDataOnDate
 )
-from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders.synthetic import (
+    SyntheticDailyBarWriter,
+)
+from zipline.utils.calendars import get_calendar
 from zipline.utils.test_utils import (
     seconds_to_timestamp,
 )
@@ -78,11 +78,9 @@ class BcolzDailyBarTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        all_trading_days = TradingEnvironment().trading_days
-        cls.trading_days = all_trading_days[
-            all_trading_days.get_loc(TEST_CALENDAR_START):
-            all_trading_days.get_loc(TEST_CALENDAR_STOP) + 1
-        ]
+        cls.trading_days = get_calendar('NYSE').trading_days(
+            TEST_CALENDAR_START, TEST_CALENDAR_STOP
+        ).index
 
     def setUp(self):
 

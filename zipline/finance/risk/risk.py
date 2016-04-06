@@ -202,14 +202,6 @@ def get_treasury_rate(treasury_curves, treasury_duration, day):
     return rate
 
 
-def search_day_distance(end_date, dt, env):
-    tdd = env.trading_day_distance(dt, end_date)
-    if tdd is None:
-        return None
-    assert tdd >= 0
-    return tdd
-
-
 def select_treasury_duration(start_date, end_date):
     td = end_date - start_date
     if td.days <= 31:
@@ -237,7 +229,7 @@ def select_treasury_duration(start_date, end_date):
 
 
 def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
-                    env, compound=True):
+                    trading_schedule, compound=True):
     """
     Find the latest known interest rate for a given duration within a date
     range.
@@ -269,7 +261,9 @@ def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
                                      prev_day)
             if rate is not None:
                 search_day = prev_day
-                search_dist = search_day_distance(end_date, prev_day, env)
+                search_dist = trading_schedule.execution_day_distance(
+                    end_date, prev_day
+                )
                 break
 
         if search_day:

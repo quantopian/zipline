@@ -13,23 +13,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from copy import copy
-
-import pytz
-import pandas as pd
-from pandas.tseries.tools import normalize_date
-import numpy as np
-
 from itertools import chain, repeat
 from numbers import Integral
 
+import numpy as np
+import pandas as pd
+import pytz
+from pandas.tseries.tools import normalize_date
 from six import (
     exec_,
     iteritems,
     itervalues,
     string_types,
 )
+from zipline.gens.sim_engine import (
+    MinuteSimulationClock,
+    DailySimulationClock,
+)
 
-
+import zipline.protocol
+import zipline.utils.events
+from zipline.assets import Asset, Equity, Future
+from zipline.assets.futures import FutureChain
 from zipline.data.data_portal import DataPortal
 from zipline.errors import (
     AttachPipelineAfterInitialize,
@@ -47,7 +52,6 @@ from zipline.errors import (
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
     CannotOrderDelistedAsset)
-from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
 from zipline.finance.controls import (
@@ -69,22 +73,22 @@ from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
-from zipline.assets import Asset, Equity, Future
-from zipline.assets.futures import FutureChain
+from zipline.finance.trading import TradingEnvironment
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline.engine import (
     NoOpPipelineEngine,
     SimplePipelineEngine,
 )
+from zipline.sources.benchmark_source import BenchmarkSource
+from zipline.sources.requests_csv import PandasRequestsCSV
 from zipline.utils.api_support import (
     api_method,
     require_initialized,
     require_not_initialized,
     ZiplineAPI,
 )
-from zipline.utils.input_validation import ensure_upper_case
 from zipline.utils.cache import CachedObject, Expired
-import zipline.utils.events
+from zipline.utils.calendars import default_nyse_schedule
 from zipline.utils.events import (
     EventManager,
     make_eventrule,
@@ -92,20 +96,12 @@ from zipline.utils.events import (
     TimeRuleFactory,
 )
 from zipline.utils.factory import create_simulation_parameters
+from zipline.utils.input_validation import ensure_upper_case
 from zipline.utils.math_utils import (
     tolerant_equals,
     round_if_near_integer
 )
 from zipline.utils.preprocess import preprocess
-
-import zipline.protocol
-from zipline.sources.requests_csv import PandasRequestsCSV
-
-from zipline.gens.sim_engine import (
-    MinuteSimulationClock,
-    DailySimulationClock,
-)
-from zipline.sources.benchmark_source import BenchmarkSource
 
 DEFAULT_CAPITAL_BASE = float("1.0e5")
 
@@ -206,6 +202,12 @@ class TradingAlgorithm(object):
             futures_data=kwargs.pop('futures_metadata', {}),
         )
 
+        # If a schedule has been provided, pop it. Otherwise, use NYSE.
+        self.trading_schedule = kwargs.pop(
+            'trading_schedule',
+            default_nyse_schedule,
+        )
+
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
         self.sim_params = kwargs.pop('sim_params', None)
@@ -214,10 +216,12 @@ class TradingAlgorithm(object):
                 capital_base=self.capital_base,
                 start=kwargs.pop('start', None),
                 end=kwargs.pop('end', None),
-                env=self.trading_environment,
+                trading_schedule=self.trading_schedule,
             )
         else:
-            self.sim_params.update_internal_from_env(self.trading_environment)
+            self.sim_params.update_internal_from_trading_schedule(
+                self.trading_schedule
+            )
 
         self.perf_tracker = None
         # Pull in the environment's new AssetFinder for quick reference
@@ -323,7 +327,7 @@ class TradingAlgorithm(object):
         if get_loader is not None:
             self.engine = SimplePipelineEngine(
                 get_loader,
-                self.trading_environment.trading_days,
+                self.trading_schedule.schedule.index,
                 self.asset_finder,
             )
         else:
@@ -389,8 +393,7 @@ class TradingAlgorithm(object):
         If the clock property is not set, then create one based on frequency.
         """
         if self.sim_params.data_frequency == 'minute':
-            env = self.trading_environment
-            trading_o_and_c = env.open_and_closes.ix[
+            trading_o_and_c = self.trading_schedule.schedule.ix[
                 self.sim_params.trading_days]
             market_opens = trading_o_and_c['market_open'].values.astype(
                 'datetime64[ns]').astype(np.int64)
@@ -403,7 +406,6 @@ class TradingAlgorithm(object):
                 self.sim_params.trading_days,
                 market_opens,
                 market_closes,
-                env.trading_days,
                 minutely_emission
             )
             return clock
@@ -412,10 +414,11 @@ class TradingAlgorithm(object):
 
     def _create_benchmark_source(self):
         return BenchmarkSource(
-            self.benchmark_sid,
-            self.trading_environment,
-            self.sim_params.trading_days,
-            self.data_portal,
+            benchmark_sid=self.benchmark_sid,
+            env=self.trading_environment,
+            trading_schedule=self.trading_schedule,
+            trading_days=self.sim_params.trading_days,
+            data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
         )
 
@@ -428,8 +431,9 @@ class TradingAlgorithm(object):
             # None so that it will be overwritten here.
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
+                trading_schedule=self.trading_schedule,
                 env=self.trading_environment,
-                data_portal=self.data_portal
+                data_portal=self.data_portal,
             )
 
             # Set the dt initially to the period start by forcing it to change.
@@ -498,11 +502,11 @@ class TradingAlgorithm(object):
                     from zipline.data.us_equity_pricing import \
                         PanelDailyBarReader
                     equity_daily_reader = PanelDailyBarReader(
-                        self.trading_environment.trading_days, copy_panel)
+                        self.trading_schedule.all_execution_days, copy_panel)
                 else:
                     equity_daily_reader = None
                 self.data_portal = DataPortal(
-                    self.trading_environment,
+                    self.trading_environment, self.trading_schedule,
                     equity_daily_reader=equity_daily_reader)
 
                 # For compatibility with existing examples allow start/end
@@ -512,8 +516,8 @@ class TradingAlgorithm(object):
                     self.sim_params.period_end = data.major_axis[-1]
                     # Changing period_start and period_close might require
                     # updating of first_open and last_close.
-                    self.sim_params.update_internal_from_env(
-                        env=self.trading_environment
+                    self.sim_params.update_internal_from_trading_schedule(
+                        trading_schedule=self.trading_schedule
                     )
 
         # Force a reset of the performance tracker, in case
@@ -1359,7 +1363,7 @@ class TradingAlgorithm(object):
         --------
         PipelineEngine.run_pipeline
         """
-        days = self.trading_environment.trading_days
+        days = self.trading_schedule.all_execution_days
 
         # Load data starting from the previous trading day...
         start_date_loc = days.get_loc(start_date)

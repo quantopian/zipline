@@ -24,6 +24,7 @@ from zipline.protocol import Position as ProtocolPosition
 from zipline.finance.trading import SimulationParameters, TradingEnvironment
 
 from zipline.utils import factory
+from zipline.utils.calendars import default_nyse_schedule
 
 
 def stringify_cases(cases, func=None):
@@ -45,13 +46,13 @@ sim_params_daily = SimulationParameters(
     datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
     10000,
     emission_rate='daily',
-    env=cases_env)
+    trading_schedule=default_nyse_schedule)
 sim_params_minute = SimulationParameters(
     datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
     datetime.datetime(2013, 6, 19, tzinfo=pytz.UTC),
     10000,
     emission_rate='minute',
-    env=cases_env)
+    trading_schedule=default_nyse_schedule)
 returns = factory.create_returns_from_list(
     [1.0], sim_params_daily)
 
@@ -74,11 +75,18 @@ def object_serialization_cases(skip_daily=False):
         # FIXME temporarily commenting out because of dataportal issues
         # (PerformanceTracker, (sim_params_minute, cases_env, None), {},
         # 'to_dict'),
-        (RiskMetricsCumulative, (sim_params_minute, cases_env), {}, 'to_dict'),
-        (RiskMetricsPeriod,
-            (returns.index[0], returns.index[0], returns, cases_env),
+        (RiskMetricsCumulative, (sim_params_minute,
+                                 cases_env.treasury_curves,
+                                 default_nyse_schedule),
          {}, 'to_dict'),
-        (RiskReport, (returns, sim_params_minute, cases_env), {}, 'to_dict'),
+        (RiskMetricsPeriod,
+            (returns.index[0], returns.index[0], returns,
+             default_nyse_schedule, cases_env.treasury_curves,
+             cases_env.benchmark_returns),
+         {}, 'to_dict'),
+        (RiskReport, (returns, sim_params_minute, default_nyse_schedule,
+                      cases_env.treasury_curves, cases_env.benchmark_returns),
+         {}, 'to_dict'),
         (FixedSlippage, (), {}, 'dict'),
         (Transaction,
             (8554, 10, datetime.datetime(2013, 6, 19), 100, "0000"), {},
@@ -95,9 +103,12 @@ def object_serialization_cases(skip_daily=False):
             # PerformanceTracker,
             # (sim_params_daily, cases_env, None), {}, 'to_dict'),
             (RiskMetricsCumulative,
-             (sim_params_daily, cases_env), {}, 'to_dict'),
+             (sim_params_daily, cases_env.treasury_curves,
+              default_nyse_schedule), {}, 'to_dict'),
             (RiskReport,
-             (returns, sim_params_daily, cases_env), {}, 'to_dict'),
+             (returns, sim_params_daily, default_nyse_schedule,
+              cases_env.treasury_curves, cases_env.benchmark_returns),
+             {}, 'to_dict'),
         ])
 
     return stringify_cases(cases)

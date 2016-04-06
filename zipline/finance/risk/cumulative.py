@@ -90,8 +90,10 @@ class RiskMetricsCumulative(object):
         'information',
     )
 
-    def __init__(self, sim_params, env, create_first_day_stats=False):
-        self.treasury_curves = env.treasury_curves
+    def __init__(self, sim_params, treasury_curves, trading_schedule,
+                 create_first_day_stats=False):
+        self.treasury_curves = treasury_curves
+        self.trading_schedule = trading_schedule
         self.start_date = sim_params.period_start.replace(
             hour=0, minute=0, second=0, microsecond=0
         )
@@ -99,26 +101,27 @@ class RiskMetricsCumulative(object):
             hour=0, minute=0, second=0, microsecond=0
         )
 
-        self.trading_days = env.days_in_range(self.start_date, self.end_date)
+        self.trading_dates = trading_schedule.trading_dates(
+            self.start_date, self.end_date
+        )
 
         # Hold on to the trading day before the start,
         # used for index of the zero return value when forcing returns
         # on the first day.
-        self.day_before_start = self.start_date - env.trading_days.freq
+        self.day_before_start = self.start_date - self.trading_dates.freq
 
         last_day = normalize_date(sim_params.period_end)
-        if last_day not in self.trading_days:
+        if last_day not in self.trading_dates:
             last_day = pd.tseries.index.DatetimeIndex(
                 [last_day]
             )
-            self.trading_days = self.trading_days.append(last_day)
+            self.trading_dates = self.trading_dates.append(last_day)
 
         self.sim_params = sim_params
-        self.env = env
 
         self.create_first_day_stats = create_first_day_stats
 
-        cont_index = self.trading_days
+        cont_index = self.trading_dates
 
         self.cont_index = cont_index
         self.cont_len = len(self.cont_index)
@@ -165,7 +168,7 @@ class RiskMetricsCumulative(object):
         self.max_leverages = empty_cont.copy()
         self.max_leverage = 0
         self.current_max = -np.inf
-        self.daily_treasury = pd.Series(index=self.trading_days)
+        self.daily_treasury = pd.Series(index=self.trading_dates)
         self.treasury_period_return = np.nan
 
         self.num_trading_days = 0
@@ -272,7 +275,7 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
                 self.treasury_curves,
                 self.start_date,
                 treasury_end,
-                self.env,
+                self.trading_schedule,
             )
             self.daily_treasury[treasury_end] = treasury_period_return
         self.treasury_period_return = self.daily_treasury[treasury_end]

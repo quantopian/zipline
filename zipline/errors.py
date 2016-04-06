@@ -569,3 +569,22 @@ class AssetDBImpossibleDowngrade(ZiplineError):
         "The existing Asset database is version: {db_version} which is lower "
         "than the desired downgrade version: {desired_version}."
     )
+
+class InvalidCalendarName(ZiplineError):
+    """
+    Raised when a calendar with an invalid name is requested.
+    """
+    msg = (
+        "The requested ExchangeCalendar, {calendar_name}, does not exist."
+    )
+
+class CalendarNameCollision(ZiplineError):
+    """
+    Raised when the static calendar registry already has a calendar with a
+    given name.
+    """
+    msg = (
+        "A calendar with the name {calendar_name} is already registered."
+    )
+
+
