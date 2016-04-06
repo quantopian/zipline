@@ -22,7 +22,7 @@ import zipline.finance.risk as risk
 from zipline.utils import factory
 
 from zipline.finance.trading import SimulationParameters, TradingEnvironment
-
+from zipline.utils.calendars import default_nyse_schedule
 from . import answer_key
 ANSWER_KEY = answer_key.ANSWER_KEY
 
@@ -51,7 +51,7 @@ class TestRisk(unittest.TestCase):
         self.sim_params = SimulationParameters(
             period_start=start_date,
             period_end=end_date,
-            env=self.env,
+            trading_schedule=default_nyse_schedule,
         )
 
         self.algo_returns_06 = factory.create_returns_from_list(
@@ -60,7 +60,9 @@ class TestRisk(unittest.TestCase):
         )
 
         self.cumulative_metrics_06 = risk.RiskMetricsCumulative(
-            self.sim_params, env=self.env
+            self.sim_params,
+            treasury_curves=self.env.treasury_curves,
+            trading_schedule=default_nyse_schedule,
         )
 
         for dt, returns in answer_key.RETURNS_DATA.iterrows():

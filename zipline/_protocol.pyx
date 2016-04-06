@@ -223,7 +223,8 @@ cdef class BarData:
         dt = self.simulation_dt_func()
 
         if self._adjust_minutes:
-            dt = self.data_portal.env.previous_market_minute(dt)
+            dt = \
+                self.data_portal.trading_schedule.previous_execution_minute(dt)
 
         return dt
 

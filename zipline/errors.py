@@ -635,3 +635,22 @@ class NonExistentAssetInTimeFrame(ZiplineError):
         "The target asset '{asset}' does not exist for the entire timeframe "
         "between {start_date} and {end_date}."
     )
+
+
+class InvalidCalendarName(ZiplineError):
+    """
+    Raised when a calendar with an invalid name is requested.
+    """
+    msg = (
+        "The requested ExchangeCalendar, {calendar_name}, does not exist."
+    )
+
+
+class CalendarNameCollision(ZiplineError):
+    """
+    Raised when the static calendar registry already has a calendar with a
+    given name.
+    """
+    msg = (
+        "A calendar with the name {calendar_name} is already registered."
+    )

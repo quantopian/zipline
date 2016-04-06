@@ -46,6 +46,7 @@ from zipline.testing.fixtures import (
     WithBcolzDailyBarReader,
     ZiplineTestCase,
 )
+from zipline.utils.calendars import get_calendar
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
@@ -96,11 +97,9 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(BcolzDailyBarTestCase, cls).init_class_fixtures()
-        all_trading_days = cls.env.trading_days
-        cls.trading_days = all_trading_days[
-            all_trading_days.get_loc(TEST_CALENDAR_START):
-            all_trading_days.get_loc(TEST_CALENDAR_STOP) + 1
-        ]
+        cls.trading_days = get_calendar('NYSE').trading_days(
+            TEST_CALENDAR_START, TEST_CALENDAR_STOP
+        ).index
 
     @property
     def assets(self):

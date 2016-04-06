@@ -85,6 +85,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.memoize import lazyval
+from zipline.utils.calendars import default_nyse_schedule
 
 
 class RollingSumDifference(CustomFactor):
@@ -826,7 +827,7 @@ class FrameInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         cls.dates = date_range(
             cls.start,
             cls.end,
-            freq=cls.env.trading_day,
+            freq=default_nyse_schedule.day,
             tz='UTC',
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
@@ -985,7 +986,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
     def test_SMA(self):
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.env.trading_days,
+            default_nyse_schedule.all_execution_days,
             self.asset_finder,
         )
         window_length = 5
@@ -1039,7 +1040,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # valuable.
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.env.trading_days,
+            default_nyse_schedule.all_execution_days,
             self.asset_finder,
         )
         window_length = 5
@@ -1083,7 +1084,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(ParameterizedFactorTestCase, cls).init_class_fixtures()
-        day = cls.env.trading_day
+        day = default_nyse_schedule.day
 
         cls.dates = dates = date_range(
             '2015-02-01',
