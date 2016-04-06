@@ -28,6 +28,7 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
+from zipline.utils.calendars import default_nyse_schedule
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -165,8 +166,10 @@ class TestMinuteBarData(WithBarDataChecks,
 
     def test_minute_before_assets_trading(self):
         # grab minutes that include the day before the asset start
-        minutes = self.env.market_minutes_for_day(
-            self.env.previous_trading_day(self.bcolz_minute_bar_days[0])
+        minutes = self.trading_schedule.execution_minutes_for_day(
+            self.trading_schedule.previous_execution_day(
+                self.bcolz_minute_bar_days[0]
+            )
         )
 
         # this entire day is before either asset has started trading
@@ -192,8 +195,8 @@ class TestMinuteBarData(WithBarDataChecks,
                         self.assertTrue(asset_value is pd.NaT)
 
     def test_regular_minute(self):
-        minutes = self.env.market_minutes_for_day(
-            self.bcolz_minute_bar_days[0],
+        minutes = self.trading_schedule.execution_minutes_for_day(
+            self.bcolz_minute_bar_days[0]
         )
 
         for idx, minute in enumerate(minutes):
@@ -284,7 +287,7 @@ class TestMinuteBarData(WithBarDataChecks,
                                              asset2_value)
 
     def test_minute_of_last_day(self):
-        minutes = self.env.market_minutes_for_day(
+        minutes = self.trading_schedule.execution_minutes_for_day(
             self.bcolz_daily_bar_days[-1],
         )
 
@@ -296,12 +299,15 @@ class TestMinuteBarData(WithBarDataChecks,
             self.assertTrue(bar_data.can_trade(self.ASSET2))
 
     def test_minute_after_assets_stopped(self):
-        minutes = self.env.market_minutes_for_day(
-            self.env.next_trading_day(self.bcolz_minute_bar_days[-1])
+        minutes = self.trading_schedule.execution_minutes_for_day(
+            self.trading_schedule.next_execution_day(
+                self.bcolz_minute_bar_days[-1]
+            )
         )
 
-        last_trading_minute = \
-            self.env.market_minutes_for_day(self.bcolz_minute_bar_days[-1])[-1]
+        last_trading_minute = self.trading_schedule.execution_minutes_for_day(
+            self.bcolz_minute_bar_days[-1]
+        )[-1]
 
         # this entire day is after both assets have stopped trading
         for idx, minute in enumerate(minutes):
@@ -341,9 +347,9 @@ class TestMinuteBarData(WithBarDataChecks,
         )
 
         # ... but that's it's not applied when using spot value
-        minutes = self.env.minutes_for_days_in_range(
+        minutes = self.trading_schedule.execution_minutes_for_days_in_range(
             start=self.bcolz_minute_bar_days[0],
-            end=self.bcolz_minute_bar_days[1],
+            end=self.bcolz_minute_bar_days[1]
         )
 
         for idx, minute in enumerate(minutes):
@@ -356,11 +362,11 @@ class TestMinuteBarData(WithBarDataChecks,
     def test_spot_price_is_adjusted_if_needed(self):
         # on cls.days[1], the first 9 minutes of ILLIQUID_SPLIT_ASSET are
         # missing. let's get them.
-        day0_minutes = self.env.market_minutes_for_day(
-            self.bcolz_minute_bar_days[0],
+        day0_minutes = self.trading_schedule.execution_minutes_for_day(
+            self.bcolz_minute_bar_days[0]
         )
-        day1_minutes = self.env.market_minutes_for_day(
-            self.bcolz_minute_bar_days[1],
+        day1_minutes = self.trading_schedule.execution_minutes_for_day(
+            self.bcolz_minute_bar_days[1]
         )
 
         for idx, minute in enumerate(day0_minutes[-10:-1]):
@@ -604,7 +610,7 @@ class TestDailyBarData(WithBarDataChecks,
     def make_daily_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_daily_df_for_asset(
-                cls.env,
+                default_nyse_schedule,
                 cls.bcolz_daily_bar_days[0],
                 cls.bcolz_daily_bar_days[-1],
                 interval=2 - sid % 2
@@ -638,7 +644,9 @@ class TestDailyBarData(WithBarDataChecks,
 
     def test_day_before_assets_trading(self):
         # use the day before self.bcolz_daily_bar_days[0]
-        day = self.env.previous_trading_day(self.bcolz_daily_bar_days[0])
+        day = self.trading_schedule.previous_execution_day(
+            self.bcolz_daily_bar_days[0]
+        )
 
         bar_data = BarData(self.data_portal, lambda: day, "daily")
         self.check_internal_consistency(bar_data)
@@ -741,7 +749,9 @@ class TestDailyBarData(WithBarDataChecks,
 
     def test_after_assets_dead(self):
         # both assets end on self.day[-1], so let's try the next day
-        next_day = self.env.next_trading_day(self.bcolz_daily_bar_days[-1])
+        next_day = self.trading_schedule.next_execution_day(
+            self.bcolz_daily_bar_days[-1]
+        )
 
         bar_data = BarData(self.data_portal, lambda: next_day, "daily")
         self.check_internal_consistency(bar_data)

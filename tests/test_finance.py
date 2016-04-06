@@ -50,6 +50,10 @@ from zipline.testing.fixtures import (
 )
 
 import zipline.utils.factory as factory
+from zipline.utils.calendars import (
+    default_nyse_schedule,
+    get_calendar,
+)
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
@@ -199,7 +203,7 @@ class FinanceTestCase(WithLogger,
                     data_frequency="minute"
                 )
 
-                minutes = env.market_minute_window(
+                minutes = default_nyse_schedule.minute_window(
                     sim_params.first_open,
                     int((trade_interval.total_seconds() / 60) * trade_count)
                     + 100)
@@ -217,8 +221,9 @@ class FinanceTestCase(WithLogger,
                 }
 
                 write_bcolz_minute_data(
-                    env,
-                    env.days_in_range(minutes[0], minutes[-1]),
+                    default_nyse_schedule,
+                    default_nyse_schedule.execution_days_in_range(minutes[0],
+                                                                  minutes[-1]),
                     tempdir.path,
                     iteritems(assets),
                 )
@@ -226,7 +231,7 @@ class FinanceTestCase(WithLogger,
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
                 data_portal = DataPortal(
-                    env,
+                    env, default_nyse_schedule,
                     first_trading_day=equity_minute_reader.first_trading_day,
                     equity_minute_reader=equity_minute_reader,
                 )
@@ -254,7 +259,7 @@ class FinanceTestCase(WithLogger,
                 equity_daily_reader = BcolzDailyBarReader(path)
 
                 data_portal = DataPortal(
-                    env,
+                    env, default_nyse_schedule,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
@@ -417,25 +422,25 @@ class TradingEnvironmentTestCase(WithLogger,
         ]
 
         for holiday in holidays:
-            self.assertTrue(not self.env.is_trading_day(holiday))
+            self.assertTrue(not self.cal.is_open_on_day(holiday))
 
         first_trading_day = datetime(2008, 1, 2, tzinfo=pytz.utc)
         last_trading_day = datetime(2008, 12, 31, tzinfo=pytz.utc)
         workdays = [first_trading_day, last_trading_day]
 
         for workday in workdays:
-            self.assertTrue(self.env.is_trading_day(workday))
+            self.assertTrue(self.cal.is_open_on_day(workday))
 
     def test_simulation_parameters(self):
-        env = SimulationParameters(
+        sp = SimulationParameters(
             period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
             period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
             capital_base=100000,
-            env=self.env,
+            trading_schedule=default_nyse_schedule,
         )
 
-        self.assertTrue(env.last_close.month == 12)
-        self.assertTrue(env.last_close.day == 31)
+        self.assertTrue(sp.last_close.month == 12)
+        self.assertTrue(sp.last_close.day == 31)
 
     @timed(DEFAULT_TIMEOUT)
     def test_sim_params_days_in_period(self):
@@ -452,7 +457,7 @@ class TradingEnvironmentTestCase(WithLogger,
             period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
             period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
             capital_base=100000,
-            env=self.env,
+            trading_schedule=default_nyse_schedule,
         )
 
         expected_trading_days = (
@@ -473,7 +478,7 @@ class TradingEnvironmentTestCase(WithLogger,
                                       params.trading_days.tolist())
 
     @timed(DEFAULT_TIMEOUT)
-    def test_market_minute_window(self):
+    def test_minute_window(self):
 
         #     January 2008
         #  Su Mo Tu We Th Fr Sa
@@ -488,10 +493,10 @@ class TradingEnvironmentTestCase(WithLogger,
 
         # 10:01 AM Eastern on January 7th..
         start = us_east.localize(datetime(2008, 1, 7, 10, 1))
-        utc_start = start.astimezone(utc)
+        utc_start = pd.Timestamp(start.astimezone(utc))
 
         # Get the next 10 minutes
-        minutes = self.env.market_minute_window(
+        minutes = self.cal.minute_window(
             utc_start, 10,
         )
         self.assertEqual(len(minutes), 10)
@@ -499,7 +504,7 @@ class TradingEnvironmentTestCase(WithLogger,
             self.assertEqual(minutes[i], utc_start + timedelta(minutes=i))
 
         # Get the previous 10 minutes.
-        minutes = self.env.market_minute_window(
+        minutes = self.cal.minute_window(
             utc_start, 10, step=-1,
         )
         self.assertEqual(len(minutes), 10)
@@ -512,14 +517,14 @@ class TradingEnvironmentTestCase(WithLogger,
         # Today:    10:01 AM  ->  4:00 PM  (360 minutes)
         # Tomorrow: 9:31  AM  ->  4:00 PM  (390 minutes, 750 total)
         # Last Day: 9:31  AM  -> 12:00 PM  (150 minutes, 900 total)
-        minutes = self.env.market_minute_window(
-            utc_start, 900,
+        minutes = self.cal.minute_window(
+            start, 900,
         )
-        today = self.env.market_minutes_for_day(start)[30:]
-        tomorrow = self.env.market_minutes_for_day(
+        today = self.cal.minutes_for_date(utc_start)[30:]
+        tomorrow = self.cal.minutes_for_date(
             start + timedelta(days=1)
         )
-        last_day = self.env.market_minutes_for_day(
+        last_day = self.cal.minutes_for_date(
             start + timedelta(days=2))[:150]
 
         self.assertEqual(len(minutes), 900)
@@ -534,17 +539,17 @@ class TradingEnvironmentTestCase(WithLogger,
         # Today:    10:01 AM -> 9:31 AM (31 minutes)
         # Friday:   4:00 PM  -> 9:31 AM (390 minutes, 421 total)
         # Thursday: 4:00 PM  -> 9:41 AM (380 minutes, 801 total)
-        minutes = self.env.market_minute_window(
-            utc_start, 801, step=-1,
+        minutes = self.cal.minute_window(
+            start, 801, step=-1,
         )
 
-        today = self.env.market_minutes_for_day(start)[30::-1]
+        today = self.cal.minutes_for_date(utc_start)[30::-1]
         # minus an extra two days from each of these to account for the two
         # weekend days we skipped
-        friday = self.env.market_minutes_for_day(
+        friday = self.cal.minutes_for_date(
             start + timedelta(days=-3),
         )[::-1]
-        thursday = self.env.market_minutes_for_day(
+        thursday = self.cal.minutes_for_date(
             start + timedelta(days=-4),
         )[:9:-1]
 
@@ -566,6 +571,5 @@ class TradingEnvironmentTestCase(WithLogger,
         max_date = pd.Timestamp('2008-08-01', tz='UTC')
         env = TradingEnvironment(max_date=max_date)
 
-        self.assertLessEqual(env.last_trading_day, max_date)
         self.assertLessEqual(env.treasury_curves.index[-1],
                              max_date)

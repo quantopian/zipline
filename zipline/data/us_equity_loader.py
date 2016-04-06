@@ -82,8 +82,8 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
     """
     FIELDS = ('open', 'high', 'low', 'close', 'volume')
 
-    def __init__(self, env, reader, adjustment_reader, sid_cache_size=1000):
-        self.env = env
+    def __init__(self, trading_schedule, reader, adjustment_reader, sid_cache_size=1000):
+        self.trading_schedule = trading_schedule
         self._reader = reader
         self._adjustments_reader = adjustment_reader
         self._window_blocks = {
@@ -316,7 +316,7 @@ class USEquityMinuteHistoryLoader(USEquityHistoryLoader):
 
     @lazyval
     def _calendar(self):
-        mm = self.env.market_minutes
+        mm = self.trading_schedule.all_execution_minutes
         return mm[mm.slice_indexer(start=self._reader.first_trading_day,
                                    end=self._reader.last_available_dt)]
 

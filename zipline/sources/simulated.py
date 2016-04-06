@@ -21,8 +21,8 @@ from datetime import timedelta
 import pandas as pd
 
 from zipline.sources.data_source import DataSource
-from zipline.utils import tradingcalendar as calendar_nyse
 from zipline.gens.utils import hash_args
+from zipline.utils.calendars import default_nyse_schedule
 
 
 class RandomWalkSource(DataSource):
@@ -35,7 +35,8 @@ class RandomWalkSource(DataSource):
     VALID_FREQS = frozenset(('daily', 'minute'))
 
     def __init__(self, start_prices=None, freq='minute', start=None,
-                 end=None, drift=0.1, sd=0.1, calendar=calendar_nyse):
+                 end=None, drift=0.1, sd=0.1,
+                 trading_schedule=default_nyse_schedule):
         """
         :Arguments:
             start_prices : dict
@@ -52,8 +53,8 @@ class RandomWalkSource(DataSource):
                  Constant drift of the price series.
             sd: float <default=0.1>
                  Standard deviation of the price series.
-            calendar : calendar object <default: NYSE>
-                 Calendar to use.
+            trading_schedule : TradingSchedule object <default: NYSESchedule>
+                 TradingSchedule to use.
                  See zipline.utils for different choices.
 
         :Example:
@@ -66,7 +67,7 @@ class RandomWalkSource(DataSource):
         """
         # Hash_value for downstream sorting.
         self.arg_string = hash_args(start_prices, freq, start, end,
-                                    calendar.__name__)
+                                    trading_schedule.__name__)
 
         if freq not in self.VALID_FREQS:
             raise ValueError('%s not in %s' % (freq, self.VALID_FREQS))
@@ -78,13 +79,13 @@ class RandomWalkSource(DataSource):
         else:
             self.start_prices = start_prices
 
-        self.calendar = calendar
+        self.trading_schedule = trading_schedule
         if start is None:
-            self.start = calendar.start
+            self.start = trading_schedule.first_execution_day
         else:
             self.start = start
         if end is None:
-            self.end = calendar.end_base
+            self.end = trading_schedule.last_execution_day
         else:
             self.end = end
 
@@ -94,7 +95,7 @@ class RandomWalkSource(DataSource):
         self.sids = self.start_prices.keys()
 
         self.open_and_closes = \
-            calendar.open_and_closes[self.start:self.end]
+            trading_schedule.schedule[self.start:self.end]
 
         self._raw_data = None
 

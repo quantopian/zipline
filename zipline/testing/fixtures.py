@@ -33,7 +33,7 @@ from ..data.minute_bars import (
 )
 
 from ..finance.trading import TradingEnvironment
-from ..utils import tradingcalendar, factory
+from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from ..utils.metautils import with_metaclasses
@@ -47,6 +47,7 @@ from zipline.pipeline.loaders.utils import (
     get_values_for_date_ranges,
     zip_with_dates
 )
+from zipline.utils.calendars import default_nyse_schedule
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -399,7 +400,7 @@ class WithTradingEnvironment(WithAssetFinder):
     """
     TRADING_ENV_MIN_DATE = None
     TRADING_ENV_MAX_DATE = None
-    TRADING_ENV_TRADING_CALENDAR = tradingcalendar
+    TRADING_ENV_TRADING_SCHEDULE = default_nyse_schedule
 
     @classmethod
     def make_load_function(cls):
@@ -412,7 +413,7 @@ class WithTradingEnvironment(WithAssetFinder):
             asset_db_path=cls.asset_finder.engine,
             min_date=cls.TRADING_ENV_MIN_DATE,
             max_date=cls.TRADING_ENV_MAX_DATE,
-            env_trading_calendar=cls.TRADING_ENV_TRADING_CALENDAR,
+            trading_schedule=cls.TRADING_ENV_TRADING_SCHEDULE,
         )
 
     @classmethod
@@ -611,6 +612,7 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
     BCOLZ_DAILY_BAR_END_DATE = alias('END_DATE')
     BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = None
     BCOLZ_DAILY_BAR_SOURCE_FROM_MINUTE = False
+    BCOLZ_TRADING_SCHEDULE = default_nyse_schedule
     # allows WithBcolzDailyBarReaderFromCSVs to call the `write_csvs` method
     # without needing to reimplement `init_class_fixtures`
     _write_method_name = 'write'

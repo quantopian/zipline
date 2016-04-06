@@ -83,7 +83,7 @@ from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
 )
-from zipline.utils.tradingcalendar import trading_day
+from zipline.utils.calendars import default_nyse_schedule
 
 
 @contextmanager
@@ -776,6 +776,7 @@ class AssetFinderTestCase(ZiplineTestCase):
 
     def test_compute_lifetimes(self):
         num_assets = 4
+        trading_day = default_nyse_schedule.day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
         frame = make_rotating_equity_info(

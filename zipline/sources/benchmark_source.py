@@ -23,8 +23,8 @@ from zipline.errors import (
 
 
 class BenchmarkSource(object):
-    def __init__(self, benchmark_sid, env, trading_days, data_portal,
-                 emission_rate="daily"):
+    def __init__(self, benchmark_sid, env, trading_schedule, trading_days,
+                 data_portal, emission_rate="daily"):
         self.benchmark_sid = benchmark_sid
         self.env = env
         self.trading_days = trading_days
@@ -55,7 +55,7 @@ class BenchmarkSource(object):
             if self.emission_rate == "minute":
                 # we need to take the env's benchmark returns, which are daily,
                 # and resample them to minute
-                minutes = env.minutes_for_days_in_range(
+                minutes = trading_schedule.execution_minutes_for_days_in_range(
                     start=trading_days[0],
                     end=trading_days[-1]
                 )

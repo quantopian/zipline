@@ -116,6 +116,7 @@ class DailyHistoryAggregator(object):
             cache = self._caches[field] = (dt.date(), market_open, {})
 
         _, market_open, entries = cache
+        market_open = market_open.tz_localize('UTC')
         if dt != market_open:
             prev_dt = dt_value - self._one_min
         else:
@@ -496,6 +497,7 @@ class DataPortal(object):
     """
     def __init__(self,
                  env,
+                 trading_schedule,
                  first_trading_day,
                  equity_daily_reader=None,
                  equity_minute_reader=None,
@@ -503,6 +505,7 @@ class DataPortal(object):
                  future_minute_reader=None,
                  adjustment_reader=None):
         self.env = env
+        self.trading_schedule = trading_schedule
 
         self.views = {}
 
@@ -535,7 +538,7 @@ class DataPortal(object):
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
             self._equity_history_loader = USEquityDailyHistoryLoader(
-                self.env,
+                self.trading_schedule,
                 self._equity_daily_reader,
                 self._adjustment_reader
             )
@@ -547,10 +550,10 @@ class DataPortal(object):
 
         if self._equity_minute_reader is not None:
             self._equity_daily_aggregator = DailyHistoryAggregator(
-                self.env.open_and_closes.market_open,
+                self.trading_schedule.schedule.market_open,
                 self._equity_minute_reader)
             self._equity_minute_history_loader = USEquityMinuteHistoryLoader(
-                self.env,
+                self.trading_schedule,
                 self._equity_minute_reader,
                 self._adjustment_reader
             )
@@ -591,7 +594,7 @@ class DataPortal(object):
         # asset -> df.  In other words,
         # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
         # holding that data.
-        source_date_index = self.env.days_in_range(
+        source_date_index = self.trading_schedule.execution_days_in_range(
             start=sim_params.period_start,
             end=sim_params.period_end
         )
@@ -1012,12 +1015,13 @@ class DataPortal(object):
 
     @remember_last
     def _get_days_for_window(self, end_date, bar_count):
-        tds = self.env.trading_days
-        end_loc = self.env.trading_days.get_loc(end_date)
+        tds = self.trading_schedule.all_execution_days
+        end_loc = tds.get_loc(end_date)
         start_loc = end_loc - bar_count + 1
-        if start_loc < 0:
+        start_dt = tds[start_loc]
+        if start_dt < self._first_trading_day:
             raise HistoryWindowStartsBeforeData(
-                first_trading_day=self.env.first_trading_day.date(),
+                first_trading_day=self._first_trading_day.date(),
                 bar_count=bar_count,
                 suggested_start_day=tds[bar_count].date(),
             )
@@ -1069,7 +1073,7 @@ class DataPortal(object):
 
         # get all the minutes for the days NOT including today
         for day in days_for_window[:-1]:
-            minutes = self.env.market_minutes_for_day(day)
+            minutes = self.trading_schedule.execution_minutes_for_day(day)
 
             values_for_day = np.zeros(len(minutes), dtype=np.float64)
 
@@ -1084,7 +1088,7 @@ class DataPortal(object):
 
         # get the minutes for today
         last_day_minutes = pd.date_range(
-            start=self.env.get_open_and_close(end_dt)[0],
+            start=self.trading_schedule.start_and_end(end_dt)[0],
             end=end_dt,
             freq="T"
         )
@@ -1168,13 +1172,15 @@ class DataPortal(object):
         of minute frequency for the given sids.
         """
         # get all the minutes for this window
-        mm = self.env.market_minutes
+        mm = self.trading_schedule.all_execution_minutes
         end_loc = mm.get_loc(end_dt)
         start_loc = end_loc - bar_count + 1
         if start_loc < 0:
-            suggested_start_day = (mm[bar_count] + self.env.trading_day).date()
+            suggested_start_day = \
+                (mm[bar_count] + self.trading_schedule.day).date()
             raise HistoryWindowStartsBeforeData(
-                first_trading_day=self.env.first_trading_day.date(),
+                first_trading_day=\
+                    self.trading_schedule.first_execution_day.date(),
                 bar_count=bar_count,
                 suggested_start_day=suggested_start_day,
             )
@@ -1688,9 +1694,11 @@ class DataPortal(object):
         # we get all the minutes for the last (bars - 1) days, then add
         # all the minutes so far today.  the +2 is to account for ignoring
         # today, and the previous day, in doing the math.
-        previous_day = self.env.previous_trading_day(ending_minute)
-        days = self.env.days_in_range(
-            self.env.add_trading_days(-days_count + 2, previous_day),
+        previous_day = \
+            self.trading_schedule.previous_execution_day(ending_minute)
+        days = self.trading_schedule.execution_days_in_range(
+            self.trading_schedule.add_execution_days(-days_count + 2,
+                                                     previous_day),
             previous_day,
         )
 
