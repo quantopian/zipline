@@ -9,7 +9,7 @@ from six import itervalues, iteritems
 from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
-from .term import ComputableTerm, LoadableTerm
+from .term import LoadableTerm
 
 
 class CyclicDependency(Exception):
