@@ -1131,15 +1131,15 @@ class TestBeforeTradingStart(TestCase):
         # Mergers and Dividends are not tested, but we need to have these
         # anyway
         mergers = pd.DataFrame({}, columns=['effective_date', 'ratio', 'sid'])
-        mergers.effective_date = mergers.effective_date.astype(int)
-        mergers.ratio = mergers.ratio.astype(float)
-        mergers.sid = mergers.sid.astype(int)
+        mergers.effective_date = mergers.effective_date.astype(np.int64)
+        mergers.ratio = mergers.ratio.astype(np.float64)
+        mergers.sid = mergers.sid.astype(np.int64)
 
         dividends = pd.DataFrame({}, columns=['ex_date', 'record_date',
                                               'declared_date', 'pay_date',
                                               'amount', 'sid'])
-        dividends.amount = dividends.amount.astype(float)
-        dividends.sid = dividends.sid.astype(int)
+        dividends.amount = dividends.amount.astype(np.float64)
+        dividends.sid = dividends.sid.astype(np.int64)
 
         adj_writer.write(splits, mergers, dividends)
 
