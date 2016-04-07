@@ -1081,10 +1081,10 @@ class TestBeforeTradingStart(TestCase):
             cls.trading_days[-1], 2, 50
         )
 
-        cls.minute_reader = BcolzMinuteBarReader(cls.tempdir.path)
-        cls.adj_reader = cls.create_adjustments_reader()
+        minute_reader = BcolzMinuteBarReader(cls.tempdir.path)
+        adj_reader = cls.create_adjustments_reader()
 
-        cls.daily_path = cls.tempdir.getpath("testdaily.bcolz")
+        daily_path = cls.tempdir.getpath("testdaily.bcolz")
         dfs = {
             1: create_daily_df_for_asset(cls.env, cls.trading_days[0],
                                          cls.trading_days[-1]),
@@ -1094,7 +1094,7 @@ class TestBeforeTradingStart(TestCase):
                                          cls.trading_days[-1])
         }
         daily_writer = DailyBarWriterFromDataFrames(dfs)
-        daily_writer.write(cls.daily_path, cls.trading_days, dfs)
+        daily_writer.write(daily_path, cls.trading_days, dfs)
 
         cls.sim_params = SimulationParameters(
             period_start=cls.trading_days[1],
@@ -1105,9 +1105,9 @@ class TestBeforeTradingStart(TestCase):
 
         cls.data_portal = DataPortal(
             env=cls.env,
-            equity_daily_reader=BcolzDailyBarReader(cls.daily_path),
-            equity_minute_reader=cls.minute_reader,
-            adjustment_reader=cls.adj_reader
+            equity_daily_reader=BcolzDailyBarReader(daily_path),
+            equity_minute_reader=minute_reader,
+            adjustment_reader=adj_reader
         )
 
     @classmethod
@@ -1147,6 +1147,8 @@ class TestBeforeTradingStart(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
+        del cls.env
         cls.tempdir.cleanup()
 
     def test_data_in_bts_minute(self):
@@ -1478,6 +1480,7 @@ class TestAlgoScript(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         cls.tempdir.cleanup()
         teardown_logger(cls)
@@ -1867,6 +1870,7 @@ class TestGetDatetime(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         teardown_logger(cls)
         cls.tempdir.cleanup()
@@ -1946,6 +1950,7 @@ class TestTradingControls(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         cls.tempdir.cleanup()
 
@@ -2362,6 +2367,7 @@ class TestAccountControls(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         cls.tempdir.cleanup()
 
@@ -2529,6 +2535,7 @@ class TestFutureFlip(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         cls.tempdir.cleanup()
 
     @skip
@@ -2648,6 +2655,7 @@ class TestOrderCancelation(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         cls.tempdir.cleanup()
 
     @classmethod

@@ -165,6 +165,11 @@ class TestAPIShim(TestCase):
         )
 
     @classmethod
+    def tearDownClass(cls):
+        del cls.adj_reader
+        cls.tempdir.cleanup()
+
+    @classmethod
     def build_daily_data(cls):
         path = cls.tempdir.getpath("testdaily.bcolz")
 
@@ -217,10 +222,6 @@ class TestAPIShim(TestCase):
 
         return SQLiteAdjustmentReader(path)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
-
     def setUp(self):
         self.data_portal = DataPortal(
             self.env,
@@ -228,6 +229,9 @@ class TestAPIShim(TestCase):
             equity_daily_reader=self.build_daily_data(),
             adjustment_reader=self.adj_reader
         )
+
+    def tearDown(self):
+        del self.data_portal
 
     @classmethod
     def create_algo(cls, code, filename=None, sim_params=None):
