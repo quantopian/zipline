@@ -397,30 +397,36 @@ class ConstantInputTestCase(TestCase):
             expected_values = where(mask, expected_value, nan)
             return DataFrame(expected_values, index=dates, columns=assets)
 
-        # Produce a mask that looks like:
-        #
-        #       Equity(0 [A])  Equity(1 [B])  Equity(2 [C])  Equity(3 [D])
-        # Day 1          True           True           True          False
-        # Day 2          True           True          False          False
-        # Day 3          True          False          False          False
-        #
         cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
+        expected_cascading_mask_result = array(
+            [[True,  True,  True, False],
+             [True,  True, False, False],
+             [True, False, False, False]],
+            dtype=bool,
+        )
 
-        # And another one that looks like:
-        #
-        #       Equity(0 [A])  Equity(1 [B])  Equity(2 [C])  Equity(3 [D])
-        # Day 1         False           True          False           True
-        # Day 2          True          False           True          False
-        # Day 3         False           True          False           True
-        #
         alternating_mask = (AssetIDPlusDay() % 2).eq(0)
+        expected_alternating_mask_result = array(
+            [[False,  True, False,   True],
+             [True,  False,  True,  False],
+             [False,  True, False,   True]],
+            dtype=bool,
+        )
 
-        for mask in (cascading_mask, alternating_mask):
+        masks = cascading_mask, alternating_mask
+        expected_mask_results = (
+            expected_cascading_mask_result,
+            expected_alternating_mask_result,
+        )
+        for mask, expected_mask in zip(masks, expected_mask_results):
             # Test running a pipeline with a single masked factor.
             columns = {'factor1': OpenPrice(mask=mask), 'mask': mask}
             pipeline = Pipeline(columns=columns)
             results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+
             mask_results = results['mask'].unstack()
+            check_arrays(mask_results.values, expected_mask)
+
             factor1_results = results['factor1'].unstack()
             factor1_expected = create_expected_results(factor1_value,
                                                        mask_results)
@@ -433,7 +439,10 @@ class ConstantInputTestCase(TestCase):
             columns['factor2'] = RollingSumDifference(mask=mask)
             pipeline = Pipeline(columns=columns)
             results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+
             mask_results = results['mask'].unstack()
+            check_arrays(mask_results.values, expected_mask)
+
             factor1_results = results['factor1'].unstack()
             factor2_results = results['factor2'].unstack()
             factor1_expected = create_expected_results(factor1_value,
