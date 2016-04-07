@@ -42,6 +42,7 @@ from zipline.data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteOverlappingData,
     US_EQUITIES_MINUTES_PER_DAY,
+    BcolzMinuteWriterColumnMismatch
 )
 from zipline.finance.trading import TradingEnvironment
 
@@ -593,6 +594,20 @@ class BcolzMinuteBarTestCase(TestCase):
         volume_price = self.reader.get_value(sid, minute_1, 'volume')
 
         self.assertEquals(51.0, volume_price)
+
+    def test_write_cols_mismatch_length(self):
+        dts = date_range(self.market_opens[self.test_calendar_start],
+                         periods=2, freq='min').asi8.astype('datetime64[s]')
+        sid = 1
+        cols = {
+            'open': array([10.0, 11.0, 12.0]),
+            'high': array([20.0, 21.0]),
+            'low': array([30.0, 31.0, 33.0, 34.0]),
+            'close': array([40.0, 41.0]),
+            'volume': array([50.0, 51.0, 52.0])
+        }
+        with self.assertRaises(BcolzMinuteWriterColumnMismatch):
+            self.writer.write_cols(sid, dts, cols)
 
     def test_unadjusted_minutes(self):
         """
