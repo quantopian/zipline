@@ -784,6 +784,11 @@ def handle_data(context, data):
     pass
 """
 
+no_handle_data = """
+def initialize(context):
+    pass
+"""
+
 api_algo = """
 from zipline.api import (order,
                          set_slippage,
