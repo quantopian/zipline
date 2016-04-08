@@ -97,20 +97,9 @@ class AlgorithmSimulator(object):
         Main generator work loop.
         """
         algo = self.algo
-        algo.data_portal = self.data_portal
-        handle_data = algo.event_manager.handle_data
-        current_data = self.current_data
 
-        data_portal = self.data_portal
-
-        # can't cache a pointer to algo.perf_tracker because we're not
-        # guaranteed that the algo doesn't swap out perf trackers during
-        # its lifetime.
-        # likewise, we can't cache a pointer to the blotter.
-
-        algo.perf_tracker.position_tracker.data_portal = data_portal
-
-        def every_bar(dt_to_use):
+        def every_bar(dt_to_use, current_data=self.current_data,
+                      handle_data=algo.event_manager.handle_data):
             # called every tick (minute or day).
 
             self.simulation_dt = dt_to_use
@@ -152,7 +141,8 @@ class AlgorithmSimulator(object):
             self.algo.account_needs_update = True
             self.algo.performance_needs_update = True
 
-        def once_a_day(midnight_dt):
+        def once_a_day(midnight_dt, current_data=self.current_data,
+                       data_portal=self.data_portal):
             # Get the positions before updating the date so that prices are
             # fetched for trading close instead of midnight
             positions = algo.perf_tracker.position_tracker.positions
@@ -183,11 +173,15 @@ class AlgorithmSimulator(object):
             # call before trading start
             algo.before_trading_start(current_data)
 
-        def handle_benchmark(date):
+        def handle_benchmark(date, benchmark_source=self.benchmark_source):
             algo.perf_tracker.all_benchmark_returns[date] = \
-                self.benchmark_source.get_value(date)
+                benchmark_source.get_value(date)
+
+        def on_exit():
+            self.benchmark_source = self.current_data = self.data_portal = None
 
         with ExitStack() as stack:
+            stack.callback(on_exit)
             stack.enter_context(self.processor)
             stack.enter_context(ZiplineAPI(self.algo))
 
@@ -245,8 +239,9 @@ class AlgorithmSimulator(object):
         assets_to_clear = \
             [asset for asset in position_assets if past_auto_close_date(asset)]
         perf_tracker = algo.perf_tracker
+        data_portal = self.data_portal
         for asset in assets_to_clear:
-            perf_tracker.process_close_position(asset, dt)
+            perf_tracker.process_close_position(asset, dt, data_portal)
 
         # Remove open orders for any sids that have reached their
         # auto_close_date.
@@ -257,23 +252,25 @@ class AlgorithmSimulator(object):
         for asset in assets_to_cancel:
             blotter.cancel_all_orders_for_asset(asset)
 
-    @staticmethod
-    def _get_daily_message(dt, algo, perf_tracker):
+    def _get_daily_message(self, dt, algo, perf_tracker):
         """
         Get a perf message for the given datetime.
         """
-        perf_message = perf_tracker.handle_market_close_daily(dt)
+        perf_message = perf_tracker.handle_market_close_daily(
+            dt, self.data_portal,
+        )
         perf_message['daily_perf']['recorded_vars'] = algo.recorded_vars
         return perf_message
 
-    @staticmethod
-    def _get_minute_message(dt, algo, perf_tracker):
+    def _get_minute_message(self, dt, algo, perf_tracker):
         """
         Get a perf message for the given datetime.
         """
         rvars = algo.recorded_vars
 
-        minute_message, daily_message = perf_tracker.handle_minute_close(dt)
+        minute_message, daily_message = perf_tracker.handle_minute_close(
+            dt, self.data_portal,
+        )
         minute_message['minute_perf']['recorded_vars'] = rvars
 
         if daily_message:

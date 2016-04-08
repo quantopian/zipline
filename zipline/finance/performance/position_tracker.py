@@ -119,13 +119,8 @@ def calc_gross_value(long_value, short_value):
 
 class PositionTracker(object):
 
-    def __init__(self, asset_finder, data_portal, data_frequency):
+    def __init__(self, asset_finder, data_frequency):
         self.asset_finder = asset_finder
-
-        # FIXME really want to avoid storing a data portal here,
-        # but the path to get to maybe_create_close_position_transaction
-        # is long and tortuous
-        self._data_portal = data_portal
 
         # sid => position object
         self.positions = positiondict()
@@ -316,12 +311,12 @@ class PositionTracker(object):
 
         return net_cash_payment
 
-    def maybe_create_close_position_transaction(self, asset, dt):
+    def maybe_create_close_position_transaction(self, asset, dt, data_portal):
         if not self.positions.get(asset):
             return None
 
         amount = self.positions.get(asset).amount
-        price = self._data_portal.get_spot_value(
+        price = data_portal.get_spot_value(
             asset, 'price', dt, self.data_frequency)
 
         # Get the last traded price if price is no longer available
@@ -372,8 +367,8 @@ class PositionTracker(object):
                 positions.append(pos.to_dict())
         return positions
 
-    def sync_last_sale_prices(self, dt, handle_non_market_minutes):
-        data_portal = self._data_portal
+    def sync_last_sale_prices(self, dt, handle_non_market_minutes,
+                              data_portal):
         if not handle_non_market_minutes:
             for asset, position in iteritems(self.positions):
                 last_sale_price = data_portal.get_spot_value(

@@ -492,7 +492,6 @@ class TradingAlgorithm(object):
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
                 env=self.trading_environment,
-                data_portal=self.data_portal
             )
 
             # Set the dt initially to the period start by forcing it to change.
@@ -603,14 +602,17 @@ class TradingAlgorithm(object):
 
         # Create zipline and loop through simulated_trading.
         # Each iteration returns a perf dictionary
-        perfs = []
-        for perf in self.get_generator():
-            perfs.append(perf)
+        try:
+            perfs = []
+            for perf in self.get_generator():
+                perfs.append(perf)
 
-        # convert perf dict to pandas dataframe
-        daily_stats = self._create_daily_stats(perfs)
+            # convert perf dict to pandas dataframe
+            daily_stats = self._create_daily_stats(perfs)
 
-        self.analyze(daily_stats)
+            self.analyze(daily_stats)
+        finally:
+            self.data_portal = None
 
         return daily_stats
 
@@ -1057,7 +1059,7 @@ class TradingAlgorithm(object):
     def updated_portfolio(self):
         if self.portfolio_needs_update:
             self.perf_tracker.position_tracker.sync_last_sale_prices(
-                self.datetime, self._in_before_trading_start)
+                self.datetime, self._in_before_trading_start, self.data_portal)
             self._portfolio = \
                 self.perf_tracker.get_portfolio(self.performance_needs_update)
             self.portfolio_needs_update = False
@@ -1071,7 +1073,7 @@ class TradingAlgorithm(object):
     def updated_account(self):
         if self.account_needs_update:
             self.perf_tracker.position_tracker.sync_last_sale_prices(
-                self.datetime, self._in_before_trading_start)
+                self.datetime, self._in_before_trading_start, self.data_portal)
             self._account = \
                 self.perf_tracker.get_account(self.performance_needs_update)
             self.account_needs_update = False

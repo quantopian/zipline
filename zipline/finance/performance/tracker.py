@@ -78,7 +78,7 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params, env, data_portal):
+    def __init__(self, sim_params, env):
         self.sim_params = sim_params
         self.env = env
 
@@ -101,15 +101,8 @@ class PerformanceTracker(object):
 
         self.trading_days = all_trading_days[mask]
 
-        self._data_portal = data_portal
-        if data_portal is not None:
-            self._adjustment_reader = data_portal._adjustment_reader
-        else:
-            self._adjustment_reader = None
-
         self.position_tracker = PositionTracker(
             asset_finder=env.asset_finder,
-            data_portal=data_portal,
             data_frequency=self.sim_params.data_frequency)
 
         if self.emission_rate == 'daily':
@@ -132,7 +125,6 @@ class PerformanceTracker(object):
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             data_frequency=self.sim_params.data_frequency,
-            data_portal=data_portal,
             # the cumulative period will be calculated over the entire test.
             period_open=self.period_start,
             period_close=self.period_end,
@@ -152,7 +144,6 @@ class PerformanceTracker(object):
             # initial cash is your capital base.
             starting_cash=self.capital_base,
             data_frequency=self.sim_params.data_frequency,
-            data_portal=data_portal,
             # the daily period will be calculated for the market day
             period_open=self.market_open,
             period_close=self.market_close,
@@ -264,13 +255,13 @@ class PerformanceTracker(object):
         self.cumulative_performance.handle_commission(cost)
         self.todays_performance.handle_commission(cost)
 
-    def process_close_position(self, asset, dt):
+    def process_close_position(self, asset, dt, data_portal):
         txn = self.position_tracker.\
-            maybe_create_close_position_transaction(asset, dt)
+            maybe_create_close_position_transaction(asset, dt, data_portal)
         if txn:
             self.process_transaction(txn)
 
-    def check_upcoming_dividends(self, next_trading_day):
+    def check_upcoming_dividends(self, next_trading_day, adjustment_reader):
         """
         Check if we currently own any stocks with dividends whose ex_date is
         the next trading day.  Track how much we should be payed on those
@@ -280,7 +271,7 @@ class PerformanceTracker(object):
         is the next trading day.  Apply all such benefits, then recalculate
         performance.
         """
-        if self._adjustment_reader is None:
+        if adjustment_reader is None:
             return
         position_tracker = self.position_tracker
         held_sids = set(position_tracker.positions)
@@ -291,10 +282,10 @@ class PerformanceTracker(object):
         if held_sids:
             asset_finder = self.env.asset_finder
 
-            cash_dividends = self._adjustment_reader.\
+            cash_dividends = adjustment_reader.\
                 get_dividends_with_ex_date(held_sids, next_trading_day,
                                            asset_finder)
-            stock_dividends = self._adjustment_reader.\
+            stock_dividends = adjustment_reader.\
                 get_stock_dividends_with_ex_date(held_sids, next_trading_day,
                                                  asset_finder)
 
@@ -310,7 +301,7 @@ class PerformanceTracker(object):
         self.cumulative_performance.handle_dividends_paid(net_cash_payment)
         self.todays_performance.handle_dividends_paid(net_cash_payment)
 
-    def handle_minute_close(self, dt):
+    def handle_minute_close(self, dt, data_portal):
         """
         Handles the close of the given minute. This includes handling
         market-close functions if the given minute is the end of the market
@@ -327,7 +318,7 @@ class PerformanceTracker(object):
             A tuple of the minute perf packet and daily perf packet.
             If the market day has not ended, the daily perf packet is None.
         """
-        self.position_tracker.sync_last_sale_prices(dt, False)
+        self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
         self.update_performance()
         todays_date = normalize_date(dt)
         account = self.get_account(False)
@@ -346,16 +337,18 @@ class PerformanceTracker(object):
         # if this is the close, update dividends for the next day.
         # Return the performance tuple
         if dt == self.market_close:
-            return minute_packet, self._handle_market_close(todays_date)
+            return minute_packet, self._handle_market_close(
+                todays_date, data_portal._adjustment_reader,
+            )
         else:
             return minute_packet, None
 
-    def handle_market_close_daily(self, dt):
+    def handle_market_close_daily(self, dt, data_portal):
         """
         Function called after handle_data when running with daily emission
         rate.
         """
-        self.position_tracker.sync_last_sale_prices(dt, False)
+        self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
         self.update_performance()
         completed_date = self.day
         account = self.get_account(False)
@@ -368,11 +361,12 @@ class PerformanceTracker(object):
             benchmark_value,
             account.leverage)
 
-        daily_packet = self._handle_market_close(completed_date)
-
+        daily_packet = self._handle_market_close(
+            completed_date, data_portal._adjustment_reader,
+        )
         return daily_packet
 
-    def _handle_market_close(self, completed_date):
+    def _handle_market_close(self, completed_date, adjustment_reader):
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
@@ -406,7 +400,8 @@ class PerformanceTracker(object):
             return daily_update
 
         # Check for any dividends, then return the daily perf packet
-        self.check_upcoming_dividends(next_trading_day=next_trading_day)
+        self.check_upcoming_dividends(next_trading_day=next_trading_day,
+                                      adjustment_reader=adjustment_reader)
         return daily_update
 
     def handle_simulation_end(self):
