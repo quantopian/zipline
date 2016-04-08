@@ -1,7 +1,7 @@
 """
 Mixins classes for use with Filters and Factors.
 """
-from numpy import full_like
+from numpy import full_like, recarray
 
 from zipline.utils.control_flow import nullctx
 from zipline.errors import WindowLengthNotPositive, UnsupportedDataType
@@ -69,6 +69,7 @@ class CustomTermMixin(object):
 
     def __new__(cls,
                 inputs=NotSpecified,
+                outputs=NotSpecified,
                 window_length=NotSpecified,
                 mask=NotSpecified,
                 dtype=NotSpecified,
@@ -88,6 +89,7 @@ class CustomTermMixin(object):
         return super(CustomTermMixin, cls).__new__(
             cls,
             inputs=inputs,
+            outputs=outputs,
             window_length=window_length,
             mask=mask,
             dtype=dtype,
@@ -109,7 +111,13 @@ class CustomTermMixin(object):
         compute = self.compute
         missing_value = self.missing_value
         params = self.params
-        out = full_like(mask, missing_value, dtype=self.dtype)
+        outputs = self.outputs
+        if outputs is not NotSpecified and len(outputs) > 1:
+            out = recarray(
+                mask.shape, dtype=zip(outputs, [self.dtype] * len(outputs)),
+            )
+        else:
+            out = full_like(mask, missing_value, dtype=self.dtype)
         with self.ctx:
             # TODO: Consider pre-filtering columns that are all-nan at each
             # time-step?

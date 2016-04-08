@@ -1,7 +1,7 @@
 """
 factor.py
 """
-from functools import wraps
+from functools import partial, wraps
 from operator import attrgetter
 from numbers import Number
 
@@ -1226,6 +1226,54 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         median_low15 = MedianValue([USEquityPricing.low], window_length=15)
     '''
     dtype = float64_dtype
+
+    def __getattr__(self, name):
+        if name in self.outputs:
+            return RecarrayFactor(factor=self, attribute=name)
+        else:
+            raise AttributeError(
+                "This factor has no output called '{}'.".format(name)
+            )
+
+    def __iter__(self):
+        if self.outputs is NotSpecified:
+            raise ValueError('This factor does not have multiple outputs.')
+        RecarrayFactor_ = partial(RecarrayFactor, self)
+        return iter(map(RecarrayFactor_, self.outputs))
+
+
+class RecarrayFactor(Factor):
+
+    siblings = {}
+
+    def __new__(cls, factor, attribute):
+        new_instance = super(RecarrayFactor, cls).__new__(
+            cls,
+            factor=factor,
+            attribute=attribute,
+            inputs=factor.inputs,
+            outputs=factor.outputs,
+            window_length=factor.window_length,
+            dtype=factor.dtype,
+            missing_value=factor.missing_value,
+        )
+        cls.siblings.setdefault(factor, set()).add(new_instance)
+        return new_instance
+
+    def _init(self, factor, attribute, *args, **kwargs):
+        self.factor = factor
+        self.attribute = attribute
+        self.compute = factor.compute
+        self._compute = factor._compute
+        return super(RecarrayFactor, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, factor, attribute, *args, **kwargs):
+        return (
+            super(RecarrayFactor, cls).static_identity(*args, **kwargs),
+            factor,
+            attribute,
+        )
 
 
 class Latest(LatestMixin, CustomFactor):

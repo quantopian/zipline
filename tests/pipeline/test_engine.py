@@ -112,6 +112,16 @@ class OpenPrice(CustomFactor):
         out[:] = open
 
 
+class MultipleOutputs(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.open, USEquityPricing.close]
+    outputs = ['double_open', 'double_close']
+
+    def compute(self, today, assets, out, open, close):
+        out.double_open[:] = open * 2
+        out.double_close[:] = close * 2
+
+
 def assert_multi_index_is_product(testcase, index, *levels):
     """Assert that a MultiIndex contains the product of `*levels`."""
     testcase.assertIsInstance(
@@ -509,6 +519,42 @@ class ConstantInputTestCase(TestCase):
                     data=full(result_shape, const, dtype=float),
                 ),
             )
+
+    def test_factor_with_multiple_outputs(self):
+        dates = self.dates[5:10]
+        assets = self.assets
+        num_dates = len(dates)
+        open = USEquityPricing.open
+        close = USEquityPricing.close
+        open_values = array([self.constants[open]] * num_dates, dtype=float)
+        close_values = array([self.constants[close]] * num_dates, dtype=float)
+        engine = SimplePipelineEngine(
+            lambda column: self.loader, self.dates, self.asset_finder,
+        )
+
+        double_open, double_close = MultipleOutputs()
+        pipeline = Pipeline(
+            columns={
+                'double_open': double_open,
+                'double_close': double_close,
+            },
+        )
+
+        results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+        first_output_results = results['double_open'].unstack()
+        second_output_results = results['double_close'].unstack()
+
+        first_output_expected = {asset: open_values * 2 for asset in assets}
+        second_output_expected = {asset: close_values * 2 for asset in assets}
+
+        assert_frame_equal(
+            first_output_results,
+            DataFrame(first_output_expected, index=dates, columns=assets),
+        )
+        assert_frame_equal(
+            second_output_results,
+            DataFrame(second_output_expected, index=dates, columns=assets),
+        )
 
     def test_loader_given_multiple_columns(self):
 

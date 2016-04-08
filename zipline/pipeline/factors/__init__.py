@@ -1,7 +1,8 @@
 from .factor import (
     CustomFactor,
     Factor,
-    Latest
+    Latest,
+    RecarrayFactor,
 )
 from .events import (
     BusinessDaysSinceCashBuybackAuth,
@@ -44,6 +45,7 @@ __all__ = [
     'Latest',
     'MaxDrawdown',
     'RSI',
+    'RecarrayFactor',
     'Returns',
     'SimpleMovingAverage',
     'VWAP',
