@@ -1236,7 +1236,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             )
 
     def __iter__(self):
-        if self.outputs is NotSpecified:
+        if not self.outputs:
             raise ValueError('This factor does not have multiple outputs.')
         RecarrayFactor_ = partial(RecarrayFactor, self)
         return iter(map(RecarrayFactor_, self.outputs))
