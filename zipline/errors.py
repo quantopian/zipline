@@ -433,10 +433,21 @@ class TermInputsNotSpecified(ZiplineError):
     msg = "{termname} requires inputs, but no inputs list was passed."
 
 
+class TermOutputsNotSpecified(ZiplineError):
+    """
+    Raised if a user attempts to construct a CustomFactor without specifying
+    enough outputs and that factor does not have class-level default outputs.
+    """
+    msg = (
+        "{termname} requires at least two outputs, but was given "
+        "{num_outputs}."
+    )
+
+
 class WindowLengthNotSpecified(ZiplineError):
     """
-    Raised if a user attempts to construct a term without specifying inputs and
-    that term does not have class-level default inputs.
+    Raised if a user attempts to construct a term without specifying window
+    length and that term does not have a class-level default window length.
     """
     msg = (
         "{termname} requires a window_length, but no window_length was passed."

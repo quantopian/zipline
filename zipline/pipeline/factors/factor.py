@@ -8,7 +8,7 @@ from numbers import Number
 from numpy import inf, where
 from toolz import curry
 
-from zipline.errors import UnknownRankMethod
+from zipline.errors import TermOutputsNotSpecified, UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
@@ -1236,7 +1236,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             )
 
     def __iter__(self):
-        if not self.outputs:
+        if len(self.outputs) < 2:
             raise ValueError('This factor does not have multiple outputs.')
         RecarrayFactor_ = partial(RecarrayFactor, self)
         return iter(map(RecarrayFactor_, self.outputs))
@@ -1274,6 +1274,14 @@ class RecarrayFactor(Factor):
             factor,
             attribute,
         )
+
+    def _validate(self):
+        super(RecarrayFactor, self)._validate()
+        num_outputs = len(self.outputs)
+        if num_outputs < 2:
+            raise TermOutputsNotSpecified(
+                termname=type(self).__name__, num_outputs=num_outputs,
+            )
 
 
 class Latest(LatestMixin, CustomFactor):
