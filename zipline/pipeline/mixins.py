@@ -1,7 +1,7 @@
 """
 Mixins classes for use with Filters and Factors.
 """
-from numpy import full_like, recarray
+from numpy import array, full_like, recarray
 
 from zipline.utils.control_flow import nullctx
 from zipline.errors import WindowLengthNotPositive, UnsupportedDataType
@@ -134,6 +134,7 @@ class CustomTermMixin(object):
                     **params
                 )
                 out[idx][col_mask] = masked_out
+                out[idx][~col_mask] = array([missing_value])
         return out
 
     def short_repr(self):
