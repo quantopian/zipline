@@ -237,13 +237,20 @@ class SimplePipelineEngine(object):
         assert shape[0] * shape[1] != 0, 'root mask cannot be empty'
         return ret
 
-    def _mask_and_dates_for_term(self, term, workspace, graph, dates):
+    def _mask_and_dates_for_term(self, term, workspace, graph, all_dates):
         """
         Load mask and mask row labels for term.
         """
         mask = term.mask
-        offset = graph.extra_rows[mask] - graph.extra_rows[term]
-        return workspace[mask][offset:], dates[offset:]
+        mask_offset = graph.extra_rows[mask] - graph.extra_rows[term]
+
+        # This offset is computed against _root_mask_term because that is what
+        # determines the shape of the top-level dates array.
+        dates_offset = (
+            graph.extra_rows[self._root_mask_term] - graph.extra_rows[term]
+        )
+
+        return workspace[mask][mask_offset:], all_dates[dates_offset:]
 
     @staticmethod
     def _inputs_for_term(term, workspace, graph):

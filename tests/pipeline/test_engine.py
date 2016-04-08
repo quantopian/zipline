@@ -10,13 +10,14 @@ from nose_parameterized import parameterized
 from numpy import (
     arange,
     array,
+    concatenate,
+    float32,
     full,
+    log,
     nan,
     tile,
+    where,
     zeros,
-    float32,
-    concatenate,
-    log,
 )
 from numpy.testing import assert_almost_equal
 from pandas import (
@@ -95,6 +96,22 @@ class AssetID(CustomFactor):
         out[:] = assets
 
 
+class AssetIDPlusDay(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.close]
+
+    def compute(self, today, assets, out, close):
+        out[:] = assets + today.day
+
+
+class OpenPrice(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.open]
+
+    def compute(self, today, assets, out, open):
+        out[:] = open
+
+
 def assert_multi_index_is_product(testcase, index, *levels):
     """Assert that a MultiIndex contains the product of `*levels`."""
     testcase.assertIsInstance(
@@ -157,7 +174,7 @@ class ConstantInputTestCase(TestCase):
             USEquityPricing.close: 3,
             USEquityPricing.high: 4,
         }
-        self.asset_ids = [1, 2, 3]
+        self.asset_ids = [1, 2, 3, 4]
         self.dates = date_range('2014-01', '2014-03', freq='D', tz='UTC')
         self.loader = PrecomputedLoader(
             constants=self.constants,
@@ -353,6 +370,87 @@ class ConstantInputTestCase(TestCase):
             avg_result,
             DataFrame(expected_avg, index=dates, columns=self.assets),
         )
+
+    def test_masked_factor(self):
+        """
+        Test that a Custom Factor computes the correct values when passed a
+        mask. The mask/filter should be applied prior to computing any values,
+        as opposed to computing the factor across the entire universe of
+        assets. Any assets that are filtered out should be filled with missing
+        values.
+        """
+        loader = self.loader
+        dates = self.dates[5:8]
+        assets = self.assets
+        asset_ids = self.asset_ids
+        constants = self.constants
+        open = USEquityPricing.open
+        close = USEquityPricing.close
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+
+        factor1_value = constants[open]
+        factor2_value = 3.0 * (constants[open] - constants[close])
+
+        def create_expected_results(expected_value, mask):
+            expected_values = where(mask, expected_value, nan)
+            return DataFrame(expected_values, index=dates, columns=assets)
+
+        cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
+        expected_cascading_mask_result = array(
+            [[True,  True,  True, False],
+             [True,  True, False, False],
+             [True, False, False, False]],
+            dtype=bool,
+        )
+
+        alternating_mask = (AssetIDPlusDay() % 2).eq(0)
+        expected_alternating_mask_result = array(
+            [[False,  True, False,   True],
+             [True,  False,  True,  False],
+             [False,  True, False,   True]],
+            dtype=bool,
+        )
+
+        masks = cascading_mask, alternating_mask
+        expected_mask_results = (
+            expected_cascading_mask_result,
+            expected_alternating_mask_result,
+        )
+        for mask, expected_mask in zip(masks, expected_mask_results):
+            # Test running a pipeline with a single masked factor.
+            columns = {'factor1': OpenPrice(mask=mask), 'mask': mask}
+            pipeline = Pipeline(columns=columns)
+            results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+
+            mask_results = results['mask'].unstack()
+            check_arrays(mask_results.values, expected_mask)
+
+            factor1_results = results['factor1'].unstack()
+            factor1_expected = create_expected_results(factor1_value,
+                                                       mask_results)
+            assert_frame_equal(factor1_results, factor1_expected)
+
+            # Test running a pipeline with a second factor. This ensures that
+            # adding another factor to the pipeline with a different window
+            # length does not cause any unexpected behavior, especially when
+            # both factors share the same mask.
+            columns['factor2'] = RollingSumDifference(mask=mask)
+            pipeline = Pipeline(columns=columns)
+            results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+
+            mask_results = results['mask'].unstack()
+            check_arrays(mask_results.values, expected_mask)
+
+            factor1_results = results['factor1'].unstack()
+            factor2_results = results['factor2'].unstack()
+            factor1_expected = create_expected_results(factor1_value,
+                                                       mask_results)
+            factor2_expected = create_expected_results(factor2_value,
+                                                       mask_results)
+            assert_frame_equal(factor1_results, factor1_expected)
+            assert_frame_equal(factor2_results, factor2_expected)
 
     def test_rolling_and_nonrolling(self):
         open_ = USEquityPricing.open
