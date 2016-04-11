@@ -785,7 +785,7 @@ class DataPortal(object):
         -------
         The list of adjustments for the asset(s)
         """
-        if not isinstance(assets, (list, tuple)):
+        if isinstance(assets, Asset):
             assets = [assets]
 
         adjustment_ratios_per_asset = []
