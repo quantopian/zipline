@@ -714,9 +714,6 @@ class DataPortal(object):
         if field not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(field))
 
-        if isinstance(asset, int):
-            asset = self.env.asset_finder.retrieve_asset(asset)
-
         if dt < asset.start_date or \
                 (data_frequency == "daily" and dt > asset.end_date) or \
                 (data_frequency == "minute" and
@@ -847,8 +844,6 @@ class DataPortal(object):
         -------
         The value of the desired field at the desired time.
         """
-        if isinstance(asset, int):
-            asset = self._asset_finder.retrieve_asset(asset)
 
         if spot_value is None:
             spot_value = self.get_spot_value(asset, field, dt, data_frequency)
