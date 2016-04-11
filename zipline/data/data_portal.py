@@ -528,8 +528,6 @@ class DataPortal(object):
         }
         self._equity_minute_loader_array_data = {}
 
-        self._in_bts = False
-
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')
 
