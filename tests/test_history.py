@@ -859,6 +859,23 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
         # last 5 minutes should not be adjusted
         np.testing.assert_array_equal(np.array(range(782, 787)), window3[395:])
 
+    def test_passing_iterable_to_history_regular_hours(self):
+        # regular hours
+        current_dt = pd.Timestamp("2015-01-06 9:45", tz='US/Eastern')
+        bar_data = BarData(self.data_portal, lambda: current_dt, "minute")
+
+        bar_data.history(pd.Index([self.ASSET1, self.ASSET2]),
+                         "high", 5, "1m")
+
+    def test_passing_iterable_to_history_bts(self):
+        # before market hours
+        current_dt = pd.Timestamp("2015-01-07 8:45", tz='US/Eastern')
+        bar_data = BarData(self.data_portal, lambda: current_dt, "minute")
+
+        with handle_non_market_minutes(bar_data):
+            bar_data.history(pd.Index([self.ASSET1, self.ASSET2]),
+                             "high", 5, "1m")
+
     def test_overnight_adjustments(self):
         # Should incorporate adjustments on midnight 01/06
         current_dt = pd.Timestamp("2015-01-06 8:45", tz='US/Eastern')
