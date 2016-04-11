@@ -116,6 +116,7 @@ class CustomTermMixin(object):
             out = recarray(
                 mask.shape, dtype=zip(outputs, [self.dtype] * len(outputs)),
             )
+            out[:] = array([missing_value])
         else:
             out = full_like(mask, missing_value, dtype=self.dtype)
         with self.ctx:
@@ -134,7 +135,6 @@ class CustomTermMixin(object):
                     **params
                 )
                 out[idx][col_mask] = masked_out
-                out[idx][~col_mask] = array([missing_value])
         return out
 
     def short_repr(self):
