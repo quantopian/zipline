@@ -170,6 +170,20 @@ class Blotter(object):
                             order_failed=order.amount - order.filled,
                         )
                     )
+                elif order.filled < 0:
+                    warning_logger.warn(
+                        'Your order for {order_amt} shares of '
+                        '{order_sym} has been partially filled. '
+                        '{order_filled} shares were successfully '
+                        'sold. {order_failed} shares were not '
+                        'filled by the end of day and '
+                        'were canceled.'.format(
+                            order_amt=order.amount,
+                            order_sym=order.sid.symbol,
+                            order_filled=-1 * order.filled,
+                            order_failed=-1 * (order.amount - order.filled),
+                        )
+                    )
                 else:
                     warning_logger.warn(
                         'Your order for {order_amt} shares of '
