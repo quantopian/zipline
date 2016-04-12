@@ -1,8 +1,6 @@
 from ._13d_filings import Blaze_13DFilingsLoader
-from .buyback_auth import (
-    BlazeCashBuybackAuthorizationsLoader,
-    BlazeShareBuybackAuthorizationsLoader
-)
+
+from .buyback_auth import BlazeBuybackAuthorizationsLoader
 from .core import (
     BlazeLoader,
     NoDeltasWarning,
@@ -21,14 +19,13 @@ from .consensus_estimates import BlazeConsensusEstimatesLoader
 
 __all__ = (
     'Blaze_13DFilingsLoader',
-    'BlazeCashBuybackAuthorizationsLoader',
+    'BlazeBuybackAuthorizationsLoader',
     'BlazeDividendsByAnnouncementDateLoader',
     'BlazeConsensusEstimatesLoader',
     'BlazeDividendsByExDateLoader',
     'BlazeDividendsByPayDateLoader',
     'BlazeEarningsCalendarLoader',
     'BlazeLoader',
-    'BlazeShareBuybackAuthorizationsLoader',
     'from_blaze',
     'global_loader',
     'NoDeltasWarning',

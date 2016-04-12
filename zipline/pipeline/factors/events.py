@@ -5,8 +5,7 @@ announcements, acquisitions, dividends, etc.).
 from numpy import newaxis
 from ..data import (
     _13DFilings,
-    CashBuybackAuthorizations,
-    ShareBuybackAuthorizations,
+    BuybackAuthorizations,
     DividendsByAnnouncementDate,
     DividendsByExDate,
     EarningsCalendar
@@ -132,7 +131,7 @@ class BusinessDaysSincePreviousEarnings(BusinessDaysSincePreviousEvents):
     inputs = [EarningsCalendar.previous_announcement]
 
 
-class BusinessDaysSinceCashBuybackAuth(
+class BusinessDaysSinceBuybackAuth(
     BusinessDaysSincePreviousEvents
 ):
     """
@@ -143,22 +142,7 @@ class BusinessDaysSinceCashBuybackAuth(
     --------
     zipline.pipeline.factors.BusinessDaysSinceCashBuybackAuth
     """
-    inputs = [CashBuybackAuthorizations.announcement_date]
-
-
-class BusinessDaysSinceShareBuybackAuth(
-    BusinessDaysSincePreviousEvents
-):
-    """
-    Factor returning the number of **business days** (not trading days!) since
-    the most recent share buyback authorization for each asset.
-
-
-    See Also
-    --------
-    zipline.pipeline.factors.BusinessDaysSinceShareBuybackAuth
-    """
-    inputs = [ShareBuybackAuthorizations.announcement_date]
+    inputs = [BuybackAuthorizations.previous_date]
 
 
 class BusinessDaysSinceDividendAnnouncement(
