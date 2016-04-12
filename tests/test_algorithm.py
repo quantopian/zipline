@@ -2641,7 +2641,7 @@ class TestOrderCancelation(TestCase):
 
             def handle_data(context, data):
                 if not context.ordered:
-                    order(sid(1), 1000)
+                    order(sid(1), {1})
                     context.ordered = True
             """
         )
@@ -2704,8 +2704,9 @@ class TestOrderCancelation(TestCase):
 
         return BcolzDailyBarReader(path)
 
-    def prep_algo(self, cancelation_string, data_frequency="minute"):
-        code = self.code.format(cancelation_string)
+    def prep_algo(self, cancelation_string, data_frequency="minute",
+                  amount=1000):
+        code = self.code.format(cancelation_string, amount)
         algo = TradingAlgorithm(
             script=code,
             env=self.env,
@@ -2719,11 +2720,15 @@ class TestOrderCancelation(TestCase):
 
         return algo
 
-    def test_eod_order_cancel_minute(self):
+    @parameterized.expand([
+        (1,), (-1,),
+    ])
+    def test_eod_order_cancel_minute(self, direction):
         # order 1000 shares of asset1.  the volume is only 1 share per bar,
         # so the order should be cancelled at the end of the day.
         algo = self.prep_algo(
-            "set_cancel_policy(cancel_policy.EODCancel())"
+            "set_cancel_policy(cancel_policy.EODCancel())",
+            amount=(direction * 1000)
         )
 
         log_catcher = TestHandler()
@@ -2732,7 +2737,7 @@ class TestOrderCancelation(TestCase):
 
             for daily_positions in results.positions:
                 self.assertEqual(1, len(daily_positions))
-                self.assertEqual(389, daily_positions[0]["amount"])
+                self.assertEqual(direction * 389, daily_positions[0]["amount"])
                 self.assertEqual(1, results.positions[0][0]["sid"].sid)
 
             # should be an order on day1, but no more orders afterwards
@@ -2746,20 +2751,29 @@ class TestOrderCancelation(TestCase):
             the_order = results.orders[0][0]
 
             self.assertEqual(ORDER_STATUS.CANCELLED, the_order["status"])
-            self.assertEqual(389, the_order["filled"])
+            self.assertEqual(direction * 389, the_order["filled"])
 
             warnings = [record for record in log_catcher.records if
                         record.level == WARNING]
 
             self.assertEqual(1, len(warnings))
 
-            self.assertEqual(
-                "Your order for 1000 shares of ASSET1 has been partially "
-                "filled. 389 shares were successfully purchased. "
-                "611 shares were not filled by the end of day and "
-                "were canceled.",
-                str(warnings[0].message)
-            )
+            if direction == 1:
+                self.assertEqual(
+                    "Your order for 1000 shares of ASSET1 has been partially "
+                    "filled. 389 shares were successfully purchased. "
+                    "611 shares were not filled by the end of day and "
+                    "were canceled.",
+                    str(warnings[0].message)
+                )
+            elif direction == -1:
+                self.assertEqual(
+                    "Your order for -1000 shares of ASSET1 has been partially "
+                    "filled. 389 shares were successfully sold. "
+                    "611 shares were not filled by the end of day and "
+                    "were canceled.",
+                    str(warnings[0].message)
+                )
 
     def test_default_cancelation_policy(self):
         algo = self.prep_algo("")
