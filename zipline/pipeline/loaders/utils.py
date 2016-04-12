@@ -280,6 +280,10 @@ def zip_with_floats(dates, flts):
         return pd.Series(flts, index=dates, dtype='float')
 
 
+def zip_with_strs(dates, flts):
+        return pd.Series(flts, index=dates, dtype='string')
+
+
 def zip_with_dates(index_dates, dts):
     return pd.Series(pd.to_datetime(dts), index=index_dates)
 

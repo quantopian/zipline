@@ -20,6 +20,6 @@ __all__ = [
     'DividendsByExDate',
     'DividendsByPayDate',
     'EarningsCalendar',
-	'ConsensusEstimates',
+    'ConsensusEstimates',
     'USEquityPricing',
 ]

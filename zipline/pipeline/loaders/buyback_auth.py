@@ -44,26 +44,26 @@ class BuybackAuthorizationsLoader(EventsLoader):
     @lazyval
     def previous_value_loader(self):
         return self._previous_event_value_loader(
-            self.dataset.cash_amount,
+            self.dataset.previous_value,
             VALUE_FIELD_NAME
         )
 
     @lazyval
     def previous_date_loader(self):
         return self._previous_event_date_loader(
-            self.dataset.announcement_date,
-        )
-
-    @lazyval
-    def previous_buyback_type_loader(self):
-        return self._previous_event_date_loader(
-            self.dataset.announcement_date,
-            BUYBACK_TYPE_FIELD_NAME,
+            self.dataset.previous_date,
         )
 
     @lazyval
     def previous_value_type_loader(self):
-        return self._previous_event_date_loader(
-            self.dataset.announcement_date,
+        return self._previous_event_value_loader(
+            self.dataset.previous_value_type,
             VALUE_TYPE_FIELD_NAME,
+        )
+
+    @lazyval
+    def previous_buyback_type_loader(self):
+        return self._previous_event_value_loader(
+            self.dataset.previous_buyback_type,
+            BUYBACK_TYPE_FIELD_NAME,
         )

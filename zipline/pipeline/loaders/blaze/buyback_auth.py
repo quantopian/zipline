@@ -4,7 +4,10 @@ from .core import (
 )
 from zipline.pipeline.common import (
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-    VALUE_FIELD_NAME, VALUE_TYPE_FIELD_NAME, BUYBACK_TYPE_FIELD_NAME)
+    BUYBACK_TYPE_FIELD_NAME,
+    VALUE_FIELD_NAME,
+    VALUE_TYPE_FIELD_NAME,
+)
 from zipline.pipeline.data import BuybackAuthorizations
 from zipline.pipeline.loaders import BuybackAuthorizationsLoader
 from .events import BlazeEventsLoader
@@ -38,8 +41,8 @@ class BlazeBuybackAuthorizationsLoader(BlazeEventsLoader):
            {TS_FIELD_NAME}: datetime,
            {BUYBACK_ANNOUNCEMENT_FIELD_NAME}: ?datetime,
            {VALUE_FIELD_NAME}: ?float64,
-           {VALUE_TYPE_FIELD_NAME}: ?float64,
-           {BUYBACK_TYPE_FIELD_NAME}: ?float64,
+           {VALUE_TYPE_FIELD_NAME}: ?str,
+           {BUYBACK_TYPE_FIELD_NAME}: ?str,
        }}
 
     Where each row of the table is a record including the sid to identify the
