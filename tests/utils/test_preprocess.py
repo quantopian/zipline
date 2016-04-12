@@ -10,7 +10,19 @@ from numpy import arange, array, dtype
 import pytz
 from six import PY3
 
-from zipline.utils.preprocess import call, preprocess
+from zipline.lib._cython_test_functions import (
+    CythonClass,
+    function_notypes,
+    function_partial_types,
+    function_all_types,
+    function_no_docstring,
+    function_non_signature_docstring,
+    function_with_defaults,
+)
+from zipline.utils.preprocess import (
+    call,
+    preprocess,
+)
 from zipline.utils.input_validation import (
     expect_dimensions,
     ensure_timezone,
@@ -403,3 +415,27 @@ class PreprocessTestCase(TestCase):
             " a scalar instead.".format(qualname=qualname(foo))
         )
         self.assertEqual(errmsg, expected)
+
+    def test_preprocess_cython_functions(self):
+
+        for f in function_notypes, function_partial_types, function_all_types:
+            processed_f = preprocess(
+                a=call(lambda x: x + 1),
+                b=call(lambda x: x - 1),
+            )(f)
+
+            self.assertEqual(f(1, 1, "x"), (1, 1, "x"))
+            self.assertEqual(processed_f(1, 1, "x"), (2, 0, "x"))
+
+    def test_preprocess_cython_methods(self):
+
+        c = CythonClass()
+
+        for m in c.method_notypes, c.method_partial_types, c.method_all_types:
+            processed_m = preprocess(
+                a=call(lambda x: x + 1),
+                b=call(lambda x: x - 1),
+            )(m)
+
+            self.assertEqual(m(1, 1, "x"), (1, 1, "x"))
+            self.assertEqual(processed_m(1, 1, "x"), (2, 0, "x"))

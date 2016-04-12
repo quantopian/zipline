@@ -82,6 +82,10 @@ ext_modules = [
     Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
     Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
     Extension(
+        'zipline.lib._cython_test_functions',
+        ['zipline/lib/_cython_test_functions.pyx'],
+    ),
+    Extension(
         'zipline.lib._float64window', ['zipline/lib/_float64window.pyx']
     ),
     Extension('zipline.lib._int64window', ['zipline/lib/_int64window.pyx']),

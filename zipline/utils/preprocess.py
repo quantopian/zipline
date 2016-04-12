@@ -1,10 +1,12 @@
 """
 Utilities for validating inputs to user-facing API functions.
 """
+import re
+import sys
 from textwrap import dedent
 from types import CodeType
 from functools import wraps
-from inspect import getargspec
+from inspect import getargspec as _real_getargspec
 from uuid import uuid4
 
 from toolz.curried.operator import getitem
@@ -29,7 +31,113 @@ _code_argorder = (
     'co_cellvars',
 )
 
+MethodDescriptorType = type(str.split)
+
 NO_DEFAULT = object()
+CYTHON_SIGNATURE_PARSER = re.compile("^([\w_]+)\((.*)\)$")
+
+
+def extract_argnames(sig):
+    """
+    Parse argument names from a Cython function signature.
+
+    Example
+    -------
+    >>> remove_types_from_cython_function_signature("int x, int y")
+    ['x', 'y']
+    """
+    if '=' in sig:
+        raise SyntaxError(
+            "Can't parse signatures containing default values: %r." % sig
+        )
+    argnames = []
+    for piece in sig.split(','):
+        # Function arguments in Cython can include a type before the argument,
+        # so split on whitespace.
+        sub_pieces = re.split(' *', piece.strip(' '))
+        if len(sub_pieces) > 2:
+            raise SyntaxError("Couldn't parse argument name from %r." % piece)
+        argnames.append(sub_pieces[-1])
+
+    return argnames
+
+
+def parse_argspec_from_cython_embedsignature_line(signature_line):
+    m = CYTHON_SIGNATURE_PARSER.match(signature_line)
+    if m is None:
+        raise SyntaxError("Can't parse signature line: %r." % signature_line)
+
+    funcname, cy_sig = m.groups()
+    argnames = extract_argnames(cy_sig)
+
+    s = "def {funcname}({signature}): pass".format(
+        funcname=funcname,
+        signature=', '.join(argnames),
+    )
+
+    globals_ = {}
+    locals_ = {}
+    exec_(s, globals_, locals_)
+    return _real_getargspec(locals_[funcname])
+
+
+def safe_get_filename(func, default):
+    """
+    Get the name of the file in which a function was defined, falling back to
+    default if no file could be found.
+    """
+    try:
+        # This should work for most "normal" python functions.
+        return func.__code__.co_filename
+    except AttributeError:
+        pass
+
+    try:
+        # C Extension functions don't have bytecode.  Try to find the file
+        # associated with the file's __module__.
+        return sys.modules[func.__module__].__file__
+    except (AttributeError, KeyError):
+        pass
+
+    return default
+
+
+def getargspec(f):
+    """
+    Enhanced version of inspect.getargspec that also works with Cython
+    functions if they're created with `embedsignature=True`.
+    """
+    try:
+        return _real_getargspec(f)
+    except TypeError as e:
+        # We need to reassign this in Py3 to use it below.
+        first_error = e
+        pass
+
+    def fail(second_error):
+        raise ValueError(
+            "Couldn't get argspec for function {func}, and couldn't parse "
+            "one from the docstring.\n\n"
+            "Error from inspect.getargspec was: {first}.\n\n"
+            "Subsequent error was: {second}.".format(
+                func=f,
+                first=first_error,
+                second=second_error,
+            )
+        )
+
+    try:
+        cython_signature_line = f.__doc__.splitlines()[0]
+        if f.__name__ + '(' not in cython_signature_line:
+            raise ValueError(
+                "First line of docstring was not a signature."
+                "You may want to set cython.embedsignature=True."
+            )
+        return parse_argspec_from_cython_embedsignature_line(
+            cython_signature_line,
+        )
+    except Exception as e:
+        fail(e)
 
 
 def preprocess(*_unused, **processors):
@@ -204,7 +312,7 @@ def _build_preprocessed_function(func, processors, args_defaults):
     )
     compiled = compile(
         exec_str,
-        func.__code__.co_filename,
+        filename=safe_get_filename(func, default='<dynamically-generated>'),
         mode='exec',
     )
 
