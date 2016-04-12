@@ -29,9 +29,9 @@ source:
 requirements:
   build:
     - python
-    - setuptools
+    - setuptools >18.0
     - numpy x.x
-    - setuptools_scm
+    - setuptools_scm >1.5.4
     - cython ==0.22.1
 
   run:
@@ -42,7 +42,7 @@ test:
   # Python imports
   imports:
     - bcolz
-#    - bcolz.tests
+    - bcolz.tests
 
   # commands:
     # You can put test commands to be run here.  Use this to test that the
@@ -52,9 +52,9 @@ test:
   # You can also put a file called run_test.py in the recipe that will be run
   # at test time.
 
-#  requires:
-#    - mock
-#    - unittest2 ; python_version < 2.7
+  requires:
+    - mock
+    - unittest2 # [py26]
     # Put any additional test requirements here.  For example
     # - nose
 

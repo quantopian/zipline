@@ -163,10 +163,10 @@ class BcolzMinuteBarMetadata(object):
             'first_trading_day': str(self.first_trading_day.date()),
             'market_opens': self.market_opens.values.
             astype('datetime64[m]').
-            astype(int).tolist(),
+            astype(np.int64).tolist(),
             'market_closes': self.market_closes.values.
             astype('datetime64[m]').
-            astype(int).tolist(),
+            astype(np.int64).tolist(),
             'ohlc_ratio': self.ohlc_ratio,
         }
         with open(self.metadata_path(rootdir), 'w+') as fp:
@@ -603,10 +603,10 @@ class BcolzMinuteBarReader(object):
 
         self._market_opens = metadata.market_opens
         self._market_open_values = metadata.market_opens.values.\
-            astype('datetime64[m]').astype(int)
+            astype('datetime64[m]').astype(np.int64)
         self._market_closes = metadata.market_closes
         self._market_close_values = metadata.market_closes.values.\
-            astype('datetime64[m]').astype(int)
+            astype('datetime64[m]').astype(np.int64)
 
         self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
 
@@ -643,7 +643,7 @@ class BcolzMinuteBarReader(object):
         """
         market_opens = self._market_opens.values.astype('datetime64[m]')
         market_closes = self._market_closes.values.astype('datetime64[m]')
-        minutes_per_day = (market_closes - market_opens).astype(int)
+        minutes_per_day = (market_closes - market_opens).astype(np.int64)
         early_indices = np.where(
             minutes_per_day != US_EQUITIES_MINUTES_PER_DAY - 1)[0]
         regular_closes = market_opens[early_indices] + timedelta64(

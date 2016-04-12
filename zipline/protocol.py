@@ -16,9 +16,8 @@ import pandas as pd
 
 from .utils.enum import enum
 
-from zipline._protocol import BarData as _BarData
+from zipline._protocol import BarData  # noqa
 
-BarData = _BarData
 
 # Datasource type should completely determine the other fields of a
 # message with its type.

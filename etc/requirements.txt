@@ -33,9 +33,6 @@ cyordereddict==0.2.2
 # faster array ops.
 bottleneck==1.0.0
 
-# lru_cache
-functools32==3.2.3.post2;python_version<'3.0'
-
 contextlib2==0.4.0
 
 # networkx requires decorator

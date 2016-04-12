@@ -100,6 +100,7 @@ class TestBenchmark(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         cls.tempdir.cleanup()
 

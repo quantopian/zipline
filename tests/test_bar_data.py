@@ -131,6 +131,8 @@ class TestMinuteBarData(TestBarDataBase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
+        del cls.adjustments_reader
         cls.tempdir.cleanup()
 
     @classmethod
@@ -564,6 +566,8 @@ class TestDailyBarData(TestBarDataBase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
+        del cls.adjustments_reader
         cls.tempdir.cleanup()
 
     @classmethod

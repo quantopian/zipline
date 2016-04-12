@@ -133,7 +133,6 @@ class PerformancePeriod(object):
             starting_cash,
             asset_finder,
             data_frequency,
-            data_portal,
             period_open=None,
             period_close=None,
             keep_transactions=True,
@@ -143,8 +142,6 @@ class PerformancePeriod(object):
 
         self.asset_finder = asset_finder
         self.data_frequency = data_frequency
-
-        self._data_portal = data_portal
 
         self.period_open = period_open
         self.period_close = period_close

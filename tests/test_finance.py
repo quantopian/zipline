@@ -286,7 +286,7 @@ class FinanceTestCase(TestCase):
             else:
                 alternator = 1
 
-            tracker = PerformanceTracker(sim_params, self.env, data_portal)
+            tracker = PerformanceTracker(sim_params, self.env)
 
             # replicate what tradesim does by going through every minute or day
             # of the simulation and processing open orders each time

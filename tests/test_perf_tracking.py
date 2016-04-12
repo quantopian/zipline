@@ -50,7 +50,7 @@ from zipline.utils.serialization_utils import (
     loads_with_persistent_ids, dumps_with_persistent_ids
 )
 from zipline.testing.core import create_data_portal_from_trade_history, \
-    create_empty_splits_mergers_frame, FakeDataPortal
+    create_empty_splits_mergers_frame
 
 logger = logging.getLogger('Test Perf Tracking')
 
@@ -167,7 +167,7 @@ def calculate_results(sim_params,
     splits = splits or {}
     commissions = commissions or {}
 
-    perf_tracker = perf.PerformanceTracker(sim_params, env, data_portal)
+    perf_tracker = perf.PerformanceTracker(sim_params, env)
 
     results = []
 
@@ -189,8 +189,10 @@ def calculate_results(sim_params,
         except KeyError:
             pass
 
-        msg = perf_tracker.handle_market_close_daily(date)
-        perf_tracker.position_tracker.sync_last_sale_prices(date, False)
+        msg = perf_tracker.handle_market_close_daily(date, data_portal)
+        perf_tracker.position_tracker.sync_last_sale_prices(
+            date, False, data_portal,
+        )
         msg['account'] = perf_tracker.get_account(True)
         results.append(copy.deepcopy(msg))
     return results
@@ -265,9 +267,7 @@ class TestSplitPerformance(unittest.TestCase):
     def test_multiple_splits(self):
         # if multiple positions all have splits at the same time, verify that
         # the total leftover cash is correct
-        perf_tracker = perf.PerformanceTracker(
-            self.sim_params, self.env, FakeDataPortal()
-        )
+        perf_tracker = perf.PerformanceTracker(self.sim_params, self.env)
 
         asset1 = self.env.asset_finder.retrieve_asset(1)
         asset2 = self.env.asset_finder.retrieve_asset(2)
@@ -1240,11 +1240,10 @@ class TestPositionPerformance(unittest.TestCase):
         txn1 = create_txn(self.asset1, trades_1[0].dt, 10.0, 100)
         txn2 = create_txn(self.asset2, trades_1[0].dt, 10.0, -100)
 
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency,
-                                    data_portal)
+                                    self.sim_params.data_frequency)
         pp.position_tracker = pt
         pt.execute_transaction(txn1)
         pp.handle_execution(txn1)
@@ -1252,7 +1251,7 @@ class TestPositionPerformance(unittest.TestCase):
         pp.handle_execution(txn2)
 
         dt = trades_1[-2].dt
-        pt.sync_last_sale_prices(dt, False)
+        pt.sync_last_sale_prices(dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -1280,7 +1279,7 @@ class TestPositionPerformance(unittest.TestCase):
                       net_liquidation=1000.0)
 
         dt = trades_1[-1].dt
-        pt.sync_last_sale_prices(dt, False)
+        pt.sync_last_sale_prices(dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -1333,11 +1332,10 @@ class TestPositionPerformance(unittest.TestCase):
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[1].dt, 10.0, 1000)
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency,
-                                    data_portal)
+                                    self.sim_params.data_frequency)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
@@ -1355,7 +1353,7 @@ class TestPositionPerformance(unittest.TestCase):
             shorts_count=0)
 
         # Validate that the account attributes were updated.
-        pt.sync_last_sale_prices(trades[-2].dt, False)
+        pt.sync_last_sale_prices(trades[-2].dt, False, data_portal)
 
         # Validate that the account attributes were updated.
         account = pp.as_account()
@@ -1373,7 +1371,7 @@ class TestPositionPerformance(unittest.TestCase):
                       net_liquidation=1000.0)
 
         # now simulate a price jump to $11
-        pt.sync_last_sale_prices(trades[-1].dt, False)
+        pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -1425,11 +1423,10 @@ class TestPositionPerformance(unittest.TestCase):
             self.sim_params,
             {1: trades})
         txn = create_txn(self.asset1, trades[1].dt, 10.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency,
-                                    data_portal,
                                     period_open=self.sim_params.period_start,
                                     period_close=self.sim_params.period_end)
         pp.position_tracker = pt
@@ -1444,7 +1441,7 @@ class TestPositionPerformance(unittest.TestCase):
         # stocks with a last sale price of 0.
         self.assertEqual(pp.positions[1].last_sale_price, 10.0)
 
-        pt.sync_last_sale_prices(trades[-1].dt, False)
+        pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -1544,18 +1541,17 @@ single short-sale transaction"""
             {1: trades})
 
         txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(
             1000.0, self.env.asset_finder,
-            self.sim_params.data_frequency,
-            data_portal)
+            self.sim_params.data_frequency)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
-        pt.sync_last_sale_prices(trades_1[-1].dt, False)
+        pt.sync_last_sale_prices(trades_1[-1].dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -1611,7 +1607,7 @@ single short-sale transaction"""
         # simulate a rollover to a new period
         pp.rollover()
 
-        pt.sync_last_sale_prices(trades[-1].dt, False)
+        pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -1665,17 +1661,16 @@ single short-sale transaction"""
         )
 
         # now run a performance period encompassing the entire trade sample.
-        ptTotal = perf.PositionTracker(self.env.asset_finder, data_portal,
+        ptTotal = perf.PositionTracker(self.env.asset_finder,
                                        self.sim_params.data_frequency)
         ppTotal = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                         self.sim_params.data_frequency,
-                                         data_portal)
+                                         self.sim_params.data_frequency)
         ppTotal.position_tracker = pt
 
         ptTotal.execute_transaction(txn)
         ppTotal.handle_execution(txn)
 
-        ptTotal.sync_last_sale_prices(trades[-1].dt, False)
+        ptTotal.sync_last_sale_prices(trades[-1].dt, False, data_portal)
 
         ppTotal.calculate_performance()
 
@@ -1778,11 +1773,10 @@ cost of sole txn in test"
         )
 
         txn = create_txn(self.asset3, trades[1].dt, 10.0, 1)
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency,
-                                    data_portal)
+                                    self.sim_params.data_frequency)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
@@ -1795,7 +1789,7 @@ cost of sole txn in test"
         # stocks with a last sale price of 0.
         self.assertEqual(pp.positions[3].last_sale_price, 10.0)
 
-        pt.sync_last_sale_prices(trades[-1].dt, False)
+        pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
         pp.calculate_performance()
 
         self.assertEqual(
@@ -1899,17 +1893,16 @@ single short-sale transaction"""
         trades_1 = trades[:-2]
 
         txn = create_txn(self.asset3, trades[0].dt, 10.0, -1)
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency,
-                                    data_portal)
+                                    self.sim_params.data_frequency)
         pp.position_tracker = pt
 
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
-        pt.sync_last_sale_prices(trades[-3].dt, False)
+        pt.sync_last_sale_prices(trades[-3].dt, False, data_portal)
         pp.calculate_performance()
 
         self.assertEqual(
@@ -1969,7 +1962,7 @@ single short-sale transaction"""
         # simulate a rollover to a new period
         pp.rollover()
 
-        pt.sync_last_sale_prices(trades_2[-1].dt, False)
+        pt.sync_last_sale_prices(trades_2[-1].dt, False, data_portal)
         pp.calculate_performance()
 
         self.assertEqual(
@@ -2027,21 +2020,20 @@ single short-sale transaction"""
         )
 
         # now run a performance period encompassing the entire trade sample.
-        ptTotal = perf.PositionTracker(self.env.asset_finder, data_portal,
+        ptTotal = perf.PositionTracker(self.env.asset_finder,
                                        self.sim_params.data_frequency)
         ppTotal = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                         self.sim_params.data_frequency,
-                                         data_portal)
+                                         self.sim_params.data_frequency)
         ppTotal.position_tracker = ptTotal
 
         for trade in trades_1:
-            ptTotal.sync_last_sale_prices(trade.dt, False)
+            ptTotal.sync_last_sale_prices(trade.dt, False, data_portal)
 
         ptTotal.execute_transaction(txn)
         ppTotal.handle_execution(txn)
 
         for trade in trades_2:
-            ptTotal.sync_last_sale_prices(trade.dt, False)
+            ptTotal.sync_last_sale_prices(trade.dt, False, data_portal)
 
         ppTotal.calculate_performance()
 
@@ -2144,11 +2136,10 @@ trade after cover"""
 
         short_txn = create_txn(self.asset1, trades[1].dt, 10.0, -100)
         cover_txn = create_txn(self.asset1, trades[6].dt, 7.0, 100)
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                    self.sim_params.data_frequency,
-                                    data_portal)
+                                    self.sim_params.data_frequency)
         pp.position_tracker = pt
 
         pt.execute_transaction(short_txn)
@@ -2156,7 +2147,7 @@ trade after cover"""
         pt.execute_transaction(cover_txn)
         pp.handle_execution(cover_txn)
 
-        pt.sync_last_sale_prices(trades[-1].dt, False)
+        pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -2231,13 +2222,12 @@ shares in position"
             self.sim_params,
             {1: trades})
 
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
         pp = perf.PerformancePeriod(
             1000.0,
             self.env.asset_finder,
             self.sim_params.data_frequency,
-            data_portal,
             period_open=self.sim_params.period_start,
             period_close=self.sim_params.trading_days[-1]
         )
@@ -2264,7 +2254,7 @@ shares in position"
             "should have a cost basis of 11"
         )
 
-        pt.sync_last_sale_prices(dt, False)
+        pt.sync_last_sale_prices(dt, False, data_portal)
 
         pp.calculate_performance()
 
@@ -2281,7 +2271,7 @@ shares in position"
         pp.handle_execution(sale_txn)
 
         dt = down_tick.dt
-        pt.sync_last_sale_prices(dt, False)
+        pt.sync_last_sale_prices(dt, False, data_portal)
 
         pp.calculate_performance()
         self.assertEqual(
@@ -2299,11 +2289,10 @@ shares in position"
 
         self.assertEqual(pp.pnl, -800, "this period goes from +400 to -400")
 
-        pt3 = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt3 = perf.PositionTracker(self.env.asset_finder,
                                    self.sim_params.data_frequency)
         pp3 = perf.PerformancePeriod(1000.0, self.env.asset_finder,
-                                     self.sim_params.data_frequency,
-                                     data_portal)
+                                     self.sim_params.data_frequency)
         pp3.position_tracker = pt3
 
         average_cost = 0
@@ -2317,7 +2306,7 @@ shares in position"
         pp3.handle_execution(sale_txn)
 
         trades.append(down_tick)
-        pt3.sync_last_sale_prices(trades[-1].dt, False)
+        pt3.sync_last_sale_prices(trades[-1].dt, False, data_portal)
 
         pp3.calculate_performance()
         self.assertEqual(
@@ -2351,18 +2340,11 @@ shares in position"
         )
         cost_bases = [10, 10, 0, 8, 9, 9, 13, 13.5]
 
-        trades = factory.create_trade_history(*history_args)
         transactions = factory.create_txn_history(*history_args)
 
-        data_portal = create_data_portal_from_trade_history(
-            self.env,
-            self.tempdir,
-            self.sim_params,
-            {1: trades})
-
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   self.sim_params.data_frequency)
-        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder, data_portal,
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
                                     self.sim_params.data_frequency)
         pp.position_tracker = pt
 
@@ -2413,22 +2395,8 @@ class TestPositionTracker(unittest.TestCase):
         sim_params = factory.create_simulation_parameters(
             num_days=4, env=self.env
         )
-        trades = factory.create_trade_history(
-            1,
-            [10, 10, 10, 11],
-            [100, 100, 100, 100],
-            oneday,
-            sim_params,
-            env=self.env
-        )
 
-        data_portal = create_data_portal_from_trade_history(
-            self.env,
-            self.tempdir,
-            sim_params,
-            {1: trades})
-
-        pt = perf.PositionTracker(self.env.asset_finder, data_portal,
+        pt = perf.PositionTracker(self.env.asset_finder,
                                   sim_params.data_frequency)
         pos_stats = pt.stats()
 
@@ -2450,7 +2418,7 @@ class TestPositionTracker(unittest.TestCase):
             self.assertNotIsInstance(val, (bool, np.bool_))
 
     def test_position_values_and_exposures(self):
-        pt = perf.PositionTracker(self.env.asset_finder, None, None)
+        pt = perf.PositionTracker(self.env.asset_finder, None)
         dt = pd.Timestamp("1984/03/06 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(10.0),
                              last_sale_date=dt, last_sale_price=10)
@@ -2482,7 +2450,7 @@ class TestPositionTracker(unittest.TestCase):
         self.assertEqual(100 - 200 + 300000 - 400000, pos_stats.net_exposure)
 
     def test_update_positions(self):
-        pt = perf.PositionTracker(self.env.asset_finder, None, None)
+        pt = perf.PositionTracker(self.env.asset_finder, None)
         dt = pd.Timestamp("2014/01/01 3:00PM")
         pos1 = perf.Position(1, amount=np.float64(10.0),
                              last_sale_date=dt, last_sale_price=10)

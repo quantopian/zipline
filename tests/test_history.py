@@ -108,11 +108,18 @@ class HistoryTestCaseBase(TestCase):
 
         cls.create_data()
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.adj_reader
+        cls.tempdir.cleanup()
+
     def setUp(self):
         self.create_data_portal()
 
-    @classmethod
-    def create_data_portal(cls):
+    def tearDown(self):
+        del self.data_portal
+
+    def create_data_portal(self):
         raise NotImplementedError()
 
     @classmethod
@@ -168,10 +175,6 @@ class HistoryTestCaseBase(TestCase):
                 "symbol": "SHORT_ASSET"
             }
         })
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
 
     @classmethod
     def create_adjustments_reader(cls):
@@ -470,12 +473,11 @@ MINUTE_FIELD_INFO = {
 
 
 class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
-    @classmethod
-    def create_data_portal(cls):
-        cls.data_portal = DataPortal(
-            cls.env,
-            equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-            adjustment_reader=cls.adj_reader
+    def create_data_portal(self):
+        self.data_portal = DataPortal(
+            self.env,
+            equity_minute_reader=BcolzMinuteBarReader(self.tempdir.path),
+            adjustment_reader=self.adj_reader
         )
 
     @classmethod
@@ -1016,15 +1018,14 @@ class MinuteEquityHistoryTestCase(HistoryTestCaseBase):
 
 
 class DailyEquityHistoryTestCase(HistoryTestCaseBase):
-    @classmethod
-    def create_data_portal(cls):
-        daily_path = cls.tempdir.getpath("testdaily.bcolz")
+    def create_data_portal(self):
+        daily_path = self.tempdir.getpath("testdaily.bcolz")
 
-        cls.data_portal = DataPortal(
-            cls.env,
+        self.data_portal = DataPortal(
+            self.env,
             equity_daily_reader=BcolzDailyBarReader(daily_path),
-            equity_minute_reader=BcolzMinuteBarReader(cls.tempdir.path),
-            adjustment_reader=cls.adj_reader
+            equity_minute_reader=BcolzMinuteBarReader(self.tempdir.path),
+            adjustment_reader=self.adj_reader
         )
 
     @classmethod

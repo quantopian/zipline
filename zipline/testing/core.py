@@ -45,7 +45,8 @@ from zipline.utils.tradingcalendar import trading_days
 import numpy as np
 from numpy import (
     float64,
-    uint32
+    uint32,
+    int64,
 )
 
 
@@ -456,8 +457,9 @@ def make_trade_data_for_asset_info(dates,
     sids = asset_info.keys()
     date_field = 'day' if frequency == 'daily' else 'dt'
 
-    price_sid_deltas = np.arange(len(sids), dtype=float) * price_step_by_sid
-    price_date_deltas = np.arange(len(dates), dtype=float) * price_step_by_date
+    price_sid_deltas = np.arange(len(sids), dtype=float64) * price_step_by_sid
+    price_date_deltas = (np.arange(len(dates), dtype=float64) *
+                         price_step_by_date)
     prices = (price_sid_deltas + price_date_deltas[:, None]) + price_start
 
     volume_sid_deltas = np.arange(len(sids)) * volume_step_by_sid
@@ -723,8 +725,9 @@ class DailyBarWriterFromDataFrames(BcolzDailyBarWriter):
             return array.astype(uint32)
         elif colname == 'day':
             nanos_per_second = (1000 * 1000 * 1000)
-            self.check_uint_safe(arrmax.view(int) / nanos_per_second, colname)
-            return (array.view(int) / nanos_per_second).astype(uint32)
+            self.check_uint_safe(arrmax.view(int64) / nanos_per_second,
+                                 colname)
+            return (array.view(int64) / nanos_per_second).astype(uint32)
 
     @staticmethod
     def check_uint_safe(value, colname):
@@ -1198,8 +1201,8 @@ def create_mock_adjustments(tempdir, days, splits=None, dividends=None,
             'pay_date': np.array([], dtype='datetime64[ns]'),
             'record_date': np.array([], dtype='datetime64[ns]'),
             'declared_date': np.array([], dtype='datetime64[ns]'),
-            'amount': np.array([], dtype=float),
-            'sid': np.array([], dtype=int),
+            'amount': np.array([], dtype=float64),
+            'sid': np.array([], dtype=int64),
         }
         dividends = pd.DataFrame(
             data,
@@ -1360,9 +1363,9 @@ def create_empty_splits_mergers_frame():
     return pd.DataFrame(
         {
             # Hackery to make the dtypes correct on an empty frame.
-            'effective_date': np.array([], dtype=int),
-            'ratio': np.array([], dtype=float),
-            'sid': np.array([], dtype=int),
+            'effective_date': np.array([], dtype=int64),
+            'ratio': np.array([], dtype=float64),
+            'sid': np.array([], dtype=int64),
         },
         index=pd.DatetimeIndex([]),
         columns=['effective_date', 'ratio', 'sid'],

@@ -1081,10 +1081,10 @@ class TestBeforeTradingStart(TestCase):
             cls.trading_days[-1], 2, 50
         )
 
-        cls.minute_reader = BcolzMinuteBarReader(cls.tempdir.path)
-        cls.adj_reader = cls.create_adjustments_reader()
+        minute_reader = BcolzMinuteBarReader(cls.tempdir.path)
+        adj_reader = cls.create_adjustments_reader()
 
-        cls.daily_path = cls.tempdir.getpath("testdaily.bcolz")
+        daily_path = cls.tempdir.getpath("testdaily.bcolz")
         dfs = {
             1: create_daily_df_for_asset(cls.env, cls.trading_days[0],
                                          cls.trading_days[-1]),
@@ -1094,7 +1094,7 @@ class TestBeforeTradingStart(TestCase):
                                          cls.trading_days[-1])
         }
         daily_writer = DailyBarWriterFromDataFrames(dfs)
-        daily_writer.write(cls.daily_path, cls.trading_days, dfs)
+        daily_writer.write(daily_path, cls.trading_days, dfs)
 
         cls.sim_params = SimulationParameters(
             period_start=cls.trading_days[1],
@@ -1105,9 +1105,9 @@ class TestBeforeTradingStart(TestCase):
 
         cls.data_portal = DataPortal(
             env=cls.env,
-            equity_daily_reader=BcolzDailyBarReader(cls.daily_path),
-            equity_minute_reader=cls.minute_reader,
-            adjustment_reader=cls.adj_reader
+            equity_daily_reader=BcolzDailyBarReader(daily_path),
+            equity_minute_reader=minute_reader,
+            adjustment_reader=adj_reader
         )
 
     @classmethod
@@ -1131,15 +1131,15 @@ class TestBeforeTradingStart(TestCase):
         # Mergers and Dividends are not tested, but we need to have these
         # anyway
         mergers = pd.DataFrame({}, columns=['effective_date', 'ratio', 'sid'])
-        mergers.effective_date = mergers.effective_date.astype(int)
-        mergers.ratio = mergers.ratio.astype(float)
-        mergers.sid = mergers.sid.astype(int)
+        mergers.effective_date = mergers.effective_date.astype(np.int64)
+        mergers.ratio = mergers.ratio.astype(np.float64)
+        mergers.sid = mergers.sid.astype(np.int64)
 
         dividends = pd.DataFrame({}, columns=['ex_date', 'record_date',
                                               'declared_date', 'pay_date',
                                               'amount', 'sid'])
-        dividends.amount = dividends.amount.astype(float)
-        dividends.sid = dividends.sid.astype(int)
+        dividends.amount = dividends.amount.astype(np.float64)
+        dividends.sid = dividends.sid.astype(np.int64)
 
         adj_writer.write(splits, mergers, dividends)
 
@@ -1147,6 +1147,8 @@ class TestBeforeTradingStart(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
+        del cls.env
         cls.tempdir.cleanup()
 
     def test_data_in_bts_minute(self):
@@ -1478,6 +1480,7 @@ class TestAlgoScript(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         cls.tempdir.cleanup()
         teardown_logger(cls)
@@ -1867,6 +1870,7 @@ class TestGetDatetime(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         teardown_logger(cls)
         cls.tempdir.cleanup()
@@ -1946,6 +1950,7 @@ class TestTradingControls(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         cls.tempdir.cleanup()
 
@@ -2362,6 +2367,7 @@ class TestAccountControls(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         del cls.env
         cls.tempdir.cleanup()
 
@@ -2529,6 +2535,7 @@ class TestFutureFlip(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         cls.tempdir.cleanup()
 
     @skip
@@ -2648,6 +2655,7 @@ class TestOrderCancelation(TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        del cls.data_portal
         cls.tempdir.cleanup()
 
     @classmethod

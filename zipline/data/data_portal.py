@@ -31,13 +31,12 @@ from zipline.data.us_equity_loader import (
 )
 
 from zipline.utils import tradingcalendar
-from zipline.utils.compat import lru_cache
 from zipline.utils.math_utils import (
     nansum,
     nanmean,
     nanstd
 )
-from zipline.utils.memoize import remember_last
+from zipline.utils.memoize import remember_last, weak_lru_cache
 from zipline.errors import (
     NoTradeDataAvailableTooEarly,
     NoTradeDataAvailableTooLate,
@@ -1091,10 +1090,6 @@ class DataPortal(object):
 
         return data
 
-    @remember_last
-    def _get_market_minutes_for_day(self, end_date):
-        return self.env.market_minutes_for_day(pd.Timestamp(end_date))
-
     def _get_history_daily_window_equities(
             self, assets, days_for_window, end_dt, field_to_use):
         ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
@@ -1686,7 +1681,7 @@ class DataPortal(object):
         else:
             return [assets] if isinstance(assets, Asset) else []
 
-    @lru_cache(20)
+    @weak_lru_cache(20)
     def _get_minute_count_for_transform(self, ending_minute, days_count):
         # cache size picked somewhat loosely.  this code exists purely to
         # handle deprecated API.
