@@ -1136,6 +1136,11 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         Number of rows to pass for each input.  If this argument is not passed
         to the CustomFactor constructor, we look for a class-level attribute
         named `window_length`.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing the assets on which we should compute each day.
+        Each call to ``CustomFactor.compute`` will only receive assets for
+        which ``mask`` produced True on the day for which compute is being
+        called.
 
     Notes
     -----

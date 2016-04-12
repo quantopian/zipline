@@ -17,7 +17,10 @@ None
 Enhancements
 ~~~~~~~~~~~~
 
-None
+* Added masking to :class:`zipline.pipeline.CustomFactor`.
+  Custom factors can now be passed a Filter upon instantiation. This tells the
+  factor to only compute over stocks for which the filter returns True, rather
+  than always computing over the entire universe of stocks. (:issue:`1095`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
