@@ -695,7 +695,7 @@ class BcolzMinuteBarReader(object):
             intervals = itree[start_idx:end_idx]
             for interval in intervals:
                 ranges.append(interval.data)
-            return ranges
+            return sorted(ranges)
         else:
             return None
 

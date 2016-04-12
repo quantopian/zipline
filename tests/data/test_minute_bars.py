@@ -47,7 +47,10 @@ from zipline.data.minute_bars import (
 from zipline.finance.trading import TradingEnvironment
 
 
-TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
+# Calendar is set to cover several half days, to check a case where half
+# days would be read out of order in cases of windows which spanned over
+# multiple half days.
+TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
