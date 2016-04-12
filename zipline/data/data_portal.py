@@ -497,26 +497,6 @@ class DataPortal(object):
             self._first_trading_day = \
                 self._equity_minute_reader.first_trading_day
 
-        # The `equity_daily_reader_array` lookups provide lru cache of 1 for
-        # daily history reads from the daily_reader.
-        # `last_remembered` or lru_cache can not be used, because the inputs
-        # to the function are not hashable types, and the order of the assets
-        # iterable needs to be preserved.
-        # The function that implements the cache will insert a value for the
-        # given field of (frozenset(assets), start_dt, end_dt).
-        #
-        # This is  optimized for algorithms that call history once per field
-        # in handle_data or a scheduled function.
-        self._equity_daily_reader_array_keys = {
-            'open': None,
-            'high': None,
-            'low': None,
-            'close': None,
-            'volume': None,
-            'price': None
-        }
-        self._equity_daily_reader_array_data = {}
-
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')
 
@@ -1368,20 +1348,6 @@ class DataPortal(object):
                 data *= price_adj_factor
                 np.around(data, 3, out=data)
 
-    def _equity_daily_reader_arrays(self, field, dts, assets):
-        # Custom memoization, because of unhashable types.
-        assets_key = frozenset(assets)
-        key = (field, dts[0], dts[-1], assets_key)
-        if self._equity_daily_reader_array_keys[field] == key:
-            return self._equity_daily_reader_array_data[field]
-        else:
-            data = self._equity_history_loader.history(assets,
-                                                       dts,
-                                                       field)
-            self._equity_daily_reader_array_keys[field] = key
-            self._equity_daily_reader_array_data[field] = data
-            return data
-
     def _get_daily_window_for_sids(
             self, assets, field, days_in_window, extra_slot=True):
         """
@@ -1427,10 +1393,9 @@ class DataPortal(object):
             return_array[:] = np.NAN
 
         if bar_count != 0:
-            data = self._equity_daily_reader_arrays(field,
-                                                    days_in_window,
-                                                    assets)
-
+            data = self._equity_history_loader.history(assets,
+                                                       days_in_window,
+                                                       field)
             if extra_slot:
                 return_array[:len(return_array) - 1, :] = data
             else:
