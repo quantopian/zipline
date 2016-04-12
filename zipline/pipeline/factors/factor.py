@@ -1130,12 +1130,26 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     inputs : iterable, optional
         An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),
         describing the data to load and pass to `self.compute`.  If this
-        argument is passed to the CustomFactor constructor, we look for a
+        argument is not passed to the CustomFactor constructor, we look for a
         class-level attribute named `inputs`.
+    outputs : iterable, optional
+        An iterable of strings which represent the names of each output this
+        factor should compute and return. If this argument is not passed to the
+        CustomFactor constructor, we look for a class-level attribute named
+        `outputs`.
     window_length : int, optional
         Number of rows to pass for each input.  If this argument is not passed
         to the CustomFactor constructor, we look for a class-level attribute
         named `window_length`.
+
+    Returns
+    -------
+    output or outputs : zipline.pipeline.factors.CustomFactor or iterable of
+                        zipline.pipeline.factors.RecarrayFactor
+        The Factor instance(s) to be returned upon instantiation.
+        If passed an `outputs` argument, CustomFactor will return an iterable
+        of RecarrayFactors representing each output. If `outputs` is not
+        specified, it returns an instance of CustomFactor.
 
     Notes
     -----
@@ -1159,7 +1173,9 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             Column labels for `out` and`inputs`.
         out : np.array[self.dtype, ndim=1]
             Output array of the same shape as `assets`.  `compute` should write
-            its desired return values into `out`.
+            its desired return values into `out`. If multiple outputs are
+            specified, `compute` should write its desired return values into
+            `out.<output_name>` for each output name in `self.outputs`.
         *inputs : tuple of np.array
             Raw data arrays corresponding to the values of `self.inputs`.
 
@@ -1224,6 +1240,23 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         # MedianValue.
         median_close10 = MedianValue([USEquityPricing.close], window_length=10)
         median_low15 = MedianValue([USEquityPricing.low], window_length=15)
+
+    A CustomFactor with multiple outputs:
+
+    .. code-block:: python
+
+        class MultipleOutputs(CustomFactor):
+            inputs = [USEquityPricing.close]
+            outputs = ['alpha', 'beta']
+            window_length = N
+
+            def compute(self, today, assets, out, close):
+                computed_alpha, computed_beta = some_function(close)
+                out.alpha = computed_alpha
+                out.beta = computed_beta
+
+        # Each output is returned as its own Factor upon instantiation.
+        alpha, beta = MultipleOutputs()
     '''
     dtype = float64_dtype
 
