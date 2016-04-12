@@ -140,8 +140,9 @@ def _filter_requirements(lines_iter, filter_names=None,
         yield line
 
 
-# We don't currently have any known upper bounds.
-REQ_UPPER_BOUNDS = {}
+REQ_UPPER_BOUNDS = {
+    'bcolz': '<1'
+}
 
 
 def _with_bounds(req):
