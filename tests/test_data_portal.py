@@ -16,6 +16,7 @@ from pandas.tslib import Timedelta
 
 from zipline.data.data_portal import DataPortal
 from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.utils.calendars import default_nyse_schedule
 import pandas as pd
 
 
@@ -26,7 +27,8 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
     def init_instance_fixtures(self):
         super(TestDataPortal, self).init_instance_fixtures()
 
-        self.data_portal = DataPortal(self.env, first_trading_day=None)
+        self.data_portal = DataPortal(self.env, default_nyse_schedule,
+                                      first_trading_day=None)
 
     def test_bar_count_for_simple_transforms(self):
         # July 2015
@@ -40,7 +42,7 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # half an hour into july 9, getting a 4-"day" window should get us
         # all the minutes of 7/6, 7/7, 7/8, and 31 minutes of 7/9
 
-        july_9_dt = self.env.get_open_and_close(
+        july_9_dt = default_nyse_schedule.start_and_end(
             pd.Timestamp("2015-07-09")
         )[0] + Timedelta("30 minutes")
 
@@ -63,7 +65,7 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # half an hour into nov 30, getting a 4-"day" window should get us
         # all the minutes of 11/24, 11/25, 11/27 (half day!), and 31 minutes
         # of 11/30
-        nov_30_dt = self.env.get_open_and_close(
+        nov_30_dt = default_nyse_schedule.start_and_end(
             pd.Timestamp("2015-11-30")
         )[0] + Timedelta("30 minutes")
 

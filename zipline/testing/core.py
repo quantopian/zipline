@@ -702,9 +702,11 @@ class FakeDataPortal(DataPortal):
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            ffill=True):
         if frequency == "1d":
-            end_idx = self.env.trading_days.searchsorted(end_dt)
-            days = \
-                self.env.trading_days[(end_idx - bar_count + 1):(end_idx + 1)]
+            end_idx = \
+                self.trading_schedule.all_execution_days.searchsorted(end_dt)
+            days = self.trading_schedule.all_execution_days[
+                   (end_idx - bar_count + 1):(end_idx + 1)
+                   ]
 
             df = pd.DataFrame(
                 np.full((bar_count, len(assets)), 100),

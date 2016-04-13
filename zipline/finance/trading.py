@@ -78,8 +78,6 @@ class TradingEnvironment(object):
         load=None,
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
-        min_date=None,
-        max_date=None,
         trading_schedule=default_nyse_schedule,
         asset_db_path=':memory:'
     ):
@@ -94,13 +92,13 @@ class TradingEnvironment(object):
             self.bm_symbol,
         )
 
-        if max_date:
-            tr_c = self.treasury_curves
-            # Mask the treasury curves down to the current date.
-            # In the case of live trading, the last date in the treasury
-            # curves would be the day before the date considered to be
-            # 'today'.
-            self.treasury_curves = tr_c[tr_c.index <= max_date]
+        #if max_date:
+        #    tr_c = self.treasury_curves
+        #    # Mask the treasury curves down to the current date.
+        #    # In the case of live trading, the last date in the treasury
+        #    # curves would be the day before the date considered to be
+        #    # 'today'.
+        #    self.treasury_curves = tr_c[tr_c.index <= max_date]
 
         self.exchange_tz = exchange_tz
 

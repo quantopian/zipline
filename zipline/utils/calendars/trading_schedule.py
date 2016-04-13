@@ -280,6 +280,14 @@ class TradingSchedule(object):
         """
         raise NotImplementedError()
 
+    @abstractproperty
+    def early_ends(self):
+        """
+        Returns a DatetimeIndex containing the session dates on-which there is
+        an early end to trading.
+        """
+        raise NotImplementedError()
+
 
 class ExchangeTradingSchedule(TradingSchedule):
     """
@@ -354,6 +362,10 @@ class ExchangeTradingSchedule(TradingSchedule):
         return self._exchange_calendar.minute_window(start=start,
                                                      count=count,
                                                      step=step)
+
+    @property
+    def early_ends(self):
+        return self._exchange_calendar.early_closes
 
 
 class NYSETradingSchedule(ExchangeTradingSchedule):

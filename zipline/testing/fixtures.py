@@ -398,8 +398,6 @@ class WithTradingEnvironment(WithAssetFinder):
     --------
     :class:`zipline.finance.trading.TradingEnvironment`
     """
-    TRADING_ENV_MIN_DATE = None
-    TRADING_ENV_MAX_DATE = None
     TRADING_ENV_TRADING_SCHEDULE = default_nyse_schedule
 
     @classmethod
@@ -411,8 +409,6 @@ class WithTradingEnvironment(WithAssetFinder):
         return TradingEnvironment(
             load=cls.make_load_function(),
             asset_db_path=cls.asset_finder.engine,
-            min_date=cls.TRADING_ENV_MIN_DATE,
-            max_date=cls.TRADING_ENV_MAX_DATE,
             trading_schedule=cls.TRADING_ENV_TRADING_SCHEDULE,
         )
 
