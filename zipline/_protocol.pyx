@@ -42,14 +42,12 @@ cdef class check_parameters(object):
     TypeError with a meaningful message.
     """
     cdef tuple keyword_names
-    cdef object method
     cdef tuple types
     cdef dict keys_to_types
 
-    def __init__(self, method_name, keyword_names, types):
+    def __init__(self, keyword_names, types):
         self.keyword_names = keyword_names
         self.types = types
-        self.method = method_name
 
         self.keys_to_types = dict(zip(keyword_names, types))
 
@@ -59,7 +57,7 @@ cdef class check_parameters(object):
             for field in kwargs:
                 if field not in self.keyword_names:
                     raise TypeError("%s() got an unexpected keyword argument"
-                                    " '%s'" % (self.method, field))
+                                    " '%s'" % (func.__name__, field))
 
             # verify type of each arg
             for i, arg in enumerate(args[1:]):
@@ -206,7 +204,7 @@ cdef class BarData:
 
         return dt
 
-    @check_parameters('current', ('assets', 'fields'), ((Asset, str), str))
+    @check_parameters(('assets', 'fields'), ((Asset, str), str))
     def current(self, assets, fields):
         """
         Returns the current value of the given assets for the given fields
@@ -381,7 +379,7 @@ cdef class BarData:
 
                 return pd.DataFrame(data)
 
-    @check_parameters('can_trade', ('assets',), (Asset,))
+    @check_parameters(('assets',), (Asset,))
     def can_trade(self, assets):
         """
         For the given asset or iterable of assets, returns true if the asset
@@ -428,7 +426,7 @@ cdef class BarData:
 
         return False
 
-    @check_parameters('is_stale', ('assets',), (Asset,))
+    @check_parameters(('assets',), (Asset,))
     def is_stale(self, assets):
         """
         For the given asset or iterable of assets, returns true if the asset
@@ -488,8 +486,7 @@ cdef class BarData:
 
             return not (last_traded_dt is pd.NaT)
 
-    @check_parameters('history',
-                      ('assets', 'fields', 'bar_count', 'frequency'),
+    @check_parameters(('assets', 'fields', 'bar_count', 'frequency'),
                       ((Asset, str), str, int, str))
     def history(self, assets, fields, bar_count, frequency):
         """
