@@ -318,6 +318,8 @@ class TradingAlgorithm(object):
             create_context=kwargs.pop('create_event_context', None),
         )
 
+        self._handle_data = None
+
         if self.algoscript is not None:
             filename = kwargs.pop('algo_filename', None)
             if filename is None:
@@ -325,9 +327,7 @@ class TradingAlgorithm(object):
             code = compile(self.algoscript, filename, 'exec')
             exec_(code, self.namespace)
             self._initialize = self.namespace.get('initialize')
-            if 'handle_data' not in self.namespace:
-                raise ValueError('You must define a handle_data function.')
-            else:
+            if 'handle_data' in self.namespace:
                 self._handle_data = self.namespace['handle_data']
 
             self._before_trading_start = \
@@ -407,7 +407,8 @@ class TradingAlgorithm(object):
         self._in_before_trading_start = False
 
     def handle_data(self, data):
-        self._handle_data(self, data)
+        if self._handle_data:
+            self._handle_data(self, data)
 
         # Unlike trading controls which remain constant unless placing an
         # order, account controls can change each bar. Thus, must check

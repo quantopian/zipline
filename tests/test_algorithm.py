@@ -106,8 +106,8 @@ from zipline.test_algorithms import (
     call_with_kwargs,
     call_without_kwargs,
     call_with_bad_kwargs_current,
-    call_with_bad_kwargs_history
-)
+    call_with_bad_kwargs_history,
+    no_handle_data)
 from zipline.testing import (
     make_jagged_equity_info,
     to_utc,
@@ -1492,6 +1492,10 @@ class TestAlgoScript(TestCase):
 
     def test_noop_string(self):
         algo = TradingAlgorithm(script=noop_algo)
+        algo.run(self.data_portal)
+
+    def test_no_handle_data(self):
+        algo = TradingAlgorithm(script=no_handle_data)
         algo.run(self.data_portal)
 
     def test_api_calls(self):
