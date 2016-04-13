@@ -516,16 +516,6 @@ class DataPortal(object):
             'price': None
         }
         self._equity_daily_reader_array_data = {}
-        # See above comment for `_equity_daily_reader_array_keys`.
-        self._equity_minute_loader_array_keys = {
-            'open': None,
-            'high': None,
-            'low': None,
-            'close': None,
-            'volume': None,
-            'price': None
-        }
-        self._equity_minute_loader_array_data = {}
 
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')
@@ -1307,10 +1297,9 @@ class DataPortal(object):
 
     def _get_minute_window_for_equities(
             self, assets, field, minutes_for_window):
-        window = self._equity_minute_loader_arrays(field,
-                                                   minutes_for_window,
-                                                   assets)
-        return window
+        return self._equity_minute_history_loader.history(assets,
+                                                          minutes_for_window,
+                                                          field)
 
     def _apply_all_adjustments(self, data, asset, dts, field,
                                price_adj_factor=1.0):
@@ -1391,20 +1380,6 @@ class DataPortal(object):
                                                        field)
             self._equity_daily_reader_array_keys[field] = key
             self._equity_daily_reader_array_data[field] = data
-            return data
-
-    def _equity_minute_loader_arrays(self, field, dts, assets):
-        # Custom memoization, because of unhashable types.
-        assets_key = frozenset(assets)
-        key = (field, dts[0], dts[-1], assets_key)
-        if self._equity_minute_loader_array_keys[field] == key:
-            return self._equity_minute_loader_array_data[field]
-        else:
-            data = self._equity_minute_history_loader.history(assets,
-                                                              dts,
-                                                              field)
-            self._equity_minute_loader_array_keys[field] = key
-            self._equity_minute_loader_array_data[field] = data
             return data
 
     def _get_daily_window_for_sids(
