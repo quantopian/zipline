@@ -1007,6 +1007,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
+        self.data_portal._first_trading_day = self.TRADING_START_DT
         first_day_minutes = default_nyse_schedule.execution_minutes_for_day(
             self.TRADING_START_DT
         )
@@ -1541,8 +1542,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             )[self.ASSET1]
 
         # Use a minute to force minute mode.
-        first_minute = default_nyse_schedule.open_and_closes.market_open[
-            self.TRADING_START_DT]
+        first_minute = \
+            default_nyse_schedule.schedule.market_open[self.TRADING_START_DT]
 
         with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
             self.data_portal.get_history_window(

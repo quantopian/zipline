@@ -21,7 +21,7 @@ from zipline.testing import (
 
 from zipline.utils.functional import dzip_exact
 from zipline.utils.pandas_utils import explode
-from zipline.utils.tradingcalendar import trading_day
+from zipline.utils.calendars import default_nyse_schedule
 
 
 def with_defaults(**default_funcs):
@@ -55,7 +55,8 @@ class BasePipelineTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.__calendar = date_range('2014', '2015', freq=trading_day)
+        cls.__calendar = date_range('2014', '2015',
+                                    freq=default_nyse_schedule.day)
         cls.__assets = assets = Int64Index(arange(1, 20))
         cls.__tmp_finder_ctx = tmp_asset_finder(
             equities=make_simple_equity_info(

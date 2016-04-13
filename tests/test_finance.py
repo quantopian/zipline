@@ -280,7 +280,8 @@ class FinanceTestCase(WithLogger,
             else:
                 alternator = 1
 
-            tracker = PerformanceTracker(sim_params, self.env)
+            tracker = PerformanceTracker(sim_params, default_nyse_schedule,
+                                         self.env)
 
             # replicate what tradesim does by going through every minute or day
             # of the simulation and processing open orders each time
@@ -558,18 +559,3 @@ class TradingEnvironmentTestCase(WithLogger,
         self.assertTrue(all(today == minutes[:31]))
         self.assertTrue(all(friday == minutes[31:421]))
         self.assertTrue(all(thursday == minutes[421:]))
-
-    def test_min_date(self):
-        min_date = pd.Timestamp('2016-03-04', tz='UTC')
-        env = TradingEnvironment(min_date=min_date)
-
-        self.assertGreaterEqual(env.first_trading_day, min_date)
-        self.assertGreaterEqual(env.treasury_curves.index[0],
-                                min_date)
-
-    def test_max_date(self):
-        max_date = pd.Timestamp('2008-08-01', tz='UTC')
-        env = TradingEnvironment(max_date=max_date)
-
-        self.assertLessEqual(env.treasury_curves.index[-1],
-                             max_date)

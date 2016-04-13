@@ -906,7 +906,8 @@ class TradingAlgorithm(object):
             url,
             pre_func,
             post_func,
-            self.trading_environment,
+            self.asset_finder,
+            self.trading_schedule.day,
             self.sim_params.period_start,
             self.sim_params.period_end,
             date_column,
@@ -1945,7 +1946,9 @@ class TradingAlgorithm(object):
             # If we are in before_trading_start, we need to get the window
             # as of the previous market minute
             adjusted_dt = \
-                self.data_portal.env.previous_market_minute(self.datetime)
+                self.data_portal.trading_schedule.previous_execution_minute(
+                    self.datetime
+                )
 
             window = self.data_portal.get_history_window(
                 assets,

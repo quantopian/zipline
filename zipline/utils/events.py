@@ -348,7 +348,7 @@ class AfterOpen(StatelessRule):
     def calculate_dates(self, dt):
         # given a dt, find that day's open and period end (open + offset)
         self._period_start, self._period_close = \
-            _static_nyse_cal.get_open_and_close(dt)
+            _static_nyse_cal.open_and_close(dt)
         self._period_end = \
             self._period_start + self.offset - self._one_minute
 
@@ -392,7 +392,7 @@ class BeforeClose(StatelessRule):
 
     def calculate_dates(self, dt):
         # given a dt, find that day's close and period start (close - offset)
-        self._period_end = _static_nyse_cal.get_open_and_close(dt)[1]
+        self._period_end = _static_nyse_cal.open_and_close(dt)[1]
         self._period_start = \
             self._period_end - self.offset
         self._period_close = self._period_end

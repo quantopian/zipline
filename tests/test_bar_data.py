@@ -439,8 +439,8 @@ class TestMinuteBarData(WithBarDataChecks,
     def test_can_trade_at_midnight(self):
         # make sure that if we use `can_trade` at midnight, we don't pretend
         # we're in the previous day's last minute
-        the_day_after = self.env.next_trading_day(
-            self.bcolz_minute_bar_days[-1],
+        the_day_after = self.trading_schedule.next_execution_day(
+            self.bcolz_minute_bar_days[-1]
         )
 
         bar_data = BarData(self.data_portal, lambda: the_day_after, "minute")
