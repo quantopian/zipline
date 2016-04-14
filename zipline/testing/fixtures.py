@@ -12,9 +12,15 @@ from .core import tmp_asset_finder, make_simple_equity_info, gen_calendars
 from ..finance.trading import TradingEnvironment
 from ..utils import tradingcalendar, factory
 from ..utils.final import FinalMeta, final
+
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.utils.numpy_utils import make_datetime64D
 from zipline.utils.numpy_utils import NaTD
+from zipline.pipeline.common import TS_FIELD_NAME
+from zipline.pipeline.loaders.utils import (
+    get_values_for_date_ranges,
+    zip_with_dates
+)
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -352,6 +358,42 @@ class WithPipelineEventDataLoader(WithAssetFinder):
         loader = self.loader_type(*self.pipeline_event_loader_args(dates))
         return SimplePipelineEngine(lambda _: loader, dates, self.asset_finder)
 
+    def get_sids_to_frames(self,
+                           zip_date_index_with_vals,
+                           vals,
+                           date_intervals,
+                           dates):
+        """
+        Construct a DataFrame that maps sid to the expected values for the
+        given dates.
+
+        Parameters
+        ----------
+        zip_date_index_with_vals: callable
+            A function that returns a series of `vals` repeated based on the
+            number of days in the date interval for each val, indexed by the
+            dates in `dates`.
+        vals: iterable
+            An iterable with values that correspond to each interval in
+            `date_intervals`.
+        date_intervals: list
+            A list of date intervals for each sid that correspond to values in
+            `vals`.
+        dates: DatetimeIndex
+            The dates which will serve as the index for each Series for each
+            sid in the DataFrame.
+        """
+        frame = pd.DataFrame({sid: get_values_for_date_ranges(
+            zip_date_index_with_vals,
+            vals[sid],
+            date_intervals[sid],
+            dates
+        ) for sid in self.get_sids()[:-1]})
+        frame[self.get_sids()[-1]] = zip_date_index_with_vals(
+            dates, ['NaN'] * len(dates)
+        )
+        return frame
+
     @staticmethod
     def _compute_busday_offsets(announcement_dates):
         """
@@ -417,3 +459,122 @@ class WithPipelineEventDataLoader(WithAssetFinder):
                 assert_series_equal(result[col_name].xs(sid, level=1),
                                     cols[col_name][sid],
                                     check_names=False)
+
+
+class WithNextAndPreviousEventDataLoader(WithPipelineEventDataLoader):
+    """
+    ZiplineTestCase mixin extending common functionality for event data
+    loader tests that have both next and previous events.
+
+    `base_cases` should be used as the template to test cases that combine
+    knowledge date (timestamp) and some 'other_date' in various ways.
+    `next_date_intervals` gives the date intervals for the next event based
+    on the dates given in `base_cases`.
+    `next_dates` gives the next date from `other_date` which is known about at
+    each interval.
+    `prev_date_intervals` gives the date intervals for each sid for the
+    previous event based on the dates given in `base_cases`.
+    `prev_dates` gives the previous date from `other_date` which is known
+    about at each interval.
+    `get_expected_previous_event_dates` is a convenience function that fills
+    a DataFrame with the previously known dates for each sid for the given
+    dates.
+    `get_expected_next_event_dates` is a convenience function that fills
+    a DataFrame with the next known dates for each sid for the given
+    dates.
+    """
+    base_cases = [
+        # K1--K2--A1--A2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+            'other_date': pd.to_datetime(['2014-01-15', '2014-01-20']),
+        }),
+        # K1--K2--A2--A1.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
+            'other_date': pd.to_datetime(['2014-01-20', '2014-01-15']),
+        }),
+        # K1--A1--K2--A2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
+            'other_date': pd.to_datetime(['2014-01-10', '2014-01-20']),
+        }),
+        # K1 == K2.
+        pd.DataFrame({
+            TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
+            'other_date': pd.to_datetime(['2014-01-10', '2014-01-15']),
+        }),
+        pd.DataFrame(
+            columns=['other_date',
+                     TS_FIELD_NAME],
+            dtype='datetime64[ns]'
+        ),
+    ]
+
+    next_date_intervals = [
+        [[None, '2014-01-04'],
+         ['2014-01-05', '2014-01-15'],
+         ['2014-01-16', '2014-01-20'],
+         ['2014-01-21', None]],
+        [[None, '2014-01-04'],
+         ['2014-01-05', '2014-01-09'],
+         ['2014-01-10', '2014-01-15'],
+         ['2014-01-16', '2014-01-20'],
+         ['2014-01-21', None]],
+        [[None, '2014-01-04'],
+         ['2014-01-05', '2014-01-10'],
+         ['2014-01-11', '2014-01-14'],
+         ['2014-01-15', '2014-01-20'],
+         ['2014-01-21', None]],
+        [[None, '2014-01-04'],
+         ['2014-01-05', '2014-01-10'],
+         ['2014-01-11', '2014-01-15'],
+         ['2014-01-16', None]]
+    ]
+
+    next_dates = [
+        ['NaT', '2014-01-15', '2014-01-20', 'NaT'],
+        ['NaT', '2014-01-20', '2014-01-15', '2014-01-20', 'NaT'],
+        ['NaT', '2014-01-10', 'NaT', '2014-01-20', 'NaT'],
+        ['NaT', '2014-01-10', '2014-01-15', 'NaT'],
+        ['NaT']
+    ]
+
+    prev_date_intervals = [
+        [[None, '2014-01-14'],
+         ['2014-01-15', '2014-01-19'],
+         ['2014-01-20', None]],
+        [[None, '2014-01-14'],
+         ['2014-01-15', '2014-01-19'],
+         ['2014-01-20', None]],
+        [[None, '2014-01-09'],
+         ['2014-01-10', '2014-01-19'],
+         ['2014-01-20', None]],
+        [[None, '2014-01-09'],
+         ['2014-01-10', '2014-01-14'],
+         ['2014-01-15', None]]
+    ]
+
+    prev_dates = [
+        ['NaT', '2014-01-15', '2014-01-20'],
+        ['NaT', '2014-01-15', '2014-01-20'],
+        ['NaT', '2014-01-10', '2014-01-20'],
+        ['NaT', '2014-01-10', '2014-01-15'],
+        ['NaT']
+    ]
+
+    def get_expected_previous_event_dates(self, dates):
+        return self.get_sids_to_frames(
+            zip_with_dates,
+            self.prev_dates,
+            self.prev_date_intervals,
+            dates
+        )
+
+    def get_expected_next_event_dates(self, dates):
+        return self.get_sids_to_frames(
+            zip_with_dates,
+            self.next_dates,
+            self.next_date_intervals,
+            dates
+        )
