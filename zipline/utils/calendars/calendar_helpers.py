@@ -24,6 +24,7 @@ def normalize_date(date):
     date = pd.Timestamp(date, tz='UTC')
     return pd.tseries.tools.normalize_date(date)
 
+
 def delta_from_time(t):
     """
     Convert a datetime.time into a timedelta.
@@ -33,6 +34,7 @@ def delta_from_time(t):
         minutes=t.minute,
         seconds=t.second,
     )
+
 
 def _get_index(dt, all_trading_days):
     """
@@ -50,6 +52,7 @@ def _get_index(dt, all_trading_days):
 # class' methods. These methods live in the helpers module to avoid code
 # duplication.
 
+
 def next_scheduled_day(date, last_trading_day, is_scheduled_day_hook):
     dt = normalize_date(date)
     delta = pd.Timedelta(days=1)
@@ -59,6 +62,7 @@ def next_scheduled_day(date, last_trading_day, is_scheduled_day_hook):
         if is_scheduled_day_hook(dt):
             return dt
     return None
+
 
 def previous_scheduled_day(date, first_trading_day, is_scheduled_day_hook):
     dt = normalize_date(date)
@@ -70,13 +74,16 @@ def previous_scheduled_day(date, first_trading_day, is_scheduled_day_hook):
             return dt
     return None
 
+
 def next_open_and_close(date, open_and_close_hook,
                         next_scheduled_day_hook):
     return open_and_close_hook(next_scheduled_day_hook(date))
 
+
 def previous_open_and_close(date, open_and_close_hook,
                             previous_scheduled_day_hook):
     return open_and_close_hook(previous_scheduled_day_hook(date))
+
 
 def scheduled_day_distance(first_date, second_date, all_days):
     first_date = normalize_date(first_date)
@@ -92,9 +99,11 @@ def scheduled_day_distance(first_date, second_date, all_days):
     assert distance >= 0
     return distance
 
+
 def minutes_for_day(day, open_and_close_hook):
     start, end = open_and_close_hook(day)
     return pd.date_range(start, end, freq='T')
+
 
 def days_in_range(start, end, all_days):
     """
@@ -106,6 +115,7 @@ def days_in_range(start, end, all_days):
 
     mask = ((all_days >= start_date) & (all_days <= end_date))
     return all_days[mask]
+
 
 def minutes_for_days_in_range(start, end, days_in_range_hook,
                               minutes_for_day_hook):
@@ -123,6 +133,7 @@ def minutes_for_days_in_range(start, end, days_in_range_hook,
 
     # Concatenate all minutes and truncate minutes before start/after end.
     return pd.DatetimeIndex(np.concatenate(all_minutes), copy=False, tz='UTC')
+
 
 def add_scheduled_days(n, date, next_scheduled_day_hook,
                        previous_scheduled_day_hook, all_trading_days):
@@ -154,10 +165,12 @@ def add_scheduled_days(n, date, next_scheduled_day_hook,
 
     return all_trading_days[idx]
 
+
 def all_scheduled_minutes(all_days, minutes_for_days_in_range_hook):
     first_day = all_days[0]
     last_day = all_days[-1]
     return minutes_for_days_in_range_hook(first_day, last_day)
+
 
 def next_scheduled_minute(start, is_scheduled_day_hook, open_and_close_hook,
                           next_open_and_close_hook):
@@ -177,6 +190,7 @@ def next_scheduled_minute(start, is_scheduled_day_hook, open_and_close_hook,
     # If start is not in a trading day, or is after the market close
     # then return the open of the *next* trading day.
     return next_open_and_close_hook(start)[0]
+
 
 def previous_scheduled_minute(start, is_scheduled_day_hook,
                               open_and_close_hook,

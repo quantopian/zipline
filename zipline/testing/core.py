@@ -705,8 +705,8 @@ class FakeDataPortal(DataPortal):
             end_idx = \
                 self.trading_schedule.all_execution_days.searchsorted(end_dt)
             days = self.trading_schedule.all_execution_days[
-                   (end_idx - bar_count + 1):(end_idx + 1)
-                   ]
+                (end_idx - bar_count + 1):(end_idx + 1)
+            ]
 
             df = pd.DataFrame(
                 np.full((bar_count, len(assets)), 100),

@@ -800,9 +800,10 @@ class BcolzMinuteBarTestCase(TestCase):
         start_minute_loc = \
             default_nyse_schedule.all_execution_minutes.get_loc(minutes[0])
         minute_locs = [
-            default_nyse_schedule.all_execution_minutes.get_loc(minute) \
+            default_nyse_schedule.all_execution_minutes.get_loc(minute)
             - start_minute_loc
-            for minute in minutes]
+            for minute in minutes
+        ]
 
         for i, col in enumerate(columns):
             for j, sid in enumerate(sids):

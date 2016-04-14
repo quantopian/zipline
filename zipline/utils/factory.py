@@ -17,19 +17,13 @@
 """
 Factory functions to prepare useful data.
 """
-import pytz
-
 import pandas as pd
 import numpy as np
 from datetime import timedelta
 
 from zipline.protocol import Event, DATASOURCE_TYPE
-from zipline.sources import (SpecificEquityTrades,
-                             DataFrameSource,
-                             DataPanelSource)
-from zipline.finance.trading import (
-    SimulationParameters, TradingEnvironment, noop_load
-)
+from zipline.sources import SpecificEquityTrades
+from zipline.finance.trading import SimulationParameters
 from zipline.sources.test_source import create_trade
 from zipline.data.loader import (  # For backwards compatibility
     load_from_yahoo,

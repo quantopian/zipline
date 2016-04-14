@@ -122,180 +122,179 @@ class NYSECalendarTestCase(ExchangeCalendarTestBase, TestCase):
     calendar_class = NYSEExchangeCalendar
 
     def test_newyears(self):
-         """
-         Check whether tradingcalendar contains certain dates.
-         """
-         #     January 2012
-         # Su Mo Tu We Th Fr Sa
-         #  1  2  3  4  5  6  7
-         #  8  9 10 11 12 13 14
-         # 15 16 17 18 19 20 21
-         # 22 23 24 25 26 27 28
-         # 29 30 31
+        """
+        Check whether tradingcalendar contains certain dates.
+        """
+        #     January 2012
+        # Su Mo Tu We Th Fr Sa
+        #  1  2  3  4  5  6  7
+        #  8  9 10 11 12 13 14
+        # 15 16 17 18 19 20 21
+        # 22 23 24 25 26 27 28
+        # 29 30 31
 
-         start_dt = Timestamp('1/1/12', tz='UTC')
-         end_dt = Timestamp('12/31/13', tz='UTC')
-         trading_days = self.calendar.trading_days(start=start_dt,
-                                                   end=end_dt)
+        start_dt = Timestamp('1/1/12', tz='UTC')
+        end_dt = Timestamp('12/31/13', tz='UTC')
+        trading_days = self.calendar.trading_days(start=start_dt, end=end_dt)
 
-         day_after_new_years_sunday = datetime(
-             2012, 1, 2, tzinfo=pytz.utc)
+        day_after_new_years_sunday = datetime(
+            2012, 1, 2, tzinfo=pytz.utc)
 
-         self.assertNotIn(day_after_new_years_sunday,
-                          trading_days.index,
-                          """
+        self.assertNotIn(day_after_new_years_sunday,
+                         trading_days.index,
+                         """
  If NYE falls on a weekend, {0} the Monday after is a holiday.
  """.strip().format(day_after_new_years_sunday)
-         )
+        )
 
-         first_trading_day_after_new_years_sunday = datetime(
-             2012, 1, 3, tzinfo=pytz.utc)
+        first_trading_day_after_new_years_sunday = datetime(
+            2012, 1, 3, tzinfo=pytz.utc)
 
-         self.assertIn(first_trading_day_after_new_years_sunday,
-                       trading_days.index,
-                       """
+        self.assertIn(first_trading_day_after_new_years_sunday,
+                      trading_days.index,
+                      """
  If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
  """.strip().format(first_trading_day_after_new_years_sunday)
-         )
+        )
 
-         #     January 2013
-         # Su Mo Tu We Th Fr Sa
-         #        1  2  3  4  5
-         #  6  7  8  9 10 11 12
-         # 13 14 15 16 17 18 19
-         # 20 21 22 23 24 25 26
-         # 27 28 29 30 31
+        #     January 2013
+        # Su Mo Tu We Th Fr Sa
+        #        1  2  3  4  5
+        #  6  7  8  9 10 11 12
+        # 13 14 15 16 17 18 19
+        # 20 21 22 23 24 25 26
+        # 27 28 29 30 31
 
-         new_years_day = datetime(
-             2013, 1, 1, tzinfo=pytz.utc)
+        new_years_day = datetime(
+            2013, 1, 1, tzinfo=pytz.utc)
 
-         self.assertNotIn(new_years_day,
-                          trading_days.index,
-                          """
+        self.assertNotIn(new_years_day,
+                         trading_days.index,
+                         """
  If NYE falls during the week, e.g. {0}, it is a holiday.
  """.strip().format(new_years_day)
-         )
+        )
 
-         first_trading_day_after_new_years = datetime(
-             2013, 1, 2, tzinfo=pytz.utc)
+        first_trading_day_after_new_years = datetime(
+            2013, 1, 2, tzinfo=pytz.utc)
 
-         self.assertIn(first_trading_day_after_new_years,
-                       trading_days.index,
-                       """
+        self.assertIn(first_trading_day_after_new_years,
+                      trading_days.index,
+                      """
  If the day after NYE falls during the week, {0} \
  is the first trading day.
  """.strip().format(first_trading_day_after_new_years)
-         )
+        )
 
     def test_thanksgiving(self):
-         """
-         Check tradingcalendar Thanksgiving dates.
-         """
-         #     November 2005
-         # Su Mo Tu We Th Fr Sa
-         #        1  2  3  4  5
-         #  6  7  8  9 10 11 12
-         # 13 14 15 16 17 18 19
-         # 20 21 22 23 24 25 26
-         # 27 28 29 30
+        """
+        Check tradingcalendar Thanksgiving dates.
+        """
+        #     November 2005
+        # Su Mo Tu We Th Fr Sa
+        #        1  2  3  4  5
+        #  6  7  8  9 10 11 12
+        # 13 14 15 16 17 18 19
+        # 20 21 22 23 24 25 26
+        # 27 28 29 30
 
-         start_dt = Timestamp('1/1/05', tz='UTC')
-         end_dt = Timestamp('12/31/12', tz='UTC')
-         trading_days = self.calendar.trading_days(start=start_dt,
-                                                   end=end_dt)
+        start_dt = Timestamp('1/1/05', tz='UTC')
+        end_dt = Timestamp('12/31/12', tz='UTC')
+        trading_days = self.calendar.trading_days(start=start_dt,
+                                                  end=end_dt)
 
-         thanksgiving_with_four_weeks = datetime(
-             2005, 11, 24, tzinfo=pytz.utc)
+        thanksgiving_with_four_weeks = datetime(
+            2005, 11, 24, tzinfo=pytz.utc)
 
-         self.assertNotIn(thanksgiving_with_four_weeks,
-                          trading_days.index,
-                          """
+        self.assertNotIn(thanksgiving_with_four_weeks,
+                         trading_days.index,
+                         """
  If Nov has 4 Thursdays, {0} Thanksgiving is the last Thursady.
  """.strip().format(thanksgiving_with_four_weeks)
-         )
+        )
 
-         #     November 2006
-         # Su Mo Tu We Th Fr Sa
-         #           1  2  3  4
-         #  5  6  7  8  9 10 11
-         # 12 13 14 15 16 17 18
-         # 19 20 21 22 23 24 25
-         # 26 27 28 29 30
-         thanksgiving_with_five_weeks = datetime(
-             2006, 11, 23, tzinfo=pytz.utc)
+        #     November 2006
+        # Su Mo Tu We Th Fr Sa
+        #           1  2  3  4
+        #  5  6  7  8  9 10 11
+        # 12 13 14 15 16 17 18
+        # 19 20 21 22 23 24 25
+        # 26 27 28 29 30
+        thanksgiving_with_five_weeks = datetime(
+            2006, 11, 23, tzinfo=pytz.utc)
 
-         self.assertNotIn(thanksgiving_with_five_weeks,
-                          trading_days.index,
-                          """
+        self.assertNotIn(thanksgiving_with_five_weeks,
+                         trading_days.index,
+                         """
  If Nov has 5 Thursdays, {0} Thanksgiving is not the last week.
  """.strip().format(thanksgiving_with_five_weeks)
-         )
+        )
 
-         first_trading_day_after_new_years_sunday = datetime(
-             2012, 1, 3, tzinfo=pytz.utc)
+        first_trading_day_after_new_years_sunday = datetime(
+            2012, 1, 3, tzinfo=pytz.utc)
 
-         self.assertIn(first_trading_day_after_new_years_sunday,
-                       trading_days.index,
-                       """
+        self.assertIn(first_trading_day_after_new_years_sunday,
+                      trading_days.index,
+                      """
  If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
  """.strip().format(first_trading_day_after_new_years_sunday)
-         )
+        )
 
     def test_day_after_thanksgiving(self):
-         #    November 2012
-         # Su Mo Tu We Th Fr Sa
-         #              1  2  3
-         #  4  5  6  7  8  9 10
-         # 11 12 13 14 15 16 17
-         # 18 19 20 21 22 23 24
-         # 25 26 27 28 29 30
-         fourth_friday_open = Timestamp('11/23/2012 11:00AM', tz='EST')
-         fourth_friday = Timestamp('11/23/2012 3:00PM', tz='EST')
-         self.assertTrue(self.calendar.is_open_on_minute(fourth_friday_open))
-         self.assertFalse(self.calendar.is_open_on_minute(fourth_friday))
+        #    November 2012
+        # Su Mo Tu We Th Fr Sa
+        #              1  2  3
+        #  4  5  6  7  8  9 10
+        # 11 12 13 14 15 16 17
+        # 18 19 20 21 22 23 24
+        # 25 26 27 28 29 30
+        fourth_friday_open = Timestamp('11/23/2012 11:00AM', tz='EST')
+        fourth_friday = Timestamp('11/23/2012 3:00PM', tz='EST')
+        self.assertTrue(self.calendar.is_open_on_minute(fourth_friday_open))
+        self.assertFalse(self.calendar.is_open_on_minute(fourth_friday))
 
-         #    November 2013
-         # Su Mo Tu We Th Fr Sa
-         #                 1  2
-         #  3  4  5  6  7  8  9
-         # 10 11 12 13 14 15 16
-         # 17 18 19 20 21 22 23
-         # 24 25 26 27 28 29 30
-         fifth_friday_open = Timestamp('11/29/2013 11:00AM', tz='EST')
-         fifth_friday = Timestamp('11/29/2013 3:00PM', tz='EST')
-         self.assertTrue(self.calendar.is_open_on_minute(fifth_friday_open))
-         self.assertFalse(self.calendar.is_open_on_minute(fifth_friday))
+        #    November 2013
+        # Su Mo Tu We Th Fr Sa
+        #                 1  2
+        #  3  4  5  6  7  8  9
+        # 10 11 12 13 14 15 16
+        # 17 18 19 20 21 22 23
+        # 24 25 26 27 28 29 30
+        fifth_friday_open = Timestamp('11/29/2013 11:00AM', tz='EST')
+        fifth_friday = Timestamp('11/29/2013 3:00PM', tz='EST')
+        self.assertTrue(self.calendar.is_open_on_minute(fifth_friday_open))
+        self.assertFalse(self.calendar.is_open_on_minute(fifth_friday))
 
     def test_early_close_independence_day_thursday(self):
-         """
-         Until 2013, the market closed early the Friday after an
-         Independence Day on Thursday.  Since then, the early close is on
-         Wednesday.
-         """
-         #      July 2002
-         # Su Mo Tu We Th Fr Sa
-         #     1  2  3  4  5  6
-         #  7  8  9 10 11 12 13
-         # 14 15 16 17 18 19 20
-         # 21 22 23 24 25 26 27
-         # 28 29 30 31
-         wednesday_before = Timestamp('7/3/2002 3:00PM', tz='EST')
-         friday_after_open = Timestamp('7/5/2002 11:00AM', tz='EST')
-         friday_after = Timestamp('7/5/2002 3:00PM', tz='EST')
-         self.assertTrue(self.calendar.is_open_on_minute(wednesday_before))
-         self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
-         self.assertFalse(self.calendar.is_open_on_minute(friday_after))
+        """
+        Until 2013, the market closed early the Friday after an
+        Independence Day on Thursday.  Since then, the early close is on
+        Wednesday.
+        """
+        #      July 2002
+        # Su Mo Tu We Th Fr Sa
+        #     1  2  3  4  5  6
+        #  7  8  9 10 11 12 13
+        # 14 15 16 17 18 19 20
+        # 21 22 23 24 25 26 27
+        # 28 29 30 31
+        wednesday_before = Timestamp('7/3/2002 3:00PM', tz='EST')
+        friday_after_open = Timestamp('7/5/2002 11:00AM', tz='EST')
+        friday_after = Timestamp('7/5/2002 3:00PM', tz='EST')
+        self.assertTrue(self.calendar.is_open_on_minute(wednesday_before))
+        self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
+        self.assertFalse(self.calendar.is_open_on_minute(friday_after))
 
-         #      July 2013
-         # Su Mo Tu We Th Fr Sa
-         #     1  2  3  4  5  6
-         #  7  8  9 10 11 12 13
-         # 14 15 16 17 18 19 20
-         # 21 22 23 24 25 26 27
-         # 28 29 30 31
-         wednesday_before = Timestamp('7/3/2013 3:00PM', tz='EST')
-         friday_after_open = Timestamp('7/5/2013 11:00AM', tz='EST')
-         friday_after = Timestamp('7/5/2013 3:00PM', tz='EST')
-         self.assertFalse(self.calendar.is_open_on_minute(wednesday_before))
-         self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
-         self.assertTrue(self.calendar.is_open_on_minute(friday_after))
+        #      July 2013
+        # Su Mo Tu We Th Fr Sa
+        #     1  2  3  4  5  6
+        #  7  8  9 10 11 12 13
+        # 14 15 16 17 18 19 20
+        # 21 22 23 24 25 26 27
+        # 28 29 30 31
+        wednesday_before = Timestamp('7/3/2013 3:00PM', tz='EST')
+        friday_after_open = Timestamp('7/5/2013 11:00AM', tz='EST')
+        friday_after = Timestamp('7/5/2013 3:00PM', tz='EST')
+        self.assertFalse(self.calendar.is_open_on_minute(wednesday_before))
+        self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
+        self.assertTrue(self.calendar.is_open_on_minute(friday_after))
