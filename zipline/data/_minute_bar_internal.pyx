@@ -38,8 +38,7 @@ def minute_value(ndarray[long_t, ndim=1] market_opens,
 def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
                             ndarray[long_t, ndim=1] market_closes,
                             long_t minute_val,
-                            short minutes_per_day,
-                            bool adjust_half_day_minutes):
+                            short minutes_per_day):
     """
     Finds the position of a given minute in the given array of market opens.
     If not a market minute, adjusts to the last market minute.
@@ -58,26 +57,6 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
     minutes_per_day: int
         The number of minutes per day (e.g. 390 for NYSE).
 
-    adjust_half_day_minutes: boolean
-        Whether or not we want to adjust non trading minutes to early close on
-        half days as opposed to normal close.
-
-    Further explanation of the use adjust_half_day_minutes:
-        adjust_half_day_minutes=True:
-            We are using this method for the purpose finding a value for a
-            minute, and therefore, all non market minutes must be adjusted to
-            the last available (e.g. 9 pm EST -> 4 pm EST, 2 pm EST -> 1 pm EST
-            on a half day)
-
-        adjust_half_day_minutes=False:
-            We are using this method for the purpose of finding the positions
-            of minutes we want to ignore (1 pm to 4 pm EST on half days).
-            The minute bar reader tape has 390 bars per day, with 0's filled in
-            for the extra bars on half days. If we index a minute between
-            1:01 pm and 4 pm on a half day, we want a position for that
-            unadjusted time, not adjusted to 1 pm as in the above case
-            (e.g. for all days: 9 pm EST -> 4 pm EST, 2 pm EST -> 2 pm EST)
-
     Returns
     -------
     int: The position of the given minute in the market opens array.
@@ -89,14 +68,7 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
     market_open = market_opens[market_open_loc]
     market_close = market_closes[market_open_loc]
 
-    if adjust_half_day_minutes:
-        # The min of the distance to market open from minute_val and number
-        # of trading minutes for that day
-        delta = int_min(minute_val - market_open, market_close - market_open)
-    else:
-        # The min of the distance to market open from minute_val and number
-        # of trading minutes for a normal day (390)
-        delta = int_min(minute_val - market_open, minutes_per_day)
+    delta = int_min(minute_val - market_open, market_close - market_open)
 
     return (market_open_loc * minutes_per_day) + delta
 
@@ -140,7 +112,7 @@ def find_last_traded_position_internal(
 
     minute_pos = int_min(
         find_position_of_minute(market_opens, market_closes, end_minute,
-                                minutes_per_day, True),
+                                minutes_per_day),
         len(volumes) - 1
     )
 

@@ -16,7 +16,7 @@ from textwrap import dedent
 import bcolz
 from bcolz import ctable
 from intervaltree import IntervalTree
-from numpy import nan_to_num, timedelta64
+from numpy import nan_to_num
 from os.path import join
 import json
 import os
@@ -646,12 +646,11 @@ class BcolzMinuteBarReader(object):
         minutes_per_day = (market_closes - market_opens).astype(np.int64)
         early_indices = np.where(
             minutes_per_day != US_EQUITIES_MINUTES_PER_DAY - 1)[0]
-        regular_closes = market_opens[early_indices] + timedelta64(
-            US_EQUITIES_MINUTES_PER_DAY - 1, 'm')
-        early_closes = market_closes[early_indices]
-        minutes = [pd.date_range(early, regular, freq='min')
-                   for early, regular
-                   in zip(early_closes + 1, regular_closes)]
+        early_opens = self._market_opens[early_indices]
+        early_closes = self._market_closes[early_indices]
+        minutes = [(market_open, early_close)
+                   for market_open, early_close
+                   in zip(early_opens, early_closes)]
         return minutes
 
     @lazyval
@@ -673,11 +672,15 @@ class BcolzMinuteBarReader(object):
         because of early closes.
         """
         itree = IntervalTree()
-        for minute_range in self._minutes_to_exclude():
-            # setting adjust_half_day_minutes to False because we want to find
-            # the positions of minutes 211 to 390 on a 390-bar day
-            start_pos = self._find_position_of_minute(minute_range[0], False)
-            end_pos = self._find_position_of_minute(minute_range[-1], False)
+        for market_open, early_close in self._minutes_to_exclude():
+            start_pos = self._find_position_of_minute(early_close) + 1
+            end_pos = (
+                self._find_position_of_minute(market_open)
+                +
+                US_EQUITIES_MINUTES_PER_DAY
+                -
+                1
+            )
             data = (start_pos, end_pos)
             itree[start_pos:end_pos + 1] = data
         return itree
@@ -744,7 +747,7 @@ class BcolzMinuteBarReader(object):
             Returns the integer value of the volume.
             (A volume of 0 signifies no trades for the given dt.)
         """
-        minute_pos = self._find_position_of_minute(dt, True)
+        minute_pos = self._find_position_of_minute(dt)
         value = self._open_minute_file(field, sid)[minute_pos]
         if value == 0:
             if field == 'volume':
@@ -788,7 +791,7 @@ class BcolzMinuteBarReader(object):
         return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
 
     @remember_last
-    def _find_position_of_minute(self, minute_dt, adjust_half_day_minutes):
+    def _find_position_of_minute(self, minute_dt):
         """
         Internal method that returns the position of the given minute in the
         list of every trading minute since market open of the first trading
@@ -802,10 +805,6 @@ class BcolzMinuteBarReader(object):
         minute_dt: pd.Timestamp
             The minute whose position should be calculated.
 
-        adjust_half_day_minutes: boolean
-            Whether or not we want to adjust minutes to early close on half
-            days.
-
         Returns
         -------
         int: The position of the given minute in the list of all trading
@@ -816,7 +815,6 @@ class BcolzMinuteBarReader(object):
             self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
             US_EQUITIES_MINUTES_PER_DAY,
-            adjust_half_day_minutes
         )
 
     def unadjusted_window(self, fields, start_dt, end_dt, sids):
@@ -839,8 +837,8 @@ class BcolzMinuteBarReader(object):
             (sids, minutes in range) with a dtype of float64, containing the
             values for the respective field over start and end dt range.
         """
-        start_idx = self._find_position_of_minute(start_dt, True)
-        end_idx = self._find_position_of_minute(end_dt, True)
+        start_idx = self._find_position_of_minute(start_dt)
+        end_idx = self._find_position_of_minute(end_dt)
 
         num_minutes = (end_idx - start_idx + 1)
 
