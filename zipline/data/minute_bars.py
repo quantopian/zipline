@@ -30,7 +30,7 @@ from zipline.data._minute_bar_internal import (
     find_last_traded_position_internal
 )
 
-from zipline.utils.memoize import remember_last, lazyval
+from zipline.utils.memoize import lazyval
 
 US_EQUITIES_MINUTES_PER_DAY = 390
 
@@ -618,6 +618,9 @@ class BcolzMinuteBarReader(object):
             'volume': {},
         }
 
+        self._last_get_value_dt_position = None
+        self._last_get_value_dt_value = None
+
     def _get_metadata(self):
         return BcolzMinuteBarMetadata.read(self._rootdir)
 
@@ -747,7 +750,13 @@ class BcolzMinuteBarReader(object):
             Returns the integer value of the volume.
             (A volume of 0 signifies no trades for the given dt.)
         """
-        minute_pos = self._find_position_of_minute(dt)
+        if self._last_get_value_dt_value == dt.value:
+            minute_pos = self._last_get_value_dt_position
+        else:
+            minute_pos = self._find_position_of_minute(dt)
+            self._last_get_value_dt_value = dt.value
+            self._last_get_value_dt_position = minute_pos
+
         value = self._open_minute_file(field, sid)[minute_pos]
         if value == 0:
             if field == 'volume':
@@ -790,7 +799,6 @@ class BcolzMinuteBarReader(object):
 
         return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
 
-    @remember_last
     def _find_position_of_minute(self, minute_dt):
         """
         Internal method that returns the position of the given minute in the
