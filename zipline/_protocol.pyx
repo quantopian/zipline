@@ -62,18 +62,17 @@ cdef class check_parameters(object):
                                     " '%s'" % (func.__name__, field))
 
             # verify type of each arg
-            i = 0
-            while i < (len(args) - 1):
-                arg = args[i + 1]
+            for i, arg in enumerate(args[1:]):
                 expected_type = self.types[i]
 
                 if isinstance(arg, expected_type):
-                    i += 1
                     continue
 
                 elif (i == 0 or i == 1) and _is_iterable(arg):
+                    if len(arg) == 0:
+                        continue
+
                     if isinstance(arg[0], expected_type):
-                        i += 1
                         continue
 
                 expected_type_name = expected_type.__name__ \
@@ -91,6 +90,9 @@ cdef class check_parameters(object):
                 if isinstance(arg, self.keys_to_types[keyword]):
                     continue
                 elif keyword in ('assets', 'fields') and _is_iterable(arg):
+                    if len(arg) == 0:
+                        continue
+
                     if isinstance(arg[0], self.keys_to_types[i]):
                         continue
 

@@ -1905,6 +1905,21 @@ def handle_data(context, data):
 
         self.assertEqual(expected, cm.exception.args[0])
 
+    def test_empty_asset_list_to_history(self):
+        algo = TradingAlgorithm(
+            script=dedent("""
+                def initialize(context):
+                    pass
+
+                def handle_data(context, data):
+                    data.history([], "price", 5, '1d')
+                """),
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        algo.run(self.data_portal)
+
 
 class TestGetDatetime(TestCase):
 
