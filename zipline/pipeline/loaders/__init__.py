@@ -1,4 +1,5 @@
 from .earnings import EarningsCalendarLoader
+from .consensus_estimates import ConsensusEstimatesLoader
 from .buyback_auth import (
     CashBuybackAuthorizationsLoader,
     ShareBuybackAuthorizationsLoader
@@ -16,6 +17,7 @@ __all__ = [
     'DividendsByExDateLoader',
     'DividendsByPayDateLoader',
     'EarningsCalendarLoader',
+    'ConsensusEstimatesLoader',
     'ShareBuybackAuthorizationsLoader',
     'USEquityPricingLoader',
 ]
