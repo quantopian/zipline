@@ -460,10 +460,10 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         raise NotImplementedError()
 
 
-
 _static_calendars = {}
 
 _lazy_calendar_names = ['NYSE']
+
 
 def get_calendar(name):
     """

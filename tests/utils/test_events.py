@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
-from functools import partial
 from inspect import isabstract
 import random
 from unittest import TestCase
@@ -239,7 +238,6 @@ class RuleTestCase(TestCase):
         cls.before_close = BeforeClose(hours=1, minutes=5)
         cls.after_open = AfterOpen(hours=1, minutes=5)
         cls.class_ = None  # Mark that this is the base class.
-
 
     def test_completeness(self):
         """

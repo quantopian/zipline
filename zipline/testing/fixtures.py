@@ -450,6 +450,7 @@ class WithSimParams(WithTradingEnvironment):
     SIM_PARAMS_NUM_DAYS = None
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
     SIM_PARAMS_EMISSION_RATE = 'daily'
+    SIM_PARAMS_TRADING_SCHEDULE = default_nyse_schedule
 
     SIM_PARAMS_START = alias('START_DATE')
     SIM_PARAMS_END = alias('END_DATE')
@@ -464,7 +465,7 @@ class WithSimParams(WithTradingEnvironment):
             capital_base=cls.SIM_PARAMS_CAPITAL_BASE,
             data_frequency=cls.SIM_PARAMS_DATA_FREQUENCY,
             emission_rate=cls.SIM_PARAMS_EMISSION_RATE,
-            env=cls.env,
+            trading_schedule=cls.SIM_PARAMS_TRADING_SCHEDULE,
         )
 
     @classmethod
@@ -498,7 +499,7 @@ class WithNYSETradingDays(object):
     def init_class_fixtures(cls):
         super(WithNYSETradingDays, cls).init_class_fixtures()
 
-        all_days = tradingcalendar.trading_days
+        all_days = default_nyse_schedule.all_execution_days
         start_loc = all_days.get_loc(cls.DATA_MIN_DAY, 'bfill')
         end_loc = all_days.get_loc(cls.DATA_MAX_DAY, 'ffill')
 

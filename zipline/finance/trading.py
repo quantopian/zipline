@@ -26,6 +26,7 @@ from zipline.utils.calendars import default_nyse_schedule
 log = logbook.Logger('Trading')
 
 
+
 class TradingEnvironment(object):
     """
     The financial simulations in zipline depend on information
@@ -91,14 +92,6 @@ class TradingEnvironment(object):
             trading_schedule.schedule.index,
             self.bm_symbol,
         )
-
-        #if max_date:
-        #    tr_c = self.treasury_curves
-        #    # Mask the treasury curves down to the current date.
-        #    # In the case of live trading, the last date in the treasury
-        #    # curves would be the day before the date considered to be
-        #    # 'today'.
-        #    self.treasury_curves = tr_c[tr_c.index <= max_date]
 
         self.exchange_tz = exchange_tz
 
