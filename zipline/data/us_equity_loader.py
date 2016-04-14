@@ -17,6 +17,8 @@ from abc import (
     abstractmethod,
     abstractproperty,
 )
+
+from cachetools import LRUCache
 from numpy import dtype, around
 from pandas.tslib import normalize_date
 
@@ -25,7 +27,7 @@ from six import iteritems, with_metaclass
 from zipline.pipeline.data.equity_pricing import USEquityPricing
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib.adjustment import Float64Multiply
-from zipline.utils.cache import CachedObject, Expired
+from zipline.utils.cache import ExpiringCache
 from zipline.utils.memoize import lazyval
 
 
@@ -82,7 +84,8 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         self.env = env
         self._reader = reader
         self._adjustments_reader = adjustment_reader
-        self._window_blocks = {}
+        # TODO: Split cache into 'by column' and 'by sid'.
+        self._window_blocks = ExpiringCache(LRUCache(maxsize=5))
 
     @abstractproperty
     def _prefetch_length(self):
@@ -218,11 +221,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         size = len(dts)
         assets_key = frozenset(assets)
         try:
-            block_cache = self._window_blocks[(assets_key, field, size)]
-            try:
-                return block_cache.unwrap(end)
-            except Expired:
-                pass
+            return self._window_blocks.get((assets_key, field, size), end)
         except KeyError:
             pass
 
@@ -253,8 +252,9 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
             size
         )
         block = SlidingWindow(window, size, start_ix, offset)
-        self._window_blocks[(assets_key, field, size)] = CachedObject(
-            block, prefetch_end)
+        self._window_blocks.set((assets_key, field, size),
+                                block,
+                                prefetch_end)
         return block
 
     def history(self, assets, dts, field):

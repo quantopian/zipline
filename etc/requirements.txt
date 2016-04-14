@@ -58,3 +58,5 @@ sqlalchemy==1.0.8
 # for intervaltree
 sortedcontainers==1.4.4
 intervaltree==2.1.0
+
+cachetools==1.1.5
