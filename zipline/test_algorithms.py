@@ -957,3 +957,134 @@ def initialize(context):
 def handle_data(context, data):
     current = data.current(assets=symbol('TEST'), blahblah="price")
 """
+
+bad_type_history_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(1, 'price', 5, '1d')
+"""
+
+bad_type_history_fields = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(symbol('TEST'), 10 , 5, '1d')
+"""
+
+bad_type_history_bar_count = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(symbol('TEST'), 'price', '5', '1d')
+"""
+
+bad_type_history_frequency = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(symbol('TEST'), 'price', 5, 1)
+"""
+
+bad_type_current_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(1, 'price')
+"""
+
+bad_type_current_fields = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(symbol('TEST'), 10)
+"""
+
+bad_type_is_stale_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.is_stale('TEST')
+"""
+
+bad_type_can_trade_assets = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.can_trade('TEST')
+"""
+
+bad_type_history_assets_kwarg = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency='1d', fields='price', assets=1, bar_count=5)
+"""
+
+bad_type_history_fields_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency='1d', fields=10, assets=symbol('TEST'),
+                 bar_count=5)
+"""
+
+bad_type_history_bar_count_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency='1d', fields='price', assets=symbol('TEST'),
+                 bar_count='5')
+"""
+
+bad_type_history_frequency_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(frequency=1, fields='price', assets=symbol('TEST'),
+                 bar_count=5)
+"""
+
+bad_type_current_assets_kwarg = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(fields='price', assets=1)
+"""
+
+bad_type_current_fields_kwarg = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.current(fields=10, assets=symbol('TEST'))
+"""

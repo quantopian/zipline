@@ -21,27 +21,91 @@ import numpy as np
 
 from six import iteritems
 from cpython cimport bool
+from collections import Iterable
 
 from zipline.assets import Asset
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
-class assert_keywords(object):
+cdef bool _is_iterable(obj):
+    return isinstance(obj, Iterable) and not isinstance(obj, str)
+
+
+cdef class check_parameters(object):
     """
     Asserts that the keywords passed into the wrapped function are included
     in those passed into this decorator. If not, raise a TypeError with a
-    meaningful message, unlike the one cython returns by default.
-    """
+    meaningful message, unlike the one Cython returns by default.
 
-    def __init__(self, *args):
-        self.names = args
+    Also asserts that the arguments passed into the wrapped function are
+    consistent with the types passed into this decorator. If not, raise a
+    TypeError with a meaningful message.
+    """
+    cdef tuple keyword_names
+    cdef tuple types
+    cdef dict keys_to_types
+
+    def __init__(self, keyword_names, types):
+        self.keyword_names = keyword_names
+        self.types = types
+
+        self.keys_to_types = dict(zip(keyword_names, types))
 
     def __call__(self, func):
         def assert_keywords_and_call(*args, **kwargs):
+            cdef short i
+
+            # verify all the keyword arguments
             for field in kwargs:
-                if field not in self.names:
+                if field not in self.keyword_names:
                     raise TypeError("%s() got an unexpected keyword argument"
                                     " '%s'" % (func.__name__, field))
+
+            # verify type of each arg
+            i = 0
+            while i < (len(args) - 1):
+                arg = args[i + 1]
+                expected_type = self.types[i]
+
+                if isinstance(arg, expected_type):
+                    i += 1
+                    continue
+
+                elif (i == 0 or i == 1) and _is_iterable(arg):
+                    if isinstance(arg[0], expected_type):
+                        i += 1
+                        continue
+
+                expected_type_name = expected_type.__name__ \
+                    if not _is_iterable(expected_type) \
+                    else ', '.join([type_.__name__ for type_ in expected_type])
+
+                raise TypeError("Expected %s argument to be of type %s%s" %
+                                (self.keyword_names[i],
+                                 'or iterable of type ' if i in (0, 1) else '',
+                                 expected_type_name)
+                )
+
+            # verify type of each kwarg
+            for keyword, arg in iteritems(kwargs):
+                if isinstance(arg, self.keys_to_types[keyword]):
+                    continue
+                elif keyword in ('assets', 'fields') and _is_iterable(arg):
+                    if isinstance(arg[0], self.keys_to_types[i]):
+                        continue
+
+                expected_type = self.keys_to_types[keyword].__name__ \
+                    if not _is_iterable(self.keys_to_types[keyword]) \
+                    else ', '.join([type.__name__ for type in
+                                    self.keys_to_types[keyword]])
+
+                raise TypeError("Expected %s argument to be of type %s%s" %
+                                (keyword,
+                                 'or iterable of type ' if keyword in
+                                 ('assets', 'fields') else '',
+                                 expected_type)
+                )
+
             return func(*args, **kwargs)
 
         return assert_keywords_and_call
@@ -149,7 +213,7 @@ cdef class BarData:
 
         return dt
 
-    @assert_keywords('assets', 'fields')
+    @check_parameters(('assets', 'fields'), ((Asset, str), str))
     def current(self, assets, fields):
         """
         Returns the current value of the given assets for the given fields
@@ -206,8 +270,8 @@ cdef class BarData:
         the current trade bar.  If there is no current trade bar, NaN is
         returned.
         """
-        multiple_assets = self._is_iterable(assets)
-        multiple_fields = self._is_iterable(fields)
+        multiple_assets = _is_iterable(assets)
+        multiple_fields = _is_iterable(fields)
 
         # There's some overly verbose code in here, particularly around
         # 'do something if self._adjust_minutes is False, otherwise do
@@ -324,9 +388,7 @@ cdef class BarData:
 
                 return pd.DataFrame(data)
 
-    cdef bool _is_iterable(self, obj):
-        return hasattr(obj, '__iter__') and not isinstance(obj, str)
-
+    @check_parameters(('assets',), (Asset,))
     def can_trade(self, assets):
         """
         For the given asset or iterable of assets, returns true if the asset
@@ -373,6 +435,7 @@ cdef class BarData:
 
         return False
 
+    @check_parameters(('assets',), (Asset,))
     def is_stale(self, assets):
         """
         For the given asset or iterable of assets, returns true if the asset
@@ -432,7 +495,8 @@ cdef class BarData:
 
             return not (last_traded_dt is pd.NaT)
 
-    @assert_keywords('assets', 'fields', 'bar_count', 'frequency')
+    @check_parameters(('assets', 'fields', 'bar_count', 'frequency'),
+                      ((Asset, str), str, int, str))
     def history(self, assets, fields, bar_count, frequency):
         """
         Returns a window of data for the given assets and fields.
