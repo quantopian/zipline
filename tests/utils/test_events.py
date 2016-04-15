@@ -369,15 +369,29 @@ class TestStatelessRules(RuleTestCase):
                 self.assertEqual(m, first_of_week + timedelta(days=4-n))
         self.assertEqual(n_triggered, 1)
 
-    @parameter_space(n=(0, 1, 2, 3, 4), type=('week_start', 'week_end'))
-    def test_edge_cases_for_TradingDayOfWeek(self, n, type):
+    @parameter_space(
+        rule_offset=(0, 1, 2, 3, 4),
+        start_offset=(0, 1, 2, 3, 4),
+        type=('week_start', 'week_end')
+    )
+    def test_edge_cases_for_TradingDayOfWeek(self,
+                                             rule_offset,
+                                             start_offset,
+                                             type):
         """
         Test that we account for midweek holidays. Monday 01/20 is a holiday.
-        Ensure that the trigger date for that week is adjustmented
-        appropriately, or thrown out if not enough trading days.
+        Ensure that the trigger date for that week is adjusted
+        appropriately, or thrown out if not enough trading days. Also, test
+        that if we start the simulation on a day where we miss the trigger
+        for that week, that the trigger is recalculated for next week.
         """
+
+        sim_start = pd.Timestamp('01-06-2014 14:31:00', tz='UTC') + \
+            timedelta(days=start_offset)
+
         jan_minutes = self.env.minutes_for_days_in_range(
-            datetime.date(year=2014, month=1, day=6),
+            datetime.date(year=2014, month=1, day=6) +
+            timedelta(days=start_offset),
             datetime.date(year=2014, month=1, day=31)
         )
 
@@ -391,7 +405,8 @@ class TestStatelessRules(RuleTestCase):
                 pd.Timestamp('2014-01-21 14:31:00', tz='UTC'),
                 pd.Timestamp('2014-01-27 14:31:00', tz='UTC'),
             ]
-            trigger_dates = [x + timedelta(days=n) for x in trigger_dates]
+            trigger_dates = \
+                [x + timedelta(days=rule_offset) for x in trigger_dates]
         else:
             rule = NDaysBeforeLastTradingDayOfWeek
             # Expect to trigger on the last trading day of the week, minus the
@@ -402,16 +417,22 @@ class TestStatelessRules(RuleTestCase):
                 pd.Timestamp('2014-01-24 14:31:00', tz='UTC'),
                 pd.Timestamp('2014-01-31 14:31:00', tz='UTC'),
             ]
-            trigger_dates = [x - timedelta(days=n) for x in trigger_dates]
+            trigger_dates = \
+                [x - timedelta(days=rule_offset) for x in trigger_dates]
 
         should_trigger = partial(
-            rule(n).should_trigger, env=self.env
+            rule(rule_offset).should_trigger, env=self.env
         )
 
         # If offset is 4, there is not enough trading days in the short week,
         # and so it should not trigger
-        if n == 4:
+        if rule_offset == 4:
             del trigger_dates[2]
+
+        # Filter out trigger dates that happen before the simulation starts
+        trigger_dates = [x for x in trigger_dates if x >= sim_start]
+
+        expected_n_triggered = len(trigger_dates)
         trigger_dates = iter(trigger_dates)
 
         n_triggered = 0
@@ -420,7 +441,7 @@ class TestStatelessRules(RuleTestCase):
                 self.assertEqual(m, next(trigger_dates))
                 n_triggered += 1
 
-        self.assertEqual(n_triggered, 4 if n != 4 else 3)
+        self.assertEqual(n_triggered, expected_n_triggered)
 
     @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NthTradingDayOfMonth(self, n):

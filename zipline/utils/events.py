@@ -445,8 +445,7 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
         # If after applying the offset to the start/end day of the week, we get
         # day in a different week, skip this week and go on to the next
-        while next_trading_day.date().isocalendar()[1] != \
-                dt.date().isocalendar()[1]:
+        while next_trading_day.isocalendar()[1] != dt.isocalendar()[1]:
             dt += datetime.timedelta(days=7)
             next_trading_day = _coerce_datetime(
                 env.add_trading_days(
@@ -458,14 +457,20 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
         next_open, next_close = env.get_open_and_close(next_trading_day)
         self.next_date_start = next_open
         self.next_date_end = next_close
-        self.next_midnight_timestamp = \
-            pd.Timestamp(next_trading_day.date(), tz='UTC')
+        self.next_midnight_timestamp = next_trading_day
 
     def should_trigger(self, dt, env):
         if self.next_date_start is None:
-            # first time this method has been called.  calculate the midnight,
-            # open, and close of the next matching day.
+            # First time this method has been called. Calculate the midnight,
+            # open, and close for the first trigger, which occurs on the week
+            # of the simulation start
             self.calculate_start_and_end(dt, env)
+
+            # If we've missed the first trigger because it occurs before the
+            # simulation starts, recalculate for the next week
+            if dt > self.next_date_end:
+                self.calculate_start_and_end(dt + datetime.timedelta(days=7),
+                                             env)
 
         # if the given dt is within the next matching day, return true. Also
         # calculate the start and end dates for the next trigger
