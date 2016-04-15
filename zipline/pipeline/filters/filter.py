@@ -12,6 +12,7 @@ from numpy import (
 )
 from zipline.errors import (
     BadPercentileBounds,
+    NonExistentAssetInTimeFrame,
     UnsupportedDataType,
 )
 from zipline.lib.labelarray import LabelArray
@@ -31,7 +32,7 @@ from zipline.pipeline.expression import (
     NumericalExpression,
 )
 from zipline.utils.input_validation import expect_types
-from zipline.utils.numpy_utils import bool_dtype
+from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
 
 
 def concat_tuples(*tuples):
@@ -427,3 +428,35 @@ class Latest(LatestMixin, CustomFilter):
     Filter producing the most recently-known value of `inputs[0]` on each day.
     """
     pass
+
+
+class SingleAsset(Filter):
+    """
+    A Filter that computes to True only for the given asset.
+    """
+    inputs = []
+    window_length = 1
+
+    def __new__(cls, asset):
+        return super(SingleAsset, cls).__new__(cls, asset=asset)
+
+    def _init(self, asset, *args, **kwargs):
+        self._asset = asset
+        return super(SingleAsset, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, asset, *args, **kwargs):
+        return (
+            super(SingleAsset, cls).static_identity(*args, **kwargs), asset,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        is_my_asset = (assets == self._asset.sid)
+        out = repeat_first_axis(is_my_asset, len(mask))
+        # Raise an exception if `self._asset` does not exist for the entirety
+        # of the timeframe over which we are computing.
+        if (is_my_asset.sum() != 1) or ((out & mask).sum() != len(mask)):
+            raise NonExistentAssetInTimeFrame(
+                asset=self._asset, start_date=dates[0], end_date=dates[-1],
+            )
+        return out

@@ -8,7 +8,7 @@ from numpy import array, dtype as dtype_class, ndarray
 from six import with_metaclass
 from zipline.errors import (
     DTypeNotSpecified,
-    WindowedInputToWindowedTerm,
+    NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
     TermOutputsEmpty,
@@ -48,12 +48,16 @@ class Term(with_metaclass(ABCMeta, object)):
     # no params.
     params = ()
 
+    # Determines if a term is safe to be used as a windowed input.
+    window_safe = False
+
     _term_cache = WeakValueDictionary()
 
     def __new__(cls,
                 domain=domain,
                 dtype=dtype,
                 missing_value=missing_value,
+                window_safe=NotSpecified,
                 # params is explicitly not allowed to be passed to an instance.
                 *args,
                 **kwargs):
@@ -75,6 +79,8 @@ class Term(with_metaclass(ABCMeta, object)):
             dtype = cls.dtype
         if missing_value is NotSpecified:
             missing_value = cls.missing_value
+        if window_safe is NotSpecified:
+            window_safe = cls.window_safe
 
         dtype, missing_value = cls.validate_dtype(
             cls.__name__,
@@ -87,6 +93,7 @@ class Term(with_metaclass(ABCMeta, object)):
             domain=domain,
             dtype=dtype,
             missing_value=missing_value,
+            window_safe=window_safe,
             params=params,
             *args, **kwargs
         )
@@ -99,6 +106,7 @@ class Term(with_metaclass(ABCMeta, object)):
                     domain=domain,
                     dtype=dtype,
                     missing_value=missing_value,
+                    window_safe=window_safe,
                     params=params,
                     *args, **kwargs
                 )
@@ -236,7 +244,12 @@ class Term(with_metaclass(ABCMeta, object)):
         pass
 
     @classmethod
-    def static_identity(cls, domain, dtype, missing_value, params):
+    def static_identity(cls,
+                        domain,
+                        dtype,
+                        missing_value,
+                        window_safe,
+                        params):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -248,9 +261,9 @@ class Term(with_metaclass(ABCMeta, object)):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, domain, dtype, missing_value, params)
+        return (cls, domain, dtype, missing_value, window_safe, params)
 
-    def _init(self, domain, dtype, missing_value, params):
+    def _init(self, domain, dtype, missing_value, window_safe, params):
         """
         Parameters
         ----------
@@ -264,6 +277,7 @@ class Term(with_metaclass(ABCMeta, object)):
         self.domain = domain
         self.dtype = dtype
         self.missing_value = missing_value
+        self.window_safe = window_safe
 
         for name, value in params:
             if hasattr(self, name):
@@ -464,8 +478,8 @@ class ComputableTerm(Term):
 
         if self.window_length:
             for child in self.inputs:
-                if child.windowed:
-                    raise WindowedInputToWindowedTerm(parent=self, child=child)
+                if not child.window_safe:
+                    raise NonWindowSafeInput(parent=self, child=child)
 
     def _compute(self, inputs, dates, assets, mask):
         """

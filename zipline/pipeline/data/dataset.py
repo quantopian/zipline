@@ -113,6 +113,7 @@ class BoundColumn(LoadableTerm):
     """
     mask = AssetExists()
     inputs = ()
+    window_safe = True
 
     def __new__(cls, dtype, missing_value, dataset, name):
         return super(BoundColumn, cls).__new__(

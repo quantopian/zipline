@@ -14,6 +14,7 @@ from numpy import (
     float32,
     float64,
     full,
+    full_like,
     log,
     nan,
     tile,
@@ -36,6 +37,7 @@ from pandas import (
 )
 from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
+from scipy.stats.stats import linregress, pearsonr, spearmanr
 from six import iteritems, itervalues
 from toolz import merge
 
@@ -53,6 +55,10 @@ from zipline.pipeline.factors import (
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
     MaxDrawdown,
+    Returns,
+    RollingLinearRegressionOfReturns,
+    RollingPearsonOfReturns,
+    RollingSpearmanOfReturns,
     SimpleMovingAverage,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
@@ -66,8 +72,9 @@ from zipline.pipeline.loaders.synthetic import (
 )
 from zipline.pipeline.term import NotSpecified
 from zipline.testing import (
-    product_upper_triangle,
     check_arrays,
+    parameter_space,
+    product_upper_triangle,
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
@@ -1241,6 +1248,188 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
+
+    @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
+    def test_correlation_factors(self, returns_length, correlation_length):
+        """
+        Tests for the built-in factors `RollingPearsonOfReturns` and
+        `RollingSpearmanOfReturns`.
+        """
+        my_asset_column = 0
+        start_date_index = 6
+        end_date_index = 10
+
+        assets = self.asset_finder.retrieve_all(self.sids)
+        my_asset = assets[my_asset_column]
+        my_asset_filter = (AssetID() != (my_asset_column + 1))
+        num_days = end_date_index - start_date_index + 1
+
+        # Our correlation factors require that their target asset is not
+        # filtered out, so make sure that masking out our target asset does not
+        # take effect. That is, a filter which filters out only our target
+        # asset should produce the same result as if no mask was passed at all.
+        for mask in (NotSpecified, my_asset_filter):
+            pearson_factor = RollingPearsonOfReturns(
+                target=my_asset,
+                returns_length=returns_length,
+                correlation_length=correlation_length,
+                mask=mask,
+            )
+            spearman_factor = RollingSpearmanOfReturns(
+                target=my_asset,
+                returns_length=returns_length,
+                correlation_length=correlation_length,
+                mask=mask,
+            )
+
+            results = self.engine.run_pipeline(
+                Pipeline(
+                    columns={
+                        'pearson_factor': pearson_factor,
+                        'spearman_factor': spearman_factor,
+                    },
+                ),
+                self.dates[start_date_index],
+                self.dates[end_date_index],
+            )
+            pearson_results = results['pearson_factor'].unstack()
+            spearman_results = results['spearman_factor'].unstack()
+
+            # Run a separate pipeline that calculates returns starting
+            # (correlation_length - 1) days prior to our start date. This is
+            # because we need (correlation_length - 1) extra days of returns to
+            # compute our expected correlations.
+            returns = Returns(window_length=returns_length)
+            results = self.engine.run_pipeline(
+                Pipeline(columns={'returns': returns}),
+                self.dates[start_date_index - (correlation_length - 1)],
+                self.dates[end_date_index],
+            )
+            returns_results = results['returns'].unstack()
+
+            # On each day, calculate the expected correlation coefficients
+            # between the asset we are interested in and each other asset. Each
+            # correlation is calculated over `correlation_length` days.
+            expected_pearson_results = full_like(pearson_results, nan)
+            expected_spearman_results = full_like(spearman_results, nan)
+            for day in range(num_days):
+                todays_returns = returns_results.iloc[
+                    day:day + correlation_length
+                ]
+                my_asset_returns = todays_returns.iloc[:, my_asset_column]
+                for asset, other_asset_returns in todays_returns.iteritems():
+                    asset_column = int(asset) - 1
+                    expected_pearson_results[day, asset_column] = pearsonr(
+                        my_asset_returns, other_asset_returns,
+                    )[0]
+                    expected_spearman_results[day, asset_column] = spearmanr(
+                        my_asset_returns, other_asset_returns,
+                    )[0]
+
+            assert_frame_equal(
+                pearson_results,
+                DataFrame(
+                    expected_pearson_results,
+                    index=self.dates[start_date_index:end_date_index + 1],
+                    columns=assets,
+                ),
+            )
+            assert_frame_equal(
+                spearman_results,
+                DataFrame(
+                    expected_spearman_results,
+                    index=self.dates[start_date_index:end_date_index + 1],
+                    columns=assets,
+                ),
+            )
+
+    @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
+    def test_regression_of_returns_factor(self,
+                                          returns_length,
+                                          regression_length):
+        """
+        Tests for the built-in factor `RollingLinearRegressionOfReturns`.
+        """
+        my_asset_column = 0
+        start_date_index = 6
+        end_date_index = 10
+
+        assets = self.asset_finder.retrieve_all(self.sids)
+        my_asset = assets[my_asset_column]
+        my_asset_filter = (AssetID() != (my_asset_column + 1))
+        num_days = end_date_index - start_date_index + 1
+
+        # The order of these is meant to align with the output of `linregress`.
+        outputs = ['beta', 'alpha', 'r_value', 'p_value', 'stderr']
+
+        # Our regression factor requires that its target asset is not filtered
+        # out, so make sure that masking out our target asset does not take
+        # effect. That is, a filter which filters out only our target asset
+        # should produce the same result as if no mask was passed at all.
+        for mask in (NotSpecified, my_asset_filter):
+            regression_factor = RollingLinearRegressionOfReturns(
+                target=my_asset,
+                returns_length=returns_length,
+                regression_length=regression_length,
+                mask=mask,
+            )
+            results = self.engine.run_pipeline(
+                Pipeline(
+                    columns={
+                        output: getattr(regression_factor, output)
+                        for output in outputs
+                    },
+                ),
+                self.dates[start_date_index],
+                self.dates[end_date_index],
+            )
+            output_results = {}
+            expected_output_results = {}
+            for output in outputs:
+                output_results[output] = results[output].unstack()
+                expected_output_results[output] = full_like(
+                    output_results[output], nan,
+                )
+
+            # Run a separate pipeline that calculates returns starting 2 days
+            # prior to our start date. This is because we need
+            # (regression_length - 1) extra days of returns to compute our
+            # expected regressions.
+            returns = Returns(window_length=returns_length)
+            results = self.engine.run_pipeline(
+                Pipeline(columns={'returns': returns}),
+                self.dates[start_date_index - (regression_length - 1)],
+                self.dates[end_date_index],
+            )
+            returns_results = results['returns'].unstack()
+
+            # On each day, calculate the expected regression results for Y ~ X
+            # where Y is the asset we are interested in and X is each other
+            # asset. Each regression is calculated over `regression_length`
+            # days of data.
+            for day in range(num_days):
+                todays_returns = returns_results.iloc[
+                    day:day + regression_length
+                ]
+                my_asset_returns = todays_returns.iloc[:, my_asset_column]
+                for asset, other_asset_returns in todays_returns.iteritems():
+                    asset_column = int(asset) - 1
+                    expected_regression_results = linregress(
+                        y=other_asset_returns, x=my_asset_returns,
+                    )
+                    for i, output in enumerate(outputs):
+                        expected_output_results[output][day, asset_column] = \
+                            expected_regression_results[i]
+
+            for output in outputs:
+                assert_frame_equal(
+                    output_results[output],
+                    DataFrame(
+                        expected_output_results[output],
+                        index=self.dates[start_date_index:end_date_index + 1],
+                        columns=assets,
+                    ),
+                )
 
 
 class StringColumnTestCase(WithSeededRandomPipelineEngine,

@@ -173,6 +173,11 @@ Enhancements
 * Fetcher has been moved from Quantopian internal code into Zipline
   (:issue:`1105`).
 
+* Added new built-in factors,
+  :class:`~zipline.pipeline.factors.RollingPearsonOfReturns`,
+  :class:`~zipline.pipeline.factors.RollingSpearmanOfReturns` and
+  :class:`~zipline.pipeline.factors.RollingLinearRegressionOfReturns`
+  (:issue:`1154`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

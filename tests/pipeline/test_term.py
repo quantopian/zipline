@@ -7,7 +7,7 @@ from unittest import TestCase
 
 from zipline.errors import (
     DTypeNotSpecified,
-    WindowedInputToWindowedTerm,
+    NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
     TermOutputsEmpty,
@@ -198,7 +198,7 @@ class DependencyResolutionTestCase(TestCase):
 
     def test_disallow_recursive_lookback(self):
 
-        with self.assertRaises(WindowedInputToWindowedTerm):
+        with self.assertRaises(NonWindowSafeInput):
             SomeFactor(inputs=[SomeFactor(), SomeDataSet.foo])
 
 

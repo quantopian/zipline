@@ -8,6 +8,7 @@ from numpy import (
     arange,
     average,
     clip,
+    corrcoef,
     diff,
     exp,
     fmax,
@@ -16,13 +17,17 @@ from numpy import (
     isnan,
     log,
     NINF,
+    searchsorted,
     sqrt,
     sum as np_sum,
 )
 from numexpr import evaluate
+from scipy.stats import linregress, spearmanr
 
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
+from zipline.pipeline.term import NotSpecified
 from zipline.utils.numpy_utils import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
@@ -42,6 +47,16 @@ class Returns(CustomFactor):
     **Default Inputs**: [USEquityPricing.close]
     """
     inputs = [USEquityPricing.close]
+    window_safe = True
+
+    def _validate(self):
+        super(Returns, self)._validate()
+        if self.window_length < 2:
+            raise ValueError(
+                "'Returns' expected a window length of at least 2, but was "
+                "given {window_length}. For daily returns, use a window "
+                "length of 2.".format(window_length=self.window_length)
+            )
 
     def compute(self, today, assets, out, close):
         out[:] = (close[-1] - close[0]) / close[0]
@@ -143,6 +158,260 @@ class AverageDollarVolume(CustomFactor):
 
     def compute(self, today, assets, out, close, volume):
         out[:] = nanmean(close * volume, axis=0)
+
+
+class _RollingCorrelationOfReturns(CustomFactor, SingleInputMixin):
+    """
+    Base class for factors computing a rolling correlation over a window of
+    Returns.
+
+    Parameters
+    ----------
+    target : zipline.assets.Asset
+        The asset to correlate with all other assets.
+    returns_length : int >= 2
+        Length of the lookback window over which to compute returns. Daily
+        returns require a window length of 2.
+    correlation_length : int >= 1
+        Length of the lookback window over which to compute each correlation
+        coefficient.
+    """
+    params = ['target']
+
+    def __new__(cls,
+                target,
+                returns_length,
+                correlation_length,
+                mask=NotSpecified,
+                **kwargs):
+        if mask is not NotSpecified:
+            # Make sure we do not filter out the asset of interest.
+            mask = mask | SingleAsset(asset=target)
+        return super(_RollingCorrelationOfReturns, cls).__new__(
+            cls,
+            target=target,
+            inputs=[Returns(window_length=returns_length)],
+            window_length=correlation_length,
+            mask=mask,
+            **kwargs
+        )
+
+
+class RollingPearsonOfReturns(_RollingCorrelationOfReturns):
+    """
+    Calculates the Pearson product-moment correlation coefficient of the
+    returns of the given asset with the returns of all other assets.
+
+    Pearson correlation is what most people mean when they say "correlation
+    coefficient" or "R-value".
+
+    Parameters
+    ----------
+    target : zipline.assets.Asset
+        The asset to correlate with all other assets.
+    returns_length : int >= 2
+        Length of the lookback window over which to compute returns. Daily
+        returns require a window length of 2.
+    correlation_length : int >= 1
+        Length of the lookback window over which to compute each correlation
+        coefficient.
+
+    Example
+    -------
+    Let the following be example 10-day returns for three different assets::
+
+                       SPY    MSFT     FB
+        2017-03-13    -.03     .03    .04
+        2017-03-14    -.02    -.03    .02
+        2017-03-15    -.01     .02    .01
+        2017-03-16       0    -.02    .01
+        2017-03-17     .01     .04   -.01
+        2017-03-20     .02    -.03   -.02
+        2017-03-21     .03     .01   -.02
+        2017-03-22     .04    -.02   -.02
+
+    Suppose we are interested in SPY's rolling returns correlation with each
+    stock from 2017-03-17 to 2017-03-22, using a 5-day look back window (that
+    is, we calculate each correlation coefficient over 5 days of data). We can
+    achieve this by doing::
+
+        rolling_correlations = RollingPearsonOfReturns(
+            target=Equity(8554),
+            returns_length=10,
+            correlation_length=5,
+        )
+
+    The result of computing ``rolling_correlations`` from 2017-03-17 to
+    2017-03-22 gives::
+
+                       SPY   MSFT     FB
+        2017-03-17       1    .15   -.96
+        2017-03-20       1    .10   -.96
+        2017-03-21       1   -.16   -.94
+        2017-03-22       1   -.16   -.85
+
+    Note that the column for SPY is all 1's, as the correlation of any data
+    series with itself is always 1. To understand how each of the other values
+    were calculated, take for example the .15 in MSFT's column. This is the
+    correlation coefficient between SPY's returns looking back from 2017-03-17
+    (-.03, -.02, -.01, 0, .01) and MSFT's returns (.03, -.03, .02, -.02, .04).
+
+    See Also
+    --------
+    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
+    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
+    """
+    def compute(self, today, assets, out, data, target):
+        asset_col = searchsorted(assets.values, target.sid)
+        out[:] = corrcoef(data, rowvar=0)[asset_col]
+
+
+class RollingSpearmanOfReturns(_RollingCorrelationOfReturns):
+    """
+    Calculates the Spearman rank correlation coefficient of the returns of the
+    given asset with the returns of all other assets.
+
+    Parameters
+    ----------
+    target : zipline.assets.Asset
+        The asset to correlate with all other assets.
+    returns_length : int >= 2
+        Length of the lookback window over which to compute returns. Daily
+        returns require a window length of 2.
+    correlation_length : int >= 1
+        Length of the lookback window over which to compute each correlation
+        coefficient.
+
+    See Also
+    --------
+    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
+    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
+    """
+    def compute(self, today, assets, out, data, target):
+        asset_col = searchsorted(assets.values, target.sid)
+        out[:] = spearmanr(data)[0][asset_col]
+
+
+class RollingLinearRegressionOfReturns(CustomFactor, SingleInputMixin):
+    """
+    Perform an ordinary least-squares regression predicting the returns of all
+    other assets on the given asset.
+
+    Parameters
+    ----------
+    target : zipline.assets.Asset
+        The asset to regress against all other assets.
+    returns_length : int >= 2
+        Length of the lookback window over which to compute returns. Daily
+        returns require a window length of 2.
+    regression_length : int >= 1
+        Length of the lookback window over which to compute each regression.
+
+    Note
+    ----
+    This factor is designed to return five outputs:
+        - alpha, a factor that computes the intercepts of each regression.
+        - beta, a factor that computes the slopes of each regression.
+        - r_value, a factor that computes the correlation coefficient of each
+          regression.
+        - p_value, a factor that computes, for each regression, the two-sided
+          p-value for a hypothesis test whose null hypothesis is that the slope
+          is zero.
+        - stderr, a factor that computes the standard error of the estimate of
+          each regression.
+
+    Example
+    -------
+    Let the following be example 10-day returns for three different assets::
+
+                       SPY    MSFT     FB
+        2017-03-13    -.03     .03    .04
+        2017-03-14    -.02    -.03    .02
+        2017-03-15    -.01     .02    .01
+        2017-03-16       0    -.02    .01
+        2017-03-17     .01     .04   -.01
+        2017-03-20     .02    -.03   -.02
+        2017-03-21     .03     .01   -.02
+        2017-03-22     .04    -.02   -.02
+
+    Suppose we are interested in predicting each stock's returns from SPY's
+    over rolling 5-day look back windows. We can compute rolling regression
+    coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::
+
+        regression_factor = RollingRegressionOfReturns(
+            target=Equity(8554),
+            returns_length=10,
+            regression_length=5,
+        )
+        alpha = regression_factor.alpha
+        beta = regression_factor.beta
+
+    The result of computing ``alpha`` from 2017-03-17 to 2017-03-22 gives::
+
+                       SPY    MSFT     FB
+        2017-03-17       0    .011   .003
+        2017-03-20       0   -.004   .004
+        2017-03-21       0    .007   .006
+        2017-03-22       0    .002   .008
+
+    And the result of computing ``beta`` from 2017-03-17 to 2017-03-22 gives::
+
+                       SPY    MSFT     FB
+        2017-03-17       1      .3   -1.1
+        2017-03-20       1      .2     -1
+        2017-03-21       1     -.3     -1
+        2017-03-22       1     -.3    -.9
+
+    Note that SPY's column for alpha is all 0's and for beta is all 1's, as the
+    regression line of SPY with itself is simply the function y = x.
+
+    To understand how each of the other values were calculated, take for
+    example MSFT's ``alpha`` and ``beta`` values on 2017-03-17 (.011 and .3,
+    respectively). These values are the result of running a linear regression
+    predicting MSFT's returns from SPY's returns, using values starting at
+    2017-03-17 and looking back 5 days. That is, the regression was run with
+    x = [-.03, -.02, -.01, 0, .01] and y = [.03, -.03, .02, -.02, .04], and it
+    produced a slope of .3 and an intercept of .011.
+
+    See Also
+    --------
+    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
+    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
+    """
+    outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
+    params = ['target']
+
+    def __new__(cls,
+                target,
+                returns_length,
+                regression_length,
+                mask=NotSpecified,
+                **kwargs):
+        if mask is not NotSpecified:
+            # Make sure we do not filter out the asset of interest.
+            mask = mask | SingleAsset(asset=target)
+        return super(RollingLinearRegressionOfReturns, cls).__new__(
+            cls,
+            target=target,
+            inputs=[Returns(window_length=returns_length)],
+            window_length=regression_length,
+            mask=mask,
+            **kwargs
+        )
+
+    def compute(self, today, assets, out, returns, target):
+        asset_col = searchsorted(assets.values, target.sid)
+        my_asset = returns[:, asset_col]
+        for i in range(len(out)):
+            other_asset = returns[:, i]
+            regr_results = linregress(y=other_asset, x=my_asset)
+            # `linregress` returns its results in the following order:
+            # slope, intercept, r-value, p-value, stderr
+            out.alpha[i] = regr_results[1]
+            out.beta[i] = regr_results[0]
+            out.r_value[i] = regr_results[2]
+            out.p_value[i] = regr_results[3]
+            out.stderr[i] = regr_results[4]
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):

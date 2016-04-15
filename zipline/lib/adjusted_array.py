@@ -243,6 +243,20 @@ class AdjustedArray(object):
         )
 
 
+def ensure_adjusted_array(ndarray_or_adjusted_array, missing_value):
+    if isinstance(ndarray_or_adjusted_array, AdjustedArray):
+        return ndarray_or_adjusted_array
+    elif isinstance(ndarray_or_adjusted_array, ndarray):
+        return AdjustedArray(
+            ndarray_or_adjusted_array, NOMASK, {}, missing_value,
+        )
+    else:
+        raise TypeError(
+            "Can't convert %s to AdjustedArray" %
+            type(ndarray_or_adjusted_array).__name__
+        )
+
+
 def ensure_ndarray(ndarray_or_adjusted_array):
     """
     Return the input as a numpy ndarray.

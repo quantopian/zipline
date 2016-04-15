@@ -418,10 +418,10 @@ class WindowLengthNotPositive(ZiplineError):
     ).strip()
 
 
-class WindowedInputToWindowedTerm(ZiplineError):
+class NonWindowSafeInput(ZiplineError):
     """
-    Raised when a windowed Pipeline API term is specified as an input to
-    another windowed term.
+    Raised when a Pipeline API term that is not deemed window safe is specified
+    as an input to another windowed term.
 
     This is an error because it's generally not safe to compose windowed
     functions on split/dividend adjusted data.
@@ -617,3 +617,10 @@ class HistoryWindowStartsBeforeData(ZiplineError):
         "History window extends before {first_trading_day}. To use this "
         "history window, start the backtest on or after {suggested_start_day}."
         )
+
+
+class NonExistentAssetInTimeFrame(ZiplineError):
+    msg = (
+        "The target asset '{asset}' does not exist for the entire timeframe "
+        "between {start_date} and {end_date}."
+    )
