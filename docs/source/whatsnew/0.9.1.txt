@@ -22,6 +22,11 @@ Enhancements
   factor to only compute over stocks for which the filter returns True, rather
   than always computing over the entire universe of stocks. (:issue:`1095`)
 
+* Added :class:`zipline.utils.cache.ExpiringCache`.
+  A cache which wraps entries in a :class:`zipline.utils.cache.CachedObject`,
+  which manages expiration of entries based on the `dt` supplied to the `get`
+  method.
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
