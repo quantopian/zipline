@@ -19,10 +19,10 @@ from abc import (
 )
 
 from cachetools import LRUCache
-from numpy import dtype, around
+from numpy import dtype, around, hstack
 from pandas.tslib import normalize_date
 
-from six import iteritems, with_metaclass
+from six import with_metaclass
 
 from zipline.pipeline.data.equity_pricing import USEquityPricing
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
@@ -80,12 +80,16 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
     adjustment_reader : SQLiteAdjustmentReader
         Reader for adjustment data.
     """
-    def __init__(self, env, reader, adjustment_reader):
+    FIELDS = ('open', 'high', 'low', 'close', 'volume')
+
+    def __init__(self, env, reader, adjustment_reader, sid_cache_size=1000):
         self.env = env
         self._reader = reader
         self._adjustments_reader = adjustment_reader
-        # TODO: Split cache into 'by column' and 'by sid'.
-        self._window_blocks = ExpiringCache(LRUCache(maxsize=5))
+        self._window_blocks = {
+            field: ExpiringCache(LRUCache(maxsize=sid_cache_size))
+            for field in self.FIELDS
+        }
 
     @abstractproperty
     def _prefetch_length(self):
@@ -99,7 +103,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
     def _array(self, start, end, assets, field):
         pass
 
-    def _get_adjustments_in_range(self, assets, dts, field):
+    def _get_adjustments_in_range(self, asset, dts, field):
         """
         Get the Float64Multiply objects to pass to an AdjustedArrayWindow.
 
@@ -116,9 +120,8 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
 
         Parameters
         ----------
-        assets : iterable of Asset
+        asset : Asset
             The assets for which to get adjustments.
-
         days : iterable of datetime64-like
             The days for which adjustment data is needed.
         field : str
@@ -128,78 +131,71 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         -------
         out : The adjustments as a dict of loc -> Float64Multiply
         """
-        sids = {int(asset): i for i, asset in enumerate(assets)}
+        sid = int(asset)
         start = normalize_date(dts[0])
         end = normalize_date(dts[-1])
         adjs = {}
-        for sid, i in iteritems(sids):
-            if field != 'volume':
-                mergers = self._adjustments_reader.get_adjustments_for_sid(
-                    'mergers', sid)
-                for m in mergers:
-                    dt = m[0]
-                    if start < dt <= end:
-                        end_loc = dts.searchsorted(dt)
-                        mult = Float64Multiply(0,
-                                               end_loc - 1,
-                                               i,
-                                               i,
-                                               m[1])
-                        try:
-                            adjs[end_loc].append(mult)
-                        except KeyError:
-                            adjs[end_loc] = [mult]
-                divs = self._adjustments_reader.get_adjustments_for_sid(
-                    'dividends', sid)
-                for d in divs:
-                    dt = d[0]
-                    if start < dt <= end:
-                        end_loc = dts.searchsorted(dt)
-                        mult = Float64Multiply(0,
-                                               end_loc - 1,
-                                               i,
-                                               i,
-                                               d[1])
-                        try:
-                            adjs[end_loc].append(mult)
-                        except KeyError:
-                            adjs[end_loc] = [mult]
-            splits = self._adjustments_reader.get_adjustments_for_sid(
-                'splits', sid)
-            for s in splits:
-                dt = s[0]
-                if field == 'volume':
-                    ratio = 1.0 / s[1]
-                else:
-                    ratio = s[1]
+        if field != 'volume':
+            mergers = self._adjustments_reader.get_adjustments_for_sid(
+                'mergers', sid)
+            for m in mergers:
+                dt = m[0]
                 if start < dt <= end:
                     end_loc = dts.searchsorted(dt)
                     mult = Float64Multiply(0,
                                            end_loc - 1,
-                                           i,
-                                           i,
-                                           ratio)
+                                           0,
+                                           0,
+                                           m[1])
                     try:
                         adjs[end_loc].append(mult)
                     except KeyError:
                         adjs[end_loc] = [mult]
+            divs = self._adjustments_reader.get_adjustments_for_sid(
+                'dividends', sid)
+            for d in divs:
+                dt = d[0]
+                if start < dt <= end:
+                    end_loc = dts.searchsorted(dt)
+                    mult = Float64Multiply(0,
+                                           end_loc - 1,
+                                           0,
+                                           0,
+                                           d[1])
+                    try:
+                        adjs[end_loc].append(mult)
+                    except KeyError:
+                        adjs[end_loc] = [mult]
+        splits = self._adjustments_reader.get_adjustments_for_sid(
+            'splits', sid)
+        for s in splits:
+            dt = s[0]
+            if field == 'volume':
+                ratio = 1.0 / s[1]
+            else:
+                ratio = s[1]
+            if start < dt <= end:
+                end_loc = dts.searchsorted(dt)
+                mult = Float64Multiply(0,
+                                       end_loc - 1,
+                                       0,
+                                       0,
+                                       ratio)
+                try:
+                    adjs[end_loc].append(mult)
+                except KeyError:
+                    adjs[end_loc] = [mult]
         return adjs
 
-    def _ensure_sliding_window(
-            self, assets, dts, field):
+    def _ensure_sliding_windows(self, assets, dts, field):
         """
-        Ensure that there is a Float64Multiply window that can provide data
-        for the given parameters.
+        Ensure that there is a Float64Multiply window for each asset that can
+        provide data for the given parameters.
         If the corresponding window for the (assets, len(dts), field) does not
         exist, then create a new one.
         If a corresponding window does exist for (assets, len(dts), field), but
         can not provide data for the current dts range, then create a new
         one and replace the expired window.
-
-        WARNING: A simulation with a high variance of assets, may cause
-        unbounded growth of floating windows stored in `_window_blocks`.
-        There should be some regular clean up of the cache, if stale windows
-        prevent simulations from completing because of memory constraints.
 
         Parameters
         ----------
@@ -214,48 +210,58 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
 
         Returns
         -------
-        out : Float64Window with sufficient data so that the window can
-        provide `get` for the index corresponding with the last value in `dts`
+        out : list of Float64Window with sufficient data so that each asset's
+        window can provide `get` for the index corresponding with the last
+        value in `dts`
         """
         end = dts[-1]
         size = len(dts)
-        assets_key = frozenset(assets)
-        try:
-            return self._window_blocks.get((assets_key, field, size), end)
-        except KeyError:
-            pass
+        asset_windows = {}
+        needed_assets = []
+        for asset in assets:
+            try:
+                asset_windows[asset] = self._window_blocks[field].get(
+                    (asset, size), end)
+            except KeyError:
+                needed_assets.append(asset)
 
-        start = dts[0]
+        if needed_assets:
+            start = dts[0]
 
-        offset = 0
-        start_ix = self._calendar.get_loc(start)
-        end_ix = self._calendar.get_loc(end)
+            offset = 0
+            start_ix = self._calendar.get_loc(start)
+            end_ix = self._calendar.get_loc(end)
 
-        cal = self._calendar
-        prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
-        prefetch_end = cal[prefetch_end_ix]
-        prefetch_dts = cal[start_ix:prefetch_end_ix + 1]
-        array = self._array(prefetch_dts, assets, field)
-        if self._adjustments_reader:
-            adjs = self._get_adjustments_in_range(assets, prefetch_dts, field)
-        else:
-            adjs = {}
-        if field == 'volume':
-            array = array.astype('float64')
-        dtype_ = dtype('float64')
+            cal = self._calendar
+            prefetch_end_ix = min(end_ix + self._prefetch_length, len(cal) - 1)
+            prefetch_end = cal[prefetch_end_ix]
+            prefetch_dts = cal[start_ix:prefetch_end_ix + 1]
+            prefetch_len = len(prefetch_dts)
+            array = self._array(prefetch_dts, needed_assets, field)
+            if field == 'volume':
+                array = array.astype('float64')
+            dtype_ = dtype('float64')
 
-        window = Float64Window(
-            array,
-            dtype_,
-            adjs,
-            offset,
-            size
-        )
-        block = SlidingWindow(window, size, start_ix, offset)
-        self._window_blocks.set((assets_key, field, size),
-                                block,
-                                prefetch_end)
-        return block
+            for i, asset in enumerate(needed_assets):
+                if self._adjustments_reader:
+                    adjs = self._get_adjustments_in_range(
+                        asset, prefetch_dts, field)
+                else:
+                    adjs = {}
+                window = Float64Window(
+                    array[:, i].reshape(prefetch_len, 1),
+                    dtype_,
+                    adjs,
+                    offset,
+                    size
+                )
+                sliding_window = SlidingWindow(window, size, start_ix, offset)
+                asset_windows[asset] = sliding_window
+                self._window_blocks[field].set((asset, size),
+                                               sliding_window,
+                                               prefetch_end)
+
+        return [asset_windows[asset] for asset in assets]
 
     def history(self, assets, dts, field):
         """
@@ -278,9 +284,9 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         -------
         out : np.ndarray with shape(len(days between start, end), len(assets))
         """
-        block = self._ensure_sliding_window(assets, dts, field)
+        block = self._ensure_sliding_windows(assets, dts, field)
         end_ix = self._calendar.get_loc(dts[-1])
-        return block.get(end_ix)
+        return hstack([window.get(end_ix) for window in block])
 
 
 class USEquityDailyHistoryLoader(USEquityHistoryLoader):
