@@ -18,6 +18,7 @@ from functools import partial
 from inspect import isabstract
 import random
 from unittest import TestCase
+from datetime import timedelta
 
 from nose_parameterized import parameterized
 import pandas as pd
@@ -25,7 +26,7 @@ from six import iteritems
 from six.moves import range, map
 
 from zipline.finance.trading import TradingEnvironment
-from zipline.testing import subtest
+from zipline.testing import subtest, parameter_space
 import zipline.utils.events
 from zipline.utils.events import (
     EventRule,
@@ -347,34 +348,79 @@ class TestStatelessRules(RuleTestCase):
     def test_NthTradingDayOfWeek(self, n):
         should_trigger = partial(NthTradingDayOfWeek(n).should_trigger,
                                  env=self.env)
-        prev_day = self.sept_week[0].date()
-        n_tdays = 0
+        first_of_week = self.sept_week[0]
+        n_triggered = 0
         for m in self.sept_week:
-            if prev_day < m.date():
-                n_tdays += 1
-            prev_day = m.date()
-
             if should_trigger(m):
-                self.assertEqual(n_tdays, n)
-            else:
-                self.assertNotEqual(n_tdays, n)
+                n_triggered += 1
+                self.assertEqual(m, first_of_week + timedelta(days=n))
+        self.assertEqual(n_triggered, 1)
 
     @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfWeek(self, n):
         should_trigger = partial(
             NDaysBeforeLastTradingDayOfWeek(n).should_trigger, env=self.env
         )
+        first_of_week = self.sept_week[0]
+        n_triggered = 0
         for m in self.sept_week:
             if should_trigger(m):
-                n_tdays = 0
-                date = m.to_datetime().date()
-                next_date = self.env.next_trading_day(date)
-                while next_date.weekday() > date.weekday():
-                    date = next_date
-                    next_date = self.env.next_trading_day(date)
-                    n_tdays += 1
+                n_triggered += 1
+                self.assertEqual(m, first_of_week + timedelta(days=4-n))
+        self.assertEqual(n_triggered, 1)
 
-                self.assertEqual(n_tdays, n)
+    @parameter_space(n=(0, 1, 2, 3, 4), type=('week_start', 'week_end'))
+    def test_edge_cases_for_TradingDayOfWeek(self, n, type):
+        """
+        Test that we account for midweek holidays. Monday 01/20 is a holiday.
+        Ensure that the trigger date for that week is adjustmented
+        appropriately, or thrown out if not enough trading days.
+        """
+        jan_minutes = self.env.minutes_for_days_in_range(
+            datetime.date(year=2014, month=1, day=6),
+            datetime.date(year=2014, month=1, day=31)
+        )
+
+        if type == 'week_start':
+            rule = NthTradingDayOfWeek
+            # Expect to trigger on the first trading day of the week, plus the
+            # offset
+            trigger_dates = [
+                pd.Timestamp('2014-01-06 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-13 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-21 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-27 14:31:00', tz='UTC'),
+            ]
+            trigger_dates = [x + timedelta(days=n) for x in trigger_dates]
+        else:
+            rule = NDaysBeforeLastTradingDayOfWeek
+            # Expect to trigger on the last trading day of the week, minus the
+            # offset
+            trigger_dates = [
+                pd.Timestamp('2014-01-10 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-17 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-24 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-31 14:31:00', tz='UTC'),
+            ]
+            trigger_dates = [x - timedelta(days=n) for x in trigger_dates]
+
+        should_trigger = partial(
+            rule(n).should_trigger, env=self.env
+        )
+
+        # If offset is 4, there is not enough trading days in the short week,
+        # and so it should not trigger
+        if n == 4:
+            del trigger_dates[2]
+        trigger_dates = iter(trigger_dates)
+
+        n_triggered = 0
+        for m in jan_minutes:
+            if should_trigger(m):
+                self.assertEqual(m, next(trigger_dates))
+                n_triggered += 1
+
+        self.assertEqual(n_triggered, 4 if n != 4 else 3)
 
     @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NthTradingDayOfMonth(self, n):

@@ -443,6 +443,18 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
             )
         )
 
+        # If after applying the offset to the start/end day of the week, we get
+        # day in a different week, skip this week and go on to the next
+        while next_trading_day.date().isocalendar()[1] != \
+                dt.date().isocalendar()[1]:
+            dt += datetime.timedelta(days=7)
+            next_trading_day = _coerce_datetime(
+                env.add_trading_days(
+                    self.td_delta,
+                    self.date_func(dt, env),
+                )
+            )
+
         next_open, next_close = env.get_open_and_close(next_trading_day)
         self.next_date_start = next_open
         self.next_date_end = next_close
@@ -455,14 +467,12 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
             # open, and close of the next matching day.
             self.calculate_start_and_end(dt, env)
 
-        # if the next matching day is in the past, calculate the next one.
-        if dt > self.next_date_end:
-            self.calculate_start_and_end(dt + datetime.timedelta(days=7),
-                                         env)
-
-        # if the given dt is within the next matching day, return true.
+        # if the given dt is within the next matching day, return true. Also
+        # calculate the start and end dates for the next trigger
         if self.next_date_start <= dt <= self.next_date_end or \
                 dt == self.next_midnight_timestamp:
+            self.calculate_start_and_end(dt + datetime.timedelta(days=7),
+                                         env)
             return True
 
         return False
@@ -490,7 +500,11 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
             dt = env.previous_trading_day(dt)
             if dt is None:
                 return prev
-        return prev.date()
+
+        if env.is_trading_day(prev):
+            return prev.date()
+        else:
+            return env.next_trading_day(prev).date()
 
     date_func = get_first_trading_day_of_week
 
@@ -511,7 +525,11 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
         while dt.date().weekday() > prev.date().weekday():
             prev = dt
             dt = env.next_trading_day(dt)
-        return prev.date()
+
+        if env.is_trading_day(prev):
+            return prev.date()
+        else:
+            return env.previous_trading_day(prev).date()
 
     date_func = get_last_trading_day_of_week
 
