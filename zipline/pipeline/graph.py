@@ -70,7 +70,9 @@ class TermGraph(DiGraph):
 
             Max number of extra rows needed by any term depending on `input`
             minus
-            Number of extra rows needed by `term`.
+            Number of rows needed by `input` for `term`
+            minus
+            Number of extra rows needed by `term`
 
         Example
         -------
@@ -104,9 +106,12 @@ class TermGraph(DiGraph):
         zipline.pipeline.engine.SimplePipelineEngine._inputs_for_term
         zipline.pipeline.engine.SimplePipelineEngine._mask_and_dates_for_term
         """
-        return {(term, dep): self.extra_rows[dep] - additional_extra_rows
-                for term in self
-                for dep, additional_extra_rows in term.dependencies.items()}
+        extra_rows = self.extra_rows
+        return {
+            (term, dep): extra_rows[dep] - term_dep_diff - extra_rows[term]
+            for term in self
+            for dep, term_dep_diff in term.dependencies.items()
+        }
 
     @lazyval
     def extra_rows(self):

@@ -8,6 +8,7 @@ from numpy import (
     arange,
     average,
     clip,
+    corrcoef,
     diff,
     exp,
     fmax,
@@ -18,11 +19,14 @@ from numpy import (
     NINF,
     sqrt,
     sum as np_sum,
+    where,
 )
 from numexpr import evaluate
+from scipy.stats import linregress
 
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.mixins import SingleInputMixin
+from zipline.pipeline.term import NotSpecified
 from zipline.utils.numpy_utils import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
@@ -142,6 +146,205 @@ class AverageDollarVolume(CustomFactor):
 
     def compute(self, today, assets, out, close, volume):
         out[:] = nanmean(close * volume, axis=0)
+
+
+class CorrelationFactor(SingleInputMixin, CustomFactor):
+    """
+    Correlation of the given asset with all other assets for the given input.
+
+    **Default Inputs:** None
+
+    **Default Window Length:** None
+
+    Parameters
+    ----------
+    inputs : length-1 list/tuple of BoundColumn
+        The expression over which to compute the correlations.
+    window_length : int > 1
+        Length of the look back window over which to compute correlations.
+    asset : zipline.assets.Asset
+        The asset to correlate with all other assets.
+
+    Example
+    -------
+    Let the following be example close prices for three different stocks::
+
+                      AAPL   MSFT     FB
+        2017-03-13       5      6      1
+        2017-03-14       5      4      2
+        2017-03-15       4      9      3
+        2017-03-16       6      7      4
+        2017-03-17       3      4      5
+        2017-03-20       2      6      6
+        2017-03-21       2      5      7
+        2017-03-22       2      8      8
+
+    Suppose we are interested in AAPL's rolling close price correlation with
+    each stock from 2017-03-17 to 2017-03-22, using a 5-day look back window
+    (that is, we calculate each correlation coefficient over 5 days of data).
+    We can achieve this by doing::
+
+        correlation_factor = CorrelationFactor(
+            inputs=[USEquityPricing.close],
+            window_length=5,
+            asset=Equity(24),
+        )
+
+    The result of computing ``correlation_factor`` from 2017-03-17 to
+    2017-03-22 gives::
+
+                      AAPL   MSFT     FB
+        2017-03-17       1    .21   -.42
+        2017-03-20       1    .15   -.70
+        2017-03-21       1    .51   -.76
+        2017-03-22       1    .18   -.82
+
+    Note that the column for AAPL is all 1's, as the correlation of any data
+    with itself is always 1. To understand how each of the other values were
+    calculated, take for example the .21 in MSFT's column. This is the Pearson
+    correlation coefficient between AAPL's five close prices looking back from
+    2017-03-17 (5, 5, 4, 6, 3) and MSFT's five close prices (6, 4, 9, 7, 4).
+
+    See Also
+    --------
+    :class:`zipline.pipeline.factors.technical.SingleRegressionFactor`
+    """
+    params = ['asset']
+
+    def compute(self, today, assets, out, data, asset):
+        asset_col = where(assets == asset.sid)[0][0]
+        # Use the transpose here because we want the correlations between
+        # columns, but `corrcoef` calculates between rows.
+        out[:] = corrcoef(data.T)[asset_col]
+
+
+class SingleRegressionFactor(SingleInputMixin, CustomFactor):
+    """
+    Perform an ordinary least-squares regression predicting the returns of all
+    other assets on the given asset.
+
+    **Default Inputs:** [Returns]
+
+    Parameters
+    ----------
+    asset : zipline.assets.Asset
+        The asset to regress against all other assets.
+    returns_length : int > 1
+        Length of the lookback window over which to compute returns.
+    regression_length : int > 1
+        Length of the lookback window over which to compute each regression.
+    dependent : bool, optional
+        Determines if the given asset should be the independent or dependent
+        variable in the regressions. When True, the given asset is the
+        dependent variable. Default is False.
+
+    Note
+    ----
+    This factor is designed to return two outputs:
+        - alpha, a factor that computes the intercepts of the regressions.
+        - beta, a factor that computes the slopes of the regressions.
+
+    Example
+    -------
+    Let the following be example 10-day returns for three different stocks::
+
+                      AAPL    MSFT     FB
+        2017-03-13    -.03     .03    .04
+        2017-03-14    -.02    -.03    .02
+        2017-03-15    -.01     .02    .01
+        2017-03-16       0    -.02    .01
+        2017-03-17     .01     .04   -.01
+        2017-03-20     .02    -.03   -.02
+        2017-03-21     .03     .01   -.02
+        2017-03-22     .04    -.02   -.02
+
+    Suppose we are interested in predicting each stock's returns from AAPL's
+    over rolling 5-day look back windows. We can compute rolling regression
+    coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::
+
+        # Equivalent to:
+        # alpha, beta = SingleRegressionFactor(
+        #     asset=Equity(24),
+        #     returns_length=10,
+        #     regression_length=5,
+        # )
+        regression_factor = SingleRegressionFactor(
+            asset=Equity(24),
+            returns_length=10,
+            regression_length=5,
+        )
+        alpha = regression_factor.alpha
+        beta = regression_factor.beta
+
+    The result of computing ``alpha`` from 2017-03-17 to 2017-03-22 gives::
+
+                      AAPL    MSFT     FB
+        2017-03-17       0    .011   .003
+        2017-03-20       0   -.004   .004
+        2017-03-21       0    .007   .006
+        2017-03-22       0    .002   .008
+
+    And the result of computing ``beta`` from 2017-03-17 to 2017-03-22 gives::
+
+                      AAPL    MSFT     FB
+        2017-03-17       1      .3   -1.1
+        2017-03-20       1      .2     -1
+        2017-03-21       1     -.3     -1
+        2017-03-22       1     -.3    -.9
+
+    Note that AAPL's column for alpha is all 0's and for beta is all 1's, as
+    the regression line of a data set with itself is simply the function y = x.
+
+    To understand how each of the other values were calculated, take for
+    example MSFT's ``alpha`` and ``beta`` values on 2017-03-17 (.011 and .3,
+    respectively). These values are the result of running a linear regression
+    predicting MSFT's returns from AAPL's returns, using values starting at
+    2017-03-17 and looking back 5 days. That is, the regression was run with
+    x = [-.03, -.02, -.01, 0, .01] and y = [.03, -.03, .02, -.02, .04], and it
+    produced a slope of .3 and an intercept of .011.
+
+    See Also
+    --------
+    :class:`zipline.pipeline.factors.technical.CorrelationFactor`
+    """
+    params = ('asset', 'dependent')
+
+    def __new__(cls,
+                asset,
+                returns_length,
+                regression_length,
+                dependent=False,
+                mask=NotSpecified,
+                dtype=NotSpecified,
+                missing_value=NotSpecified,
+                **kwargs):
+        new_instance = super(SingleRegressionFactor, cls).__new__(
+            cls,
+            asset=asset,
+            dependent=dependent,
+            inputs=[Returns(window_length=returns_length)],
+            outputs=['alpha', 'beta'],
+            window_length=regression_length,
+            mask=mask,
+            dtype=dtype,
+            missing_value=missing_value,
+            **kwargs
+        )
+        return new_instance
+
+    def compute(self, today, assets, out, returns, asset, dependent):
+        asset_col = where(assets == asset.sid)[0][0]
+        my_asset = returns[:, asset_col]
+        for i in range(len(out)):
+            other_asset = returns[:, i]
+            if dependent:
+                regr_results = linregress(y=my_asset, x=other_asset)
+            else:
+                regr_results = linregress(y=other_asset, x=my_asset)
+            # `linregress` returns its results in the following order:
+            # slope, intercept, r-value, p-value, stderr
+            out.alpha[i] = regr_results[1]
+            out.beta[i] = regr_results[0]
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):

@@ -69,6 +69,12 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.AverageDollarVolume
    :members:
 
+.. autoclass:: zipline.pipeline.factors.CorrelationFactor
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.SingleRegressionFactor
+   :members:
+
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
    :exclude-members: dtype

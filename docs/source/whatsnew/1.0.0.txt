@@ -42,6 +42,10 @@ Enhancements
   Custom factors are now capable of computing and returning multiple outputs,
   each of which are themselves a Factor. (:issue:`1119`)
 
+* Added new built-in factors,
+  :class:`~zipline.pipeline.factors.CorrelationFactor` and
+  :class:`~zipline.pipeline.factors.SingleRegressionFactor`. (:issue:`1154`)
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 

@@ -14,6 +14,7 @@ from numpy import (
     float32,
     float64,
     full,
+    full_like,
     log,
     nan,
     tile,
@@ -28,6 +29,7 @@ from pandas import (
     ewmstd,
     Int64Index,
     MultiIndex,
+    ols,
     rolling_apply,
     rolling_mean,
     Series,
@@ -35,6 +37,7 @@ from pandas import (
 )
 from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
+from scipy.stats.stats import pearsonr
 from six import iteritems, itervalues
 from toolz import merge
 
@@ -45,11 +48,14 @@ from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     AverageDollarVolume,
+    CorrelationFactor,
     EWMA,
     EWMSTD,
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
     MaxDrawdown,
+    SingleRegressionFactor,
+    Returns,
     SimpleMovingAverage,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
@@ -63,8 +69,9 @@ from zipline.pipeline.loaders.synthetic import (
 )
 from zipline.pipeline.term import NotSpecified
 from zipline.testing import (
-    product_upper_triangle,
     check_arrays,
+    parameter_space,
+    product_upper_triangle,
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
@@ -1237,3 +1244,137 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
+
+    @parameter_space(returns_length=[2, 3], correlation_length=[2, 3])
+    def test_correlation_factor(self, returns_length, correlation_length):
+        asset_column = 0
+
+        correlation = CorrelationFactor(
+            inputs=[Returns(window_length=returns_length)],
+            window_length=correlation_length,
+            asset=self.asset_finder.retrieve_asset(self.sids[asset_column]),
+        )
+
+        results = self.engine.run_pipeline(
+            Pipeline(columns={'correlation': correlation}),
+            self.dates[5],
+            self.dates[9],
+        )
+        correlation_results = results['correlation'].unstack()
+
+        # Run a separate pipeline that calculates returns starting 2 days prior
+        # to the start date for the results above. This is because we need
+        # (correlation_length - 1) extra days of returns to compute our
+        # expected correlations.
+        returns = Returns(window_length=returns_length)
+        results = self.engine.run_pipeline(
+            Pipeline(columns={'returns': returns}),
+            self.dates[5 - (correlation_length - 1)],
+            self.dates[9],
+        )
+        returns_results = results['returns'].unstack()
+
+        # On each day of our original results, calculate the correlation
+        # coefficient between the asset we are interested in and each other
+        # asset. Each correlation is calculated over `correlation_length` days.
+        expected_correlation_results = full_like(correlation_results, nan)
+        for day in range(len(expected_correlation_results)):
+            my_asset_returns = returns_results.ix[
+                day:day+correlation_length, asset_column,
+            ]
+            for asset in range(len(expected_correlation_results[0])):
+                other_asset_returns = returns_results.ix[
+                    day:day+correlation_length, asset,
+                ]
+                expected_correlation_results[day, asset] = pearsonr(
+                    my_asset_returns, other_asset_returns,
+                )[0]
+
+        assert_frame_equal(
+            correlation_results,
+            DataFrame(
+                expected_correlation_results,
+                index=self.dates[5:10],
+                columns=self.asset_finder.retrieve_all(self.sids),
+            ),
+        )
+
+    @parameter_space(
+        returns_length=[2, 3],
+        regression_length=[2, 3],
+        dependent=[True, False],
+    )
+    def test_single_regression_factor(self,
+                                      returns_length,
+                                      regression_length,
+                                      dependent):
+        asset_column = 0
+
+        alpha, beta = SingleRegressionFactor(
+            asset=self.asset_finder.retrieve_asset(self.sids[asset_column]),
+            returns_length=returns_length,
+            regression_length=regression_length,
+            dependent=dependent,
+        )
+        results = self.engine.run_pipeline(
+            Pipeline(columns={'alpha': alpha, 'beta': beta}),
+            self.dates[5],
+            self.dates[9],
+        )
+        alpha_results = results['alpha'].unstack()
+        beta_results = results['beta'].unstack()
+
+        # Run a separate pipeline that calculates returns starting 2 days prior
+        # to the start date for the results above. This is because we need
+        # (regression_length - 1) extra days of returns to compute our expected
+        # regressions.
+        returns = Returns(window_length=returns_length)
+        results = self.engine.run_pipeline(
+            Pipeline(columns={'returns': returns}),
+            self.dates[5 - (regression_length - 1)],
+            self.dates[9],
+        )
+        returns_results = results['returns'].unstack()
+
+        # On each day of our original results, calculate the regression Y ~ X
+        # where Y is the asset we are interested in and X is each other asset.
+        # Each regression is calculated over `regression_length` days of data.
+        expected_alpha_results = full_like(alpha_results, nan)
+        expected_beta_results = full_like(beta_results, nan)
+        for day in range(len(expected_alpha_results)):
+            my_asset_returns = returns_results.ix[
+                day:day+regression_length, asset_column,
+            ]
+            for asset in range(len(expected_alpha_results[0])):
+                other_asset_returns = returns_results.ix[
+                    day:day+regression_length, asset,
+                ]
+                if dependent:
+                    expected_regression_results = ols(
+                        y=my_asset_returns, x=other_asset_returns,
+                    )
+                else:
+                    expected_regression_results = ols(
+                        y=other_asset_returns, x=my_asset_returns,
+                    )
+                intercept = expected_regression_results.beta[1]
+                slope = expected_regression_results.beta[0]
+                expected_alpha_results[day, asset] = intercept
+                expected_beta_results[day, asset] = slope
+
+        assert_frame_equal(
+            alpha_results,
+            DataFrame(
+                expected_alpha_results,
+                index=self.dates[5:10],
+                columns=self.asset_finder.retrieve_all(self.sids),
+            ),
+        )
+        assert_frame_equal(
+            beta_results,
+            DataFrame(
+                expected_beta_results,
+                index=self.dates[5:10],
+                columns=self.asset_finder.retrieve_all(self.sids),
+            ),
+        )

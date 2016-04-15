@@ -24,6 +24,8 @@ from zipline.utils.numpy_utils import (
 from zipline.utils.sentinel import sentinel
 
 
+ALLOWED_WINDOWED_INPUTS = ['Returns']
+
 NotSpecified = sentinel(
     'NotSpecified',
     'Singleton sentinel value used for Term defaults.',
@@ -435,7 +437,12 @@ class ComputableTerm(Term):
         if self.window_length:
             for child in self.inputs:
                 if child.windowed:
-                    raise WindowedInputToWindowedTerm(parent=self, child=child)
+                    if type(child).__name__ in ALLOWED_WINDOWED_INPUTS:
+                        continue
+                    else:
+                        raise WindowedInputToWindowedTerm(
+                            parent=self, child=child,
+                        )
 
     def _compute(self, inputs, dates, assets, mask):
         """
