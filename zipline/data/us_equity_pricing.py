@@ -39,6 +39,7 @@ from numpy import (
     issubdtype,
     nan,
     uint32,
+    zeros,
 )
 from pandas import (
     DataFrame,
@@ -648,8 +649,16 @@ class PanelDailyBarReader(DailyBarReader):
         col_names = [col.name for col in columns]
         cal = self._calendar
         index = cal[cal.slice_indexer(start_date, end_date)]
-        result = self.panel.loc[assets, start_date:end_date, col_names]
-        return result.reindex_axis(index, 1).values
+        shape = (len(index), len(assets))
+        results = []
+        for col in col_names:
+            outbuf = zeros(shape=shape)
+            for i, asset in enumerate(assets):
+                data = self.panel.loc[asset, start_date:end_date, col]
+                data = data.reindex_axis(index).values
+                outbuf[:, i] = data
+            results.append(outbuf)
+        return results
 
     def spot_price(self, sid, day, colname):
         """

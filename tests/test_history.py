@@ -1584,6 +1584,36 @@ class DailyEquityHistoryTestCase(HistoryTestCaseBase):
                 "close"
             )[self.ASSET2]
 
+    def test_history_window_different_order(self):
+        """
+        Prevent regression on a bug where the passing the same assets, but
+        in a different order would return a history window with the values,
+        but not the keys, in order of the first history call.
+        """
+        # Both ASSET1 and ASSET2 have trades on this date.
+        day = self.ASSET2.end_date
+
+        window_1 = self.data_portal.get_history_window(
+            [self.ASSET1, self.ASSET2],
+            day,
+            4,
+            "1d",
+            "close"
+        )
+
+        window_2 = self.data_portal.get_history_window(
+            [self.ASSET2, self.ASSET1],
+            day,
+            4,
+            "1d",
+            "close"
+        )
+
+        np.testing.assert_almost_equal(window_1[self.ASSET1].values,
+                                       window_2[self.ASSET1].values)
+        np.testing.assert_almost_equal(window_1[self.ASSET2].values,
+                                       window_2[self.ASSET2].values)
+
 
 class MinuteToDailyAggregationTestCase(WithBcolzMinutes,
                                        ZiplineTestCase):
