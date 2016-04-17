@@ -638,8 +638,6 @@ class DataPortal(object):
             return self._equity_daily_reader.get_last_traded_dt(asset, dt)
 
     def _check_extra_sources(self, asset, column, dt):
-        day = normalize_date(dt)
-
         # If we have an extra source with a column called "price", only look
         # at it if it's on something like palladium and not AAPL (since our
         # own price data always wins when dealing with assets).
@@ -647,6 +645,8 @@ class DataPortal(object):
             not (column in BASE_FIELDS and isinstance(asset, Asset))
 
         if look_in_augmented_sources:
+            day = normalize_date(dt)
+
             # we're being asked for a field in an extra source
             try:
                 return self._augmented_sources_map[column][asset].\
