@@ -425,7 +425,8 @@ class SimulationParameters(object):
                  capital_base=10e3,
                  emission_rate='daily',
                  data_frequency='daily',
-                 env=None):
+                 env=None,
+                 arena='backtest'):
 
         self.period_start = period_start
         self.period_end = period_end
@@ -435,7 +436,7 @@ class SimulationParameters(object):
         self.data_frequency = data_frequency
 
         # copied to algorithm's environment for runtime access
-        self.arena = 'backtest'
+        self.arena = arena
 
         if env is not None:
             self.update_internal_from_env(env=env)
