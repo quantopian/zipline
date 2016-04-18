@@ -30,7 +30,6 @@ from zipline.data.us_equity_loader import (
     USEquityMinuteHistoryLoader,
 )
 
-from zipline.utils import tradingcalendar
 from zipline.utils.math_utils import (
     nansum,
     nanmean,
@@ -1009,7 +1008,7 @@ class DataPortal(object):
                                 spot_value=value
                             )
                     else:
-                        found_dt -= tradingcalendar.trading_day
+                        found_dt -= self.trading_schedule.day
                 except NoDataOnDate:
                     return np.nan
 

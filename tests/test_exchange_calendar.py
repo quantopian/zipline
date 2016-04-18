@@ -123,7 +123,7 @@ class NYSECalendarTestCase(ExchangeCalendarTestBase, TestCase):
 
     def test_newyears(self):
         """
-        Check whether tradingcalendar contains certain dates.
+        Check whether the ExchangeCalendar contains certain dates.
         """
         #     January 2012
         # Su Mo Tu We Th Fr Sa
@@ -188,7 +188,7 @@ class NYSECalendarTestCase(ExchangeCalendarTestBase, TestCase):
 
     def test_thanksgiving(self):
         """
-        Check tradingcalendar Thanksgiving dates.
+        Check ExchangeCalendar Thanksgiving dates.
         """
         #     November 2005
         # Su Mo Tu We Th Fr Sa
