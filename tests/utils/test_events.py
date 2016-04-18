@@ -348,26 +348,34 @@ class TestStatelessRules(RuleTestCase):
     def test_NthTradingDayOfWeek(self, n):
         should_trigger = partial(NthTradingDayOfWeek(n).should_trigger,
                                  env=self.env)
-        first_of_week = self.sept_week[0]
-        n_triggered = 0
+        prev_day = self.sept_week[0].date()
+        n_tdays = 0
         for m in self.sept_week:
+            if prev_day < m.date():
+                n_tdays += 1
+                prev_day = m.date()
+
             if should_trigger(m):
-                n_triggered += 1
-                self.assertEqual(m, first_of_week + timedelta(days=n))
-        self.assertEqual(n_triggered, 1)
+                self.assertEqual(n_tdays, n)
+            else:
+                self.assertNotEqual(n_tdays, n)
 
     @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfWeek(self, n):
         should_trigger = partial(
             NDaysBeforeLastTradingDayOfWeek(n).should_trigger, env=self.env
         )
-        first_of_week = self.sept_week[0]
-        n_triggered = 0
         for m in self.sept_week:
             if should_trigger(m):
-                n_triggered += 1
-                self.assertEqual(m, first_of_week + timedelta(days=4-n))
-        self.assertEqual(n_triggered, 1)
+                n_tdays = 0
+                date = m.to_datetime().date()
+                next_date = self.env.next_trading_day(date)
+                while next_date.weekday() > date.weekday():
+                    date = next_date
+                    next_date = self.env.next_trading_day(date)
+                    n_tdays += 1
+
+                self.assertEqual(n_tdays, n)
 
     @parameter_space(
         rule_offset=(0, 1, 2, 3, 4),
@@ -386,7 +394,7 @@ class TestStatelessRules(RuleTestCase):
         for that week, that the trigger is recalculated for next week.
         """
 
-        sim_start = pd.Timestamp('01-06-2014 14:31:00', tz='UTC') + \
+        sim_start = pd.Timestamp('01-06-2014', tz='UTC') + \
             timedelta(days=start_offset)
 
         jan_minutes = self.env.minutes_for_days_in_range(
@@ -400,10 +408,10 @@ class TestStatelessRules(RuleTestCase):
             # Expect to trigger on the first trading day of the week, plus the
             # offset
             trigger_dates = [
-                pd.Timestamp('2014-01-06 14:31:00', tz='UTC'),
-                pd.Timestamp('2014-01-13 14:31:00', tz='UTC'),
-                pd.Timestamp('2014-01-21 14:31:00', tz='UTC'),
-                pd.Timestamp('2014-01-27 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-06', tz='UTC'),
+                pd.Timestamp('2014-01-13', tz='UTC'),
+                pd.Timestamp('2014-01-21', tz='UTC'),
+                pd.Timestamp('2014-01-27', tz='UTC'),
             ]
             trigger_dates = \
                 [x + timedelta(days=rule_offset) for x in trigger_dates]
@@ -412,10 +420,10 @@ class TestStatelessRules(RuleTestCase):
             # Expect to trigger on the last trading day of the week, minus the
             # offset
             trigger_dates = [
-                pd.Timestamp('2014-01-10 14:31:00', tz='UTC'),
-                pd.Timestamp('2014-01-17 14:31:00', tz='UTC'),
-                pd.Timestamp('2014-01-24 14:31:00', tz='UTC'),
-                pd.Timestamp('2014-01-31 14:31:00', tz='UTC'),
+                pd.Timestamp('2014-01-10', tz='UTC'),
+                pd.Timestamp('2014-01-17', tz='UTC'),
+                pd.Timestamp('2014-01-24', tz='UTC'),
+                pd.Timestamp('2014-01-31', tz='UTC'),
             ]
             trigger_dates = \
                 [x - timedelta(days=rule_offset) for x in trigger_dates]
@@ -432,16 +440,49 @@ class TestStatelessRules(RuleTestCase):
         # Filter out trigger dates that happen before the simulation starts
         trigger_dates = [x for x in trigger_dates if x >= sim_start]
 
-        expected_n_triggered = len(trigger_dates)
-        trigger_dates = iter(trigger_dates)
+        # Get all the minutes on the trigger dates
+        trigger_dts = self.env.market_minutes_for_day(trigger_dates[0])
+        for dt in trigger_dates[1:]:
+            trigger_dts += self.env.market_minutes_for_day(dt)
+
+        expected_n_triggered = len(trigger_dts)
+        trigger_dts = iter(trigger_dts)
 
         n_triggered = 0
         for m in jan_minutes:
             if should_trigger(m):
-                self.assertEqual(m, next(trigger_dates))
+                self.assertEqual(m, next(trigger_dts))
                 n_triggered += 1
 
         self.assertEqual(n_triggered, expected_n_triggered)
+
+    @parameterized.expand([('week_start',), ('week_end',)])
+    def test_week_and_time_composed_rule(self, type):
+        week_rule = NthTradingDayOfWeek(0) if type == 'week_start' else \
+            NDaysBeforeLastTradingDayOfWeek(4)
+        time_rule = AfterOpen(minutes=60)
+
+        composed_rule = week_rule & time_rule
+
+        should_trigger = partial(composed_rule.should_trigger, env=self.env)
+
+        week_minutes = self.env.minutes_for_days_in_range(
+            datetime.date(year=2014, month=1, day=6),
+            datetime.date(year=2014, month=1, day=10)
+        )
+
+        dt = pd.Timestamp('2014-01-06 14:30:00', tz='UTC')
+        trigger_day_offset = 0
+        trigger_minute_offset = 60
+        n_triggered = 0
+
+        for m in week_minutes:
+            if should_trigger(m):
+                self.assertEqual(m, dt + timedelta(days=trigger_day_offset) +
+                                 timedelta(minutes=trigger_minute_offset))
+                n_triggered += 1
+
+        self.assertEqual(n_triggered, 1)
 
     @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NthTradingDayOfMonth(self, n):

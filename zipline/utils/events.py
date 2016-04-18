@@ -466,18 +466,15 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
             # of the simulation start
             self.calculate_start_and_end(dt, env)
 
-            # If we've missed the first trigger because it occurs before the
-            # simulation starts, recalculate for the next week
-            if dt > self.next_date_end:
-                self.calculate_start_and_end(dt + datetime.timedelta(days=7),
-                                             env)
+        # If we've passed the trigger, calculate the next one
+        if dt > self.next_date_end:
+            self.calculate_start_and_end(self.next_date_end +
+                                         datetime.timedelta(days=7),
+                                         env)
 
-        # if the given dt is within the next matching day, return true. Also
-        # calculate the start and end dates for the next trigger
+        # if the given dt is within the next matching day, return true.
         if self.next_date_start <= dt <= self.next_date_end or \
                 dt == self.next_midnight_timestamp:
-            self.calculate_start_and_end(dt + datetime.timedelta(days=7),
-                                         env)
             return True
 
         return False
