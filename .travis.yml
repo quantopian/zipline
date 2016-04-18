@@ -70,3 +70,4 @@ after_success:
 branches:
   only:
     - master
+    - q1-release
