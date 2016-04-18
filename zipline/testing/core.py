@@ -46,7 +46,6 @@ from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.sentinel import sentinel
-from zipline.utils.tradingcalendar import trading_days
 from zipline.utils.calendars import default_nyse_schedule
 import numpy as np
 from numpy import float64
@@ -1026,6 +1025,7 @@ def gen_calendars(start, stop, critical_dates):
         yield (all_dates.drop(to_drop),)
 
     # Also test with the trading calendar.
+    trading_days = default_nyse_schedule.all_execution_days
     yield (trading_days[trading_days.slice_indexer(start, stop)],)
 
 
