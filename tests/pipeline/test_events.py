@@ -7,7 +7,7 @@ from unittest import TestCase
 import blaze as bz
 from nose_parameterized import parameterized
 import pandas as pd
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_series_equal, assert_frame_equal
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
@@ -117,6 +117,24 @@ class EventLoaderTestCase(TestCase):
             ),
             True,
             EventDataSetLoader
+        )
+
+    def test_null_in_expected_cols(self):
+        dates_with_null = pd.Series(dtx)
+        dates_with_null[2] = pd.NaT
+        events_by_sid = {0: pd.DataFrame({ANNOUNCEMENT_FIELD_NAME:
+                                          dates_with_null,
+                                          TS_FIELD_NAME: dtx})}
+        loader = EventDataSetLoader(
+            dtx,
+            events_by_sid,
+        )
+
+        expected = events_by_sid[0].drop(2, axis=0).set_index(TS_FIELD_NAME)
+        # Check that index by first given date has been added
+        assert_frame_equal(
+            loader.events_by_sid[0],
+            expected,
         )
 
     @parameterized.expand([
