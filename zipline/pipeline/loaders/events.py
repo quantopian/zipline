@@ -148,7 +148,8 @@ class EventsLoader(PipelineLoader):
                 raise ValueError(
                     WRONG_MANY_COL_DATA_FORMAT_ERROR.format(sid=k)
                 )
-
+        self.events_by_sid = {sid: df.dropna(subset=self.expected_cols) for
+                              sid, df in self.events_by_sid.iteritems()}
         self.dataset = dataset
 
     def get_loader(self, column):
