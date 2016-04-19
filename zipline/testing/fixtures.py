@@ -597,6 +597,9 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
         If this flag is set the ``bcolz_daily_bar_days`` will be the full
         set of trading days from the trading environment. This flag overrides
         ``BCOLZ_DAILY_BAR_LOOKBACK_DAYS``.
+    BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD : int
+        If this flag is set, use the value as the `read_all_threshold`
+        parameter to BcolzDailyBarReader, otherwise use the default value.
 
     Methods
     -------
@@ -618,6 +621,7 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
     BCOLZ_DAILY_BAR_USE_FULL_CALENDAR = False
     BCOLZ_DAILY_BAR_START_DATE = alias('START_DATE')
     BCOLZ_DAILY_BAR_END_DATE = alias('END_DATE')
+    BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = None
     # allows WithBcolzDailyBarReaderFromCSVs to call the `write_csvs` method
     # without needing to reimplement `init_class_fixtures`
     _write_method_name = 'write'
@@ -651,7 +655,11 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
             cls._write_method_name,
         )(cls.make_daily_bar_data())
 
-        cls.bcolz_daily_bar_reader = BcolzDailyBarReader(t)
+        if cls.BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD is not None:
+            cls.bcolz_daily_bar_reader = BcolzDailyBarReader(
+                t, cls.BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD)
+        else:
+            cls.bcolz_daily_bar_reader = BcolzDailyBarReader(t)
 
 
 class WithBcolzDailyBarReaderFromCSVs(WithBcolzDailyBarReader):
