@@ -34,7 +34,6 @@ from zipline.pipeline.loaders.blaze import (
     BlazeShareBuybackAuthorizationsLoader,
 )
 from zipline.pipeline.loaders.utils import (
-    get_values_for_date_ranges,
     zip_with_floats,
     zip_with_dates
 )
@@ -42,8 +41,9 @@ from zipline.testing.fixtures import (
     WithPipelineEventDataLoader, ZiplineTestCase
 )
 
-date_intervals = [[None, '2014-01-04'], ['2014-01-05', '2014-01-09'],
-                  ['2014-01-10', None]]
+date_intervals = [
+    [[None, '2014-01-04'], ['2014-01-05', '2014-01-09'], ['2014-01-10', None]]
+]
 
 buyback_authorizations_cases = [
     pd.DataFrame({
@@ -61,18 +61,6 @@ buyback_authorizations_cases = [
         dtype='datetime64[ns]'
     ),
 ]
-
-
-def get_expected_previous_values(zip_date_index_with_vals,
-                                 dates,
-                                 vals_for_date_intervals):
-    return pd.DataFrame({
-        0: get_values_for_date_ranges(zip_date_index_with_vals,
-                                      vals_for_date_intervals,
-                                      date_intervals,
-                                      dates),
-        1: zip_date_index_with_vals(dates, ['NaN'] * len(dates)),
-    }, index=dates)
 
 
 class CashBuybackAuthLoaderTestCase(WithPipelineEventDataLoader,
@@ -103,16 +91,17 @@ class CashBuybackAuthLoaderTestCase(WithPipelineEventDataLoader,
     loader_type = CashBuybackAuthorizationsLoader
 
     def setup(self, dates):
-        cols = {}
-        _expected_previous_cash = get_expected_previous_values(
-            zip_with_floats, dates,
-            ['NaN', 10, 20]
-        )
-        cols[
-            PREVIOUS_BUYBACK_ANNOUNCEMENT
-        ] = get_expected_previous_values(zip_with_dates, dates,
-                                         ['NaT', '2014-01-04', '2014-01-09'])
-        cols[PREVIOUS_BUYBACK_CASH] = _expected_previous_cash
+        cols = {
+            PREVIOUS_BUYBACK_CASH: self.get_sids_to_frames(zip_with_floats,
+                                                           [['NaN', 10, 20]],
+                                                           date_intervals,
+                                                           dates),
+            PREVIOUS_BUYBACK_ANNOUNCEMENT: self.get_sids_to_frames(
+                zip_with_dates,
+                [['NaT', '2014-01-04', '2014-01-09']],
+                date_intervals,
+                dates),
+        }
         cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
             cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
         )
@@ -147,16 +136,18 @@ class ShareBuybackAuthLoaderTestCase(WithPipelineEventDataLoader,
     loader_type = ShareBuybackAuthorizationsLoader
 
     def setup(self, dates):
-        cols = {}
-        cols[
-            PREVIOUS_BUYBACK_SHARE_COUNT
-        ] = get_expected_previous_values(zip_with_floats,
-                                         dates,
-                                         ['NaN', 1, 15])
-        cols[
-            PREVIOUS_BUYBACK_ANNOUNCEMENT
-        ] = get_expected_previous_values(zip_with_dates, dates,
-                                         ['NaT', '2014-01-04', '2014-01-09'])
+        cols = {PREVIOUS_BUYBACK_SHARE_COUNT:
+                self.get_sids_to_frames(zip_with_floats,
+                                        [['NaN', 1, 15]],
+                                        date_intervals,
+                                        dates,),
+                PREVIOUS_BUYBACK_ANNOUNCEMENT:
+                self.get_sids_to_frames(zip_with_dates,
+                                        [['NaT', '2014-01-04', '2014-01-09']],
+                                        date_intervals,
+                                        dates,),
+                }
+
         cols[DAYS_SINCE_PREV] = self._compute_busday_offsets(
             cols[PREVIOUS_BUYBACK_ANNOUNCEMENT]
         )

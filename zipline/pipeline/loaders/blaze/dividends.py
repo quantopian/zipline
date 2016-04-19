@@ -45,7 +45,7 @@ class BlazeDividendsByAnnouncementDateLoader(BlazeEventsLoader):
        Dim * {{
            {SID_FIELD_NAME}: int64,
            {TS_FIELD_NAME}: datetime,
-           {CASH_AMOUNT_FIELD_NAME}: ?datetime,
+           {CASH_AMOUNT_FIELD_NAME}: ?float64,
            {ANNOUNCEMENT_FIELD_NAME}: ?datetime,
        }}
 

@@ -17,10 +17,12 @@ from .dividends import (
 from .earnings import (
     BlazeEarningsCalendarLoader,
 )
+from .consensus_estimates import BlazeConsensusEstimatesLoader
 
 __all__ = (
     'BlazeCashBuybackAuthorizationsLoader',
     'BlazeDividendsByAnnouncementDateLoader',
+    'BlazeConsensusEstimatesLoader',
     'BlazeDividendsByExDateLoader',
     'BlazeDividendsByPayDateLoader',
     'BlazeEarningsCalendarLoader',
