@@ -33,12 +33,11 @@ function DownloadMiniconda ($python_version, $platform_suffix) {
             Start-Sleep 1
         }
    }
-   if (Test-Path $filepath) {
-       Write-Host "File saved at" $filepath
-   } else {
+   if (!(Test-Path $filepath) -or ($i -ge $retry_attempts)) {
        # Retry once to get the error message if any at the last try
        $webclient.DownloadFile($url, $filepath)
    }
+   Write-Host "File saved at" $filepath
    return $filepath
 }
 
