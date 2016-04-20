@@ -48,6 +48,7 @@ from .calendar_helpers import (
     all_scheduled_minutes,
     next_scheduled_minute,
     previous_scheduled_minute,
+    minute_window,
 )
 
 start_default = pd.Timestamp('1990-01-01', tz='UTC')
@@ -242,6 +243,13 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
             open_and_close_hook=self.open_and_close,
             previous_open_and_close_hook=self.previous_open_and_close,
         )
+        self.market_minute_window = partial(
+            minute_window,
+            schedule=self.schedule,
+            is_scheduled_minute_hook=self.is_open_on_minute,
+            session_date_hook=self.session_date,
+            minutes_for_date_hook=self.trading_minutes_for_day,
+        )
 
     def _special_dates(self, calendars, ad_hoc_dates, start_date, end_date):
         """
@@ -413,56 +421,10 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         """
         raise NotImplementedError()
 
-    @abstractmethod
-    def minutes_for_date(self, date):
-        """
-        Given a UTC-canonicalized date, returns a DatetimeIndex of all trading
-        minutes in the exchange session for that date.
-
-        SD: Sounds like @date can be an arbitrary datetime, and that we should
-        first map to an exchange session by calling self.session_date. Need to
-        check what the consumers expect.
-
-        Parameters
-        ----------
-        date : Timestamp
-            The UTC-canonicalized date whose minutes are needed.
-
-        Returns
-        -------
-        DatetimeIndex
-            A DatetimeIndex populated with all of the minutes in the
-            given date.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def minute_window(self, start, count, step=1):
-        """
-        Return a DatetimeIndex containing `count` market minutes, starting with
-        `start` and continuing `step` minutes at a time.
-
-        Parameters
-        ----------
-        start : Timestamp
-            The start of the window.
-        count : int
-            The number of minutes needed.
-        step : int
-            The step size by which to increment.
-
-        Returns
-        -------
-        DatetimeIndex
-            A window with @count minutes, starting with @start a returning
-            every @step minute.
-        """
-        raise NotImplementedError()
-
 
 _static_calendars = {}
 
-_lazy_calendar_names = ['NYSE']
+_lazy_calendar_names = ['NYSE', 'CME']
 
 
 def get_calendar(name):
@@ -481,11 +443,17 @@ def get_calendar(name):
             # It's not a lazy calendar, so raise an exception
             raise InvalidCalendarName(calendar_name=name)
 
-        if name is 'NYSE':
+        if name == 'NYSE':
             from zipline.utils.calendars.nyse_exchange_calendar \
                 import NYSEExchangeCalendar
             nyse_cal = NYSEExchangeCalendar()
             register_calendar(nyse_cal)
+
+        if name == 'CME':
+            from zipline.utils.calendars.cme_exchange_calendar \
+                import CMEExchangeCalendar
+            cme_cal = CMEExchangeCalendar()
+            register_calendar(cme_cal)
 
     return _static_calendars[name]
 

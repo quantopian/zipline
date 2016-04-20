@@ -16,6 +16,7 @@
 import pandas as pd
 import numpy as np
 import bisect
+from pytz import timezone
 
 from zipline.errors import NoFurtherDataError
 
@@ -110,11 +111,13 @@ def days_in_range(start, end, all_days):
     Get all execution days between start and end,
     inclusive.
     """
+
     start_date = normalize_date(start)
     end_date = normalize_date(end)
+    return all_days[all_days.slice_indexer(start_date, end_date)]
 
-    mask = ((all_days >= start_date) & (all_days <= end_date))
-    return all_days[mask]
+    #mask = ((all_days >= start_date) & (all_days <= end_date))
+    #return all_days[mask]
 
 
 def minutes_for_days_in_range(start, end, days_in_range_hook,
@@ -211,3 +214,60 @@ def previous_scheduled_minute(start, is_scheduled_day_hook,
     # If start is not a trading day, or is before the market open
     # then return the close of the *previous* trading day.
     return previous_open_and_close_hook(start)[1]
+
+
+def minute_window(start, count, schedule, is_scheduled_minute_hook,
+                  session_date_hook, minutes_for_date_hook, step=1):
+    """
+    Returns a DatetimeIndex containing `count` market minutes, starting
+    with `start` and continuing `step` minutes at a time.
+
+    Parameters
+    ----------
+    start : Timestamp
+        The start of the window.
+    count : int
+        The number of minutes needed.
+    step : int
+        The step size by which to increment.
+
+    Returns
+    -------
+    DatetimeIndex
+        A window with @count minutes, start with @start.
+    """
+    if not is_scheduled_minute_hook(start):
+        raise ValueError("minute_window starting at non-market time "
+                         "{minute}".format(minute=start))
+
+    start_utc = start.astimezone(timezone('UTC'))
+
+    session = session_date_hook(start)
+    session_idx = schedule.index.get_loc(session)
+
+    mins_in_session = minutes_for_date_hook(session)
+    start_idx = mins_in_session.searchsorted(start_utc)
+
+    # Use a list instead of a pandas DatetimeIndex, as using .append()
+    # with DatetimeIndex can become expensive if used several times, since
+    # it makes a full copy of the data. list.extend() will not typically
+    # copy the data unless there is not enough memory to extend into, which
+    # is usually not  problem.
+    all_minutes = list(mins_in_session[start_idx::np.sign(step)])
+
+    while True:
+
+        step_minutes = all_minutes[0::np.absolute(step)]
+
+        if len(step_minutes) >= count:
+            step_minutes = step_minutes[:count]
+            return pd.DatetimeIndex(step_minutes, copy=False)
+
+        # Iterate session forward or backward
+        session_idx += np.sign(step)
+        # Get the minutes in the next exchange session
+        session = schedule.index[session_idx]
+        session_minutes = minutes_for_date_hook(session)[::np.sign(step)]
+
+        # A these new session_minutes to the `all_minutes` candidate list
+        all_minutes.extend(list(session_minutes))

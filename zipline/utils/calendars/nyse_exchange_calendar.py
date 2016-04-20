@@ -16,8 +16,6 @@
 from datetime import time
 from itertools import chain
 
-import numpy as np
-import pandas as pd
 from dateutil.relativedelta import (
     MO,
     TH,
@@ -440,83 +438,3 @@ class NYSEExchangeCalendar(ExchangeCalendar):
         while not self.is_open_on_day(dt):
             dt += Timedelta(days=1)
         return normalize_date(dt)
-
-    def minutes_for_date(self, dt):
-        """
-        Given a datetime, returns a DatetimeIndex of all trading
-        minutes in the exchange session for that datetime.
-
-        SD: Should @dt be an arbitrary datetime, so that we should
-        first map to an exchange session by calling self.session_date. Need to
-        check what the consumers expect. Here, I assume we need to map it to a
-        session.
-
-        Parameters
-        ----------
-        dt : Timestamp
-            The datetime whose exchange session minutes are needed.
-
-        Returns
-        -------
-        DatetimeIndex
-            A DatetimeIndex populated with all of the minutes in the
-            given dt.
-        """
-        session = self.session_date(dt)
-        open, close = self.open_and_close(session)
-        return date_range(open, close, freq='min', tz='UTC')
-
-    def minute_window(self, start, count, step=1):
-        """
-        Returns a DatetimeIndex containing `count` market minutes, starting
-        with `start` and continuing `step` minutes at a time.
-
-        Parameters
-        ----------
-        start : Timestamp
-            The start of the window.
-        count : int
-            The number of minutes needed.
-        step : int
-            The step size by which to increment.
-
-        Returns
-        -------
-        DatetimeIndex
-            A window with @count minutes, start with @start.
-        """
-        if not self.is_open_on_minute(start):
-            raise ValueError("minute_window starting at non-market time "
-                             "{minute}".format(minute=start))
-
-        start_utc = start.astimezone(timezone('UTC'))
-
-        session = self.session_date(start)
-        session_idx = self.schedule.index.get_loc(session)
-
-        mins_in_session = self.minutes_for_date(session)
-        start_idx = mins_in_session.searchsorted(start_utc)
-
-        # Use a list instead of a pandas DatetimeIndex, as using .append()
-        # with DatetimeIndex can become expensive if used several times, since
-        # it makes a full copy of the data. list.extend() will not typically
-        # copy the data unless there is not enough memory to extend into, which
-        # is usually not  problem.
-        all_minutes = list(mins_in_session[start_idx::np.sign(step)])
-
-        while True:
-
-            step_minutes = all_minutes[0::np.absolute(step)]
-
-            if len(step_minutes) >= count:
-                step_minutes = step_minutes[:count]
-                return pd.DatetimeIndex(step_minutes, copy=False)
-
-            # Iterate session forward or backward
-            session_idx += np.sign(step)
-            # Get the minutes in the next exchange session
-            session = self.schedule.index[session_idx]
-            session_minutes = self.minutes_for_date(session)[::np.sign(step)]
-
-            # A these new session_minutes to the `all_minutes` candidate list
-            all_minutes.extend(list(session_minutes))
