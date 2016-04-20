@@ -2,7 +2,7 @@
 # Authors: Olivier Grisel, Jonathan Helmus and Kyle Kastner, Robert McGibbon
 # License: CC0 1.0 Universal: http://creativecommons.org/publicdomain/zero/1.0/
 
-$MINICONDA_URL = "http://repo.continuum.io/miniconda/"
+$MINICONDA_URL = "https://repo.continuum.io/miniconda/"
 
 
 function DownloadMiniconda ($python_version, $platform_suffix) {
