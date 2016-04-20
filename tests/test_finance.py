@@ -497,7 +497,7 @@ class TradingEnvironmentTestCase(WithLogger,
         utc_start = pd.Timestamp(start.astimezone(utc))
 
         # Get the next 10 minutes
-        minutes = self.cal.market_minute_window(
+        minutes = self.cal.trading_minute_window(
             utc_start, 10,
         )
         self.assertEqual(len(minutes), 10)
@@ -505,7 +505,7 @@ class TradingEnvironmentTestCase(WithLogger,
             self.assertEqual(minutes[i], utc_start + timedelta(minutes=i))
 
         # Get the previous 10 minutes.
-        minutes = self.cal.market_minute_window(
+        minutes = self.cal.trading_minute_window(
             utc_start, 10, step=-1,
         )
         self.assertEqual(len(minutes), 10)
@@ -518,7 +518,7 @@ class TradingEnvironmentTestCase(WithLogger,
         # Today:    10:01 AM  ->  4:00 PM  (360 minutes)
         # Tomorrow: 9:31  AM  ->  4:00 PM  (390 minutes, 750 total)
         # Last Day: 9:31  AM  -> 12:00 PM  (150 minutes, 900 total)
-        minutes = self.cal.market_minute_window(
+        minutes = self.cal.trading_minute_window(
             start, 900,
         )
         today = self.cal.trading_minutes_for_day(utc_start)[30:]
@@ -540,7 +540,7 @@ class TradingEnvironmentTestCase(WithLogger,
         # Today:    10:01 AM -> 9:31 AM (31 minutes)
         # Friday:   4:00 PM  -> 9:31 AM (390 minutes, 421 total)
         # Thursday: 4:00 PM  -> 9:41 AM (380 minutes, 801 total)
-        minutes = self.cal.market_minute_window(
+        minutes = self.cal.trading_minute_window(
             start, 801, step=-1,
         )
 

@@ -112,7 +112,7 @@ class ExchangeCalendarTestBase(object):
     def test_minute_window(self):
         for open in self.answers.market_open:
             open_tz = open.tz_localize('UTC')
-            window = self.calendar.market_minute_window(open_tz, 390, step=1)
+            window = self.calendar.trading_minute_window(open_tz, 390, step=1)
             self.assertEqual(len(window), 390)
 
 

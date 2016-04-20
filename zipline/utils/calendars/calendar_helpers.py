@@ -116,9 +116,6 @@ def days_in_range(start, end, all_days):
     end_date = normalize_date(end)
     return all_days[all_days.slice_indexer(start_date, end_date)]
 
-    #mask = ((all_days >= start_date) & (all_days <= end_date))
-    #return all_days[mask]
-
 
 def minutes_for_days_in_range(start, end, days_in_range_hook,
                               minutes_for_day_hook):
@@ -216,8 +213,8 @@ def previous_scheduled_minute(start, is_scheduled_day_hook,
     return previous_open_and_close_hook(start)[1]
 
 
-def minute_window(start, count, schedule, is_scheduled_minute_hook,
-                  session_date_hook, minutes_for_date_hook, step=1):
+def minute_window(start, count, step, schedule, is_scheduled_minute_hook,
+                  session_date_hook, minutes_for_date_hook):
     """
     Returns a DatetimeIndex containing `count` market minutes, starting
     with `start` and continuing `step` minutes at a time.
