@@ -19,6 +19,7 @@ from abc import (
     abstractproperty,
 )
 from functools import partial
+from six import with_metaclass
 
 from zipline.utils.memoize import remember_last
 
@@ -36,14 +37,14 @@ from .calendar_helpers import (
     all_scheduled_minutes,
     next_scheduled_minute,
     previous_scheduled_minute,
+    minute_window,
 )
 
 
-class TradingSchedule(object):
+class TradingSchedule(with_metaclass(ABCMeta)):
     """
     A TradingSchedule defines the execution timing of a TradingAlgorithm.
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self):
         # Assign the partial calendar helpers
@@ -102,12 +103,19 @@ class TradingSchedule(object):
             open_and_close_hook=self.start_and_end,
             previous_open_and_close_hook=self.previous_start_and_end,
         )
+        self.execution_minute_window = partial(
+            minute_window,
+            schedule=self.schedule,
+            is_scheduled_minute_hook=self.is_executing_on_minute,
+            session_date_hook=self.session_date,
+            minutes_for_date_hook=self.execution_minutes_for_day,
+        )
 
     @abstractproperty
     def day(self):
         """
         A CustomBusinessDay defining those days on which the algorithm is
-        usually trading.
+        trading.
         """
         raise NotImplementedError()
 
@@ -257,26 +265,23 @@ class TradingSchedule(object):
         """
         raise NotImplementedError()
 
+
     @abstractmethod
-    def minute_window(self, start, count, step=1):
+    def session_date(self, dt):
         """
-        Return a DatetimeIndex containing `count` market minutes, starting with
-        `start` and continuing `step` minutes at a time.
+        Given a time, returns the UTC-canonicalized date of the trading
+        session in which the time belongs. If the time is not in a trading
+        session (while algorithm isn't trading), returns the date of the next
+        exchange session after the time.
 
         Parameters
         ----------
-        start : Timestamp
-            The start of the window.
-        count : int
-            The number of minutes needed.
-        step : int
-            The step size by which to increment.
+        dt : Timestamp
 
         Returns
         -------
-        DatetimeIndex
-            A window with @count minutes, starting with @start a returning
-            every @step minute.
+        Timestamp
+            The date of the exchange session in which dt belongs.
         """
         raise NotImplementedError()
 
@@ -358,10 +363,11 @@ class ExchangeTradingSchedule(TradingSchedule):
         """
         return self._exchange_calendar.is_open_on_day(dt)
 
-    def minute_window(self, start, count, step=1):
-        return self._exchange_calendar.minute_window(start=start,
-                                                     count=count,
-                                                     step=step)
+    def session_date(self, dt):
+        """
+        See TradingSchedule definition.
+        """
+        return self._exchange_calendar.session_date(dt)
 
     @property
     def early_ends(self):

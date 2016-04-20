@@ -38,21 +38,9 @@ def create_test_zipline(**config):
                             "argument 'sid_list' or 'sid'")
 
     concurrent_trades = config.get('concurrent_trades', False)
-
-    if 'order_count' in config:
-        order_count = config['order_count']
-    else:
-        order_count = 100
-
-    if 'order_amount' in config:
-        order_amount = config['order_amount']
-    else:
-        order_amount = 100
-
-    if 'trading_schedule' in config:
-        trading_schedule = config['trading_schedule']
-    else:
-        trading_schedule = default_nyse_schedule
+    order_count = config.get('order_count', 100)
+    order_amount = config.get('order_amount', 100)
+    trading_schedule = config.get('trading_schedule', default_nyse_schedule)
 
     # -------------------
     # Create the Algo
