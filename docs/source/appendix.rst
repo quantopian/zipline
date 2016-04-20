@@ -1,6 +1,11 @@
 API Reference
 -------------
 
+Running a Backtest
+~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: zipline.run_algorithm(...)
+
 Algorithm API
 ~~~~~~~~~~~~~
 
@@ -85,29 +90,88 @@ Pipeline API
 Asset Metadata
 ~~~~~~~~~~~~~~
 
-.. autoclass:: zipline.assets.assets.Asset
+.. autoclass:: zipline.assets.Asset
    :members:
 
-.. autoclass:: zipline.assets.assets.Equity
+.. autoclass:: zipline.assets.Equity
    :members:
 
-.. autoclass:: zipline.assets.assets.Future
+.. autoclass:: zipline.assets.Future
    :members:
 
-.. autoclass:: zipline.assets.assets.AssetFinder
-   :members:
-
-.. autoclass:: zipline.assets.assets.AssetFinderCachedEquities
-   :members:
-
-.. autoclass:: zipline.assets.asset_writer.AssetDBWriter
-   :members:
-
-.. autoclass:: zipline.assets.assets.AssetConvertible
+.. autoclass:: zipline.assets.AssetConvertible
    :members:
 
 Data API
 ~~~~~~~~
 
+Writers
+```````
 .. autoclass:: zipline.data.minute_bars.BcolzMinuteBarWriter
    :members:
+
+.. autoclass:: zipline.data.us_equity_pricing.BcolzDailyBarWriter
+   :members:
+
+.. autoclass:: zipline.data.us_equity_pricing.SQLiteAdjustmentWriter
+   :members:
+
+.. autoclass:: zipline.assets.AssetDBWriter
+   :members:
+
+Readers
+```````
+.. autoclass:: zipline.data.minute_bars.BcolzMinuteBarReader
+   :members:
+
+.. autoclass:: zipline.data.us_equity_pricing.BcolzDailyBarReader
+   :members:
+
+.. autoclass:: zipline.data.us_equity_pricing.SQLiteAdjustmentReader
+   :members:
+
+.. autoclass:: zipline.assets.AssetFinder
+   :members:
+
+.. autoclass:: zipline.assets.AssetFinderCachedEquities
+   :members:
+
+Bundles
+```````
+.. autofunction:: zipline.data.bundles.register
+
+.. autofunction:: zipline.data.bundles.ingest(name, environ=os.environ, date=None, show_progress=True)
+
+.. autofunction:: zipline.data.bundles.load(name, environ=os.environ, date=None)
+
+.. autofunction:: zipline.data.bundles.unregister
+
+.. data:: zipline.data.bundles.bundles
+
+   The bundles that have been registered as a mapping from bundle name to bundle
+   data. This mapping is immutable and should only be updated through
+   :func:`~zipline.data.bundles.register` or
+   :func:`~zipline.data.bundles.unregister`.
+
+.. autofunction:: zipline.data.bundles.yahoo_equities
+
+
+Utilities
+~~~~~~~~~
+
+Caching
+```````
+
+.. autoclass:: zipline.utils.cache.CachedObject
+
+.. autoclass:: zipline.utils.cache.ExpiringCache
+
+.. autoclass:: zipline.utils.cache.dataframe_cache
+
+.. autoclass:: zipline.utils.cache.working_file
+
+.. autoclass:: zipline.utils.cache.working_dir
+
+Command Line
+````````````
+.. autofunction:: zipline.utils.cli.maybe_show_progress

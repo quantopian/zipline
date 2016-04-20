@@ -163,8 +163,12 @@ class DailyHistoryAggregator(object):
                     else:
                         after_last = pd.Timestamp(
                             last_visited_dt + self._one_min, tz='UTC')
-                        window = self._minute_reader.unadjusted_window(
-                            ['open'], after_last, dt, [asset])[0]
+                        window = self._minute_reader.load_raw_arrays(
+                            ['open'],
+                            after_last,
+                            dt,
+                            [asset],
+                        )[0]
                         nonnan = window[~pd.isnull(window)]
                         if len(nonnan):
                             val = nonnan[0]
@@ -174,8 +178,12 @@ class DailyHistoryAggregator(object):
                         opens.append(val)
                         continue
                 except KeyError:
-                    window = self._minute_reader.unadjusted_window(
-                        ['open'], market_open, dt, [asset])[0]
+                    window = self._minute_reader.load_raw_arrays(
+                        ['open'],
+                        market_open,
+                        dt,
+                        [asset],
+                    )[0]
                     nonnan = window[~pd.isnull(window)]
                     if len(nonnan):
                         val = nonnan[0]
@@ -232,15 +240,23 @@ class DailyHistoryAggregator(object):
                     else:
                         after_last = pd.Timestamp(
                             last_visited_dt + self._one_min, tz='UTC')
-                        window = self._minute_reader.unadjusted_window(
-                            ['high'], after_last, dt, [asset])
+                        window = self._minute_reader.load_raw_arrays(
+                            ['high'],
+                            after_last,
+                            dt,
+                            [asset],
+                        )[0].T
                         val = max(last_max, np.nanmax(window))
                         entries[asset] = (dt_value, val)
                         highs.append(val)
                         continue
                 except KeyError:
-                    window = self._minute_reader.unadjusted_window(
-                        ['high'], market_open, dt, [asset])
+                    window = self._minute_reader.load_raw_arrays(
+                        ['high'],
+                        market_open,
+                        dt,
+                        [asset],
+                    )[0].T
                     val = np.nanmax(window)
                     entries[asset] = (dt_value, val)
                     highs.append(val)
@@ -288,8 +304,12 @@ class DailyHistoryAggregator(object):
                     else:
                         after_last = pd.Timestamp(
                             last_visited_dt + self._one_min, tz='UTC')
-                        window = self._minute_reader.unadjusted_window(
-                            ['low'], after_last, dt, [asset])
+                        window = self._minute_reader.load_raw_arrays(
+                            ['low'],
+                            after_last,
+                            dt,
+                            [asset],
+                        )[0].T
                         window_min = np.nanmin(window)
                         if pd.isnull(window_min):
                             val = last_min
@@ -299,8 +319,12 @@ class DailyHistoryAggregator(object):
                         lows.append(val)
                         continue
                 except KeyError:
-                    window = self._minute_reader.unadjusted_window(
-                        ['low'], market_open, dt, [asset])
+                    window = self._minute_reader.load_raw_arrays(
+                        ['low'],
+                        market_open,
+                        dt,
+                        [asset],
+                    )[0].T
                     val = np.nanmin(window)
                     entries[asset] = (dt_value, val)
                     lows.append(val)
@@ -410,15 +434,23 @@ class DailyHistoryAggregator(object):
                     else:
                         after_last = pd.Timestamp(
                             last_visited_dt + self._one_min, tz='UTC')
-                        window = self._minute_reader.unadjusted_window(
-                            ['volume'], after_last, dt, [asset])
+                        window = self._minute_reader.load_raw_arrays(
+                            ['volume'],
+                            after_last,
+                            dt,
+                            [asset],
+                        )[0]
                         val = np.nansum(window) + last_total
                         entries[asset] = (dt_value, val)
                         volumes.append(val)
                         continue
                 except KeyError:
-                    window = self._minute_reader.unadjusted_window(
-                        ['volume'], market_open, dt, [asset])
+                    window = self._minute_reader.load_raw_arrays(
+                        ['volume'],
+                        market_open,
+                        dt,
+                        [asset],
+                    )[0]
                     val = np.nansum(window)
                     entries[asset] = (dt_value, val)
                     volumes.append(val)

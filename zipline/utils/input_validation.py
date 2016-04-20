@@ -16,6 +16,7 @@ from functools import partial, wraps
 from operator import attrgetter
 
 from numpy import dtype
+import pandas as pd
 from pytz import timezone
 from six import iteritems, string_types, PY3
 from toolz import valmap, complement, compose
@@ -131,6 +132,35 @@ def ensure_timezone(func, argname, arg):
             arg=arg,
         ),
     )
+
+
+def ensure_timestamp(func, argname, arg):
+    """Argument preprocessor that converts the input into a pandas Timestamp
+    object.
+
+    Usage
+    -----
+    >>> from zipline.utils.preprocess import preprocess
+    >>> @preprocess(ts=ensure_timestamp)
+    ... def foo(ts):
+    ...     return ts
+    >>> foo('2014-01-01')
+    Timestamp('2014-01-01 00:00:00')
+    """
+    try:
+        return pd.Timestamp(arg)
+    except ValueError as e:
+        raise TypeError(
+            "{func}() couldn't convert argument "
+            "{argname}={arg!r} to a pandas Timestamp.\n"
+            "Original error was: {t}: {e}".format(
+                func=_qualified_name(func),
+                argname=argname,
+                arg=arg,
+                t=_qualified_name(type(e)),
+                e=e,
+            ),
+        )
 
 
 def expect_dtypes(*_pos, **named):

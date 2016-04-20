@@ -92,6 +92,22 @@ def _sid_subdir_path(sid):
 
 
 class BcolzMinuteBarMetadata(object):
+    """
+    Parameters
+    ----------
+    first_trading_day : datetime-like
+        UTC midnight of the first day available in the dataset.
+    minute_index : pd.DatetimeIndex
+        The minutes which act as an index into the corresponding values
+        written into each sid's ctable.
+    market_opens : pd.DatetimeIndex
+        The market opens for each day in the data set. (Not yet required.)
+    market_closes : pd.DatetimeIndex
+        The market closes for each day in the data set. (Not yet required.)
+    ohlc_ratio : int
+         The factor by which the pricing data is multiplied so that the
+         float data can be stored as an integer.
+    """
 
     METADATA_FILENAME = 'metadata.json'
 
@@ -123,22 +139,6 @@ class BcolzMinuteBarMetadata(object):
                  market_opens,
                  market_closes,
                  ohlc_ratio):
-        """
-        Parameters:
-        -----------
-        first_trading_day : datetime-like
-            UTC midnight of the first day available in the dataset.
-        minute_index : pd.DatetimeIndex
-            The minutes which act as an index into the corresponding values
-            written into each sid's ctable.
-        market_opens : pd.DatetimeIndex
-            The market opens for each day in the data set. (Not yet required.)
-        market_closes : pd.DatetimeIndex
-            The market closes for each day in the data set. (Not yet required.)
-        ohlc_ratio : int
-             The factor by which the pricing data is multiplied so that the
-             float data can be stored as an integer.
-        """
         self.first_trading_day = first_trading_day
         self.market_opens = market_opens
         self.market_closes = market_closes
@@ -177,6 +177,55 @@ class BcolzMinuteBarWriter(object):
     """
     Class capable of writing minute OHLCV data to disk into bcolz format.
 
+    Parameters
+    ----------
+    first_trading_day : datetime
+        The first trading day in the data set.
+    rootdir : string
+        Path to the root directory into which to write the metadata and
+        bcolz subdirectories.
+    market_opens : pd.Series
+        The market opens used as a starting point for each periodic span of
+        minutes in the index.
+
+        The index of the series is expected to be a DatetimeIndex of the
+        UTC midnight of each trading day.
+
+        The values are datetime64-like UTC market opens for each day in the
+        index.
+    market_closes : pd.Series
+        The market closes that correspond with the market opens,
+
+        The index of the series is expected to be a DatetimeIndex of the
+        UTC midnight of each trading day.
+
+        The values are datetime64-like UTC market opens for each day in the
+        index.
+
+        The closes are written so that the reader can filter out non-market
+        minutes even though the tail end of early closes are written in
+        the data arrays to keep a regular shape.
+    minutes_per_day : int
+        The number of minutes per each period. Defaults to 390, the mode
+        of minutes in NYSE trading days.
+    ohlc_ratio : int, optional
+        The ratio by which to multiply the pricing data to convert the
+        floats from floats to an integer to fit within the np.uint32.
+
+        The default is 1000 to support pricing data which comes in to the
+        thousands place.
+    expectedlen : int, optional
+        The expected length of the dataset, used when creating the initial
+        bcolz ctable.
+
+        If the expectedlen is not used, the chunksize and corresponding
+        compression ratios are not ideal.
+
+        Defaults to supporting 15 years of NYSE equity market data.
+        see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
+
+    Notes
+    -----
     Writes a bcolz directory for each individual sid, all contained within
     a root directory which also contains metadata about the entire dataset.
 
@@ -215,6 +264,10 @@ class BcolzMinuteBarWriter(object):
 
     The datetimes which correspond to each position are written in the metadata
     as integer nanoseconds since the epoch into the `minute_index` key.
+
+    See Also
+    --------
+    zipline.data.minute_bars.BcolzMinuteBarReader
     """
     COL_NAMES = ('open', 'high', 'low', 'close', 'volume')
 
@@ -226,61 +279,6 @@ class BcolzMinuteBarWriter(object):
                  minutes_per_day,
                  ohlc_ratio=OHLC_RATIO,
                  expectedlen=DEFAULT_EXPECTEDLEN):
-        """
-        Parameters:
-        -----------
-        first_trading_day : datetime-like
-            The first trading day in the data set.
-
-        rootdir : string
-            Path to the root directory into which to write the metadata and
-            bcolz subdirectories.
-
-        market_opens : pd.Series
-            The market opens used as a starting point for each periodic span of
-            minutes in the index.
-
-            The index of the series is expected to be a DatetimeIndex of the
-            UTC midnight of each trading day.
-
-            The values are datetime64-like UTC market opens for each day in the
-            index.
-
-        market_closes : pd.Series
-            The market closes that correspond with the market opens,
-
-            The index of the series is expected to be a DatetimeIndex of the
-            UTC midnight of each trading day.
-
-            The values are datetime64-like UTC market opens for each day in the
-            index.
-
-            The closes are written so that the reader can filter out non-market
-            minutes even though the tail end of early closes are written in
-            the data arrays to keep a regular shape.
-
-        minutes_per_day : int
-            The number of minutes per each period. Defaults to 390, the mode
-            of minutes in NYSE trading days.
-
-        ohlc_ratio : int
-            The ratio by which to multiply the pricing data to convert the
-            floats from floats to an integer to fit within the np.uint32.
-
-            The default is 1000 to support pricing data which comes in to the
-            thousands place.
-
-        expectedlen : int
-            The expected length of the dataset, used when creating the initial
-            bcolz ctable.
-
-            If the expectedlen is not used, the chunksize and corresponding
-            compression ratios are not ideal.
-
-            Defaults to supporting 15 years of NYSE equity market data.
-
-            see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
-        """
         self._rootdir = rootdir
         self._first_trading_day = first_trading_day
         self._market_opens = market_opens[
@@ -450,13 +448,15 @@ class BcolzMinuteBarWriter(object):
         data : iterable[(int, pd.DataFrame)]
             The data to write. Each element should be a tuple of sid, data
             where data has the following format:
-            columns : ('open', 'high', 'low', 'close', 'volume')
-                open : float64
-                high : float64
-                low  : float64
-                close : float64
-                volume : float64|int64
-            index : DatetimeIndex of market minutes.
+              columns : ('open', 'high', 'low', 'close', 'volume')
+                  open : float64
+                  high : float64
+                  low  : float64
+                  close : float64
+                  volume : float64|int64
+              index : DatetimeIndex of market minutes.
+            A given sid may appear more than once in ``data``; however,
+            the dates must be strictly increasing.
         show_progress : bool, optional
             Whether or not to show a progress bar while writing.
         """
@@ -615,17 +615,21 @@ class BcolzMinuteBarWriter(object):
 
 
 class BcolzMinuteBarReader(object):
+    """
+    Reader for data written by BcolzMinuteBarWriter
 
+    Parameters:
+    -----------
+    rootdir : string
+        The root directory containing the metadata and asset bcolz
+        directories.
+
+    See Also
+    --------
+    zipline.data.minute_bars.BcolzMinuteBarWriter
+    """
     def __init__(self, rootdir):
-        """
-        Reader for data written by BcolzMinuteBarWriter
 
-        Parameters:
-        -----------
-        rootdir : string
-            The root directory containing the metadata and asset bcolz
-            directories.
-        """
         self._rootdir = rootdir
 
         metadata = self._get_metadata()
@@ -856,7 +860,7 @@ class BcolzMinuteBarReader(object):
             US_EQUITIES_MINUTES_PER_DAY,
         )
 
-    def unadjusted_window(self, fields, start_dt, end_dt, sids):
+    def load_raw_arrays(self, fields, start_dt, end_dt, sids):
         """
         Parameters
         ----------
@@ -873,7 +877,7 @@ class BcolzMinuteBarReader(object):
         -------
         list of np.ndarray
             A list with an entry per field of ndarrays with shape
-            (sids, minutes in range) with a dtype of float64, containing the
+            (minutes in range, sids) with a dtype of float64, containing the
             values for the respective field over start and end dt range.
         """
         start_idx = self._find_position_of_minute(start_dt)
@@ -890,7 +894,7 @@ class BcolzMinuteBarReader(object):
                 length = excl_stop - excl_start + 1
                 num_minutes -= length
 
-        shape = (len(sids), num_minutes)
+        shape = num_minutes, len(sids)
 
         for field in fields:
             if field != 'volume':
@@ -907,7 +911,9 @@ class BcolzMinuteBarReader(object):
                             excl_start - start_idx:excl_stop - start_idx + 1]
                         values = np.delete(values, excl_slice)
                 where = values != 0
-                out[i, where] = values[where]
+                # first slice down to len(where) because we might not have
+                # written data for all the minutes requested
+                out[:len(where), i][where] = values[where]
             if field != 'volume':
                 out *= self._ohlc_inverse
             results.append(out)

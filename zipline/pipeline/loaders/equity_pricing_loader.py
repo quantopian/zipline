@@ -69,15 +69,15 @@ class USEquityPricingLoader(PipelineLoader):
         start_date, end_date = _shift_dates(
             self._calendar, dates[0], dates[-1], shift=1,
         )
-
+        colnames = [c.name for c in columns]
         raw_arrays = self.raw_price_loader.load_raw_arrays(
-            columns,
+            colnames,
             start_date,
             end_date,
             assets,
         )
         adjustments = self.adjustments_loader.load_adjustments(
-            columns,
+            colnames,
             dates,
             assets,
         )

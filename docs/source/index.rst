@@ -5,6 +5,7 @@
 
    install
    beginner-tutorial
+   bundles
    releases
    appendix
    release-process

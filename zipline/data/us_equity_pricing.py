@@ -22,7 +22,6 @@ import warnings
 from bcolz import (
     carray,
     ctable,
-    open as open_ctable,
 )
 from collections import namedtuple
 import logbook
@@ -193,7 +192,7 @@ class BcolzDailyBarWriter(object):
 
     See Also
     --------
-    BcolzDailyBarReader : Consumer of the data written by this class.
+    zipline.data.us_equity_pricing.BcolzDailyBarReader
     """
     _csv_dtypes = {
         'open': float64,
@@ -365,6 +364,7 @@ class BcolzDailyBarWriter(object):
         full_table.attrs['last_row'] = last_row
         full_table.attrs['calendar_offset'] = calendar_offset
         full_table.attrs['calendar'] = calendar.asi8.tolist()
+        full_table.flush()
         return full_table
 
 
@@ -451,11 +451,13 @@ class BcolzDailyBarReader(DailyBarReader):
 
     We use calendar_offset and calendar to orient loaded blocks within a
     range of queried dates.
-    """
-    @preprocess(table=coerce_string(open_ctable, mode='r'))
-    def __init__(self, table, read_all_threshold=3000):
 
-        self._table = table
+    See Also
+    --------
+    zipline.data.us_equity_pricing.BcolzDailyBarWriter
+    """
+    def __init__(self, table, read_all_threshold=3000):
+        self._maybe_table_rootdir = table
         # Cache of fully read np.array for the carrays in the daily bar table.
         # raw_array does not use the same cache, but it could.
         # Need to test keeping the entire array in memory for the course of a
@@ -463,6 +465,13 @@ class BcolzDailyBarReader(DailyBarReader):
         self._spot_cols = {}
         self.PRICE_ADJUSTMENT_FACTOR = 0.001
         self._read_all_threshold = read_all_threshold
+
+    @lazyval
+    def _table(self):
+        maybe_table_rootdir = self._maybe_table_rootdir
+        if isinstance(maybe_table_rootdir, ctable):
+            return maybe_table_rootdir
+        return ctable(rootdir=maybe_table_rootdir, mode='r')
 
     @lazyval
     def _calendar(self):
@@ -565,7 +574,7 @@ class BcolzDailyBarReader(DailyBarReader):
         return _read_bcolz_data(
             self._table,
             (end_idx - start_idx + 1, len(assets)),
-            [column.name for column in columns],
+            list(columns),
             first_rows,
             last_rows,
             offsets,
@@ -717,12 +726,12 @@ class PanelDailyBarReader(DailyBarReader):
         return self._calendar[-1]
 
     def load_raw_arrays(self, columns, start_date, end_date, assets):
-        col_names = [col.name for col in columns]
+        columns = list(columns)
         cal = self._calendar
         index = cal[cal.slice_indexer(start_date, end_date)]
         shape = (len(index), len(assets))
         results = []
-        for col in col_names:
+        for col in columns:
             outbuf = zeros(shape=shape)
             for i, asset in enumerate(assets):
                 data = self.panel.loc[asset, start_date:end_date, col]
@@ -792,7 +801,7 @@ class SQLiteAdjustmentWriter(object):
 
     See Also
     --------
-    SQLiteAdjustmentReader
+    zipline.data.us_equity_pricing.SQLiteAdjustmentReader
     """
 
     def __init__(self,
@@ -862,6 +871,11 @@ class SQLiteAdjustmentWriter(object):
                     SQLITE_ADJUSTMENT_TABLENAMES,
                 )
             )
+        if not (frame is None or frame.empty):
+            frame = frame.copy()
+            frame['effective_date'] = frame['effective_date'].values.astype(
+                'datetime64[s]',
+            ).astype('int64')
         return self._write(
             tablename,
             SQLITE_ADJUSTMENT_COLUMN_DTYPES,
@@ -1016,82 +1030,72 @@ class SQLiteAdjustmentWriter(object):
 
         Parameters
         ----------
-        splits : pandas.DataFrame
-            Dataframe containing split data.
-        mergers : pandas.DataFrame
-            DataFrame containing merger data.
-        dividends : pandas.DataFrame
-            DataFrame containing dividend data.
+        splits : pandas.DataFrame, optional
+            Dataframe containing split data. The format of this dataframe is:
+              effective_date : int
+                  The date, represented as seconds since Unix epoch, on which
+                  the adjustment should be applied.
+              ratio : float
+                  A value to apply to all data earlier than the effective date.
+                  For open, high, low, and close those values are multiplied by
+                  the ratio. Volume is divided by this value.
+              sid : int
+                  The asset id associated with this adjustment.
+        mergers : pandas.DataFrame, optional
+            DataFrame containing merger data. The format of this dataframe is:
+              effective_date : int
+                  The date, represented as seconds since Unix epoch, on which
+                  the adjustment should be applied.
+              ratio : float
+                  A value to apply to all data earlier than the effective date.
+                  For open, high, low, and close those values are multiplied by
+                  the ratio. Volume is unaffected.
+              sid : int
+                  The asset id associated with this adjustment.
+        dividends : pandas.DataFrame, optional
+            DataFrame containing dividend data. The format of the dataframe is:
+              sid : int
+                  The asset id associated with this adjustment.
+              ex_date : datetime64
+                  The date on which an equity must be held to be eligible to
+                  receive payment.
+              declared_date : datetime64
+                  The date on which the dividend is announced to the public.
+              pay_date : datetime64
+                  The date on which the dividend is distributed.
+              record_date : datetime64
+                  The date on which the stock ownership is checked to determine
+                  distribution of dividends.
+              amount : float
+                  The cash amount paid for each share.
 
-        Notes
-        -----
-        DataFrame input (`splits`, `mergers`) should all have
-        the following columns:
-
-        effective_date : int
-            The date, represented as seconds since Unix epoch, on which the
-            adjustment should be applied.
-        ratio : float
-            A value to apply to all data earlier than the effective date.
-        sid : int
-            The asset id associated with this adjustment.
-
-        The ratio column is interpreted as follows:
-        - For all adjustment types, multiply price fields ('open', 'high',
-          'low', and 'close') by the ratio.
-        - For **splits only**, **divide** volume by the adjustment ratio.
-
-        DataFrame input, 'dividends' should have the following columns:
-
-        sid : int
-            The asset id associated with this adjustment.
-        ex_date : datetime64
-            The date on which an equity must be held to be eligible to receive
-            payment.
-        declared_date : datetime64
-            The date on which the dividend is announced to the public.
-        pay_date : datetime64
-            The date on which the dividend is distributed.
-        record_date : datetime64
-            The date on which the stock ownership is checked to determine
-            distribution of dividends.
-        amount : float
-            The cash amount paid for each share.
-
-        Dividend ratios are calculated as
-        1.0 - (dividend_value / "close on day prior to dividend ex_date").
-
-
-        DataFrame input, 'stock_dividends' should have the following columns:
-
-        sid : int
-            The asset id associated with this adjustment.
-        ex_date : datetime64
-            The date on which an equity must be held to be eligible to receive
-            payment.
-        declared_date : datetime64
-            The date on which the dividend is announced to the public.
-        pay_date : datetime64
-            The date on which the dividend is distributed.
-        record_date : datetime64
-            The date on which the stock ownership is checked to determine
-            distribution of dividends.
-        payment_sid : int
-            The asset id of the shares that should be paid instead of cash.
-        ratio: float
-            The ratio of currently held shares in the held sid that should
-            be paid with new shares of the payment_sid.
-
-        stock_dividends is optional.
-
-
-        Returns
-        -------
-        None
+            Dividend ratios are calculated as:
+            ``1.0 - (dividend_value / "close on day prior to ex_date")``
+        stock_dividends : pandas.DataFrame, optional
+            DataFrame containing stock dividend data. The format of the
+            dataframe is:
+              sid : int
+                  The asset id associated with this adjustment.
+              ex_date : datetime64
+                  The date on which an equity must be held to be eligible to
+                  receive payment.
+              declared_date : datetime64
+                  The date on which the dividend is announced to the public.
+              pay_date : datetime64
+                  The date on which the dividend is distributed.
+              record_date : datetime64
+                  The date on which the stock ownership is checked to determine
+                  distribution of dividends.
+              payment_sid : int
+                  The asset id of the shares that should be paid instead of
+                  cash.
+              ratio : float
+                  The ratio of currently held shares in the held sid that
+                  should be paid with new shares of the payment_sid.
 
         See Also
         --------
-        SQLiteAdjustmentReader : Consumer for the data written by this class
+        zipline.data.us_equity_pricing.SQLiteAdjustmentReader
         """
         self.write_frame('splits', splits)
         self.write_frame('mergers', mergers)
@@ -1168,6 +1172,10 @@ class SQLiteAdjustmentReader(object):
     ----------
     conn : str or sqlite3.Connection
         Connection from which to load data.
+
+    See Also
+    --------
+    zipline.data.us_equity_pricing.SQLiteAdjustmentWriter
     """
 
     @preprocess(conn=coerce_string(sqlite3.connect))
@@ -1177,7 +1185,7 @@ class SQLiteAdjustmentReader(object):
     def load_adjustments(self, columns, dates, assets):
         return load_adjustments_from_sqlite(
             self.conn,
-            [column.name for column in columns],
+            list(columns),
             dates,
             assets,
         )

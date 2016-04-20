@@ -24,7 +24,6 @@ from pandas.tslib import normalize_date
 
 from six import with_metaclass
 
-from zipline.pipeline.data.equity_pricing import USEquityPricing
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib.adjustment import Float64Multiply
 from zipline.utils.cache import ExpiringCache
@@ -300,9 +299,12 @@ class USEquityDailyHistoryLoader(USEquityHistoryLoader):
         return self._reader._calendar
 
     def _array(self, dts, assets, field):
-        col = getattr(USEquityPricing, field)
         return self._reader.load_raw_arrays(
-            [col], dts[0], dts[-1], assets)[0]
+            [field],
+            dts[0],
+            dts[-1],
+            assets,
+        )[0]
 
 
 class USEquityMinuteHistoryLoader(USEquityHistoryLoader):
@@ -318,5 +320,9 @@ class USEquityMinuteHistoryLoader(USEquityHistoryLoader):
                                    end=self._reader.last_available_dt)]
 
     def _array(self, dts, assets, field):
-        return self._reader.unadjusted_window(
-            [field], dts[0], dts[-1], assets)[0].T
+        return self._reader.load_raw_arrays(
+            [field],
+            dts[0],
+            dts[-1],
+            assets,
+        )[0]

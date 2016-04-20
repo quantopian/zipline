@@ -13,10 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pandas as pd
-from zipline import TradingAlgorithm
 from zipline.api import order, symbol
-from zipline.data.loader import load_bars_from_yahoo
 
 stocks = ['AAPL', 'MSFT']
 
@@ -33,18 +30,12 @@ def handle_data(context, data):
         context.has_ordered = True
 
 
-if __name__ == '__main__':
+def _test_args():
+    """Extra arguments to use when zipline's automated tests run this example.
+    """
+    import pandas as pd
 
-    # creating time interval
-    start = pd.Timestamp('2008-01-01', tz='UTC')
-    end = pd.Timestamp('2013-01-01', tz='UTC')
-
-    # loading the data
-    input_data = load_bars_from_yahoo(
-        stocks=stocks,
-        start=start,
-        end=end,
-    )
-
-    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
-    results = algo.run(input_data)
+    return {
+        'start': pd.Timestamp('2008', tz='utc'),
+        'end': pd.Timestamp('2013', tz='utc'),
+    }

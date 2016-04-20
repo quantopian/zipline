@@ -20,6 +20,7 @@ from . import data
 from . import finance
 from . import gens
 from . import utils
+from .utils.run_algo import run_algorithm
 from ._version import get_versions
 # These need to happen after the other imports.
 from . algorithm import TradingAlgorithm
@@ -28,19 +29,18 @@ from . import api
 __version__ = get_versions()['version']
 del get_versions
 
-try:
-    ip = get_ipython()  # flake8: noqa
-except NameError:
-    pass
-else:
-    ip.register_magic_function(utils.parse_cell_magic, "line_cell", "zipline")
-    del ip
+
+def load_ipython_extension(ipython):
+    from .__main__ import zipline_magic
+    ipython.register_magic_function(zipline_magic, 'line_cell', 'zipline')
+
 
 __all__ = [
+    'TradingAlgorithm',
+    'api',
     'data',
     'finance',
     'gens',
+    'run_algorithm',
     'utils',
-    'api',
-    'TradingAlgorithm',
 ]

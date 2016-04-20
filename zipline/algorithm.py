@@ -116,7 +116,7 @@ from zipline.gens.sim_engine import (
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
-DEFAULT_CAPITAL_BASE = float("1.0e5")
+DEFAULT_CAPITAL_BASE = 1e5
 
 
 log = logbook.Logger("ZiplineLog")

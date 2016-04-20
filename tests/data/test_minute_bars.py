@@ -24,6 +24,7 @@ from numpy import (
     float64,
     full,
     nan,
+    transpose,
     zeros,
 )
 from numpy.testing import assert_almost_equal, assert_array_equal
@@ -493,8 +494,9 @@ class BcolzMinuteBarTestCase(TestCase):
 
         fields = ['open', 'high', 'low', 'close', 'volume']
 
-        ohlcv_window = self.reader.unadjusted_window(
-            fields, minutes[0], minutes[-1], [sid])
+        ohlcv_window = list(map(transpose, self.reader.load_raw_arrays(
+            fields, minutes[0], minutes[-1], [sid],
+        )))
 
         for i, field in enumerate(fields):
             if field != 'volume':
@@ -535,8 +537,9 @@ class BcolzMinuteBarTestCase(TestCase):
 
         fields = ['open', 'high', 'low', 'close', 'volume']
 
-        ohlcv_window = self.reader.unadjusted_window(
-            fields, minutes[0], minutes[-1], [sid])
+        ohlcv_window = list(map(transpose, self.reader.load_raw_arrays(
+            fields, minutes[0], minutes[-1], [sid],
+        )))
 
         for i, field in enumerate(fields):
             if field != 'volume':
@@ -647,8 +650,9 @@ class BcolzMinuteBarTestCase(TestCase):
 
         columns = ['open', 'high', 'low', 'close', 'volume']
         sids = [sids[0], sids[1]]
-        arrays = reader.unadjusted_window(
-            columns, minutes[0], minutes[-1], sids)
+        arrays = list(map(transpose, reader.load_raw_arrays(
+            columns, minutes[0], minutes[-1], sids,
+        )))
 
         data = {sids[0]: data_1, sids[1]: data_2}
 
@@ -698,8 +702,9 @@ class BcolzMinuteBarTestCase(TestCase):
 
         columns = ['open', 'high', 'low', 'close', 'volume']
         sids = [sids[0], sids[1]]
-        arrays = reader.unadjusted_window(
-            columns, minutes[0], minutes[-1], sids)
+        arrays = list(map(transpose, reader.load_raw_arrays(
+            columns, minutes[0], minutes[-1], sids,
+        )))
 
         data = {sids[0]: data_1, sids[1]: data_2}
 
