@@ -18,7 +18,6 @@ from abc import (
     abstractmethod,
     abstractproperty,
 )
-from functools import partial
 from six import with_metaclass
 
 from zipline.utils.memoize import remember_last
@@ -46,65 +45,86 @@ class TradingSchedule(with_metaclass(ABCMeta)):
     A TradingSchedule defines the execution timing of a TradingAlgorithm.
     """
 
-    def __init__(self):
-        # Assign the partial calendar helpers
-        self.next_execution_day = partial(
-            next_scheduled_day,
+    def next_execution_day(self, date):
+        return next_scheduled_day(
+            date,
             last_trading_day=self.last_execution_day,
             is_scheduled_day_hook=self.is_executing_on_day,
         )
-        self.previous_execution_day = partial(
-            previous_scheduled_day,
+
+    def previous_execution_day(self, date):
+        return previous_scheduled_day(
+            date,
             first_trading_day=self.first_execution_day,
             is_scheduled_day_hook=self.is_executing_on_day,
         )
-        self.next_start_and_end = partial(
-            next_open_and_close,
+
+    def next_start_and_end(self, date):
+        return next_open_and_close(
+            date,
             open_and_close_hook=self.start_and_end,
             next_scheduled_day_hook=self.next_execution_day,
         )
-        self.previous_start_and_end = partial(
-            previous_open_and_close,
+
+    def previous_start_and_end(self, date):
+        return previous_open_and_close(
+            date,
             open_and_close_hook=self.start_and_end,
             previous_scheduled_day_hook=self.previous_execution_day,
         )
-        self.execution_day_distance = partial(
-            scheduled_day_distance,
+
+    def execution_day_distance(self, first_date, second_date):
+        return scheduled_day_distance(
+            first_date, second_date,
             all_days=self.all_execution_days,
         )
-        self.execution_minutes_for_day = partial(
-            minutes_for_day,
+
+    def execution_minutes_for_day(self, day):
+        return minutes_for_day(
+            day,
             open_and_close_hook=self.start_and_end,
         )
-        self.execution_days_in_range = partial(
-            days_in_range,
+
+    def execution_days_in_range(self, start, end):
+        return days_in_range(
+            start, end,
             all_days=self.all_execution_days,
         )
-        self.execution_minutes_for_days_in_range = partial(
-            minutes_for_days_in_range,
+
+    def execution_minutes_for_days_in_range(self, start, end):
+        return minutes_for_days_in_range(
+            start, end,
             days_in_range_hook=self.execution_days_in_range,
             minutes_for_day_hook=self.execution_minutes_for_day,
         )
-        self.add_execution_days = partial(
-            add_scheduled_days,
+
+    def add_execution_days(self, n, date):
+        return add_scheduled_days(
+            n, date,
             next_scheduled_day_hook=self.next_execution_day,
             previous_scheduled_day_hook=self.previous_execution_day,
             all_trading_days=self.all_execution_days,
         )
-        self.next_execution_minute = partial(
-            next_scheduled_minute,
+
+    def next_execution_minute(self, start):
+        return next_scheduled_minute(
+            start,
             is_scheduled_day_hook=self.is_executing_on_day,
             open_and_close_hook=self.start_and_end,
             next_open_and_close_hook=self.next_start_and_end,
         )
-        self.previous_execution_minute = partial(
-            previous_scheduled_minute,
+
+    def previous_execution_minute(self, start):
+        return previous_scheduled_minute(
+            start,
             is_scheduled_day_hook=self.is_executing_on_day,
             open_and_close_hook=self.start_and_end,
             previous_open_and_close_hook=self.previous_start_and_end,
         )
-        self.execution_minute_window = partial(
-            minute_window,
+
+    def execution_minute_window(self, start, count, step=1):
+        return minute_window(
+            start, count, step,
             schedule=self.schedule,
             is_scheduled_minute_hook=self.is_executing_on_minute,
             session_date_hook=self.session_date,
@@ -264,7 +284,6 @@ class TradingSchedule(with_metaclass(ABCMeta)):
             otherwise False.
         """
         raise NotImplementedError()
-
 
     @abstractmethod
     def session_date(self, dt):

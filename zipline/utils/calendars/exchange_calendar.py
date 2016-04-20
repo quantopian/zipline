@@ -17,7 +17,6 @@ from abc import (
     abstractproperty,
     abstractmethod,
 )
-from functools import partial
 
 import pandas as pd
 from pandas import (
@@ -187,64 +186,86 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         self.last_trading_day = _all_days[-1]
         self.early_closes = _special_closes.map(self.session_date)
 
-        # Assign the partial calendar helpers
-        self.next_trading_day = partial(
-            next_scheduled_day,
+    def next_trading_day(self, date):
+        return next_scheduled_day(
+            date,
             last_trading_day=self.last_trading_day,
             is_scheduled_day_hook=self.is_open_on_day,
         )
-        self.previous_trading_day = partial(
-            previous_scheduled_day,
+
+    def previous_trading_day(self, date):
+        return previous_scheduled_day(
+            date,
             first_trading_day=self.first_trading_day,
             is_scheduled_day_hook=self.is_open_on_day,
         )
-        self.next_open_and_close = partial(
-            next_open_and_close,
+
+    def next_start_and_end(self, date):
+        return next_open_and_close(
+            date,
             open_and_close_hook=self.open_and_close,
             next_scheduled_day_hook=self.next_trading_day,
         )
-        self.previous_open_and_close = partial(
-            previous_open_and_close,
+
+    def previous_start_and_end(self, date):
+        return previous_open_and_close(
+            date,
             open_and_close_hook=self.open_and_close,
             previous_scheduled_day_hook=self.previous_trading_day,
         )
-        self.trading_day_distance = partial(
-            scheduled_day_distance,
+
+    def trading_day_distance(self, first_date, second_date):
+        return scheduled_day_distance(
+            first_date, second_date,
             all_days=self.all_trading_days,
         )
-        self.trading_minutes_for_day = partial(
-            minutes_for_day,
+
+    def trading_minutes_for_day(self, day):
+        return minutes_for_day(
+            day,
             open_and_close_hook=self.open_and_close,
         )
-        self.trading_days_in_range = partial(
-            days_in_range,
+
+    def trading_days_in_range(self, start, end):
+        return days_in_range(
+            start, end,
             all_days=self.all_trading_days,
         )
-        self.trading_minutes_for_days_in_range = partial(
-            minutes_for_days_in_range,
+
+    def trading_minutes_for_days_in_range(self, start, end):
+        return minutes_for_days_in_range(
+            start, end,
             days_in_range_hook=self.trading_days_in_range,
             minutes_for_day_hook=self.trading_minutes_for_day,
         )
-        self.add_trading_days = partial(
-            add_scheduled_days,
+
+    def add_trading_days(self, n, date):
+        return add_scheduled_days(
+            n, date,
             next_scheduled_day_hook=self.next_trading_day,
             previous_scheduled_day_hook=self.previous_trading_day,
             all_trading_days=self.all_trading_days,
         )
-        self.next_market_minute = partial(
-            next_scheduled_minute,
+
+    def next_trading_minute(self, start):
+        return next_scheduled_minute(
+            start,
             is_scheduled_day_hook=self.is_open_on_day,
             open_and_close_hook=self.open_and_close,
             next_open_and_close_hook=self.next_open_and_close,
         )
-        self.previous_market_minute = partial(
-            previous_scheduled_minute,
+
+    def previous_trading_minute(self, start):
+        return previous_scheduled_minute(
+            start,
             is_scheduled_day_hook=self.is_open_on_day,
             open_and_close_hook=self.open_and_close,
             previous_open_and_close_hook=self.previous_open_and_close,
         )
-        self.market_minute_window = partial(
-            minute_window,
+
+    def trading_minute_window(self, start, count, step=1):
+        return minute_window(
+            start, count, step,
             schedule=self.schedule,
             is_scheduled_minute_hook=self.is_open_on_minute,
             session_date_hook=self.session_date,
