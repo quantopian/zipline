@@ -42,7 +42,8 @@ from zipline.testing.fixtures import (
 )
 
 date_intervals = [
-    [[None, '2014-01-04'], ['2014-01-05', '2014-01-09'], ['2014-01-10', None]]
+    [['2014-01-01', '2014-01-04'], ['2014-01-05', '2014-01-09'],
+     ['2014-01-10', '2014-01-31']]
 ]
 
 buyback_authorizations_cases = [

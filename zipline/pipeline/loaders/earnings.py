@@ -12,6 +12,8 @@ class EarningsCalendarLoader(EventsLoader):
 
     expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME])
 
+    event_date_col = ANNOUNCEMENT_FIELD_NAME
+
     def __init__(self, all_dates, events_by_sid,
                  infer_timestamps=False,
                  dataset=EarningsCalendar):
@@ -21,12 +23,10 @@ class EarningsCalendarLoader(EventsLoader):
 
     @lazyval
     def next_announcement_loader(self):
-        return self._next_event_date_loader(self.dataset.next_announcement,
-                                            ANNOUNCEMENT_FIELD_NAME)
+        return self._next_event_date_loader(self.dataset.next_announcement)
 
     @lazyval
     def previous_announcement_loader(self):
         return self._previous_event_date_loader(
             self.dataset.previous_announcement,
-            ANNOUNCEMENT_FIELD_NAME
         )

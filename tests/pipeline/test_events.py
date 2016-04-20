@@ -26,19 +26,27 @@ from zipline.pipeline.loaders.events import (
     WRONG_SINGLE_COL_DATA_FORMAT_ERROR
 )
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import datetime64ns_dtype
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 
+OTHER_FIELD = "other_field"
 
 ABSTRACT_CONCRETE_LOADER_ERROR = 'abstract methods concrete_loader'
-ABSTRACT_EXPECTED_COLS_ERROR = 'abstract methods expected_cols'
+ABSTRACT_EXPECTED_COLS_ERROR = 'abstract methods event_date_col, expected_cols'
 
 
 class EventDataSet(DataSet):
     previous_announcement = Column(datetime64ns_dtype)
 
 
+class OtherFieldEventDataSet(DataSet):
+    previous_announcement = Column(datetime64ns_dtype)
+    previous_other_field = Column(float64_dtype)
+
+
 class EventDataSetLoader(EventsLoader):
     expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME])
+
+    event_date_col = ANNOUNCEMENT_FIELD_NAME
 
     def __init__(self,
                  all_dates,
@@ -56,21 +64,38 @@ class EventDataSetLoader(EventsLoader):
     def previous_announcement_loader(self):
         return self._previous_event_date_loader(
             self.dataset.previous_announcement,
-            ANNOUNCEMENT_FIELD_NAME,
+        )
+
+
+class EventDataSetLoaderMultipleExpectedCols(EventDataSetLoader):
+    expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME, OTHER_FIELD])
+    event_date_col = ANNOUNCEMENT_FIELD_NAME
+
+    def __init__(self,
+                 all_dates,
+                 events_by_sid,
+                 infer_timestamps=False,
+                 dataset=OtherFieldEventDataSet):
+        super(EventDataSetLoader, self).__init__(
+            all_dates,
+            events_by_sid,
+            infer_timestamps=infer_timestamps,
+            dataset=dataset,
         )
 
     @lazyval
-    def next_announcement_loader(self):
+    def previous_other_field_loader(self):
         return self._previous_event_date_loader(
             self.dataset.previous_announcement,
-            ANNOUNCEMENT_FIELD_NAME,
         )
 
 
 # Test case just for catching an error when multiple columns are in the wrong
 #  data format, so no loader defined.
-class EventDataSetLoaderMultipleExpectedCols(EventsLoader):
-    expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME, "other_field"])
+class EventDataSetLoaderMultipleExpectedColsNoColumnLoaders(EventsLoader):
+    expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME, OTHER_FIELD])
+
+    event_date_col = ANNOUNCEMENT_FIELD_NAME
 
 
 class EventDataSetLoaderNoExpectedCols(EventsLoader):
@@ -119,13 +144,17 @@ class EventLoaderTestCase(TestCase):
             EventDataSetLoader
         )
 
-    def test_null_in_expected_cols(self):
+    def test_null_in_event_date_col(self):
+        # Tests that getting a null date in the event date column filters the
+        # entire row from the data.
         dates_with_null = pd.Series(dtx)
         dates_with_null[2] = pd.NaT
+        other_col_data = pd.Series(range(0, len(dtx)))
         events_by_sid = {0: pd.DataFrame({ANNOUNCEMENT_FIELD_NAME:
                                           dates_with_null,
+                                          OTHER_FIELD: other_col_data,
                                           TS_FIELD_NAME: dtx})}
-        loader = EventDataSetLoader(
+        loader = EventDataSetLoaderMultipleExpectedCols(
             dtx,
             events_by_sid,
         )
@@ -216,7 +245,7 @@ class EventLoaderTestCase(TestCase):
                 [dtx, dtx],
                 True,
                 WRONG_MANY_COL_DATA_FORMAT_ERROR.format(sid=0),
-                EventDataSetLoaderMultipleExpectedCols
+                EventDataSetLoaderMultipleExpectedColsNoColumnLoaders
             ],
             [
                 [dtx],
@@ -230,7 +259,7 @@ class EventLoaderTestCase(TestCase):
                 [dtx, dtx],
                 False,
                 WRONG_MANY_COL_DATA_FORMAT_ERROR.format(sid=0),
-                EventDataSetLoaderMultipleExpectedCols
+                EventDataSetLoaderMultipleExpectedColsNoColumnLoaders
             ]
         ]
     )

@@ -27,6 +27,8 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
     expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
                                CASH_FIELD_NAME])
 
+    event_date_col = BUYBACK_ANNOUNCEMENT_FIELD_NAME
+
     def __init__(self,
                  all_dates,
                  events_by_sid,
@@ -43,7 +45,6 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
     def cash_amount_loader(self):
         return self._previous_event_value_loader(
             self.dataset.cash_amount,
-            BUYBACK_ANNOUNCEMENT_FIELD_NAME,
             CASH_FIELD_NAME
         )
 
@@ -51,7 +52,6 @@ class CashBuybackAuthorizationsLoader(EventsLoader):
     def announcement_date_loader(self):
         return self._previous_event_date_loader(
             self.dataset.announcement_date,
-            BUYBACK_ANNOUNCEMENT_FIELD_NAME,
         )
 
 
@@ -70,6 +70,8 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
     expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
                                SHARE_COUNT_FIELD_NAME])
 
+    event_date_col = BUYBACK_ANNOUNCEMENT_FIELD_NAME
+
     def __init__(self,
                  all_dates,
                  events_by_sid,
@@ -86,7 +88,6 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
     def share_count_loader(self):
         return self._previous_event_value_loader(
             self.dataset.share_count,
-            BUYBACK_ANNOUNCEMENT_FIELD_NAME,
             SHARE_COUNT_FIELD_NAME
         )
 
@@ -94,5 +95,4 @@ class ShareBuybackAuthorizationsLoader(EventsLoader):
     def announcement_date_loader(self):
         return self._previous_event_date_loader(
             self.dataset.announcement_date,
-            BUYBACK_ANNOUNCEMENT_FIELD_NAME,
         )

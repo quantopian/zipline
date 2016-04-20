@@ -280,25 +280,18 @@ def zip_with_floats(dates, flts):
         return pd.Series(flts, index=dates, dtype='float')
 
 
-def num_days_in_range(dates, start, end):
-    """
-    Return the number of days in `dates` between start and end, inclusive.
-    """
-    start_idx, stop_idx = dates.slice_locs(start, end)
-    return stop_idx - start_idx
-
-
 def zip_with_dates(index_dates, dts):
     return pd.Series(pd.to_datetime(dts), index=index_dates)
 
 
 def get_values_for_date_ranges(zip_date_index_with_vals,
                                vals_for_date_intervals,
-                               date_intervals,
+                               starts,
+                               ends,
                                date_index):
     """
-    Returns a Series of values indexed by date based on values for the given
-    date intervals.
+    Returns a Series of values indexed by date based on the intervals defined
+    by the start and end dates.
 
     Parameters
     ----------
@@ -307,10 +300,10 @@ def get_values_for_date_ranges(zip_date_index_with_vals,
         returns a pd.Series with the values indexed by the dates.
     vals_for_date_intervals : list
         A list of values for each date interval in `date_intervals`.
-    date_intervals : list
-        A list of pairs of dates, where each pair represents a date interval
-        that corresponds to the value at the same index in
-        `vals_for_date_intervals`.
+    starts : DatetimeIndex
+        A DatetimeIndex of start dates.
+    ends : list
+        A DatetimeIndex of end dates.
     date_index : DatetimeIndex
         The DatetimeIndex containing all dates for which values were requested.
 
@@ -321,10 +314,22 @@ def get_values_for_date_ranges(zip_date_index_with_vals,
         to dates based on the given date intervals.
     """
     # Fill in given values for given date ranges.
+    end_indexes = date_index.values.searchsorted(ends)
+    start_indexes = date_index.values.searchsorted(starts)
+    num_days = (end_indexes - start_indexes) + 1
+
+    # In case any of the end dates falls on days missing from the date_index,
+    # searchsorted will have placed their index within `date_index` to the
+    # index of the next start date, so we will have added 1 extra day for
+    # each of these. Subtract those extra days, but ignore any cases where the
+    # start and end dates are equal. Note: if any of the start dates is
+    # missing, it won't affect calculations because searchsorted will advance
+    # the index to the next date within the same range.
+    num_days[np.where(~np.in1d(ends, date_index) & (num_days != 0))] -= 1
     return zip_date_index_with_vals(
         date_index,
-        np.repeat(vals_for_date_intervals,
-                  [num_days_in_range(date_index, *date_interval)
-                   for date_interval in
-                   date_intervals]),
+        np.repeat(
+            vals_for_date_intervals,
+            num_days,
+        )
     )
