@@ -24,6 +24,16 @@ Enhancements
   dataframe. This model allows us to pass these writer objects around as a
   resource for other classes and functions to consume (:issue:`1109`).
 
+* Added masking to :class:`zipline.pipeline.CustomFactor`.
+  Custom factors can now be passed a Filter upon instantiation. This tells the
+  factor to only compute over stocks for which the filter returns True, rather
+  than always computing over the entire universe of stocks. (:issue:`1095`)
+
+* Added :class:`zipline.utils.cache.ExpiringCache`.
+  A cache which wraps entries in a :class:`zipline.utils.cache.CachedObject`,
+  which manages expiration of entries based on the `dt` supplied to the `get`
+  method. (:issue:`1130`)
+
 * Implemented :class:`zipline.pipeline.factors.RecarrayField`, a new pipeline
   term designed to be the output type of a CustomFactor with multiple outputs.
   (:issue:`1119`)
