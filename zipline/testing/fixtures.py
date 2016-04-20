@@ -6,7 +6,7 @@ from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
 from nose_parameterized import parameterized
 from pandas.util.testing import assert_series_equal
-from six import with_metaclass, iteritems
+from six import with_metaclass
 from toolz import flip
 import numpy as np
 import pandas as pd
@@ -681,7 +681,7 @@ class WithBcolzMinuteBarReader(WithTradingEnvironment, WithTmpDir):
 
     Methods
     -------
-    make_minute_bar_data() -> dict[int -> pd.DataFrame]
+    make_minute_bar_data() -> iterable[(int, pd.DataFrame)]
         A class method that returns a dict mapping sid to dataframe
         which will be written to the bcolz files that the class's
         ``BcolzMinuteBarReader`` will read from. By default this creates
@@ -734,9 +734,7 @@ class WithBcolzMinuteBarReader(WithTradingEnvironment, WithTmpDir):
             cls.env.open_and_closes.market_close.loc[days],
             US_EQUITIES_MINUTES_PER_DAY
         )
-        cls.bcolz_minute_bar_data = cls.make_minute_bar_data()
-        for sid, df in iteritems(cls.bcolz_minute_bar_data):
-            writer.write(sid, df)
+        writer.write(cls.make_minute_bar_data())
 
         cls.bcolz_minute_bar_reader = BcolzMinuteBarReader(p)
 

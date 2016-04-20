@@ -23,6 +23,7 @@ from nose.tools import timed
 import numpy as np
 import pandas as pd
 import pytz
+from six import iteritems
 from six.moves import range
 from testfixtures import TempDirectory
 
@@ -219,7 +220,7 @@ class FinanceTestCase(WithLogger,
                     env,
                     env.days_in_range(minutes[0], minutes[-1]),
                     tempdir.path,
-                    assets
+                    iteritems(assets),
                 )
 
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)

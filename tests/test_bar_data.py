@@ -15,7 +15,6 @@
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from toolz import merge
 
 from zipline._protocol import handle_non_market_minutes
 from zipline.protocol import BarData
@@ -109,32 +108,26 @@ class TestMinuteBarData(WithBarDataChecks,
         # asset2 has trades every 10 minutes
         # split_asset trades every minute
         # illiquid_split_asset trades every 10 minutes
-        return merge(
-            {
-                sid: create_minute_df_for_asset(
-                    cls.env,
-                    cls.bcolz_minute_bar_days[0],
-                    cls.bcolz_minute_bar_days[-1],
-                )
-                for sid in (1, cls.SPLIT_ASSET_SID)
-            },
-            {
-                sid: create_minute_df_for_asset(
-                    cls.env,
-                    cls.bcolz_minute_bar_days[0],
-                    cls.bcolz_minute_bar_days[-1],
-                    10,
-                )
-                for sid in (2, cls.ILLIQUID_SPLIT_ASSET_SID)
-            },
-            {
-                cls.HILARIOUSLY_ILLIQUID_ASSET_SID: create_minute_df_for_asset(
-                    cls.env,
-                    cls.bcolz_minute_bar_days[0],
-                    cls.bcolz_minute_bar_days[-1],
-                    50,
-                )
-            },
+        for sid in (1, cls.SPLIT_ASSET_SID):
+            yield sid, create_minute_df_for_asset(
+                cls.env,
+                cls.bcolz_minute_bar_days[0],
+                cls.bcolz_minute_bar_days[-1],
+            )
+
+        for sid in (2, cls.ILLIQUID_SPLIT_ASSET_SID):
+            yield sid, create_minute_df_for_asset(
+                cls.env,
+                cls.bcolz_minute_bar_days[0],
+                cls.bcolz_minute_bar_days[-1],
+                10,
+            )
+
+        yield cls.HILARIOUSLY_ILLIQUID_ASSET_SID, create_minute_df_for_asset(
+            cls.env,
+            cls.bcolz_minute_bar_days[0],
+            cls.bcolz_minute_bar_days[-1],
+            50,
         )
 
     @classmethod
