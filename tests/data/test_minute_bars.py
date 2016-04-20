@@ -100,7 +100,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [50.0]
             },
             index=[minute])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
 
@@ -135,7 +135,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [50.0, 51.0]
             },
             index=[minute_0, minute_1])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute_0, 'open')
 
@@ -190,7 +190,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [50.0]
             },
             index=[minute])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
 
@@ -224,7 +224,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [0]
             },
             index=[minute])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
 
@@ -267,7 +267,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [50.0, 51.0]
             },
             index=minutes)
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         minute = minutes[0]
 
@@ -325,10 +325,10 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [50.0]
             },
             index=[minute])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         with self.assertRaises(BcolzMinuteOverlappingData):
-            self.writer.write(sid, data)
+            self.writer.write_sid(sid, data)
 
     def test_write_multiple_sids(self):
         """
@@ -361,7 +361,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [100.0]
             },
             index=[minute])
-        self.writer.write(sids[0], data)
+        self.writer.write_sid(sids[0], data)
 
         data = DataFrame(
             data={
@@ -372,7 +372,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [200.0]
             },
             index=[minute])
-        self.writer.write(sids[1], data)
+        self.writer.write_sid(sids[1], data)
 
         sid = sids[0]
 
@@ -442,7 +442,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [100.0]
             },
             index=[minute])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         open_price = self.reader.get_value(sid, minute, 'open')
 
@@ -489,7 +489,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': full(9, 0),
             },
             index=[minutes])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         fields = ['open', 'high', 'low', 'close', 'volume']
 
@@ -531,7 +531,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': full(9, 0),
             },
             index=[minutes])
-        self.writer.write(sid, data)
+        self.writer.write_sid(sid, data)
 
         fields = ['open', 'high', 'low', 'close', 'volume']
 
@@ -630,7 +630,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [1000, 0, 1001]
             },
             index=minutes)
-        self.writer.write(sids[0], data_1)
+        self.writer.write_sid(sids[0], data_1)
 
         data_2 = DataFrame(
             data={
@@ -641,7 +641,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [2000, 0, 2001]
             },
             index=minutes)
-        self.writer.write(sids[1], data_2)
+        self.writer.write_sid(sids[1], data_2)
 
         reader = BcolzMinuteBarReader(self.dest)
 
@@ -681,7 +681,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [1000, 1001, 1002],
             },
             index=minutes)
-        self.writer.write(sids[0], data_1)
+        self.writer.write_sid(sids[0], data_1)
 
         data_2 = DataFrame(
             data={
@@ -692,7 +692,7 @@ class BcolzMinuteBarTestCase(TestCase):
                 'volume': [2000, 2001, 2002],
             },
             index=minutes)
-        self.writer.write(sids[1], data_2)
+        self.writer.write_sid(sids[1], data_2)
 
         reader = BcolzMinuteBarReader(self.dest)
 

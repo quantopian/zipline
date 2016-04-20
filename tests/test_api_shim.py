@@ -122,14 +122,12 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     @classmethod
     def make_minute_bar_data(cls):
-        return {
-            sid: create_minute_df_for_asset(
+        for sid in cls.sids:
+            yield sid, create_minute_df_for_asset(
                 cls.env,
                 cls.SIM_PARAMS_START,
                 cls.SIM_PARAMS_END,
             )
-            for sid in cls.sids
-        }
 
     @classmethod
     def make_daily_bar_data(cls):

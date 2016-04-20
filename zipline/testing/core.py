@@ -349,7 +349,7 @@ def make_trade_data_for_asset_info(dates,
         )
 
         if writer:
-            writer.write(sid, df)
+            writer.write_sid(sid, df)
 
         trade_data[sid] = df
 
@@ -424,8 +424,8 @@ def write_minute_data(env, tempdir, minutes, sids):
 
 def create_minute_bar_data(minutes, sids):
     length = len(minutes)
-    return {
-        sid: pd.DataFrame(
+    for sid_idx, sid in enumerate(sids):
+        yield sid, pd.DataFrame(
             {
                 'open': np.arange(length) + 10 + sid_idx,
                 'high': np.arange(length) + 15 + sid_idx,
@@ -435,8 +435,6 @@ def create_minute_bar_data(minutes, sids):
             },
             index=minutes,
         )
-        for sid_idx, sid in enumerate(sids)
-    }
 
 
 def create_daily_bar_data(trading_days, sids):
@@ -492,20 +490,17 @@ def create_data_portal(env, tempdir, sim_params, sids, adjustment_reader=None):
         )
 
 
-def write_bcolz_minute_data(env, days, path, df_dict):
+def write_bcolz_minute_data(env, days, path, data):
     market_opens = env.open_and_closes.market_open.loc[days]
     market_closes = env.open_and_closes.market_close.loc[days]
 
-    writer = BcolzMinuteBarWriter(
+    BcolzMinuteBarWriter(
         days[0],
         path,
         market_opens,
         market_closes,
         US_EQUITIES_MINUTES_PER_DAY
-    )
-
-    for sid, df in iteritems(df_dict):
-        writer.write(sid, df)
+    ).write(data)
 
 
 def create_minute_df_for_asset(env,

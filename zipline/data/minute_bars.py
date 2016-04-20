@@ -29,6 +29,7 @@ from zipline.data._minute_bar_internal import (
 )
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
+from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
 
 US_EQUITIES_MINUTES_PER_DAY = 390
@@ -441,7 +442,36 @@ class BcolzMinuteBarWriter(object):
         assert new_last_date == date, "new_last_date={0} != date={1}".format(
             new_last_date, date)
 
-    def write(self, sid, df):
+    def write(self, data, show_progress=False):
+        """Write a stream of minute data.
+
+        Parameters
+        ----------
+        data : iterable[(int, pd.DataFrame)]
+            The data to write. Each element should be a tuple of sid, data
+            where data has the following format:
+            columns : ('open', 'high', 'low', 'close', 'volume')
+                open : float64
+                high : float64
+                low  : float64
+                close : float64
+                volume : float64|int64
+            index : DatetimeIndex of market minutes.
+        show_progress : bool, optional
+            Whether or not to show a progress bar while writing.
+        """
+        ctx = maybe_show_progress(
+            data,
+            show_progress=show_progress,
+            item_show_func=lambda e: e if e is None else str(e[0]),
+            label="Merging minute equity files:",
+        )
+        write_sid = self.write_sid
+        with ctx as it:
+            for e in it:
+                write_sid(*e)
+
+    def write_sid(self, sid, df):
         """
         Write the OHLCV data for the given sid.
         If there is no bcolz ctable yet created for the sid, create it.
