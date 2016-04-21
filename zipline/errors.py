@@ -433,10 +433,20 @@ class TermInputsNotSpecified(ZiplineError):
     msg = "{termname} requires inputs, but no inputs list was passed."
 
 
+class TermOutputsEmpty(ZiplineError):
+    """
+    Raised if a user attempts to construct a term with an empty outputs list.
+    """
+    msg = (
+        "{termname} requires at least one output when passed an outputs "
+        "argument."
+    )
+
+
 class WindowLengthNotSpecified(ZiplineError):
     """
-    Raised if a user attempts to construct a term without specifying inputs and
-    that term does not have class-level default inputs.
+    Raised if a user attempts to construct a term without specifying window
+    length and that term does not have a class-level default window length.
     """
     msg = (
         "{termname} requires a window_length, but no window_length was passed."

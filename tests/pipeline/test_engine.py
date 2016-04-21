@@ -4,6 +4,7 @@ Tests for SimplePipelineEngine
 from __future__ import division
 from collections import OrderedDict
 from itertools import product
+from operator import add, sub
 
 from nose_parameterized import parameterized
 from numpy import (
@@ -11,6 +12,7 @@ from numpy import (
     array,
     concatenate,
     float32,
+    float64,
     full,
     log,
     nan,
@@ -38,19 +40,9 @@ from toolz import merge
 
 from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline.loaders.synthetic import PrecomputedLoader
-from zipline.pipeline import Pipeline
-from zipline.pipeline.data import USEquityPricing, DataSet, Column
-from zipline.pipeline.loaders.equity_pricing_loader import (
-    USEquityPricingLoader,
-)
-from zipline.pipeline.loaders.synthetic import (
-    make_daily_bar_data,
-    expected_daily_bar_values_2d,
-)
+from zipline.pipeline import CustomFactor, Pipeline
+from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
-from zipline.pipeline.loaders.frame import DataFrameLoader
-from zipline.pipeline import CustomFactor
 from zipline.pipeline.factors import (
     AverageDollarVolume,
     EWMA,
@@ -60,6 +52,16 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
+from zipline.pipeline.loaders.equity_pricing_loader import (
+    USEquityPricingLoader,
+)
+from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.pipeline.loaders.synthetic import (
+    expected_daily_bar_values_2d,
+    make_daily_bar_data,
+    PrecomputedLoader,
+)
+from zipline.pipeline.term import NotSpecified
 from zipline.testing import (
     product_upper_triangle,
     check_arrays,
@@ -110,6 +112,28 @@ class OpenPrice(CustomFactor):
 
     def compute(self, today, assets, out, open):
         out[:] = open
+
+
+class MultipleOutputs(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.open, USEquityPricing.close]
+    outputs = ['open', 'close']
+
+    def compute(self, today, assets, out, open, close):
+        out.open[:] = open
+        out.close[:] = close
+
+
+class OpenCloseSumAndDiff(CustomFactor):
+    """
+    Used for testing a CustomFactor with multiple outputs operating over a non-
+    trivial window length.
+    """
+    inputs = [USEquityPricing.open, USEquityPricing.close]
+
+    def compute(self, today, assets, out, open, close):
+        out.sum_[:] = open.sum(axis=0) + close.sum(axis=0)
+        out.diff[:] = open.sum(axis=0) - close.sum(axis=0)
 
 
 def assert_multi_index_is_product(testcase, index, *levels):
@@ -407,9 +431,9 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         alternating_mask = (AssetIDPlusDay() % 2).eq(0)
         expected_alternating_mask_result = array(
-            [[False,  True, False,   True],
-             [True,  False,  True,  False],
-             [False,  True, False,   True]],
+            [[False,  True, False,  True],
+             [True,  False,  True, False],
+             [False,  True, False,  True]],
             dtype=bool,
         )
 
@@ -509,6 +533,176 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
                     data=full(result_shape, const, dtype=float),
                 ),
             )
+
+    def test_factor_with_single_output(self):
+        """
+        Test passing an `outputs` parameter of length 1 to a CustomFactor.
+        """
+        dates = self.dates[5:10]
+        assets = self.assets
+        num_dates = len(dates)
+        open = USEquityPricing.open
+        open_values = [self.constants[open]] * num_dates
+        open_values_as_tuple = [(self.constants[open],)] * num_dates
+        engine = SimplePipelineEngine(
+            lambda column: self.loader, self.dates, self.asset_finder,
+        )
+
+        single_output = OpenPrice(outputs=['open'])
+        pipeline = Pipeline(
+            columns={
+                'open_instance': single_output,
+                'open_attribute': single_output.open,
+            },
+        )
+        results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+
+        # The instance `single_output` itself will compute a numpy.recarray
+        # when added as a column to our pipeline, so we expect its output
+        # values to be 1-tuples.
+        open_instance_expected = {
+            asset: open_values_as_tuple for asset in assets
+        }
+        open_attribute_expected = {asset: open_values for asset in assets}
+
+        for colname, expected_values in (
+                ('open_instance', open_instance_expected),
+                ('open_attribute', open_attribute_expected)):
+            column_results = results[colname].unstack()
+            expected_results = DataFrame(
+                expected_values, index=dates, columns=assets, dtype=float64,
+            )
+            assert_frame_equal(column_results, expected_results)
+
+    def test_factor_with_multiple_outputs(self):
+        dates = self.dates[5:10]
+        assets = self.assets
+        asset_ids = self.asset_ids
+        constants = self.constants
+        open = USEquityPricing.open
+        close = USEquityPricing.close
+        engine = SimplePipelineEngine(
+            lambda column: self.loader, self.dates, self.asset_finder,
+        )
+
+        def create_expected_results(expected_value, mask):
+            expected_values = where(mask, expected_value, nan)
+            return DataFrame(expected_values, index=dates, columns=assets)
+
+        cascading_mask = AssetIDPlusDay() < (asset_ids[-1] + dates[0].day)
+        expected_cascading_mask_result = array(
+            [[True,   True,  True, False],
+             [True,   True, False, False],
+             [True,  False, False, False],
+             [False, False, False, False],
+             [False, False, False, False]],
+            dtype=bool,
+        )
+
+        alternating_mask = (AssetIDPlusDay() % 2).eq(0)
+        expected_alternating_mask_result = array(
+            [[False,  True, False,  True],
+             [True,  False,  True, False],
+             [False,  True, False,  True],
+             [True,  False,  True, False],
+             [False,  True, False,  True]],
+            dtype=bool,
+        )
+
+        expected_no_mask_result = array(
+            [[True, True, True, True],
+             [True, True, True, True],
+             [True, True, True, True],
+             [True, True, True, True],
+             [True, True, True, True]],
+            dtype=bool,
+        )
+
+        masks = cascading_mask, alternating_mask, NotSpecified
+        expected_mask_results = (
+            expected_cascading_mask_result,
+            expected_alternating_mask_result,
+            expected_no_mask_result,
+        )
+        for mask, expected_mask in zip(masks, expected_mask_results):
+            open_price, close_price = MultipleOutputs(mask=mask)
+            pipeline = Pipeline(
+                columns={'open_price': open_price, 'close_price': close_price},
+            )
+            if mask is not NotSpecified:
+                pipeline.add(mask, 'mask')
+
+            results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+            for colname, case_column in (('open_price', open),
+                                         ('close_price', close)):
+                if mask is not NotSpecified:
+                    mask_results = results['mask'].unstack()
+                    check_arrays(mask_results.values, expected_mask)
+                output_results = results[colname].unstack()
+                output_expected = create_expected_results(
+                    constants[case_column], expected_mask,
+                )
+                assert_frame_equal(output_results, output_expected)
+
+    def test_instance_of_factor_with_multiple_outputs(self):
+        """
+        Test adding a CustomFactor instance, which has multiple outputs, as a
+        pipeline column directly. Its computed values should be tuples
+        containing the computed values of each of its outputs.
+        """
+        dates = self.dates[5:10]
+        assets = self.assets
+        num_dates = len(dates)
+        num_assets = len(assets)
+        constants = self.constants
+        engine = SimplePipelineEngine(
+            lambda column: self.loader, self.dates, self.asset_finder,
+        )
+
+        open_values = [constants[USEquityPricing.open]] * num_assets
+        close_values = [constants[USEquityPricing.close]] * num_assets
+        expected_values = [list(zip(open_values, close_values))] * num_dates
+        expected_results = DataFrame(
+            expected_values, index=dates, columns=assets, dtype=float64,
+        )
+
+        multiple_outputs = MultipleOutputs()
+        pipeline = Pipeline(columns={'instance': multiple_outputs})
+        results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+        instance_results = results['instance'].unstack()
+        assert_frame_equal(instance_results, expected_results)
+
+    def test_custom_factor_outputs_parameter(self):
+        dates = self.dates[5:10]
+        assets = self.assets
+        num_dates = len(dates)
+        num_assets = len(assets)
+        constants = self.constants
+        engine = SimplePipelineEngine(
+            lambda column: self.loader, self.dates, self.asset_finder,
+        )
+
+        def create_expected_results(expected_value):
+            expected_values = full(
+                (num_dates, num_assets), expected_value, float64,
+            )
+            return DataFrame(expected_values, index=dates, columns=assets)
+
+        for window_length in range(1, 3):
+            sum_, diff = OpenCloseSumAndDiff(
+                outputs=['sum_', 'diff'], window_length=window_length,
+            )
+            pipeline = Pipeline(columns={'sum_': sum_, 'diff': diff})
+            results = engine.run_pipeline(pipeline, dates[0], dates[-1])
+            for colname, op in ('sum_', add), ('diff', sub):
+                output_results = results[colname].unstack()
+                output_expected = create_expected_results(
+                    op(
+                        constants[USEquityPricing.open] * window_length,
+                        constants[USEquityPricing.close] * window_length,
+                    )
+                )
+                assert_frame_equal(output_results, output_expected)
 
     def test_loader_given_multiple_columns(self):
 
