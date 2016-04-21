@@ -42,6 +42,10 @@ environment:
 platform:
   - x64
 
+# Using GCE to prevent the "input line is too long" error when activating a
+# conda env.
+image: Visual Studio 2015 - GCE
+
 cache:
   - '%LOCALAPPDATA%\pip\Cache'
 
