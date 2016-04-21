@@ -2,7 +2,7 @@
 Release Notes
 =============
 
-.. include:: whatsnew/0.9.1.txt
+.. include:: whatsnew/1.0.0.txt
 
 .. include:: whatsnew/0.9.0.txt
 
