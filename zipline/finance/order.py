@@ -41,7 +41,7 @@ class Order(object):
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
                  "commission", "_status", "stop", "limit", "stop_reached",
-                 "limit_reached", "direction", "type"]
+                 "limit_reached", "direction", "type", "broker_order_id"]
 
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
                  commission=None, id=None):
@@ -78,7 +78,8 @@ class Order(object):
     def to_dict(self):
         dct = {name: getattr(self, name)
                for name in self.__slots__
-               if name not in {'type', 'direction', '_status'}}
+               if name not in {'type', 'direction', '_status',
+                               'broker_order_id'}}
         dct['status'] = self.status
         return dct
 
