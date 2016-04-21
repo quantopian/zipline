@@ -34,6 +34,8 @@ BUY = 1 << 1
 STOP = 1 << 2
 LIMIT = 1 << 3
 
+ORDER_FIELDS_TO_IGNORE = {'type', 'direction', '_status'}
+
 
 class Order(object):
     # using __slots__ to save on memory usage.  Simulations can create many
@@ -71,6 +73,7 @@ class Order(object):
         self.limit_reached = False
         self.direction = math.copysign(1, self.amount)
         self.type = zp.DATASOURCE_TYPE.ORDER
+        self.broker_order_id = None
 
     def make_id(self):
         return uuid.uuid4().hex
@@ -78,8 +81,11 @@ class Order(object):
     def to_dict(self):
         dct = {name: getattr(self, name)
                for name in self.__slots__
-               if name not in {'type', 'direction', '_status',
-                               'broker_order_id'}}
+               if name not in ORDER_FIELDS_TO_IGNORE}
+
+        if self.broker_order_id is None:
+            del dct['broker_order_id']
+
         dct['status'] = self.status
         return dct
 
