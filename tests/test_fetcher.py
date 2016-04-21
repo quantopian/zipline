@@ -39,6 +39,7 @@ from .resources.fetcher_inputs.fetcher_test_data import (
     MULTI_SIGNAL_CSV_DATA,
     NON_ASSET_FETCHER_UNIVERSE_DATA,
     PALLADIUM_DATA,
+    NFLX_DATA
 )
 
 
@@ -82,6 +83,13 @@ class FetcherTestCase(WithResponses,
                     'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
                     'end_date': pd.Timestamp('2007-01-01', tz='UTC'),
                     'symbol': 'DELL',
+                    'asset_type': 'equity',
+                    'exchange': 'nasdaq'
+                },
+                13: {
+                    'start_date': pd.Timestamp('2006-01-01', tz='UTC'),
+                    'end_date': pd.Timestamp('2010-01-01', tz='UTC'),
+                    'symbol': 'NFLX',
                     'asset_type': 'equity',
                     'exchange': 'nasdaq'
                 }
@@ -552,3 +560,38 @@ def handle_data(context, data):
         self.assertEqual(3, results["sid_count"].iloc[0])
         self.assertEqual(3, results["sid_count"].iloc[1])
         self.assertEqual(4, results["sid_count"].iloc[2])
+
+    def test_fetcher_in_before_trading_start(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/fetcher_nflx_data.csv',
+            body=NFLX_DATA,
+            content_type='text/csv',
+        )
+
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp("2013-06-13", tz='UTC'),
+            end=pd.Timestamp("2013-11-15", tz='UTC'),
+            data_frequency="minute"
+        )
+
+        results = self.run_algo("""
+from zipline.api import fetch_csv, record, symbol
+
+def initialize(context):
+    fetch_csv('https://fake.urls.com/fetcher_nflx_data.csv',
+               date_column = 'Settlement Date',
+               date_format = '%m/%d/%y')
+    context.stock = symbol('NFLX')
+
+def before_trading_start(context, data):
+    record(Short_Interest = data.current(context.stock, 'dtc'))
+""", sim_params=sim_params, data_frequency="minute")
+
+        values = results["Short_Interest"]
+        np.testing.assert_array_equal(values[0:33], np.full(33, np.nan))
+        np.testing.assert_array_almost_equal(values[33:44], [1.690317] * 11)
+        np.testing.assert_array_almost_equal(values[44:55], [2.811858] * 11)
+        np.testing.assert_array_almost_equal(values[55:64], [2.50233] * 9)
+        np.testing.assert_array_almost_equal(values[64:75], [2.550829] * 11)
+        np.testing.assert_array_almost_equal(values[75:], [2.64484] * 35)

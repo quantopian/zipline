@@ -134,6 +134,15 @@ Date,Value
 2006-01-01,199.3
 """.strip()
 
+NFLX_DATA = """
+Settlement Date,symbol,dtc
+7/31/13,NFLX,1.690317
+8/15/13,NFLX,2.811858
+8/30/13,NFLX,2.502331
+9/13/13,NFLX,2.550829
+9/30/13,NFLX,2.64484
+"""
+
 PALLADIUM_DATA = """
 Date,Hong Kong 8:30,Hong Kong 14:00,London 08:00,New York 9:30,New York 15:00
 2007-12-31,367.0,367.0,368.0,368.0,368.0

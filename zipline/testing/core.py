@@ -705,7 +705,7 @@ class FetcherDataPortal(DataPortal):
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path
-        if self._check_extra_sources(asset, field, (dt or self.current_dt)):
+        if self._is_extra_source(asset, field, self._augmented_sources_map):
             return super(FetcherDataPortal, self).get_spot_value(
                 asset, field, dt, data_frequency)
 
