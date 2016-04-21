@@ -30,6 +30,8 @@ function DownloadMiniconda ($python_version, $platform_suffix) {
             break
         }
         Catch [Exception]{
+            Write-Host "Exception downloading" $filename ":" $_.Exception.ToString()
+            Write-Host "Retrying in 1 second."
             Start-Sleep 1
         }
    }
