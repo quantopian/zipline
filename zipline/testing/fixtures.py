@@ -124,7 +124,6 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
     @final
     @classmethod
     def tearDownClass(cls):
-        _take_out_the_trash()
         cls._class_teardown_stack.close()
         for name in set(vars(cls)) - cls._static_class_attributes:
             # Remove all of the attributes that were added after the class was
@@ -189,7 +188,6 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
 
     @final
     def tearDown(self):
-        _take_out_the_trash()
         self._instance_teardown_stack.close()
         for attr in set(vars(self)) - self._pre_setup_attrs:
             delattr(self, attr)
@@ -545,6 +543,9 @@ class WithTmpDir(object):
             tmp_dir(path=cls.TMP_DIR_PATH),
         )
 
+        # Ensure that file handles are closed even if they're in gc cycles.
+        cls.add_class_callback(_take_out_the_trash)
+
 
 class WithInstanceTmpDir(object):
     """
@@ -567,6 +568,8 @@ class WithInstanceTmpDir(object):
         self.instance_tmpdir = self.enter_instance_context(
             tmp_dir(path=self.INSTANCE_TMP_DIR_PATH),
         )
+        # Ensure that file handles are closed even if they're in gc cycles.
+        self.add_instance_callback(_take_out_the_trash)
 
 
 class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
