@@ -78,7 +78,9 @@ class BlazeEventsLoader(PipelineLoader):
 
         expected_fields = self._expected_fields
         self._expr = bind_expression_to_resources(
-            expr[list(expected_fields)],
+            expr[list(expected_fields)][expr[
+                self.concrete_loader.event_date_col
+            ].notnull()],
             resources,
         )
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
