@@ -13,7 +13,7 @@ from zipline.pipeline.common import (
     MEAN_FIELD_NAME,
     RELEASE_DATE_FIELD_NAME,
     STANDARD_DEVIATION_FIELD_NAME,
-)
+    ACTUAL_VALUE_FIELD_NAME)
 from zipline.utils.memoize import lazyval
 
 
@@ -26,7 +26,8 @@ class ConsensusEstimatesLoader(EventsLoader):
                                HIGH_FIELD_NAME,
                                MEAN_FIELD_NAME,
                                FISCAL_YEAR_FIELD_NAME,
-                               LOW_FIELD_NAME])
+                               LOW_FIELD_NAME,
+                               ACTUAL_VALUE_FIELD_NAME])
 
     def __init__(self, all_dates, events_by_sid,
                  infer_timestamps=False,
@@ -159,4 +160,12 @@ class ConsensusEstimatesLoader(EventsLoader):
             self.dataset.previous_low,
             RELEASE_DATE_FIELD_NAME,
             LOW_FIELD_NAME,
+        )
+
+    @lazyval
+    def previous_actual_value_loader(self):
+        return self._previous_event_value_loader(
+            self.dataset.previous_actual_value,
+            RELEASE_DATE_FIELD_NAME,
+            ACTUAL_VALUE_FIELD_NAME,
         )

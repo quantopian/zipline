@@ -1,6 +1,7 @@
 """
 Common constants for Pipeline.
 """
+ACTUAL_VALUE_FIELD_NAME = 'actual_value'
 AD_FIELD_NAME = 'asof_date'
 ANNOUNCEMENT_FIELD_NAME = 'announcement_date'
 CASH_FIELD_NAME = 'cash'
@@ -31,6 +32,7 @@ NEXT_PAY_DATE = 'next_pay_date'
 NEXT_RELEASE_DATE = 'next_release_date'
 NEXT_STANDARD_DEVIATION = 'next_standard_deviation'
 PAY_DATE_FIELD_NAME = 'pay_date'
+PREVIOUS_ACTUAL_VALUE = 'previous_actual_value'
 PREVIOUS_AMOUNT = 'previous_amount'
 PREVIOUS_ANNOUNCEMENT = 'previous_announcement'
 PREVIOUS_BUYBACK_ANNOUNCEMENT = 'previous_buyback_announcement'

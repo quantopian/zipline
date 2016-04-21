@@ -26,3 +26,4 @@ class ConsensusEstimates(DataSet):
     next_fiscal_year = Column(float64_dtype)
     previous_low = Column(float64_dtype)
     next_low = Column(float64_dtype)
+    previous_actual_value = Column(float64_dtype)

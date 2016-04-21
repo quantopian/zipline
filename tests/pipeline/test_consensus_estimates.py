@@ -7,6 +7,7 @@ import pandas as pd
 from six import iteritems
 
 from zipline.pipeline.common import (
+    ACTUAL_VALUE_FIELD_NAME,
     COUNT_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
     FISCAL_YEAR_FIELD_NAME,
@@ -20,6 +21,7 @@ from zipline.pipeline.common import (
     NEXT_LOW,
     NEXT_RELEASE_DATE,
     NEXT_STANDARD_DEVIATION,
+    PREVIOUS_ACTUAL_VALUE,
     PREVIOUS_COUNT,
     PREVIOUS_FISCAL_QUARTER,
     PREVIOUS_FISCAL_YEAR,
@@ -47,6 +49,7 @@ from zipline.testing.fixtures import (
 consensus_estimates_cases = [
     # K1--K2--A1--A2.
     pd.DataFrame({
+        ACTUAL_VALUE_FIELD_NAME: (100, 200),
         STANDARD_DEVIATION_FIELD_NAME: (.5, .6),
         COUNT_FIELD_NAME: (1, 2),
         FISCAL_QUARTER_FIELD_NAME: (1, 1),
@@ -57,6 +60,7 @@ consensus_estimates_cases = [
     }),
     # K1--K2--A2--A1.
     pd.DataFrame({
+        ACTUAL_VALUE_FIELD_NAME: (200, 300),
         STANDARD_DEVIATION_FIELD_NAME: (.6, .7),
         COUNT_FIELD_NAME: (2, 3),
         FISCAL_QUARTER_FIELD_NAME: (1, 1),
@@ -67,6 +71,7 @@ consensus_estimates_cases = [
     }),
     # K1--A1--K2--A2.
     pd.DataFrame({
+        ACTUAL_VALUE_FIELD_NAME: (300, 400),
         STANDARD_DEVIATION_FIELD_NAME: (.7, .8),
         COUNT_FIELD_NAME: (3, 4),
         FISCAL_QUARTER_FIELD_NAME: (1, 1),
@@ -77,6 +82,7 @@ consensus_estimates_cases = [
     }),
     # K1 == K2.
     pd.DataFrame({
+        ACTUAL_VALUE_FIELD_NAME: (400, 500),
         STANDARD_DEVIATION_FIELD_NAME: (.8, .9),
         COUNT_FIELD_NAME: (4, 5),
         FISCAL_QUARTER_FIELD_NAME: (1, 1),
@@ -86,7 +92,8 @@ consensus_estimates_cases = [
         LOW_FIELD_NAME: (.08, .09),
     }),
     pd.DataFrame(
-        columns=[STANDARD_DEVIATION_FIELD_NAME,
+        columns=[ACTUAL_VALUE_FIELD_NAME,
+                 STANDARD_DEVIATION_FIELD_NAME,
                  COUNT_FIELD_NAME,
                  FISCAL_QUARTER_FIELD_NAME,
                  HIGH_FIELD_NAME,
@@ -95,6 +102,14 @@ consensus_estimates_cases = [
                  LOW_FIELD_NAME],
         dtype='datetime64[ns]'
     ),
+]
+
+prev_actual_value = [
+    ['NaN', 100, 200],
+    ['NaN', 300, 200],
+    ['NaN', 300, 400],
+    ['NaN', 400, 500],
+    ['NaN']
 ]
 
 next_standard_deviation = [
@@ -210,6 +225,7 @@ prev_low = [
 ]
 
 field_name_to_expected_col = {
+    PREVIOUS_ACTUAL_VALUE: prev_actual_value,
     PREVIOUS_STANDARD_DEVIATION: prev_standard_deviation,
     NEXT_STANDARD_DEVIATION: next_standard_deviation,
     PREVIOUS_COUNT: prev_count,
@@ -233,6 +249,8 @@ class ConsensusEstimatesLoaderTestCase(WithNextAndPreviousEventDataLoader,
     Tests for loading the consensus estimates data.
     """
     pipeline_columns = {
+        PREVIOUS_ACTUAL_VALUE:
+            ConsensusEstimates.previous_actual_value.latest,
         NEXT_RELEASE_DATE:
             ConsensusEstimates.next_release_date.latest,
         PREVIOUS_RELEASE_DATE:

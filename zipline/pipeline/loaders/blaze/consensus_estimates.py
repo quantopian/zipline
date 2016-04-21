@@ -9,6 +9,7 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     STANDARD_DEVIATION_FIELD_NAME,
     TS_FIELD_NAME,
+    ACTUAL_VALUE_FIELD_NAME
 )
 from zipline.pipeline.data import ConsensusEstimates
 from zipline.pipeline.loaders import ConsensusEstimatesLoader
@@ -50,6 +51,7 @@ class BlazeConsensusEstimatesLoader(BlazeEventsLoader):
            {MEAN_FIELD_NAME}: ?float64,
            {FISCAL_YEAR_FIELD_NAME}: ?float64,
            {LOW_FIELD_NAME}: ?float64,
+           {ACTUAL_VALUE_FIELD_NAME}: ?float64
        }}
 
     Where each row of the table is a record including the sid to identify the
@@ -72,6 +74,7 @@ class BlazeConsensusEstimatesLoader(BlazeEventsLoader):
         MEAN_FIELD_NAME=MEAN_FIELD_NAME,
         FISCAL_YEAR_FIELD_NAME=FISCAL_YEAR_FIELD_NAME,
         LOW_FIELD_NAME=LOW_FIELD_NAME,
+        ACTUAL_VALUE_FIELD_NAME=ACTUAL_VALUE_FIELD_NAME
     )
 
     _expected_fields = frozenset({
@@ -85,6 +88,7 @@ class BlazeConsensusEstimatesLoader(BlazeEventsLoader):
         MEAN_FIELD_NAME,
         FISCAL_YEAR_FIELD_NAME,
         LOW_FIELD_NAME,
+        ACTUAL_VALUE_FIELD_NAME
     })
 
     concrete_loader = ConsensusEstimatesLoader
