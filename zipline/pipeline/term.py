@@ -11,6 +11,7 @@ from zipline.errors import (
     WindowedInputToWindowedTerm,
     NotDType,
     TermInputsNotSpecified,
+    TermOutputsEmpty,
     UnsupportedDType,
     WindowLengthNotSpecified,
 )
@@ -349,11 +350,13 @@ class ComputableTerm(Term):
     :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Factor`.
     """
     inputs = NotSpecified
+    outputs = NotSpecified
     window_length = NotSpecified
     mask = NotSpecified
 
     def __new__(cls,
                 inputs=inputs,
+                outputs=outputs,
                 window_length=window_length,
                 mask=mask,
                 *args, **kwargs):
@@ -368,6 +371,11 @@ class ComputableTerm(Term):
             # normalize to a tuple so that inputs is hashable.
             inputs = tuple(inputs)
 
+        if outputs is NotSpecified:
+            outputs = cls.outputs
+        if outputs is not NotSpecified:
+            outputs = tuple(outputs)
+
         if mask is NotSpecified:
             mask = cls.mask
         if mask is NotSpecified:
@@ -379,22 +387,31 @@ class ComputableTerm(Term):
         return super(ComputableTerm, cls).__new__(
             cls,
             inputs=inputs,
+            outputs=outputs,
             mask=mask,
             window_length=window_length,
             *args, **kwargs
         )
 
-    def _init(self, inputs, window_length, mask, *args, **kwargs):
+    def _init(self, inputs, outputs, window_length, mask, *args, **kwargs):
         self.inputs = inputs
+        self.outputs = outputs
         self.window_length = window_length
         self.mask = mask
         return super(ComputableTerm, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, inputs, window_length, mask, *args, **kwargs):
+    def static_identity(cls,
+                        inputs,
+                        outputs,
+                        window_length,
+                        mask,
+                        *args,
+                        **kwargs):
         return (
             super(ComputableTerm, cls).static_identity(*args, **kwargs),
             inputs,
+            outputs,
             window_length,
             mask,
         )
@@ -404,6 +421,9 @@ class ComputableTerm(Term):
 
         if self.inputs is NotSpecified:
             raise TermInputsNotSpecified(termname=type(self).__name__)
+
+        if not self.outputs:
+            raise TermOutputsEmpty(termname=type(self).__name__)
 
         if self.window_length is NotSpecified:
             raise WindowLengthNotSpecified(termname=type(self).__name__)

@@ -1,7 +1,7 @@
 """
 factor.py
 """
-from functools import wraps
+from functools import partial, wraps
 from operator import attrgetter
 from numbers import Number
 
@@ -1130,8 +1130,13 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     inputs : iterable, optional
         An iterable of `BoundColumn` instances (e.g. USEquityPricing.close),
         describing the data to load and pass to `self.compute`.  If this
-        argument is passed to the CustomFactor constructor, we look for a
+        argument is not passed to the CustomFactor constructor, we look for a
         class-level attribute named `inputs`.
+    outputs : iterable[str], optional
+        An iterable of strings which represent the names of each output this
+        factor should compute and return. If this argument is not passed to the
+        CustomFactor constructor, we look for a class-level attribute named
+        `outputs`.
     window_length : int, optional
         Number of rows to pass for each input.  If this argument is not passed
         to the CustomFactor constructor, we look for a class-level attribute
@@ -1164,7 +1169,9 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             Column labels for `out` and`inputs`.
         out : np.array[self.dtype, ndim=1]
             Output array of the same shape as `assets`.  `compute` should write
-            its desired return values into `out`.
+            its desired return values into `out`. If multiple outputs are
+            specified, `compute` should write its desired return values into
+            `out.<output_name>` for each output name in `self.outputs`.
         *inputs : tuple of np.array
             Raw data arrays corresponding to the values of `self.inputs`.
 
@@ -1229,8 +1236,85 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
         # MedianValue.
         median_close10 = MedianValue([USEquityPricing.close], window_length=10)
         median_low15 = MedianValue([USEquityPricing.low], window_length=15)
+
+    A CustomFactor with multiple outputs:
+
+    .. code-block:: python
+
+        class MultipleOutputs(CustomFactor):
+            inputs = [USEquityPricing.close]
+            outputs = ['alpha', 'beta']
+            window_length = N
+
+            def compute(self, today, assets, out, close):
+                computed_alpha, computed_beta = some_function(close)
+                out.alpha[:] = computed_alpha
+                out.beta[:] = computed_beta
+
+        # Each output is returned as its own Factor upon instantiation.
+        alpha, beta = MultipleOutputs()
+
+        # Equivalently, we can create a single factor instance and access each
+        # output as an attribute of that instance.
+        multiple_outputs = MultipleOutputs()
+        alpha = multiple_outputs.alpha
+        beta = multiple_outputs.beta
+
+    Note: If a CustomFactor has multiple outputs, all outputs must have the
+    same dtype. For instance, in the example above, if alpha is a float then
+    beta must also be a float.
     '''
     dtype = float64_dtype
+
+    def __getattr__(self, attribute_name):
+        if self.outputs is NotSpecified:
+            return getattr(super(CustomFactor, self), attribute_name)
+        if attribute_name in self.outputs:
+            return RecarrayField(factor=self, attribute=attribute_name)
+        else:
+            raise AttributeError(
+                'Instance of {factor} has no output called {attr!r}.'.format(
+                    factor=type(self).__name__, attr=attribute_name,
+                )
+            )
+
+    def __iter__(self):
+        if self.outputs is NotSpecified:
+            raise ValueError(
+                '{factor} does not have multiple outputs.'.format(
+                    factor=type(self).__name__,
+                )
+            )
+        RecarrayField_ = partial(RecarrayField, self)
+        return iter(map(RecarrayField_, self.outputs))
+
+
+class RecarrayField(SingleInputMixin, Factor):
+
+    def __new__(cls, factor, attribute):
+        return super(RecarrayField, cls).__new__(
+            cls,
+            attribute=attribute,
+            inputs=[factor],
+            window_length=0,
+            mask=factor.mask,
+            dtype=factor.dtype,
+            missing_value=factor.missing_value,
+        )
+
+    def _init(self, attribute, *args, **kwargs):
+        self._attribute = attribute
+        return super(RecarrayField, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, attribute, *args, **kwargs):
+        return (
+            super(RecarrayField, cls).static_identity(*args, **kwargs),
+            attribute,
+        )
+
+    def _compute(self, windows, dates, assets, mask):
+        return windows[0][self._attribute]
 
 
 class Latest(LatestMixin, CustomFactor):

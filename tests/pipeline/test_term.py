@@ -10,10 +10,17 @@ from zipline.errors import (
     WindowedInputToWindowedTerm,
     NotDType,
     TermInputsNotSpecified,
+    TermOutputsEmpty,
     UnsupportedDType,
     WindowLengthNotSpecified,
 )
-from zipline.pipeline import Classifier, Factor, Filter, TermGraph
+from zipline.pipeline import (
+    Classifier,
+    CustomFactor,
+    Factor,
+    Filter,
+    TermGraph,
+)
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
@@ -65,6 +72,19 @@ class DateFactor(Factor):
 class NoLookbackFactor(Factor):
     dtype = float64_dtype
     window_length = 0
+
+
+class GenericCustomFactor(CustomFactor):
+    dtype = float64_dtype
+    window_length = 5
+    inputs = [SomeDataSet.foo]
+
+
+class MultipleOutputs(CustomFactor):
+    dtype = float64_dtype
+    window_length = 5
+    inputs = [SomeDataSet.foo, SomeDataSet.bar]
+    outputs = ['alpha', 'beta']
 
 
 def gen_equivalent_factors():
@@ -210,6 +230,35 @@ class ObjectIdentityTestCase(TestCase):
             SomeFactor(inputs=[SomeFactor.inputs[1], SomeFactor.inputs[0]]),
         )
 
+        mask = SomeFactor() + SomeOtherFactor()
+        self.assertIs(SomeFactor(mask=mask), SomeFactor(mask=mask))
+
+    def test_instance_caching_multiple_outputs(self):
+        self.assertIs(MultipleOutputs(), MultipleOutputs())
+        self.assertIs(
+            MultipleOutputs(),
+            MultipleOutputs(outputs=MultipleOutputs.outputs),
+        )
+        self.assertIs(
+            MultipleOutputs(
+                outputs=[
+                    MultipleOutputs.outputs[1], MultipleOutputs.outputs[0],
+                ],
+            ),
+            MultipleOutputs(
+                outputs=[
+                    MultipleOutputs.outputs[1], MultipleOutputs.outputs[0],
+                ],
+            ),
+        )
+
+        # Ensure that both methods of accessing our outputs return the same
+        # things.
+        multiple_outputs = MultipleOutputs()
+        alpha, beta = MultipleOutputs()
+        self.assertIs(alpha, multiple_outputs.alpha)
+        self.assertIs(beta, multiple_outputs.beta)
+
     def test_instance_non_caching(self):
 
         f = SomeFactor()
@@ -242,6 +291,30 @@ class ObjectIdentityTestCase(TestCase):
             inputs = [SomeDataSet.foo, SomeDataSet.bar]
 
         self.assertIsNot(orig_foobar_instance, SomeFactor())
+
+    def test_instance_non_caching_multiple_outputs(self):
+        multiple_outputs = MultipleOutputs()
+
+        # Different outputs.
+        self.assertIsNot(
+            MultipleOutputs(), MultipleOutputs(outputs=['beta', 'gamma']),
+        )
+
+        # Reordering outputs.
+        self.assertIsNot(
+            multiple_outputs,
+            MultipleOutputs(
+                outputs=[
+                    MultipleOutputs.outputs[1], MultipleOutputs.outputs[0],
+                ],
+            ),
+        )
+
+        # Different factors sharing an output name should produce different
+        # RecarrayField factors.
+        orig_beta = multiple_outputs.beta
+        beta, gamma = MultipleOutputs(outputs=['beta', 'gamma'])
+        self.assertIsNot(beta, orig_beta)
 
     def test_instance_caching_binops(self):
         f = SomeFactor()
@@ -342,6 +415,35 @@ class ObjectIdentityTestCase(TestCase):
 
         with self.assertRaises(UnsupportedDType):
             SomeFactor(dtype=complex128_dtype)
+
+        with self.assertRaises(TermOutputsEmpty):
+            MultipleOutputs(outputs=[])
+
+    def test_bad_output_access(self):
+        with self.assertRaises(AttributeError) as e:
+            SomeFactor().not_an_attr
+
+        errmsg = str(e.exception)
+        self.assertEqual(
+            errmsg, "'SomeFactor' object has no attribute 'not_an_attr'",
+        )
+
+        with self.assertRaises(AttributeError) as e:
+            MultipleOutputs().not_an_attr
+
+        errmsg = str(e.exception)
+        self.assertEqual(
+            errmsg,
+            "Instance of MultipleOutputs has no output called 'not_an_attr'.",
+        )
+
+        with self.assertRaises(ValueError) as e:
+            alpha, beta = GenericCustomFactor()
+
+        errmsg = str(e.exception)
+        self.assertEqual(
+            errmsg, "GenericCustomFactor does not have multiple outputs.",
+        )
 
     def test_require_super_call_in_validate(self):
 
