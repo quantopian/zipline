@@ -2,7 +2,7 @@
 # Authors: Olivier Grisel, Jonathan Helmus and Kyle Kastner, Robert McGibbon
 # License: CC0 1.0 Universal: http://creativecommons.org/publicdomain/zero/1.0/
 
-$MINICONDA_URL = "http://repo.continuum.io/miniconda/"
+$MINICONDA_URL = "https://repo.continuum.io/miniconda/"
 
 
 function DownloadMiniconda ($python_version, $platform_suffix) {
@@ -30,15 +30,16 @@ function DownloadMiniconda ($python_version, $platform_suffix) {
             break
         }
         Catch [Exception]{
+            Write-Host "Exception downloading" $filename ":" $_.Exception.ToString()
+            Write-Host "Retrying in 1 second."
             Start-Sleep 1
         }
    }
-   if (Test-Path $filepath) {
-       Write-Host "File saved at" $filepath
-   } else {
+   if (!(Test-Path $filepath) -or ($i -ge $retry_attempts)) {
        # Retry once to get the error message if any at the last try
        $webclient.DownloadFile($url, $filepath)
    }
+   Write-Host "File saved at" $filepath
    return $filepath
 }
 
