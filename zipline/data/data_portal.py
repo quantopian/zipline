@@ -637,29 +637,17 @@ class DataPortal(object):
         elif data_frequency == 'daily':
             return self._equity_daily_reader.get_last_traded_dt(asset, dt)
 
-    def _check_extra_sources(self, asset, column, dt):
+    @staticmethod
+    def _is_extra_source(asset, field, map):
+        """
+        Internal method that determines if this asset/field combination
+        represents a fetcher value or a regular OHLCVP lookup.
+        """
         # If we have an extra source with a column called "price", only look
         # at it if it's on something like palladium and not AAPL (since our
         # own price data always wins when dealing with assets).
-        look_in_augmented_sources = column in self._augmented_sources_map and \
-            not (column in BASE_FIELDS and isinstance(asset, Asset))
-
-        if look_in_augmented_sources:
-            day = normalize_date(dt)
-
-            # we're being asked for a field in an extra source
-            try:
-                return self._augmented_sources_map[column][asset].\
-                    loc[day, column]
-            except:
-                log.error(
-                    "Could not find value for asset={0}, day={1},"
-                    "column={2}".format(
-                        str(asset),
-                        str(day),
-                        str(column)))
-
-                raise KeyError
+        return field in map and not (field in BASE_FIELDS and
+                                     isinstance(asset, Asset))
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         """
@@ -686,10 +674,21 @@ class DataPortal(object):
         -------
         The value of the desired field at the desired time.
         """
-        extra_source_val = self._check_extra_sources(asset, field, dt)
+        if self._is_extra_source(asset, field, self._augmented_sources_map):
+            day = normalize_date(dt)
 
-        if extra_source_val is not None:
-            return extra_source_val
+            try:
+                return \
+                    self._augmented_sources_map[field][asset].loc[day, field]
+            except:
+                log.error(
+                    "Could not find value for asset={0}, day={1},"
+                    "column={2}".format(
+                        str(asset),
+                        str(day),
+                        str(field)))
+
+                return np.NaN
 
         if field not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(field))
@@ -824,9 +823,17 @@ class DataPortal(object):
         -------
         The value of the desired field at the desired time.
         """
-
         if spot_value is None:
-            spot_value = self.get_spot_value(asset, field, dt, data_frequency)
+            # if this a fetcher field, we want to use perspective_dt (not dt)
+            # because we want the new value as of midnight (fetcher only works
+            # on a daily basis, all timestamps are on midnight)
+            if self._is_extra_source(asset, field,
+                                     self._augmented_sources_map):
+                spot_value = self.get_spot_value(asset, field, perspective_dt,
+                                                 data_frequency)
+            else:
+                spot_value = self.get_spot_value(asset, field, dt,
+                                                 data_frequency)
 
         if isinstance(asset, Equity):
             ratio = self.get_adjustments(asset, field, dt, perspective_dt)[0]
