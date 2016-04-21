@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from copy import copy
 import math
 import uuid
 
@@ -37,6 +36,13 @@ LIMIT = 1 << 3
 
 
 class Order(object):
+    # using __slots__ to save on memory usage.  Simulations can create many
+    # Order objects and we keep them all in memory, so it's worthwhile trying
+    # to cut down on the memory footprint of this object.
+    __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
+                 "commission", "_status", "stop", "limit", "stop_reached",
+                 "limit_reached", "direction", "type"]
+
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
                  commission=None, id=None):
         """
@@ -70,11 +76,11 @@ class Order(object):
         return uuid.uuid4().hex
 
     def to_dict(self):
-        py = copy(self.__dict__)
-        for field in ['type', 'direction', '_status']:
-            del py[field]
-        py['status'] = self.status
-        return py
+        dct = {name: getattr(self, name)
+               for name in self.__slots__
+               if name not in {'type', 'direction', '_status'}}
+        dct['status'] = self.status
+        return dct
 
     def to_api_obj(self):
         pydict = self.to_dict()
