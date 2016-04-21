@@ -61,7 +61,7 @@ cdef class check_parameters(object):
                     raise TypeError("%s() got an unexpected keyword argument"
                                     " '%s'" % (func.__name__, field))
 
-            # verify type of each arg
+            # verify type of each argument
             for i, arg in enumerate(args[1:]):
                 expected_type = self.types[i]
 
@@ -93,12 +93,12 @@ cdef class check_parameters(object):
                     if len(arg) == 0:
                         continue
 
-                    if isinstance(arg[0], self.keys_to_types[i]):
+                    if isinstance(arg[0], self.keys_to_types[keyword]):
                         continue
 
                 expected_type = self.keys_to_types[keyword].__name__ \
                     if not _is_iterable(self.keys_to_types[keyword]) \
-                    else ', '.join([type.__name__ for type in
+                    else ', '.join([type_.__name__ for type_ in
                                     self.keys_to_types[keyword]])
 
                 raise TypeError("Expected %s argument to be of type %s%s" %

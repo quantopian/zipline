@@ -1088,3 +1088,11 @@ def initialize(context):
 def handle_data(context, data):
     data.current(fields=10, assets=symbol('TEST'))
 """
+
+bad_type_history_assets_kwarg_list = """
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    data.history(assets=[1,2], fields='price', bar_count=5, frequency="1d")
+"""
