@@ -6,8 +6,9 @@ from unittest import TestCase
 
 import blaze as bz
 from nose_parameterized import parameterized
+from numpy.testing import assert_array_equal
 import pandas as pd
-from pandas.util.testing import assert_series_equal, assert_frame_equal
+from pandas.util.testing import assert_series_equal
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
@@ -26,7 +27,7 @@ from zipline.pipeline.loaders.events import (
     WRONG_SINGLE_COL_DATA_FORMAT_ERROR
 )
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
+from zipline.utils.numpy_utils import datetime64ns_dtype
 
 OTHER_FIELD = "other_field"
 
@@ -36,11 +37,6 @@ ABSTRACT_EXPECTED_COLS_ERROR = 'abstract methods event_date_col, expected_cols'
 
 class EventDataSet(DataSet):
     previous_announcement = Column(datetime64ns_dtype)
-
-
-class OtherFieldEventDataSet(DataSet):
-    previous_announcement = Column(datetime64ns_dtype)
-    previous_other_field = Column(float64_dtype)
 
 
 class EventDataSetLoader(EventsLoader):
@@ -62,29 +58,6 @@ class EventDataSetLoader(EventsLoader):
 
     @lazyval
     def previous_announcement_loader(self):
-        return self._previous_event_date_loader(
-            self.dataset.previous_announcement,
-        )
-
-
-class EventDataSetLoaderMultipleExpectedCols(EventDataSetLoader):
-    expected_cols = frozenset([ANNOUNCEMENT_FIELD_NAME, OTHER_FIELD])
-    event_date_col = ANNOUNCEMENT_FIELD_NAME
-
-    def __init__(self,
-                 all_dates,
-                 events_by_sid,
-                 infer_timestamps=False,
-                 dataset=OtherFieldEventDataSet):
-        super(EventDataSetLoader, self).__init__(
-            all_dates,
-            events_by_sid,
-            infer_timestamps=infer_timestamps,
-            dataset=dataset,
-        )
-
-    @lazyval
-    def previous_other_field_loader(self):
         return self._previous_event_date_loader(
             self.dataset.previous_announcement,
         )
@@ -142,28 +115,6 @@ class EventLoaderTestCase(TestCase):
             ),
             True,
             EventDataSetLoader
-        )
-
-    def test_null_in_event_date_col(self):
-        # Tests that getting a null date in the event date column filters the
-        # entire row from the data.
-        dates_with_null = pd.Series(dtx)
-        dates_with_null[2] = pd.NaT
-        other_col_data = pd.Series(range(0, len(dtx)))
-        events_by_sid = {0: pd.DataFrame({ANNOUNCEMENT_FIELD_NAME:
-                                          dates_with_null,
-                                          OTHER_FIELD: other_col_data,
-                                          TS_FIELD_NAME: dtx})}
-        loader = EventDataSetLoaderMultipleExpectedCols(
-            dtx,
-            events_by_sid,
-        )
-
-        expected = events_by_sid[0].drop(2, axis=0).set_index(TS_FIELD_NAME)
-        # Check that index by first given date has been added
-        assert_frame_equal(
-            loader.events_by_sid[0],
-            expected,
         )
 
     @parameterized.expand([
@@ -293,3 +244,42 @@ class BlazeEventLoaderTestCase(TestCase):
                                   SID_FIELD_NAME: 0})
                 )
             )
+
+
+class BlazeEventDataSetLoader(BlazeEventsLoader):
+    concrete_loader = EventDataSetLoader
+    _expected_fields = frozenset({ANNOUNCEMENT_FIELD_NAME,
+                                  TS_FIELD_NAME,
+                                  SID_FIELD_NAME})
+
+    def __init__(self,
+                 expr,
+                 dataset=EventDataSet,
+                 **kwargs):
+        super(
+            BlazeEventDataSetLoader, self
+        ).__init__(expr,
+                   dataset=dataset,
+                   **kwargs)
+
+
+class BlazeEventLoaderNullInDateColumnTestCase(TestCase):
+    def test_null_in_event_date_col(self):
+        # Tests that if there is a null date in the event date column, it is
+        # filtered out and does not break on loading the adjusted array.
+        dates_with_null = pd.Series(dtx)
+        dates_with_null[2] = pd.NaT
+        events_by_sid = pd.DataFrame({SID_FIELD_NAME: 0,
+                                      ANNOUNCEMENT_FIELD_NAME: dates_with_null,
+                                      TS_FIELD_NAME: dtx})
+        loader = BlazeEventDataSetLoader(
+            bz.data(events_by_sid),
+        )
+
+        result = loader.load_adjusted_array({
+            EventDataSet.previous_announcement
+        }, dtx, [0], [True])[EventDataSet.previous_announcement].data[:, 0]
+
+        expected = dates_with_null.copy(True)
+        expected[2] = dtx[1]
+        assert_array_equal(result, expected)
