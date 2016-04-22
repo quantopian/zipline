@@ -417,6 +417,21 @@ class BcolzDailyBarReader(DailyBarReader):
     When read across the open, high, low, close, and volume with the same
     index should represent the same asset and day.
 
+    Parameters
+    ----------
+    table : bcolz.ctable
+        The ctable contaning the pricing data, with attrs corresponding to the
+        Attributes list below.
+    read_all_threshold : int
+        The number of equities at which;
+            below, the data is read by reading a slice from the carray
+            per asset.
+            above, the data is read by pulling all of the data for all assets
+            into memory and then indexing into that array for each day and
+            asset pair.
+        Used to tune performance of reads when using a small or large number
+        of equities.
+
     Attributes
     ----------
     The table with which this loader interacts contains the following
@@ -438,7 +453,7 @@ class BcolzDailyBarReader(DailyBarReader):
     range of queried dates.
     """
     @preprocess(table=coerce_string(open_ctable, mode='r'))
-    def __init__(self, table):
+    def __init__(self, table, read_all_threshold=3000):
 
         self._table = table
         # Cache of fully read np.array for the carrays in the daily bar table.
@@ -447,6 +462,7 @@ class BcolzDailyBarReader(DailyBarReader):
         # process first.
         self._spot_cols = {}
         self.PRICE_ADJUSTMENT_FACTOR = 0.001
+        self._read_all_threshold = read_all_threshold
 
     @lazyval
     def _calendar(self):
@@ -545,6 +561,7 @@ class BcolzDailyBarReader(DailyBarReader):
             end_idx,
             assets,
         )
+        read_all = len(assets) > self._read_all_threshold
         return _read_bcolz_data(
             self._table,
             (end_idx - start_idx + 1, len(assets)),
@@ -552,6 +569,7 @@ class BcolzDailyBarReader(DailyBarReader):
             first_rows,
             last_rows,
             offsets,
+            read_all,
         )
 
     def _spot_col(self, colname):

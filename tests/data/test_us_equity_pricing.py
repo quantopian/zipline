@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from sys import maxsize
+
 from nose_parameterized import parameterized
 from numpy import (
     arange,
@@ -330,3 +332,21 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
             self.assertEqual(-1, close)
         finally:
             reader._spot_col('close')[zero_ix] = old
+
+
+class BcolzDailyBarAlwaysReadAllTestCase(BcolzDailyBarTestCase):
+    """
+    Force tests defined in BcolzDailyBarTestCase to always read the entire
+    column into memory before selecting desired asset data, when invoking
+    `load_raw_array`.
+    """
+    BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = 0
+
+
+class BcolzDailyBarNeverReadAllTestCase(BcolzDailyBarTestCase):
+    """
+    Force tests defined in BcolzDailyBarTestCase to never read the entire
+    column into memory before selecting desired asset data, when invoking
+    `load_raw_array`.
+    """
+    BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = maxsize
