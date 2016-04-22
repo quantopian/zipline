@@ -526,6 +526,9 @@ class WithTmpDir(object):
             tmp_dir(path=cls.TMP_DIR_PATH),
         )
 
+        # Ensure that file handles are closed even if they're in gc cycles.
+        cls.add_class_callback(_take_out_the_trash)
+
 
 class WithInstanceTmpDir(object):
     """
@@ -548,6 +551,8 @@ class WithInstanceTmpDir(object):
         self.instance_tmpdir = self.enter_instance_context(
             tmp_dir(path=self.INSTANCE_TMP_DIR_PATH),
         )
+        # Ensure that file handles are closed even if they're in gc cycles.
+        self.add_instance_callback(_take_out_the_trash)
 
 
 class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
