@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractproperty
-import gc
 import sqlite3
 from unittest import TestCase
 
@@ -48,22 +47,6 @@ from zipline.pipeline.loaders.utils import (
     get_values_for_date_ranges,
     zip_with_dates
 )
-
-
-def _take_out_the_trash():
-    """Force the gc to clear all innaccessible objects.
-
-    This will only kill stranded reference cycles, objects that don't
-    participate in a cycle are destroyed when there are no more references.
-
-    Notes
-    -----
-    This function is used to ensure that objects that are holding open file
-    handles are destroyed, closing the files. On windows files cannot be
-    deleted if they are opened.
-    """
-    while gc.collect():
-        pass
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -124,7 +107,6 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
     @final
     @classmethod
     def tearDownClass(cls):
-        _take_out_the_trash()
         cls._class_teardown_stack.close()
         for name in set(vars(cls)) - cls._static_class_attributes:
             # Remove all of the attributes that were added after the class was
@@ -189,7 +171,6 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
 
     @final
     def tearDown(self):
-        _take_out_the_trash()
         self._instance_teardown_stack.close()
         for attr in set(vars(self)) - self._pre_setup_attrs:
             delattr(self, attr)
