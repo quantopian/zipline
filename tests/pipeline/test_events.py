@@ -6,6 +6,7 @@ from unittest import TestCase
 
 import blaze as bz
 from nose_parameterized import parameterized
+import numpy as np
 from numpy.testing import assert_array_equal
 import pandas as pd
 from pandas.util.testing import assert_series_equal
@@ -37,6 +38,7 @@ ABSTRACT_EXPECTED_COLS_ERROR = 'abstract methods event_date_col, expected_cols'
 
 class EventDataSet(DataSet):
     previous_announcement = Column(datetime64ns_dtype)
+    next_announcement = Column(datetime64ns_dtype)
 
 
 class EventDataSetLoader(EventsLoader):
@@ -60,6 +62,12 @@ class EventDataSetLoader(EventsLoader):
     def previous_announcement_loader(self):
         return self._previous_event_date_loader(
             self.dataset.previous_announcement,
+        )
+
+    @lazyval
+    def next_announcement_loader(self):
+        return self._next_event_date_loader(
+            self.dataset.next_announcement,
         )
 
 
@@ -90,6 +98,34 @@ dtx = pd.date_range('2014-01-01', '2014-01-10')
 
 
 class EventLoaderTestCase(TestCase):
+    def test_null_in_event_date_col(self):
+        # Tests that if there is a null date in the event date column, it is
+        # filtered out and does not break on loading the adjusted array.
+        dates_with_null = pd.Series(dtx)
+        dates_with_null[2] = pd.NaT
+        events_by_sid = {0: pd.DataFrame({ANNOUNCEMENT_FIELD_NAME:
+                                         dates_with_null,
+                                         TS_FIELD_NAME: dtx})}
+        loader = EventDataSetLoader(
+            dtx,
+            events_by_sid,
+        )
+
+        prev_result = loader.load_adjusted_array({
+            EventDataSet.previous_announcement
+        }, dtx, [0], [True])[EventDataSet.previous_announcement].data[:, 0]
+
+        next_result = loader.load_adjusted_array({
+            EventDataSet.next_announcement
+        }, dtx, [0], [True])[EventDataSet.next_announcement].data[:, 0]
+
+        expected_prev = dates_with_null[:]
+        expected_prev[2] = dtx[1]
+        assert_array_equal(prev_result, expected_prev)
+        expected_next = dates_with_null[:]
+        expected_next[2] = np.datetime64('NaT')
+        assert_array_equal(next_result, expected_next)
+
     def assert_loader_error(self, events_by_sid, error, msg,
                             infer_timestamps, loader):
         with self.assertRaisesRegexp(error, re.escape(msg)):
@@ -261,25 +297,3 @@ class BlazeEventDataSetLoader(BlazeEventsLoader):
         ).__init__(expr,
                    dataset=dataset,
                    **kwargs)
-
-
-class BlazeEventLoaderNullInDateColumnTestCase(TestCase):
-    def test_null_in_event_date_col(self):
-        # Tests that if there is a null date in the event date column, it is
-        # filtered out and does not break on loading the adjusted array.
-        dates_with_null = pd.Series(dtx)
-        dates_with_null[2] = pd.NaT
-        events_by_sid = pd.DataFrame({SID_FIELD_NAME: 0,
-                                      ANNOUNCEMENT_FIELD_NAME: dates_with_null,
-                                      TS_FIELD_NAME: dtx})
-        loader = BlazeEventDataSetLoader(
-            bz.data(events_by_sid),
-        )
-
-        result = loader.load_adjusted_array({
-            EventDataSet.previous_announcement
-        }, dtx, [0], [True])[EventDataSet.previous_announcement].data[:, 0]
-
-        expected = dates_with_null.copy(True)
-        expected[2] = dtx[1]
-        assert_array_equal(result, expected)

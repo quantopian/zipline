@@ -912,8 +912,8 @@ class WithPipelineEventDataLoader(with_metaclass(
         frame = pd.DataFrame({sid: get_values_for_date_ranges(
             zip_date_index_with_vals,
             vals[sid],
-            pd.DatetimeIndex(zip(*date_intervals[sid])[0]),
-            pd.DatetimeIndex(zip(*date_intervals[sid])[1]),
+            pd.DatetimeIndex(list(zip(*date_intervals[sid]))[0]),
+            pd.DatetimeIndex(list(zip(*date_intervals[sid]))[1]),
             dates
         ) for sid in self.get_sids()[:-1]})
         frame[self.get_sids()[-1]] = zip_date_index_with_vals(

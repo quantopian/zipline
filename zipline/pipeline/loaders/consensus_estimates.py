@@ -152,6 +152,5 @@ class ConsensusEstimatesLoader(EventsLoader):
     def previous_actual_value_loader(self):
         return self._previous_event_value_loader(
             self.dataset.previous_actual_value,
-            RELEASE_DATE_FIELD_NAME,
             ACTUAL_VALUE_FIELD_NAME,
         )
