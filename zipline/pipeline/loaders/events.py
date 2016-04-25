@@ -77,6 +77,10 @@ class EventsLoader(PipelineLoader):
     def expected_cols(self):
         raise NotImplemented('expected_cols')
 
+    @abc.abstractproperty
+    def event_date_col(self):
+        raise NotImplemented('event_date_col')
+
     def __init__(self,
                  all_dates,
                  events_by_sid,
@@ -148,7 +152,8 @@ class EventsLoader(PipelineLoader):
                 raise ValueError(
                     WRONG_MANY_COL_DATA_FORMAT_ERROR.format(sid=k)
                 )
-
+        self.events_by_sid = {sid: df.dropna(subset=[self.event_date_col]) for
+                              sid, df in self.events_by_sid.items()}
         self.dataset = dataset
 
     def get_loader(self, column):
@@ -164,7 +169,7 @@ class EventsLoader(PipelineLoader):
             for column in columns
         )
 
-    def _next_event_date_loader(self, next_date_field, event_date_field_name):
+    def _next_event_date_loader(self, next_date_field):
         return DataFrameLoader(
             next_date_field,
             next_event_frame(
@@ -172,15 +177,14 @@ class EventsLoader(PipelineLoader):
                 self.all_dates,
                 next_date_field.missing_value,
                 next_date_field.dtype,
-                event_date_field_name,
-                event_date_field_name
+                self.event_date_col,
+                self.event_date_col
             ),
             adjustments=None,
         )
 
     def _next_event_value_loader(self,
                                  next_value_field,
-                                 event_date_field_name,
                                  value_field_name):
         return DataFrameLoader(
             next_value_field,
@@ -189,15 +193,14 @@ class EventsLoader(PipelineLoader):
                 self.all_dates,
                 next_value_field.missing_value,
                 next_value_field.dtype,
-                event_date_field_name,
+                self.event_date_col,
                 value_field_name
             ),
             adjustments=None,
         )
 
     def _previous_event_date_loader(self,
-                                    prev_date_field,
-                                    event_date_field_name):
+                                    prev_date_field):
         return DataFrameLoader(
             prev_date_field,
             previous_event_frame(
@@ -205,15 +208,14 @@ class EventsLoader(PipelineLoader):
                 self.all_dates,
                 NaTD,
                 'datetime64[ns]',
-                event_date_field_name,
-                event_date_field_name
+                self.event_date_col,
+                self.event_date_col
             ),
             adjustments=None,
         )
 
     def _previous_event_value_loader(self,
                                      previous_value_field,
-                                     event_date_field_name,
                                      value_field_name):
         return DataFrameLoader(
             previous_value_field,
@@ -222,7 +224,7 @@ class EventsLoader(PipelineLoader):
                 self.all_dates,
                 previous_value_field.missing_value,
                 previous_value_field.dtype,
-                event_date_field_name,
+                self.event_date_col,
                 value_field_name
             ),
             adjustments=None,

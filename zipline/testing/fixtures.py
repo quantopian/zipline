@@ -912,7 +912,8 @@ class WithPipelineEventDataLoader(with_metaclass(
         frame = pd.DataFrame({sid: get_values_for_date_ranges(
             zip_date_index_with_vals,
             vals[sid],
-            date_intervals[sid],
+            pd.DatetimeIndex(list(zip(*date_intervals[sid]))[0]),
+            pd.DatetimeIndex(list(zip(*date_intervals[sid]))[1]),
             dates
         ) for sid in self.get_sids()[:-1]})
         frame[self.get_sids()[-1]] = zip_date_index_with_vals(
@@ -982,7 +983,7 @@ class WithPipelineEventDataLoader(with_metaclass(
 
         for sid in self.get_sids():
             for col_name in cols.keys():
-                assert_series_equal(result[col_name].xs(sid, level=1),
+                assert_series_equal(result[col_name].unstack(1)[sid],
                                     cols[col_name][sid],
                                     check_names=False)
 
@@ -1109,24 +1110,24 @@ class WithNextAndPreviousEventDataLoader(WithPipelineEventDataLoader):
     ]
 
     next_date_intervals = [
-        [[None, '2014-01-04'],
+        [['2014-01-01', '2014-01-04'],
          ['2014-01-05', '2014-01-15'],
          ['2014-01-16', '2014-01-20'],
-         ['2014-01-21', None]],
-        [[None, '2014-01-04'],
+         ['2014-01-21', '2014-01-31']],
+        [['2014-01-01', '2014-01-04'],
          ['2014-01-05', '2014-01-09'],
          ['2014-01-10', '2014-01-15'],
          ['2014-01-16', '2014-01-20'],
-         ['2014-01-21', None]],
-        [[None, '2014-01-04'],
+         ['2014-01-21', '2014-01-31']],
+        [['2014-01-01', '2014-01-04'],
          ['2014-01-05', '2014-01-10'],
          ['2014-01-11', '2014-01-14'],
          ['2014-01-15', '2014-01-20'],
-         ['2014-01-21', None]],
-        [[None, '2014-01-04'],
+         ['2014-01-21', '2014-01-31']],
+        [['2014-01-01', '2014-01-04'],
          ['2014-01-05', '2014-01-10'],
          ['2014-01-11', '2014-01-15'],
-         ['2014-01-16', None]]
+         ['2014-01-16', '2014-01-31']]
     ]
 
     next_dates = [
@@ -1138,18 +1139,18 @@ class WithNextAndPreviousEventDataLoader(WithPipelineEventDataLoader):
     ]
 
     prev_date_intervals = [
-        [[None, '2014-01-14'],
+        [['2014-01-01', '2014-01-14'],
          ['2014-01-15', '2014-01-19'],
-         ['2014-01-20', None]],
-        [[None, '2014-01-14'],
+         ['2014-01-20', '2014-01-31']],
+        [['2014-01-01', '2014-01-14'],
          ['2014-01-15', '2014-01-19'],
-         ['2014-01-20', None]],
-        [[None, '2014-01-09'],
+         ['2014-01-20', '2014-01-31']],
+        [['2014-01-01', '2014-01-09'],
          ['2014-01-10', '2014-01-19'],
-         ['2014-01-20', None]],
-        [[None, '2014-01-09'],
+         ['2014-01-20', '2014-01-31']],
+        [['2014-01-01', '2014-01-09'],
          ['2014-01-10', '2014-01-14'],
-         ['2014-01-15', None]]
+         ['2014-01-15', '2014-01-31']]
     ]
 
     prev_dates = [
