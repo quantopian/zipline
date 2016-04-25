@@ -595,3 +595,36 @@ def before_trading_start(context, data):
         np.testing.assert_array_almost_equal(values[55:64], [2.50233] * 9)
         np.testing.assert_array_almost_equal(values[64:75], [2.550829] * 11)
         np.testing.assert_array_almost_equal(values[75:], [2.64484] * 35)
+
+    def test_fetcher_bad_data(self):
+        self.responses.add(
+            self.responses.GET,
+            'https://fake.urls.com/fetcher_nflx_data.csv',
+            body=NFLX_DATA,
+            content_type='text/csv',
+        )
+
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp("2013-06-12", tz='UTC'),
+            end=pd.Timestamp("2013-06-14", tz='UTC'),
+            data_frequency="minute"
+        )
+
+        results = self.run_algo("""
+from zipline.api import fetch_csv, symbol
+import numpy as np
+
+def initialize(context):
+    fetch_csv('https://fake.urls.com/fetcher_nflx_data.csv',
+               date_column = 'Settlement Date',
+               date_format = '%m/%d/%y')
+    context.nflx = symbol('NFLX')
+    context.aapl = symbol('AAPL')
+
+def handle_data(context, data):
+    assert np.isnan(data.current(context.nflx, 'invalid_column'))
+    assert np.isnan(data.current(context.aapl, 'invalid_column'))
+    assert np.isnan(data.current(context.aapl, 'dtc'))
+""", sim_params=sim_params, data_frequency="minute")
+
+        self.assertEqual(3, len(results))

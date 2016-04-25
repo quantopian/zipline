@@ -646,8 +646,8 @@ class DataPortal(object):
         # If we have an extra source with a column called "price", only look
         # at it if it's on something like palladium and not AAPL (since our
         # own price data always wins when dealing with assets).
-        return field in map and not (field in BASE_FIELDS and
-                                     isinstance(asset, Asset))
+
+        return not (field in BASE_FIELDS and isinstance(asset, Asset))
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         """
@@ -680,14 +680,7 @@ class DataPortal(object):
             try:
                 return \
                     self._augmented_sources_map[field][asset].loc[day, field]
-            except:
-                log.error(
-                    "Could not find value for asset={0}, day={1},"
-                    "column={2}".format(
-                        str(asset),
-                        str(day),
-                        str(field)))
-
+            except KeyError:
                 return np.NaN
 
         if field not in BASE_FIELDS:
