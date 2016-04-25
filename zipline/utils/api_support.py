@@ -98,3 +98,25 @@ def require_initialized(exception):
             return method(self, *args, **kwargs)
         return wrapped_method
     return decorator
+
+
+def disallowed_in_before_trading_start(exception):
+    """
+    Decorator for API methods that cannot be called from within
+    TradingAlgorithm.before_trading_start.  `exception` will be raised if the
+    method is called inside `before_trading_start`.
+
+    Usage
+    -----
+    @disallowed_in_before_trading_start(SomeException("Don't do that!"))
+    def method(self):
+        # Do stuff that is not allowed inside before_trading_start.
+    """
+    def decorator(method):
+        @wraps(method)
+        def wrapped_method(self, *args, **kwargs):
+            if self._in_before_trading_start:
+                raise exception
+            return method(self, *args, **kwargs)
+        return wrapped_method
+    return decorator

@@ -263,6 +263,13 @@ class HistoryInInitialize(ZiplineError):
     msg = "history() should only be called in handle_data()"
 
 
+class OrderInBeforeTradingStart(ZiplineError):
+    """
+    Raised when an algorithm calls an order method in before_trading_start.
+    """
+    msg = "Cannot place orders inside before_trading_start."
+
+
 class MultipleSymbolsFound(ZiplineError):
     """
     Raised when a symbol() call contains a symbol that changed over
