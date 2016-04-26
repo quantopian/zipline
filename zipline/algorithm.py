@@ -89,7 +89,8 @@ from zipline.utils.api_support import (
     require_not_initialized,
     ZiplineAPI,
     disallowed_in_before_trading_start)
-from zipline.utils.input_validation import ensure_upper_case
+
+from zipline.utils.input_validation import ensure_upper_case, error_keywords
 from zipline.utils.cache import CachedObject, Expired
 import zipline.utils.events
 from zipline.utils.events import (
@@ -1297,6 +1298,8 @@ class TradingAlgorithm(object):
                                        stop_price=stop_price,
                                        style=style)
 
+    @error_keywords(sid='Keyword argument `sid` is no longer supported for '
+                        'get_open_orders. Use `asset` instead.')
     @api_method
     def get_open_orders(self, asset=None):
         if asset is None:

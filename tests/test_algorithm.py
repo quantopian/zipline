@@ -151,6 +151,9 @@ from zipline.test_algorithms import (
     bad_type_history_frequency_kwarg,
     bad_type_current_assets_kwarg,
     bad_type_current_fields_kwarg,
+    call_with_bad_kwargs_get_open_orders,
+    call_with_good_kwargs_get_open_orders,
+    call_with_no_kwargs_get_open_orders,
     no_handle_data,
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
@@ -1774,6 +1777,27 @@ def handle_data(context, data):
         )
 
         algo.run(self.data_portal)
+
+    @parameterized.expand(
+        [('bad_kwargs', call_with_bad_kwargs_get_open_orders),
+         ('good_kwargs', call_with_good_kwargs_get_open_orders),
+         ('no_kwargs', call_with_no_kwargs_get_open_orders)]
+    )
+    def test_get_open_orders_kwargs(self, name, script):
+        algo = TradingAlgorithm(
+            script=script,
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        if name == 'bad_kwargs':
+            with self.assertRaises(TypeError) as cm:
+                algo.run(self.data_portal)
+                self.assertEqual('Keyword argument `sid` is no longer '
+                                 'supported for get_open_orders. Use `asset` '
+                                 'instead.', cm.exception.args[0])
+        else:
+            algo.run(self.data_portal)
 
 
 class TestGetDatetime(WithLogger,

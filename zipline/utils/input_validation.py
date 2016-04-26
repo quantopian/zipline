@@ -445,4 +445,18 @@ def coerce(from_, to, **to_kwargs):
     return preprocessor
 
 
+class error_keywords(object):
+
+    def __init__(self, *args, **kwargs):
+        self.messages = kwargs
+
+    def __call__(self, func):
+        def assert_keywords_and_call(*args, **kwargs):
+            for field, message in iteritems(self.messages):
+                if field in kwargs:
+                    raise TypeError(message)
+            return func(*args, **kwargs)
+        return assert_keywords_and_call
+
+
 coerce_string = partial(coerce, string_types)

@@ -1096,3 +1096,33 @@ def initialize(context):
 def handle_data(context, data):
     data.history(assets=[1,2], fields='price', bar_count=5, frequency="1d")
 """
+
+call_with_bad_kwargs_get_open_orders = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.get_open_orders(sid=symbol('TEST'))
+"""
+
+call_with_good_kwargs_get_open_orders = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.get_open_orders(asset=symbol('TEST'))
+"""
+
+call_with_no_kwargs_get_open_orders = """
+from zipline.api import symbol
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    context.get_open_orders(symbol('TEST'))
+"""
