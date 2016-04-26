@@ -420,7 +420,7 @@ class TradingAlgorithm(object):
         if get_loader is not None:
             self.engine = SimplePipelineEngine(
                 get_loader,
-                self.trading_schedule.schedule.index,
+                self.trading_schedule.all_execution_days,
                 self.asset_finder,
             )
         else:
