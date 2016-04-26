@@ -1126,3 +1126,17 @@ def initialize(context):
 def handle_data(context, data):
     context.get_open_orders(symbol('TEST'))
 """
+
+empty_positions = """
+from zipline.api import record, schedule_function, time_rules, date_rules, \
+    symbol
+
+def initialize(context):
+    schedule_function(test_history, date_rules.every_day(),
+                      time_rules.market_open(hours=1))
+    context.sid = symbol('TEST')
+
+def test_history(context,data):
+    record(amounts=context.portfolio.positions[context.sid].amount)
+    record(num_positions=len(context.portfolio.positions))
+"""
