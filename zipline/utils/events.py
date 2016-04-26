@@ -22,10 +22,7 @@ import pytz
 
 from .context_tricks import nop_context
 
-from zipline.utils.calendars import (
-    get_calendar,
-    normalize_date,
-)
+from zipline.utils.calendars import normalize_date
 
 __all__ = [
     'EventManager',
@@ -54,9 +51,6 @@ __all__ = [
 
 MAX_MONTH_RANGE = 26
 MAX_WEEK_RANGE = 5
-
-
-_static_nyse_cal = get_calendar('NYSE')
 
 
 def naive_to_utc(ts):
@@ -347,10 +341,8 @@ class AfterOpen(StatelessRule):
 
     def calculate_dates(self, dt):
         # given a dt, find that day's open and period end (open + offset)
-        self._period_start, self._period_close = \
-            _static_nyse_cal.open_and_close(dt)
-        self._period_end = \
-            self._period_start + self.offset - self._one_minute
+        self._period_start, self._period_close = self.cal.open_and_close(dt)
+        self._period_end = self._period_start + self.offset - self._one_minute
 
     def should_trigger(self, dt):
         # There are two reasons why we might want to recalculate the dates.
@@ -392,9 +384,8 @@ class BeforeClose(StatelessRule):
 
     def calculate_dates(self, dt):
         # given a dt, find that day's close and period start (close - offset)
-        self._period_end = _static_nyse_cal.open_and_close(dt)[1]
-        self._period_start = \
-            self._period_end - self.offset
+        self._period_end = self.cal.open_and_close(dt)[1]
+        self._period_start = self._period_end - self.offset
         self._period_close = self._period_end
 
     def should_trigger(self, dt):
@@ -421,7 +412,7 @@ class NotHalfDay(StatelessRule):
     A rule that only triggers when it is not a half day.
     """
     def should_trigger(self, dt):
-        return normalize_date(dt) not in _static_nyse_cal.early_closes
+        return normalize_date(dt) not in self.cal.early_closes
 
 
 class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
@@ -441,7 +432,7 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
     def calculate_start_and_end(self, dt):
         next_trading_day = _coerce_datetime(
-            _static_nyse_cal.add_trading_days(
+            self.cal.add_trading_days(
                 self.td_delta,
                 self.date_func(dt),
             )
@@ -452,15 +443,13 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
         while next_trading_day.isocalendar()[1] != dt.isocalendar()[1]:
             dt += datetime.timedelta(days=7)
             next_trading_day = _coerce_datetime(
-                env.add_trading_days(
+                self.cal.add_trading_days(
                     self.td_delta,
-                    self.date_func(dt, env),
+                    self.date_func(dt),
                 )
             )
 
-        next_open, next_close = _static_nyse_cal.open_and_close(
-            next_trading_day
-        )
+        next_open, next_close = self.cal.open_and_close(next_trading_day)
         self.next_date_start = next_open
         self.next_date_end = next_close
         self.next_midnight_timestamp = next_trading_day
@@ -491,9 +480,9 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
     This is zero-indexed, n=0 is the first trading day of the week.
     """
     @staticmethod
-    def get_first_trading_day_of_week(dt):
+    def get_first_trading_day_of_week(dt, cal):
         prev = dt
-        dt = _static_nyse_cal.previous_trading_day(dt)
+        dt = cal.previous_trading_day(dt)
         # If we're on the first trading day of the TradingEnvironment,
         # calling previous_trading_day on it will return None, which
         # will blow up when we try and call .date() on it. The first
@@ -504,14 +493,14 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
             return prev
         while dt.date().weekday() < prev.date().weekday():
             prev = dt
-            dt = _static_nyse_cal.previous_trading_day(dt)
+            dt = cal.previous_trading_day(dt)
             if dt is None:
                 return prev
 
-        if env.is_trading_day(prev):
+        if cal.is_trading_day(prev):
             return prev.date()
         else:
-            return env.next_trading_day(prev).date()
+            return cal.next_trading_day(prev).date()
 
     date_func = get_first_trading_day_of_week
 
@@ -524,19 +513,19 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
         super(NDaysBeforeLastTradingDayOfWeek, self).__init__(-n)
 
     @staticmethod
-    def get_last_trading_day_of_week(dt):
+    def get_last_trading_day_of_week(dt, cal):
         prev = dt
-        dt = _static_nyse_cal.next_trading_day(dt)
+        dt = cal.next_trading_day(dt)
         # Traverse forward until we hit a week border, then jump back to the
         # previous trading day.
         while dt.date().weekday() > prev.date().weekday():
             prev = dt
-            dt = _static_nyse_cal.next_trading_day(dt)
+            dt = cal.next_trading_day(dt)
 
-        if env.is_trading_day(prev):
+        if cal.is_trading_day(prev):
             return prev.date()
         else:
-            return env.previous_trading_day(prev).date()
+            return cal.previous_trading_day(prev).date()
 
     date_func = get_last_trading_day_of_week
 
@@ -564,7 +553,7 @@ class NthTradingDayOfMonth(StatelessRule):
         if not self.td_delta:
             self.day = self.get_first_trading_day_of_month(dt)
         else:
-            self.day = _static_nyse_cal.add_trading_days(
+            self.day = self.cal.add_trading_days(
                 self.td_delta,
                 self.get_first_trading_day_of_month(dt),
             ).date()
@@ -575,8 +564,8 @@ class NthTradingDayOfMonth(StatelessRule):
         self.month = dt.month
 
         dt = dt.replace(day=1)
-        self.first_day = (dt if _static_nyse_cal.is_open_on_day(dt)
-                          else _static_nyse_cal.next_trading_day(dt)).date()
+        self.first_day = (dt if self.cal.is_open_on_day(dt)
+                          else self.cal.next_trading_day(dt)).date()
         return self.first_day
 
 
@@ -602,7 +591,7 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
         if not self.td_delta:
             self.day = self.get_last_trading_day_of_month(dt)
         else:
-            self.day = _static_nyse_cal.add_trading_days(
+            self.day = self.cal.add_trading_days(
                 self.td_delta,
                 self.get_last_trading_day_of_month(dt),
             ).date()
@@ -621,7 +610,7 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
             year = dt.year
             month = dt.month + 1
 
-        self.last_day = _static_nyse_cal.previous_trading_day(
+        self.last_day = self.cal.previous_trading_day(
             dt.replace(year=year, month=month, day=1)
         ).date()
         return self.last_day
@@ -699,13 +688,20 @@ class time_rules(object):
     every_minute = Always
 
 
-def make_eventrule(date_rule, time_rule, half_days=True):
+def make_eventrule(date_rule, time_rule, cal, half_days=True):
     """
     Constructs an event rule from the factory api.
     """
+
+    # Insert the calendar in to the individual rules
+    date_rule.cal = cal
+    time_rule.cal = cal
+
     if half_days:
         inner_rule = date_rule & time_rule
     else:
-        inner_rule = date_rule & time_rule & NotHalfDay()
+        nhd_rule = NotHalfDay()
+        nhd_rule.cal = cal
+        inner_rule = date_rule & time_rule & nhd_rule
 
     return OncePerDay(rule=inner_rule)

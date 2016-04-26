@@ -654,3 +654,15 @@ class CalendarNameCollision(ZiplineError):
     msg = (
         "A calendar with the name {calendar_name} is already registered."
     )
+
+
+class ScheduleFunctionWithoutCalendar(ZiplineError):
+    """
+    Raised when schedule_function is called but there is not a calendar to be
+    used in the construction of an event rule.
+    """
+    # TODO update message when new TradingSchedules are built
+    msg = (
+        "To use schedule_function, the TradingAlgorithm must be running on an "
+        "ExchangeTradingSchedule, rather than {schedule}."
+    )
