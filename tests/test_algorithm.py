@@ -154,6 +154,7 @@ from zipline.test_algorithms import (
     call_with_bad_kwargs_get_open_orders,
     call_with_good_kwargs_get_open_orders,
     call_with_no_kwargs_get_open_orders,
+    empty_positions,
     no_handle_data,
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
@@ -1798,6 +1799,25 @@ def handle_data(context, data):
                                  'instead.', cm.exception.args[0])
         else:
             algo.run(self.data_portal)
+
+    def test_empty_positions(self):
+        """
+        Test that when we try context.portfolio.positions[stock] on a stock
+        for which we have no positions, we return a Position with values 0
+        (but more importantly, we don't crash) and don't save this Position
+        to the user-facing dictionary PositionTracker._positions_store
+        """
+        algo = TradingAlgorithm(
+            script=empty_positions,
+            sim_params=self.sim_params,
+            env=self.env
+        )
+
+        results = algo.run(self.data_portal)
+        num_positions = results.num_positions
+        amounts = results.amounts
+        self.assertTrue(all(num_positions == 0))
+        self.assertTrue(all(amounts == 0))
 
 
 class TestGetDatetime(WithLogger,

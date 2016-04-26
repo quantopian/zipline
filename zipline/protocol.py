@@ -164,5 +164,4 @@ class Positions(dict):
 
     def __missing__(self, key):
         pos = Position(key)
-        self[key] = pos
         return pos

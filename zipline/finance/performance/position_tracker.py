@@ -350,13 +350,15 @@ class PositionTracker(object):
                     pass
                 continue
 
-            # Note that this will create a position if we don't currently have
-            # an entry
-            position = positions[sid]
+            position = zp.Position(sid)
             position.amount = pos.amount
             position.cost_basis = pos.cost_basis
             position.last_sale_price = pos.last_sale_price
             position.last_sale_date = pos.last_sale_date
+
+            # Adds the new position if we didn't have one before, or overwrite
+            # one we have currently
+            positions[sid] = position
 
         return positions
 
