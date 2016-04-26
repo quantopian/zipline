@@ -393,12 +393,4 @@ class ExchangeTradingSchedule(TradingSchedule):
         return self._exchange_calendar.early_closes
 
 
-class NYSETradingSchedule(ExchangeTradingSchedule):
-    """
-    An ExchangeTradingSchedule for NYSE. Provided for convenience.
-    """
-    def __init__(self):
-        super(NYSETradingSchedule, self).__init__(cal=get_calendar('NYSE'))
-
-
-default_nyse_schedule = NYSETradingSchedule()
+default_nyse_schedule = ExchangeTradingSchedule(cal=get_calendar('NYSE'))
