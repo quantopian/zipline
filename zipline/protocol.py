@@ -152,6 +152,7 @@ class Position(object):
         self.amount = 0
         self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
+        self.last_sale_date = None
 
     def __getitem__(self, key):
         return self.__dict__[key]
