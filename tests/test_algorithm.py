@@ -58,7 +58,15 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     CannotOrderDelistedAsset,
     SetCancelPolicyPostInit,
-    UnsupportedCancelPolicy
+    UnsupportedCancelPolicy,
+    OrderInBeforeTradingStart)
+from zipline.api import (
+    order,
+    order_value,
+    order_percent,
+    order_target,
+    order_target_value,
+    order_target_percent
 )
 
 from zipline.finance.commission import PerShare
@@ -362,8 +370,8 @@ def handle_data(context, data):
                 self.assertEqual(all_orders[2], orders_2)
                 self.assertEqual(len(all_orders[2]), 3)
 
-                for order in orders_2:
-                    algo.cancel_order(order)
+                for order_ in orders_2:
+                    algo.cancel_order(order_)
 
                 all_orders = algo.get_open_orders()
                 self.assertEqual(all_orders, {})
@@ -758,6 +766,32 @@ class TestTransformAlgorithm(WithLogger,
             env=self.env,
         )
         algo.run(self.data_portal)
+
+    @parameterized.expand([
+        (order, 1),
+        (order_value, 1000),
+        (order_target, 1),
+        (order_target_value, 1000),
+        (order_percent, 1),
+        (order_target_percent, 1),
+    ])
+    def test_cannot_order_in_before_trading_start(self, order_method, amount):
+        algotext = """
+from zipline.api import sid
+from zipline.api import {order_func}
+
+def initialize(context):
+     context.asset = sid(133)
+
+def before_trading_start(context, data):
+     {order_func}(context.asset, {arg})
+     """.format(order_func=order_method.__name__, arg=amount)
+
+        algo = TradingAlgorithm(script=algotext, sim_params=self.sim_params,
+                                data_frequency='daily', env=self.env)
+
+        with self.assertRaises(OrderInBeforeTradingStart):
+            algo.run(self.data_portal)
 
     def test_run_twice(self):
         algo1 = TestRegisterTransformAlgorithm(

@@ -51,7 +51,8 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
-    CannotOrderDelistedAsset, UnsupportedCancelPolicy, SetCancelPolicyPostInit)
+    CannotOrderDelistedAsset, UnsupportedCancelPolicy, SetCancelPolicyPostInit,
+    OrderInBeforeTradingStart)
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, PerTrade, PerDollar
@@ -87,7 +88,7 @@ from zipline.utils.api_support import (
     require_initialized,
     require_not_initialized,
     ZiplineAPI,
-)
+    disallowed_in_before_trading_start)
 from zipline.utils.input_validation import ensure_upper_case
 from zipline.utils.cache import CachedObject, Expired
 import zipline.utils.events
@@ -968,6 +969,7 @@ class TradingAlgorithm(object):
         return True
 
     @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order(self, asset, amount,
               limit_price=None,
               stop_price=None,
@@ -1055,6 +1057,7 @@ class TradingAlgorithm(object):
             return MarketOrder()
 
     @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_value(self, asset, value,
                     limit_price=None, stop_price=None, style=None):
         """
@@ -1205,6 +1208,7 @@ class TradingAlgorithm(object):
         self.sim_params.data_frequency = value
 
     @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_percent(self, asset, percent,
                       limit_price=None, stop_price=None, style=None):
         """
@@ -1223,6 +1227,7 @@ class TradingAlgorithm(object):
                                 style=style)
 
     @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target(self, asset, target,
                      limit_price=None, stop_price=None, style=None):
         """
@@ -1249,6 +1254,7 @@ class TradingAlgorithm(object):
                               style=style)
 
     @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_value(self, asset, target,
                            limit_price=None, stop_price=None, style=None):
         """
@@ -1270,6 +1276,7 @@ class TradingAlgorithm(object):
                                  style=style)
 
     @api_method
+    @disallowed_in_before_trading_start(OrderInBeforeTradingStart())
     def order_target_percent(self, asset, target,
                              limit_price=None, stop_price=None, style=None):
         """
