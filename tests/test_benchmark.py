@@ -103,6 +103,10 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             )
 
     def test_asset_not_trading(self):
+        benchmark = self.env.asset_finder.retrieve_asset(3)
+        benchmark_start = benchmark.start_date
+        benchmark_end = benchmark.end_date
+
         with self.assertRaises(BenchmarkAssetNotAvailableTooEarly) as exc:
             BenchmarkSource(
                 3,
@@ -112,8 +116,8 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             )
 
         self.assertEqual(
-            '3 does not exist on 2006-01-04 00:00:00+00:00. '
-            'It started trading on 2006-05-26 00:00:00+00:00.',
+            '3 does not exist on %s. It started trading on %s.' %
+            (self.sim_params.trading_days[1], benchmark_start),
             exc.exception.message
         )
 
@@ -126,8 +130,8 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             )
 
         self.assertEqual(
-            '3 does not exist on 2006-06-26 00:00:00+00:00. '
-            'It stopped trading on 2006-08-09 00:00:00+00:00.',
+            '3 does not exist on %s. It stopped trading on %s.' %
+            (self.sim_params.trading_days[-1], benchmark_end),
             exc2.exception.message
         )
 
