@@ -459,6 +459,39 @@ class DailyHistoryAggregator(object):
 
 
 class DataPortal(object):
+    """Interface to all of the data that a zipline simulation needs.
+
+    This is used by the simulation runner to answer questions about the data,
+    like getting the prices of assets on a given day or to service history
+    calls.
+
+    Parameters
+    ----------
+    env : TradingEnvironment
+        The trading environment for the simulation. This includes the trading
+        calendar and benchmark data.
+    equity_daily_reader : BcolzDailyBarReader, optional
+        The daily bar ready for equities. This will be used to service
+        daily data backtests or daily history calls in a minute backetest.
+        If a daily bar reader is not provided but a minute bar reader is,
+        the minutes will be rolled up to serve the daily requests.
+    equity_minute_reader : BcolzMinuteBarReader, optional
+        The minute bar reader for equities. This will be used to service
+        minute data backtests or minute history calls. This can be used
+        to serve daily calls if no daily bar reader is provided.
+    future_daily_reader : BcolzDailyBarReader, optional
+        The daily bar ready for futures. This will be used to service
+        daily data backtests or daily history calls in a minute backetest.
+        If a daily bar reader is not provided but a minute bar reader is,
+        the minutes will be rolled up to serve the daily requests.
+    future_minute_reader : BcolzMinuteBarReader, optional
+        The minute bar reader for futures. This will be used to service
+        minute data backtests or minute history calls. This can be used
+        to serve daily calls if no daily bar reader is provided.
+    adjustment_reader : SQLiteAdjustmentWriter, optional
+        The adjustment reader. This is used to apply splits, dividends, and
+        other adjustment data to the raw data from the readers.
+    """
     def __init__(self,
                  env,
                  equity_daily_reader=None,
