@@ -34,14 +34,14 @@ class BenchmarkSource(object):
         if len(trading_days) == 0:
             self._precalculated_series = pd.Series()
         elif self.benchmark_sid:
-            self.benchmark_asset = self.env.asset_finder.retrieve_asset(
+            benchmark_asset = self.env.asset_finder.retrieve_asset(
                 self.benchmark_sid)
 
-            self._validate_benchmark()
+            self._validate_benchmark(benchmark_asset)
 
             self._precalculated_series = \
                 self._initialize_precalculated_series(
-                    self.benchmark_asset,
+                    benchmark_asset,
                     self.env,
                     self.trading_days,
                     self.data_portal
@@ -72,7 +72,7 @@ class BenchmarkSource(object):
     def get_value(self, dt):
         return self._precalculated_series.loc[dt]
 
-    def _validate_benchmark(self):
+    def _validate_benchmark(self, benchmark_asset):
         # check if this security has a stock dividend.  if so, raise an
         # error suggesting that the user pick a different asset to use
         # as benchmark.
@@ -86,20 +86,20 @@ class BenchmarkSource(object):
                 dt=stock_dividends[0]["ex_date"]
             )
 
-        if self.benchmark_asset.start_date > self.trading_days[0]:
+        if benchmark_asset.start_date > self.trading_days[0]:
             # the asset started trading after the first simulation day
             raise BenchmarkAssetNotAvailableTooEarly(
                 sid=str(self.benchmark_sid),
                 dt=self.trading_days[0],
-                start_dt=self.benchmark_asset.start_date
+                start_dt=benchmark_asset.start_date
             )
 
-        if self.benchmark_asset.end_date < self.trading_days[-1]:
+        if benchmark_asset.end_date < self.trading_days[-1]:
             # the asset stopped trading before the last simulation day
             raise BenchmarkAssetNotAvailableTooLate(
                 sid=str(self.benchmark_sid),
                 dt=self.trading_days[0],
-                end_dt=self.benchmark_asset.end_date
+                end_dt=benchmark_asset.end_date
             )
 
     def _initialize_precalculated_series(self, asset, env, trading_days,
@@ -150,7 +150,7 @@ class BenchmarkSource(object):
 
             return benchmark_series.pct_change()[1:]
         else:
-            start_date = self.benchmark_asset.start_date
+            start_date = asset.start_date
             if start_date < trading_days[0]:
                 # get the window of close prices for benchmark_sid from the
                 # last trading day of the simulation, going up to one day
