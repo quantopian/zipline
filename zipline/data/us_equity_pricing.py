@@ -209,7 +209,7 @@ class BcolzDailyBarWriter(object):
 
     @property
     def progress_bar_message(self):
-        return "Merging asset files:"
+        return "Merging daily equity files:"
 
     def progress_bar_item_show_func(self, value):
         return value if value is None else str(value[0])
@@ -229,9 +229,9 @@ class BcolzDailyBarWriter(object):
             The assets that should be in ``data``. If this is provided
             we will check ``data`` against the assets and provide better
             progress information.
-        show_progress : bool
+        show_progress : bool, optional
             Whether or not to show a progress bar while writing.
-        invalid_data_behavior : {'warn', 'raise', 'ignore'}
+        invalid_data_behavior : {'warn', 'raise', 'ignore'}, optional
             What to do when data is encountered that is outside the range of
             a uint32.
 

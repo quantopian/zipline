@@ -29,7 +29,6 @@ from testfixtures import TempDirectory
 import numpy as np
 import pandas as pd
 import pytz
-from toolz import merge
 
 from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
@@ -1038,25 +1037,20 @@ class TestBeforeTradingStart(WithDataPortal,
             index=asset_minutes,
         )
         split_data.iloc[780:] = split_data.iloc[780:] / 2.0
-        return merge(
-            {
-                sid: create_minute_df_for_asset(
-                    cls.env,
-                    cls.data_start,
-                    cls.sim_params.period_end,
-                )
-                for sid in (1, 8554)
-            },
-            {
-                2: create_minute_df_for_asset(
-                    cls.env,
-                    cls.data_start,
-                    cls.sim_params.period_end,
-                    50,
-                ),
-                cls.SPLIT_ASSET_SID: split_data,
-            },
+        for sid in (1, 8554):
+            yield sid, create_minute_df_for_asset(
+                cls.env,
+                cls.data_start,
+                cls.sim_params.period_end,
+            )
+
+        yield 2, create_minute_df_for_asset(
+            cls.env,
+            cls.data_start,
+            cls.sim_params.period_end,
+            50,
         )
+        yield cls.SPLIT_ASSET_SID, split_data
 
     @classmethod
     def make_splits_data(cls):
@@ -2529,18 +2523,16 @@ class TestOrderCancelation(WithDataPortal,
         minutes_arr = np.arange(1, 1 + minutes_count)
 
         # normal test data, but volume is pinned at 1 share per minute
-        return {
-            1: pd.DataFrame(
-                {
-                    'open': minutes_arr + 1,
-                    'high': minutes_arr + 2,
-                    'low': minutes_arr - 1,
-                    'close': minutes_arr,
-                    'volume': np.full(minutes_count, 1),
-                },
-                index=asset_minutes,
-            ),
-        }
+        yield 1, pd.DataFrame(
+            {
+                'open': minutes_arr + 1,
+                'high': minutes_arr + 2,
+                'low': minutes_arr - 1,
+                'close': minutes_arr,
+                'volume': np.full(minutes_count, 1),
+            },
+            index=asset_minutes,
+        )
 
     @classmethod
     def make_daily_bar_data(cls):

@@ -58,18 +58,16 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
     @classmethod
     def make_minute_bar_data(cls):
-        return {
-            133: pd.DataFrame(
-                {
-                    'open': [3.0, 3.0, 3.5, 4.0, 3.5],
-                    'high': [3.15, 3.15, 3.15, 3.15, 3.15],
-                    'low': [2.85, 2.85, 2.85, 2.85, 2.85],
-                    'close': [3.0, 3.5, 4.0, 3.5, 3.0],
-                    'volume': [2000, 2000, 2000, 2000, 2000],
-                },
-                index=cls.minutes,
-            ),
-        }
+        yield 133, pd.DataFrame(
+            {
+                'open': [3.0, 3.0, 3.5, 4.0, 3.5],
+                'high': [3.15, 3.15, 3.15, 3.15, 3.15],
+                'low': [2.85, 2.85, 2.85, 2.85, 2.85],
+                'close': [3.0, 3.5, 4.0, 3.5, 3.0],
+                'volume': [2000, 2000, 2000, 2000, 2000],
+            },
+            index=cls.minutes,
+        )
 
     @classmethod
     def init_class_fixtures(cls):
@@ -77,8 +75,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
         cls.ASSET133 = cls.env.asset_finder.retrieve_asset(133)
 
     def test_volume_share_slippage(self):
-        assets = {
-            133: pd.DataFrame(
+        assets = (
+            (133, pd.DataFrame(
                 {
                     'open': [3.00],
                     'high': [3.15],
@@ -87,8 +85,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                     'volume': [200],
                 },
                 index=[self.minutes[0]],
-            ),
-        }
+            )),
+        )
         days = pd.date_range(
             start=normalize_date(self.minutes[0]),
             end=normalize_date(self.minutes[-1])
@@ -465,8 +463,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
         data['sid'] = self.ASSET133
         order = Order(**data)
 
-        assets = {
-            133: pd.DataFrame(
+        assets = (
+            (133, pd.DataFrame(
                 {
                     'open': [event_data['open']],
                     'high': [event_data['high']],
@@ -475,8 +473,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                     'volume': [event_data['volume']],
                 },
                 index=[pd.Timestamp('2006-01-05 14:31', tz='UTC')],
-            ),
-        }
+            )),
+        )
         days = pd.date_range(
             start=normalize_date(self.minutes[0]),
             end=normalize_date(self.minutes[-1])

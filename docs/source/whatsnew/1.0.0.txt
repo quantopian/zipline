@@ -20,9 +20,10 @@ Enhancements
 * Made the data loading classes have more consistent interfaces. This includes
   the equity bar writers, adjustment writer, and asset db writer. The new
   interface is that the resource to be written to is passed at construction time
-  and the data to write is provided later to the `write` method as a
-  dataframe. This model allows us to pass these writer objects around as a
-  resource for other classes and functions to consume (:issue:`1109`).
+  and the data to write is provided later to the `write` method as
+  dataframes or some iterator of dataframes. This model allows us to pass these
+  writer objects around as a resource for other classes and functions to
+  consume (:issue:`1109` and :issue:`1149`).
 
 * Added masking to :class:`zipline.pipeline.CustomFactor`.
   Custom factors can now be passed a Filter upon instantiation. This tells the
