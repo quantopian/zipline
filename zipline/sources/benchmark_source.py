@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pandas as pd
+
 from zipline.errors import (
     InvalidBenchmarkAsset,
     BenchmarkAssetNotAvailableTooEarly,
@@ -29,7 +31,9 @@ class BenchmarkSource(object):
         self.emission_rate = emission_rate
         self.data_portal = data_portal
 
-        if self.benchmark_sid:
+        if len(trading_days) == 0:
+            self._precalculated_series = pd.Series()
+        elif self.benchmark_sid:
             self.benchmark_asset = self.env.asset_finder.retrieve_asset(
                 self.benchmark_sid)
 

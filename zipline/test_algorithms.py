@@ -1140,3 +1140,14 @@ def test_history(context,data):
     record(amounts=context.portfolio.positions[context.sid].amount)
     record(num_positions=len(context.portfolio.positions))
 """
+
+set_benchmark_algo = """
+from zipline.api import symbol, set_benchmark
+
+def initialize(context):
+    set_benchmark(symbol('TEST'))
+    context.sid = symbol('TEST')
+
+def handle_data(context, data):
+    pass
+"""
