@@ -652,7 +652,7 @@ class TradingAlgorithm(object):
                 new_assets.add(identifier)
             elif isinstance(identifier, Integral) and is_unknown(identifier):
                 new_sids.add(identifier)
-            elif isinstance(identifier, (bytes, unicode)):
+            elif isinstance(identifier, (string_types)):
                 new_symbols.add(identifier)
             else:
                 try:
