@@ -27,7 +27,6 @@ from zipline.api import order_target, record, symbol
 
 def initialize(context):
     context.sym = symbol('AAPL')
-
     context.i = 0
 
 
@@ -104,15 +103,19 @@ if __name__ == '__main__':
     from datetime import datetime
     import pytz
     from zipline.algorithm import TradingAlgorithm
-    from zipline.utils.factory import load_from_yahoo
+    from zipline.utils.factory import load_bars_from_yahoo
 
     # Set the simulation start and end dates.
     start = datetime(2011, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = datetime(2013, 1, 1, 0, 0, 0, 0, pytz.utc)
 
     # Load price data from yahoo.
-    data = load_from_yahoo(stocks=['AAPL'], indexes={}, start=start,
-                           end=end)
+    data = load_bars_from_yahoo(
+        stocks=['AAPL'],
+        indexes={},
+        start=start,
+        end=end,
+    )
 
     # Create and run the algorithm.
     algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
