@@ -32,6 +32,10 @@ complex128_dtype = dtype('complex128')
 datetime64D_dtype = dtype('datetime64[D]')
 datetime64ns_dtype = dtype('datetime64[ns]')
 
+object_dtype = dtype('O')
+# We use object arrays for strings.
+categorical_dtype = object_dtype
+
 make_datetime64ns = flip(datetime64, 'ns')
 make_datetime64D = flip(datetime64, 'D')
 
@@ -71,6 +75,7 @@ def make_kind_check(python_types, numpy_kind):
 is_float = make_kind_check(float, 'f')
 is_int = make_kind_check(int, 'i')
 is_datetime = make_kind_check(datetime, 'M')
+is_object = make_kind_check(object, 'O')
 
 
 def coerce_to_dtype(dtype, value):
@@ -263,9 +268,7 @@ def rolling_window(array, length):
 _notNaT = make_datetime64D(0)
 
 
-def busday_count_mask_NaT(begindates,
-                          enddates,
-                          out=None):
+def busday_count_mask_NaT(begindates, enddates, out=None):
     """
     Simple of numpy.busday_count that returns `float` arrays rather than int
     arrays, and handles `NaT`s by returning `NaN`s where the inputs were `NaT`.

@@ -7,6 +7,7 @@ zipline.pipeline.data.testing.
 from .dataset import Column, DataSet
 from zipline.utils.numpy_utils import (
     bool_dtype,
+    categorical_dtype,
     float64_dtype,
     datetime64ns_dtype,
     int64_dtype,
@@ -22,3 +23,9 @@ class TestingDataSet(DataSet):
     float_col = Column(dtype=float64_dtype)
     datetime_col = Column(dtype=datetime64ns_dtype)
     int_col = Column(dtype=int64_dtype, missing_value=0)
+
+    categorical_col = Column(dtype=categorical_dtype, missing_value=u'')
+    categorical_default_NULL = Column(
+        dtype=categorical_dtype,
+        missing_value=u'NULL',
+    )

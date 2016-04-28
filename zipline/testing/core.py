@@ -1032,7 +1032,7 @@ def temp_pipeline_engine(calendar, sids, random_seed, symbols=None):
         yield SimplePipelineEngine(get_loader, calendar, finder)
 
 
-def parameter_space(**params):
+def parameter_space(__fail_fast=False, **params):
     """
     Wrapper around subtest that allows passing keywords mapping names to
     iterables of values.
@@ -1083,7 +1083,16 @@ def parameter_space(**params):
             )
 
         param_sets = product(*(params[name] for name in argnames))
-        return subtest(param_sets, *argnames)(f)
+
+        if __fail_fast:
+            @wraps(f)
+            def wrapped(self):
+                for args in param_sets:
+                    f(self, *args)
+            return wrapped
+        else:
+            return subtest(param_sets, *argnames)(f)
+
     return decorator
 
 

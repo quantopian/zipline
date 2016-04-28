@@ -1,7 +1,7 @@
 """
 Mixins classes for use with Filters and Factors.
 """
-from numpy import full_like, recarray
+from numpy import full, recarray
 
 from zipline.utils.control_flow import nullctx
 from zipline.errors import WindowLengthNotPositive, UnsupportedDataType
@@ -51,7 +51,7 @@ class RestrictedDTypeMixin(object):
 
         if self.dtype not in self.ALLOWED_DTYPES:
             raise UnsupportedDataType(
-                typename=type(self.__name__),
+                typename=type(self).__name__,
                 dtype=self.dtype,
             )
 
@@ -103,27 +103,45 @@ class CustomTermMixin(object):
         """
         raise NotImplementedError()
 
+    def _allocate_output(self, windows, shape):
+        """
+        Allocate an output array whose rows should be passed to `self.compute`.
+
+        The resulting array must have a shape of ``shape``.
+
+        If we have standard outputs (i.e. self.outputs is NotSpecified), the
+        default is an empty ndarray whose dtype is ``self.dtype``.
+
+        If we have an outputs tuple, the default is an empty recarray with
+        ``self.outputs`` as field names. Each field will have dtype
+        ``self.dtype``, the default shape is ``self.shape``.
+
+        This can be overridden to control the kind of array constructed
+        (e.g. to produce a LabelArray instead of an ndarray).
+        """
+        missing_value = self.missing_value
+        outputs = self.outputs
+        if outputs is not NotSpecified:
+            out = recarray(
+                shape,
+                formats=[self.dtype.str] * len(outputs),
+                names=outputs,
+            )
+            out[:] = missing_value
+        else:
+            out = full(shape, missing_value, dtype=self.dtype)
+        return out
+
     def _compute(self, windows, dates, assets, mask):
         """
         Call the user's `compute` function on each window with a pre-built
         output array.
         """
         compute = self.compute
-        missing_value = self.missing_value
         params = self.params
-        outputs = self.outputs
-        if outputs is not NotSpecified:
-            out = recarray(
-                mask.shape,
-                formats=[self.dtype.str] * len(outputs),
-                names=outputs,
-            )
-            out[:] = missing_value
-        else:
-            out = full_like(mask, missing_value, dtype=self.dtype)
+        out = self._allocate_output(windows, mask.shape)
+
         with self.ctx:
-            # TODO: Consider pre-filtering columns that are all-nan at each
-            # time-step?
             for idx, date in enumerate(dates):
                 col_mask = mask[idx]
                 masked_out = out[idx][col_mask]

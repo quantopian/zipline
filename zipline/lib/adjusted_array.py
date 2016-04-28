@@ -17,6 +17,8 @@ from zipline.errors import (
     WindowLengthNotPositive,
     WindowLengthTooLong,
 )
+from zipline.lib.labelarray import LabelArray
+from zipline.utils.compat import unicode
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
@@ -28,7 +30,9 @@ from zipline.utils.memoize import lazyval
 # These class names are all the same because of our bootleg templating system.
 from ._float64window import AdjustedArrayWindow as Float64Window
 from ._int64window import AdjustedArrayWindow as Int64Window
+from ._labelwindow import AdjustedArrayWindow as LabelWindow
 from ._uint8window import AdjustedArrayWindow as UInt8Window
+
 
 NOMASK = None
 BOOL_DTYPES = frozenset(
@@ -44,16 +48,20 @@ INT_DTYPES = frozenset(
 DATETIME_DTYPES = frozenset(
     map(dtype, ['datetime64[ns]', 'datetime64[D]']),
 )
+# We use object arrays for strings.
+CATEGORICAL_DTYPES = frozenset(map(dtype, ['O']))
+
 REPRESENTABLE_DTYPES = BOOL_DTYPES.union(
     FLOAT_DTYPES,
     INT_DTYPES,
-    DATETIME_DTYPES
+    DATETIME_DTYPES,
+    CATEGORICAL_DTYPES,
 )
 
 
 def can_represent_dtype(dtype):
     """
-    Can we build an AdjustedArray for a baseline of dtype ``dtype``?
+    Can we build an AdjustedArray for a baseline of `dtype``?
     """
     return dtype in REPRESENTABLE_DTYPES
 
@@ -65,11 +73,11 @@ CONCRETE_WINDOW_TYPES = {
 }
 
 
-def _normalize_array(data):
+def _normalize_array(data, missing_value):
     """
     Coerce buffer data for an AdjustedArray into a standard scalar
-    representation, returning the coerced array and a numpy dtype object to use
-    as a view type when providing public view into the data.
+    representation, returning the coerced array and a dict of argument to pass
+    to np.view to use when providing a user-facing view of the underlying data.
 
     - float* data is coerced to float64 with viewtype float64.
     - int32, int64, and uint32 are converted to int64 with viewtype int64.
@@ -82,19 +90,29 @@ def _normalize_array(data):
 
     Returns
     -------
-    coerced, viewtype : (np.ndarray, np.dtype)
+    coerced, view_kwargs : (np.ndarray, np.dtype)
     """
+    if isinstance(data, LabelArray):
+        return data, {}
+
     data_dtype = data.dtype
     if data_dtype == bool_:
-        return data.astype(uint8), dtype(bool_)
+        return data.astype(uint8), {'dtype': dtype(bool_)}
     elif data_dtype in FLOAT_DTYPES:
-        return data.astype(float64), dtype(float64)
+        return data.astype(float64), {'dtype': dtype(float64)}
     elif data_dtype in INT_DTYPES:
-        return data.astype(int64), dtype(int64)
-    elif data_dtype.name.startswith('datetime'):
+        return data.astype(int64), {'dtype': dtype(int64)}
+    elif data_dtype in CATEGORICAL_DTYPES:
+        if not isinstance(missing_value, (bytes, unicode)):
+            raise TypeError(
+                "Invalid missing_value for categorical array.\n"
+                "Expected a string, got %r" % missing_value,
+            )
+        return LabelArray(data, missing_value), {}
+    elif data_dtype.kind == 'M':
         try:
             outarray = data.astype('datetime64[ns]').view('int64')
-            return outarray, datetime64ns_dtype
+            return outarray, {'dtype': datetime64ns_dtype}
         except OverflowError:
             raise ValueError(
                 "AdjustedArray received a datetime array "
@@ -127,18 +145,17 @@ class AdjustedArray(object):
     missing_value : object
         A value to use to fill missing data in yielded windows.
         Should be a value coercible to `data.dtype`.
-
     """
     __slots__ = (
         '_data',
-        '_viewtype',
+        '_view_kwargs',
         'adjustments',
         'missing_value',
         '__weakref__',
     )
 
     def __init__(self, data, mask, adjustments, missing_value):
-        self._data, self._viewtype = _normalize_array(data)
+        self._data, self._view_kwargs = _normalize_array(data, missing_value)
 
         self.adjustments = adjustments
         self.missing_value = missing_value
@@ -158,20 +175,22 @@ class AdjustedArray(object):
         """
         The data stored in this array.
         """
-        return self._data.view(self._viewtype)
+        return self._data.view(**self._view_kwargs)
 
     @lazyval
     def dtype(self):
         """
         The dtype of the data stored in this array.
         """
-        return self._viewtype
+        return self._view_kwargs.get('dtype') or self._data.dtype
 
     @lazyval
     def _iterator_type(self):
         """
         The iterator produced when `traverse` is called on this Array.
         """
+        if isinstance(self._data, LabelArray):
+            return LabelWindow
         return CONCRETE_WINDOW_TYPES[self._data.dtype]
 
     def traverse(self, window_length, offset=0):
@@ -190,7 +209,7 @@ class AdjustedArray(object):
         _check_window_params(data, window_length)
         return self._iterator_type(
             data,
-            self._viewtype,
+            self._view_kwargs,
             self.adjustments,
             offset,
             window_length,

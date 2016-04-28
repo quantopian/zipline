@@ -27,6 +27,7 @@ from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
+    object_dtype,
 )
 
 
@@ -148,6 +149,7 @@ class SeededRandomLoader(PrecomputedLoader):
             float64_dtype: self._float_values,
             int64_dtype: self._int_values,
             bool_dtype: self._bool_values,
+            object_dtype: self._object_values,
         }[dtype](shape)
 
     @property
@@ -190,6 +192,9 @@ class SeededRandomLoader(PrecomputedLoader):
         Return uniformly-distributed True/False values.
         """
         return self.state.randn(*shape) < 0
+
+    def _object_values(self, shape):
+        return self._int_values(shape).astype(str).astype(object)
 
 
 OHLCV = ('open', 'high', 'low', 'close', 'volume')

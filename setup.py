@@ -81,11 +81,13 @@ class LazyBuildExtCommandClass(dict):
 ext_modules = [
     Extension('zipline.assets._assets', ['zipline/assets/_assets.pyx']),
     Extension('zipline.lib.adjustment', ['zipline/lib/adjustment.pyx']),
+    Extension('zipline.lib._factorize', ['zipline/lib/_factorize.pyx']),
     Extension(
         'zipline.lib._float64window', ['zipline/lib/_float64window.pyx']
     ),
     Extension('zipline.lib._int64window', ['zipline/lib/_int64window.pyx']),
     Extension('zipline.lib._uint8window', ['zipline/lib/_uint8window.pyx']),
+    Extension('zipline.lib._labelwindow', ['zipline/lib/_labelwindow.pyx']),
     Extension('zipline.lib.rank', ['zipline/lib/rank.pyx']),
     Extension('zipline.data._equities', ['zipline/data/_equities.pyx']),
     Extension('zipline.data._adjustments', ['zipline/data/_adjustments.pyx']),

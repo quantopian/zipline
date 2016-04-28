@@ -471,7 +471,8 @@ class ObjectIdentityTestCase(TestCase):
         for column in TestingDataSet.columns:
             if column.dtype == bool_dtype:
                 self.assertIsInstance(column.latest, Filter)
-            elif column.dtype == int64_dtype:
+            elif (column.dtype == int64_dtype
+                  or column.dtype.kind in ('O', 'S', 'U')):
                 self.assertIsInstance(column.latest, Classifier)
             elif column.dtype in factor_dtypes:
                 self.assertIsInstance(column.latest, Factor)

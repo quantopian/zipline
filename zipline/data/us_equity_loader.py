@@ -19,7 +19,7 @@ from abc import (
 )
 
 from cachetools import LRUCache
-from numpy import dtype, around, hstack
+from numpy import around, hstack
 from pandas.tslib import normalize_date
 
 from six import with_metaclass
@@ -28,6 +28,7 @@ from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
 from zipline.lib.adjustment import Float64Multiply
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.memoize import lazyval
+from zipline.utils.numpy_utils import float64_dtype
 
 
 class SlidingWindow(object):
@@ -237,9 +238,9 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
             prefetch_dts = cal[start_ix:prefetch_end_ix + 1]
             prefetch_len = len(prefetch_dts)
             array = self._array(prefetch_dts, needed_assets, field)
+            view_kwargs = {}
             if field == 'volume':
-                array = array.astype('float64')
-            dtype_ = dtype('float64')
+                array = array.astype(float64_dtype)
 
             for i, asset in enumerate(needed_assets):
                 if self._adjustments_reader:
@@ -249,7 +250,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
                     adjs = {}
                 window = Float64Window(
                     array[:, i].reshape(prefetch_len, 1),
-                    dtype_,
+                    view_kwargs,
                     adjs,
                     offset,
                     size

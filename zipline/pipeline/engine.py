@@ -51,7 +51,7 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         result : pd.DataFrame
             A frame of computed results.
 
-            The columns `result` correspond will be the computed results of
+            The columns `result` correspond to the entries of
             `pipeline.columns`, which should be a dictionary mapping strings to
             instances of `zipline.pipeline.term.Term`.
 
@@ -165,17 +165,20 @@ class SimplePipelineEngine(object):
         root_mask = self._compute_root_mask(start_date, end_date, extra_rows)
         dates, assets, root_mask_values = explode(root_mask)
 
-        outputs = self.compute_chunk(
+        results = self.compute_chunk(
             graph,
             dates,
             assets,
             initial_workspace={self._root_mask_term: root_mask_values},
         )
 
-        out_dates = dates[extra_rows:]
-        screen_values = outputs.pop(screen_name)
-
-        return self._to_narrow(outputs, screen_values, out_dates, assets)
+        return self._to_narrow(
+            graph.outputs,
+            results,
+            results.pop(screen_name),
+            dates[extra_rows:],
+            assets,
+        )
 
     def _compute_root_mask(self, start_date, end_date, extra_rows):
         """
@@ -363,14 +366,16 @@ class SimplePipelineEngine(object):
             out[name] = workspace[term][graph_extra_rows[term]:]
         return out
 
-    def _to_narrow(self, data, mask, dates, assets):
+    def _to_narrow(self, terms, data, mask, dates, assets):
         """
         Convert raw computed pipeline results into a DataFrame for public APIs.
 
         Parameters
         ----------
+        terms : dict[str -> Term]
+            Dict mapping column names to terms.
         data : dict[str -> ndarray[ndim=2]]
-            Dict mapping column names to computed results.
+            Dict mapping column names to computed results for those names.
         mask : ndarray[bool, ndim=2]
             Mask array of values to keep.
         dates : ndarray[datetime64, ndim=1]
@@ -412,8 +417,18 @@ class SimplePipelineEngine(object):
         resolved_assets = array(self._finder.retrieve_all(assets))
         dates_kept = repeat_last_axis(dates.values, len(assets))[mask]
         assets_kept = repeat_first_axis(resolved_assets, len(dates))[mask]
+
+        final_columns = {}
+        for name in data:
+            # Each term that computed an output has its postprocess method
+            # called on the filtered result.
+            #
+            # We use this convert LabelArrays into categoricals, among other
+            # things.
+            final_columns[name] = terms[name].postprocess(data[name][mask])
+
         return DataFrame(
-            data={name: arr[mask] for name, arr in iteritems(data)},
+            data=final_columns,
             index=MultiIndex.from_arrays([dates_kept, assets_kept]),
         ).tz_localize('UTC', level=0)
 
@@ -423,6 +438,7 @@ class SimplePipelineEngine(object):
         """
         root = self._root_mask_term
         clsname = type(self).__name__
+
         # Writing this out explicitly so this errors in testing if we change
         # the name without updating this line.
         compute_chunk_name = self.compute_chunk.__name__

@@ -4,7 +4,7 @@ Base class for Filters, Factors and Classifiers
 from abc import ABCMeta, abstractproperty
 from weakref import WeakValueDictionary
 
-from numpy import dtype as dtype_class
+from numpy import dtype as dtype_class, ndarray
 from six import with_metaclass
 from zipline.errors import (
     DTypeNotSpecified,
@@ -16,6 +16,7 @@ from zipline.errors import (
     WindowLengthNotSpecified,
 )
 from zipline.lib.adjusted_array import can_represent_dtype
+from zipline.utils.input_validation import expect_types
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
@@ -475,6 +476,19 @@ class ComputableTerm(Term):
             out[term] = extra_input_rows
         out[self.mask] = 0
         return out
+
+    @expect_types(data=ndarray)
+    def postprocess(self, data):
+        """
+        Called with an result of ``self``, unravelled (i.e. 1-dimensional)
+        after any user-defined screens have been applied.
+
+        This is mostly useful for transforming the dtype of an output, e.g., to
+        convert a LabelArray into a pandas Categorical.
+
+        The default implementation is to just return data unchanged.
+        """
+        return data
 
     def __repr__(self):
         return (
