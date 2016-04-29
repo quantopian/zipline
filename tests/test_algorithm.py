@@ -155,6 +155,7 @@ from zipline.test_algorithms import (
     call_with_good_kwargs_get_open_orders,
     call_with_no_kwargs_get_open_orders,
     empty_positions,
+    set_benchmark_algo,
     no_handle_data,
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
@@ -1818,6 +1819,28 @@ def handle_data(context, data):
         amounts = results.amounts
         self.assertTrue(all(num_positions == 0))
         self.assertTrue(all(amounts == 0))
+
+    @parameterized.expand([
+        ('noop_algo', noop_algo),
+        ('with_benchmark_set', set_benchmark_algo)]
+    )
+    def test_zero_trading_days(self, name, algocode):
+        """
+        Test that when we run a simulation with no trading days (e.g. beginning
+        and ending the same weekend), we don't crash on calculating the
+        benchmark
+        """
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp('2006-01-14', tz='UTC'),
+            end=pd.Timestamp('2006-01-15', tz='UTC')
+        )
+
+        algo = TradingAlgorithm(
+            script=algocode,
+            sim_params=sim_params,
+            env=self.env
+        )
+        algo.run(self.data_portal)
 
 
 class TestGetDatetime(WithLogger,
