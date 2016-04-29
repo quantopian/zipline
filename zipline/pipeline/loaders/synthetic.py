@@ -194,7 +194,8 @@ class SeededRandomLoader(PrecomputedLoader):
         return self.state.randn(*shape) < 0
 
     def _object_values(self, shape):
-        return self._int_values(shape).astype(str).astype(object)
+        res = self._int_values(shape).astype(str).astype(object)
+        return res
 
 
 OHLCV = ('open', 'high', 'low', 'close', 'volume')

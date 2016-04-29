@@ -27,5 +27,5 @@ class TestingDataSet(DataSet):
     categorical_col = Column(dtype=categorical_dtype, missing_value=u'')
     categorical_default_NULL = Column(
         dtype=categorical_dtype,
-        missing_value=u'NULL',
+        missing_value=u'<<NULL>>',
     )
