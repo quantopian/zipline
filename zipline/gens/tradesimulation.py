@@ -199,19 +199,17 @@ class AlgorithmSimulator(object):
                     once_a_day(dt)
                 elif action == DAY_END:
                     # End of the day.
+                    if algo.perf_tracker.emission_rate == 'daily':
+                        handle_benchmark(normalize_date(dt))
                     execute_order_cancellation_policy()
-                    handle_benchmark(normalize_date(dt))
 
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == MINUTE_END:
                     handle_benchmark(dt)
-                    minute_msg, daily_msg = \
+                    minute_msg = \
                         self._get_minute_message(dt, algo, algo.perf_tracker)
 
                     yield minute_msg
-
-                    if daily_msg:
-                        yield daily_msg
 
         risk_message = algo.perf_tracker.handle_simulation_end()
         yield risk_message
@@ -256,7 +254,7 @@ class AlgorithmSimulator(object):
         """
         Get a perf message for the given datetime.
         """
-        perf_message = perf_tracker.handle_market_close_daily(
+        perf_message = perf_tracker.handle_market_close(
             dt, self.data_portal,
         )
         perf_message['daily_perf']['recorded_vars'] = algo.recorded_vars
@@ -268,12 +266,9 @@ class AlgorithmSimulator(object):
         """
         rvars = algo.recorded_vars
 
-        minute_message, daily_message = perf_tracker.handle_minute_close(
+        minute_message = perf_tracker.handle_minute_close(
             dt, self.data_portal,
         )
+
         minute_message['minute_perf']['recorded_vars'] = rvars
-
-        if daily_message:
-            daily_message["daily_perf"]["recorded_vars"] = rvars
-
-        return minute_message, daily_message
+        return minute_message
