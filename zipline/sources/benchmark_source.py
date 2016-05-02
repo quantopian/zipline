@@ -98,7 +98,7 @@ class BenchmarkSource(object):
             # the asset stopped trading before the last simulation day
             raise BenchmarkAssetNotAvailableTooLate(
                 sid=str(self.benchmark_sid),
-                dt=self.trading_days[0],
+                dt=self.trading_days[-1],
                 end_dt=benchmark_asset.end_date
             )
 
