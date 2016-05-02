@@ -1,9 +1,9 @@
 """
 classifier.py
 """
-from functools import wraps
 from numbers import Number
 import operator
+import re
 
 from numpy import where, isnan, nan, zeros
 
@@ -28,7 +28,7 @@ from ..mixins import (
 )
 
 
-strings_only = restrict_to_dtype(
+string_classifiers_only = restrict_to_dtype(
     dtype=categorical_dtype,
     message_template=(
         "{method_name}() is only defined on Classifiers producing strings"
@@ -95,7 +95,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 binds=(self,),
             )
         else:
-            return ScalarStringPredicate(
+            return StringPredicate(
                 classifier=self,
                 op=operator.eq,
                 compval=other,
@@ -118,47 +118,152 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 binds=(self,),
             )
         else:
-            return ScalarStringPredicate(
+            return StringPredicate(
                 classifier=self,
                 op=operator.ne,
                 compval=other,
             )
 
-    def _string_predicate(f):
+    @string_classifiers_only
+    @expect_types(prefix=(bytes, unicode))
+    def startswith(self, prefix):
         """
-        Decorator for converting a function from (LabelArray, str) -> bool
-        into a Classifier method that returns a ScalarStringPredicate filter.
+        Construct a Filter matching values starting with ``prefix``.
 
-        This mainly exists to avoid replicating shared boilerplate
-        (e.g. argument type validation).
+        Parameters
+        ----------
+        prefix : str
+            String prefix against which to compare values produced by ``self``.
+
+        Returns
+        -------
+        matches : Filter
+            Filter returning True for all sid/date pairs for which ``self``
+            produces a string starting with ``prefix``.
         """
-        @wraps(f)
-        @expect_types(compval=(bytes, unicode))
-        @strings_only
-        def method(self, compval):
-            return ScalarStringPredicate(
-                classifier=self,
-                op=f,
-                compval=compval,
+        return StringPredicate(
+            classifier=self,
+            op=LabelArray.startswith,
+            compval=prefix,
+        )
+
+    @string_classifiers_only
+    @expect_types(suffix=(bytes, unicode))
+    def endswith(self, suffix):
+        """
+        Construct a Filter matching values ending with ``suffix``.
+
+        Parameters
+        ----------
+        suffix : str
+            String suffix against which to compare values produced by ``self``.
+
+        Returns
+        -------
+        matches : Filter
+            Filter returning True for all sid/date pairs for which ``self``
+            produces a string ending with ``prefix``.
+        """
+        return StringPredicate(
+            classifier=self,
+            op=LabelArray.endswith,
+            compval=suffix,
+        )
+
+    @string_classifiers_only
+    @expect_types(substring=(bytes, unicode))
+    def has_substring(self, substring):
+        """
+        Construct a Filter matching values containing ``substring``.
+
+        Parameters
+        ----------
+        substring : str
+            Sub-string against which to compare values produced by ``self``.
+
+        Returns
+        -------
+        matches : Filter
+            Filter returning True for all sid/date pairs for which ``self``
+            produces a string containing ``substring``.
+        """
+        return StringPredicate(
+            classifier=self,
+            op=LabelArray.has_substring,
+            compval=substring,
+        )
+
+    @string_classifiers_only
+    @expect_types(pattern=(bytes, unicode, type(re.compile(''))))
+    def matches(self, pattern):
+        """
+        Construct a Filter that checks regex matches against ``pattern``.
+
+        Parameters
+        ----------
+        pattern : str
+            Regex pattern against which to compare values produced by ``self``.
+
+        Returns
+        -------
+        matches : Filter
+            Filter returning True for all sid/date pairs for which ``self``
+            produces a string matched by ``pattern``.
+
+        See Also
+        --------
+        https://docs.python.org/library/re.html
+        """
+        return StringPredicate(
+            classifier=self,
+            op=LabelArray.matches,
+            compval=pattern,
+        )
+
+    @string_classifiers_only
+    def element_of(self, choices):
+        """
+        Construct a Filter indicating whether values are in ``choices``.
+
+        Parameters
+        ----------
+        choices : iterable[str]
+            An iterable of choices.
+
+        Returns
+        -------
+        matches : Filter
+            Filter returning True for all sid/date pairs for which ``self``
+            produces a string in ``choices``.
+        """
+        try:
+            choices = frozenset(choices)
+        except Exception as e:
+            raise TypeError(
+                "Expected `choices` to be an iterable of strings,"
+                " but got {} instead.\n"
+                "This caused the following error: {!r}.".format(choices, e)
             )
-        return method
 
-    @_string_predicate
-    @expect_types(label_array=LabelArray)
-    def startswith(label_array, other):
-        return label_array.startswith(other)
+        if self.missing_value in choices:
+            raise ValueError(
+                "Found self.missing_value ({mv!r}) in choices supplied to"
+                " {typename}.is_element().\n"
+                "Missing values have NaN semantics, so the"
+                " requested comparison would always produce False.\n"
+                "Use the isnull() method to check for missing values.\n"
+                "Received choices were {choices}.".format(
+                    mv=self.missing_value,
+                    typename=(type(self).__name__),
+                    choices=sorted(choices),
+                )
+            )
 
-    @_string_predicate
-    @expect_types(label_array=LabelArray)
-    def endswith(label_array, other):
-        return label_array.endswith(other)
-
-    @_string_predicate
-    @expect_types(label_array=LabelArray)
-    def contains(label_array, other):
-        return label_array.contains(other)
-
-    del _string_predicate
+        return StringPredicate(
+            classifier=self,
+            op=LabelArray.element_of,
+            compval=choices,
+        )
 
     def postprocess(self, data):
         if self.dtype == int64_dtype:
@@ -208,22 +313,17 @@ class Quantiles(SingleInputMixin, Classifier):
         return type(self).__name__ + '(%d)' % self.params['bins']
 
 
-class ScalarStringPredicate(SingleInputMixin, Filter):
+class StringPredicate(SingleInputMixin, Filter):
     """
-    A filter that applies a function from (LabelArray, str) -> ndarray[bool].
+    A filter applying a function from (LabelArray, hashable) -> ndarray[bool].
 
-    Examples include ``==, !=, startswith, and endswith``.
-
-    This exists because we represent string arrays with
-    ``zipline.lib.LabelArray``s, which numexpr doesn't know about, so we can't
-    use the generic NumExprFilter implementation here.
+    Examples include ``==, !=, startswith, and is_element``.
     """
     window_length = 0
 
-    @expect_types(classifier=Classifier, compval=(bytes, unicode))
     def __new__(cls, classifier, op, compval):
-        return super(ScalarStringPredicate, cls).__new__(
-            ScalarStringPredicate,
+        return super(StringPredicate, cls).__new__(
+            StringPredicate,
             compval=compval,
             op=op,
             inputs=(classifier,),
@@ -233,12 +333,12 @@ class ScalarStringPredicate(SingleInputMixin, Filter):
     def _init(self, op, compval, *args, **kwargs):
         self._op = op
         self._compval = compval
-        return super(ScalarStringPredicate, self)._init(*args, **kwargs)
+        return super(StringPredicate, self)._init(*args, **kwargs)
 
     @classmethod
     def static_identity(cls, op, compval, *args, **kwargs):
         return (
-            super(ScalarStringPredicate, cls).static_identity(*args, **kwargs),
+            super(StringPredicate, cls).static_identity(*args, **kwargs),
             op,
             compval,
         )

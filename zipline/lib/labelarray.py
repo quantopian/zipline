@@ -448,7 +448,7 @@ class LabelArray(ndarray):
         """
         return self.apply(lambda elem: elem.endswith(suffix), dtype=bool)
 
-    def contains(self, substring):
+    def has_substring(self, substring):
         """
         Elementwise contains.
 
@@ -464,7 +464,7 @@ class LabelArray(ndarray):
         """
         return self.apply(lambda elem: substring in elem, dtype=bool)
 
-    @preprocess(pattern=re.compile)
+    @preprocess(pattern=coerce(from_=(bytes, unicode), to=re.compile))
     def matches(self, pattern):
         """
         Elementwise regex match.
@@ -479,4 +479,25 @@ class LabelArray(ndarray):
             An array with the same shape as self indicating whether each
             element of self was matched by ``pattern``.
         """
-        return self.apply(compose(bool, pattern.match))
+        return self.apply(compose(bool, pattern.match), dtype=bool)
+
+    # These types all implement an O(N) __contains__, so pre-emptively
+    # coerce to `set`.
+    @preprocess(container=coerce((list, tuple, np.ndarray), set))
+    def element_of(self, container):
+        """
+        Check if each element of self is an of ``container``.
+
+        Parameters
+        ----------
+        container : object
+            An object implementing a __contains__ to call on each element of
+            ``self``.
+
+        Returns
+        -------
+        is_contained : np.ndarray[bool]
+            An array with the same shape as self indicating whether each
+            element of self was an element of ``container``.
+        """
+        return self.apply(container.__contains__, dtype=bool)

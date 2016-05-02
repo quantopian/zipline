@@ -256,17 +256,128 @@ class ClassifierTestCase(BasePipelineTestCase):
             missing_value=missing,
         )
 
+        terms = {
+            'startswith': c.startswith(compval),
+            'endswith': c.endswith(compval),
+            'has_substring': c.has_substring(compval),
+            # Equivalent filters using regex matching.
+            'startswith_re': c.matches('^' + compval + '.*'),
+            'endswith_re': c.matches('.*' + compval + '$'),
+            'has_substring_re': c.matches('.*' + compval + '.*'),
+        }
+
+        expected = {
+            'startswith': (data.startswith(compval) & (data != missing)),
+            'endswith': (data.endswith(compval) & (data != missing)),
+            'has_substring': (data.has_substring(compval) & (data != missing)),
+        }
+        for key in list(expected):
+            expected[key + '_re'] = expected[key]
+
         self.check_terms(
-            terms={
-                'startswith': c.startswith(compval),
-                'endswith': c.endswith(compval),
-                'contains': c.contains(compval),
-            },
-            expected={
-                'startswith': (data.startswith(compval) & (data != missing)),
-                'endswith': (data.endswith(compval) & (data != missing)),
-                'contains': (data.contains(compval) & (data != missing)),
-            },
+            terms=terms,
+            expected=expected,
             initial_workspace={c: data},
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
+
+    @parameter_space(
+        __fail_fast=True,
+        container_type=(set, list, tuple, frozenset),
+        labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
+    )
+    def test_element_of(self, container_type, labelarray_dtype):
+
+        missing = labelarray_dtype.type("not in the array")
+
+        class C(Classifier):
+            dtype = categorical_dtype
+            missing_value = missing
+            inputs = ()
+            window_length = 0
+
+        c = C()
+
+        raw = np.asarray(
+            [['',    'a',  'ab', 'ba'],
+             ['z',  'ab',   'a', 'ab'],
+             ['aa', 'ab',    '', 'ab'],
+             ['aa',  'a',  'ba', 'ba']],
+            dtype=labelarray_dtype,
+        )
+        data = LabelArray(raw, missing_value=missing)
+
+        choices = [
+            container_type(choices) for choices in [
+                [],
+                ['a', ''],
+                ['a', 'a', 'a', 'ab', 'a'],
+                set(data.reverse_categories) - {missing},
+                ['random value', 'ab'],
+                ['_' * i for i in range(30)],
+            ]
+        ]
+
+        def make_expected(choice_set):
+            return np.vectorize(choice_set.__contains__, otypes=[bool])(raw)
+
+        terms = {str(i): c.element_of(s) for i, s in enumerate(choices)}
+        expected = {str(i): make_expected(s) for i, s in enumerate(choices)}
+
+        self.check_terms(
+            terms=terms,
+            expected=expected,
+            initial_workspace={c: data},
+            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+        )
+
+    def test_element_of_rejects_missing_value(self):
+        """
+        Test that element_of raises a useful error if we attempt to pass it an
+        array of choices that include the classifier's missing_value.
+        """
+        missing = "not in the array"
+
+        class C(Classifier):
+            dtype = categorical_dtype
+            missing_value = missing
+            inputs = ()
+            window_length = 0
+
+        c = C()
+
+        for bad_elems in ([missing], [missing, 'random other value']):
+            with self.assertRaises(ValueError) as e:
+                c.element_of(bad_elems)
+            errmsg = str(e.exception)
+            expected = (
+                "Found self.missing_value ('not in the array') in choices"
+                " supplied to C.is_element().\n"
+                "Missing values have NaN semantics, so the requested"
+                " comparison would always produce False.\n"
+                "Use the isnull() method to check for missing values.\n"
+                "Received choices were {}.".format(bad_elems)
+            )
+            self.assertEqual(errmsg, expected)
+
+    def test_element_of_rejects_unhashable_type(self):
+
+        class C(Classifier):
+            dtype = categorical_dtype
+            missing_value = ''
+            inputs = ()
+            window_length = 0
+
+        c = C()
+
+        with self.assertRaises(TypeError) as e:
+            c.element_of([{'a': 1}])
+
+        errmsg = str(e.exception)
+        expected = (
+            "Expected `choices` to be an iterable of strings,"
+            " but got [{'a': 1}] instead.\n"
+            "This caused the following error: "
+            "TypeError(\"unhashable type: 'dict'\",)."
+        )
+        self.assertEqual(errmsg, expected)
