@@ -74,6 +74,35 @@ class LabelArray(ndarray):
     Factorizes the input array into integers, but overloads equality on strings
     to check against the factor label.
 
+    Parameters
+    ----------
+    values : array-like
+        Array of values that can be passed to np.asarray with dtype=object.
+    missing_value : str
+        Scalar value to treat as 'missing' for operations on ``self``.
+    categories : list[str], optional
+        List of values to use as categories.  If not supplied, categories will
+        be inferred as the unique set of entries in ``values``.
+    sort : bool, optional
+        Whether to sort categories.  If sort is False and categories is
+        supplied, they are left in the order provided.  If sort is False and
+        categories is None, categories will be constructed in a random order.
+
+    Notes
+    -----
+    Consumers should be cautious when passing instances of LabelArray to numpy
+    functions.  We attempt to disallow as many meaningless operations as
+    possible, but since a LabelArray is just an ndarray of ints with some
+    additional metadata, many numpy functions (for example, trigonometric) will
+    happily accept a LabelArray and treat its values as though they were
+    integers.
+
+    In a future change, we may be able to disallow more numerical operations by
+    creating a wrapper dtype which doesn't register an implementation for most
+    numpy ufuncs. Until that change is made, consumers of LabelArray should
+    assume that it is undefined behavior to pass a LabelArray to any numpy
+    ufunc that operates on semantically-numerical data.
+
     See Also
     --------
     http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html
