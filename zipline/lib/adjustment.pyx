@@ -558,7 +558,7 @@ cdef class _ObjectAdjustment(Adjustment):
                  Py_ssize_t first_col,
                  Py_ssize_t last_col,
                  object value):
-        super(Adjustment, self).__init__(
+        super(_ObjectAdjustment, self).__init__(
             first_row=first_row,
             last_row=last_row,
             first_col=first_col,
