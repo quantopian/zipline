@@ -184,8 +184,8 @@ class LabelArray(ndarray):
            In this case, `self` will be the new LabelArray instance, and
            ``obj` will be the array on which ``view`` is being called.
 
-           The caller of ``obj.view`` is responsible for copying setting
-           category metadata on ``self`` after we exit.
+           The caller of ``obj.view`` is responsible for setting category
+           metadata on ``self`` after we exit.
 
         3. Someone creates a new LabelArray by slicing an existing one.
 
@@ -473,7 +473,7 @@ class LabelArray(ndarray):
         -------
         matches : np.ndarray[bool]
             An array with the same shape as self indicating whether each
-            element of self ended with ``suffix``.w
+            element of self ended with ``suffix``
         """
         return self.apply(lambda elem: elem.endswith(suffix), dtype=bool)
 
