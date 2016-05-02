@@ -423,8 +423,8 @@ class SimplePipelineEngine(object):
             # Each term that computed an output has its postprocess method
             # called on the filtered result.
             #
-            # We use this convert LabelArrays into categoricals, among other
-            # things.
+            # As of Mon May 2 15:38:47 2016, we only use this to convert
+            # LabelArrays into categoricals.
             final_columns[name] = terms[name].postprocess(data[name][mask])
 
         return DataFrame(
