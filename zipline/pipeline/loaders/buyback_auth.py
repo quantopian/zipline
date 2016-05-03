@@ -5,10 +5,10 @@ Reference implementation for buyback auth loaders.
 from ..data import BuybackAuthorizations
 from .events import EventsLoader
 from zipline.pipeline.common import (
+    BUYBACK_AMOUNT_FIELD_NAME,
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
     BUYBACK_TYPE_FIELD_NAME,
-    VALUE_FIELD_NAME,
-    VALUE_TYPE_FIELD_NAME
+    BUYBACK_UNIT_FIELD_NAME
 )
 from zipline.utils.memoize import lazyval
 
@@ -19,12 +19,12 @@ class BuybackAuthorizationsLoader(EventsLoader):
     :class:`zipline.pipeline.data.BuybackAuthorizations`.
 
     events_by_sid: dict[sid -> pd.DataFrame(knowledge date,
-    event date, value, value type, buyback type)]
+    event date, buyback amount, buyback unit, buyback type)]
 
     """
     expected_cols = frozenset([BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-                               VALUE_FIELD_NAME,
-                               VALUE_TYPE_FIELD_NAME,
+                               BUYBACK_AMOUNT_FIELD_NAME,
+                               BUYBACK_UNIT_FIELD_NAME,
                                BUYBACK_TYPE_FIELD_NAME])
 
     event_date_col = BUYBACK_ANNOUNCEMENT_FIELD_NAME
@@ -42,10 +42,10 @@ class BuybackAuthorizationsLoader(EventsLoader):
         )
 
     @lazyval
-    def previous_value_loader(self):
+    def previous_amount_loader(self):
         return self._previous_event_value_loader(
-            self.dataset.previous_value,
-            VALUE_FIELD_NAME
+            self.dataset.previous_amount,
+            BUYBACK_AMOUNT_FIELD_NAME
         )
 
     @lazyval
@@ -55,15 +55,15 @@ class BuybackAuthorizationsLoader(EventsLoader):
         )
 
     @lazyval
-    def previous_value_type_loader(self):
+    def previous_unit_loader(self):
         return self._previous_event_value_loader(
-            self.dataset.previous_value_type,
-            VALUE_TYPE_FIELD_NAME,
+            self.dataset.previous_unit,
+            BUYBACK_UNIT_FIELD_NAME,
         )
 
     @lazyval
-    def previous_buyback_type_loader(self):
+    def previous_type_loader(self):
         return self._previous_event_value_loader(
-            self.dataset.previous_buyback_type,
+            self.dataset.previous_type,
             BUYBACK_TYPE_FIELD_NAME,
         )

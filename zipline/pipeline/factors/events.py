@@ -136,11 +136,11 @@ class BusinessDaysSinceBuybackAuth(
 ):
     """
     Factor returning the number of **business days** (not trading days!) since
-    the most recent cash buyback authorization for each asset.
+    the most recent buyback authorization for each asset.
 
     See Also
     --------
-    zipline.pipeline.factors.BusinessDaysSinceCashBuybackAuth
+    zipline.pipeline.factors.BusinessDaysSinceBuybackAuth
     """
     inputs = [BuybackAuthorizations.previous_date]
 

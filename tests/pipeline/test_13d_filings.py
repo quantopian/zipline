@@ -17,16 +17,17 @@ from zipline.pipeline.data import _13DFilings
 from zipline.pipeline.factors.events import BusinessDaysSince13DFilingsDate
 from zipline.pipeline.loaders._13d_filings import _13DFilingsLoader
 from zipline.pipeline.loaders.utils import (
-    get_values_for_date_ranges,
     zip_with_floats,
     zip_with_dates
 )
 from zipline.testing.fixtures import WithPipelineEventDataLoader
 from zipline.testing.fixtures import ZiplineTestCase
 
-date_intervals = [[None, '2014-01-04'],
-                  ['2014-01-05', '2014-01-09'],
-                  ['2014-01-10', None]]
+date_intervals = [
+    [['2014-01-01', '2014-01-04'],
+     ['2014-01-05', '2014-01-09'],
+     ['2014-01-10', '2014-01-31']]
+]
 
 empty_df = pd.DataFrame(
     columns=[NUM_SHARES,
@@ -40,7 +41,7 @@ empty_df[PERCENT_SHARES] = empty_df[PERCENT_SHARES].astype('float')
 empty_df[TS_FIELD_NAME] = empty_df[TS_FIELD_NAME].astype('datetime64[ns]')
 empty_df[DISCLOSURE_DATE] = empty_df[DISCLOSURE_DATE].astype('datetime64[ns]')
 
-_13d_filngs_cases = [
+_13d_filings_cases = [
     pd.DataFrame({
         NUM_SHARES: [1, 15],
         PERCENT_SHARES: [10, 20],
@@ -49,19 +50,6 @@ _13d_filngs_cases = [
     }),
     empty_df
 ]
-
-
-def get_expected_previous_values(zip_date_index_with_vals,
-                                 vals,
-                                 date_intervals,
-                                 dates):
-    return pd.DataFrame({
-        0: get_values_for_date_ranges(zip_date_index_with_vals,
-                                      vals,
-                                      date_intervals,
-                                      dates),
-        1: zip_date_index_with_vals(dates, ['NaN'] * len(dates)),
-    }, index=dates)
 
 
 class _13DFilingsLoaderTestCase(WithPipelineEventDataLoader,
@@ -88,23 +76,37 @@ class _13DFilingsLoaderTestCase(WithPipelineEventDataLoader,
     def get_dataset(cls):
         return {sid: frame
                 for sid, frame
-                in enumerate(_13d_filngs_cases)}
+                in enumerate(_13d_filings_cases)}
 
     loader_type = _13DFilingsLoader
 
     def setup(self, dates):
-        cols = {}
-        cols[
-            PREVIOUS_DISCLOSURE_DATE
-        ] = get_expected_previous_values(zip_with_dates,
-                                         ['NaT', '2014-01-04', '2014-01-09'],
-                                         date_intervals, dates)
-        cols[PREVIOUS_NUM_SHARES] = get_expected_previous_values(
-            zip_with_floats, ['NaN', 1, 15], date_intervals, dates
-        )
-        cols[PREVIOUS_PERCENT_SHARES] = get_expected_previous_values(
-            zip_with_floats, ['NaN', 10, 20], date_intervals, dates
-        )
+        cols = {
+            PREVIOUS_DISCLOSURE_DATE: self.get_sids_to_frames(
+                zip_with_dates,
+                [['NaT', '2014-01-04', '2014-01-09']],
+                date_intervals,
+                dates,
+                'datetime64[ns]',
+                'NaN'
+            ),
+            PREVIOUS_NUM_SHARES: self.get_sids_to_frames(
+                zip_with_floats,
+                [['NaN', 1, 15]],
+                date_intervals,
+                dates,
+                'float',
+                'NaN'
+            ),
+            PREVIOUS_PERCENT_SHARES: self.get_sids_to_frames(
+                zip_with_floats,
+                [['NaN', 10, 20]],
+                date_intervals,
+                dates,
+                'float',
+                'NaN'
+            )
+        }
         cols[DAYS_SINCE_PREV_DISCLOSURE] = self._compute_busday_offsets(
             cols[PREVIOUS_DISCLOSURE_DATE]
         )

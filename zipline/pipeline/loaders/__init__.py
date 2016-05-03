@@ -1,7 +1,7 @@
 from ._13d_filings import _13DFilingsLoader
+from .buyback_auth import BuybackAuthorizationsLoader
 from .consensus_estimates import ConsensusEstimatesLoader
 from .earnings import EarningsCalendarLoader
-from .buyback_auth import BuybackAuthorizationsLoader
 from .dividends import (
     DividendsByAnnouncementDateLoader,
     DividendsByExDateLoader,

@@ -301,8 +301,12 @@ class ConsensusEstimatesLoaderTestCase(WithNextAndPreviousEventDataLoader,
     def setup(self, dates):
         cols = {
             PREVIOUS_RELEASE_DATE:
-                self.get_expected_previous_event_dates(dates),
-            NEXT_RELEASE_DATE: self.get_expected_next_event_dates(dates)
+                self.get_expected_previous_event_dates(
+                    dates, 'datetime64[ns]', 'NaN'
+                ),
+            NEXT_RELEASE_DATE: self.get_expected_next_event_dates(
+                    dates, 'datetime64[ns]', 'NaN'
+                )
         }
         for field_name in field_name_to_expected_col:
             cols[field_name] = self.get_sids_to_frames(
@@ -310,7 +314,9 @@ class ConsensusEstimatesLoaderTestCase(WithNextAndPreviousEventDataLoader,
                 self.prev_date_intervals
                 if field_name.startswith("previous")
                 else self.next_date_intervals,
-                dates
+                dates,
+                'float',
+                'NaN'
             )
         return cols
 
