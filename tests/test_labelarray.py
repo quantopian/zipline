@@ -61,7 +61,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         check_arrays(arr.endswith(s), np_endswith(strs))
 
         np_contains = np.vectorize(lambda elem: s in elem)
-        check_arrays(arr.contains(s), np_contains(strs))
+        check_arrays(arr.has_substring(s), np_contains(strs))
 
     def test_compare_to_str_array(self):
         strs = self.strs
