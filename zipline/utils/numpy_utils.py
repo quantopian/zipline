@@ -55,6 +55,20 @@ _FILLVALUE_DEFAULTS = {
     datetime64ns_dtype: NaTns,
 }
 
+INT_DTYPES_BY_SIZE_BYTES = {
+    1: dtype('int8'),
+    2: dtype('int16'),
+    4: dtype('int32'),
+    8: dtype('int64'),
+}
+
+
+def int_dtype_with_size_in_bytes(size):
+    try:
+        return INT_DTYPES_BY_SIZE_BYTES[size]
+    except KeyError:
+        raise ValueError("No integral dtype whose size is %d bytes." % size)
+
 
 class NoDefaultMissingValue(Exception):
     pass

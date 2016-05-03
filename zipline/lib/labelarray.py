@@ -19,7 +19,7 @@ from zipline.utils.input_validation import (
     expect_types,
     optional,
 )
-from zipline.utils.numpy_utils import is_object, int64_dtype
+from zipline.utils.numpy_utils import int_dtype_with_size_in_bytes, is_object
 
 from ._factorize import (
     factorize_strings,
@@ -88,6 +88,16 @@ class LabelArray(ndarray):
         supplied, they are left in the order provided.  If sort is False and
         categories is None, categories will be constructed in a random order.
 
+    Attributes
+    ----------
+    categories : ndarray[str]
+        An array containing the unique labels of self.
+    reverse_categories : dict[str -> int]
+        Reverse lookup table for ``categories``. Stores the index in
+        ``categories`` at which each entry each unique entry is found.
+    missing_value : str
+        A sentinel missing value with NaN semantics for comparisons.
+
     Notes
     -----
     Consumers should be cautious when passing instances of LabelArray to numpy
@@ -144,7 +154,26 @@ class LabelArray(ndarray):
             )
         categories.setflags(write=False)
 
-        ret = codes.reshape(values.shape).view(type=cls)
+        return cls._from_codes_and_metadata(
+            codes=codes.reshape(values.shape),
+            categories=categories,
+            reverse_categories=reverse_categories,
+            missing_value=missing_value,
+        )
+
+    @classmethod
+    def _from_codes_and_metadata(cls,
+                                 codes,
+                                 categories,
+                                 reverse_categories,
+                                 missing_value):
+        """
+        View codes as a LabelArray and set LabelArray metadata on the result.
+        """
+        ret = codes.view(
+            type=cls,
+            dtype=np.void(codes.dtype.itemsize),
+        )
         ret._categories = categories
         ret._reverse_categories = reverse_categories
         ret._missing_value = missing_value
@@ -203,24 +232,16 @@ class LabelArray(ndarray):
         self._reverse_categories = getattr(obj, 'reverse_categories', None)
         self._missing_value = getattr(obj, 'missing_value', None)
 
-    def __array_wrap__(self, obj, context=None):
-        """
-        Called by numpy after completion of a ufunc.
-
-        We coerce back into a vanilla ndarray if our dtype changed, since that
-        indicates that our categories are no longer meaningful.
-        """
-        if obj.dtype != self.dtype:
-            return obj.view(type=np.ndarray)
-        return obj
-
     def as_int_array(self):
         """
         Convert self into a regular ndarray of ints.
 
         This is an O(1) operation. It does not copy the underlying data.
         """
-        return self.view(type=ndarray)
+        return self.view(
+            type=ndarray,
+            dtype=int_dtype_with_size_in_bytes(self.itemsize),
+        )
 
     def as_string_array(self):
         """
@@ -228,7 +249,7 @@ class LabelArray(ndarray):
 
         This is an O(N) operation.
         """
-        return self.categories[self]
+        return self.categories[self.as_int_array()]
 
     def as_categorical(self, name=None):
         """
@@ -284,8 +305,7 @@ class LabelArray(ndarray):
             value_code = self.reverse_categories.get(value, None)
             if value_code is None:
                 raise ValueError("%r is not in LabelArray categories." % value)
-            return super(LabelArray, self).__setitem__(indexer, value_code)
-
+            self.as_int_array()[indexer] = value_code
         else:
             raise NotImplementedError(
                 "Setting into a LabelArray with a value of "
@@ -407,10 +427,6 @@ class LabelArray(ndarray):
         # This happens if you call a ufunc on a LabelArray that changes the
         # dtype.  This is generally an indicator that the array has been used
         # incorrectly, and it means we're no longer valid for anything.
-        if self.dtype != int64_dtype:
-            return "Invalid LabelArray: dtype={}, shape={}".format(
-                self.dtype, self.shape
-            )
         repr_lines = repr(self.as_string_array()).splitlines()
         repr_lines[0] = repr_lines[0].replace('array(', 'LabelArray(', 1)
         repr_lines[-1] = repr_lines[-1].rsplit(',', 1)[0] + ')'
@@ -423,19 +439,16 @@ class LabelArray(ndarray):
         Make an empty LabelArray with the same categories as ``self``, filled
         with ``self.missing_value``.
         """
-        out = np.full(
-            shape,
-            self.reverse_categories[self.missing_value],
-            dtype=self.dtype
-        ).view(
-            type=type(self)
+        return type(self)._from_codes_and_metadata(
+            codes=np.full(
+                shape,
+                self.reverse_categories[self.missing_value],
+                dtype=int_dtype_with_size_in_bytes(self.itemsize),
+            ),
+            categories=self.categories,
+            reverse_categories=self.reverse_categories,
+            missing_value=self.missing_value,
         )
-
-        out._categories = self.categories
-        out._reverse_categories = self.reverse_categories
-        out._missing_value = self.missing_value
-
-        return out
 
     def apply(self, f, dtype):
         """
@@ -443,7 +456,8 @@ class LabelArray(ndarray):
 
         ``f`` will be applied exactly once to each unique value in ``self``.
         """
-        return np.vectorize(f, otypes=[dtype])(self.categories)[self]
+        vf = np.vectorize(f, otypes=[dtype])
+        return vf(self.categories)[self.as_int_array()]
 
     def startswith(self, prefix):
         """

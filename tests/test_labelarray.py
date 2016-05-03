@@ -21,6 +21,11 @@ def rotN(l, N):
     return l[N:] + l[:N]
 
 
+def all_ufuncs():
+    ufunc_type = type(np.isnan)
+    return (f for f in vars(np).values() if isinstance(f, ufunc_type))
+
+
 class LabelArrayTestCase(ZiplineTestCase):
 
     @classmethod
@@ -136,7 +141,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         for idx, value in enumerate(arr1d.categories):
             check_arrays(
                 self.strs == value,
-                arr1d.view(type=np.ndarray) == idx,
+                arr1d.as_int_array() == idx,
             )
 
         for shape in (9, 3), (3, 9), (3, 3, 3):
@@ -149,3 +154,30 @@ class LabelArrayTestCase(ZiplineTestCase):
 
             for idx, value in enumerate(arr2d.categories):
                 check_arrays(strs2d == value, codes2d == idx)
+
+    def test_reject_ufuncs(self):
+        """
+        The internal values of a LabelArray should be opaque to numpy ufuncs.
+        """
+        def assert_ufunc_failure(exc):
+            self.assertEqual(str(exc), 'Not implemented for this type')
+
+        l = LabelArray(self.strs, '')
+        ints = np.arange(len(l))
+
+        for func in all_ufuncs():
+            # Different ufuncs vary between returning NotImplemented and
+            # raising a TypeError when provided with unknown dtypes.
+            # This is a bit unfortunate, but still better than silently
+            # accepting an int array.
+            try:
+                if func.nin == 1:
+                    ret = func(l)
+                elif func.nin == 2:
+                    ret = func(l, ints)
+                else:
+                    self.fail("Who added a ternary ufunc !?!")
+            except TypeError as e:
+                assert_ufunc_failure(e)
+            else:
+                self.assertIs(ret, NotImplemented)
