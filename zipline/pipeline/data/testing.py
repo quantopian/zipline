@@ -25,6 +25,11 @@ class TestingDataSet(DataSet):
     int_col = Column(dtype=int64_dtype, missing_value=0)
 
     categorical_col = Column(dtype=categorical_dtype, missing_value=u'')
+    categorical_default_None = Column(
+        dtype=categorical_dtype,
+        missing_value=None,
+    )
+
     categorical_default_NULL = Column(
         dtype=categorical_dtype,
         missing_value=u'<<NULL>>',

@@ -33,7 +33,7 @@ class LabelArrayTestCase(ZiplineTestCase):
         super(LabelArrayTestCase, cls).init_class_fixtures()
 
         cls.rowvalues = row = ['', 'a', 'b', 'ab', 'a', '', 'b', 'ab', 'z']
-        cls.strs = np.array([rotN(row, i) for i in range(3)])
+        cls.strs = np.array([rotN(row, i) for i in range(3)], dtype=object)
 
     def test_fail_on_direct_construction(self):
         # See http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html#simple-example-adding-an-extra-attribute-to-ndarray  # noqa
@@ -48,32 +48,82 @@ class LabelArrayTestCase(ZiplineTestCase):
 
     @parameter_space(
         __fail_fast=True,
-        s=['', 'a', 'z', 'aa', 'not in the array'],
-        shape=[(27,), (9, 3), (3, 9), (3, 3, 3)],
+        compval=['', 'a', 'z', 'not in the array'],
+        shape=[(27,), (3, 9), (3, 3, 3)],
         array_astype=(bytes, unicode, object),
-        scalar_astype=(bytes, unicode, object),
+        missing_value=('', 'a', 'not in the array', None),
     )
-    def test_compare_to_str(self, s, shape, array_astype, scalar_astype):
+    def test_compare_to_str(self,
+                            compval,
+                            shape,
+                            array_astype,
+                            missing_value):
+
         strs = self.strs.reshape(shape).astype(array_astype)
-        arr = LabelArray(strs, missing_value='')
-        check_arrays(strs == s, arr == s)
-        check_arrays(strs != s, arr != s)
+        if missing_value is None:
+            # As of numpy 1.9.2, object array != None returns just False
+            # instead of an array, with a deprecation warning saying the
+            # behavior will change in the future.  Work around that by just
+            # using the ufunc.
+            notmissing = np.not_equal(strs, missing_value)
+        else:
+            notmissing = (strs != missing_value)
 
-        np_startswith = np.vectorize(lambda elem: elem.startswith(s))
-        check_arrays(arr.startswith(s), np_startswith(strs))
+        arr = LabelArray(strs, missing_value=missing_value)
 
-        np_endswith = np.vectorize(lambda elem: elem.endswith(s))
-        check_arrays(arr.endswith(s), np_endswith(strs))
+        # arr.missing_value should behave like NaN.
+        check_arrays(
+            arr == compval,
+            (strs == compval) & notmissing,
+        )
+        check_arrays(
+            arr != compval,
+            (strs != compval) & notmissing,
+        )
 
-        np_contains = np.vectorize(lambda elem: s in elem)
-        check_arrays(arr.has_substring(s), np_contains(strs))
+        np_startswith = np.vectorize(lambda elem: elem.startswith(compval))
+        check_arrays(
+            arr.startswith(compval),
+            np_startswith(strs) & notmissing,
+        )
 
-    def test_compare_to_str_array(self):
+        np_endswith = np.vectorize(lambda elem: elem.endswith(compval))
+        check_arrays(
+            arr.endswith(compval),
+            np_endswith(strs) & notmissing,
+        )
+
+        np_contains = np.vectorize(lambda elem: compval in elem)
+        check_arrays(
+            arr.has_substring(compval),
+            np_contains(strs) & notmissing,
+        )
+
+    @parameter_space(
+        __fail_fast=True,
+        missing_value=('', 'a', 'not in the array', None),
+    )
+    def test_compare_to_str_array(self, missing_value):
         strs = self.strs
         shape = strs.shape
-        arr = LabelArray(strs, missing_value='')
-        check_arrays(strs == arr, np.full_like(strs, True, dtype=bool))
-        check_arrays(strs != arr, np.full_like(strs, False, dtype=bool))
+        arr = LabelArray(strs, missing_value=missing_value)
+
+        if missing_value is None:
+            # As of numpy 1.9.2, object array != None returns just False
+            # instead of an array, with a deprecation warning saying the
+            # behavior will change in the future.  Work around that by just
+            # using the ufunc.
+            notmissing = np.not_equal(strs, missing_value)
+        else:
+            notmissing = (strs != missing_value)
+
+        check_arrays(arr.not_missing(), notmissing)
+        check_arrays(arr.is_missing(), ~notmissing)
+
+        # The arrays are equal everywhere, but comparisons against the
+        # missing_value should always produce False
+        check_arrays(strs == arr, notmissing)
+        check_arrays(strs != arr, np.zeros_like(strs, dtype=bool))
 
         def broadcastable_row(value, dtype):
             return np.full((shape[0], 1), value, dtype=strs.dtype)
@@ -81,20 +131,22 @@ class LabelArrayTestCase(ZiplineTestCase):
         def broadcastable_col(value, dtype):
             return np.full((1, shape[1]), value, dtype=strs.dtype)
 
+        # Test comparison between arr and a like-shap 2D array, a column
+        # vector, and a row vector.
         for comparator, dtype, value in product((eq, ne),
                                                 (bytes, unicode, object),
                                                 set(self.rowvalues)):
             check_arrays(
                 comparator(arr, np.full_like(strs, value)),
-                comparator(strs, value),
+                comparator(strs, value) & notmissing,
             )
             check_arrays(
                 comparator(arr, broadcastable_row(value, dtype=dtype)),
-                comparator(strs, value),
+                comparator(strs, value) & notmissing,
             )
             check_arrays(
                 comparator(arr, broadcastable_col(value, dtype=dtype)),
-                comparator(strs, value),
+                comparator(strs, value) & notmissing,
             )
 
     @parameter_space(
@@ -122,6 +174,10 @@ class LabelArrayTestCase(ZiplineTestCase):
         self.assertIs(sliced.missing_value, arr.missing_value)
 
     def test_infer_categories(self):
+        """
+        Test that categories are inferred in sorted order if they're not
+        explicitly passed.
+        """
         arr1d = LabelArray(self.strs, missing_value='')
         codes1d = arr1d.as_int_array()
         self.assertEqual(arr1d.shape, self.strs.shape)
@@ -143,6 +199,14 @@ class LabelArrayTestCase(ZiplineTestCase):
                 self.strs == value,
                 arr1d.as_int_array() == idx,
             )
+
+        # It should be equivalent to pass the same set of categories manually.
+        arr1d_explicit_categories = LabelArray(
+            self.strs,
+            missing_value='',
+            categories=arr1d.categories,
+        )
+        check_arrays(arr1d, arr1d_explicit_categories)
 
         for shape in (9, 3), (3, 9), (3, 3, 3):
             strs2d = self.strs.reshape(shape)

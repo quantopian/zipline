@@ -347,7 +347,6 @@ class StringPredicate(SingleInputMixin, Filter):
         data = arrays[0]
         return (
             self._op(data, self._compval)
-            & (data != self.inputs[0].missing_value)
             & mask
         )
 

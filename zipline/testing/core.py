@@ -40,6 +40,7 @@ from zipline.data.us_equity_pricing import (
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
+from zipline.lib.labelarray import LabelArray
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
@@ -394,7 +395,19 @@ def check_arrays(x, y, err_msg='', verbose=True, check_dtypes=True):
     assert type(x) == type(y), "{x} != {y}".format(x=type(x), y=type(y))
     assert x.dtype == y.dtype, "{x.dtype} != {y.dtype}".format(x=x, y=y)
 
-    return assert_array_equal(x, y, err_msg=err_msg, verbose=True)
+    if isinstance(x, LabelArray):
+        # Check that both arrays have missing values in the same locations...
+        assert_array_equal(
+            x.is_missing(),
+            y.is_missing(),
+            err_msg=err_msg,
+            verbose=verbose,
+        )
+        # ...then check the actual values as well.
+        x = x.as_string_array()
+        y = y.as_string_array()
+
+    return assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
 
 
 class UnexpectedAttributeAccess(Exception):

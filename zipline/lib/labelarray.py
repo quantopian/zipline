@@ -2,7 +2,6 @@
 An ndarray subclass for working with arrays of strings.
 """
 from functools import partial
-from numbers import Number
 from operator import eq, ne
 import re
 
@@ -19,7 +18,11 @@ from zipline.utils.input_validation import (
     expect_types,
     optional,
 )
-from zipline.utils.numpy_utils import int_dtype_with_size_in_bytes, is_object
+from zipline.utils.numpy_utils import (
+    bool_dtype,
+    int_dtype_with_size_in_bytes,
+    is_object,
+)
 
 from ._factorize import (
     factorize_strings,
@@ -43,6 +46,18 @@ def _make_unsupported_method(name):
     method.__name__ = name
     method.__doc__ = "Unsupported LabelArray Method: %s" % name
     return method
+
+
+class MissingValueMismatch(ValueError):
+    """
+    Error raised on attempt to perform operations between LabelArrays with
+    mismatched missing_values.
+    """
+    def __init__(self, left, right):
+        super(MissingValueMismatch, self).__init__(
+            "LabelArray missing_values don't match:"
+            " left={}, right={}".format(left, right)
+        )
 
 
 class CategoryMismatch(ValueError):
@@ -95,7 +110,7 @@ class LabelArray(ndarray):
     reverse_categories : dict[str -> int]
         Reverse lookup table for ``categories``. Stores the index in
         ``categories`` at which each entry each unique entry is found.
-    missing_value : str
+    missing_value : str or None
         A sentinel missing value with NaN semantics for comparisons.
 
     Notes
@@ -117,11 +132,15 @@ class LabelArray(ndarray):
     --------
     http://docs.scipy.org/doc/numpy-1.10.0/user/basics.subclassing.html
     """
+    SUPPORTED_SCALAR_TYPES = (bytes, unicode, type(None))
+
     @preprocess(
         values=coerce(list, partial(np.asarray, dtype=object)),
+        categories=coerce(np.ndarray, list),
     )
     @expect_types(
         values=np.ndarray,
+        missing_value=SUPPORTED_SCALAR_TYPES,
         categories=optional(list),
     )
     @expect_kinds(values=("O", "S", "U"))
@@ -301,9 +320,9 @@ class LabelArray(ndarray):
             else:
                 raise CategoryMismatch(self_categories, value_categories)
 
-        elif isinstance(value, (bytes, unicode)):
-            value_code = self.reverse_categories.get(value, None)
-            if value_code is None:
+        elif isinstance(value, self.SUPPORTED_SCALAR_TYPES):
+            value_code = self.reverse_categories.get(value, -1)
+            if value_code < 0:
                 raise ValueError("%r is not in LabelArray categories." % value)
             self.as_int_array()[indexer] = value_code
         else:
@@ -314,47 +333,54 @@ class LabelArray(ndarray):
                 ),
             )
 
+    def is_missing(self):
+        """
+        Like isnan, but checks for locations where we store missing values.
+        """
+        return (
+            self.as_int_array() == self.reverse_categories[self.missing_value]
+        )
+
+    def not_missing(self):
+        """
+        Like ~isnan, but checks for locations where we store missing values.
+        """
+        return (
+            self.as_int_array() != self.reverse_categories[self.missing_value]
+        )
+
     def _equality_check(op):
         """
         Shared code for __eq__ and __ne__, parameterized on the actual
         comparison operator to use.
         """
-        # What value should we return if we compare against a value not in our
-        # categories?
-        if op is eq:
-            COMPARE_TO_UNKNOWN = False
-        elif op is ne:
-            COMPARE_TO_UNKNOWN = True
-        else:
-            raise AssertionError("_make_equality_check called with %s" % op)
-
         def method(self, other):
-            self_categories = self.categories
 
             if isinstance(other, LabelArray):
+                self_mv = self.missing_value
+                other_mv = other.missing_value
+                if self_mv != other_mv:
+                    raise MissingValueMismatch(self_mv, other_mv)
+
+                self_categories = self.categories
                 other_categories = other.categories
-                if compare_arrays(self_categories, other_categories):
-                    return op(self.as_int_array(), other.as_int_array())
-                else:
+                if not compare_arrays(self_categories, other_categories):
                     raise CategoryMismatch(self_categories, other_categories)
+
+                return (
+                    op(self.as_int_array(), other.as_int_array())
+                    & self.not_missing()
+                    & other.not_missing()
+                )
 
             elif isinstance(other, ndarray):
                 # Compare to ndarrays as though we were an array of strings.
                 # This is fairly expensive, and should generally be avoided.
-                return op(self.as_string_array(), other)
+                return op(self.as_string_array(), other) & self.not_missing()
 
-            elif isinstance(other, (bytes, unicode)):
-                i = self._reverse_categories.get(other, None)
-                if i is None:
-                    # Requested string isn't in our categories.  Short circuit.
-                    # This isn't full_like because that would try to return a
-                    # LabelArray.
-                    return np.full(self.shape, COMPARE_TO_UNKNOWN, dtype=bool)
-
-                return op(self.as_int_array(), i)
-
-            elif isinstance(other, Number):
-                return NotImplemented
+            elif isinstance(other, self.SUPPORTED_SCALAR_TYPES):
+                i = self._reverse_categories.get(other, -1)
+                return op(self.as_int_array(), i) & self.not_missing()
 
             return op(super(LabelArray, self), other)
         return method
@@ -450,14 +476,30 @@ class LabelArray(ndarray):
             missing_value=self.missing_value,
         )
 
-    def apply(self, f, dtype):
+    def map_predicate(self, f):
         """
-        Map a function elementwise over entries in ``self``.
+        Map a function from str -> bool element-wise over ``self``.
 
-        ``f`` will be applied exactly once to each unique value in ``self``.
+        ``f`` will be applied exactly once to each non-missing unique value in
+        ``self``. Missing values will always return False.
         """
-        vf = np.vectorize(f, otypes=[dtype])
-        return vf(self.categories)[self.as_int_array()]
+        # Functions passed to this are of type str -> bool.  Don't ever call
+        # them on None, which is the only non-str value we ever store in
+        # categories.
+        if self.missing_value is None:
+            f_to_use = lambda x: False if x is None else f(x)
+        else:
+            f_to_use = f
+
+        # Call f on each unique value in our categories.
+        results = np.vectorize(f_to_use, otypes=[bool_dtype])(self.categories)
+
+        # missing_value should produce False no matter what
+        results[self.reverse_categories[self.missing_value]] = False
+
+        # unpack the results form each unique value into their corresponding
+        # locations in our indices.
+        return results[self.as_int_array()]
 
     def startswith(self, prefix):
         """
@@ -473,7 +515,7 @@ class LabelArray(ndarray):
             An array with the same shape as self indicating whether each
             element of self started with ``prefix``.
         """
-        return self.apply(lambda elem: elem.startswith(prefix), dtype=bool)
+        return self.map_predicate(lambda elem: elem.startswith(prefix))
 
     def endswith(self, suffix):
         """
@@ -489,7 +531,7 @@ class LabelArray(ndarray):
             An array with the same shape as self indicating whether each
             element of self ended with ``suffix``
         """
-        return self.apply(lambda elem: elem.endswith(suffix), dtype=bool)
+        return self.map_predicate(lambda elem: elem.endswith(suffix))
 
     def has_substring(self, substring):
         """
@@ -505,7 +547,7 @@ class LabelArray(ndarray):
             An array with the same shape as self indicating whether each
             element of self ended with ``suffix``.
         """
-        return self.apply(lambda elem: substring in elem, dtype=bool)
+        return self.map_predicate(lambda elem: substring in elem)
 
     @preprocess(pattern=coerce(from_=(bytes, unicode), to=re.compile))
     def matches(self, pattern):
@@ -522,7 +564,7 @@ class LabelArray(ndarray):
             An array with the same shape as self indicating whether each
             element of self was matched by ``pattern``.
         """
-        return self.apply(compose(bool, pattern.match), dtype=bool)
+        return self.map_predicate(compose(bool, pattern.match))
 
     # These types all implement an O(N) __contains__, so pre-emptively
     # coerce to `set`.
@@ -543,4 +585,4 @@ class LabelArray(ndarray):
             An array with the same shape as self indicating whether each
             element of self was an element of ``container``.
         """
-        return self.apply(container.__contains__, dtype=bool)
+        return self.map_predicate(container.__contains__)

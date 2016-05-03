@@ -18,7 +18,6 @@ from zipline.errors import (
     WindowLengthTooLong,
 )
 from zipline.lib.labelarray import LabelArray
-from zipline.utils.compat import unicode
 from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     float64_dtype,
@@ -111,10 +110,10 @@ def _normalize_array(data, missing_value):
     elif data_dtype in INT_DTYPES:
         return data.astype(int64), {'dtype': dtype(int64)}
     elif is_categorical(data_dtype):
-        if not isinstance(missing_value, (bytes, unicode)):
+        if not isinstance(missing_value, LabelArray.SUPPORTED_SCALAR_TYPES):
             raise TypeError(
                 "Invalid missing_value for categorical array.\n"
-                "Expected bytes or unicode. Got %r." % missing_value,
+                "Expected None, bytes or unicode. Got %r." % missing_value,
             )
         return LabelArray(data, missing_value), {}
     elif data_dtype.kind == 'M':
