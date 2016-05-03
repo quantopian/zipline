@@ -189,10 +189,7 @@ class LabelArray(ndarray):
         """
         View codes as a LabelArray and set LabelArray metadata on the result.
         """
-        ret = codes.view(
-            type=cls,
-            dtype=np.void(codes.dtype.itemsize),
-        )
+        ret = codes.view(type=cls, dtype=np.void)
         ret._categories = categories
         ret._reverse_categories = reverse_categories
         ret._missing_value = missing_value
@@ -212,6 +209,9 @@ class LabelArray(ndarray):
     def missing_value(self):
         # This is a property because it should be immutable.
         return self._missing_value
+
+    def has_label(self, value):
+        return value in self.reverse_categories
 
     def __array_finalize__(self, obj):
         """
@@ -332,6 +332,25 @@ class LabelArray(ndarray):
                     type=type(value).__name__,
                 ),
             )
+
+    def __setslice__(self, i, j, sequence):
+        """
+        This method was deprecated in Python 2.0. It predates slice objects,
+        but Python 2.7.11 still uses it if you implement it, which ndarray
+        does.  In newer Pythons, __setitem__ is always called, but we need to
+        manuallly forward in py2.
+        """
+        self.__setitem__(slice(i, j), sequence)
+
+    def __getitem__(self, indexer):
+        result = super(LabelArray, self).__getitem__(indexer)
+        if result.ndim:
+            # Result is still a LabelArray, so we can just return it.
+            return result
+
+        # Result is a scalar value, which will be an instance of np.void.
+        # Map it back to one of our category entries.
+        return self.categories[result.view(int)]
 
     def is_missing(self):
         """

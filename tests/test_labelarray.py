@@ -222,6 +222,8 @@ class LabelArrayTestCase(ZiplineTestCase):
     def test_reject_ufuncs(self):
         """
         The internal values of a LabelArray should be opaque to numpy ufuncs.
+
+        Test that all unfuncs fail.
         """
         def assert_ufunc_failure(exc):
             self.assertEqual(str(exc), 'Not implemented for this type')
@@ -245,3 +247,76 @@ class LabelArrayTestCase(ZiplineTestCase):
                 assert_ufunc_failure(e)
             else:
                 self.assertIs(ret, NotImplemented)
+
+    @parameter_space(
+        __fail_fast=True,
+        val=['', 'a', 'not in the array', None],
+        missing_value=['', 'a', 'not in the array', None],
+    )
+    def test_setitem_scalar(self, val, missing_value):
+        arr = LabelArray(self.strs, missing_value=missing_value)
+
+        if not arr.has_label(val):
+            self.assertTrue(
+                (val == 'not in the array')
+                or (val is None and missing_value is not None)
+            )
+            for slicer in [(0, 0), (0, 1), 1]:
+                with self.assertRaises(ValueError):
+                    arr[slicer] = val
+            return
+
+        arr[0, 0] = val
+        self.assertEqual(arr[0, 0], val)
+
+        arr[0, 1] = val
+        self.assertEqual(arr[0, 1], val)
+
+        arr[1] = val
+        if val == missing_value:
+            self.assertTrue(arr.is_missing()[1].all())
+        else:
+            self.assertTrue((arr[1] == val).all())
+            self.assertTrue((arr[1].as_string_array() == val).all())
+
+        arr[:, -1] = val
+        if val == missing_value:
+            self.assertTrue(arr.is_missing()[:, -1].all())
+        else:
+            self.assertTrue((arr[:, -1] == val).all())
+            self.assertTrue((arr[:, -1].as_string_array() == val).all())
+
+        arr[:] = val
+        if val == missing_value:
+            self.assertTrue(arr.is_missing().all())
+        else:
+            self.assertFalse(arr.is_missing().any())
+            self.assertTrue((arr == val).all())
+
+    def test_setitem_array(self):
+        arr = LabelArray(self.strs, missing_value=None)
+        orig_arr = arr.copy()
+
+        # Write a row.
+        self.assertFalse(
+            (arr[0] == arr[1]).all(),
+            "This test doesn't test anything because rows 0"
+            " and 1 are already equal!"
+        )
+        arr[0] = arr[1]
+        for i in range(arr.shape[1]):
+            self.assertEqual(arr[0, i], arr[1, i])
+
+        # Write a column.
+        self.assertFalse(
+            (arr[:, 0] == arr[:, 1]).all(),
+            "This test doesn't test anything because columns 0"
+            " and 1 are already equal!"
+        )
+        arr[:, 0] = arr[:, 1]
+        for i in range(arr.shape[0]):
+            self.assertEqual(arr[i, 0], arr[i, 1])
+
+        # Write the whole array.
+        arr[:] = orig_arr
+        check_arrays(arr, orig_arr)
