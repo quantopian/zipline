@@ -408,7 +408,6 @@ class LabelArray(ndarray):
     # numeric methods.
     SUPPORTED_NDARRAY_METHODS = frozenset([
         'base',
-        'byteswap',
         'compress',
         'copy',
         'data',
@@ -421,7 +420,6 @@ class LabelArray(ndarray):
         'itemsize',
         'nbytes',
         'ndim',
-        'newbyteorder',
         'ravel',
         'repeat',
         'reshape',
