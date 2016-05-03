@@ -2,12 +2,12 @@ from textwrap import dedent
 
 from numbers import Real
 
-import pandas as pd
+from nose_parameterized import parameterized
 import numpy as np
 from numpy import nan
 from numpy.testing import assert_almost_equal
-
-from nose_parameterized import parameterized
+import pandas as pd
+from six import iteritems
 
 from zipline import TradingAlgorithm
 from zipline._protocol import handle_non_market_minutes
@@ -473,7 +473,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             start_val=2,
             interval=10,
         )
-        return data
+        return iteritems(data)
 
     def test_history_in_initialize(self):
         algo_text = dedent(
@@ -986,24 +986,22 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def make_minute_bar_data(cls):
         asset1 = cls.asset_finder.retrieve_asset(1)
         asset2 = cls.asset_finder.retrieve_asset(2)
-        return {
-            asset1.sid: create_minute_df_for_asset(
-                cls.env,
-                asset1.start_date,
-                asset1.end_date,
-                start_val=2,
-            ),
-            asset2.sid: create_minute_df_for_asset(
-                cls.env,
-                asset2.start_date,
-                cls.env.previous_trading_day(asset2.end_date),
-                start_val=2,
-                minute_blacklist=[
-                    pd.Timestamp('2015-01-08 14:31', tz='UTC'),
-                    pd.Timestamp('2015-01-08 21:00', tz='UTC'),
-                ],
-            ),
-        }
+        yield asset1.sid, create_minute_df_for_asset(
+            cls.env,
+            asset1.start_date,
+            asset1.end_date,
+            start_val=2,
+        )
+        yield asset2.sid, create_minute_df_for_asset(
+            cls.env,
+            asset2.start_date,
+            cls.env.previous_trading_day(asset2.end_date),
+            start_val=2,
+            minute_blacklist=[
+                pd.Timestamp('2015-01-08 14:31', tz='UTC'),
+                pd.Timestamp('2015-01-08 21:00', tz='UTC'),
+            ],
+        )
 
     @classmethod
     def create_df_for_asset(cls, start_day, end_day, interval=1,
@@ -1548,32 +1546,30 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinuteBarReader,
 
     @classmethod
     def make_minute_bar_data(cls):
-        return {
-            # sid data is created so that at least one high is lower than a
-            # previous high, and the inverse for low
-            1: pd.DataFrame(
-                {
-                    'open': [nan, 103.50, 102.50, 104.50, 101.50, nan],
-                    'high': [nan, 103.90, 102.90, 104.90, 101.90, nan],
-                    'low': [nan, 103.10, 102.10, 104.10, 101.10, nan],
-                    'close': [nan, 103.30, 102.30, 104.30, 101.30, nan],
-                    'volume': [0, 1003, 1002, 1004, 1001, 0]
-                },
-                index=cls.minutes,
-            ),
-            # sid 2 is included to provide data on different bars than sid 1,
-            # as will as illiquidty mid-day
-            2: pd.DataFrame(
-                {
-                    'open': [201.50, nan, 204.50, nan, 200.50, 202.50],
-                    'high': [201.90, nan, 204.90, nan, 200.90, 202.90],
-                    'low': [201.10, nan, 204.10, nan, 200.10, 202.10],
-                    'close': [201.30, nan, 203.50, nan, 200.30, 202.30],
-                    'volume': [2001, 0, 2004, 0, 2000, 2002],
-                },
-                index=cls.minutes,
-            ),
-        }
+        # sid data is created so that at least one high is lower than a
+        # previous high, and the inverse for low
+        yield 1, pd.DataFrame(
+            {
+                'open': [nan, 103.50, 102.50, 104.50, 101.50, nan],
+                'high': [nan, 103.90, 102.90, 104.90, 101.90, nan],
+                'low': [nan, 103.10, 102.10, 104.10, 101.10, nan],
+                'close': [nan, 103.30, 102.30, 104.30, 101.30, nan],
+                'volume': [0, 1003, 1002, 1004, 1001, 0]
+            },
+            index=cls.minutes,
+        )
+        # sid 2 is included to provide data on different bars than sid 1,
+        # as will as illiquidty mid-day
+        yield 2, pd.DataFrame(
+            {
+                'open': [201.50, nan, 204.50, nan, 200.50, 202.50],
+                'high': [201.90, nan, 204.90, nan, 200.90, 202.90],
+                'low': [201.10, nan, 204.10, nan, 200.10, 202.10],
+                'close': [201.30, nan, 203.50, nan, 200.30, 202.30],
+                'volume': [2001, 0, 2004, 0, 2000, 2002],
+            },
+            index=cls.minutes,
+        )
 
     expected_values = {
         1: pd.DataFrame(

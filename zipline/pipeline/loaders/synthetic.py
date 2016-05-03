@@ -213,7 +213,7 @@ def asset_end(asset_info, asset):
     return ret
 
 
-def make_daily_bar_data(asset_info, calendar):
+def make_bar_data(asset_info, calendar):
     """
 
     For a given asset/date/column combination, we generate a corresponding raw
@@ -249,7 +249,7 @@ def make_daily_bar_data(asset_info, calendar):
     assert (
         # Using .value here to avoid having to care about UTC-aware dates.
         PSEUDO_EPOCH.value <
-        calendar.min().value <=
+        calendar.normalize().min().value <=
         asset_info['start_date'].min().value
     ), "calendar.min(): %s\nasset_info['start_date'].min(): %s" % (
         calendar.min(),
@@ -266,13 +266,13 @@ def make_daily_bar_data(asset_info, calendar):
         """
         # Get the dates for which this asset existed according to our asset
         # info.
-        dates = calendar[calendar.slice_indexer(
+        datetimes = calendar[calendar.slice_indexer(
             asset_start(asset_info, asset_id),
             asset_end(asset_info, asset_id),
         )]
 
         data = full(
-            (len(dates), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
+            (len(datetimes), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
             asset_id * 100 * 1000,
             dtype=uint32,
         )
@@ -281,15 +281,15 @@ def make_daily_bar_data(asset_info, calendar):
         data[:, :5] += arange(5, dtype=uint32) * 1000
 
         # Add days since Jan 1 2001 for OHLCV columns.
-        data[:, :5] += (dates - PSEUDO_EPOCH).days[:, None].astype(uint32)
+        data[:, :5] += (datetimes - PSEUDO_EPOCH).days[:, None].astype(uint32)
 
         frame = DataFrame(
             data,
-            index=dates,
+            index=datetimes,
             columns=US_EQUITY_PRICING_BCOLZ_COLUMNS,
         )
 
-        frame['day'] = nanos_to_seconds(dates.asi8)
+        frame['day'] = nanos_to_seconds(datetimes.asi8)
         frame['id'] = asset_id
         return frame
 
@@ -297,7 +297,7 @@ def make_daily_bar_data(asset_info, calendar):
         yield asset, _raw_data_for_asset(asset)
 
 
-def expected_daily_bar_value(asset_id, date, colname):
+def expected_bar_value(asset_id, date, colname):
     """
     Check that the raw value for an asset/date/column triple is as
     expected.
@@ -310,7 +310,7 @@ def expected_daily_bar_value(asset_id, date, colname):
     return from_asset + from_colname + from_date
 
 
-def expected_daily_bar_values_2d(dates, asset_info, colname):
+def expected_bar_values_2d(dates, asset_info, colname):
     """
     Return an 2D array containing cls.expected_value(asset_id, date,
     colname) for each date/asset pair in the inputs.
@@ -336,7 +336,7 @@ def expected_daily_bar_values_2d(dates, asset_info, colname):
             # date.
             if not (start <= date <= end):
                 continue
-            data[i, j] = expected_daily_bar_value(asset, date, colname)
+            data[i, j] = expected_bar_value(asset, date, colname)
     return data
 
 

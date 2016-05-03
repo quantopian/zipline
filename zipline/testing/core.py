@@ -349,7 +349,7 @@ def make_trade_data_for_asset_info(dates,
         )
 
         if writer:
-            writer.write(sid, df)
+            writer.write_sid(sid, df)
 
         trade_data[sid] = df
 
@@ -424,8 +424,8 @@ def write_minute_data(env, tempdir, minutes, sids):
 
 def create_minute_bar_data(minutes, sids):
     length = len(minutes)
-    return {
-        sid: pd.DataFrame(
+    for sid_idx, sid in enumerate(sids):
+        yield sid, pd.DataFrame(
             {
                 'open': np.arange(length) + 10 + sid_idx,
                 'high': np.arange(length) + 15 + sid_idx,
@@ -435,8 +435,6 @@ def create_minute_bar_data(minutes, sids):
             },
             index=minutes,
         )
-        for sid_idx, sid in enumerate(sids)
-    }
 
 
 def create_daily_bar_data(trading_days, sids):
@@ -492,20 +490,17 @@ def create_data_portal(env, tempdir, sim_params, sids, adjustment_reader=None):
         )
 
 
-def write_bcolz_minute_data(env, days, path, df_dict):
+def write_bcolz_minute_data(env, days, path, data):
     market_opens = env.open_and_closes.market_open.loc[days]
     market_closes = env.open_and_closes.market_close.loc[days]
 
-    writer = BcolzMinuteBarWriter(
+    BcolzMinuteBarWriter(
         days[0],
         path,
         market_opens,
         market_closes,
         US_EQUITIES_MINUTES_PER_DAY
-    )
-
-    for sid, df in iteritems(df_dict):
-        writer.write(sid, df)
+    ).write(data)
 
 
 def create_minute_df_for_asset(env,
@@ -1183,6 +1178,7 @@ zipline_git_root = abspath(
 )
 
 
+@nottest
 def test_resource_path(*path_parts):
     return os.path.join(zipline_git_root, 'tests', 'resources', *path_parts)
 
@@ -1313,3 +1309,37 @@ class tmp_bcolz_daily_bar_reader(_TmpBarReader):
     @staticmethod
     def _write(env, days, path, data):
         BcolzDailyBarWriter(path, days).write(data)
+
+
+@contextmanager
+def patch_read_csv(url_map, module=pd, strict=False):
+    """Patch pandas.read_csv to map lookups from url to another.
+
+    Parameters
+    ----------
+    url_map : mapping[str or file-like object -> str or file-like object]
+        The mapping to use to redirect read_csv calls.
+    module : module, optional
+        The module to patch ``read_csv`` on. By default this is ``pandas``.
+        This should be set to another module if ``read_csv`` is early-bound
+        like ``from pandas import read_csv`` instead of late-bound like:
+        ``import pandas as pd; pd.read_csv``.
+    strict : bool, optional
+        If true, then this will assert that ``read_csv`` is only called with
+        elements in the ``url_map``.
+    """
+    read_csv = pd.read_csv
+
+    def patched_read_csv(filepath_or_buffer, *args, **kwargs):
+        if filepath_or_buffer in url_map:
+            return read_csv(url_map[filepath_or_buffer], *args, **kwargs)
+        elif not strict:
+            return read_csv(filepath_or_buffer, *args, **kwargs)
+        else:
+            raise AssertionError(
+                'attempted to call read_csv on  %r which not in the url map' %
+                filepath_or_buffer,
+            )
+
+    with patch.object(module, 'read_csv', patched_read_csv):
+        yield

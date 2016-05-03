@@ -37,8 +37,8 @@ from toolz.curried.operator import getitem
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     NullAdjustmentReader,
-    make_daily_bar_data,
-    expected_daily_bar_values_2d,
+    make_bar_data,
+    expected_bar_values_2d,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
@@ -282,7 +282,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
 
     @classmethod
     def make_daily_bar_data(cls):
-        return make_daily_bar_data(
+        return make_bar_data(
             EQUITY_INFO,
             cls.bcolz_daily_bar_days,
         )
@@ -364,7 +364,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         )
 
         adjustments = self.adjustment_reader.load_adjustments(
-            columns,
+            [c.name for c in columns],
             query_days,
             self.assets,
         )
@@ -410,7 +410,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         )
 
         adjustments = adjustment_reader.load_adjustments(
-            columns,
+            [c.name for c in columns],
             query_days,
             self.assets,
         )
@@ -429,12 +429,12 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         )
         closes, volumes = map(getitem(results), columns)
 
-        expected_baseline_closes = expected_daily_bar_values_2d(
+        expected_baseline_closes = expected_bar_values_2d(
             shifted_query_days,
             self.asset_info,
             'close',
         )
-        expected_baseline_volumes = expected_daily_bar_values_2d(
+        expected_baseline_volumes = expected_bar_values_2d(
             shifted_query_days,
             self.asset_info,
             'volume',
@@ -506,12 +506,12 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         )
         highs, volumes = map(getitem(results), columns)
 
-        expected_baseline_highs = expected_daily_bar_values_2d(
+        expected_baseline_highs = expected_bar_values_2d(
             shifted_query_days,
             self.asset_info,
             'high',
         )
-        expected_baseline_volumes = expected_daily_bar_values_2d(
+        expected_baseline_volumes = expected_bar_values_2d(
             shifted_query_days,
             self.asset_info,
             'volume',

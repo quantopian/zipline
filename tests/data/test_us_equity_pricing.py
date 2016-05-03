@@ -33,14 +33,13 @@ from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
     NoDataOnDate,
 )
-from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.synthetic import (
     OHLCV,
     asset_start,
     asset_end,
-    expected_daily_bar_value,
-    expected_daily_bar_values_2d,
-    make_daily_bar_data,
+    expected_bar_value,
+    expected_bar_values_2d,
+    make_bar_data,
 )
 from zipline.testing import seconds_to_timestamp
 from zipline.testing.fixtures import (
@@ -89,7 +88,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
 
     @classmethod
     def make_daily_bar_data(cls):
-        return make_daily_bar_data(
+        return make_bar_data(
             EQUITY_INFO,
             cls.bcolz_daily_bar_days,
         )
@@ -129,7 +128,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
             for asset_id in self.assets:
                 for date in self.dates_for_asset(asset_id):
                     self.assertEqual(
-                        expected_daily_bar_value(
+                        expected_bar_value(
                             asset_id,
                             date,
                             column
@@ -198,18 +197,18 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
         for column, result in zip(columns, results):
             assert_array_equal(
                 result,
-                expected_daily_bar_values_2d(
+                expected_bar_values_2d(
                     dates,
                     EQUITY_INFO,
-                    column.name,
+                    column,
                 )
             )
 
     @parameterized.expand([
-        ([USEquityPricing.open],),
-        ([USEquityPricing.close, USEquityPricing.volume],),
-        ([USEquityPricing.volume, USEquityPricing.high, USEquityPricing.low],),
-        (USEquityPricing.columns,),
+        (['open'],),
+        (['close', 'volume'],),
+        (['volume', 'high', 'low'],),
+        (['open', 'high', 'low', 'close', 'volume'],),
     ])
     def test_read(self, columns):
         self._check_read_results(
@@ -224,7 +223,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
         Test loading with queries that starts on the first day of each asset's
         lifetime.
         """
-        columns = [USEquityPricing.high, USEquityPricing.volume]
+        columns = ['high', 'volume']
         for asset in self.assets:
             self._check_read_results(
                 columns,
@@ -238,7 +237,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
         Test loading with queries that start on the last day of each asset's
         lifetime.
         """
-        columns = [USEquityPricing.close, USEquityPricing.volume]
+        columns = ['close', 'volume']
         for asset in self.assets:
             self._check_read_results(
                 columns,
@@ -252,7 +251,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
         Test loading with queries that end on the first day of each asset's
         lifetime.
         """
-        columns = [USEquityPricing.close, USEquityPricing.volume]
+        columns = ['close', 'volume']
         for asset in self.assets:
             self._check_read_results(
                 columns,
@@ -266,7 +265,7 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
         Test loading with queries that end on the last day of each asset's
         lifetime.
         """
-        columns = [USEquityPricing.close, USEquityPricing.volume]
+        columns = ['close', 'volume']
         for asset in self.assets:
             self._check_read_results(
                 columns,

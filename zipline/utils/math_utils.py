@@ -12,11 +12,37 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import math
 
+from numpy import isnan
 
-def tolerant_equals(a, b, atol=10e-7, rtol=10e-7):
+
+def tolerant_equals(a, b, atol=10e-7, rtol=10e-7, equal_nan=False):
+    """Check if a and b are equal with some tolerance.
+
+    Parameters
+    ----------
+    a, b : float
+        The floats to check for equality.
+    atol : float, optional
+        The absolute tolerance.
+    rtol : float, optional
+        The relative tolerance.
+    equal_nan : bool, optional
+        Should NaN compare equal?
+
+    See Also
+    --------
+    numpy.isclose
+
+    Notes
+    -----
+    This function is just a scalar version of numpy.isclose for performance.
+    See the docstring of ``isclose`` for more information about ``atol`` and
+    ``rtol``.
+    """
+    if equal_nan and isnan(a) and isnan(b):
+        return True
     return math.fabs(a - b) <= (atol + rtol * math.fabs(b))
 
 

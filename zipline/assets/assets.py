@@ -94,7 +94,7 @@ class AssetFinder(object):
 
     See Also
     --------
-    :class:`zipline.assets.asset_writer.AssetDBWriter`
+    :class:`zipline.assets.AssetDBWriter`
     """
     # Token used as a substitute for pickling objects that contain a
     # reference to an AssetFinder.

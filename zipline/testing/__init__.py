@@ -29,6 +29,7 @@ from .core import (  # noqa
     parameter_space,
     parameter_space,
     patch_os_environment,
+    patch_read_csv,
     permute_rows,
     powerset,
     product_upper_triangle,

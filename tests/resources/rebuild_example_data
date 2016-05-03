@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+from code import InteractiveConsole
+import readline  # noqa
+import shutil
+import tarfile
+
+import click
+import numpy as np
+import pandas as pd
+
+from zipline import examples, run_algorithm
+from zipline.testing import test_resource_path, tmp_dir
+from zipline.utils.cache import dataframe_cache
+
+banner = """
+Please verify that the new perfomance is more correct than the old performance.
+
+To do this, please inspect `new` and `old` which are mappings from the name of
+the example to the results.
+
+If you are sure that the new results are more correct, or that the difference
+is acceptable, please call `correct()`. Otherwise, call `incorrect()`.
+
+Note
+----
+Remember to run this with the other supported versions of pandas!
+"""
+
+
+def eof(*args, **kwargs):
+    raise EOFError()
+
+
+@click.command()
+@click.pass_context
+def main(ctx):
+    """Rebuild the perf data for test_examples
+    """
+    example_path = test_resource_path('example_data.tar.gz')
+    with tmp_dir() as d:
+        with tarfile.open(example_path) as tar:
+            tar.extractall(d.path)
+
+        mods = (
+            (e, getattr(examples, e))
+            for e in dir(examples)
+            if not e.startswith('_')
+        )
+
+        new_perf_path = d.getpath(
+            'example_data/new_perf/%s' % pd.__version__.replace('.', '-'),
+        )
+        c = dataframe_cache(
+            new_perf_path,
+            serialization='pickle:2',
+        )
+        with c:
+            for name, mod in mods:
+                c[name] = run_algorithm(
+                    handle_data=mod.handle_data,
+                    initialize=mod.initialize,
+                    before_trading_start=getattr(
+                        mod, 'before_trading_start', None,
+                    ),
+                    analyze=getattr(mod, 'analyze', None),
+                    bundle='test',
+                    environ={
+                        'ZIPLINE_ROOT': d.getpath('example_data/root'),
+                    },
+                    **mod._test_args()
+                )
+
+            correct_called = [False]
+
+            console = None
+
+            def _exit(*args, **kwargs):
+                console.raw_input = eof
+
+            def correct():
+                correct_called[0] = True
+                _exit()
+
+            expected_perf_path = d.getpath(
+                'example_data/expected_perf/%s' %
+                pd.__version__.replace('.', '-'),
+            )
+
+            # allow users to run some analysis to make sure that the new
+            # results check out
+            console = InteractiveConsole({
+                'correct': correct,
+                'exit': _exit,
+                'incorrect': _exit,
+                'new': c,
+                'np': np,
+                'old': dataframe_cache(
+                    expected_perf_path,
+                    serialization='pickle',
+                ),
+                'pd': pd,
+            })
+            console.interact(banner)
+
+            if not correct_called[0]:
+                ctx.fail(
+                    '`correct()` was not called! This means that the new'
+                    ' results will not be written',
+                )
+
+            # move the new results to the expected path
+            shutil.rmtree(expected_perf_path)
+            shutil.copytree(new_perf_path, expected_perf_path)
+
+            with tarfile.open(example_path, 'w|gz') as tar:
+                tar.add(d.getpath('example_data'), 'example_data')
+
+
+if __name__ == '__main__':
+    main()

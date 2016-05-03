@@ -16,22 +16,20 @@ import os
 from collections import OrderedDict
 
 import logbook
-
 import pandas as pd
 from pandas.io.data import DataReader
 import pytz
-
 from six import iteritems
 from six.moves.urllib_error import HTTPError
 
-from . benchmarks import get_benchmark_returns
+from .benchmarks import get_benchmark_returns
 from . import treasuries, treasuries_can
-from .paths import (
+from ..utils.paths import (
     cache_root,
     data_root,
 )
-
-from zipline.utils.tradingcalendar import (
+from ..utils.deprecate import deprecated
+from ..utils.tradingcalendar import (
     trading_day as trading_day_nyse,
     trading_days as trading_days_nyse,
 )
@@ -413,6 +411,10 @@ def load_from_yahoo(indexes=None,
     return df
 
 
+@deprecated(
+    'load_bars_from_yahoo is deprecated, please register a'
+    ' yahoo_equities data bundle instead',
+)
 def load_bars_from_yahoo(indexes=None,
                          stocks=None,
                          start=None,

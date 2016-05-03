@@ -40,8 +40,17 @@ from toolz import merge
 
 from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline import CustomFactor, Pipeline
-from zipline.pipeline.data import Column, DataSet, USEquityPricing
+from zipline.pipeline.loaders.synthetic import PrecomputedLoader
+from zipline.pipeline import Pipeline
+from zipline.pipeline.data import USEquityPricing, DataSet, Column
+from zipline.pipeline.loaders.equity_pricing_loader import (
+    USEquityPricingLoader,
+)
+from zipline.pipeline.factors import CustomFactor
+from zipline.pipeline.loaders.synthetic import (
+    make_bar_data,
+    expected_bar_values_2d,
+)
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     AverageDollarVolume,
@@ -52,15 +61,7 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
-from zipline.pipeline.loaders.equity_pricing_loader import (
-    USEquityPricingLoader,
-)
 from zipline.pipeline.loaders.frame import DataFrameLoader
-from zipline.pipeline.loaders.synthetic import (
-    expected_daily_bar_values_2d,
-    make_daily_bar_data,
-    PrecomputedLoader,
-)
 from zipline.pipeline.term import NotSpecified
 from zipline.testing import (
     product_upper_triangle,
@@ -925,7 +926,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
 
     @classmethod
     def make_daily_bar_data(cls):
-        return make_daily_bar_data(
+        return make_bar_data(
             cls.equity_info,
             cls.bcolz_daily_bar_days,
         )
@@ -999,7 +1000,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # computed results to be computed using values anchored on the
         # **previous** day's data.
         expected_raw = rolling_mean(
-            expected_daily_bar_values_2d(
+            expected_bar_values_2d(
                 dates - self.env.trading_day,
                 self.equity_info,
                 'close',

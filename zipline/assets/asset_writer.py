@@ -257,6 +257,95 @@ class AssetDBWriter(object):
               exchanges=None,
               root_symbols=None,
               chunk_size=DEFAULT_CHUNK_SIZE):
+        """Write asset metadata to a sqlite database.
+
+        Parameters
+        ----------
+        equities : pd.DataFrame, optional
+            The equity metadata. The columns for this dataframe are:
+
+              symbol : str
+                  The ticker symbol for this equity.
+              fuzzy_symbol : str, optional
+                  The fuzzy symbol for this equity. This is the symbol
+                  without any delimiting characters like '.' or '_'.
+              asset_name : str
+                  The full name for this asset.
+              start_date : datetime
+                  The date when this asset was created.
+              end_date : datetime, optional
+                  The last date we have trade data for this asset.
+              first_traded : datetime, optional
+                  The first date we have trade data for this asset.
+              auto_close_date : datetime, optional
+                  The date on which to close any positions in this asset.
+              exchange : str, optional
+                  The exchange where this asset is traded.
+
+            The index of this dataframe should contain the sids.
+        futures : pd.Dataframe, optional
+            The future contract metadata. The columns for this dataframe are:
+
+              symbol : str
+                  The ticker symbol for this futures contract.
+              root_symbol : str
+                  The root symbol, or the symbol with the expiration stripped
+                  out.
+              asset_name : str
+                  The full name for this asset.
+              start_date : datetime, optional
+                  The date when this asset was created.
+              end_date : datetime, optional
+                  The last date we have trade data for this asset.
+              first_traded : datetime, optional
+                  The first date we have trade data for this asset.
+              exchange : str, optional
+                  The exchange where this asset is traded.
+              notice_date : datetime
+                  The date when the owner of the contract may be forced
+                  to take physical delivery of the contract's asset.
+              expiration_date : datetime
+                  The date when the contract expires.
+              auto_close_date : datetime
+                  The date when the broker will automatically close any
+                  positions in this contract.
+              tick_size : float
+                  The minimum price movement of the contract.
+              multiplier: float
+                  The amount of the underlying asset represented by this
+                  contract.
+        exchanges : pd.Dataframe, optional
+            The exchanges where assets can be traded. The columns of this
+            dataframe are:
+
+              exchange : str
+                  The name of the exchange.
+              timezone : str
+                  The timezone of the exchange.
+        root_symbols : pd.Dataframe, optional
+            The root symbols for the futures contracts. The columns for this
+            dataframe are:
+
+              root_symbol : str
+                  The root symbol name.
+              root_symbol_id : int
+                  The unique id for this root symbol.
+              sector : string, optional
+                  The sector of this root symbol.
+              description : string, optional
+                  A short description of this root symbol.
+              exchange : str
+                  The exchange where this root symbol is traded.
+        chunk_size : int, optional
+            The amount of rows to write to the SQLite table at once.
+            This defaults to the default number of bind params in sqlite.
+            If you have compiled sqlite3 with more bind or less params you may
+            want to pass that value here.
+
+        See Also
+        --------
+        zipline.assets.asset_finder
+        """
 
         with self.engine.begin() as txn:
             # Create SQL tables if they do not exist.
