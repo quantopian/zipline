@@ -49,13 +49,14 @@ DATETIME_DTYPES = frozenset(
     map(dtype, ['datetime64[ns]', 'datetime64[D]']),
 )
 # We use object arrays for strings.
-CATEGORICAL_DTYPES = frozenset(map(dtype, ['O']))
+OBJECT_DTYPES = frozenset(map(dtype, ['O']))
+STRING_KINDS = frozenset(['S', 'U'])
 
 REPRESENTABLE_DTYPES = BOOL_DTYPES.union(
     FLOAT_DTYPES,
     INT_DTYPES,
     DATETIME_DTYPES,
-    CATEGORICAL_DTYPES,
+    OBJECT_DTYPES,
 )
 
 
@@ -63,7 +64,14 @@ def can_represent_dtype(dtype):
     """
     Can we build an AdjustedArray for a baseline of `dtype``?
     """
-    return dtype in REPRESENTABLE_DTYPES
+    return dtype in REPRESENTABLE_DTYPES or dtype.kind in STRING_KINDS
+
+
+def is_categorical(dtype):
+    """
+    Do we represent this dtype with LabelArrays rather than ndarrays?
+    """
+    return dtype in OBJECT_DTYPES or dtype.kind in STRING_KINDS
 
 
 CONCRETE_WINDOW_TYPES = {
@@ -102,11 +110,11 @@ def _normalize_array(data, missing_value):
         return data.astype(float64), {'dtype': dtype(float64)}
     elif data_dtype in INT_DTYPES:
         return data.astype(int64), {'dtype': dtype(int64)}
-    elif data_dtype in CATEGORICAL_DTYPES:
+    elif is_categorical(data_dtype):
         if not isinstance(missing_value, (bytes, unicode)):
             raise TypeError(
                 "Invalid missing_value for categorical array.\n"
-                "Expected a string, got %r" % missing_value,
+                "Expected bytes or unicode. Got %r." % missing_value,
             )
         return LabelArray(data, missing_value), {}
     elif data_dtype.kind == 'M':
