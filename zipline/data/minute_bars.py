@@ -16,6 +16,7 @@ import os
 from os.path import join
 from textwrap import dedent
 
+from cachetools import LRUCache
 import bcolz
 from bcolz import ctable
 from intervaltree import IntervalTree
@@ -628,8 +629,9 @@ class BcolzMinuteBarReader(object):
     --------
     zipline.data.minute_bars.BcolzMinuteBarWriter
     """
-    def __init__(self, rootdir):
+    FIELDS = ('open', 'high', 'low', 'close', 'volume')
 
+    def __init__(self, rootdir, sid_cache_size=1000):
         self._rootdir = rootdir
 
         metadata = self._get_metadata()
@@ -646,11 +648,8 @@ class BcolzMinuteBarReader(object):
         self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
 
         self._carrays = {
-            'open': {},
-            'high': {},
-            'low': {},
-            'close': {},
-            'volume': {},
+            field: LRUCache(maxsize=sid_cache_size)
+            for field in self.FIELDS
         }
 
         self._last_get_value_dt_position = None
