@@ -98,6 +98,7 @@ from zipline.utils.events import (
     make_eventrule,
     DateRuleFactory,
     TimeRuleFactory,
+    AllMinutes
 )
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import (
@@ -835,7 +836,12 @@ class TradingAlgorithm(object):
         time_rule = ((time_rule or TimeRuleFactory.market_open())
                      if self.sim_params.data_frequency == 'minute' else
                      # If we are in daily mode the time_rule is ignored.
-                     zipline.utils.events.Always())
+                     AllMinutes())
+
+        if date_rule.rule_type and date_rule.rule_type != 'date':
+            raise TypeError('%s is not a valid date_rule.' % date_rule.alias)
+        if time_rule.rule_type and time_rule.rule_type != 'time':
+            raise TypeError('%s is not a valid time_rule.' % time_rule.alias)
 
         self.add_event(
             make_eventrule(date_rule, time_rule, half_days),

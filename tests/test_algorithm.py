@@ -1836,6 +1836,50 @@ def handle_data(context, data):
         )
         algo.run(self.data_portal)
 
+    def test_schedule_function_validation(self):
+        """
+        Test that we raise a TypeError when we input a date_rule for a
+        time_rule and vice-versa
+        """
+
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp('2006-01-14', tz='UTC'),
+            end=pd.Timestamp('2006-01-15', tz='UTC'),
+            data_frequency='minute'
+        )
+
+        algo = TradingAlgorithm(
+            script=noop_algo,
+            sim_params=sim_params,
+            env=self.env
+        )
+
+        def nothing(context, data):
+            pass
+
+        date_rules = [
+            DateRuleFactory.every_day(),
+            DateRuleFactory.month_start(),
+            DateRuleFactory.month_end(),
+            DateRuleFactory.week_start(),
+            DateRuleFactory.week_end()
+        ]
+
+        for rule in date_rules:
+            self.assertRaises(TypeError,
+                              algo.schedule_function, nothing, time_rule=rule)
+            algo.schedule_function(nothing, date_rule=rule)
+
+        time_rules = [
+            TimeRuleFactory.market_close(),
+            TimeRuleFactory.market_open()
+        ]
+
+        for rule in time_rules:
+            self.assertRaises(TypeError,
+                              algo.schedule_function, nothing, date_rule=rule)
+            algo.schedule_function(nothing, time_rule=rule)
+
 
 class TestGetDatetime(WithLogger,
                       WithSimParams,
