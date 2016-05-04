@@ -280,7 +280,9 @@ class LabelArray(ndarray):
             raise ValueError("Can't convert a 2D array to a categorical.")
         return pd.Categorical.from_codes(
             self.as_int_array(),
-            self.categories,
+            # We need to make a copy because pandas >= 0.17 fails if this
+            # buffer isn't writeable.
+            self.categories.copy(),
             ordered=False,
             name=name,
         )
