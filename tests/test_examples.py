@@ -12,9 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# This code is based on a unittest written by John Salvatier:
-# https://github.com/pymc-devs/pymc/blob/pymc3/tests/test_examples.py
+from functools import partial
 import tarfile
 
 import matplotlib
@@ -22,6 +20,7 @@ from nose_parameterized import parameterized
 import pandas as pd
 
 from zipline import examples, run_algorithm
+from zipline.data.bundles import register, unregister
 from zipline.testing import test_resource_path
 from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -75,6 +74,9 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(ExamplesTests, cls).init_class_fixtures()
+
+        register('test', lambda *args: None)
+        cls.add_class_callback(partial(unregister, 'test'))
 
         with tarfile.open(test_resource_path('example_data.tar.gz')) as tar:
             tar.extractall(cls.tmpdir.path)

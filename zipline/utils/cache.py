@@ -280,6 +280,13 @@ class working_file(object):
         self._tmpfile = NamedTemporaryFile(*args, **kwargs)
         self._final_path = final_path
 
+    @property
+    def path(self):
+        """Alias for ``name`` to be consistent with
+        :class:`~zipline.utils.cache.working_dir`.
+        """
+        return self._tmpfile.name
+
     def _commit(self):
         """Sync the temporary file to the final path.
         """
@@ -316,13 +323,35 @@ class working_dir(object):
     meaning it has as strong of guarantees as :func:`shutil.copytree`.
     """
     def __init__(self, final_path, *args, **kwargs):
-        self.name = mkdtemp()
+        self.path = mkdtemp()
         self._final_path = final_path
+
+    def mkdir(self, *path_parts):
+        """Create a subdirectory of the working directory.
+
+        Parameters
+        ----------
+        path_parts : iterable[str]
+            The parts of the path after the working directory.
+        """
+        path = self.getpath(*path_parts)
+        os.mkdir(path)
+        return path
+
+    def getpath(self, *path_parts):
+        """Get a path relative to the working directory.
+
+        Parameters
+        ----------
+        path_parts : iterable[str]
+            The parts of the path after the working directory.
+        """
+        return os.path.join(self.path, *path_parts)
 
     def _commit(self):
         """Sync the temporary directory to the final path.
         """
-        copytree(self.name, self._final_path)
+        copytree(self.path, self._final_path)
 
     def __enter__(self):
         return self
@@ -330,4 +359,4 @@ class working_dir(object):
     def __exit__(self, *exc_info):
         if exc_info[0] is None:
             self._commit()
-        rmtree(self.name)
+        rmtree(self.path)

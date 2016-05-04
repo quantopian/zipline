@@ -62,6 +62,7 @@ def yahoo_equities(symbols, start=None, end=None):
                calendar,
                cache,
                show_progress,
+               output_dir,
                # pass these as defaults to make them 'nonlocal' in py2
                start=start,
                end=end):

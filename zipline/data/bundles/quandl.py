@@ -1,15 +1,19 @@
 """
 Module for building a complete daily dataset from Quandl's WIKI dataset.
 """
+from contextlib import closing
+from io import BytesIO
 from itertools import count
+import tarfile
 from time import time, sleep
 
 from logbook import Logger
 import pandas as pd
 from six.moves.urllib.parse import urlencode
+from six.moves.urllib.request import urlopen
 
+from . import core as bundles
 from zipline.utils.cli import maybe_show_progress
-from zipline.data import bundles
 
 log = Logger(__name__)
 seconds_per_call = (pd.Timedelta('10 minutes') / 2000).total_seconds()
@@ -260,12 +264,13 @@ def gen_symbol_data(api_key,
 @bundles.register('quandl')
 def quandl_bundle(environ,
                   asset_db_writer,
-                  minute_bar_writer,  # unused
+                  minute_bar_writer,
                   daily_bar_writer,
                   adjustment_writer,
                   calendar,
                   cache,
-                  show_progress):
+                  show_progress,
+                  output_dir):
     """Build a zipline data bundle from the Quandl WIKI dataset.
     """
     api_key = environ.get('QUANDL_API_KEY')
@@ -291,8 +296,30 @@ def quandl_bundle(environ,
             dividends,
             environ.get('QUANDL_DOWNLOAD_ATTEMPTS', 5),
         ),
+        show_progress=show_progress,
     )
     adjustment_writer.write(
         splits=pd.concat(splits, ignore_index=True),
         dividends=pd.concat(dividends, ignore_index=True),
     )
+
+
+QUANTOPIAN_QUANDL_URL = (
+    'https://s3.amazonaws.com/quantopian-public-zipline-data/quandl'
+)
+
+
+@bundles.register('quantopian-quandl', create_writers=False)
+def quantopian_quandl_bundle(environ,
+                             asset_db_writer,
+                             minute_bar_writer,
+                             daily_bar_writer,
+                             adjustment_writer,
+                             calendar,
+                             cache,
+                             show_progress,
+                             output_dir):
+    # use closing for py2 compat
+    with closing(urlopen(QUANTOPIAN_QUANDL_URL)) as f, \
+            tarfile.open('r', fileobj=BytesIO(f.read())) as tar:
+        tar.extractall(output_dir)

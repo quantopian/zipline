@@ -16,10 +16,11 @@ could involve downloading and processing a lot of data. This can be run with:
 
 .. code-block:: bash
 
-   $ python -m zipline ingest <bundle>
+   $ python -m zipline ingest [-b <bundle>]
 
 
-where ``<bundle>`` is the name of the bundle to ingest.
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to
+:ref:`quantipian-quandl <quantopian-quandl-mirror>`.
 
 Old Data
 ~~~~~~~~
@@ -39,16 +40,16 @@ For example:
 .. code-block:: bash
 
    # clean everything older than <date>
-   $ python -m zipline clean <bundle> --before <date>
+   $ python -m zipline clean [-b <bundle>] --before <date>
 
    # clean everything newer than <date>
-   $ python -m zipline clean <bundle> --after <date>
+   $ python -m zipline clean [-b <bundle>] --after <date>
 
    # keep everything in the range of [before, after] and delete the rest
-   $ python -m zipline clean <bundle> --before <date> --after <after>
+   $ python -m zipline clean [-b <bundle>] --before <date> --after <after>
 
    # clean all but the last <int> runs
-   $ python -m zipline clean <bundle> --keep-last <int>
+   $ python -m zipline clean [-b <bundle>] --keep-last <int>
 
 
 Running Backtests with Data Bundles
@@ -77,11 +78,9 @@ Default Data Bundles
 
 Quandl WIKI Bundle
 ``````````````````
-
 By default zipline comes with the ``quandl`` data bundle which uses quandl's
 `WIKI dataset <https://www.quandl.com/data/WIKI>`_. The quandl data bundle
-includes daily pricing data, splits, cash dividends, and asset metadata. This is
-the bundle that ``run`` will use by default if no other bundle is specified. To
+includes daily pricing data, splits, cash dividends, and asset metadata. To
 ingest this data bundle we recommend creating an account on quandl.com to get an
 API key to be able to make more API requests per day. Once we have an API key we
 may run:
@@ -103,6 +102,15 @@ attempt 5 times.
    one request per 100 equities for the metadata followed by one request per
    equity.
 
+
+.. _quantopian-quandl-mirror:
+
+Quantopian Quandl WIKI Mirror
+'''''''''''''''''''''''''''''
+
+Quantopian provides a mirror of the quandl WIKI dataset with the data in the
+formats that zipline expects. This is available under the name:
+``quantopian-quandl`` and is the default bundle for zipline.
 
 Yahoo Bundle Factories
 ``````````````````````
@@ -166,7 +174,8 @@ The signature of the ingest function should be:
           adjustment_writer,
           calendar,
           cache,
-          show_progress)
+          show_progress,
+          output_dir)
 
 ``environ``
 ```````````
@@ -275,3 +284,14 @@ the total needed, or how far into some data conversion the ingest function
 is. One tool that may help with implementing ``show_progress`` for a loop is
 :class:`~zipline.utils.cli.maybe_show_progress`. This argument should always be
 forwarded to ``minute_bar_writer.write`` and ``daily_bar_writer.write``.
+
+
+``output_dir``
+``````````````
+
+``output_dir`` is a string representing the file path where all the data will be
+written. This will be some subdirectory of ``$ZIPLINE_ROOT`` and will contain
+the time of the start of the current ingestion. This can be used to directly
+move resources here if for some reason your ingest function can produce it's own
+outputs without the writers. For example, the ``quantopian:quandl`` bundle uses
+this to directly untar the bundle into the ``output_dir``.

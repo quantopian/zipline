@@ -127,7 +127,7 @@ on OSX):
      --capital-base FLOAT            The starting capital for the simulation.
                                      [default: 10000000.0]
      -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
-                                     [default: quandl]
+                                     [default: quantopian-quandl]
      --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
                                      [default: <current-time>]
      -s, --start DATE                The start date of the simulation.
@@ -140,8 +140,8 @@ on OSX):
 
 As you can see there are a couple of flags that specify where to find your
 algorithm (``-f``) as well as parameters specifying which data to use,
-defaulting to the :ref:`quandl-data-bundle`. There are also arguments for the
-date range to run the algorithm over (``--start`` and ``--end``). Finally,
+defaulting to the :ref:`quantopian-quandl-mirror`. There are also arguments for
+the date range to run the algorithm over (``--start`` and ``--end``). Finally,
 you'll want to save the performance metrics of your algorithm so that you can
 analyze how it performed. This is done via the ``--output`` flag and will cause
 it to write the performance ``DataFrame`` in the pickle Python file format.

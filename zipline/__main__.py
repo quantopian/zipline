@@ -1,4 +1,3 @@
-import datetime
 import os
 from functools import wraps
 
@@ -137,7 +136,7 @@ def ipython_only(option):
 @click.option(
     '-b',
     '--bundle',
-    default='quandl',
+    default='quantopian-quandl',
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to use for the simulation.',
@@ -275,26 +274,40 @@ def zipline_magic(line, cell=None):
 
 
 @cli.command()
-@click.argument('BUNDLE-NAME')
+@click.option(
+    '-b',
+    '--bundle',
+    default='quantopian-quandl',
+    metavar='BUNDLE-NAME',
+    show_default=True,
+    help='The data bundle to ingest.',
+)
 @click.option(
     '--show-progress/--no-show-progress',
     is_flag=True,
     default=True,
     help='Print progress information to the terminal.'
 )
-def ingest(bundle_name, show_progress):
+def ingest(bundle, show_progress):
     """Ingest the data for the given bundle.
     """
     bundles.ingest(
-        bundle_name,
+        bundle,
         os.environ,
-        datetime.date.today(),
+        pd.Timestamp.utcnow(),
         show_progress,
     )
 
 
 @cli.command()
-@click.argument('BUNDLE-NAME')
+@click.option(
+    '-b',
+    '--bundle',
+    default='quantopian-quandl',
+    metavar='BUNDLE-NAME',
+    show_default=True,
+    help='The data bundle to clean.',
+)
 @click.option(
     '-b',
     '--before',
@@ -317,11 +330,11 @@ def ingest(bundle_name, show_progress):
     help='Clear all but the last N downloads.'
     ' This may not be passed with -b / --before or -a / --after',
 )
-def clean(bundle_name, before, after, keep_last):
+def clean(bundle, before, after, keep_last):
     """Clean up data downloaded with the ingest command.
     """
     bundles.clean(
-        bundle_name,
+        bundle,
         before,
         after,
         keep_last,
