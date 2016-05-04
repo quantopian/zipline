@@ -127,7 +127,7 @@ def _gen_multiplicative_adjustment_cases(dtype):
     Generate expected moving windows on a buffer with adjustments.
 
     We proceed by constructing, at each row, the view of the array we expect in
-    in all windows anchored on or after that row.
+    in all windows anchored on that row.
 
     In general, if we have an adjustment to be applied once we process the row
     at index N, should see that adjustment applied to the underlying buffer for
@@ -211,7 +211,7 @@ def _gen_overwrite_adjustment_cases(name,
     multiplicative adjustments.  The only difference is the semantics of how
     the adjustments are expected to modify the arrays.
 
-    This is parameterized on `make_input` and make_expected_output functions,
+    This is parameterized on `make_input` and `make_expected_output` functions,
     which take 2-D lists of values and transform them into desired input/output
     arrays. We do this so that we can easily test both vanilla numpy ndarrays
     and our own LabelArray class for strings.
