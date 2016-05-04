@@ -10,6 +10,7 @@ from numpy import ndarray
 import pandas as pd
 from toolz import compose
 
+from zipline.utils.compat import unicode
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sentinel import sentinel
 from zipline.utils.input_validation import (
