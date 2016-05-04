@@ -58,6 +58,27 @@ argument to ``$ python -m zipline run`` or as the ``bundle`` argument to
 
 For more information see `Data Bundles`_ for more information.
 
+String Support in Pipeline (:issue:`1174`)
+``````````````````````````````````````````
+
+Added support for string data in Pipeline.
+:class:`zipline.pipeline.data.Column` now accepts ``object`` as a dtype, which
+signifies that loaders for that column should emit windowed iterators over the
+experimental new :class:`~zipline.lib.labelarray.LabelArray` class.
+
+Several new :class:`~zipline.pipeline.Classifier` methods have also been added
+for constructing :class:`~zipline.pipeline.Filter` instances based on string
+operations.  The new methods are:
+
+  - :meth:`~zipline.pipeline.Classifier.element_of`
+  - :meth:`~zipline.pipeline.Classifier.startswith`
+  - :meth:`~zipline.pipeline.Classifier.endswith`
+  - :meth:`~zipline.pipeline.Classifier.has_substring`
+  - :meth:`~zipline.pipeline.Classifier.matches`
+
+  ``element_of`` is defined for all classifiers.  The remaining methods are
+  only defined for string-dtype classifiers.
+
 Enhancements
 ~~~~~~~~~~~~
 
@@ -87,6 +108,25 @@ Enhancements
   Custom factors are now capable of computing and returning multiple outputs,
   each of which are themselves a Factor. (:issue:`1119`)
 
+* Added support for string-dtype pipeline columns. Loaders for thse columns
+  should produce instances of :class:`zipline.lib.labelarray.LabelArray` when
+  traversed. :meth:`~zipline.pipeline.data.BoundColumn.latest` on string
+  columns produces a string-dtype
+  :class:`zipline.pipeline.Classifier`. (:issue:`1174`)
+
+* Added several methods for converting Classifiers into Filters.
+
+  The new methods are:
+  - :meth:`~zipline.pipeline.Classifier.element_of`
+  - :meth:`~zipline.pipeline.Classifier.startswith`
+  - :meth:`~zipline.pipeline.Classifier.endswith`
+  - :meth:`~zipline.pipeline.Classifier.has_substring`
+  - :meth:`~zipline.pipeline.Classifier.matches`
+
+  ``element_of`` is defined for all classifiers.  The remaining methods are
+  only defined for strings. (:issue:`1174`)
+
+
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -94,7 +134,12 @@ Experimental Features
 
    Experimental features are subject to change.
 
-None
+* Added a new :class:`zipline.lib.labelarray.LabelArray` class for efficiently
+  representing and computing on string data with numpy.  This class is
+  conceptually similar to :class:`pandas.Categorical`, in that it represents
+  string arrays as arrays of indices into a (smaller) array of unique string
+  values. (:issue:`1174`)
+
 
 Bug Fixes
 ~~~~~~~~~
