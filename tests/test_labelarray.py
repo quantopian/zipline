@@ -225,9 +225,6 @@ class LabelArrayTestCase(ZiplineTestCase):
 
         Test that all unfuncs fail.
         """
-        def assert_ufunc_failure(exc):
-            self.assertEqual(str(exc), 'Not implemented for this type')
-
         l = LabelArray(self.strs, '')
         ints = np.arange(len(l))
 
@@ -243,8 +240,8 @@ class LabelArrayTestCase(ZiplineTestCase):
                     ret = func(l, ints)
                 else:
                     self.fail("Who added a ternary ufunc !?!")
-            except TypeError as e:
-                assert_ufunc_failure(e)
+            except TypeError:
+                pass
             else:
                 self.assertIs(ret, NotImplemented)
 
