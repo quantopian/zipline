@@ -21,7 +21,7 @@ unicode_dtype = np.dtype('U3')
 class ClassifierTestCase(BasePipelineTestCase):
 
     @parameter_space(mv=[-1, 0, 1, 999])
-    def test_isnull(self, mv):
+    def test_integral_isnull(self, mv):
 
         class C(Classifier):
             dtype = int64_dtype
@@ -46,6 +46,41 @@ class ClassifierTestCase(BasePipelineTestCase):
             expected={
                 'isnull': data == mv,
                 'notnull': data != mv,
+            },
+            initial_workspace={c: data},
+            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+        )
+
+    @parameter_space(mv=['0', None])
+    def test_string_isnull(self, mv):
+
+        class C(Classifier):
+            dtype = categorical_dtype
+            missing_value = mv
+            inputs = ()
+            window_length = 0
+
+        c = C()
+
+        # There's no significance to the values here other than that they
+        # contain a mix of missing and non-missing values.
+        raw = np.asarray(
+            [['',    'a',  'ab', 'ba'],
+             ['z',  'ab',   'a', 'ab'],
+             ['aa', 'ab',    '', 'ab'],
+             ['aa',  'a',  'ba', 'ba']],
+            dtype=categorical_dtype,
+        )
+        data = LabelArray(raw, missing_value=mv)
+
+        self.check_terms(
+            terms={
+                'isnull': c.isnull(),
+                'notnull': c.notnull()
+            },
+            expected={
+                'isnull': np.equal(raw, mv),
+                'notnull': np.not_equal(raw, mv),
             },
             initial_workspace={c: data},
             mask=self.build_mask(self.ones_mask(shape=data.shape)),

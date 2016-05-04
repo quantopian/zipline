@@ -14,7 +14,8 @@ from zipline.errors import (
     BadPercentileBounds,
     UnsupportedDataType,
 )
-from zipline.lib.rank import ismissing
+from zipline.lib.labelarray import LabelArray
+from zipline.lib.rank import is_missing
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -230,19 +231,22 @@ class NullFilter(SingleInputMixin, Filter):
 
     Parameters
     ----------
-    factor : zipline.pipeline.Factor
+    factor : zipline.pipeline.Term
         The factor to compare against its missing_value.
     """
     window_length = 0
 
-    def __new__(cls, factor):
+    def __new__(cls, term):
         return super(NullFilter, cls).__new__(
             cls,
-            inputs=(factor,),
+            inputs=(term,),
         )
 
     def _compute(self, arrays, dates, assets, mask):
-        return ismissing(arrays[0], self.inputs[0].missing_value)
+        data = arrays[0]
+        if isinstance(data, LabelArray):
+            return data.is_missing()
+        return is_missing(arrays[0], self.inputs[0].missing_value)
 
 
 class PercentileFilter(SingleInputMixin, Filter):
