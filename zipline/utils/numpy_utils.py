@@ -14,6 +14,7 @@ from numpy import (
     dtype,
     empty,
     nan,
+    vectorize,
     where
 )
 from numpy.lib.stride_tricks import as_strided
@@ -344,3 +345,21 @@ def ignore_nanwarnings():
             {'category': RuntimeWarning, 'module': 'numpy.lib.nanfunctions'},
         )
     )
+
+
+def vectorized_is_element(array, choices):
+    """
+    Check if each element of ``array`` is in choices.
+
+    Parameters
+    ----------
+    array : np.ndarray
+    choices : object
+        Object implementing __contains__.
+
+    Returns
+    -------
+    was_element : np.ndarray[bool]
+        Array indicating whether each element of ``array`` was in ``choices``.
+    """
+    return vectorize(choices.__contains__, otypes=[bool])(array)

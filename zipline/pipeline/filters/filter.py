@@ -1,14 +1,15 @@
 """
 filter.py
 """
+from itertools import chain
+from operator import attrgetter
+
+
 from numpy import (
     float64,
     nan,
     nanpercentile,
 )
-from itertools import chain
-from operator import attrgetter
-
 from zipline.errors import (
     BadPercentileBounds,
     UnsupportedDataType,
@@ -28,6 +29,7 @@ from zipline.pipeline.expression import (
     method_name_for_op,
     NumericalExpression,
 )
+from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import bool_dtype
 
 
@@ -370,6 +372,50 @@ class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     --------
     zipline.pipeline.factors.factor.CustomFactor
     """
+
+
+class ArrayPredicate(SingleInputMixin, Filter):
+    """
+    A filter applying a function from (ndarray, *args) -> ndarray[bool].
+
+    Parameters
+    ----------
+    term : zipline.pipeline.Term
+        Term producing the array over which the predicate will be computed.
+    op : function(ndarray, *args) -> ndarray[bool]
+        Function to apply to the result of `term`.
+    opargs : tuple[hashable]
+        Additional argument to apply to ``op``.
+    """
+    window_length = 0
+
+    @expect_types(term=Term, opargs=tuple)
+    def __new__(cls, term, op, opargs):
+        hash(opargs)  # fail fast if opargs isn't hashable.
+        return super(ArrayPredicate, cls).__new__(
+            ArrayPredicate,
+            op=op,
+            opargs=opargs,
+            inputs=(term,),
+            mask=term.mask,
+        )
+
+    def _init(self, op, opargs, *args, **kwargs):
+        self._op = op
+        self._opargs = opargs
+        return super(ArrayPredicate, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, op, opargs, *args, **kwargs):
+        return (
+            super(ArrayPredicate, cls).static_identity(*args, **kwargs),
+            op,
+            opargs,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        data = arrays[0]
+        return self._op(data, *self._opargs) & mask
 
 
 class Latest(LatestMixin, CustomFilter):

@@ -16,9 +16,10 @@ from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     int64_dtype,
+    vectorized_is_element,
 )
 
-from ..filters import Filter, NullFilter, NumExprFilter
+from ..filters import ArrayPredicate, NullFilter, NumExprFilter
 from ..mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -96,10 +97,10 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 binds=(self,),
             )
         else:
-            return StringPredicate(
-                classifier=self,
+            return ArrayPredicate(
+                term=self,
                 op=operator.eq,
-                compval=other,
+                opargs=(other,),
             )
 
     def __ne__(self, other):
@@ -119,11 +120,8 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 binds=(self,),
             )
         else:
-            return StringPredicate(
-                classifier=self,
-                op=operator.ne,
-                compval=other,
-            )
+            # Numexpr doesn't know how to use LabelArrays.
+            return ArrayPredicate(term=self, op=operator.ne, opargs=(other,))
 
     @string_classifiers_only
     @expect_types(prefix=(bytes, unicode))
@@ -142,10 +140,10 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             Filter returning True for all sid/date pairs for which ``self``
             produces a string starting with ``prefix``.
         """
-        return StringPredicate(
-            classifier=self,
+        return ArrayPredicate(
+            term=self,
             op=LabelArray.startswith,
-            compval=prefix,
+            opargs=(prefix,),
         )
 
     @string_classifiers_only
@@ -165,10 +163,10 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             Filter returning True for all sid/date pairs for which ``self``
             produces a string ending with ``prefix``.
         """
-        return StringPredicate(
-            classifier=self,
+        return ArrayPredicate(
+            term=self,
             op=LabelArray.endswith,
-            compval=suffix,
+            opargs=(suffix,),
         )
 
     @string_classifiers_only
@@ -188,10 +186,10 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             Filter returning True for all sid/date pairs for which ``self``
             produces a string containing ``substring``.
         """
-        return StringPredicate(
-            classifier=self,
+        return ArrayPredicate(
+            term=self,
             op=LabelArray.has_substring,
-            compval=substring,
+            opargs=(substring,),
         )
 
     @string_classifiers_only
@@ -215,33 +213,32 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         --------
         https://docs.python.org/library/re.html
         """
-        return StringPredicate(
-            classifier=self,
+        return ArrayPredicate(
+            term=self,
             op=LabelArray.matches,
-            compval=pattern,
+            opargs=(pattern,),
         )
 
-    @string_classifiers_only
     def element_of(self, choices):
         """
         Construct a Filter indicating whether values are in ``choices``.
 
         Parameters
         ----------
-        choices : iterable[str]
+        choices : iterable[str or int]
             An iterable of choices.
 
         Returns
         -------
         matches : Filter
             Filter returning True for all sid/date pairs for which ``self``
-            produces a string in ``choices``.
+            produces an entry in ``choices``.
         """
         try:
             choices = frozenset(choices)
         except Exception as e:
             raise TypeError(
-                "Expected `choices` to be an iterable of strings,"
+                "Expected `choices` to be an iterable of hashable values,"
                 " but got {} instead.\n"
                 "This caused the following error: {!r}.".format(choices, e)
             )
@@ -260,11 +257,40 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                 )
             )
 
-        return StringPredicate(
-            classifier=self,
-            op=LabelArray.element_of,
-            compval=choices,
-        )
+        def only_contains(type_, values):
+            return all(isinstance(v, type_) for v in values)
+
+        if self.dtype == int64_dtype:
+            if only_contains(int, choices):
+                return ArrayPredicate(
+                    term=self,
+                    op=vectorized_is_element,
+                    opargs=(choices,),
+                )
+            else:
+                raise TypeError(
+                    "Found non-int in choices for {typename}.element_of.\n"
+                    "Supplied choices were {choices}.".format(
+                        typename=type(self).__name__,
+                        choices=choices,
+                    )
+                )
+        elif self.dtype == categorical_dtype:
+            if only_contains((bytes, unicode), choices):
+                return ArrayPredicate(
+                    term=self,
+                    op=LabelArray.element_of,
+                    opargs=(choices,),
+                )
+            else:
+                raise TypeError(
+                    "Found non-string in choices for {typename}.element_of.\n"
+                    "Supplied choices were {choices}.".format(
+                        typename=type(self).__name__,
+                        choices=choices,
+                    )
+                )
+        assert False, "Unknown dtype in Classifier.element_of %s." % self.dtype
 
     def postprocess(self, data):
         if self.dtype == int64_dtype:
@@ -312,44 +338,6 @@ class Quantiles(SingleInputMixin, Classifier):
 
     def short_repr(self):
         return type(self).__name__ + '(%d)' % self.params['bins']
-
-
-class StringPredicate(SingleInputMixin, Filter):
-    """
-    A filter applying a function from (LabelArray, hashable) -> ndarray[bool].
-
-    Examples include ``==, !=, startswith, and is_element``.
-    """
-    window_length = 0
-
-    def __new__(cls, classifier, op, compval):
-        return super(StringPredicate, cls).__new__(
-            StringPredicate,
-            compval=compval,
-            op=op,
-            inputs=(classifier,),
-            mask=classifier.mask,
-        )
-
-    def _init(self, op, compval, *args, **kwargs):
-        self._op = op
-        self._compval = compval
-        return super(StringPredicate, self)._init(*args, **kwargs)
-
-    @classmethod
-    def static_identity(cls, op, compval, *args, **kwargs):
-        return (
-            super(StringPredicate, cls).static_identity(*args, **kwargs),
-            op,
-            compval,
-        )
-
-    def _compute(self, arrays, dates, assets, mask):
-        data = arrays[0]
-        return (
-            self._op(data, self._compval)
-            & mask
-        )
 
 
 class CustomClassifier(PositiveWindowLengthMixin,

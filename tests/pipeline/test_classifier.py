@@ -1,3 +1,5 @@
+from operator import or_
+
 import numpy as np
 
 from zipline.lib.labelarray import LabelArray
@@ -286,7 +288,7 @@ class ClassifierTestCase(BasePipelineTestCase):
         container_type=(set, list, tuple, frozenset),
         labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
     )
-    def test_element_of(self, container_type, labelarray_dtype):
+    def test_element_of_strings(self, container_type, labelarray_dtype):
 
         missing = labelarray_dtype.type("not in the array")
 
@@ -331,6 +333,42 @@ class ClassifierTestCase(BasePipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
+    def test_element_of_integral(self):
+        """
+        Element of is well-defined for integral classifiers.
+        """
+        class C(Classifier):
+            dtype = int64_dtype
+            missing_value = -1
+            inputs = ()
+            window_length = 0
+
+        c = C()
+
+        # There's no significance to the values here other than that they
+        # contain a mix of missing and non-missing values.
+        data = np.array([[-1,  1,  0, 2],
+                         [3,   0,  1, 0],
+                         [-5,  0, -1, 0],
+                         [-3,  1,  2, 2]], dtype=int64_dtype)
+
+        terms = {}
+        expected = {}
+        for choices in [(0,), (0, 1), (0, 1, 2)]:
+            terms[str(choices)] = c.element_of(choices)
+            expected[str(choices)] = reduce(
+                or_,
+                (data == elem for elem in choices),
+                np.zeros_like(data, dtype=bool),
+            )
+
+        self.check_terms(
+            terms=terms,
+            expected=expected,
+            initial_workspace={c: data},
+            mask=self.build_mask(self.ones_mask(shape=data.shape)),
+        )
+
     def test_element_of_rejects_missing_value(self):
         """
         Test that element_of raises a useful error if we attempt to pass it an
@@ -360,10 +398,11 @@ class ClassifierTestCase(BasePipelineTestCase):
             )
             self.assertEqual(errmsg, expected)
 
-    def test_element_of_rejects_unhashable_type(self):
+    @parameter_space(dtype_=Classifier.ALLOWED_DTYPES)
+    def test_element_of_rejects_unhashable_type(self, dtype_):
 
         class C(Classifier):
-            dtype = categorical_dtype
+            dtype = dtype_
             missing_value = ''
             inputs = ()
             window_length = 0
@@ -375,7 +414,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         errmsg = str(e.exception)
         expected = (
-            "Expected `choices` to be an iterable of strings,"
+            "Expected `choices` to be an iterable of hashable values,"
             " but got [{'a': 1}] instead.\n"
             "This caused the following error: "
             "TypeError(\"unhashable type: 'dict'\",)."
