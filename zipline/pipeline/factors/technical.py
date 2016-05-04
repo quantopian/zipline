@@ -17,6 +17,7 @@ from numpy import (
     isnan,
     log,
     NINF,
+    searchsorted,
     sqrt,
     sum as np_sum,
     where,
@@ -25,6 +26,7 @@ from numexpr import evaluate
 from scipy.stats import linregress
 
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
 from zipline.pipeline.term import NotSpecified
 from zipline.utils.numpy_utils import ignore_nanwarnings
@@ -148,74 +150,88 @@ class AverageDollarVolume(CustomFactor):
         out[:] = nanmean(close * volume, axis=0)
 
 
-class CorrelationFactor(SingleInputMixin, CustomFactor):
+class RollingPearsonOfReturns(SingleInputMixin, CustomFactor):
     """
-    Correlation of the given asset with all other assets for the given input.
+    Calculates the Pearson product-moment correlation coefficient of the
+    returns of the given asset with the returns of all other assets.
 
-    **Default Inputs:** None
-
-    **Default Window Length:** None
+    **Default Inputs:** [Returns]
 
     Parameters
     ----------
-    inputs : length-1 list/tuple of BoundColumn
-        The expression over which to compute the correlations.
-    window_length : int > 1
-        Length of the look back window over which to compute correlations.
-    asset : zipline.assets.Asset
+    baseline_asset : zipline.assets.Asset
         The asset to correlate with all other assets.
+    returns_length : int > 1
+        Length of the lookback window over which to compute returns.
+    correlation_length : int > 1
+        Length of the lookback window over which to compute each correlation
+        coefficient.
 
     Example
     -------
-    Let the following be example close prices for three different stocks::
+    Let the following be example 10-day returns for three different assets::
 
-                      AAPL   MSFT     FB
-        2017-03-13       5      6      1
-        2017-03-14       5      4      2
-        2017-03-15       4      9      3
-        2017-03-16       6      7      4
-        2017-03-17       3      4      5
-        2017-03-20       2      6      6
-        2017-03-21       2      5      7
-        2017-03-22       2      8      8
+                       SPY    MSFT     FB
+        2017-03-13    -.03     .03    .04
+        2017-03-14    -.02    -.03    .02
+        2017-03-15    -.01     .02    .01
+        2017-03-16       0    -.02    .01
+        2017-03-17     .01     .04   -.01
+        2017-03-20     .02    -.03   -.02
+        2017-03-21     .03     .01   -.02
+        2017-03-22     .04    -.02   -.02
 
-    Suppose we are interested in AAPL's rolling close price correlation with
-    each stock from 2017-03-17 to 2017-03-22, using a 5-day look back window
-    (that is, we calculate each correlation coefficient over 5 days of data).
-    We can achieve this by doing::
+    Suppose we are interested in SPY's rolling returns correlation with each
+    stock from 2017-03-17 to 2017-03-22, using a 5-day look back window (that
+    is, we calculate each correlation coefficient over 5 days of data). We can
+    achieve this by doing::
 
-        correlation_factor = CorrelationFactor(
-            inputs=[USEquityPricing.close],
-            window_length=5,
-            asset=Equity(24),
+        rolling_correlations = RollingPearsonOfReturns(
+            returns_length=10, correlation_length=5,
         )
 
-    The result of computing ``correlation_factor`` from 2017-03-17 to
+    The result of computing ``rolling_correlations`` from 2017-03-17 to
     2017-03-22 gives::
 
-                      AAPL   MSFT     FB
-        2017-03-17       1    .21   -.42
-        2017-03-20       1    .15   -.70
-        2017-03-21       1    .51   -.76
-        2017-03-22       1    .18   -.82
+                       SPY   MSFT     FB
+        2017-03-17       1    .15   -.96
+        2017-03-20       1    .10   -.96
+        2017-03-21       1   -.16   -.94
+        2017-03-22       1   -.16   -.85
 
-    Note that the column for AAPL is all 1's, as the correlation of any data
-    with itself is always 1. To understand how each of the other values were
-    calculated, take for example the .21 in MSFT's column. This is the Pearson
-    correlation coefficient between AAPL's five close prices looking back from
-    2017-03-17 (5, 5, 4, 6, 3) and MSFT's five close prices (6, 4, 9, 7, 4).
+    Note that the column for SPY is all 1's, as the correlation of any data
+    series with itself is always 1. To understand how each of the other values
+    were calculated, take for example the .15 in MSFT's column. This is the
+    correlation coefficient between SPY's returns looking back from 2017-03-17
+    (-.03, -.02, -.01, 0, .01) and MSFT's returns (.03, -.03, .02, -.02, .04).
 
     See Also
     --------
-    :class:`zipline.pipeline.factors.technical.SingleRegressionFactor`
+    :class:`zipline.pipeline.factors.technical.RollingReturnsRegression`
     """
-    params = ['asset']
+    params = ['baseline_asset']
 
-    def compute(self, today, assets, out, data, asset):
-        asset_col = where(assets == asset.sid)[0][0]
-        # Use the transpose here because we want the correlations between
-        # columns, but `corrcoef` calculates between rows.
-        out[:] = corrcoef(data.T)[asset_col]
+    def __new__(cls,
+                baseline_asset,
+                returns_length,
+                correlation_length,
+                mask=NotSpecified,
+                **kwargs):
+        if mask is not NotSpecified:
+            # Make sure we do not filter out the asset of interest.
+            mask = mask | SingleAsset(asset=baseline_asset)
+        return super(RollingPearsonOfReturns, cls).__new__(
+            cls,
+            baseline_asset=baseline_asset,
+            inputs=[Returns(window_length=returns_length)],
+            window_length=correlation_length,
+            mask=mask,
+            **kwargs
+        )
+
+    def compute(self, today, assets, out, data, baseline_asset):
+        asset_col = searchsorted(list(assets), baseline_asset.sid)
+        out[:] = corrcoef(data, rowvar=0)[asset_col]
 
 
 class SingleRegressionFactor(SingleInputMixin, CustomFactor):

@@ -377,3 +377,12 @@ class Latest(LatestMixin, CustomFilter):
     Filter producing the most recently-known value of `inputs[0]` on each day.
     """
     pass
+
+
+class SingleAsset(CustomFilter):
+    inputs = []
+    window_length = 1
+    params = ['asset']
+
+    def compute(self, today, assets, out, asset):
+        out[:] = (assets == asset.sid)

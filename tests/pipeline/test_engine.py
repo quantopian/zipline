@@ -48,7 +48,6 @@ from zipline.pipeline.data import Column, DataSet, USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     AverageDollarVolume,
-    CorrelationFactor,
     EWMA,
     EWMSTD,
     ExponentialWeightedMovingAverage,
@@ -56,6 +55,7 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SingleRegressionFactor,
     Returns,
+    RollingPearsonOfReturns,
     SimpleMovingAverage,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
@@ -1246,13 +1246,14 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         assert_frame_equal(results['dv5'].unstack(), expected_5)
 
     @parameter_space(returns_length=[2, 3], correlation_length=[2, 3])
-    def test_correlation_factor(self, returns_length, correlation_length):
+    def test_correlation_factors(self, returns_length, correlation_length):
         asset_column = 0
+        asset = self.asset_finder.retrieve_asset(self.sids[asset_column])
 
-        correlation = CorrelationFactor(
-            inputs=[Returns(window_length=returns_length)],
-            window_length=correlation_length,
-            asset=self.asset_finder.retrieve_asset(self.sids[asset_column]),
+        correlation = RollingPearsonOfReturns(
+            baseline_asset=asset,
+            returns_length=returns_length,
+            correlation_length=correlation_length,
         )
 
         results = self.engine.run_pipeline(
@@ -1262,10 +1263,10 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         )
         correlation_results = results['correlation'].unstack()
 
-        # Run a separate pipeline that calculates returns starting 2 days prior
-        # to the start date for the results above. This is because we need
-        # (correlation_length - 1) extra days of returns to compute our
-        # expected correlations.
+        # Run a separate pipeline that calculates returns starting
+        # (correlation_length - 1) days prior to the start date for the results
+        # above. This is because we need (correlation_length - 1) extra days of
+        # returns to compute our expected correlations.
         returns = Returns(window_length=returns_length)
         results = self.engine.run_pipeline(
             Pipeline(columns={'returns': returns}),
