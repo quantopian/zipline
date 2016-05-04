@@ -23,7 +23,7 @@ from numpy import (
     where,
 )
 from numexpr import evaluate
-from scipy.stats import linregress
+from scipy.stats import linregress, spearmanr
 
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.filters import SingleAsset
@@ -232,6 +232,32 @@ class RollingPearsonOfReturns(SingleInputMixin, CustomFactor):
     def compute(self, today, assets, out, data, baseline_asset):
         asset_col = searchsorted(list(assets), baseline_asset.sid)
         out[:] = corrcoef(data, rowvar=0)[asset_col]
+
+
+class RollingSpearmanOfReturns(RollingPearsonOfReturns):
+    """
+    Calculates the Spearman rank correlation coefficient of the returns of the
+    given asset with the returns of all other assets.
+
+    **Default Inputs:** [Returns]
+
+    Parameters
+    ----------
+    baseline_asset : zipline.assets.Asset
+        The asset to correlate with all other assets.
+    returns_length : int > 1
+        Length of the lookback window over which to compute returns.
+    correlation_length : int > 1
+        Length of the lookback window over which to compute each correlation
+        coefficient.
+
+    See Also
+    --------
+    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
+    """
+    def compute(self, today, assets, out, data, baseline_asset):
+        asset_col = searchsorted(list(assets), baseline_asset.sid)
+        out[:] = spearmanr(data)[0][asset_col]
 
 
 class SingleRegressionFactor(SingleInputMixin, CustomFactor):

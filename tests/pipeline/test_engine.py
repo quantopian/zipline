@@ -37,7 +37,7 @@ from pandas import (
 )
 from pandas.compat.chainmap import ChainMap
 from pandas.util.testing import assert_frame_equal
-from scipy.stats.stats import pearsonr
+from scipy.stats.stats import pearsonr, spearmanr
 from six import iteritems, itervalues
 from toolz import merge
 
@@ -53,10 +53,11 @@ from zipline.pipeline.factors import (
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
     MaxDrawdown,
-    SingleRegressionFactor,
     Returns,
     RollingPearsonOfReturns,
+    RollingSpearmanOfReturns,
     SimpleMovingAverage,
+    SingleRegressionFactor,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
@@ -1245,60 +1246,68 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
 
-    @parameter_space(returns_length=[2, 3], correlation_length=[2, 3])
+    @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
     def test_correlation_factors(self, returns_length, correlation_length):
-        asset_column = 0
-        asset = self.asset_finder.retrieve_asset(self.sids[asset_column])
+        """
+        Tests for the built-in factors `RollingPearsonOfReturns` and
+        `RollingSpearmanOfReturns`.
+        """
+        for CorrelationFactor, corr_function in (
+                (RollingPearsonOfReturns, pearsonr),
+                (RollingSpearmanOfReturns, spearmanr)):
+            asset_column = 0
+            asset = self.asset_finder.retrieve_asset(self.sids[asset_column])
 
-        correlation = RollingPearsonOfReturns(
-            baseline_asset=asset,
-            returns_length=returns_length,
-            correlation_length=correlation_length,
-        )
+            correlation = CorrelationFactor(
+                baseline_asset=asset,
+                returns_length=returns_length,
+                correlation_length=correlation_length,
+            )
 
-        results = self.engine.run_pipeline(
-            Pipeline(columns={'correlation': correlation}),
-            self.dates[5],
-            self.dates[9],
-        )
-        correlation_results = results['correlation'].unstack()
+            results = self.engine.run_pipeline(
+                Pipeline(columns={'correlation': correlation}),
+                self.dates[5],
+                self.dates[9],
+            )
+            correlation_results = results['correlation'].unstack()
 
-        # Run a separate pipeline that calculates returns starting
-        # (correlation_length - 1) days prior to the start date for the results
-        # above. This is because we need (correlation_length - 1) extra days of
-        # returns to compute our expected correlations.
-        returns = Returns(window_length=returns_length)
-        results = self.engine.run_pipeline(
-            Pipeline(columns={'returns': returns}),
-            self.dates[5 - (correlation_length - 1)],
-            self.dates[9],
-        )
-        returns_results = results['returns'].unstack()
+            # Run a separate pipeline that calculates returns starting
+            # (correlation_length - 1) days prior to the start date for the
+            # results above. This is because we need (correlation_length - 1)
+            # extra days of returns to compute our expected correlations.
+            returns = Returns(window_length=returns_length)
+            results = self.engine.run_pipeline(
+                Pipeline(columns={'returns': returns}),
+                self.dates[5 - (correlation_length - 1)],
+                self.dates[9],
+            )
+            returns_results = results['returns'].unstack()
 
-        # On each day of our original results, calculate the correlation
-        # coefficient between the asset we are interested in and each other
-        # asset. Each correlation is calculated over `correlation_length` days.
-        expected_correlation_results = full_like(correlation_results, nan)
-        for day in range(len(expected_correlation_results)):
-            my_asset_returns = returns_results.ix[
-                day:day+correlation_length, asset_column,
-            ]
-            for asset in range(len(expected_correlation_results[0])):
-                other_asset_returns = returns_results.ix[
-                    day:day+correlation_length, asset,
+            # On each day of our original results, calculate the correlation
+            # coefficient between the asset we are interested in and each other
+            # asset. Each correlation is calculated over `correlation_length`
+            # days.
+            expected_correlation_results = full_like(correlation_results, nan)
+            for day in range(len(expected_correlation_results)):
+                my_asset_returns = returns_results.ix[
+                    day:day+correlation_length, asset_column,
                 ]
-                expected_correlation_results[day, asset] = pearsonr(
-                    my_asset_returns, other_asset_returns,
-                )[0]
+                for asset in range(len(expected_correlation_results[0])):
+                    other_asset_returns = returns_results.ix[
+                        day:day+correlation_length, asset,
+                    ]
+                    expected_correlation_results[day, asset] = corr_function(
+                        my_asset_returns, other_asset_returns,
+                    )[0]
 
-        assert_frame_equal(
-            correlation_results,
-            DataFrame(
-                expected_correlation_results,
-                index=self.dates[5:10],
-                columns=self.asset_finder.retrieve_all(self.sids),
-            ),
-        )
+            assert_frame_equal(
+                correlation_results,
+                DataFrame(
+                    expected_correlation_results,
+                    index=self.dates[5:10],
+                    columns=self.asset_finder.retrieve_all(self.sids),
+                ),
+            )
 
     @parameter_space(
         returns_length=[2, 3],
