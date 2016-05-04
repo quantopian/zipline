@@ -54,6 +54,7 @@ _FILLVALUE_DEFAULTS = {
     float32_dtype: nan,
     float64_dtype: nan,
     datetime64ns_dtype: NaTns,
+    object_dtype: None,
 }
 
 INT_DTYPES_BY_SIZE_BYTES = {
