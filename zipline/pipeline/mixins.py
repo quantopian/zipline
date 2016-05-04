@@ -130,7 +130,7 @@ class CustomTermMixin(object):
 
         If we have an outputs tuple, the default is an empty recarray with
         ``self.outputs`` as field names. Each field will have dtype
-        ``self.dtype``, the default shape is ``self.shape``.
+        ``self.dtype``.
 
         This can be overridden to control the kind of array constructed
         (e.g. to produce a LabelArray instead of an ndarray).
