@@ -36,6 +36,22 @@ class SingleInputMixin(object):
             )
 
 
+class StandardOutputs(object):
+    """
+    Validation mixin enforcing that a Term cannot produce non-standard outputs.
+    """
+    def _validate(self):
+        super(StandardOutputs, self)._validate()
+        if self.outputs is not NotSpecified:
+            raise ValueError(
+                "{typename} does not support custom outputs,"
+                " but received custom outputs={outputs}.".format(
+                    typename=type(self).__name__,
+                    outputs=self.outputs,
+                )
+            )
+
+
 class RestrictedDTypeMixin(object):
     """
     Validation mixin enforcing that a term has a specific dtype.

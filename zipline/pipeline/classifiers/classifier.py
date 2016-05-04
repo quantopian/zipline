@@ -25,6 +25,7 @@ from ..mixins import (
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
     SingleInputMixin,
+    StandardOutputs,
 )
 
 
@@ -351,16 +352,35 @@ class StringPredicate(SingleInputMixin, Filter):
         )
 
 
-class CustomClassifier(PositiveWindowLengthMixin, CustomTermMixin, Classifier):
+class CustomClassifier(PositiveWindowLengthMixin,
+                       StandardOutputs,
+                       CustomTermMixin,
+                       Classifier):
     """
     Base class for user-defined Classifiers.
+
+    Does not suppport multiple outputs.
 
     See Also
     --------
     zipline.pipeline.CustomFactor
     zipline.pipeline.CustomFilter
     """
-    pass
+    def _allocate_output(self, windows, shape):
+        """
+        Override the default array allocation to produce a LabelArray when we
+        have a string-like dtype.
+        """
+        if self.dtype == int64_dtype:
+            return super(CustomClassifier, self)._allocate_output(
+                windows,
+                shape,
+            )
+
+        # This is a little bit of a hack.  We might not know what the
+        # categories for a LabelArray are until it's actually been loaded, so
+        # we need to look at the underlying data.
+        return windows[0].data.empty_like(shape)
 
 
 class Latest(LatestMixin, CustomClassifier):
@@ -373,18 +393,7 @@ class Latest(LatestMixin, CustomClassifier):
     zipline.pipeline.factors.factor.Latest
     zipline.pipeline.filters.filter.Latest
     """
-    def _allocate_output(self, windows, shape):
-        """
-        Override the default array allocation to produce a LabelArray when we
-        have a string-like dtype.
-        """
-        if self.dtype == int64_dtype:
-            return super(Latest, self)._allocate_output(windows, shape)
-
-        # This is a little bit of a hack.  We might not know what the
-        # categories for a LabelArray are until it's actually been loaded, so
-        # we need to look at the underlying data.
-        return windows[0].data.empty_like(shape)
+    pass
 
 
 class InvalidClassifierComparison(TypeError):
