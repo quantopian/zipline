@@ -16,4 +16,5 @@ unicode = type(u'')
 
 __all__ = [
     'mappingproxy',
+    'unicode',
 ]
