@@ -137,11 +137,10 @@ from datashape import (
     Date,
     DateTime,
     Option,
-    float64,
     floating,
     isrecord,
     isscalar,
-    promote,
+    String
 )
 import numpy as np
 from odo import odo
@@ -170,7 +169,7 @@ from zipline.pipeline.loaders.utils import (
     normalize_timestamp_to_query_time,
 )
 from zipline.pipeline.term import NotSpecified
-from zipline.lib.adjusted_array import AdjustedArray
+from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum
 from zipline.utils.input_validation import (
@@ -312,21 +311,17 @@ def new_dataset(expr, deltas, missing_values):
         if name in (SID_FIELD_NAME, TS_FIELD_NAME):
             continue
         try:
-            # TODO: This should support datetime and bool columns.
-            if promote(type_, float64, promote_option=False) != float64:
-                raise NotPipelineCompatible()
             if isinstance(type_, Option):
                 type_ = type_.ty
-        except NotPipelineCompatible:
-            col = NonPipelineField(name, type_)
-        except TypeError:
-            col = NonNumpyField(name, type_)
-        else:
+            type_ = type_.to_numpy_dtype()
+            if not isinstance(type_, String) and not can_represent_dtype(type_):
+                raise NotPipelineCompatible()
             col = Column(
-                type_.to_numpy_dtype(),
+                type_,
                 missing_values.get(name, NotSpecified),
             )
-
+        except NotPipelineCompatible:
+            col = NonPipelineField(name, type_)
         columns[name] = col
 
     name = expr._name
