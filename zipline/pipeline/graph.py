@@ -70,7 +70,7 @@ class TermGraph(DiGraph):
 
             Max number of extra rows needed by any term depending on `input`
             minus
-            Number of rows needed by `input` for `term`
+            Number of extra rows needed by `input` for `term`
             minus
             Number of extra rows needed by `term`
 
