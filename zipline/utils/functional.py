@@ -56,6 +56,8 @@ def apply(f, *args, **kwargs):
 # Alias for use as a class decorator.
 instance = apply
 
+from zipline.utils.sentinel import sentinel
+
 
 def mapall(funcs, seq):
     """
@@ -242,3 +244,87 @@ def unzip(seq, elem_len=None):
     if elem_len is None:
         raise ValueError("cannot unzip empty sequence without 'elem_len'")
     return ((),) * elem_len
+
+
+_no_default = sentinel('_no_default')
+
+
+def getattrs(value, attrs, default=_no_default):
+    """
+    Perform a chained application of ``getattr`` on ``value`` with the values
+    in ``attrs``.
+
+    If ``default`` is supplied, return it if any of the attribute lookups fail.
+
+    Parameters
+    ----------
+    value : object
+        Root of the lookup chain.
+    attrs : iterable[str]
+        Sequence of attributes to look up.
+    default : object, optional
+        Value to return if any of the lookups fail.
+
+    Returns
+    -------
+    result : object
+        Result of the lookup sequence.
+
+    Example
+    -------
+    >>> class EmptyObject(object):
+    ...     pass
+    ...
+    >>> obj = EmptyObject()
+    >>> obj.foo = EmptyObject()
+    >>> obj.foo.bar = "value"
+    >>> getattrs(obj, ('foo', 'bar'))
+    'value'
+
+    >>> getattrs(obj, ('foo', 'buzz'))
+    Traceback (most recent call last):
+       ...
+    AttributeError: 'EmptyObject' object has no attribute 'buzz'
+
+    >>> getattrs(obj, ('foo', 'buzz'), 'default')
+    'default'
+    """
+    try:
+        for attr in attrs:
+            value = getattr(value, attr)
+    except AttributeError:
+        if default is _no_default:
+            raise
+        value = default
+    return value
+
+
+@curry
+def set_attribute(name, value):
+    """
+    Decorator factory for setting attributes on a function.
+
+    Doesn't change the behavior of the wrapped function.
+
+    Usage
+    -----
+    >>> @set_attribute('__name__', 'foo')
+    ... def bar():
+    ...     return 3
+    ...
+    >>> bar()
+    3
+    >>> bar.__name__
+    'foo'
+    """
+    def decorator(f):
+        setattr(f, name, value)
+        return f
+    return decorator
+
+
+# Decorators for setting the __name__ and __doc__ properties of a decorated
+# function.
+# Example:
+with_name = set_attribute('__name__')
+with_doc = set_attribute('__doc__')

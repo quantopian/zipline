@@ -40,6 +40,7 @@ from ..utils.final import FinalMeta, final
 from ..utils.metautils import compose_types
 from .core import tmp_asset_finder, make_simple_equity_info, gen_calendars
 from zipline.pipeline import Pipeline, SimplePipelineEngine
+from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils.numpy_utils import make_datetime64D
 from zipline.utils.numpy_utils import NaTD
 from zipline.pipeline.common import TS_FIELD_NAME
@@ -984,6 +985,78 @@ class WithPipelineEventDataLoader(with_metaclass(
                 assert_series_equal(result[col_name].unstack(1)[sid],
                                     cols[col_name][sid],
                                     check_names=False)
+
+
+class WithSeededRandomPipelineEngine(WithNYSETradingDays, WithAssetFinder):
+    """
+    ZiplineTestCase mixin providing class-level fixtures for running pipelines
+    against deterministically-generated random data.
+
+    Attributes
+    ----------
+    SEEDED_RANDOM_PIPELINE_SEED : int
+        Fixture input. Random seed used to initialize the random state loader.
+    seeded_random_loader : SeededRandomLoader
+        Fixture output. Loader capable of providing columns for
+        zipline.pipeline.data.testing.TestingDataSet.
+    seeded_random_engine : SimplePipelineEngine
+        Fixture output.  A pipeline engine that will use seeded_random_loader
+        as its only data provider.
+
+    Methods
+    -------
+    run_pipeline(start_date, end_date)
+        Run a pipeline with self.seeded_random_engine.
+
+    See Also
+    --------
+    zipline.pipeline.loaders.synthetic.SeededRandomLoader
+    zipline.pipeline.loaders.testing.make_seeded_random_loader
+    zipline.pipeline.engine.SimplePipelineEngine
+    """
+    SEEDED_RANDOM_PIPELINE_SEED = 42
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithSeededRandomPipelineEngine, cls).init_class_fixtures()
+        cls._sids = cls.asset_finder.sids
+        cls.seeded_random_loader = loader = make_seeded_random_loader(
+            cls.SEEDED_RANDOM_PIPELINE_SEED,
+            cls.trading_days,
+            cls._sids,
+        )
+        cls.seeded_random_engine = SimplePipelineEngine(
+            get_loader=lambda column: loader,
+            calendar=cls.trading_days,
+            asset_finder=cls.asset_finder,
+        )
+
+    def raw_expected_values(self, column, start_date, end_date):
+        """
+        Get an array containing the raw values we expect to be produced for the
+        given dates between start_date and end_date, inclusive.
+        """
+        all_values = self.seeded_random_loader.values(
+            column.dtype,
+            self.trading_days,
+            self._sids,
+        )
+        row_slice = self.trading_days.slice_indexer(start_date, end_date)
+        return all_values[row_slice]
+
+    def run_pipeline(self, pipeline, start_date, end_date):
+        """
+        Run a pipeline with self.seeded_random_engine.
+        """
+        if start_date not in self.trading_days:
+            raise AssertionError("Start date not in calendar: %s" % start_date)
+        if end_date not in self.trading_days:
+            raise AssertionError("Start date not in calendar: %s" % start_date)
+        return self.seeded_random_engine.run_pipeline(
+            pipeline,
+            start_date,
+            end_date,
+        )
 
 
 class WithDataPortal(WithBcolzMinuteBarReader, WithAdjustmentReader):

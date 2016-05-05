@@ -1,19 +1,21 @@
 """
 filter.py
 """
+from itertools import chain
+from operator import attrgetter
+
+
 from numpy import (
     float64,
     nan,
     nanpercentile,
 )
-from itertools import chain
-from operator import attrgetter
-
 from zipline.errors import (
     BadPercentileBounds,
     UnsupportedDataType,
 )
-from zipline.lib.rank import ismissing
+from zipline.lib.labelarray import LabelArray
+from zipline.lib.rank import is_missing
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -28,6 +30,7 @@ from zipline.pipeline.expression import (
     method_name_for_op,
     NumericalExpression,
 )
+from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import bool_dtype
 
 
@@ -228,19 +231,22 @@ class NullFilter(SingleInputMixin, Filter):
 
     Parameters
     ----------
-    factor : zipline.pipeline.Factor
+    factor : zipline.pipeline.Term
         The factor to compare against its missing_value.
     """
     window_length = 0
 
-    def __new__(cls, factor):
+    def __new__(cls, term):
         return super(NullFilter, cls).__new__(
             cls,
-            inputs=(factor,),
+            inputs=(term,),
         )
 
     def _compute(self, arrays, dates, assets, mask):
-        return ismissing(arrays[0], self.inputs[0].missing_value)
+        data = arrays[0]
+        if isinstance(data, LabelArray):
+            return data.is_missing()
+        return is_missing(arrays[0], self.inputs[0].missing_value)
 
 
 class PercentileFilter(SingleInputMixin, Filter):
@@ -370,6 +376,50 @@ class CustomFilter(PositiveWindowLengthMixin, CustomTermMixin, Filter):
     --------
     zipline.pipeline.factors.factor.CustomFactor
     """
+
+
+class ArrayPredicate(SingleInputMixin, Filter):
+    """
+    A filter applying a function from (ndarray, *args) -> ndarray[bool].
+
+    Parameters
+    ----------
+    term : zipline.pipeline.Term
+        Term producing the array over which the predicate will be computed.
+    op : function(ndarray, *args) -> ndarray[bool]
+        Function to apply to the result of `term`.
+    opargs : tuple[hashable]
+        Additional argument to apply to ``op``.
+    """
+    window_length = 0
+
+    @expect_types(term=Term, opargs=tuple)
+    def __new__(cls, term, op, opargs):
+        hash(opargs)  # fail fast if opargs isn't hashable.
+        return super(ArrayPredicate, cls).__new__(
+            ArrayPredicate,
+            op=op,
+            opargs=opargs,
+            inputs=(term,),
+            mask=term.mask,
+        )
+
+    def _init(self, op, opargs, *args, **kwargs):
+        self._op = op
+        self._opargs = opargs
+        return super(ArrayPredicate, self)._init(*args, **kwargs)
+
+    @classmethod
+    def static_identity(cls, op, opargs, *args, **kwargs):
+        return (
+            super(ArrayPredicate, cls).static_identity(*args, **kwargs),
+            op,
+            opargs,
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        data = arrays[0]
+        return self._op(data, *self._opargs) & mask
 
 
 class Latest(LatestMixin, CustomFilter):

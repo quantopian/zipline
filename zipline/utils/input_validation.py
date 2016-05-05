@@ -22,7 +22,8 @@ from six import iteritems, string_types, PY3
 from toolz import valmap, complement, compose
 import toolz.curried.operator as op
 
-from zipline.utils.preprocess import preprocess
+from zipline.utils.functional import getattrs
+from zipline.utils.preprocess import call, preprocess
 
 
 def optionally(preprocessor):
@@ -163,7 +164,7 @@ def ensure_timestamp(func, argname, arg):
         )
 
 
-def expect_dtypes(*_pos, **named):
+def expect_dtypes(**named):
     """
     Preprocessing decorator that verifies inputs have expected numpy dtypes.
 
@@ -181,9 +182,6 @@ def expect_dtypes(*_pos, **named):
        ...
     TypeError: foo() expected an argument with dtype 'int64' for argument 'x', but got dtype 'float64' instead.  # noqa
     """
-    if _pos:
-        raise TypeError("expect_dtypes() only takes keyword arguments.")
-
     for name, type_ in iteritems(named):
         if not isinstance(type_, (dtype, tuple)):
             raise TypeError(
@@ -193,40 +191,99 @@ def expect_dtypes(*_pos, **named):
                 )
             )
 
-    def _expect_dtype(_dtype_or_dtype_tuple):
+    @preprocess(dtypes=call(lambda x: x if isinstance(x, tuple) else (x,)))
+    def _expect_dtype(dtypes):
         """
-        Factory for dtype-checking functions that work the @preprocess
+        Factory for dtype-checking functions that work with the @preprocess
         decorator.
         """
-        # Slightly different messages for dtype and tuple of dtypes.
-        if isinstance(_dtype_or_dtype_tuple, tuple):
-            allowed_dtypes = _dtype_or_dtype_tuple
-        else:
-            allowed_dtypes = (_dtype_or_dtype_tuple,)
-        template = (
-            "%(funcname)s() expected a value with dtype {dtype_str} "
-            "for argument '%(argname)s', but got %(actual)r instead."
-        ).format(dtype_str=' or '.join(repr(d.name) for d in allowed_dtypes))
-
-        def check_dtype(value):
-            return getattr(value, 'dtype', None) not in allowed_dtypes
-
-        def display_bad_value(value):
+        def error_message(func, argname, value):
             # If the bad value has a dtype, but it's wrong, show the dtype
-            # name.
+            # name.  Otherwise just show the value.
             try:
-                return value.dtype.name
+                value_to_show = value.dtype.name
             except AttributeError:
-                return value
+                value_to_show = value
+            return (
+                "{funcname}() expected a value with dtype {dtype_str} "
+                "for argument {argname!r}, but got {value!r} instead."
+            ).format(
+                funcname=_qualified_name(func),
+                dtype_str=' or '.join(repr(d.name) for d in dtypes),
+                argname=argname,
+                value=value_to_show,
+            )
 
-        return make_check(
-            exc_type=TypeError,
-            template=template,
-            pred=check_dtype,
-            actual=display_bad_value,
-        )
+        def _actual_preprocessor(func, argname, argvalue):
+            if getattr(argvalue, 'dtype', object()) not in dtypes:
+                raise TypeError(error_message(func, argname, argvalue))
+            return argvalue
+
+        return _actual_preprocessor
 
     return preprocess(**valmap(_expect_dtype, named))
+
+
+def expect_kinds(**named):
+    """
+    Preprocessing decorator that verifies inputs have expected dtype kinds.
+
+    Usage
+    -----
+    >>> from numpy import int64, int32, float32
+    >>> @expect_kinds(x='i')
+    ... def foo(x):
+    ...    return x
+    ...
+    >>> foo(int64(2))
+    2
+    >>> foo(int32(2))
+    2
+    >>> foo(float32(2))
+    Traceback (most recent call last):
+       ...n
+    TypeError: foo() expected a numpy object of kind 'i' for argument 'x', but got 'f' instead.  # noqa
+    """
+    for name, kind in iteritems(named):
+        if not isinstance(kind, (str, tuple)):
+            raise TypeError(
+                "expect_dtype_kinds() expected a string or tuple of strings"
+                " for argument {name!r}, but got {kind} instead.".format(
+                    name=name, kind=dtype,
+                )
+            )
+
+    @preprocess(kinds=call(lambda x: x if isinstance(x, tuple) else (x,)))
+    def _expect_kind(kinds):
+        """
+        Factory for kind-checking functions that work the @preprocess
+        decorator.
+        """
+        def error_message(func, argname, value):
+            # If the bad value has a dtype, but it's wrong, show the dtype
+            # kind.  Otherwise just show the value.
+            try:
+                value_to_show = value.dtype.kind
+            except AttributeError:
+                value_to_show = value
+            return (
+                "{funcname}() expected a numpy object of kind {kinds} "
+                "for argument {argname!r}, but got {value!r} instead."
+            ).format(
+                funcname=_qualified_name(func),
+                kinds=' or '.join(map(repr, kinds)),
+                argname=argname,
+                value=value_to_show,
+            )
+
+        def _actual_preprocessor(func, argname, argvalue):
+            if getattrs(argvalue, ('dtype', 'kind'), object()) not in kinds:
+                raise TypeError(error_message(func, argname, argvalue))
+            return argvalue
+
+        return _actual_preprocessor
+
+    return preprocess(**valmap(_expect_kind, named))
 
 
 def expect_types(*_pos, **named):

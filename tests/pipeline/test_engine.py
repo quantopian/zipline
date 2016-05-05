@@ -22,6 +22,7 @@ from numpy import (
 )
 from numpy.testing import assert_almost_equal
 from pandas import (
+    Categorical,
     DataFrame,
     date_range,
     ewma,
@@ -40,17 +41,10 @@ from toolz import merge
 
 from zipline.assets.synthetic import make_rotating_equity_info
 from zipline.lib.adjustment import MULTIPLY
-from zipline.pipeline.loaders.synthetic import PrecomputedLoader
-from zipline.pipeline import Pipeline
-from zipline.pipeline.data import USEquityPricing, DataSet, Column
-from zipline.pipeline.loaders.equity_pricing_loader import (
-    USEquityPricingLoader,
-)
-from zipline.pipeline.factors import CustomFactor
-from zipline.pipeline.loaders.synthetic import (
-    make_bar_data,
-    expected_bar_values_2d,
-)
+from zipline.lib.labelarray import LabelArray
+from zipline.pipeline import CustomFactor, Pipeline
+from zipline.pipeline.data import Column, DataSet, USEquityPricing
+from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import (
     AverageDollarVolume,
@@ -61,7 +55,15 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     SimpleMovingAverage,
 )
+from zipline.pipeline.loaders.equity_pricing_loader import (
+    USEquityPricingLoader,
+)
 from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.pipeline.loaders.synthetic import (
+    PrecomputedLoader,
+    make_bar_data,
+    expected_bar_values_2d,
+)
 from zipline.pipeline.term import NotSpecified
 from zipline.testing import (
     product_upper_triangle,
@@ -69,6 +71,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
+    WithSeededRandomPipelineEngine,
     WithTradingEnvironment,
     ZiplineTestCase,
 )
@@ -1238,3 +1241,33 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
+
+
+class StringColumnTestCase(WithSeededRandomPipelineEngine,
+                           ZiplineTestCase):
+
+    def test_string_classifiers_produce_categoricals(self):
+        """
+        Test that string-based classifiers produce pandas categoricals as their
+        outputs.
+        """
+        col = TestingDataSet.categorical_col
+        pipe = Pipeline(columns={'c': col.latest})
+
+        run_dates = self.trading_days[-10:]
+        start_date, end_date = run_dates[[0, -1]]
+
+        result = self.run_pipeline(pipe, start_date, end_date)
+        assert isinstance(result.c.values, Categorical)
+
+        expected_raw_data = self.raw_expected_values(
+            col,
+            start_date,
+            end_date,
+        )
+        expected_labels = LabelArray(expected_raw_data, col.missing_value)
+        expected_final_result = expected_labels.as_categorical_frame(
+            index=run_dates,
+            columns=self.asset_finder.retrieve_all(self.asset_finder.sids),
+        )
+        assert_frame_equal(result.c.unstack(), expected_final_result)

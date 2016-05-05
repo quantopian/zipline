@@ -7,6 +7,9 @@ from six import (
     with_metaclass,
 )
 
+from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
+from zipline.pipeline.factors import Factor, Latest as LatestFactor
+from zipline.pipeline.filters import Filter, Latest as LatestFilter
 from zipline.pipeline.term import (
     AssetExists,
     LoadableTerm,
@@ -14,11 +17,7 @@ from zipline.pipeline.term import (
     Term,
 )
 from zipline.utils.input_validation import ensure_dtype
-from zipline.utils.numpy_utils import (
-    bool_dtype,
-    int64_dtype,
-    NoDefaultMissingValue,
-)
+from zipline.utils.numpy_utils import NoDefaultMissingValue
 from zipline.utils.preprocess import preprocess
 
 
@@ -26,7 +25,6 @@ class Column(object):
     """
     An abstract column of data, not yet associated with a dataset.
     """
-
     @preprocess(dtype=ensure_dtype)
     def __init__(self, dtype, missing_value=NotSpecified):
         self.dtype = dtype
@@ -164,15 +162,18 @@ class BoundColumn(LoadableTerm):
 
     @property
     def latest(self):
-        if self.dtype == bool_dtype:
-            from zipline.pipeline.filters import Latest
-        elif self.dtype == int64_dtype:
-            from zipline.pipeline.classifiers import Latest
+        dtype = self.dtype
+        if dtype in Filter.ALLOWED_DTYPES:
+            Latest = LatestFilter
+        elif dtype in Classifier.ALLOWED_DTYPES:
+            Latest = LatestClassifier
         else:
-            from zipline.pipeline.factors import Latest
+            assert dtype in Factor.ALLOWED_DTYPES, "Unknown dtype %s." % dtype
+            Latest = LatestFactor
+
         return Latest(
             inputs=(self,),
-            dtype=self.dtype,
+            dtype=dtype,
             missing_value=self.missing_value,
         )
 

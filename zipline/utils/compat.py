@@ -11,6 +11,10 @@ if PY2:
 else:
     from types import MappingProxyType as mappingproxy
 
+
+unicode = type(u'')
+
 __all__ = [
     'mappingproxy',
+    'unicode',
 ]

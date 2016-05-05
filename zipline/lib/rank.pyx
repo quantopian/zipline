@@ -28,9 +28,9 @@ from zipline.utils.numpy_utils import (
 import_array()
 
 
-cpdef ismissing(ndarray data, object missing_value):
+cpdef is_missing(ndarray data, object missing_value):
     """
-    Generic ismissing function that handles quirks with NaN.
+    Generic is_missing function that handles quirks with NaN.
     """
     if is_float(data) and isnan(missing_value):
         return isnan(data)
@@ -51,7 +51,7 @@ def masked_rankdata_2d(ndarray data,
             "Can't compute rankdata on array of dtype %r." % dtype_name
         )
 
-    cdef ndarray missing_locations = (~mask | ismissing(data, missing_value))
+    cdef ndarray missing_locations = (~mask | is_missing(data, missing_value))
 
     # Interpret the bytes of integral data as floats for sorting.
     data = data.copy().view(float64)

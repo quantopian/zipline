@@ -665,6 +665,7 @@ class TradingAlgorithm(object):
         new_assets = tuple(new_assets)
         new_sids = tuple(new_sids)
         new_symbols = tuple(new_symbols)
+
         number_of_kinds_of_new_things = (
             sum((bool(new_assets), bool(new_sids), bool(new_symbols)))
         )

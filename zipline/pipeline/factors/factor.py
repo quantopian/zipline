@@ -6,11 +6,11 @@ from operator import attrgetter
 from numbers import Number
 
 from numpy import inf, where
-from toolz import curry
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d
+from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
 from zipline.pipeline.mixins import (
     CustomTermMixin,
@@ -42,6 +42,7 @@ from zipline.pipeline.filters import (
     PercentileFilter,
     NullFilter,
 )
+from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.numpy_utils import (
@@ -51,7 +52,6 @@ from zipline.utils.numpy_utils import (
     float64_dtype,
     int64_dtype,
 )
-from zipline.utils.preprocess import preprocess
 
 
 _RANK_METHODS = frozenset(['average', 'min', 'max', 'dense', 'ordinal'])
@@ -79,37 +79,6 @@ def coerce_numbers_to_my_dtype(f):
             other = coerce_to_dtype(self.dtype, other)
         return f(self, other)
     return method
-
-
-@curry
-def set_attribute(name, value):
-    """
-    Decorator factory for setting attributes on a function.
-
-    Doesn't change the behavior of the wrapped function.
-
-    Usage
-    -----
-    >>> @set_attribute('__name__', 'foo')
-    ... def bar():
-    ...     return 3
-    ...
-    >>> bar()
-    3
-    >>> bar.__name__
-    'foo'
-    """
-    def decorator(f):
-        setattr(f, name, value)
-        return f
-    return decorator
-
-
-# Decorators for setting the __name__ and __doc__ properties of a decorated
-# function.
-# Example:
-with_name = set_attribute('__name__')
-with_doc = set_attribute('__doc__')
 
 
 def binop_return_type(op):
@@ -327,51 +296,6 @@ def function_application(func):
             )
     return mathfunc
 
-
-def restrict_to_dtype(dtype, message_template):
-    """
-    A factory for decorators that restricting Factor methods to only be
-    callable on Factors with a specific dtype.
-
-    This is conceptually similar to
-    zipline.utils.input_validation.expect_dtypes, but provides more flexibility
-    for providing error messages that are specifically targeting Factor
-    methods.
-
-    Parameters
-    ----------
-    dtype : numpy.dtype
-        The dtype on which the decorated method may be called.
-    message_template : str
-        A template for the error message to be raised.
-        `message_template.format` will be called with keyword arguments
-        `method_name`, `expected_dtype`, and `received_dtype`.
-
-    Usage
-    -----
-    @restrict_to_dtype(
-        dtype=float64_dtype,
-        message_template=(
-            "{method_name}() was called on a factor of dtype {received_dtype}."
-            "{method_name}() requires factors of dtype{expected_dtype}."
-
-        ),
-    )
-    def some_factor_method(self, ...):
-        self.stuff_that_requires_being_float64(...)
-    """
-    def processor(factor_method, _, factor_instance):
-        factor_dtype = factor_instance.dtype
-        if factor_dtype != dtype:
-            raise TypeError(
-                message_template.format(
-                    method_name=factor_method.__name__,
-                    expected_dtype=dtype.name,
-                    received_dtype=factor_dtype,
-                )
-            )
-        return factor_instance
-    return preprocess(self=processor)
 
 # Decorators for Factor methods.
 if_not_float64_tell_caller_to_use_isnull = restrict_to_dtype(

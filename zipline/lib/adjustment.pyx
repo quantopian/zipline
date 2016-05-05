@@ -316,12 +316,13 @@ cdef class Float64Multiply(Float64Adjustment):
 
     cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
+        cdef float64_t value = self.value
 
         # last_col + 1 because last_col should also be affected.
         for col in range(self.first_col, self.last_col + 1):
             # last_row + 1 because last_row should also be affected.
             for row in range(self.first_row, self.last_row + 1):
-                data[row, col] *= self.value
+                data[row, col] *= value
 
 
 cdef class Float64Overwrite(Float64Adjustment):
@@ -354,12 +355,13 @@ cdef class Float64Overwrite(Float64Adjustment):
 
     cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
+        cdef float64_t value = self.value
 
         # last_col + 1 because last_col should also be affected.
         for col in range(self.first_col, self.last_col + 1):
             # last_row + 1 because last_row should also be affected.
             for row in range(self.first_row, self.last_row + 1):
-                data[row, col] = self.value
+                data[row, col] = value
 
 
 cdef class Float64Add(Float64Adjustment):
@@ -392,12 +394,13 @@ cdef class Float64Add(Float64Adjustment):
 
     cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t row, col
+        cdef float64_t value = self.value
 
         # last_col + 1 because last_col should also be affected.
         for col in range(self.first_col, self.last_col + 1):
             # last_row + 1 because last_row should also be affected.
             for row in range(self.first_row, self.last_row + 1):
-                data[row, col] += self.value
+                data[row, col] += value
 
 
 cdef class _Int64Adjustment(Adjustment):
@@ -530,9 +533,62 @@ cdef class Datetime64Overwrite(Datetime64Adjustment):
     """
     cpdef mutate(self, int64_t[:, :] data):
         cdef Py_ssize_t row, col
+        cdef int64_t value = self.value
 
         # last_col + 1 because last_col should also be affected.
         for col in range(self.first_col, self.last_col + 1):
             # last_row + 1 because last_row should also be affected.
             for row in range(self.first_row, self.last_row + 1):
-                data[row, col] = self.value
+                data[row, col] = value
+
+
+cdef class _ObjectAdjustment(Adjustment):
+    """
+    Base class for adjustments that operate on arbitrary objects.
+
+    We use only this for categorical data, where our data buffer is an array of
+    indices into an array of unique Python string objects.
+    """
+    cdef:
+        readonly object value
+
+    def __init__(self,
+                 Py_ssize_t first_row,
+                 Py_ssize_t last_row,
+                 Py_ssize_t first_col,
+                 Py_ssize_t last_col,
+                 object value):
+        super(_ObjectAdjustment, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+        self.value = value
+
+    def __repr__(self):
+        return (
+            "%s(first_row=%d, last_row=%d,"
+            " first_col=%d, last_col=%d, value=%r)" % (
+                type(self).__name__,
+                self.first_row,
+                self.last_row,
+                self.first_col,
+                self.last_col,
+                self.value,
+            )
+        )
+
+
+cdef class ObjectOverwrite(_ObjectAdjustment):
+
+    cpdef mutate(self, object data):
+        # data is an object here because this is intended to be used with a
+        # `zipline.lib.LabelArray`.
+        cdef Py_ssize_t row, col
+        cdef object value = self.value
+
+        # We don't do this in a loop because we only want to look up the label
+        # code in the array's categories once.
+        data[self.first_row:self.last_row + 1,
+             self.first_col:self.last_col + 1] = self.value

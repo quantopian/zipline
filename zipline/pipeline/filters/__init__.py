@@ -1,4 +1,5 @@
 from .filter import (
+    ArrayPredicate,
     CustomFilter,
     Filter,
     Latest,
@@ -8,6 +9,7 @@ from .filter import (
 )
 
 __all__ = [
+    'ArrayPredicate',
     'CustomFilter',
     'Filter',
     'Latest',

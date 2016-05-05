@@ -16,6 +16,7 @@ from zipline.errors import (
 )
 from zipline.pipeline import (
     Classifier,
+    CustomClassifier,
     CustomFactor,
     Factor,
     Filter,
@@ -25,8 +26,10 @@ from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
+from zipline.testing import parameter_space
 from zipline.utils.numpy_utils import (
     bool_dtype,
+    categorical_dtype,
     complex128_dtype,
     datetime64ns_dtype,
     float64_dtype,
@@ -471,7 +474,8 @@ class ObjectIdentityTestCase(TestCase):
         for column in TestingDataSet.columns:
             if column.dtype == bool_dtype:
                 self.assertIsInstance(column.latest, Filter)
-            elif column.dtype == int64_dtype:
+            elif (column.dtype == int64_dtype
+                  or column.dtype.kind in ('O', 'S', 'U')):
                 self.assertIsInstance(column.latest, Classifier)
             elif column.dtype in factor_dtypes:
                 self.assertIsInstance(column.latest, Factor)
@@ -568,3 +572,33 @@ class SubDataSetTestCase(TestCase):
                 'subclass column %r should have the same dtype as the parent' %
                 k,
             )
+
+    @parameter_space(
+        dtype_=[categorical_dtype, int64_dtype],
+        outputs_=[('a',), ('a', 'b')],
+    )
+    def test_reject_multi_output_classifiers(self, dtype_, outputs_):
+        """
+        Multi-output CustomClassifiers don't work because they use special
+        output allocation for string arrays.
+        """
+
+        class SomeClassifier(CustomClassifier):
+            dtype = dtype_
+            window_length = 5
+            inputs = [SomeDataSet.foo, SomeDataSet.bar]
+            outputs = outputs_
+            missing_value = dtype_.type('123')
+
+        expected_error = (
+            "SomeClassifier does not support custom outputs, "
+            "but received custom outputs={outputs}.".format(outputs=outputs_)
+        )
+
+        with self.assertRaises(ValueError) as e:
+            SomeClassifier()
+        self.assertEqual(str(e.exception), expected_error)
+
+        with self.assertRaises(ValueError) as e:
+            SomeClassifier()
+        self.assertEqual(str(e.exception), expected_error)
