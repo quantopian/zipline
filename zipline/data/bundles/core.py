@@ -7,7 +7,7 @@ import warnings
 from contextlib2 import ExitStack
 import click
 import pandas as pd
-from toolz import curry, complement, compose
+from toolz import curry, complement
 
 from ..us_equity_pricing import (
     BcolzDailyBarReader,
