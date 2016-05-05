@@ -320,7 +320,7 @@ def quantopian_quandl_bundle(environ,
                              show_progress,
                              output_dir):
     if show_progress:
-        print('Downloading quandl data, can take about 1 minute')
+        print('Downloading quandl data. This can take about 1 minute.')
     # use closing for py2 compat
     with closing(urlopen(QUANTOPIAN_QUANDL_URL)) as f, \
             tarfile.open('r', fileobj=BytesIO(f.read())) as tar:
