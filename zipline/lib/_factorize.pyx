@@ -2,7 +2,7 @@
 Factorization algorithms.
 """
 from numpy cimport ndarray, int64_t, PyArray_Check, import_array
-from numpy import arange, asarray, empty, int64, isnan, ndarray
+from numpy import arange, asarray, empty, int64, isnan, ndarray, zeros
 
 import_array()
 
@@ -18,7 +18,7 @@ cpdef factorize_strings_known_categories(ndarray[object] values,
     `missing_value`.
     """
     if missing_value not in categories:
-        categories.append(missing_value)
+        categories.insert(0, missing_value)
 
     if sort:
         categories = sorted(categories)
@@ -45,6 +45,7 @@ cpdef factorize_strings_known_categories(ndarray[object] values,
         codes[i] = reverse_categories.get(values[i], missing_code)
 
     return codes, asarray(categories, dtype=object), reverse_categories
+
 
 cpdef factorize_strings(ndarray[object] values,
                         object missing_value,
@@ -94,10 +95,15 @@ cpdef factorize_strings(ndarray[object] values,
     cdef ndarray[int64_t, ndim=1] reverse_indexer
     cdef int ncategories
     cdef ndarray[object] categories_array = asarray(categories, dtype=object)
+
     if sort:
-        # This is all taken from pandas.core.algorithms.factorize.
+        # This is all adapted from pandas.core.algorithms.factorize.
         ncategories = len(categories_array)
-        sorter = categories_array.argsort()
+        sorter = zeros(ncategories, dtype=int64)
+
+        # Don't include missing_value in the argsort, because None is
+        # unorderable with bytes/str in py3. Always just sort it to 0.
+        sorter[1:] = categories_array[1:].argsort() + 1
         reverse_indexer = empty(ncategories, dtype=int64)
         reverse_indexer.put(sorter, arange(ncategories))
 

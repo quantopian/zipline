@@ -27,6 +27,7 @@ from zipline.lib.adjustment import (
 from zipline.lib.adjusted_array import AdjustedArray, NOMASK
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays, parameter_space
+from zipline.utils.compat import unicode
 from zipline.utils.numpy_utils import (
     coerce_to_dtype,
     datetime64ns_dtype,
@@ -84,7 +85,7 @@ def as_labelarray(initial_dtype, missing_value, array):
     """
     return LabelArray(
         array.astype(initial_dtype),
-        missing_value=initial_dtype.type(''),
+        missing_value=initial_dtype.type(missing_value),
     )
 
 
@@ -367,9 +368,9 @@ class AdjustedArrayTestCase(TestCase):
             ),
             _gen_unadjusted_cases(
                 'object_ndarray',
-                make_input=lambda a: a.astype(str).astype(object),
-                make_expected_output=as_labelarray(bytes_dtype, b''),
-                missing_value=b'',
+                make_input=lambda a: a.astype(unicode).astype(object),
+                make_expected_output=as_labelarray(unicode_dtype, u''),
+                missing_value='',
             ),
             # Test passing a LabelArray directly to AdjustedArray.
             _gen_unadjusted_cases(
@@ -380,17 +381,17 @@ class AdjustedArrayTestCase(TestCase):
             ),
             _gen_unadjusted_cases(
                 'unicode_labelarray',
-                make_input=as_labelarray(unicode_dtype, u''),
-                make_expected_output=as_labelarray(bytes_dtype, u''),
+                make_input=as_labelarray(unicode_dtype, None),
+                make_expected_output=as_labelarray(unicode_dtype, None),
                 missing_value=u'',
             ),
             _gen_unadjusted_cases(
                 'object_labelarray',
                 make_input=(
-                    lambda a: LabelArray(a.astype(str).astype(object), b'')
+                    lambda a: LabelArray(a.astype(unicode).astype(object), u'')
                 ),
-                make_expected_output=as_labelarray(bytes_dtype, b''),
-                missing_value=b'',
+                make_expected_output=as_labelarray(unicode_dtype, ''),
+                missing_value='',
             ),
         )
     )
@@ -442,8 +443,8 @@ class AdjustedArrayTestCase(TestCase):
                 ),
             ),
             # There are six cases here:
-            # Using np.bytes/np.unicode/python string arrays as inputs.
-            # Passing np.bytes/np.unicode/python string arrays to LabelArray,
+            # Using np.bytes/np.unicode/object arrays as inputs.
+            # Passing np.bytes/np.unicode/object arrays to LabelArray,
             # and using those as input.
             #
             # The outputs should always be LabelArrays.
@@ -461,9 +462,9 @@ class AdjustedArrayTestCase(TestCase):
             ),
             _gen_unadjusted_cases(
                 'object_ndarray',
-                make_input=lambda a: a.astype(str).astype(object),
-                make_expected_output=as_labelarray(bytes_dtype, b''),
-                missing_value=b'',
+                make_input=lambda a: a.astype(unicode).astype(object),
+                make_expected_output=as_labelarray(unicode_dtype, u''),
+                missing_value=u'',
             ),
             _gen_unadjusted_cases(
                 'bytes_labelarray',
@@ -474,16 +475,19 @@ class AdjustedArrayTestCase(TestCase):
             _gen_unadjusted_cases(
                 'unicode_labelarray',
                 make_input=as_labelarray(unicode_dtype, u''),
-                make_expected_output=as_labelarray(bytes_dtype, u''),
+                make_expected_output=as_labelarray(unicode_dtype, u''),
                 missing_value=u'',
             ),
             _gen_unadjusted_cases(
                 'object_labelarray',
                 make_input=(
-                    lambda a: LabelArray(a.astype(str).astype(object), b'')
+                    lambda a: LabelArray(
+                        a.astype(unicode).astype(object),
+                        None,
+                    )
                 ),
-                make_expected_output=as_labelarray(bytes_dtype, b''),
-                missing_value=b'',
+                make_expected_output=as_labelarray(unicode_dtype, u''),
+                missing_value=None,
             ),
         )
     )

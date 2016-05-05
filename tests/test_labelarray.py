@@ -4,6 +4,7 @@ import numpy as np
 
 from zipline.lib.labelarray import LabelArray
 from zipline.testing import check_arrays, parameter_space, ZiplineTestCase
+from zipline.utils.compat import unicode
 
 
 def rotN(l, N):
@@ -67,9 +68,14 @@ class LabelArrayTestCase(ZiplineTestCase):
             # using the ufunc.
             notmissing = np.not_equal(strs, missing_value)
         else:
+            if not isinstance(missing_value, array_astype):
+                missing_value = array_astype(missing_value, 'utf-8')
             notmissing = (strs != missing_value)
 
         arr = LabelArray(strs, missing_value=missing_value)
+
+        if not isinstance(compval, array_astype):
+            compval = array_astype(compval, 'utf-8')
 
         # arr.missing_value should behave like NaN.
         check_arrays(

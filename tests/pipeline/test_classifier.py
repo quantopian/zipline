@@ -1,3 +1,4 @@
+from functools import reduce
 from operator import or_
 
 import numpy as np
@@ -260,17 +261,25 @@ class ClassifierTestCase(BasePipelineTestCase):
 
     @parameter_space(
         __fail_fast=True,
-        compval=['a', 'b', 'ab', 'not in the array'],
-        missing=['a', 'ab', '', 'not in the array'],
+        compval=[u'a', u'b', u'ab', u'not in the array'],
+        missing=[u'a', u'ab', u'', u'not in the array'],
         labelarray_dtype=(categorical_dtype, bytes_dtype, unicode_dtype),
     )
     def test_string_elementwise_predicates(self,
                                            compval,
                                            missing,
                                            labelarray_dtype):
+        if labelarray_dtype == bytes_dtype:
+            compval = compval.encode('utf-8')
+            missing = missing.encode('utf-8')
 
-        missing = labelarray_dtype.type(missing)
-        compval = labelarray_dtype.type(compval)
+            startswith_re = b'^' + compval + b'.*'
+            endswith_re = b'.*' + compval + b'$'
+            substring_re = b'.*' + compval + b'.*'
+        else:
+            startswith_re = '^' + compval + '.*'
+            endswith_re = '.*' + compval + '$'
+            substring_re = '.*' + compval + '.*'
 
         class C(Classifier):
             dtype = categorical_dtype
@@ -298,9 +307,9 @@ class ClassifierTestCase(BasePipelineTestCase):
             'endswith': c.endswith(compval),
             'has_substring': c.has_substring(compval),
             # Equivalent filters using regex matching.
-            'startswith_re': c.matches('^' + compval + '.*'),
-            'endswith_re': c.matches('.*' + compval + '$'),
-            'has_substring_re': c.matches('.*' + compval + '.*'),
+            'startswith_re': c.matches(startswith_re),
+            'endswith_re': c.matches(endswith_re),
+            'has_substring_re': c.matches(substring_re),
         }
 
         expected = {
