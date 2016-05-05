@@ -12,27 +12,28 @@ Development
 Highlights
 ~~~~~~~~~~
 
-New Entry Points (:issue:`xxxx`)
-````````````````````````````````
+New Entry Points (:issue:`1173` and :issue:`1178`)
+``````````````````````````````````````````````````
 
 In order to make it easier to use zipline we have updated the entry points for
 a backtest. The three supported ways to run a backtest are now:
 
 1. :func:`zipline.run_algo`
-2. ``$ python -m zipline run``
+2. ``$ zipline run``
 3. ``%zipline`` (IPython magic)
 
-Data Bundles (:issue:`xxxx`)
-````````````````````````````
+Data Bundles (:issue:`1173` and :issue:`1178`)
+``````````````````````````````````````````````
 
 1.0.0 introduces data bundles. Data bundles are groups of data that should be
 preloaded and used to run backtests later. This allows users to not need to to
 specify  which tickers they are interested in each time they run an
 algorithm. This also allows us to cache the data between runs.
 
-By default, the ``quandl`` bundle will be used which pulls data from quandl's
-`WIKI dataset <https://www.quandl.com/data/WIKI>`_. New bundles may be
-registered with :func:`zipline.data.bundles.register` like:
+By default, the ``quantopian-quandl`` bundle will be used which pulls data from
+Quantopian's mirror of the quandl `WIKI dataset
+<https://www.quandl.com/data/WIKI>`_. New bundles may be registered with
+:func:`zipline.data.bundles.register` like:
 
 .. code-block:: python
 
@@ -53,10 +54,10 @@ have been passed to write that data to disc in a location that zipline can find
 later.
 
 This data can be used in backtests by passing the name as the ``-b / --bundle``
-argument to ``$ python -m zipline run`` or as the ``bundle`` argument to
-:func:`zipline.run_algo`.
+argument to ``$ zipline run`` or as the ``bundle`` argument to
+:func:`zipline.run_algorithm`.
 
-For more information see `Data Bundles`_ for more information.
+For more information see :ref:`data-bundles` for more information.
 
 Enhancements
 ~~~~~~~~~~~~
