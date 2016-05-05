@@ -145,7 +145,7 @@ def _run(handle_data,
             'before_trading_start': before_trading_start,
             'analyze': analyze,
         } if algotext is None else {
-            'algo_filename': algofile,
+            'algo_filename': algofile.name,
             'script': algotext,
         }
     ).run(

@@ -194,17 +194,13 @@ class dataframe_cache(MutableMapping):
             self._protocol = int(s[1]) if len(s) == 2 else None
 
             self.serialize = self._serialize_pickle
-            self.deserialize = self._deserialize_pickle
+            self.deserialize = pickle.load
 
         ensure_directory(self.path)
 
     def _serialize_pickle(self, df, path):
         with open(path, 'wb') as f:
             pickle.dump(df, f, protocol=self._protocol)
-
-    def _deserialize_pickle(self, path):
-        with open(path, 'rb') as f:
-            return pickle.load(f)
 
     def _keypath(self, key):
         return os.path.join(self.path, key)
@@ -226,9 +222,11 @@ class dataframe_cache(MutableMapping):
 
         with self.lock:
             try:
-                return self.deserialize(self._keypath(key))
-            except UnboundLocalError:
-                # This is how pandas fails if the file doesn't exist! #pandas
+                with open(self._keypath(key), 'rb') as f:
+                    return self.deserialize(f)
+            except IOError as e:
+                if e.errno != errno.ENOENT:
+                    raise
                 raise KeyError(key)
 
     def __setitem__(self, key, value):

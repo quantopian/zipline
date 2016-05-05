@@ -260,6 +260,11 @@ setup(
     version=versioneer.get_version(),
     cmdclass=LazyBuildExtCommandClass(versioneer.get_cmdclass()),
     description='A backtester for financial algorithms.',
+    entry_points={
+        'console_scripts': [
+            'zipline = zipline.__main__:main',
+        ],
+    },
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
     packages=find_packages('.', include=['zipline', 'zipline.*']),

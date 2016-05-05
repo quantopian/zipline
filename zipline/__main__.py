@@ -5,8 +5,9 @@ import click
 import logbook
 import pandas as pd
 
-from zipline.data import bundles
+from zipline.data import bundles as bundles_module
 from zipline.utils.cli import Date, Timestamp
+import zipline.utils.paths as pth
 from zipline.utils.run_algo import _run, load_extensions
 
 try:
@@ -36,7 +37,7 @@ except NameError:
     default=True,
     help="Don't load the default zipline extension.py file in $ZIPLINE_HOME.",
 )
-def cli(extension, strict_extensions, default_extension):
+def main(extension, strict_extensions, default_extension):
     """Top level zipline entry point.
     """
     # install a logbook handler before performing any other operations
@@ -97,7 +98,7 @@ def ipython_only(option):
     return d
 
 
-@cli.command()
+@main.command()
 @click.option(
     '-f',
     '--algofile',
@@ -273,7 +274,7 @@ def zipline_magic(line, cell=None):
             raise ValueError('main returned non-zero status code: %d' % e.code)
 
 
-@cli.command()
+@main.command()
 @click.option(
     '-b',
     '--bundle',
@@ -291,7 +292,7 @@ def zipline_magic(line, cell=None):
 def ingest(bundle, show_progress):
     """Ingest the data for the given bundle.
     """
-    bundles.ingest(
+    bundles_module.ingest(
         bundle,
         os.environ,
         pd.Timestamp.utcnow(),
@@ -299,7 +300,7 @@ def ingest(bundle, show_progress):
     )
 
 
-@cli.command()
+@main.command()
 @click.option(
     '-b',
     '--bundle',
@@ -333,7 +334,7 @@ def ingest(bundle, show_progress):
 def clean(bundle, before, after, keep_last):
     """Clean up data downloaded with the ingest command.
     """
-    bundles.clean(
+    bundles_module.clean(
         bundle,
         before,
         after,
@@ -341,5 +342,26 @@ def clean(bundle, before, after, keep_last):
     )
 
 
+@main.command()
+def bundles():
+    """List all of the available data bundles.
+    """
+    for bundle in sorted(bundles_module.bundles.keys()):
+        ingestions = sorted(
+            (str(pd.Timestamp(int(ing)))
+             for ing in os.listdir(pth.data_path([bundle]))
+             if not pth.hidden(ing)),
+            reverse=True,
+        )
+        print(
+            '\n'.join(
+                '%s %s' % (bundle, line)
+                for line in (
+                    ingestions if ingestions else ('<no ingestions>',)
+                )
+            ),
+        )
+
+
 if __name__ == '__main__':
-    cli()
+    main()
