@@ -43,8 +43,9 @@ Enhancements
   each of which are themselves a Factor. (:issue:`1119`)
 
 * Added new built-in factors,
-  :class:`~zipline.pipeline.factors.CorrelationFactor` and
-  :class:`~zipline.pipeline.factors.SingleRegressionFactor`. (:issue:`1154`)
+  :class:`~zipline.pipeline.factors.RollingPearsonOfReturns`,
+  :class:`~zipline.pipeline.factors.RollingSpearmanOfReturns` and
+  :class:`~zipline.pipeline.factors.RollingRegressionOfReturns` (:issue:`1154`)
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~

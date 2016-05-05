@@ -69,10 +69,13 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.AverageDollarVolume
    :members:
 
-.. autoclass:: zipline.pipeline.factors.CorrelationFactor
+.. autoclass:: zipline.pipeline.factors.RollingPearsonOfReturns
    :members:
 
-.. autoclass:: zipline.pipeline.factors.SingleRegressionFactor
+.. autoclass:: zipline.pipeline.factors.RollingSpearmanOfReturns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RollingRegressionOfReturns
    :members:
 
 .. autoclass:: zipline.pipeline.filters.Filter
