@@ -6,7 +6,7 @@ from toolz import valmap
 import toolz.curried.operator as op
 
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.data.bundles import UnknownBundle
+from zipline.data.bundles import UnknownBundle, from_bundle_ingest_dirname
 from zipline.data.bundles.core import _make_bundle_core
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
@@ -362,7 +362,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
 
     @staticmethod
     def _ts_of_run(run):
-        return pd.Timestamp(int(run.rsplit(os.path.sep, 1)[-1]))
+        return from_bundle_ingest_dirname(run.rsplit(os.path.sep, 1)[-1])
 
     def test_clean_before_after(self):
         first = self._empty_ingest()

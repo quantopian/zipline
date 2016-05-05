@@ -1,3 +1,4 @@
+import errno
 import os
 from functools import wraps
 
@@ -347,12 +348,18 @@ def bundles():
     """List all of the available data bundles.
     """
     for bundle in sorted(bundles_module.bundles.keys()):
-        ingestions = sorted(
-            (str(pd.Timestamp(int(ing)))
-             for ing in os.listdir(pth.data_path([bundle]))
-             if not pth.hidden(ing)),
-            reverse=True,
-        )
+        try:
+            ingestions = sorted(
+                (str(bundles_module.from_bundle_ingest_dirname(ing))
+                 for ing in os.listdir(pth.data_path([bundle]))
+                 if not pth.hidden(ing)),
+                reverse=True,
+            )
+        except IOError as e:
+            if e.errno != errno.ENOENT:
+                raise
+            ingestions = []
+
         print(
             '\n'.join(
                 '%s %s' % (bundle, line)

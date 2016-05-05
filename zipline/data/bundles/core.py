@@ -67,6 +67,39 @@ def cache_path(bundle_name, environ=None):
     )
 
 
+def to_bundle_ingest_dirname(ts):
+    """Convert a pandas Timestamp into the name of the directory for the
+    ingestion.
+
+    Parameters
+    ----------
+    ts : pandas.Timestamp
+        The time of the ingestions
+
+    Returns
+    -------
+    name : str
+        The name of the directory for this ingestion.
+    """
+    return ts.isoformat().replace(':', ';')
+
+
+def from_bundle_ingest_dirname(cs):
+    """Read a bundle ingestion directory name into a pandas Timestamp.
+
+    Parameters
+    ----------
+    cs : str
+        The name of the directory.
+
+    Returns
+    -------
+    ts : pandas.Timestamp
+        The time when this ingestion happened.
+    """
+    return pd.Timestamp(cs.replace(';', ':'))
+
+
 _BundlePayload = namedtuple(
     '_BundlePayload',
     'calendar opens closes minutes_per_day ingest create_writers',
@@ -279,7 +312,7 @@ def _make_bundle_core():
         if timestamp is None:
             timestamp = pd.Timestamp.utcnow()
         timestamp = timestamp.tz_convert('utc').tz_localize(None)
-        timestr = str(timestamp.value)
+        timestr = to_bundle_ingest_dirname(timestamp)
         cachepath = cache_path(name, environ=environ)
         pth.ensure_directory(pth.data_path([name, timestr], environ=environ))
         pth.ensure_directory(cachepath)
@@ -366,7 +399,7 @@ def _make_bundle_core():
                 [bundle_name,
                  max(
                      filter(complement(pth.hidden), candidates),
-                     key=compose(pd.Timestamp, int),
+                     key=from_bundle_ingest_dirname,
                  )],
                 environ=environ,
             )
@@ -463,7 +496,7 @@ def _make_bundle_core():
                     complement(pth.hidden),
                     os.listdir(pth.data_path([name], environ=environ)),
                 ),
-                key=compose(pd.Timestamp, int),
+                key=from_bundle_ingest_dirname,
             )
         except OSError as e:
             if e.errno != errno.ENOENT:
@@ -475,7 +508,7 @@ def _make_bundle_core():
 
         if keep_last is None:
             def should_clean(name):
-                dt = pd.Timestamp(int(name))
+                dt = from_bundle_ingest_dirname(name)
                 return (
                     (before is not None and dt < before) or
                     (after is not None and dt > after)
