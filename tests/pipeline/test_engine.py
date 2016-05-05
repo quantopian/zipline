@@ -1255,9 +1255,9 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         end_date_index = 10
         num_days = end_date_index - start_date_index + 1
 
-        asset_column = 0
         assets = self.asset_finder.retrieve_all(self.sids)
-        my_asset = assets[asset_column]
+        my_asset_column = 0
+        my_asset = assets[my_asset_column]
         num_assets = len(self.sids)
 
         for CorrelationFactor, corr_function in (
@@ -1294,7 +1294,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             expected_correlation_results = full_like(correlation_results, nan)
             for day in range(num_days):
                 my_asset_returns = returns_results.ix[
-                    day:day+correlation_length, asset_column,
+                    day:day+correlation_length, my_asset_column,
                 ]
                 for asset in range(num_assets):
                     other_asset_returns = returns_results.ix[
@@ -1324,9 +1324,9 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         end_date_index = 10
         num_days = end_date_index - start_date_index + 1
 
-        asset_column = 0
         assets = self.asset_finder.retrieve_all(self.sids)
-        my_asset = assets[asset_column]
+        my_asset_column = 0
+        my_asset = assets[my_asset_column]
         num_assets = len(self.sids)
 
         # The order of these is meant to align with the output of `linregress`.
@@ -1372,7 +1372,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         # Each regression is calculated over `regression_length` days of data.
         for day in range(num_days):
             my_asset_returns = returns_results.ix[
-                day:day+regression_length, asset_column,
+                day:day+regression_length, my_asset_column,
             ]
             for asset in range(num_assets):
                 other_asset_returns = returns_results.ix[
