@@ -280,9 +280,13 @@ class RollingRegressionOfReturns(SingleInputMixin, CustomFactor):
 
     Note
     ----
-    This factor is designed to return two outputs:
+    This factor is designed to return five outputs:
         - alpha, a factor that computes the intercepts of the regressions.
         - beta, a factor that computes the slopes of the regressions.
+        - r_value, the correlation coefficient
+        - p_value, the two-sided p-value for a hypothesis test whose null
+          hypothesis is that the slope is zero.
+        - stderr, the standard error of the estimate
 
     Example
     -------
@@ -302,12 +306,6 @@ class RollingRegressionOfReturns(SingleInputMixin, CustomFactor):
     over rolling 5-day look back windows. We can compute rolling regression
     coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::
 
-        # Equivalent to:
-        # alpha, beta = RollingRegressionOfReturns(
-        #     asset=Equity(24),
-        #     returns_length=10,
-        #     regression_length=5,
-        # )
         regression_factor = RollingRegressionOfReturns(
             asset=Equity(24),
             returns_length=10,
@@ -348,7 +346,7 @@ class RollingRegressionOfReturns(SingleInputMixin, CustomFactor):
     :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
     :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
     """
-    outputs = ['alpha', 'beta']
+    outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
     params = ['baseline_asset']
 
     def __new__(cls,
@@ -379,6 +377,9 @@ class RollingRegressionOfReturns(SingleInputMixin, CustomFactor):
             # slope, intercept, r-value, p-value, stderr
             out.alpha[i] = regr_results[1]
             out.beta[i] = regr_results[0]
+            out.r_value[i] = regr_results[2]
+            out.p_value[i] = regr_results[3]
+            out.stderr[i] = regr_results[4]
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
