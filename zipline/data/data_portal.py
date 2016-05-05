@@ -681,6 +681,15 @@ class DataPortal(object):
 
         return not (field in BASE_FIELDS and isinstance(asset, Asset))
 
+    def _get_fetcher_value(self, asset, field, dt):
+        day = normalize_date(dt)
+
+        try:
+            return \
+                self._augmented_sources_map[field][asset].loc[day, field]
+        except KeyError:
+            return np.NaN
+
     def get_spot_value(self, asset, field, dt, data_frequency):
         """
         Public API method that returns a scalar value representing the value
@@ -707,13 +716,7 @@ class DataPortal(object):
         The value of the desired field at the desired time.
         """
         if self._is_extra_source(asset, field, self._augmented_sources_map):
-            day = normalize_date(dt)
-
-            try:
-                return \
-                    self._augmented_sources_map[field][asset].loc[day, field]
-            except KeyError:
-                return np.NaN
+            return self._get_fetcher_value(asset, field, dt)
 
         if field not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(field))
