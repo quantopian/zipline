@@ -20,7 +20,6 @@ from numpy import (
     searchsorted,
     sqrt,
     sum as np_sum,
-    where,
 )
 from numexpr import evaluate
 from scipy.stats import linregress, spearmanr
@@ -187,7 +186,9 @@ class RollingPearsonOfReturns(SingleInputMixin, CustomFactor):
     achieve this by doing::
 
         rolling_correlations = RollingPearsonOfReturns(
-            returns_length=10, correlation_length=5,
+            baseline_asset=Equity(8554),
+            returns_length=10,
+            correlation_length=5,
         )
 
     The result of computing ``rolling_correlations`` from 2017-03-17 to
@@ -260,7 +261,7 @@ class RollingSpearmanOfReturns(RollingPearsonOfReturns):
         out[:] = spearmanr(data)[0][asset_col]
 
 
-class SingleRegressionFactor(SingleInputMixin, CustomFactor):
+class RollingRegressionOfReturns(SingleInputMixin, CustomFactor):
     """
     Perform an ordinary least-squares regression predicting the returns of all
     other assets on the given asset.
@@ -269,16 +270,12 @@ class SingleRegressionFactor(SingleInputMixin, CustomFactor):
 
     Parameters
     ----------
-    asset : zipline.assets.Asset
+    baseline_asset : zipline.assets.Asset
         The asset to regress against all other assets.
     returns_length : int > 1
         Length of the lookback window over which to compute returns.
     regression_length : int > 1
         Length of the lookback window over which to compute each regression.
-    dependent : bool, optional
-        Determines if the given asset should be the independent or dependent
-        variable in the regressions. When True, the given asset is the
-        dependent variable. Default is False.
 
     Note
     ----
@@ -288,9 +285,9 @@ class SingleRegressionFactor(SingleInputMixin, CustomFactor):
 
     Example
     -------
-    Let the following be example 10-day returns for three different stocks::
+    Let the following be example 10-day returns for three different assets::
 
-                      AAPL    MSFT     FB
+                       SPY    MSFT     FB
         2017-03-13    -.03     .03    .04
         2017-03-14    -.02    -.03    .02
         2017-03-15    -.01     .02    .01
@@ -300,17 +297,17 @@ class SingleRegressionFactor(SingleInputMixin, CustomFactor):
         2017-03-21     .03     .01   -.02
         2017-03-22     .04    -.02   -.02
 
-    Suppose we are interested in predicting each stock's returns from AAPL's
+    Suppose we are interested in predicting each stock's returns from SPY's
     over rolling 5-day look back windows. We can compute rolling regression
     coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::
 
         # Equivalent to:
-        # alpha, beta = SingleRegressionFactor(
+        # alpha, beta = RollingRegressionOfReturns(
         #     asset=Equity(24),
         #     returns_length=10,
         #     regression_length=5,
         # )
-        regression_factor = SingleRegressionFactor(
+        regression_factor = RollingRegressionOfReturns(
             asset=Equity(24),
             returns_length=10,
             regression_length=5,
@@ -320,7 +317,7 @@ class SingleRegressionFactor(SingleInputMixin, CustomFactor):
 
     The result of computing ``alpha`` from 2017-03-17 to 2017-03-22 gives::
 
-                      AAPL    MSFT     FB
+                       SPY    MSFT     FB
         2017-03-17       0    .011   .003
         2017-03-20       0   -.004   .004
         2017-03-21       0    .007   .006
@@ -328,61 +325,55 @@ class SingleRegressionFactor(SingleInputMixin, CustomFactor):
 
     And the result of computing ``beta`` from 2017-03-17 to 2017-03-22 gives::
 
-                      AAPL    MSFT     FB
+                       SPY    MSFT     FB
         2017-03-17       1      .3   -1.1
         2017-03-20       1      .2     -1
         2017-03-21       1     -.3     -1
         2017-03-22       1     -.3    -.9
 
-    Note that AAPL's column for alpha is all 0's and for beta is all 1's, as
-    the regression line of a data set with itself is simply the function y = x.
+    Note that SPY's column for alpha is all 0's and for beta is all 1's, as the
+    regression line of SPY with itself is simply the function y = x.
 
     To understand how each of the other values were calculated, take for
     example MSFT's ``alpha`` and ``beta`` values on 2017-03-17 (.011 and .3,
     respectively). These values are the result of running a linear regression
-    predicting MSFT's returns from AAPL's returns, using values starting at
+    predicting MSFT's returns from SPY's returns, using values starting at
     2017-03-17 and looking back 5 days. That is, the regression was run with
     x = [-.03, -.02, -.01, 0, .01] and y = [.03, -.03, .02, -.02, .04], and it
     produced a slope of .3 and an intercept of .011.
 
     See Also
     --------
-    :class:`zipline.pipeline.factors.technical.CorrelationFactor`
+    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
+    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
     """
-    params = ('asset', 'dependent')
+    outputs = ['alpha', 'beta']
+    params = ['baseline_asset']
 
     def __new__(cls,
-                asset,
+                baseline_asset,
                 returns_length,
                 regression_length,
-                dependent=False,
                 mask=NotSpecified,
-                dtype=NotSpecified,
-                missing_value=NotSpecified,
                 **kwargs):
-        new_instance = super(SingleRegressionFactor, cls).__new__(
+        if mask is not NotSpecified:
+            # Make sure we do not filter out the asset of interest.
+            mask = mask | SingleAsset(asset=baseline_asset)
+        return super(RollingRegressionOfReturns, cls).__new__(
             cls,
-            asset=asset,
-            dependent=dependent,
+            baseline_asset=baseline_asset,
             inputs=[Returns(window_length=returns_length)],
-            outputs=['alpha', 'beta'],
             window_length=regression_length,
             mask=mask,
-            dtype=dtype,
-            missing_value=missing_value,
             **kwargs
         )
-        return new_instance
 
-    def compute(self, today, assets, out, returns, asset, dependent):
-        asset_col = where(assets == asset.sid)[0][0]
+    def compute(self, today, assets, out, returns, baseline_asset):
+        asset_col = searchsorted(list(assets), baseline_asset.sid)
         my_asset = returns[:, asset_col]
         for i in range(len(out)):
             other_asset = returns[:, i]
-            if dependent:
-                regr_results = linregress(y=my_asset, x=other_asset)
-            else:
-                regr_results = linregress(y=other_asset, x=my_asset)
+            regr_results = linregress(y=other_asset, x=my_asset)
             # `linregress` returns its results in the following order:
             # slope, intercept, r-value, p-value, stderr
             out.alpha[i] = regr_results[1]

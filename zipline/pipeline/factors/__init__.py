@@ -22,10 +22,10 @@ from .technical import (
     MaxDrawdown,
     Returns,
     RollingPearsonOfReturns,
+    RollingRegressionOfReturns,
     RollingSpearmanOfReturns,
     RSI,
     SimpleMovingAverage,
-    SingleRegressionFactor,
     VWAP,
     WeightedAverageValue,
 )
@@ -50,10 +50,10 @@ __all__ = [
     'RecarrayField',
     'Returns',
     'RollingPearsonOfReturns',
+    'RollingRegressionOfReturns',
     'RollingSpearmanOfReturns',
     'RSI',
     'SimpleMovingAverage',
-    'SingleRegressionFactor',
     'VWAP',
     'WeightedAverageValue',
 ]

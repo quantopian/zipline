@@ -55,9 +55,9 @@ from zipline.pipeline.factors import (
     MaxDrawdown,
     Returns,
     RollingPearsonOfReturns,
+    RollingRegressionOfReturns,
     RollingSpearmanOfReturns,
     SimpleMovingAverage,
-    SingleRegressionFactor,
 )
 from zipline.pipeline.loaders.equity_pricing_loader import (
     USEquityPricingLoader,
@@ -1266,8 +1266,8 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
 
             results = self.engine.run_pipeline(
                 Pipeline(columns={'correlation': correlation}),
-                self.dates[5],
-                self.dates[9],
+                self.dates[6],
+                self.dates[10],
             )
             correlation_results = results['correlation'].unstack()
 
@@ -1278,8 +1278,8 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             returns = Returns(window_length=returns_length)
             results = self.engine.run_pipeline(
                 Pipeline(columns={'returns': returns}),
-                self.dates[5 - (correlation_length - 1)],
-                self.dates[9],
+                self.dates[6 - (correlation_length - 1)],
+                self.dates[10],
             )
             returns_results = results['returns'].unstack()
 
@@ -1304,32 +1304,30 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
                 correlation_results,
                 DataFrame(
                     expected_correlation_results,
-                    index=self.dates[5:10],
+                    index=self.dates[6:11],
                     columns=self.asset_finder.retrieve_all(self.sids),
                 ),
             )
 
-    @parameter_space(
-        returns_length=[2, 3],
-        regression_length=[2, 3],
-        dependent=[True, False],
-    )
-    def test_single_regression_factor(self,
-                                      returns_length,
-                                      regression_length,
-                                      dependent):
+    @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
+    def test_regression_of_returns_factor(self,
+                                          returns_length,
+                                          regression_length):
+        """
+        Tests for the built-in factor `RollingRegressionOfReturns`.
+        """
         asset_column = 0
+        asset = self.asset_finder.retrieve_asset(self.sids[asset_column])
 
-        alpha, beta = SingleRegressionFactor(
-            asset=self.asset_finder.retrieve_asset(self.sids[asset_column]),
+        alpha, beta = RollingRegressionOfReturns(
+            baseline_asset=asset,
             returns_length=returns_length,
             regression_length=regression_length,
-            dependent=dependent,
         )
         results = self.engine.run_pipeline(
             Pipeline(columns={'alpha': alpha, 'beta': beta}),
-            self.dates[5],
-            self.dates[9],
+            self.dates[6],
+            self.dates[10],
         )
         alpha_results = results['alpha'].unstack()
         beta_results = results['beta'].unstack()
@@ -1341,8 +1339,8 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         returns = Returns(window_length=returns_length)
         results = self.engine.run_pipeline(
             Pipeline(columns={'returns': returns}),
-            self.dates[5 - (regression_length - 1)],
-            self.dates[9],
+            self.dates[6 - (regression_length - 1)],
+            self.dates[10],
         )
         returns_results = results['returns'].unstack()
 
@@ -1359,14 +1357,9 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
                 other_asset_returns = returns_results.ix[
                     day:day+regression_length, asset,
                 ]
-                if dependent:
-                    expected_regression_results = ols(
-                        y=my_asset_returns, x=other_asset_returns,
-                    )
-                else:
-                    expected_regression_results = ols(
-                        y=other_asset_returns, x=my_asset_returns,
-                    )
+                expected_regression_results = ols(
+                    y=other_asset_returns, x=my_asset_returns,
+                )
                 intercept = expected_regression_results.beta[1]
                 slope = expected_regression_results.beta[0]
                 expected_alpha_results[day, asset] = intercept
@@ -1376,7 +1369,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             alpha_results,
             DataFrame(
                 expected_alpha_results,
-                index=self.dates[5:10],
+                index=self.dates[6:11],
                 columns=self.asset_finder.retrieve_all(self.sids),
             ),
         )
@@ -1384,7 +1377,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             beta_results,
             DataFrame(
                 expected_beta_results,
-                index=self.dates[5:10],
+                index=self.dates[6:11],
                 columns=self.asset_finder.retrieve_all(self.sids),
             ),
         )
