@@ -18,9 +18,15 @@ DEFAULT_MINIMUM_COST_PER_TRADE = 1.0    # $1 per trade
 
 
 class PerShare(object):
-    """
-    Calculates a commission for a transaction based on a per
+    """Calculates a commission for a transaction based on a per
     share cost with an optional minimum cost per trade.
+
+    Parameters
+    ----------
+    cost : float, optional
+        The amount of commissions paid per share traded.
+    min_trade_cost : optional
+        The minimum amount of commisions paid per trade.
     """
 
     def __init__(self,
@@ -57,9 +63,13 @@ class PerShare(object):
 
 
 class PerTrade(object):
-    """
-    Calculates a commission for a transaction based on a per
+    """Calculates a commission for a transaction based on a per
     trade cost.
+
+    Parameters
+    ----------
+    cost : float, optional
+        The flat amount of commisions paid per trade.
     """
 
     def __init__(self, cost=DEFAULT_MINIMUM_COST_PER_TRADE):
@@ -84,9 +94,13 @@ class PerTrade(object):
 
 
 class PerDollar(object):
-    """
-    Calculates a commission for a transaction based on a per
+    """Calculates a commission for a transaction based on a per
     dollar cost.
+
+    Parameters
+    ----------
+    cost : float, optional
+        The amount of commissions paid per dollar traded.
     """
 
     def __init__(self, cost=0.0015):

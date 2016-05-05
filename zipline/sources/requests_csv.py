@@ -1,15 +1,16 @@
-from six import StringIO, iteritems
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import hashlib
 from textwrap import dedent
+import warnings
+
+from logbook import Logger
+import numpy
 import pandas as pd
 from pandas import read_csv
-import numpy
-from logbook import Logger
 import pytz
-import warnings
 import requests
+from six import StringIO, iteritems, with_metaclass
 
 from zipline.errors import (
     MultipleSymbolsFound,
@@ -138,8 +139,7 @@ def mask_requests_args(url, validating=False, params_checker=None, **kwargs):
     return request_pair(requests_kwargs, url)
 
 
-class PandasCSV(object):
-    __metaclass__ = ABCMeta
+class PandasCSV(with_metaclass(ABCMeta, object)):
 
     def __init__(self,
                  pre_func,

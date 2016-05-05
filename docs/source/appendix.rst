@@ -15,10 +15,142 @@ The following methods are available for use in the ``initialize``,
 In all listed functions, the ``self`` argument is implicitly the
 currently-executing :class:`~zipline.algorithm.TradingAlgorithm` instance.
 
-.. automodule:: zipline.api
+Scheduling Functions
+````````````````````
+
+.. autofunction:: zipline.api.schedule_function
+
+.. autoclass:: zipline.api.date_rules
+   :members:
+   :undoc-members:
+
+.. autoclass:: zipline.api.time_rules
    :members:
 
-.. autoclass:: zipline.algorithm.TradingAlgorithm
+Orders
+``````
+
+.. autofunction:: zipline.api.order
+
+.. autofunction:: zipline.api.order_value
+
+.. autofunction:: zipline.api.order_percent
+
+.. autofunction:: zipline.api.order_target
+
+.. autofunction:: zipline.api.order_target_value
+
+.. autofunction:: zipline.api.order_target_percent
+
+.. autoclass:: zipline.finance.execution.ExecutionStyle
+   :members:
+
+.. autoclass:: zipline.finance.execution.MarketOrder
+
+.. autoclass:: zipline.finance.execution.LimitOrder
+
+.. autoclass:: zipline.finance.execution.StopOrder
+
+.. autoclass:: zipline.finance.execution.StopLimitOrder
+
+.. autofunction:: zipline.api.get_order
+
+.. autofunction:: zipline.api.get_open_orders
+
+.. autofunction:: zipline.api.cancel_order
+
+Order Cancellation Policies
+'''''''''''''''''''''''''''
+
+.. autofunction:: zipline.api.set_cancel_policy
+
+.. autoclass:: zipline.finance.cancel_policy.CancelPolicy
+   :members:
+
+.. autofunction:: zipline.api.EODCancel
+
+.. autofunction:: zipline.api.NeverCancel
+
+
+Assets
+``````
+
+.. autofunction:: zipline.api.symbol
+
+.. autofunction:: zipline.api.symbols
+
+.. autofunction:: zipline.api.future_symbol
+
+.. autofunction:: zipline.api.future_chain
+
+.. autofunction:: zipline.api.set_symbol_lookup_date
+
+.. autofunction:: zipline.api.sid
+
+
+Trading Controls
+````````````````
+
+Zipline provides trading controls to help ensure that the algorithm is
+performing as expected. The functions help protect the algorithm from certian
+bugs that could cause undesirable behavior when trading with real money.
+
+.. autofunction:: zipline.api.set_do_not_order_list
+
+.. autofunction:: zipline.api.set_long_only
+
+.. autofunction:: zipline.api.set_max_leverage
+
+.. autofunction:: zipline.api.set_max_order_count
+
+.. autofunction:: zipline.api.set_max_order_size
+
+.. autofunction:: zipline.api.set_max_position_size
+
+
+Simulation Parameters
+`````````````````````
+
+.. autofunction:: zipline.api.set_commission
+
+.. autoclass:: zipline.finance.commission.PerShare
+
+.. autoclass:: zipline.finance.commission.PerTrade
+
+.. autoclass:: zipline.finance.commission.PerDollar
+
+.. autofunction:: zipline.api.set_slippage
+
+.. autoclass:: zipline.finance.slippage.SlippageModel
+   :members:
+
+.. autoclass:: zipline.finance.slippage.FixedSlippage
+
+.. autoclass:: zipline.finance.slippage.VolumeShareSlippage
+
+.. autofunction:: zipline.api.set_benchmark
+
+Pipeline
+````````
+
+For more information, see :ref:`pipeline-api`
+
+.. autofunction:: zipline.api.attach_pipeline
+
+.. autofunction:: zipline.api.pipeline_output
+
+
+Miscellaneous
+`````````````
+
+.. autofunction:: zipline.api.record
+
+.. autofunction:: zipline.api.get_environment
+
+.. autofunction:: zipline.api.fetch_csv
+
+
+.. _pipeline-api:
 
 Pipeline API
 ~~~~~~~~~~~~
