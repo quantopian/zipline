@@ -46,6 +46,7 @@ class Returns(CustomFactor):
     **Default Inputs**: [USEquityPricing.close]
     """
     inputs = [USEquityPricing.close]
+    window_safe = True
 
     def compute(self, today, assets, out, close):
         out[:] = (close[-1] - close[0]) / close[0]

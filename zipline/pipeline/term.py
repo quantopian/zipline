@@ -24,8 +24,6 @@ from zipline.utils.numpy_utils import (
 from zipline.utils.sentinel import sentinel
 
 
-ALLOWED_WINDOWED_INPUTS = ['Returns']
-
 NotSpecified = sentinel(
     'NotSpecified',
     'Singleton sentinel value used for Term defaults.',
@@ -46,6 +44,9 @@ class Term(with_metaclass(ABCMeta, object)):
     # Subclasses aren't required to provide `params`.  The default behavior is
     # no params.
     params = ()
+
+    # Determines if a term is safe to be used as a windowed input.
+    window_safe = False
 
     _term_cache = WeakValueDictionary()
 
@@ -437,7 +438,7 @@ class ComputableTerm(Term):
         if self.window_length:
             for child in self.inputs:
                 if child.windowed:
-                    if type(child).__name__ in ALLOWED_WINDOWED_INPUTS:
+                    if child.window_safe:
                         continue
                     else:
                         raise WindowedInputToWindowedTerm(
