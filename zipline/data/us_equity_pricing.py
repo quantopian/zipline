@@ -711,6 +711,17 @@ class PanelDailyBarReader(DailyBarReader):
         The first trading day in the dataset.
     """
     def __init__(self, calendar, panel):
+        # check duplicates on all indices of panel
+
+        for attr_name in ["items", "major_axis", "minor_axis"]:
+            index = getattr(panel, attr_name)
+            duplicates = index.duplicated()
+
+            if duplicates.any():
+                raise ValueError("Duplicated items found: {0}".format(
+                    index[duplicates].values
+                ))
+
         panel = panel.copy()
         if 'volume' not in panel.items:
             # Fake volume if it does not exist.
@@ -760,7 +771,7 @@ class PanelDailyBarReader(DailyBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        return self.panel[sid, day, colname]
+        return self.panel.loc[sid, day, colname]
 
     def get_last_traded_dt(self, sid, dt):
         """
