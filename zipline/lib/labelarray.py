@@ -353,7 +353,8 @@ class LabelArray(ndarray):
 
         # Result is a scalar value, which will be an instance of np.void.
         # Map it back to one of our category entries.
-        return self.categories[result.view(int)]
+        index = result.view(int_dtype_with_size_in_bytes(self.itemsize))
+        return self.categories[index]
 
     def is_missing(self):
         """
