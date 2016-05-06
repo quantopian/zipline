@@ -111,21 +111,21 @@ class TestMinuteBarData(WithBarDataChecks,
         # illiquid_split_asset trades every 10 minutes
         for sid in (1, cls.SPLIT_ASSET_SID):
             yield sid, create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 cls.bcolz_minute_bar_days[0],
                 cls.bcolz_minute_bar_days[-1],
             )
 
         for sid in (2, cls.ILLIQUID_SPLIT_ASSET_SID):
             yield sid, create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 cls.bcolz_minute_bar_days[0],
                 cls.bcolz_minute_bar_days[-1],
                 10,
             )
 
         yield cls.HILARIOUSLY_ILLIQUID_ASSET_SID, create_minute_df_for_asset(
-            cls.env,
+            cls.trading_schedule,
             cls.bcolz_minute_bar_days[0],
             cls.bcolz_minute_bar_days[-1],
             50,

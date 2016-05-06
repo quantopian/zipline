@@ -617,8 +617,8 @@ class TradingAlgorithm(object):
                     self.sim_params.period_end = data.major_axis[-1]
                     # Changing period_start and period_close might require
                     # updating of first_open and last_close.
-                    self.sim_params.update_internal_from_env(
-                        env=self.trading_environment
+                    self.sim_params.update_internal_from_trading_schedule(
+                        trading_schedule=self.trading_schedule
                     )
 
                 copy_panel = data.rename(
@@ -753,7 +753,7 @@ class TradingAlgorithm(object):
             fake_sids = range(first_sid, first_sid + len(new_symbols))
             frame_to_write = make_simple_equity_info(
                 sids=fake_sids,
-                start_date=self.sim_params.period_start,
+                start_date=as_of_date,
                 end_date=self.sim_params.period_end,
                 symbols=new_symbols,
             )

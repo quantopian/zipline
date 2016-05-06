@@ -47,7 +47,10 @@ from zipline.pipeline.loaders.utils import (
     get_values_for_date_ranges,
     zip_with_dates
 )
-from zipline.utils.calendars import default_nyse_schedule
+from zipline.utils.calendars import (
+    get_calendar,
+    ExchangeTradingSchedule,
+)
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -365,7 +368,41 @@ class WithAssetFinder(WithDefaultDateBounds):
         cls.asset_finder = cls.make_asset_finder()
 
 
-class WithTradingEnvironment(WithAssetFinder):
+class WithTradingSchedule(object):
+    """
+    ZiplineTestCase mixing providing cls.trading_schedule as a class-level
+    fixture.
+
+    After ``init_class_fixtures`` has been called, `cls.trading_schedule` is
+    populated with a trading schedule.
+
+    Attributes
+    ----------
+    TRADING_SCHEDULE_CALENDAR : ExchangeCalendar
+        The ExchangeCalendar to be wrapped in an ExchangeTradingSchedule.
+
+    Methods
+    -------
+    make_trading_schedule() -> TradingSchedule
+        A class method that constructs the trading schedule for the class.
+
+    See Also
+    --------
+    :class:`zipline.utils.calendars.trading_schedule.TradingSchedule`
+    """
+    TRADING_SCHEDULE_CALENDAR = get_calendar('NYSE')
+
+    @classmethod
+    def make_trading_schedule(cls):
+        return ExchangeTradingSchedule(cls.TRADING_SCHEDULE_CALENDAR)
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithTradingSchedule, cls).init_class_fixtures()
+        cls.trading_schedule = cls.make_trading_schedule()
+
+
+class WithTradingEnvironment(WithAssetFinder, WithTradingSchedule):
     """
     ZiplineTestCase mixin providing cls.env as a class-level fixture.
 
@@ -398,7 +435,6 @@ class WithTradingEnvironment(WithAssetFinder):
     --------
     :class:`zipline.finance.trading.TradingEnvironment`
     """
-    TRADING_ENV_TRADING_SCHEDULE = default_nyse_schedule
 
     @classmethod
     def make_load_function(cls):
@@ -409,7 +445,7 @@ class WithTradingEnvironment(WithAssetFinder):
         return TradingEnvironment(
             load=cls.make_load_function(),
             asset_db_path=cls.asset_finder.engine,
-            trading_schedule=cls.TRADING_ENV_TRADING_SCHEDULE,
+            trading_schedule=cls.trading_schedule,
         )
 
     @classmethod
@@ -450,7 +486,6 @@ class WithSimParams(WithTradingEnvironment):
     SIM_PARAMS_NUM_DAYS = None
     SIM_PARAMS_DATA_FREQUENCY = 'daily'
     SIM_PARAMS_EMISSION_RATE = 'daily'
-    SIM_PARAMS_TRADING_SCHEDULE = default_nyse_schedule
 
     SIM_PARAMS_START = alias('START_DATE')
     SIM_PARAMS_END = alias('END_DATE')
@@ -465,7 +500,7 @@ class WithSimParams(WithTradingEnvironment):
             capital_base=cls.SIM_PARAMS_CAPITAL_BASE,
             data_frequency=cls.SIM_PARAMS_DATA_FREQUENCY,
             emission_rate=cls.SIM_PARAMS_EMISSION_RATE,
-            trading_schedule=cls.SIM_PARAMS_TRADING_SCHEDULE,
+            trading_schedule=cls.trading_schedule,
         )
 
     @classmethod
@@ -474,7 +509,7 @@ class WithSimParams(WithTradingEnvironment):
         cls.sim_params = cls.make_simparams()
 
 
-class WithNYSETradingDays(object):
+class WithNYSETradingDays(WithTradingSchedule):
     """
     ZiplineTestCase mixin providing cls.trading_days as a class-level fixture.
 
@@ -499,7 +534,7 @@ class WithNYSETradingDays(object):
     def init_class_fixtures(cls):
         super(WithNYSETradingDays, cls).init_class_fixtures()
 
-        all_days = default_nyse_schedule.all_execution_days
+        all_days = cls.trading_schedule.all_execution_days
         start_loc = all_days.get_loc(cls.DATA_MIN_DAY, 'bfill')
         end_loc = all_days.get_loc(cls.DATA_MAX_DAY, 'ffill')
 
@@ -609,7 +644,6 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
     BCOLZ_DAILY_BAR_END_DATE = alias('END_DATE')
     BCOLZ_DAILY_BAR_READ_ALL_THRESHOLD = None
     BCOLZ_DAILY_BAR_SOURCE_FROM_MINUTE = False
-    BCOLZ_TRADING_SCHEDULE = default_nyse_schedule
     # allows WithBcolzDailyBarReaderFromCSVs to call the `write_csvs` method
     # without needing to reimplement `init_class_fixtures`
     _write_method_name = 'write'
@@ -678,13 +712,13 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
             cls.BCOLZ_DAILY_BAR_PATH,
         )
         if cls.BCOLZ_DAILY_BAR_USE_FULL_CALENDAR:
-            days = cls.env.trading_days
+            days = cls.trading_schedule.all_execution_days
         else:
-            days = cls.env.days_in_range(
-                cls.env.trading_days[
-                    cls.env.get_index(cls.BCOLZ_DAILY_BAR_START_DATE) -
-                    cls.BCOLZ_DAILY_BAR_LOOKBACK_DAYS
-                ],
+            days = cls.trading_schedule.execution_days_in_range(
+                cls.trading_schedule.add_execution_days(
+                    -1 * cls.BCOLZ_DAILY_BAR_LOOKBACK_DAYS,
+                    cls.BCOLZ_DAILY_BAR_START_DATE,
+                ),
                 cls.BCOLZ_DAILY_BAR_END_DATE,
             )
         cls.bcolz_daily_bar_days = days
@@ -760,7 +794,7 @@ class WithBcolzMinuteBarReader(WithTradingEnvironment, WithTmpDir):
     @classmethod
     def make_minute_bar_data(cls):
         return create_minute_bar_data(
-            cls.env.minutes_for_days_in_range(
+            cls.trading_schedule.execution_minutes_for_days_in_range(
                 cls.bcolz_minute_bar_days[0],
                 cls.bcolz_minute_bar_days[-1],
             ),
@@ -774,21 +808,21 @@ class WithBcolzMinuteBarReader(WithTradingEnvironment, WithTmpDir):
             cls.BCOLZ_MINUTE_BAR_PATH,
         )
         if cls.BCOLZ_MINUTE_BAR_USE_FULL_CALENDAR:
-            days = cls.env.trading_days
+            days = cls.trading_schedule.all_execution_days
         else:
-            days = cls.env.days_in_range(
-                cls.env.trading_days[
-                    cls.env.get_index(cls.BCOLZ_MINUTE_BAR_START_DATE) -
-                    cls.BCOLZ_MINUTE_BAR_LOOKBACK_DAYS
-                ],
+            days = cls.trading_schedule.execution_days_in_range(
+                cls.trading_schedule.add_execution_days(
+                    -1 * cls.BCOLZ_MINUTE_BAR_LOOKBACK_DAYS,
+                    cls.BCOLZ_MINUTE_BAR_START_DATE,
+                ),
                 cls.BCOLZ_MINUTE_BAR_END_DATE,
             )
         cls.bcolz_minute_bar_days = days
         writer = BcolzMinuteBarWriter(
             days[0],
             p,
-            cls.env.open_and_closes.market_open.loc[days],
-            cls.env.open_and_closes.market_close.loc[days],
+            cls.trading_schedule.schedule.market_open.loc[days],
+            cls.trading_schedule.schedule.market_close.loc[days],
             US_EQUITIES_MINUTES_PER_DAY
         )
         writer.write(cls.make_minute_bar_data())
@@ -1164,6 +1198,7 @@ class WithDataPortal(WithAdjustmentReader,
 
         return DataPortal(
             self.env,
+            self.trading_schedule,
             first_trading_day=first_trading_day,
             equity_daily_reader=(
                 self.bcolz_daily_bar_reader
