@@ -37,7 +37,8 @@ def verify_indices_all_unique(obj):
 
     Returns
     -------
-    None
+    obj : pd.Series / pd.DataFrame / pd.Panel
+        The validated object, unchanged.
 
     Raises
     ------
@@ -61,6 +62,7 @@ def verify_indices_all_unique(obj):
                 dupes=sorted(index[index.duplicated()]),
             )
         )
+    return obj
 
 
 def optionally(preprocessor):
