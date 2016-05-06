@@ -128,7 +128,7 @@ class BlazeToPipelineTestCase(TestCase):
             with self.assertRaises(AttributeError) as e:
                 getattr(ds, field)
             self.assertIn("'%s'" % field, str(e.exception))
-            self.assertIn("'datetime'", str(e.exception))
+            self.assertIn("'datetime64[us]'", str(e.exception))
 
         # test memoization
         self.assertIs(
@@ -254,34 +254,12 @@ class BlazeToPipelineTestCase(TestCase):
             )
         self.assertIn(str(expr), str(e.exception))
 
-    def test_non_numpy_field(self):
-        expr = bz.data(
-            [],
-            dshape="""
-            var * {
-                 a: datetime,
-                 asof_date: datetime,
-                 timestamp: datetime,
-            }""",
-        )
-        ds = from_blaze(
-            expr,
-            loader=self.garbage_loader,
-            no_deltas_rule=no_deltas_rules.ignore,
-        )
-        with self.assertRaises(AttributeError):
-            ds.a
-        self.assertIsInstance(object.__getattribute__(ds, 'a'), NonNumpyField)
-
     def test_non_pipeline_field(self):
-        # NOTE: This test will fail if we ever allow string types in
-        # the Pipeline API. If this happens, change the dtype of the `a` field
-        # of expr to another type we don't allow.
         expr = bz.data(
             [],
             dshape="""
             var * {
-                 a: string,
+                 a: complex,
                  asof_date: datetime,
                  timestamp: datetime,
             }""",
@@ -297,6 +275,38 @@ class BlazeToPipelineTestCase(TestCase):
             object.__getattribute__(ds, 'a'),
             NonPipelineField,
         )
+
+    def test_cols_with_missing_vals(self):
+        dates = (pd.Timestamp('2014-01-01'), pd.Timestamp('2014-01-03')) * 3
+        df = pd.DataFrame({
+            'sid': self.sids * 2,
+            'value': (np.NaN, 0., 1., 2., 3., 2.,),
+            'str_value': (None, "b", "c", "d", "e", "f"),
+            'asof_date': dates,
+            'timestamp': dates,
+        })
+        expr = bz.data(
+            df,
+            dshape="""
+            var * {
+                 sid: int64,
+                 value: float64,
+                 str_value: string,
+                 asof_date: datetime,
+                 timestamp: datetime,
+            }""",
+        )
+        fields = OrderedDict(expr.dshape.measure.fields)
+
+        with tmp_asset_finder() as finder:
+            expected = pd.DataFrame()
+            self._test_id(
+                df,
+                var * Record(fields),
+                expected,
+                finder,
+                ('value', 'str_value'),
+            )
 
     def test_complex_expr(self):
         expr = bz.data(self.df, dshape=self.dshape)
@@ -359,7 +369,7 @@ class BlazeToPipelineTestCase(TestCase):
                 dates,
                 finder,
             ).run_pipeline(p, dates[0], dates[-1])
-
+        import pdb; pdb.set_trace()
         assert_frame_equal(
             result,
             _utc_localize_index_level_0(expected),

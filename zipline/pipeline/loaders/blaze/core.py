@@ -177,7 +177,7 @@ from zipline.utils.input_validation import (
     ensure_timezone,
     optionally,
 )
-from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.numpy_utils import repeat_last_axis, categorical_dtype
 from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
 
@@ -1006,7 +1006,15 @@ class BlazeLoader(dict):
                     )
                 else:
                     last_in_group = last_in_group.reindex(dates)
-
+            import pdb; pdb.set_trace()
+            # str_cols = df.columns[df.dtypes == categorical_dtype]
+            #
+            # # Unstack will fill all missing values with NaN; we need to fix
+            # # this for strings.
+            # for col in str_cols:
+            #     last_in_group.iloc[
+            #         :, last_in_group.columns.get_level_values(0) == col
+            #     ].fillna('None')
             return last_in_group
 
         sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
