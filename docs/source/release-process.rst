@@ -161,6 +161,13 @@ latest master and run:
 This will build the documentation, checkout a fresh copy of the ``gh-pages``
 git branch, and copy the built docs into the zipline root.
 
+.. note::
+
+   The docs should always be built with **Python 3**. Many of our api functions
+   are wrapped by preprocessing functions which accept \*args and \**kwargs. In
+   Python 3, sphinx will respect the ``__wrapped__`` attribute and display the
+   correct arguments.
+
 Now, using our browser of choice, view the ``index.html`` page and verify that
 the docs look correct.
 
