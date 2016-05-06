@@ -306,10 +306,10 @@ class PerformanceTracker(object):
             )
             stock_dividends = adjustment_reader.\
                 get_stock_dividends_with_ex_date(
-                held_sids,
-                next_trading_day,
-                self.asset_finder
-            )
+                    held_sids,
+                    next_trading_day,
+                    self.asset_finder
+                )
 
             position_tracker.earn_dividends(
                 cash_dividends,

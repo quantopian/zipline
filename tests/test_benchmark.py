@@ -30,12 +30,13 @@ from zipline.testing import (
 from zipline.testing.fixtures import (
     WithDataPortal,
     WithSimParams,
+    WithTradingSchedule,
     ZiplineTestCase,
 )
-from zipline.utils.calendars import default_nyse_schedule
 
 
-class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
+class TestBenchmark(WithDataPortal, WithSimParams, WithTradingSchedule,
+                    ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-29', tz='utc')
 
@@ -86,7 +87,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
         days_to_use = self.sim_params.trading_days[1:]
 
         source = BenchmarkSource(
-            1, self.env, default_nyse_schedule, days_to_use, self.data_portal
+            1, self.env, self.trading_schedule, days_to_use, self.data_portal
         )
 
         # should be the equivalent of getting the price history, then doing
@@ -112,7 +113,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             BenchmarkSource(
                 3,
                 self.env,
-                default_nyse_schedule,
+                self.trading_schedule,
                 self.sim_params.trading_days[1:],
                 self.data_portal
             )
@@ -127,7 +128,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             BenchmarkSource(
                 3,
                 self.env,
-                default_nyse_schedule,
+                self.trading_schedule,
                 self.sim_params.trading_days[120:],
                 self.data_portal
             )
@@ -141,7 +142,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
     def test_asset_IPOed_same_day(self):
         # gotta get some minute data up in here.
         # add sid 4 for a couple of days
-        minutes = default_nyse_schedule.execution_minutes_for_days_in_range(
+        minutes = self.trading_schedule.execution_minutes_for_days_in_range(
             self.sim_params.trading_days[0],
             self.sim_params.trading_days[5]
         )
@@ -192,7 +193,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
             BenchmarkSource(
-                4, self.env, default_nyse_schedule,
+                4, self.env, self.trading_schedule,
                 self.sim_params.trading_days, self.data_portal
             )
 

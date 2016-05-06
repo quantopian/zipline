@@ -19,7 +19,6 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.zipline_warnings import ZiplineDeprecationWarning
-from zipline.utils.calendars import default_nyse_schedule
 
 simple_algo = """
 from zipline.api import sid, order
@@ -125,7 +124,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
     def make_minute_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_minute_df_for_asset(
-                default_nyse_schedule,
+                cls.trading_schedule,
                 cls.SIM_PARAMS_START,
                 cls.SIM_PARAMS_END,
             )
@@ -134,7 +133,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
     def make_daily_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_daily_df_for_asset(
-                default_nyse_schedule,
+                cls.trading_schedule,
                 cls.SIM_PARAMS_START,
                 cls.SIM_PARAMS_END,
             )
@@ -180,10 +179,10 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         similar)  and the new data API(data.current(sid(N), field) and
         similar) hit the same code paths on the DataPortal.
         """
-        test_start_minute = default_nyse_schedule.execution_minutes_for_day(
+        test_start_minute = self.trading_schedule.execution_minutes_for_day(
             self.sim_params.trading_days[0]
         )[1]
-        test_end_minute = default_nyse_schedule.execution_minutes_for_day(
+        test_end_minute = self.trading_schedule.execution_minutes_for_day(
             self.sim_params.trading_days[0]
         )[-1]
         bar_data = BarData(
@@ -261,7 +260,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
             period_start=test_start_minute,
             period_end=test_end_minute,
             data_frequency="minute",
-            trading_schedule=default_nyse_schedule,
+            trading_schedule=self.trading_schedule,
         )
 
         history_algorithm = self.create_algo(
@@ -382,7 +381,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
                 capital_base=self.sim_params.capital_base,
                 data_frequency=self.sim_params.data_frequency,
                 emission_rate=self.sim_params.emission_rate,
-                trading_schedule=default_nyse_schedule,
+                trading_schedule=self.trading_schedule,
             )
 
             algo = self.create_algo(history_algo,
@@ -425,7 +424,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
                 period_start=self.sim_params.trading_days[8],
                 period_end=self.sim_params.trading_days[-1],
                 data_frequency="minute",
-                trading_schedule=default_nyse_schedule,
+                trading_schedule=self.trading_schedule,
             )
 
             algo = self.create_algo(simple_transforms_algo,

@@ -20,8 +20,6 @@ from abc import (
 )
 from six import with_metaclass
 
-from zipline.utils.memoize import remember_last
-
 from .exchange_calendar import get_calendar
 from .calendar_helpers import (
     next_scheduled_day,

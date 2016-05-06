@@ -15,8 +15,6 @@
 from datetime import timedelta
 import os
 
-from unittest import TestCase
-
 from numpy import (
     arange,
     array,
@@ -45,7 +43,9 @@ from zipline.data.minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     BcolzMinuteWriterColumnMismatch
 )
-from zipline.utils.calendars import get_calendar, default_nyse_schedule
+from zipline.utils.calendars import get_calendar
+
+from zipline.testing.fixtures import WithTradingSchedule, ZiplineTestCase
 
 # Calendar is set to cover several half days, to check a case where half
 # days would be read out of order in cases of windows which spanned over
@@ -54,10 +54,11 @@ TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
-class BcolzMinuteBarTestCase(TestCase):
+class BcolzMinuteBarTestCase(WithTradingSchedule, ZiplineTestCase):
 
     @classmethod
-    def setUpClass(cls):
+    def init_class_fixtures(cls):
+        super(BcolzMinuteBarTestCase, cls).init_class_fixtures()
         trading_days = get_calendar('NYSE').trading_days(
             TEST_CALENDAR_START, TEST_CALENDAR_STOP
         )
@@ -66,10 +67,15 @@ class BcolzMinuteBarTestCase(TestCase):
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
 
-    def setUp(self):
+    def dir_cleanup(self):
+        self.dir_.cleanup()
+
+    def init_instance_fixtures(self):
+        super(BcolzMinuteBarTestCase, self).init_instance_fixtures()
 
         self.dir_ = TempDirectory()
         self.dir_.create()
+        self.add_instance_callback(callback=self.dir_cleanup)
         self.dest = self.dir_.getpath('minute_bars')
         os.makedirs(self.dest)
         self.writer = BcolzMinuteBarWriter(
@@ -80,9 +86,6 @@ class BcolzMinuteBarTestCase(TestCase):
             US_EQUITIES_MINUTES_PER_DAY,
         )
         self.reader = BcolzMinuteBarReader(self.dest)
-
-    def tearDown(self):
-        self.dir_.cleanup()
 
     def test_write_one_ohlcv(self):
         minute = self.market_opens[self.test_calendar_start]
@@ -798,9 +801,9 @@ class BcolzMinuteBarTestCase(TestCase):
         data = {sids[0]: data_1, sids[1]: data_2}
 
         start_minute_loc = \
-            default_nyse_schedule.all_execution_minutes.get_loc(minutes[0])
+            self.trading_schedule.all_execution_minutes.get_loc(minutes[0])
         minute_locs = [
-            default_nyse_schedule.all_execution_minutes.get_loc(minute)
+            self.trading_schedule.all_execution_minutes.get_loc(minute)
             - start_minute_loc
             for minute in minutes
         ]
@@ -822,7 +825,7 @@ class BcolzMinuteBarTestCase(TestCase):
             'close': arange(1, 781),
             'volume': arange(1, 781)
         }
-        dts = array(default_nyse_schedule.execution_minutes_for_days_in_range(
+        dts = array(self.trading_schedule.execution_minutes_for_days_in_range(
             start_day, end_day
         ))
         self.writer.write_cols(sid, dts, cols)
@@ -866,7 +869,7 @@ class BcolzMinuteBarTestCase(TestCase):
             'close': arange(1, 601),
             'volume': arange(1, 601)
         }
-        dts = array(default_nyse_schedule.execution_minutes_for_days_in_range(
+        dts = array(self.trading_schedule.execution_minutes_for_days_in_range(
             start_day, end_day
         ))
         self.writer.write_cols(sid, dts, cols)

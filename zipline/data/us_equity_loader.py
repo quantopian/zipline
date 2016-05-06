@@ -82,7 +82,8 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
     """
     FIELDS = ('open', 'high', 'low', 'close', 'volume')
 
-    def __init__(self, trading_schedule, reader, adjustment_reader, sid_cache_size=1000):
+    def __init__(self, trading_schedule, reader, adjustment_reader,
+                 sid_cache_size=1000):
         self.trading_schedule = trading_schedule
         self._reader = reader
         self._adjustments_reader = adjustment_reader

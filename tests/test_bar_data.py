@@ -28,7 +28,6 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
-from zipline.utils.calendars import default_nyse_schedule
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -610,7 +609,7 @@ class TestDailyBarData(WithBarDataChecks,
     def make_daily_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_daily_df_for_asset(
-                default_nyse_schedule,
+                cls.trading_schedule,
                 cls.bcolz_daily_bar_days[0],
                 cls.bcolz_daily_bar_days[-1],
                 interval=2 - sid % 2
