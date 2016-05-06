@@ -12,13 +12,16 @@ from zipline.testing import (
     tmp_trading_env,
     tmp_dir,
 )
-from zipline.testing.fixtures import WithLogger, ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithLogger,
+    WithTradingSchedule,
+    ZiplineTestCase,
+)
 from zipline.utils import factory
 from zipline.utils.security_list import (
     SecurityListSet,
     load_from_directory,
 )
-from zipline.utils.calendars import default_nyse_schedule
 
 LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 
@@ -64,7 +67,7 @@ class IterateRLAlgo(TradingAlgorithm):
                 self.found = True
 
 
-class SecurityListTestCase(WithLogger, ZiplineTestCase):
+class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
@@ -88,7 +91,7 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
         cls.sim_params = factory.create_simulation_parameters(
             start=start,
             num_days=4,
-            trading_schedule=default_nyse_schedule
+            trading_schedule=cls.trading_schedule
         )
 
         cls.sim_params2 = sp2 = factory.create_simulation_parameters(
@@ -111,7 +114,7 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
             tempdir=cls.tempdir,
             sim_params=cls.sim_params,
             sids=range(0, 5),
-            trading_schedule=default_nyse_schedule,
+            trading_schedule=cls.trading_schedule,
         )
 
         cls.data_portal2 = create_data_portal(
@@ -119,7 +122,7 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
             tempdir=cls.tempdir2,
             sim_params=cls.sim_params2,
             sids=range(0, 5),
-            trading_schedule=default_nyse_schedule,
+            trading_schedule=cls.trading_schedule,
         )
 
     def test_iterate_over_restricted_list(self):
@@ -222,7 +225,7 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
             self.tempdir,
             sim_params=sim_params,
             sids=range(0, 5),
-            trading_schedule=default_nyse_schedule,
+            trading_schedule=self.trading_schedule,
         )
 
         algo = RestrictedAlgoWithoutCheck(symbol='BZQ',
@@ -274,7 +277,7 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
                 new_tempdir,
                 sim_params,
                 range(0, 5),
-                trading_schedule=default_nyse_schedule,
+                trading_schedule=self.trading_schedule,
             )
 
             algo = RestrictedAlgoWithoutCheck(

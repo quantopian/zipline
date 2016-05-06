@@ -26,7 +26,6 @@ from zipline.utils.calendars import default_nyse_schedule
 log = logbook.Logger('Trading')
 
 
-
 class TradingEnvironment(object):
     """
     The financial simulations in zipline depend on information
@@ -106,7 +105,6 @@ class TradingEnvironment(object):
             self.asset_finder = AssetFinder(engine)
         else:
             self.asset_finder = None
-
 
     def write_data(self, **kwargs):
         """Write data into the asset_db.

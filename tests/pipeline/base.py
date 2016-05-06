@@ -2,7 +2,6 @@
 Base class for Pipeline API  unittests.
 """
 from functools import wraps
-from unittest import TestCase
 
 import numpy as np
 from numpy import arange, prod
@@ -18,10 +17,10 @@ from zipline.testing import (
     ExplodingObject,
     tmp_asset_finder,
 )
+from zipline.testing.fixtures import ZiplineTestCase, WithTradingSchedule
 
 from zipline.utils.functional import dzip_exact
 from zipline.utils.pandas_utils import explode
-from zipline.utils.calendars import default_nyse_schedule
 
 
 def with_defaults(**default_funcs):
@@ -51,12 +50,14 @@ def with_defaults(**default_funcs):
 with_default_shape = with_defaults(shape=lambda self: self.default_shape)
 
 
-class BasePipelineTestCase(TestCase):
+class BasePipelineTestCase(WithTradingSchedule, ZiplineTestCase):
 
     @classmethod
-    def setUpClass(cls):
+    def init_class_fixtures(cls):
+        super(BasePipelineTestCase, cls).init_class_fixtures()
+
         cls.__calendar = date_range('2014', '2015',
-                                    freq=default_nyse_schedule.day)
+                                    freq=cls.trading_schedule.day)
         cls.__assets = assets = Int64Index(arange(1, 20))
         cls.__tmp_finder_ctx = tmp_asset_finder(
             equities=make_simple_equity_info(
@@ -70,10 +71,6 @@ class BasePipelineTestCase(TestCase):
             cls.__calendar[-30:],
             include_start_date=False,
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.__tmp_finder_ctx.__exit__()
 
     @property
     def default_shape(self):

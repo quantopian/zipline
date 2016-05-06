@@ -30,7 +30,6 @@ from testfixtures import TempDirectory
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.finance.blotter import Blotter
 from zipline.finance.execution import MarketOrder, LimitOrder
-from zipline.finance.trading import TradingEnvironment
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.trading import SimulationParameters
 from zipline.data.us_equity_pricing import BcolzDailyBarReader
@@ -50,10 +49,6 @@ from zipline.testing.fixtures import (
 )
 
 import zipline.utils.factory as factory
-from zipline.utils.calendars import (
-    default_nyse_schedule,
-    get_calendar,
-)
 
 DEFAULT_TIMEOUT = 15  # seconds
 EXTENDED_TIMEOUT = 90
@@ -203,7 +198,7 @@ class FinanceTestCase(WithLogger,
                     data_frequency="minute"
                 )
 
-                minutes = default_nyse_schedule.execution_minute_window(
+                minutes = self.trading_schedule.execution_minute_window(
                     sim_params.first_open,
                     int((trade_interval.total_seconds() / 60) * trade_count)
                     + 100)
@@ -221,8 +216,8 @@ class FinanceTestCase(WithLogger,
                 }
 
                 write_bcolz_minute_data(
-                    default_nyse_schedule,
-                    default_nyse_schedule.execution_days_in_range(minutes[0],
+                    self.trading_schedule,
+                    self.trading_schedule.execution_days_in_range(minutes[0],
                                                                   minutes[-1]),
                     tempdir.path,
                     iteritems(assets),
@@ -231,7 +226,7 @@ class FinanceTestCase(WithLogger,
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
                 data_portal = DataPortal(
-                    env, default_nyse_schedule,
+                    env, self.trading_schedule,
                     first_trading_day=equity_minute_reader.first_trading_day,
                     equity_minute_reader=equity_minute_reader,
                 )
@@ -259,7 +254,7 @@ class FinanceTestCase(WithLogger,
                 equity_daily_reader = BcolzDailyBarReader(path)
 
                 data_portal = DataPortal(
-                    env, default_nyse_schedule,
+                    env, self.trading_schedule,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
@@ -280,7 +275,7 @@ class FinanceTestCase(WithLogger,
             else:
                 alternator = 1
 
-            tracker = PerformanceTracker(sim_params, default_nyse_schedule,
+            tracker = PerformanceTracker(sim_params, self.trading_schedule,
                                          self.env)
 
             # replicate what tradesim does by going through every minute or day
@@ -399,7 +394,7 @@ class TradingEnvironmentTestCase(WithLogger,
             period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
             period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
             capital_base=100000,
-            trading_schedule=default_nyse_schedule,
+            trading_schedule=self.trading_schedule,
         )
 
         self.assertTrue(sp.last_close.month == 12)
@@ -420,7 +415,7 @@ class TradingEnvironmentTestCase(WithLogger,
             period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
             period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
             capital_base=100000,
-            trading_schedule=default_nyse_schedule,
+            trading_schedule=self.trading_schedule,
         )
 
         expected_trading_days = (
