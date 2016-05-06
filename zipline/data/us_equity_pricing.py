@@ -54,10 +54,12 @@ from six import (
 )
 
 from zipline.utils.functional import apply
+from zipline.utils.preprocess import call
 from zipline.utils.input_validation import (
     coerce_string,
     preprocess,
     expect_element,
+    verify_indices_all_unique,
 )
 from zipline.utils.sqlite_utils import group_into_chunks
 from zipline.utils.memoize import lazyval
@@ -696,9 +698,12 @@ class PanelDailyBarReader(DailyBarReader):
 
     DataPanel Structure
     -------
-    items : Int64Index, asset identifiers
-    major_axis : DatetimeIndex, days provided by the Panel.
+    items : Int64Index
+        Asset identifiers.  Must be unique.
+    major_axis : DatetimeIndex
+       Dates for data provided provided by the Panel.  Must be unique.
     minor_axis : ['open', 'high', 'low', 'close', 'volume']
+       Price attributes.  Must be unique.
 
     Attributes
     ----------
@@ -710,7 +715,9 @@ class PanelDailyBarReader(DailyBarReader):
     first_trading_day : pd.Timestamp
         The first trading day in the dataset.
     """
+    @preprocess(panel=call(verify_indices_all_unique))
     def __init__(self, calendar, panel):
+
         panel = panel.copy()
         if 'volume' not in panel.items:
             # Fake volume if it does not exist.
@@ -760,7 +767,7 @@ class PanelDailyBarReader(DailyBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        return self.panel[sid, day, colname]
+        return self.panel.loc[sid, day, colname]
 
     def get_last_traded_dt(self, sid, dt):
         """
