@@ -13,16 +13,60 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from itertools import permutations
+from itertools import permutations, product
 
+import numpy as np
 import pandas as pd
 
 from zipline.data.us_equity_pricing import PanelDailyBarReader
 from zipline.testing import ExplodingObject
-from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithAssetFinder,
+    WithNYSETradingDays,
+    ZiplineTestCase,
+)
 
 
-class TestPanelDailyBarReader(ZiplineTestCase):
+class TestPanelDailyBarReader(WithAssetFinder,
+                              WithNYSETradingDays,
+                              ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    END_DATE = pd.Timestamp('2006-02-01', tz='utc')
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(TestPanelDailyBarReader, cls).init_class_fixtures()
+
+        finder = cls.asset_finder
+        days = cls.trading_days
+
+        items = finder.retrieve_all(finder.sids)
+        major_axis = days
+        minor_axis = ['open', 'high', 'low', 'close', 'volume']
+
+        shape = tuple(map(len, [items, major_axis, minor_axis]))
+        raw_data = np.arange(shape[0] * shape[1] * shape[2]).reshape(shape)
+
+        cls.panel = pd.Panel(
+            raw_data,
+            items=items,
+            major_axis=major_axis,
+            minor_axis=minor_axis,
+        )
+
+        cls.reader = PanelDailyBarReader(days, cls.panel)
+
+    def test_spot_price(self):
+        panel = self.panel
+        reader = self.reader
+
+        for asset, date, field in product(*panel.axes):
+            self.assertEqual(
+                panel.loc[asset, date, field],
+                reader.spot_price(asset, date, field),
+            )
+
     def test_duplicate_values(self):
         UNIMPORTANT_VALUE = 57
 
@@ -37,8 +81,9 @@ class TestPanelDailyBarReader(ZiplineTestCase):
         axis_names = ['items', 'major_axis', 'minor_axis']
 
         for axis_order in permutations((0, 1, 2)):
+            transposed = panel.transpose(*axis_order)
             with self.assertRaises(ValueError) as e:
-                PanelDailyBarReader(unused, panel.transpose(*axis_order))
+                PanelDailyBarReader(unused, transposed)
 
             expected = (
                 "Duplicate entries in Panel.{name}: ['a', 'b'].".format(

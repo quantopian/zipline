@@ -719,7 +719,7 @@ class PanelDailyBarReader(DailyBarReader):
     def __init__(self, calendar, panel):
 
         panel = panel.copy()
-        if 'volume' not in panel.items:
+        if 'volume' not in panel.minor_axis:
             # Fake volume if it does not exist.
             panel.loc[:, :, 'volume'] = int(1e9)
 
