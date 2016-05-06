@@ -2571,7 +2571,7 @@ class TestOrderCancelation(WithDataPortal,
         )
 
     def prep_algo(self, cancelation_string, data_frequency="minute",
-                  amount=1000):
+                  amount=1000, minute_emission=False):
         code = self.code.format(cancelation_string, amount)
         algo = TradingAlgorithm(
             script=code,
@@ -2580,21 +2580,28 @@ class TestOrderCancelation(WithDataPortal,
                 period_start=self.sim_params.period_start,
                 period_end=self.sim_params.period_end,
                 env=self.env,
-                data_frequency=data_frequency
+                data_frequency=data_frequency,
+                emission_rate='minute' if minute_emission else 'daily'
             )
         )
 
         return algo
 
-    @parameterized.expand([
-        (1,), (-1,),
-    ])
-    def test_eod_order_cancel_minute(self, direction):
+    @parameter_space(
+        direction=[1, -1],
+        minute_emission=[True, False]
+    )
+    def test_eod_order_cancel_minute(self, direction, minute_emission):
+        """
+        Test that EOD order cancel works in minute mode for both shorts and
+        longs, and both daily emission and minute emission
+        """
         # order 1000 shares of asset1.  the volume is only 1 share per bar,
         # so the order should be cancelled at the end of the day.
         algo = self.prep_algo(
             "set_cancel_policy(cancel_policy.EODCancel())",
             amount=np.copysign(1000, direction),
+            minute_emission=minute_emission
         )
 
         log_catcher = TestHandler()

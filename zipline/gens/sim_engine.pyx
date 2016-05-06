@@ -81,8 +81,8 @@ cdef class MinuteSimulationClock:
                 if minute_emission:
                     yield minute, MINUTE_END
 
-            if not minute_emission:
-                yield minutes[-1], DAY_END
+            yield minutes[-1], DAY_END
+
 
 
 cdef class DailySimulationClock:

@@ -303,9 +303,7 @@ class PerformanceTracker(object):
 
     def handle_minute_close(self, dt, data_portal):
         """
-        Handles the close of the given minute. This includes handling
-        market-close functions if the given minute is the end of the market
-        day.
+        Handles the close of the given minute in minute emission.
 
         Parameters
         __________
@@ -314,9 +312,7 @@ class PerformanceTracker(object):
 
         Returns
         _______
-        (dict, dict/None)
-            A tuple of the minute perf packet and daily perf packet.
-            If the market day has not ended, the daily perf packet is None.
+        A minute perf packet.
         """
         self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
         self.update_performance()
@@ -333,40 +329,40 @@ class PerformanceTracker(object):
                                             account.leverage)
 
         minute_packet = self.to_dict(emission_type='minute')
+        return minute_packet
 
-        # if this is the close, update dividends for the next day.
-        # Return the performance tuple
-        if dt == self.market_close:
-            return minute_packet, self._handle_market_close(
-                todays_date, data_portal._adjustment_reader,
-            )
-        else:
-            return minute_packet, None
+    def handle_market_close(self, dt, data_portal):
+        """
+        Handles the close of the given day, in both minute and daily emission.
+        In daily emission, also updates performance, benchmark and risk metrics
+        as it would in handle_minute_close if it were minute emission.
 
-    def handle_market_close_daily(self, dt, data_portal):
+        Parameters
+        __________
+        dt : Timestamp
+            The minute that is ending
+
+        Returns
+        _______
+        A daily perf packet.
         """
-        Function called after handle_data when running with daily emission
-        rate.
-        """
-        self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
-        self.update_performance()
         completed_date = self.day
-        account = self.get_account(False)
 
-        benchmark_value = self.all_benchmark_returns[completed_date]
+        if self.emission_rate == 'daily':
+            # this method is called for both minutely and daily emissions, but
+            # this chunk of code here only applies for daily emissions. (since
+            # it's done every minute, elsewhere, for minutely emission).
+            self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
+            self.update_performance()
+            account = self.get_account(False)
 
-        self.cumulative_risk_metrics.update(
-            completed_date,
-            self.todays_performance.returns,
-            benchmark_value,
-            account.leverage)
+            benchmark_value = self.all_benchmark_returns[completed_date]
 
-        daily_packet = self._handle_market_close(
-            completed_date, data_portal._adjustment_reader,
-        )
-        return daily_packet
-
-    def _handle_market_close(self, completed_date, adjustment_reader):
+            self.cumulative_risk_metrics.update(
+                completed_date,
+                self.todays_performance.returns,
+                benchmark_value,
+                account.leverage)
 
         # increment the day counter before we move markers forward.
         self.day_count += 1.0
@@ -400,8 +396,11 @@ class PerformanceTracker(object):
             return daily_update
 
         # Check for any dividends, then return the daily perf packet
-        self.check_upcoming_dividends(next_trading_day=next_trading_day,
-                                      adjustment_reader=adjustment_reader)
+        self.check_upcoming_dividends(
+            next_trading_day=next_trading_day,
+            adjustment_reader=data_portal._adjustment_reader
+        )
+
         return daily_update
 
     def handle_simulation_end(self):
