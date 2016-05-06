@@ -299,14 +299,17 @@ class PerformanceTracker(object):
         # date comes.
 
         if held_sids:
-            asset_finder = self.env.asset_finder
-
-            cash_dividends = adjustment_reader.\
-                get_dividends_with_ex_date(held_sids, next_trading_day,
-                                           asset_finder)
+            cash_dividends = adjustment_reader.get_dividends_with_ex_date(
+                held_sids,
+                next_trading_day,
+                self.asset_finder
+            )
             stock_dividends = adjustment_reader.\
-                get_stock_dividends_with_ex_date(held_sids, next_trading_day,
-                                                 asset_finder)
+                get_stock_dividends_with_ex_date(
+                held_sids,
+                next_trading_day,
+                self.asset_finder
+            )
 
             position_tracker.earn_dividends(
                 cash_dividends,

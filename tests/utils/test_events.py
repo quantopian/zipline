@@ -395,7 +395,7 @@ class TestStatelessRules(RuleTestCase):
         sim_start = pd.Timestamp('01-06-2014', tz='UTC') + \
             timedelta(days=start_offset)
 
-        jan_minutes = self.env.minutes_for_days_in_range(
+        jan_minutes = self.nyse_cal.trading_minutes_for_days_in_range(
             datetime.date(year=2014, month=1, day=6) +
             timedelta(days=start_offset),
             datetime.date(year=2014, month=1, day=31)
@@ -426,9 +426,8 @@ class TestStatelessRules(RuleTestCase):
             trigger_dates = \
                 [x - timedelta(days=rule_offset) for x in trigger_dates]
 
-        should_trigger = partial(
-            rule(rule_offset).should_trigger, env=self.env
-        )
+        rule.cal = self.nyse_cal
+        should_trigger = rule(rule_offset).should_trigger
 
         # If offset is 4, there is not enough trading days in the short week,
         # and so it should not trigger
@@ -439,9 +438,9 @@ class TestStatelessRules(RuleTestCase):
         trigger_dates = [x for x in trigger_dates if x >= sim_start]
 
         # Get all the minutes on the trigger dates
-        trigger_dts = self.env.market_minutes_for_day(trigger_dates[0])
+        trigger_dts = self.nyse_cal.trading_minutes_for_day(trigger_dates[0])
         for dt in trigger_dates[1:]:
-            trigger_dts += self.env.market_minutes_for_day(dt)
+            trigger_dts += self.nyse_cal.trading_minutes_for_day(dt)
 
         expected_n_triggered = len(trigger_dts)
         trigger_dts = iter(trigger_dts)
@@ -460,11 +459,14 @@ class TestStatelessRules(RuleTestCase):
             NDaysBeforeLastTradingDayOfWeek(4)
         time_rule = AfterOpen(minutes=60)
 
+        week_rule.cal = self.nyse_cal
+        time_rule.cal = self.nyse_cal
+
         composed_rule = week_rule & time_rule
 
-        should_trigger = partial(composed_rule.should_trigger, env=self.env)
+        should_trigger = composed_rule.should_trigger
 
-        week_minutes = self.env.minutes_for_days_in_range(
+        week_minutes = self.nyse_cal.trading_minutes_for_days_in_range(
             datetime.date(year=2014, month=1, day=6),
             datetime.date(year=2014, month=1, day=10)
         )

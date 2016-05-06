@@ -147,13 +147,13 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
         )
 
         tmp_reader = tmp_bcolz_minute_bar_reader(
-            self.env,
-            self.env.trading_days,
+            self.trading_schedule,
+            self.trading_schedule.all_execution_days,
             create_minute_bar_data(minutes, [2]),
         )
         with tmp_reader as reader:
             data_portal = DataPortal(
-                self.env,
+                self.env, self.trading_schedule,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
                 equity_daily_reader=self.bcolz_daily_bar_reader,
@@ -163,7 +163,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             source = BenchmarkSource(
                 2,
                 self.env,
-                default_nyse_schedule,
+                self.trading_schedule,
                 self.sim_params.trading_days,
                 data_portal
             )

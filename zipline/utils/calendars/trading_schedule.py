@@ -180,12 +180,10 @@ class TradingSchedule(with_metaclass(ABCMeta)):
         raise NotImplementedError()
 
     @property
-    @remember_last
     def all_execution_days(self):
         return self.schedule.index
 
     @property
-    @remember_last
     def all_execution_minutes(self):
         return all_scheduled_minutes(self.all_execution_days,
                                      self.execution_minutes_for_days_in_range)
@@ -330,6 +328,14 @@ class ExchangeTradingSchedule(TradingSchedule):
         """
         self._exchange_calendar = cal
         super(ExchangeTradingSchedule, self).__init__()
+
+    @property
+    def all_execution_days(self):
+        return self._exchange_calendar.all_trading_days
+
+    @property
+    def all_execution_minutes(self):
+        return self._exchange_calendar.all_trading_minutes
 
     @property
     def day(self):

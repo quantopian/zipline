@@ -931,7 +931,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         cls.equity_info = ret = make_rotating_equity_info(
             num_assets=6,
             first_start=cls.first_asset_start,
-            frequency=cls.TRADING_ENV_TRADING_CALENDAR.trading_day,
+            frequency=cls.trading_schedule.day,
             periods_between_starts=4,
             asset_lifetime=8,
         )
@@ -992,9 +992,9 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.env.trading_day,
+            self.first_asset_start + self.trading_schedule.day,
             self.last_asset_end,
-            freq=self.env.trading_day,
+            freq=self.trading_schedule.day,
         )
         dates_to_test = dates[window_length:]
 
@@ -1014,7 +1014,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # **previous** day's data.
         expected_raw = rolling_mean(
             expected_bar_values_2d(
-                dates - self.env.trading_day,
+                dates - self.trading_schedule.day,
                 self.equity_info,
                 'close',
             ),
@@ -1046,9 +1046,9 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.env.trading_day,
+            self.first_asset_start + self.trading_schedule.day,
             self.last_asset_end,
-            freq=self.env.trading_day,
+            freq=self.trading_schedule.day,
         )
         dates_to_test = dates[window_length:]
 

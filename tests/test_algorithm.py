@@ -751,7 +751,7 @@ class TestTransformAlgorithm(WithLogger,
                     [100, 100, 100, 300],
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env
+                    cls.trading_schedule,
                 ) for sid in cls.sids
             },
             index=cls.sim_params.trading_days,
@@ -1023,10 +1023,11 @@ class TestBeforeTradingStart(WithDataPortal,
 
     @classmethod
     def make_minute_bar_data(cls):
-        asset_minutes = cls.env.minutes_for_days_in_range(
-            cls.data_start,
-            cls.END_DATE,
-        )
+        asset_minutes = \
+            cls.trading_schedule.execution_minutes_for_days_in_range(
+                cls.data_start,
+                cls.END_DATE,
+            )
         minutes_count = len(asset_minutes)
         minutes_arr = np.arange(minutes_count) + 1
         split_data = pd.DataFrame(
@@ -1042,13 +1043,13 @@ class TestBeforeTradingStart(WithDataPortal,
         split_data.iloc[780:] = split_data.iloc[780:] / 2.0
         for sid in (1, 8554):
             yield sid, create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 cls.data_start,
                 cls.sim_params.period_end,
             )
 
         yield 2, create_minute_df_for_asset(
-            cls.env,
+            cls.trading_schedule,
             cls.data_start,
             cls.sim_params.period_end,
             50,
@@ -1069,7 +1070,7 @@ class TestBeforeTradingStart(WithDataPortal,
     def make_daily_bar_data(cls):
         for sid in cls.ASSET_FINDER_EQUITY_SIDS:
             yield sid, create_daily_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 cls.data_start,
                 cls.sim_params.period_end,
             )
@@ -1397,7 +1398,8 @@ class TestAlgoScript(WithLogger,
 
     @classmethod
     def make_daily_bar_data(cls):
-        days = len(cls.env.days_in_range(cls.START_DATE, cls.END_DATE))
+        days = len(cls.trading_schedule.execution_days_in_range(cls.START_DATE,
+                                                                cls.END_DATE))
         return trades_by_sid_to_dfs(
             {
                 0: factory.create_trade_history(
@@ -1406,14 +1408,14 @@ class TestAlgoScript(WithLogger,
                     [100] * days,
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env),
+                    cls.trading_schedule),
                 3: factory.create_trade_history(
                     3,
                     [10.0] * days,
                     [100] * days,
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env)
+                    cls.trading_schedule)
             },
             index=cls.sim_params.trading_days,
         )
@@ -3169,10 +3171,11 @@ class TestOrderCancelation(WithDataPortal,
 
     @classmethod
     def make_minute_bar_data(cls):
-        asset_minutes = cls.env.minutes_for_days_in_range(
-            cls.sim_params.period_start,
-            cls.sim_params.period_end,
-        )
+        asset_minutes = \
+            cls.trading_schedule.execution_minutes_for_days_in_range(
+                cls.sim_params.period_start,
+                cls.sim_params.period_end,
+            )
 
         minutes_count = len(asset_minutes)
         minutes_arr = np.arange(1, 1 + minutes_count)

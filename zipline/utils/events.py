@@ -427,14 +427,14 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
         self.next_midnight_timestamp = None
 
     @abstractmethod
-    def date_func(self, dt):
+    def date_func(self, dt, cal):
         raise NotImplementedError
 
     def calculate_start_and_end(self, dt):
         next_trading_day = _coerce_datetime(
             self.cal.add_trading_days(
                 self.td_delta,
-                self.date_func(dt),
+                self.date_func(dt, self.cal),
             )
         )
 
@@ -445,7 +445,7 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
             next_trading_day = _coerce_datetime(
                 self.cal.add_trading_days(
                     self.td_delta,
-                    self.date_func(dt),
+                    self.date_func(dt, self.cal),
                 )
             )
 
@@ -497,7 +497,7 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
             if dt is None:
                 return prev
 
-        if cal.is_trading_day(prev):
+        if cal.is_open_on_day(prev):
             return prev.date()
         else:
             return cal.next_trading_day(prev).date()
@@ -522,7 +522,7 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
             prev = dt
             dt = cal.next_trading_day(dt)
 
-        if cal.is_trading_day(prev):
+        if cal.is_open_on_day(prev):
             return prev.date()
         else:
             return cal.previous_trading_day(prev).date()
