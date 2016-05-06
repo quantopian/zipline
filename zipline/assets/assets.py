@@ -101,7 +101,7 @@ class AssetFinder(object):
     PERSISTENT_TOKEN = "<AssetFinder>"
 
     def __init__(self, engine):
-        if isinstance(engine, str):
+        if isinstance(engine, string_types):
             engine = sa.create_engine('sqlite:///' + engine)
 
         self.engine = engine

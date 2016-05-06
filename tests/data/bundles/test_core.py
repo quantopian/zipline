@@ -1,9 +1,12 @@
+import os
+
+from nose_parameterized import parameterized
 import pandas as pd
 from toolz import valmap
 import toolz.curried.operator as op
 
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.data.bundles import load
+from zipline.data.bundles import UnknownBundle, from_bundle_ingest_dirname
 from zipline.data.bundles.core import _make_bundle_core
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
@@ -12,30 +15,39 @@ from zipline.pipeline.loaders.synthetic import (
 )
 from zipline.testing import (
     subtest,
-    tmp_dir,
     str_to_seconds,
     tmp_trading_env,
 )
-from zipline.testing.fixtures import ZiplineTestCase
+from zipline.testing.fixtures import WithInstanceTmpDir, ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
     assert_false,
     assert_in,
     assert_is,
     assert_is_instance,
+    assert_is_none,
+    assert_raises,
+    assert_true,
 )
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.functional import apply
 from zipline.utils.tradingcalendar import trading_days
+import zipline.utils.paths as pth
 
 
-class BundleCoreTestCase(ZiplineTestCase):
+_1_ns = pd.Timedelta(1, unit='ns')
+
+
+class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
     def init_instance_fixtures(self):
         super(BundleCoreTestCase, self).init_instance_fixtures()
         (self.bundles,
          self.register,
          self.unregister,
-         self.ingest) = _make_bundle_core()
+         self.ingest,
+         self.load,
+         self.clean) = _make_bundle_core()
+        self.environ = {'ZIPLINE_ROOT': self.instance_tmpdir.path}
 
     def test_register_decorator(self):
         @apply
@@ -75,17 +87,35 @@ class BundleCoreTestCase(ZiplineTestCase):
 
         assert_false(self.bundles)
 
+    def test_register_no_create(self):
+        called = [False]
+
+        @self.register('bundle', create_writers=False)
+        def bundle_ingest(environ,
+                          asset_db_writer,
+                          minute_bar_writer,
+                          daily_bar_writer,
+                          adjustment_writer,
+                          calendar,
+                          cache,
+                          show_progress,
+                          output_dir):
+            assert_is_none(asset_db_writer)
+            assert_is_none(minute_bar_writer)
+            assert_is_none(daily_bar_writer)
+            assert_is_none(adjustment_writer)
+            called[0] = True
+
+        self.ingest('bundle', self.environ)
+        assert_true(called[0])
+
     def test_ingest(self):
-        zipline_root = self.enter_instance_context(tmp_dir()).path
         env = self.enter_instance_context(tmp_trading_env())
 
         start = pd.Timestamp('2014-01-06', tz='utc')
         end = pd.Timestamp('2014-01-10', tz='utc')
         calendar = trading_days[trading_days.slice_indexer(start, end)]
         minutes = env.minutes_for_days_in_range(calendar[0], calendar[-1])
-        outer_environ = {
-            'ZIPLINE_ROOT': zipline_root,
-        }
 
         sids = tuple(range(3))
         equities = make_simple_equity_info(
@@ -122,8 +152,9 @@ class BundleCoreTestCase(ZiplineTestCase):
                           adjustment_writer,
                           calendar,
                           cache,
-                          show_progress):
-            assert_is(environ, outer_environ)
+                          show_progress,
+                          output_dir):
+            assert_is(environ, self.environ)
 
             asset_db_writer.write(equities=equities)
             minute_bar_writer.write(minute_bar_data)
@@ -134,8 +165,8 @@ class BundleCoreTestCase(ZiplineTestCase):
             assert_is_instance(cache, dataframe_cache)
             assert_is_instance(show_progress, bool)
 
-        self.ingest('bundle', environ=outer_environ)
-        bundle = load('bundle', environ=outer_environ)
+        self.ingest('bundle', environ=self.environ)
+        bundle = self.load('bundle', environ=self.environ)
 
         assert_equal(set(bundle.asset_finder.sids), set(sids))
 
@@ -215,4 +246,206 @@ class BundleCoreTestCase(ZiplineTestCase):
                 )],
             },
             msg='volume',
+        )
+
+    @parameterized.expand([('clean',), ('load',)])
+    def test_bundle_doesnt_exist(self, fnname):
+        with assert_raises(UnknownBundle) as e:
+            getattr(self, fnname)('ayy', environ=self.environ)
+
+        assert_equal(e.exception.name, 'ayy')
+
+    def test_load_no_data(self):
+        # register but do not ingest data
+        self.register('bundle', lambda *args: None)
+
+        ts = pd.Timestamp('2014')
+
+        with assert_raises(ValueError) as e:
+            self.load('bundle', timestamp=ts, environ=self.environ)
+
+        assert_in(
+            "no data for bundle 'bundle' on or before %s" % ts,
+            str(e.exception),
+        )
+
+    def _list_bundle(self):
+        return {
+            os.path.join(pth.data_path(['bundle', d], environ=self.environ))
+            for d in os.listdir(
+                pth.data_path(['bundle'], environ=self.environ),
+            )
+        }
+
+    def _empty_ingest(self, _wrote_to=[]):
+        """Run the nth empty ingest.
+
+        Returns
+        -------
+        wrote_to : str
+            The timestr of the bundle written.
+        """
+        if not self.bundles:
+            @self.register('bundle',
+                           calendar=pd.DatetimeIndex([pd.Timestamp('2014')]))
+            def _(environ,
+                  asset_db_writer,
+                  minute_bar_writer,
+                  daily_bar_writer,
+                  adjustment_writer,
+                  calendar,
+                  cache,
+                  show_progress,
+                  output_dir):
+                _wrote_to.append(output_dir)
+
+        _wrote_to.clear()
+        self.ingest('bundle', environ=self.environ)
+        assert_equal(len(_wrote_to), 1, msg='ingest was called more than once')
+        ingestions = self._list_bundle()
+        assert_in(
+            _wrote_to[0],
+            ingestions,
+            msg='output_dir was not in the bundle directory',
+        )
+        return _wrote_to[0]
+
+    def test_clean_keep_last(self):
+        first = self._empty_ingest()
+
+        assert_equal(
+            self.clean('bundle', keep_last=1, environ=self.environ),
+            set(),
+        )
+        assert_equal(
+            self._list_bundle(),
+            {first},
+            msg='directory should not have changed',
+        )
+
+        second = self._empty_ingest()
+        assert_equal(
+            self._list_bundle(),
+            {first, second},
+            msg='two ingestions are not present',
+        )
+        assert_equal(
+            self.clean('bundle', keep_last=1, environ=self.environ),
+            {first},
+        )
+        assert_equal(
+            self._list_bundle(),
+            {second},
+            msg='first ingestion was not removed with keep_last=2',
+        )
+
+        third = self._empty_ingest()
+        fourth = self._empty_ingest()
+        fifth = self._empty_ingest()
+
+        assert_equal(
+            self._list_bundle(),
+            {second, third, fourth, fifth},
+            msg='larger set of ingestions did not happen correctly',
+        )
+
+        assert_equal(
+            self.clean('bundle', keep_last=2, environ=self.environ),
+            {second, third},
+        )
+
+        assert_equal(
+            self._list_bundle(),
+            {fourth, fifth},
+            msg='keep_last=2 did not remove the correct number of ingestions',
+        )
+
+    @staticmethod
+    def _ts_of_run(run):
+        return from_bundle_ingest_dirname(run.rsplit(os.path.sep, 1)[-1])
+
+    def test_clean_before_after(self):
+        first = self._empty_ingest()
+        assert_equal(
+            self.clean(
+                'bundle',
+                before=self._ts_of_run(first),
+                environ=self.environ,
+            ),
+            set(),
+        )
+        assert_equal(
+            self._list_bundle(),
+            {first},
+            msg='directory should not have changed (before)',
+        )
+
+        assert_equal(
+            self.clean(
+                'bundle',
+                after=self._ts_of_run(first),
+                environ=self.environ,
+            ),
+            set(),
+        )
+        assert_equal(
+            self._list_bundle(),
+            {first},
+            msg='directory should not have changed (after)',
+        )
+
+        assert_equal(
+            self.clean(
+                'bundle',
+                before=self._ts_of_run(first) + _1_ns,
+                environ=self.environ,
+            ),
+            {first},
+        )
+        assert_equal(
+            self._list_bundle(),
+            set(),
+            msg='directory now be empty (before)',
+        )
+
+        second = self._empty_ingest()
+        assert_equal(
+            self.clean(
+                'bundle',
+                after=self._ts_of_run(second) - _1_ns,
+                environ=self.environ,
+            ),
+            {second},
+        )
+        assert_equal(
+            self._list_bundle(),
+            set(),
+            msg='directory now be empty (after)',
+        )
+
+        third = self._empty_ingest()
+        fourth = self._empty_ingest()
+        fifth = self._empty_ingest()
+        sixth = self._empty_ingest()
+
+        assert_equal(
+            self._list_bundle(),
+            {third, fourth, fifth, sixth},
+            msg='larger set of ingestions did no happen correctly',
+        )
+
+        assert_equal(
+            self.clean(
+                'bundle',
+                before=self._ts_of_run(fourth),
+                after=self._ts_of_run(fifth),
+                environ=self.environ,
+            ),
+            {third, sixth},
+        )
+
+        assert_equal(
+            self._list_bundle(),
+            {fourth, fifth},
+            msg='did not strip first and last directories',
         )

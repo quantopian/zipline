@@ -1,4 +1,4 @@
-import datetime
+import errno
 import os
 from functools import wraps
 
@@ -6,8 +6,9 @@ import click
 import logbook
 import pandas as pd
 
-from zipline.data import bundles
+from zipline.data import bundles as bundles_module
 from zipline.utils.cli import Date, Timestamp
+import zipline.utils.paths as pth
 from zipline.utils.run_algo import _run, load_extensions
 
 try:
@@ -37,7 +38,7 @@ except NameError:
     default=True,
     help="Don't load the default zipline extension.py file in $ZIPLINE_HOME.",
 )
-def cli(extension, strict_extensions, default_extension):
+def main(extension, strict_extensions, default_extension):
     """Top level zipline entry point.
     """
     # install a logbook handler before performing any other operations
@@ -98,7 +99,7 @@ def ipython_only(option):
     return d
 
 
-@cli.command()
+@main.command()
 @click.option(
     '-f',
     '--algofile',
@@ -137,7 +138,7 @@ def ipython_only(option):
 @click.option(
     '-b',
     '--bundle',
-    default='quandl',
+    default='quantopian-quandl',
     metavar='BUNDLE-NAME',
     show_default=True,
     help='The data bundle to use for the simulation.',
@@ -274,27 +275,41 @@ def zipline_magic(line, cell=None):
             raise ValueError('main returned non-zero status code: %d' % e.code)
 
 
-@cli.command()
-@click.argument('BUNDLE-NAME')
+@main.command()
+@click.option(
+    '-b',
+    '--bundle',
+    default='quantopian-quandl',
+    metavar='BUNDLE-NAME',
+    show_default=True,
+    help='The data bundle to ingest.',
+)
 @click.option(
     '--show-progress/--no-show-progress',
     is_flag=True,
     default=True,
     help='Print progress information to the terminal.'
 )
-def ingest(bundle_name, show_progress):
+def ingest(bundle, show_progress):
     """Ingest the data for the given bundle.
     """
-    bundles.ingest(
-        bundle_name,
+    bundles_module.ingest(
+        bundle,
         os.environ,
-        datetime.date.today(),
+        pd.Timestamp.utcnow(),
         show_progress,
     )
 
 
-@cli.command()
-@click.argument('BUNDLE-NAME')
+@main.command()
+@click.option(
+    '-b',
+    '--bundle',
+    default='quantopian-quandl',
+    metavar='BUNDLE-NAME',
+    show_default=True,
+    help='The data bundle to clean.',
+)
 @click.option(
     '-b',
     '--before',
@@ -317,16 +332,43 @@ def ingest(bundle_name, show_progress):
     help='Clear all but the last N downloads.'
     ' This may not be passed with -b / --before or -a / --after',
 )
-def clean(bundle_name, before, after, keep_last):
+def clean(bundle, before, after, keep_last):
     """Clean up data downloaded with the ingest command.
     """
-    bundles.clean(
-        bundle_name,
+    bundles_module.clean(
+        bundle,
         before,
         after,
         keep_last,
     )
 
 
+@main.command()
+def bundles():
+    """List all of the available data bundles.
+    """
+    for bundle in sorted(bundles_module.bundles.keys()):
+        try:
+            ingestions = sorted(
+                (str(bundles_module.from_bundle_ingest_dirname(ing))
+                 for ing in os.listdir(pth.data_path([bundle]))
+                 if not pth.hidden(ing)),
+                reverse=True,
+            )
+        except IOError as e:
+            if e.errno != errno.ENOENT:
+                raise
+            ingestions = []
+
+        print(
+            '\n'.join(
+                '%s %s' % (bundle, line)
+                for line in (
+                    ingestions if ingestions else ('<no ingestions>',)
+                )
+            ),
+        )
+
+
 if __name__ == '__main__':
-    cli()
+    main()

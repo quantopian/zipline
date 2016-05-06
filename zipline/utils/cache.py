@@ -194,17 +194,13 @@ class dataframe_cache(MutableMapping):
             self._protocol = int(s[1]) if len(s) == 2 else None
 
             self.serialize = self._serialize_pickle
-            self.deserialize = self._deserialize_pickle
+            self.deserialize = pickle.load
 
         ensure_directory(self.path)
 
     def _serialize_pickle(self, df, path):
         with open(path, 'wb') as f:
             pickle.dump(df, f, protocol=self._protocol)
-
-    def _deserialize_pickle(self, path):
-        with open(path, 'rb') as f:
-            return pickle.load(f)
 
     def _keypath(self, key):
         return os.path.join(self.path, key)
@@ -226,9 +222,11 @@ class dataframe_cache(MutableMapping):
 
         with self.lock:
             try:
-                return self.deserialize(self._keypath(key))
-            except UnboundLocalError:
-                # This is how pandas fails if the file doesn't exist! #pandas
+                with open(self._keypath(key), 'rb') as f:
+                    return self.deserialize(f)
+            except IOError as e:
+                if e.errno != errno.ENOENT:
+                    raise
                 raise KeyError(key)
 
     def __setitem__(self, key, value):
@@ -280,6 +278,13 @@ class working_file(object):
         self._tmpfile = NamedTemporaryFile(*args, **kwargs)
         self._final_path = final_path
 
+    @property
+    def path(self):
+        """Alias for ``name`` to be consistent with
+        :class:`~zipline.utils.cache.working_dir`.
+        """
+        return self._tmpfile.name
+
     def _commit(self):
         """Sync the temporary file to the final path.
         """
@@ -316,13 +321,35 @@ class working_dir(object):
     meaning it has as strong of guarantees as :func:`shutil.copytree`.
     """
     def __init__(self, final_path, *args, **kwargs):
-        self.name = mkdtemp()
+        self.path = mkdtemp()
         self._final_path = final_path
+
+    def mkdir(self, *path_parts):
+        """Create a subdirectory of the working directory.
+
+        Parameters
+        ----------
+        path_parts : iterable[str]
+            The parts of the path after the working directory.
+        """
+        path = self.getpath(*path_parts)
+        os.mkdir(path)
+        return path
+
+    def getpath(self, *path_parts):
+        """Get a path relative to the working directory.
+
+        Parameters
+        ----------
+        path_parts : iterable[str]
+            The parts of the path after the working directory.
+        """
+        return os.path.join(self.path, *path_parts)
 
     def _commit(self):
         """Sync the temporary directory to the final path.
         """
-        copytree(self.name, self._final_path)
+        copytree(self.path, self._final_path)
 
     def __enter__(self):
         return self
@@ -330,4 +357,4 @@ class working_dir(object):
     def __exit__(self, *exc_info):
         if exc_info[0] is None:
             self._commit()
-        rmtree(self.name)
+        rmtree(self.path)

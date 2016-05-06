@@ -145,7 +145,7 @@ def _run(handle_data,
             'before_trading_start': before_trading_start,
             'analyze': analyze,
         } if algotext is None else {
-            'algo_filename': algofile,
+            'algo_filename': algofile.name,
             'script': algotext,
         }
     ).run(
@@ -263,7 +263,7 @@ def run_algorithm(start,
         ``bundle_timestamp``
     bundle : str, optional
         The name of the data bundle to use to load the data to run the backtest
-        with. This defaults to 'quandl'.
+        with. This defaults to 'quantopian-quandl'.
         This argument is mutually exclusive with ``data``.
     bundle_timestamp : datetime, optional
         The datetime to lookup the bundle data for. This defaults to the
@@ -299,8 +299,8 @@ def run_algorithm(start,
         'bundle': bundle,
     })
     if not non_none_data:
-        # if neither data nor bundle are passed use 'quandl'
-        bundle = 'quandl'
+        # if neither data nor bundle are passed use 'quantopian-quandl'
+        bundle = 'quantopian-quandl'
 
     if len(non_none_data) != 1:
         raise ValueError(
