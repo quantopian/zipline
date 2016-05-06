@@ -25,6 +25,43 @@ import toolz.curried.operator as op
 from zipline.utils.preprocess import preprocess
 
 
+def verify_indices_all_unique(obj):
+    """
+    Check that all axes of a pandas object are unique.
+
+    Parameters
+    ----------
+    obj : pd.Series / pd.DataFrame / pd.Panel
+        The object to validate.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If any axis has duplicate entries.
+    """
+    axis_names = [
+        ('index',),                            # Series
+        ('index', 'columns'),                  # DataFrame
+        ('items', 'major_axis', 'minor_axis')  # Panel
+    ][obj.ndim - 1]  # ndim = 1 should go to entry 0,
+
+    for axis_name, index in zip(axis_names, obj.axes):
+        if index.is_unique:
+            continue
+
+        raise ValueError(
+            "Duplicate entries in {type}.{axis}: {dupes}.".format(
+                type=type(obj).__name__,
+                axis=axis_name,
+                dupes=sorted(index[index.duplicated()]),
+            )
+        )
+
+
 def optionally(preprocessor):
     """Modify a preprocessor to explicitly allow `None`.
 

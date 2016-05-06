@@ -13,34 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from itertools import permutations
+
 import pandas as pd
 
 from zipline.data.us_equity_pricing import PanelDailyBarReader
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.testing import ExplodingObject
+from zipline.testing.fixtures import ZiplineTestCase
 
 
-class TestPanelDailyBarReader(WithTradingEnvironment, ZiplineTestCase):
+class TestPanelDailyBarReader(ZiplineTestCase):
     def test_duplicate_values(self):
-        df = pd.DataFrame()
-        panel = pd.concat([pd.Panel({"X": df}), pd.Panel({"X": df})])
+        UNIMPORTANT_VALUE = 57
 
-        with self.assertRaises(ValueError) as e:
-            # panel's items has duplicates
-            PanelDailyBarReader(None, panel)
+        panel = pd.Panel(
+            UNIMPORTANT_VALUE,
+            items=['a', 'b', 'b', 'a'],
+            major_axis=['c'],
+            minor_axis=['d'],
+        )
+        unused = ExplodingObject()
 
-        self.assertEqual("Duplicated items found: ['X']",
-                         e.exception.message)
+        axis_names = ['items', 'major_axis', 'minor_axis']
 
-        with self.assertRaises(ValueError) as e:
-            # panel's major axis has duplicates
-            PanelDailyBarReader(None, panel.swapaxes(0, 1))
+        for axis_order in permutations((0, 1, 2)):
+            with self.assertRaises(ValueError) as e:
+                PanelDailyBarReader(unused, panel.transpose(*axis_order))
 
-        self.assertEqual("Duplicated items found: ['X']",
-                         e.exception.message)
-
-        with self.assertRaises(ValueError) as e:
-            # panel's minor axis has duplicates
-            PanelDailyBarReader(None, panel.swapaxes(0, 2))
-
-        self.assertEqual("Duplicated items found: ['X']",
-                         e.exception.message)
+            expected = (
+                "Duplicate entries in Panel.{name}: ['a', 'b'].".format(
+                    name=axis_names[axis_order.index(0)],
+                )
+            )
+            self.assertEqual(str(e.exception), expected)

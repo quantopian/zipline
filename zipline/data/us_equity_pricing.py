@@ -54,10 +54,12 @@ from six import (
 )
 
 from zipline.utils.functional import apply
+from zipline.utils.preprocess import call
 from zipline.utils.input_validation import (
     coerce_string,
     preprocess,
     expect_element,
+    verify_indices_all_unique,
 )
 from zipline.utils.sqlite_utils import group_into_chunks
 from zipline.utils.memoize import lazyval
@@ -696,9 +698,12 @@ class PanelDailyBarReader(DailyBarReader):
 
     DataPanel Structure
     -------
-    items : Int64Index, asset identifiers
-    major_axis : DatetimeIndex, days provided by the Panel.
+    items : Int64Index
+        Asset identifiers.  Must be unique.
+    major_axis : DatetimeIndex
+       Dates for data provided provided by the Panel.  Must be unique.
     minor_axis : ['open', 'high', 'low', 'close', 'volume']
+       Price attributes.  Must be unique.
 
     Attributes
     ----------
@@ -710,17 +715,8 @@ class PanelDailyBarReader(DailyBarReader):
     first_trading_day : pd.Timestamp
         The first trading day in the dataset.
     """
+    @preprocess(panel=call(verify_indices_all_unique))
     def __init__(self, calendar, panel):
-        # check duplicates on all indices of panel
-
-        for attr_name in ["items", "major_axis", "minor_axis"]:
-            index = getattr(panel, attr_name)
-            duplicates = index.duplicated()
-
-            if duplicates.any():
-                raise ValueError("Duplicated items found: {0}".format(
-                    index[duplicates].values
-                ))
 
         panel = panel.copy()
         if 'volume' not in panel.items:
