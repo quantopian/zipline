@@ -162,7 +162,7 @@ class QuandlBundleTestCase(ZiplineTestCase):
                     last_row=i(108),
                     first_col=sids['AAPL'],
                     last_col=sids['AAPL'],
-                    value=7.0,
+                    value=1.0 / 7.0,
                 )],
             },
         ] * (len(self.columns) - 1) + [
@@ -173,7 +173,7 @@ class QuandlBundleTestCase(ZiplineTestCase):
                     last_row=i(108),
                     first_col=sids['AAPL'],
                     last_col=sids['AAPL'],
-                    value=1 / 7,
+                    value=7.0,
                 )],
             }
         ]
