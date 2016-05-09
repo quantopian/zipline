@@ -177,7 +177,7 @@ from zipline.utils.input_validation import (
     ensure_timezone,
     optionally,
 )
-from zipline.utils.numpy_utils import repeat_last_axis, categorical_dtype
+from zipline.utils.numpy_utils import categorical_dtype, repeat_last_axis
 from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
 
@@ -314,7 +314,7 @@ def new_dataset(expr, deltas, missing_values):
             if isinstance(type_, Option):
                 type_ = type_.ty
             type_ = type_.to_numpy_dtype()
-            if not isinstance(type_, String) and not can_represent_dtype(type_):
+            if not can_represent_dtype(type_):
                 raise NotPipelineCompatible()
             col = Column(
                 type_,
@@ -1006,15 +1006,15 @@ class BlazeLoader(dict):
                     )
                 else:
                     last_in_group = last_in_group.reindex(dates)
-            import pdb; pdb.set_trace()
-            # str_cols = df.columns[df.dtypes == categorical_dtype]
-            #
-            # # Unstack will fill all missing values with NaN; we need to fix
-            # # this for strings.
-            # for col in str_cols:
-            #     last_in_group.iloc[
-            #         :, last_in_group.columns.get_level_values(0) == col
-            #     ].fillna('None')
+            # Unstack will fill all missing values with NaN; we need to fix
+            # this for strings.
+            if not df.empty:
+                str_cols = df.columns[df.dtypes == categorical_dtype]
+
+                for col in str_cols:
+                    last_in_group[col] = last_in_group[col].where(pd.notnull(
+                        last_in_group[col]), None)
+
             return last_in_group
 
         sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)

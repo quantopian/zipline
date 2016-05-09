@@ -30,7 +30,6 @@ from zipline.pipeline.loaders.blaze import (
     NoDeltasWarning,
 )
 from zipline.pipeline.loaders.blaze.core import (
-    NonNumpyField,
     NonPipelineField,
     no_deltas_rules,
 )
@@ -277,11 +276,11 @@ class BlazeToPipelineTestCase(TestCase):
         )
 
     def test_cols_with_missing_vals(self):
-        dates = (pd.Timestamp('2014-01-01'), pd.Timestamp('2014-01-03')) * 3
+        dates = (pd.Timestamp('2014-01-01'), pd.Timestamp('2014-01-03'))
         df = pd.DataFrame({
-            'sid': self.sids * 2,
-            'value': (np.NaN, 0., 1., 2., 3., 2.,),
-            'str_value': (None, "b", "c", "d", "e", "f"),
+            'sid': self.sids[:-1],
+            'value': (0., 1.,),
+            'str_value': ("a", "b",),
             'asof_date': dates,
             'timestamp': dates,
         })
@@ -299,7 +298,21 @@ class BlazeToPipelineTestCase(TestCase):
         fields = OrderedDict(expr.dshape.measure.fields)
 
         with tmp_asset_finder() as finder:
-            expected = pd.DataFrame()
+            expected = pd.DataFrame(
+                np.array([["a", 0],
+                          [None, np.NaN],
+                          [None, np.NaN],
+                          ["a", 0],
+                          [None, np.NaN],
+                          [None, np.NaN],
+                          ["a", 0],
+                          ["b", 1],
+                          [None, np.NaN]]),
+                columns=['str_value', 'value'],
+                index=pd.MultiIndex.from_product(
+                    (self.dates, finder.retrieve_all(self.sids))
+                )
+            )
             self._test_id(
                 df,
                 var * Record(fields),
@@ -369,7 +382,6 @@ class BlazeToPipelineTestCase(TestCase):
                 dates,
                 finder,
             ).run_pipeline(p, dates[0], dates[-1])
-        import pdb; pdb.set_trace()
         assert_frame_equal(
             result,
             _utc_localize_index_level_0(expected),
