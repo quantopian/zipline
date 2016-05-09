@@ -31,7 +31,7 @@ from zipline.testing.predicates import (
 )
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.functional import apply
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.calendars import get_calendar
 import zipline.utils.paths as pth
 
 
@@ -114,6 +114,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
 
         start = pd.Timestamp('2014-01-06', tz='utc')
         end = pd.Timestamp('2014-01-10', tz='utc')
+        trading_days = get_calendar('NYSE').all_trading_days
         calendar = trading_days[trading_days.slice_indexer(start, end)]
         minutes = env.minutes_for_days_in_range(calendar[0], calendar[-1])
 

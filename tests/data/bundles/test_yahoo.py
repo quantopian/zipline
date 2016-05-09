@@ -10,7 +10,7 @@ from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import test_resource_path, tmp_dir, read_compressed
 from zipline.testing.fixtures import WithResponses, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.calendars import get_calendar
 
 
 class YahooBundleTestCase(WithResponses, ZiplineTestCase):
@@ -18,6 +18,7 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
     columns = 'open', 'high', 'low', 'close', 'volume'
     asset_start = pd.Timestamp('2014-01-02', tz='utc')
     asset_end = pd.Timestamp('2014-12-31', tz='utc')
+    trading_days = get_calendar('NYSE').all_trading_days
     calendar = trading_days[
         (trading_days >= asset_start) &
         (trading_days <= asset_end)
