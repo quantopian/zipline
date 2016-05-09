@@ -36,6 +36,7 @@ from six import (
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
+from zipline.data.us_equity_pricing import PanelDailyBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     HistoryInInitialize,
@@ -76,7 +77,7 @@ from zipline.finance.slippage import (
     SlippageModel
 )
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
-from zipline.assets import Asset, Equity, Future
+from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline.engine import (
@@ -594,24 +595,18 @@ class TradingAlgorithm(object):
                 copy_panel.items = self._write_and_map_id_index_to_sids(
                     copy_panel.items, copy_panel.major_axis[0],
                 )
-                self._assets_from_source = \
-                    set(self.trading_environment.asset_finder.retrieve_all(
+                self._assets_from_source = (
+                    self.trading_environment.asset_finder.retrieve_all(
                         copy_panel.items
-                    ))
-                equities = []
-                for asset in self._assets_from_source:
-                    if isinstance(asset, Equity):
-                        equities.append(asset)
-                if equities:
-                    from zipline.data.us_equity_pricing import \
-                        PanelDailyBarReader
-                    equity_daily_reader = PanelDailyBarReader(
-                        self.trading_environment.trading_days, copy_panel)
-                else:
-                    equity_daily_reader = None
+                    )
+                )
                 self.data_portal = DataPortal(
                     self.trading_environment,
-                    equity_daily_reader=equity_daily_reader)
+                    equity_daily_reader=PanelDailyBarReader(
+                        self.trading_environment.trading_days,
+                        copy_panel,
+                    ),
+                )
 
         # Force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.
