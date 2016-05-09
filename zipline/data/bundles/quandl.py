@@ -206,7 +206,7 @@ def fetch_single_equity(api_key,
 
 def _update_splits(splits, asset_id, raw_data):
     split_ratios = raw_data.split_ratio
-    df = pd.DataFrame({'ratio': split_ratios[split_ratios != 1]})
+    df = pd.DataFrame({'ratio': 1 / split_ratios[split_ratios != 1]})
     df.index.name = 'effective_date'
     df.reset_index(inplace=True)
     df['sid'] = asset_id
