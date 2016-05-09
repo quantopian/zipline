@@ -30,7 +30,6 @@ cpdef enum:
 
 cdef class MinuteSimulationClock:
     cdef object trading_days
-    cdef object all_trading_days
     cdef bool minute_emission
     cdef np.int64_t[:] market_opens, market_closes
     cdef public dict minutes_by_day, minutes_to_day
@@ -39,19 +38,18 @@ cdef class MinuteSimulationClock:
                  trading_days,
                  market_opens,
                  market_closes,
-                 all_trading_days,
                  minute_emission=False):
         self.minute_emission = minute_emission
         self.market_opens = market_opens
         self.market_closes = market_closes
         self.trading_days = trading_days
-        self.all_trading_days = all_trading_days
         self.minutes_by_day = self.calc_minutes_by_day()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cpdef market_minutes(self, np.intp_t i):
+    cdef np.ndarray[np.int64_t, ndim=1] market_minutes(self, np.intp_t i):
         cdef np.int64_t[:] market_opens, market_closes
+
         market_opens = self.market_opens
         market_closes = self.market_closes
 
@@ -59,16 +57,20 @@ cdef class MinuteSimulationClock:
                          market_closes[i] + _nanos_in_minute,
                          _nanos_in_minute)
 
-    cpdef calc_minutes_by_day(self):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef dict calc_minutes_by_day(self):
+        cdef dict minutes_by_day
+        cdef int day_idx
+        cdef object day
+
         minutes_by_day = {}
         for day_idx, day in enumerate(self.trading_days):
-            minutes = pd.to_datetime(
+            minutes_by_day[day] = pd.to_datetime(
                 self.market_minutes(day_idx), utc=True, box=True)
-            minutes_by_day[day] = minutes
         return minutes_by_day
 
     def __iter__(self):
-
         minute_emission = self.minute_emission
 
         for day in self.trading_days:
