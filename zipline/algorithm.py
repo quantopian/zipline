@@ -478,7 +478,6 @@ class TradingAlgorithm(object):
                 self.sim_params.trading_days,
                 market_opens,
                 market_closes,
-                env.trading_days,
                 minutely_emission
             )
             return clock
