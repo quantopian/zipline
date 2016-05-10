@@ -39,6 +39,7 @@ from pandas.tseries.holiday import(
 from pandas.tseries.offsets import Day
 from pytz import timezone
 
+from zipline.utils.pandas_utils import july_5th_holiday_observance
 from .exchange_calendar import ExchangeCalendar
 from .calendar_helpers import normalize_date
 
@@ -112,7 +113,8 @@ FridayAfterIndependenceDayExcept2013 = Holiday(
     month=7,
     day=5,
     days_of_week=(FRIDAY,),
-    observance=lambda dt: None if dt.year == 2013 else dt,
+    # The 2013 observance lambda is pandas version-dependent
+    observance=july_5th_holiday_observance,
     start_date=Timestamp("1995-01-01"),
 )
 USBlackFridayBefore1993 = Holiday(

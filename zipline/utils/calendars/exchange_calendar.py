@@ -200,14 +200,14 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
             is_scheduled_day_hook=self.is_open_on_day,
         )
 
-    def next_start_and_end(self, date):
+    def next_open_and_close(self, date):
         return next_open_and_close(
             date,
             open_and_close_hook=self.open_and_close,
             next_scheduled_day_hook=self.next_trading_day,
         )
 
-    def previous_start_and_end(self, date):
+    def previous_open_and_close(self, date):
         return previous_open_and_close(
             date,
             open_and_close_hook=self.open_and_close,
