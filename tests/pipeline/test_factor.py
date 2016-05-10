@@ -23,6 +23,7 @@ from numpy import (
 from numpy.random import randn, seed
 
 from zipline.errors import UnknownRankMethod
+from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
 from zipline.pipeline import Classifier, Factor, Filter, TermGraph
@@ -38,6 +39,7 @@ from zipline.testing import (
 )
 from zipline.utils.functional import dzip_exact
 from zipline.utils.numpy_utils import (
+    categorical_dtype,
     datetime64ns_dtype,
     float64_dtype,
     int64_dtype,
@@ -442,6 +444,7 @@ class FactorTestCase(BasePipelineTestCase):
         f = self.f
         m = Mask()
         c = C()
+        str_c = C(dtype=categorical_dtype)
 
         factor_data = array(
             [[1.0, 2.0, 3.0, 4.0],
@@ -463,12 +466,18 @@ class FactorTestCase(BasePipelineTestCase):
              [1, 1, 2, 2]],
             dtype=int64_dtype,
         )
+        string_classifier_data = LabelArray(
+            classifier_data.astype(str).astype(object),
+            missing_value=None,
+        )
 
         terms = {
             'vanilla': f.demean(),
             'masked': f.demean(mask=m),
             'grouped': f.demean(groupby=c),
+            'grouped_str': f.demean(groupby=str_c),
             'grouped_masked': f.demean(mask=m, groupby=c),
+            'grouped_masked_str': f.demean(mask=m, groupby=str_c),
         }
         expected = {
             'vanilla': array(
@@ -496,6 +505,9 @@ class FactorTestCase(BasePipelineTestCase):
                  [-0.500,  0.500,  0.000,    nan]]
             )
         }
+        # Changing the classifier dtype shouldn't affect anything.
+        expected['grouped_str'] = expected['grouped']
+        expected['grouped_masked_str'] = expected['grouped_masked']
 
         graph = TermGraph(terms)
         results = self.run_graph(
@@ -503,6 +515,7 @@ class FactorTestCase(BasePipelineTestCase):
             initial_workspace={
                 f: factor_data,
                 c: classifier_data,
+                str_c: string_classifier_data,
                 m: filter_data,
             },
             mask=self.build_mask(self.ones_mask(shape=factor_data.shape)),

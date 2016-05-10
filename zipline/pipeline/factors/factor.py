@@ -47,6 +47,7 @@ from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
 from zipline.utils.numpy_utils import (
     bool_dtype,
+    categorical_dtype,
     coerce_to_dtype,
     datetime64ns_dtype,
     float64_dtype,
@@ -939,15 +940,26 @@ class GroupedRowTransform(Factor):
 
     def _compute(self, arrays, dates, assets, mask):
         data = arrays[0]
-        null_group_value = self.inputs[1].missing_value
-        group_labels = where(
-            mask,
-            arrays[1],
-            null_group_value,
-        )
+        groupby_expr = self.inputs[1]
+        if groupby_expr.dtype == int64_dtype:
+            group_labels = arrays[1]
+            null_label = self.inputs[1].missing_value
+        elif groupby_expr.dtype == categorical_dtype:
+            # Coerce our LabelArray into an isomorphic array of ints.  This is
+            # necessary because np.where doesn't know about LabelArrays or the
+            # void dtype.
+            group_labels = arrays[1].as_int_array()
+            null_label = arrays[1].missing_value_code
+        else:
+            raise TypeError(
+                "Unexpected groupby dtype: %s." % groupby_expr.dtype
+            )
+
+        # Make a copy with the null code written to masked locations.
+        group_labels = where(mask, group_labels, null_label)
 
         return where(
-            group_labels != null_group_value,
+            group_labels != null_label,
             naive_grouped_rowwise_apply(
                 data=data,
                 group_labels=group_labels,
