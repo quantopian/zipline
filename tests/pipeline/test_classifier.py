@@ -434,7 +434,7 @@ class ClassifierTestCase(BasePipelineTestCase):
             errmsg = str(e.exception)
             expected = (
                 "Found self.missing_value ('not in the array') in choices"
-                " supplied to C.is_element().\n"
+                " supplied to C.element_of().\n"
                 "Missing values have NaN semantics, so the requested"
                 " comparison would always produce False.\n"
                 "Use the isnull() method to check for missing values.\n"
@@ -447,7 +447,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         class C(Classifier):
             dtype = dtype_
-            missing_value = ''
+            missing_value = dtype.type('1')
             inputs = ()
             window_length = 0
 

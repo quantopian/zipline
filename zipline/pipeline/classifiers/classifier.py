@@ -246,7 +246,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         if self.missing_value in choices:
             raise ValueError(
                 "Found self.missing_value ({mv!r}) in choices supplied to"
-                " {typename}.is_element().\n"
+                " {typename}.{meth_name}().\n"
                 "Missing values have NaN semantics, so the"
                 " requested comparison would always produce False.\n"
                 "Use the isnull() method to check for missing values.\n"
@@ -254,6 +254,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
                     mv=self.missing_value,
                     typename=(type(self).__name__),
                     choices=sorted(choices),
+                    meth_name=self.element_of.__name__,
                 )
             )
 
