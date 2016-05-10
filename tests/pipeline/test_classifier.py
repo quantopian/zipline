@@ -8,7 +8,6 @@ from zipline.pipeline import Classifier
 from zipline.testing import parameter_space
 from zipline.utils.numpy_utils import (
     categorical_dtype,
-    coerce_to_dtype,
     int64_dtype,
 )
 
@@ -162,7 +161,8 @@ class ClassifierTestCase(BasePipelineTestCase):
         dtype_=[int64_dtype, categorical_dtype],
     )
     def test_disallow_comparison_to_missing_value(self, missing, dtype_):
-        missing = coerce_to_dtype(dtype_, missing)
+        if dtype_ == categorical_dtype:
+            missing = str(missing)
 
         class C(Classifier):
             dtype = dtype_

@@ -602,3 +602,26 @@ class SubDataSetTestCase(TestCase):
         with self.assertRaises(ValueError) as e:
             SomeClassifier()
         self.assertEqual(str(e.exception), expected_error)
+
+    def test_unreasonable_missing_values(self):
+
+        for base_type, dtype_, bad_mv in ((Factor, float64_dtype, 'ayy'),
+                                          (Filter, bool_dtype, 'lmao'),
+                                          (Classifier, int64_dtype, 'lolwut'),
+                                          (Classifier, categorical_dtype, 7)):
+            class SomeTerm(base_type):
+                inputs = ()
+                window_length = 0
+                missing_value = bad_mv
+                dtype = dtype_
+
+            with self.assertRaises(TypeError) as e:
+                SomeTerm()
+
+            prefix = (
+                "^Missing value {mv!r} is not a valid choice "
+                "for term SomeTerm with dtype {dtype}.\n\n"
+                "Coercion attempt failed with:"
+            ).format(mv=bad_mv, dtype=dtype_)
+
+            self.assertRegexpMatches(str(e.exception), prefix)

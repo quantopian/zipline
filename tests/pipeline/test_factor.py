@@ -444,7 +444,7 @@ class FactorTestCase(BasePipelineTestCase):
         f = self.f
         m = Mask()
         c = C()
-        str_c = C(dtype=categorical_dtype)
+        str_c = C(dtype=categorical_dtype, missing_value=None)
 
         factor_data = array(
             [[1.0, 2.0, 3.0, 4.0],
