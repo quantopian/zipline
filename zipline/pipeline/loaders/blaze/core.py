@@ -140,7 +140,6 @@ from datashape import (
     floating,
     isrecord,
     isscalar,
-    String
 )
 import numpy as np
 from odo import odo
@@ -177,7 +176,11 @@ from zipline.utils.input_validation import (
     ensure_timezone,
     optionally,
 )
-from zipline.utils.numpy_utils import categorical_dtype, repeat_last_axis
+from zipline.utils.numpy_utils import (
+    categorical_dtype,
+    repeat_last_axis,
+    datetime64ns_dtype
+)
 from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
 
@@ -275,6 +278,31 @@ class NotPipelineCompatible(TypeError):
 _new_names = ('BlazeDataSet_%d' % n for n in count())
 
 
+def datashape_type_to_numpy(type_):
+    """
+    Given a datashape type, return the associated numpy type. Maps
+    datashape's DateTime type to numpy's `datetime64[ns]` dtype, since the
+    numpy datetime returned by datashape isn't supported by pipeline.
+
+    Parameters
+    ----------
+    type_: datashape.coretypes.Type
+        The datashape type.
+
+    Returns
+    -------
+    type_ np.dtype
+        The numpy dtype.
+
+    """
+    if isinstance(type_, Option):
+        type_ = type_.ty
+    if isinstance(type_, DateTime):
+        return np.dtype('datetime64[ns]')
+    else:
+        return type_.to_numpy_dtype()
+
+
 @memoize
 def new_dataset(expr, deltas, missing_values):
     """
@@ -310,17 +338,13 @@ def new_dataset(expr, deltas, missing_values):
         # Terms.
         if name in (SID_FIELD_NAME, TS_FIELD_NAME):
             continue
-        try:
-            if isinstance(type_, Option):
-                type_ = type_.ty
-            type_ = type_.to_numpy_dtype()
-            if not can_represent_dtype(type_):
-                raise NotPipelineCompatible()
+        type_ = datashape_type_to_numpy(type_)
+        if can_represent_dtype(type_):
             col = Column(
                 type_,
                 missing_values.get(name, NotSpecified),
             )
-        except NotPipelineCompatible:
+        else:
             col = NonPipelineField(name, type_)
         columns[name] = col
 
@@ -1007,19 +1031,39 @@ class BlazeLoader(dict):
                 else:
                     last_in_group = last_in_group.reindex(dates)
             # Unstack will fill all missing values with NaN; we need to fix
-            # this for strings.
+            # this for all types that are not float.
             if not df.empty:
-                str_cols = df.columns[df.dtypes == categorical_dtype]
-
-                for col in str_cols:
-                    last_in_group[col] = last_in_group[col].where(pd.notnull(
-                        last_in_group[col]), None)
+                for column in columns:
+                    if df[column.name].dtype == categorical_dtype:
+                        last_in_group[column.name] = last_in_group[
+                            column.name
+                        ].where(pd.notnull(last_in_group[column.name]),
+                                column.missing_value)
+                    # Need to convert from float col to datetime col
+                    elif df[column.name].dtype == datetime64ns_dtype:
+                        last_in_group[column.name] = last_in_group[
+                            column.name
+                        ].astype('datetime64[ns]')
+                    else:
+                        last_in_group[column.name] = last_in_group[
+                            column.name
+                        ].fillna(column.missing_value)
 
             return last_in_group
 
         sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
         dense_output = last_in_date_group(sparse_output, reindex=True)
-        dense_output.ffill(inplace=True)
+        for column in columns:
+            if have_sids:
+                dense_output[column.name] = dense_output[
+                    column.name
+                ].apply(lambda x: x.replace(
+                    to_replace=column.missing_value, method='ffill'
+                ))
+            else:
+                dense_output[column.name] = dense_output[column.name].replace(
+                    to_replace=column.missing_value, method='ffill'
+                )
 
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
