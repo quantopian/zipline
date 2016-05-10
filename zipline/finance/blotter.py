@@ -296,6 +296,9 @@ class Blotter(object):
             parameters.  If there are no commission events (because, for
             example, Zipline models the commission cost into the fill price
             of the transaction), then this is None.
+
+        closed_orders: List
+            closed_orders: list of all the orders that have filled.
         """
 
         closed_orders = []
@@ -329,13 +332,27 @@ class Blotter(object):
                     if not order.open:
                         closed_orders.append(order)
 
+        return transactions, None, closed_orders
+
+    def prune_orders(self, closed_orders):
+        """
+        Removes all given orders from the blotter's open_orders list.
+
+        Parameters
+        ----------
+        closed_orders: iterable of orders that are closed.
+
+        Returns
+        -------
+        None
+        """
         # remove all closed orders from our open_orders dict
         for order in closed_orders:
             sid = order.sid
+            sid_orders = self.open_orders[sid]
             try:
-                sid_orders = self.open_orders[sid]
                 sid_orders.remove(order)
-            except KeyError:
+            except ValueError:
                 continue
 
         # now clear out the sids from our open_orders dict that have
@@ -343,6 +360,3 @@ class Blotter(object):
         for sid in list(self.open_orders.keys()):
             if len(self.open_orders[sid]) == 0:
                 del self.open_orders[sid]
-
-        # FIXME this API doesn't feel right (returning two things here)
-        return transactions, None
