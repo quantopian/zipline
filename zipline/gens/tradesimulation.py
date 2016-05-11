@@ -102,6 +102,9 @@ class AlgorithmSimulator(object):
                       handle_data=algo.event_manager.handle_data):
             # called every tick (minute or day).
 
+            if dt_to_use in algo.capital_changes:
+                process_minute_capital_changes(dt_to_use)
+
             self.simulation_dt = dt_to_use
             algo.on_dt_changed(dt_to_use)
 
@@ -145,6 +148,16 @@ class AlgorithmSimulator(object):
 
         def once_a_day(midnight_dt, current_data=self.current_data,
                        data_portal=self.data_portal):
+
+            perf_tracker = algo.perf_tracker
+
+            if midnight_dt in algo.capital_changes:
+                # process any capital changes that came overnight
+                perf_tracker.process_capital_changes(
+                    algo.capital_changes[midnight_dt],
+                    is_interday=True
+                )
+
             # Get the positions before updating the date so that prices are
             # fetched for trading close instead of midnight
             positions = algo.perf_tracker.position_tracker.positions
@@ -157,8 +170,6 @@ class AlgorithmSimulator(object):
             # we want to wait until the clock rolls over to the next day
             # before cleaning up expired assets.
             self._cleanup_expired_assets(midnight_dt, position_assets)
-
-            perf_tracker = algo.perf_tracker
 
             # handle any splits that impact any positions or any open orders.
             assets_we_care_about = \
@@ -190,8 +201,32 @@ class AlgorithmSimulator(object):
             if algo.data_frequency == 'minute':
                 def execute_order_cancellation_policy():
                     algo.blotter.execute_cancel_policy(DAY_END)
+
+                def process_minute_capital_changes(dt):
+                    # If we are running daily emission, prices won't
+                    # necessarily be synced at the end of every minute, and we
+                    # need the up-to-date prices for capital change
+                    # calculations. We want to sync the prices as of the
+                    # last market minute, and this is okay from a data portal
+                    # perspective as we have technically not "advanced" to the
+                    # current dt yet.
+                    algo.perf_tracker.position_tracker.sync_last_sale_prices(
+                        self.env.previous_market_minute(dt),
+                        False,
+                        self.data_portal
+                    )
+
+                    # process any capital changes that came between the last
+                    # and current minutes
+                    algo.perf_tracker.process_capital_changes(
+                        algo.capital_changes[dt],
+                        is_interday=False
+                    )
             else:
                 def execute_order_cancellation_policy():
+                    pass
+
+                def process_minute_capital_changes(dt):
                     pass
 
             for dt, action in self.clock:
