@@ -361,7 +361,7 @@ def bundles():
             ingestions = []
 
         # If we got no ingestions, either because the directory didn't exist or
-        # becuase there were no entries, print a single message indicating that
+        # because there were no entries, print a single message indicating that
         # no ingestions have yet been made.
         for timestamp in ingestions or ["<no ingestions>"]:
             print("%s %s" % (bundle, timestamp))
