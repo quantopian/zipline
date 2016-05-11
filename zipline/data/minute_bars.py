@@ -441,6 +441,13 @@ class BcolzMinuteBarWriter(object):
         assert new_last_date == date, "new_last_date={0} != date={1}".format(
             new_last_date, date)
 
+    def set_sid_attrs(self, sid, **kwargs):
+        """Write all the supplied kwargs as attributes of the sid's file.
+        """
+        table = self._ensure_ctable(sid)
+        for k, v in kwargs.items():
+            table.attrs[k] = v
+
     def write(self, data, show_progress=False):
         """Write a stream of minute data.
 
@@ -559,29 +566,37 @@ class BcolzMinuteBarWriter(object):
         tds = self._trading_days
         input_first_day = pd.Timestamp(dts[0].astype('datetime64[D]'),
                                        tz='UTC')
-        input_last_day = pd.Timestamp(dts[-1].astype('datetime64[D]'),
-                                      tz='UTC')
 
         last_date = self.last_date_in_output_for_sid(sid)
-
-        if last_date >= input_first_day:
-            raise BcolzMinuteOverlappingData(dedent("""
-            Data with last_date={0} already includes input start={1} for
-            sid={2}""".strip()).format(last_date, input_first_day, sid))
 
         day_before_input = input_first_day - tds.freq
 
         self.pad(sid, day_before_input)
         table = self._ensure_ctable(sid)
 
-        days_to_write = tds[tds.slice_indexer(start=input_first_day,
-                                              end=input_last_day)]
-
-        minutes_count = len(days_to_write) * self._minutes_per_day
+        # Get the number of minutes already recorded in this sid's ctable
+        num_rec_mins = table.size
 
         all_minutes = self._minute_index
-        indexer = all_minutes.slice_indexer(start=days_to_write[0])
-        all_minutes_in_window = all_minutes[indexer]
+        # Get the latest minute we wish to write to the ctable
+        last_minute_to_write = dts[-1]
+
+        # In the event that we've already written some minutely data to the
+        # ctable, guard against overwritting that data.
+        if num_rec_mins > 0:
+            last_recorded_minute = np.datetime64(all_minutes[num_rec_mins - 1])
+            if last_minute_to_write <= last_recorded_minute:
+                raise BcolzMinuteOverlappingData(dedent("""
+                Data with last_date={0} already includes input start={1} for
+                sid={2}""".strip()).format(last_date, input_first_day, sid))
+
+        latest_min_count = all_minutes.get_loc(last_minute_to_write)
+
+        # Get all the minutes we wish to write (all market minutes after the
+        # latest currently written, up to and including last_minute_to_write)
+        all_minutes_in_window = all_minutes[num_rec_mins:latest_min_count + 1]
+
+        minutes_count = all_minutes_in_window.size
 
         open_col = np.zeros(minutes_count, dtype=np.uint32)
         high_col = np.zeros(minutes_count, dtype=np.uint32)
@@ -756,6 +771,15 @@ class BcolzMinuteBarReader(object):
 
         return carray
 
+    def get_sid_attr(self, sid, name):
+        sid_subdir = _sid_subdir_path(sid)
+        sid_path = os.path.join(self._rootdir, sid_subdir)
+        attrs = bcolz.attrs.attrs(sid_path, 'r')
+        try:
+            return attrs[name]
+        except KeyError:
+            return None
+
     def get_value(self, sid, dt, field):
         """
         Retrieve the pricing info for the given sid, dt, and field.
@@ -791,7 +815,10 @@ class BcolzMinuteBarReader(object):
             self._last_get_value_dt_value = dt.value
             self._last_get_value_dt_position = minute_pos
 
-        value = self._open_minute_file(field, sid)[minute_pos]
+        try:
+            value = self._open_minute_file(field, sid)[minute_pos]
+        except IndexError:
+            value = 0
         if value == 0:
             if field == 'volume':
                 return 0
