@@ -29,7 +29,8 @@ __all__ = [
     'EventRule',
     'StatelessRule',
     'ComposedRule',
-    'Always',
+    'AllDays',
+    'AllMinutes',
     'Never',
     'AfterOpen',
     'BeforeClose',
@@ -309,6 +310,16 @@ class Always(StatelessRule):
     should_trigger = always_trigger
 
 
+class AllDays(Always):
+    rule_type = 'date'
+    alias = 'date_rules.every_day'
+
+
+class AllMinutes(Always):
+    rule_type = 'time'
+    alias = None
+
+
 class Never(StatelessRule):
     """
     A rule that never triggers.
@@ -320,6 +331,8 @@ class Never(StatelessRule):
         """
         return False
     should_trigger = never_trigger
+    rule_type = None
+    alias = None
 
 
 class AfterOpen(StatelessRule):
@@ -341,6 +354,8 @@ class AfterOpen(StatelessRule):
         self._period_close = None
 
         self._one_minute = datetime.timedelta(minutes=1)
+        self.rule_type = 'time'
+        self.alias = 'time_rules.market_open'
 
     def calculate_dates(self, dt, env):
         # given a dt, find that day's open and period end (open + offset)
@@ -385,6 +400,8 @@ class BeforeClose(StatelessRule):
         self._period_end = None
 
         self._one_minute = datetime.timedelta(minutes=1)
+        self.rule_type = 'time'
+        self.alias = 'time_rules.market_close'
 
     def calculate_dates(self, dt, env):
         # given a dt, find that day's close and period start (close - offset)
@@ -430,6 +447,7 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
         self.next_date_start = None
         self.next_date_end = None
         self.next_midnight_timestamp = None
+        self.rule_type = 'date'
 
     @abstractmethod
     def date_func(self, dt, env):
@@ -485,6 +503,10 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
     A rule that triggers on the nth trading day of the week.
     This is zero-indexed, n=0 is the first trading day of the week.
     """
+    def __init__(self, n):
+        self.alias = 'date_rules.week_start'
+        super(NthTradingDayOfWeek, self).__init__(n)
+
     @staticmethod
     def get_first_trading_day_of_week(dt, env):
         prev = dt
@@ -516,6 +538,7 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
     A rule that triggers n days before the last trading day of the week.
     """
     def __init__(self, n):
+        self.alias = 'date_rules.week_end'
         super(NDaysBeforeLastTradingDayOfWeek, self).__init__(-n)
 
     @staticmethod
@@ -547,6 +570,8 @@ class NthTradingDayOfMonth(StatelessRule):
         self.td_delta = n
         self.month = None
         self.day = None
+        self.rule_type = 'date'
+        self.alias = 'date_rules.month_start'
 
     def should_trigger(self, dt, env):
         return self.get_nth_trading_day_of_month(dt, env) == dt.date()
@@ -585,6 +610,8 @@ class NDaysBeforeLastTradingDayOfMonth(StatelessRule):
         self.td_delta = -n
         self.month = None
         self.day = None
+        self.rule_type = 'date'
+        self.alias = 'date_rules.month_end'
 
     def should_trigger(self, dt, env):
         return self.get_nth_to_last_trading_day_of_month(dt, env) == dt.date()
@@ -669,7 +696,7 @@ class OncePerDay(StatefulRule):
 # Factory API
 
 class DateRuleFactory(object):
-    every_day = Always
+    every_day = AllDays
 
     @staticmethod
     def month_start(days_offset=0):

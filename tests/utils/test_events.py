@@ -32,6 +32,8 @@ from zipline.utils.events import (
     EventRule,
     StatelessRule,
     Always,
+    AllDays,
+    AllMinutes,
     Never,
     AfterOpen,
     ComposedRule,
@@ -293,6 +295,16 @@ class TestStatelessRules(RuleTestCase):
     @subtest(minutes_for_days(), 'ms')
     def test_Always(self, ms):
         should_trigger = partial(Always().should_trigger, env=self.env)
+        self.assertTrue(all(map(should_trigger, ms)))
+
+    @subtest(minutes_for_days(), 'ms')
+    def test_AllDays(self, ms):
+        should_trigger = partial(AllDays().should_trigger, env=self.env)
+        self.assertTrue(all(map(should_trigger, ms)))
+
+    @subtest(minutes_for_days(), 'ms')
+    def test_AllMinutes(self, ms):
+        should_trigger = partial(AllMinutes().should_trigger, env=self.env)
         self.assertTrue(all(map(should_trigger, ms)))
 
     @subtest(minutes_for_days(), 'ms')
