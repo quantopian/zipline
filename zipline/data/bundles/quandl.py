@@ -7,8 +7,10 @@ from itertools import count
 import tarfile
 from time import time, sleep
 
+from click import progressbar
 from logbook import Logger
 import pandas as pd
+import requests
 from six.moves.urllib.parse import urlencode
 from six.moves.urllib.request import urlopen
 
@@ -307,6 +309,58 @@ def quandl_bundle(environ,
 QUANTOPIAN_QUANDL_URL = (
     'https://s3.amazonaws.com/quantopian-public-zipline-data/quandl'
 )
+ONE_MEGABYTE = 1024 * 1024
+
+
+def download_with_progress(url, chunk_size, **progress_kwargs):
+    """
+    Download streaming data from a URL, printing progress information to the
+    terminal.
+
+    Parameters
+    ----------
+    url : str
+        A URL that can be understood by ``requests.get``.
+    chunk_size : int
+        Number of bytes to read at a time from requests.
+    **progress_kwargs
+        Forwarded to click.progressbar.
+
+    Returns
+    -------
+    data : BytesIO
+        A BytesIO containing the downloaded data.
+    """
+    resp = requests.get(url, stream=True)
+    resp.raise_for_status()
+
+    total_size = int(resp.headers['content-length'])
+    data = BytesIO()
+    with progressbar(length=total_size, **progress_kwargs) as pbar:
+        for chunk in resp.iter_content(chunk_size=chunk_size):
+            data.write(chunk)
+            pbar.update(len(chunk))
+
+    return data
+
+
+def download_without_progress(url):
+    """
+    Download data from a URL, returning a BytesIO containing the loaded data.
+
+    Parameters
+    ----------
+    url : str
+        A URL that can be understood by ``requests.get``.
+
+    Returns
+    -------
+    data : BytesIO
+        A BytesIO containing the downloaded data.
+    """
+    resp = requests.get(QUANTOPIAN_QUANDL_URL)
+    resp.raise_for_status()
+    return BytesIO(resp.content)
 
 
 @bundles.register('quantopian-quandl', create_writers=False)
@@ -320,8 +374,16 @@ def quantopian_quandl_bundle(environ,
                              show_progress,
                              output_dir):
     if show_progress:
-        print('Downloading quandl data. This can take about 1 minute.')
+        data = download_with_progress(
+            QUANTOPIAN_QUANDL_URL,
+            chunk_size=ONE_MEGABYTE,
+            label="Downloading Bundle: quantopian-quandl",
+        )
+    else:
+        data = download_without_progress(QUANTOPIAN_QUANDL_URL)
+
     # use closing for py2 compat
-    with closing(urlopen(QUANTOPIAN_QUANDL_URL)) as f, \
-            tarfile.open('r', fileobj=BytesIO(f.read())) as tar:
+    with tarfile.open('r', fileobj=data) as tar:
+        if show_progress:
+            print("Writing data to %s." % output_dir)
         tar.extractall(output_dir)
