@@ -380,7 +380,6 @@ def quantopian_quandl_bundle(environ,
     else:
         data = download_without_progress(QUANTOPIAN_QUANDL_URL)
 
-    # use closing for py2 compat
     with tarfile.open('r', fileobj=data) as tar:
         if show_progress:
             print("Writing data to %s." % output_dir)
