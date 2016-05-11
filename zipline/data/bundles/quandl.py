@@ -1,7 +1,6 @@
 """
 Module for building a complete daily dataset from Quandl's WIKI dataset.
 """
-from contextlib import closing
 from io import BytesIO
 from itertools import count
 import tarfile
@@ -12,7 +11,6 @@ from logbook import Logger
 import pandas as pd
 import requests
 from six.moves.urllib.parse import urlencode
-from six.moves.urllib.request import urlopen
 
 from . import core as bundles
 from zipline.utils.cli import maybe_show_progress
