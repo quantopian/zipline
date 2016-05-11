@@ -360,14 +360,11 @@ def bundles():
                 raise
             ingestions = []
 
-        print(
-            '\n'.join(
-                '%s %s' % (bundle, line)
-                for line in (
-                    ingestions if ingestions else ('<no ingestions>',)
-                )
-            ),
-        )
+        # If we got no ingestions, either because the directory didn't exist or
+        # becuase there were no entries, print a single message indicating that
+        # no ingestions have yet been made.
+        for timestamp in ingestions or ["<no ingestions>"]:
+            print("%s %s" % (bundle, timestamp))
 
 
 if __name__ == '__main__':
