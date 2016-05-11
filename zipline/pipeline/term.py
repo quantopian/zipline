@@ -4,7 +4,7 @@ Base class for Filters, Factors and Classifiers
 from abc import ABCMeta, abstractproperty
 from weakref import WeakValueDictionary
 
-from numpy import dtype as dtype_class, ndarray
+from numpy import array, dtype as dtype_class, ndarray
 from six import with_metaclass
 from zipline.errors import (
     DTypeNotSpecified,
@@ -16,10 +16,12 @@ from zipline.errors import (
     WindowLengthNotSpecified,
 )
 from zipline.lib.adjusted_array import can_represent_dtype
+from zipline.lib.labelarray import LabelArray
 from zipline.utils.input_validation import expect_types
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
+    categorical_dtype,
     default_missing_value_for_dtype,
 )
 from zipline.utils.sentinel import sentinel
@@ -177,6 +179,7 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         if dtype is NotSpecified:
             raise DTypeNotSpecified(termname=termname)
+
         try:
             dtype = dtype_class(dtype)
         except TypeError:
@@ -187,6 +190,31 @@ class Term(with_metaclass(ABCMeta, object)):
 
         if missing_value is NotSpecified:
             missing_value = default_missing_value_for_dtype(dtype)
+
+        try:
+            if (dtype == categorical_dtype):
+                # This check is necessary because we use object dtype for
+                # categoricals, and numpy will allow us to promote numerical
+                # values to object even though we don't support them.
+                _assert_valid_categorical_missing_value(missing_value)
+
+            # For any other type, we can check if the missing_value is safe by
+            # making an array of that value and trying to safely convert it to
+            # the desired type.
+            # 'same_kind' allows casting between things like float32 and
+            # float64, but not str and int.
+            array([missing_value]).astype(dtype=dtype, casting='same_kind')
+        except TypeError as e:
+            raise TypeError(
+                "Missing value {value!r} is not a valid choice "
+                "for term {termname} with dtype {dtype}.\n\n"
+                "Coercion attempt failed with: {error}".format(
+                    termname=termname,
+                    value=missing_value,
+                    dtype=dtype,
+                    error=e,
+                )
+            )
 
         return dtype, missing_value
 
@@ -497,4 +525,21 @@ class ComputableTerm(Term):
             type=type(self).__name__,
             inputs=self.inputs,
             window_length=self.window_length,
+        )
+
+
+def _assert_valid_categorical_missing_value(value):
+    """
+    Check that value is a valid categorical missing_value.
+
+    Raises a TypeError if the value is cannot be used as the missing_value for
+    a categorical_dtype Term.
+    """
+    label_types = LabelArray.SUPPORTED_SCALAR_TYPES
+    if not isinstance(value, label_types):
+        raise TypeError(
+            "Categorical terms must have missing values of type "
+            "{types}.".format(
+                types=' or '.join([t.__name__ for t in label_types]),
+            )
         )

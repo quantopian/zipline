@@ -8,7 +8,6 @@ from zipline.pipeline import Classifier
 from zipline.testing import parameter_space
 from zipline.utils.numpy_utils import (
     categorical_dtype,
-    coerce_to_dtype,
     int64_dtype,
 )
 
@@ -162,7 +161,8 @@ class ClassifierTestCase(BasePipelineTestCase):
         dtype_=[int64_dtype, categorical_dtype],
     )
     def test_disallow_comparison_to_missing_value(self, missing, dtype_):
-        missing = coerce_to_dtype(dtype_, missing)
+        if dtype_ == categorical_dtype:
+            missing = str(missing)
 
         class C(Classifier):
             dtype = dtype_
@@ -434,7 +434,7 @@ class ClassifierTestCase(BasePipelineTestCase):
             errmsg = str(e.exception)
             expected = (
                 "Found self.missing_value ('not in the array') in choices"
-                " supplied to C.is_element().\n"
+                " supplied to C.element_of().\n"
                 "Missing values have NaN semantics, so the requested"
                 " comparison would always produce False.\n"
                 "Use the isnull() method to check for missing values.\n"
@@ -447,7 +447,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         class C(Classifier):
             dtype = dtype_
-            missing_value = ''
+            missing_value = dtype.type('1')
             inputs = ()
             window_length = 0
 

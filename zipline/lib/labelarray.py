@@ -211,6 +211,10 @@ class LabelArray(ndarray):
         # This is a property because it should be immutable.
         return self._missing_value
 
+    @property
+    def missing_value_code(self):
+        return self.reverse_categories[self.missing_value]
+
     def has_label(self, value):
         return value in self.reverse_categories
 
