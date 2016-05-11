@@ -42,7 +42,7 @@ class BenchmarkSource(object):
             self._precalculated_series = \
                 self._initialize_precalculated_series(
                     benchmark_asset,
-                    self.env,
+                    trading_schedule,
                     self.trading_days,
                     self.data_portal
                 )
@@ -102,8 +102,8 @@ class BenchmarkSource(object):
                 end_dt=benchmark_asset.end_date
             )
 
-    def _initialize_precalculated_series(self, asset, env, trading_days,
-                                         data_portal):
+    def _initialize_precalculated_series(self, asset, trading_schedule,
+                                         trading_days, data_portal):
         """
         Internal method that precalculates the benchmark return series for
         use in the simulation.
@@ -116,7 +116,7 @@ class BenchmarkSource(object):
 
         trading_days: pd.DateTimeIndex
 
-        data_portal: DataPortal
+        trading_schedule: TradingSchedule
 
         Notes
         -----
@@ -137,8 +137,9 @@ class BenchmarkSource(object):
         change from close to close.
         """
         if self.emission_rate == "minute":
-            minutes = env.minutes_for_days_in_range(self.trading_days[0],
-                                                    self.trading_days[-1])
+            minutes = trading_schedule.execution_minutes_for_days_in_range(
+                self.trading_days[0], self.trading_days[-1]
+            )
             benchmark_series = data_portal.get_history_window(
                 [asset],
                 minutes[-1],
