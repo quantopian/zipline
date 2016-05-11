@@ -110,8 +110,10 @@ class AlgorithmSimulator(object):
 
             # handle any transactions and commissions coming out new orders
             # placed in the last bar
-            new_transactions, new_commissions = \
+            new_transactions, new_commissions, closed_orders = \
                 blotter.get_transactions(current_data)
+
+            blotter.prune_orders(closed_orders)
 
             for transaction in new_transactions:
                 perf_tracker.process_transaction(transaction)

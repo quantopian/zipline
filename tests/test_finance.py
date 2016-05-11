@@ -309,10 +309,12 @@ class FinanceTestCase(WithLogger,
                         lambda: tick,
                         sim_params.data_frequency
                     )
-                    txns, _ = blotter.get_transactions(bar_data)
+                    txns, _, closed_orders = blotter.get_transactions(bar_data)
                     for txn in txns:
                         tracker.process_transaction(txn)
                         transactions.append(txn)
+
+                    blotter.prune_orders(closed_orders)
 
             for i in range(order_count):
                 order = order_list[i]

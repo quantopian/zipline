@@ -17,7 +17,7 @@ from nose_parameterized import parameterized
 import pandas as pd
 
 from zipline.finance.blotter import Blotter
-from zipline.finance.order import ORDER_STATUS
+from zipline.finance.order import ORDER_STATUS, Order
 from zipline.finance.execution import (
     LimitOrder,
     MarketOrder,
@@ -224,9 +224,10 @@ class BlotterTestCase(WithLogger,
             lambda: self.sim_params.trading_days[-1],
             self.sim_params.data_frequency,
         )
-        txns, _ = blotter.get_transactions(bar_data)
+        txns, _, closed_orders = blotter.get_transactions(bar_data)
         for txn in txns:
             filled_order = blotter.orders[txn.order_id]
+        blotter.prune_orders(closed_orders)
 
         self.assertEqual(filled_order.id, filled_id)
         self.assertIn(filled_order, blotter.new_orders)
@@ -298,7 +299,7 @@ class BlotterTestCase(WithLogger,
                 lambda: dt,
                 self.sim_params.data_frequency,
             )
-            txns, _ = blotter.get_transactions(bar_data)
+            txns, _, _ = blotter.get_transactions(bar_data)
             for txn in txns:
                 filled_order = blotter.orders[txn.order_id]
 
@@ -306,3 +307,30 @@ class BlotterTestCase(WithLogger,
             self.assertEqual(filled_order.status, expected_status)
             self.assertEqual(filled_order.filled, expected_filled)
             self.assertEqual(filled_order.open_amount, expected_open)
+
+    def test_prune_orders(self):
+        blotter = Blotter(self.sim_params.data_frequency,
+                          self.env.asset_finder)
+
+        asset_24 = blotter.asset_finder.retrieve_asset(24)
+        asset_25 = blotter.asset_finder.retrieve_asset(25)
+
+        blotter.order(asset_24, 100, MarketOrder())
+        open_order = blotter.open_orders[asset_24][0]
+
+        blotter.prune_orders([])
+        self.assertEqual(1, len(blotter.open_orders[asset_24]))
+
+        blotter.prune_orders([open_order])
+        self.assertEqual(0, len(blotter.open_orders[asset_24]))
+
+        # prune an order that isn't in our our open orders list, make sure
+        # nothing blows up
+
+        other_order = Order(
+            dt=blotter.current_dt,
+            sid=asset_25,
+            amount=1
+        )
+
+        blotter.prune_orders([other_order])
