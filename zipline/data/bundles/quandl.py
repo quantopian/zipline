@@ -304,12 +304,6 @@ def quandl_bundle(environ,
     )
 
 
-QUANTOPIAN_QUANDL_URL = (
-    'https://s3.amazonaws.com/quantopian-public-zipline-data/quandl'
-)
-ONE_MEGABYTE = 1024 * 1024
-
-
 def download_with_progress(url, chunk_size, **progress_kwargs):
     """
     Download streaming data from a URL, printing progress information to the
@@ -356,9 +350,15 @@ def download_without_progress(url):
     data : BytesIO
         A BytesIO containing the downloaded data.
     """
-    resp = requests.get(QUANTOPIAN_QUANDL_URL)
+    resp = requests.get(url)
     resp.raise_for_status()
     return BytesIO(resp.content)
+
+
+QUANTOPIAN_QUANDL_URL = (
+    'https://s3.amazonaws.com/quantopian-public-zipline-data/quandl'
+)
+ONE_MEGABYTE = 1024 * 1024
 
 
 @bundles.register('quantopian-quandl', create_writers=False)
