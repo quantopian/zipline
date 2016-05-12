@@ -141,6 +141,34 @@ def _fmt_msg(msg):
     return msg + '\n'
 
 
+def _safe_cls_name(cls):
+    try:
+        return cls.__name__
+    except AttributeError:
+        return repr(cls)
+
+
+def assert_is_subclass(subcls, cls, msg=''):
+    """Assert that ``subcls`` is a subclass of ``cls``.
+
+    Parameters
+    ----------
+    subcls : type
+        The type to check.
+    cls : type
+        The type to check ``subcls`` against.
+    msg : str, optional
+        An extra assertion message to print if this fails.
+    """
+    assert issubclass(subcls, cls), (
+        '%s is not a subclass of %s\n%s' % (
+            _safe_cls_name(subcls),
+            _safe_cls_name(cls),
+            msg,
+        )
+    )
+
+
 @dispatch(object, object)
 def assert_equal(result, expected, path=(), msg='', **kwargs):
     """Assert that two objects are equal using the ``==`` operator.
