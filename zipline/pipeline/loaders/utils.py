@@ -5,7 +5,7 @@ import pandas as pd
 from six import iteritems
 from six.moves import zip
 
-from zipline.utils.numpy_utils import NaTns
+from zipline.utils.numpy_utils import categorical_dtype, NaTns
 
 
 def next_event_frame(events_by_sid,
@@ -116,9 +116,11 @@ def previous_event_frame(events_by_sid,
     next_date_frame
     """
     sids = list(events_by_sid)
+    populate_value = None if field_dtype == categorical_dtype else \
+        missing_value
     out = np.full(
         (len(date_index), len(sids)),
-        missing_value,
+        populate_value,
         dtype=field_dtype
     )
     d_n = date_index[-1].asm8
@@ -140,6 +142,8 @@ def previous_event_frame(events_by_sid,
 
     frame = pd.DataFrame(out, index=date_index, columns=sids)
     frame.ffill(inplace=True)
+    if field_dtype == categorical_dtype:
+        frame[frame.isnull()] = missing_value
     return frame
 
 
@@ -278,6 +282,10 @@ def check_data_query_args(data_query_time, data_query_tz):
 
 def zip_with_floats(dates, flts):
         return pd.Series(flts, index=dates, dtype='float')
+
+
+def zip_with_strs(dates, strs):
+        return pd.Series(strs, index=dates, dtype='object')
 
 
 def zip_with_dates(index_dates, dts):

@@ -6,13 +6,12 @@ from .factor import (
 )
 from .events import (
     BusinessDaysSince13DFilingsDate,
-    BusinessDaysSinceCashBuybackAuth,
+    BusinessDaysSinceBuybackAuth,
     BusinessDaysSinceDividendAnnouncement,
     BusinessDaysUntilNextExDate,
     BusinessDaysSincePreviousExDate,
     BusinessDaysUntilNextEarnings,
     BusinessDaysSincePreviousEarnings,
-    BusinessDaysSinceShareBuybackAuth,
 )
 from .technical import (
     AverageDollarVolume,
@@ -30,13 +29,12 @@ from .technical import (
 
 __all__ = [
     'BusinessDaysSince13DFilingsDate',
-    'BusinessDaysSinceCashBuybackAuth',
+    'BusinessDaysSinceBuybackAuth',
     'BusinessDaysSinceDividendAnnouncement',
     'BusinessDaysUntilNextExDate',
     'BusinessDaysSincePreviousExDate',
     'BusinessDaysUntilNextEarnings',
     'BusinessDaysSincePreviousEarnings',
-    'BusinessDaysSinceShareBuybackAuth',
     'CustomFactor',
     'AverageDollarVolume',
     'EWMA',

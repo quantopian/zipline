@@ -206,10 +206,11 @@ class DividendsByAnnouncementDateTestCase(WithPipelineEventDataLoader,
         amounts = [['NaN', 1, 15], ['NaN', 7, 13], ['NaN', 3, 1], ['NaN', 23]]
         cols = {
             PREVIOUS_ANNOUNCEMENT: self.get_sids_to_frames(
-                zip_with_dates, announcement_dates, date_intervals, dates
+                zip_with_dates, announcement_dates, date_intervals, dates,
+                'datetime64[ns]', 'NaN'
             ),
             PREVIOUS_AMOUNT: self.get_sids_to_frames(
-                zip_with_floats, amounts, date_intervals, dates
+                zip_with_floats, amounts, date_intervals, dates, 'float', 'NaN'
             ),
         }
 
@@ -281,16 +282,20 @@ class DividendsByExDateTestCase(WithPipelineEventDataLoader, ZiplineTestCase):
             NEXT_EX_DATE: self.get_sids_to_frames(
                 zip_with_dates, next_ex_and_pay_dates, next_date_intervals,
                 dates,
+                'datetime64[ns]', 'NaN'
             ),
             PREVIOUS_EX_DATE: self.get_sids_to_frames(
                 zip_with_dates, prev_ex_and_pay_dates, prev_date_intervals,
-                dates
+                dates,
+                'datetime64[ns]', 'NaN'
             ),
             NEXT_AMOUNT: self.get_sids_to_frames(
-                zip_with_floats, next_amounts, next_date_intervals, dates
+                zip_with_floats, next_amounts, next_date_intervals, dates,
+                'float', 'NaN'
             ),
             PREVIOUS_AMOUNT: self.get_sids_to_frames(
-                zip_with_floats, prev_amounts, prev_date_intervals, dates
+                zip_with_floats, prev_amounts, prev_date_intervals, dates,
+                'float', 'NaN'
             )
         }
 
@@ -360,17 +365,21 @@ class DividendsByPayDateTestCase(WithPipelineEventDataLoader, ZiplineTestCase):
         return {
             NEXT_PAY_DATE: self.get_sids_to_frames(
                 zip_with_dates, next_ex_and_pay_dates, next_date_intervals,
-                dates
+                dates,
+                'datetime64[ns]', 'NaN'
             ),
             PREVIOUS_PAY_DATE: self.get_sids_to_frames(
                 zip_with_dates, prev_ex_and_pay_dates, prev_date_intervals,
-                dates
+                dates,
+                'datetime64[ns]', 'NaN'
             ),
             NEXT_AMOUNT: self.get_sids_to_frames(
-                zip_with_floats, next_amounts, next_date_intervals, dates
+                zip_with_floats, next_amounts, next_date_intervals, dates,
+                'float', 'NaN'
             ),
             PREVIOUS_AMOUNT: self.get_sids_to_frames(
-                zip_with_floats, prev_amounts, prev_date_intervals, dates
+                zip_with_floats, prev_amounts, prev_date_intervals, dates,
+                'float', 'NaN'
             )
         }
 

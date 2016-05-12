@@ -51,9 +51,12 @@ class EarningsCalendarLoaderTestCase(WithNextAndPreviousEventDataLoader,
     def setup(self, dates):
         cols = {
             PREVIOUS_ANNOUNCEMENT: self.get_expected_previous_event_dates(
-                dates
+                dates,
+                'datetime64[ns]', 'NaN'
             ),
-            NEXT_ANNOUNCEMENT: self.get_expected_next_event_dates(dates),
+            NEXT_ANNOUNCEMENT: self.get_expected_next_event_dates(
+                dates, 'datetime64[ns]', 'NaN'
+            ),
         }
         cols[DAYS_TO_NEXT] = self._compute_busday_offsets(
             cols[NEXT_ANNOUNCEMENT]
