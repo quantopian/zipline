@@ -405,8 +405,6 @@ class ObjectIdentityTestCase(TestCase):
             " 'a', but got [] instead.",
         )
 
-
-
     def test_bad_input(self):
 
         class SomeFactor(Factor):
