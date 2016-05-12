@@ -17,6 +17,8 @@ class DividendsByExDate(DataSet):
     previous_amount = Column(float64_dtype)
     next_currency = Column(categorical_dtype)
     previous_currency = Column(categorical_dtype)
+    previous_type = Column(categorical_dtype)
+    next_type = Column(categorical_dtype)
 
 
 class DividendsByPayDate(DataSet):
@@ -26,9 +28,12 @@ class DividendsByPayDate(DataSet):
     previous_amount = Column(float64_dtype)
     next_currency = Column(categorical_dtype)
     previous_currency = Column(categorical_dtype)
+    previous_type = Column(categorical_dtype)
+    next_type = Column(categorical_dtype)
 
 
 class DividendsByAnnouncementDate(DataSet):
     previous_announcement_date = Column(datetime64ns_dtype)
     previous_amount = Column(float64_dtype)
     previous_currency = Column(categorical_dtype)
+    previous_type = Column(categorical_dtype)
