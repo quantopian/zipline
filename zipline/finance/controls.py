@@ -115,18 +115,16 @@ class MaxOrderCount(TradingControl):
 
 
 class RestrictedListOrder(TradingControl):
-    """
-    TradingControl representing a restricted list of assets that
+    """TradingControl representing a restricted list of assets that
     cannot be ordered by the algorithm.
+
+    Parameters
+    ----------
+    restricted_list : container[Asset]
+        The assets that cannot be ordered.
     """
 
     def __init__(self, restricted_list):
-        """
-        restricted list can be an iterable or a
-        container (implements __contains__) for dynamic
-        restrictions.
-        """
-
         super(RestrictedListOrder, self).__init__()
         self.restricted_list = restricted_list
 

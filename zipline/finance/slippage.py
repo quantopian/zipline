@@ -34,7 +34,7 @@ DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
 
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
-    """Abstract interface for defining a new slippage model.
+    """Abstract interface for defining a slippage model.
     """
     def __init__(self):
         self._volume_for_bar = 0

@@ -788,6 +788,8 @@ class TradingAlgorithm(object):
                   The platform that the code is running on. By default this
                   will be the string 'zipline'. This can allow algorithms to
                   know if they are running on the Quantopian platform instead.
+              * : dict[str -> any]
+                  Returns all of the fields in a dictionary.
 
         Returns
         -------
@@ -796,7 +798,7 @@ class TradingAlgorithm(object):
 
         Raises
         ------
-        KeyError
+        ValueError
             Raised when ``field`` is not a valid option.
         """
         env = {
@@ -810,7 +812,12 @@ class TradingAlgorithm(object):
         if field == '*':
             return env
         else:
-            return env[field]
+            try:
+                return env[field]
+            except KeyError:
+                raise ValueError(
+                    '%r is not a valid field for get_environment' % field,
+                )
 
     @api_method
     def fetch_csv(self,
@@ -825,7 +832,8 @@ class TradingAlgorithm(object):
                   symbol_column=None,
                   special_params_checker=None,
                   **kwargs):
-        """Fetch a csv from a remote url.
+        """Fetch a csv from a remote url and register the data so that it is
+        queryable from the ``data`` object.
 
         Parameters
         ----------
@@ -912,7 +920,7 @@ class TradingAlgorithm(object):
                           date_rule=None,
                           time_rule=None,
                           half_days=True):
-        """Schedules a function to be called with some timed rules.
+        """Schedules a function to be called according to some timed rules.
 
         Parameters
         ----------
@@ -1065,7 +1073,7 @@ class TradingAlgorithm(object):
         Raises
         ------
         SidsNotFound
-            When a requested sid is not found and default_none=False.
+            When a requested ``sid`` does not map to any asset.
         """
         return self.asset_finder.retrieve_asset(sid)
 
@@ -1213,8 +1221,9 @@ class TradingAlgorithm(object):
         asset : Asset
             The asset that this order is for.
         amount : int
-            The amount of shares to order. If this is negative, this is the
-            number of shares to sell or short.
+            The amount of shares to order. If ``amount`` is positive, this is
+            the number of shares to buy or cover. If ``amount`` is negative,
+            this is the number of shares to sell or short.
         style : ExecutionStyle, optional
             The execution style for the order.
 
@@ -1759,13 +1768,16 @@ class TradingAlgorithm(object):
         Parameters
         ----------
         asset : Asset
-            If passed, return only the open orders for the given asset instead
-            of all open orders.
+            If passed and not None, return only the open orders for the given
+            asset instead of all open orders.
 
         Returns
         -------
-        open_orders : list[Order]
-            The open orders.
+        open_orders : dict[list[Order]] or list[Order]
+            If no asset is passed this will return a dict mapping Assets
+            to a list containing all the open orders for the asset.
+            If an asset is passed then this will return a list of the open
+            orders for this asset.
         """
         if asset is None:
             return {
@@ -1887,12 +1899,12 @@ class TradingAlgorithm(object):
                              self.trading_client.current_data)
 
     @api_method
-    def set_max_leverage(self, max_leverage=None):
+    def set_max_leverage(self, max_leverage):
         """Set a limit on the maximum leverage of the algorithm.
 
         Parameters
         ----------
-        max_leverage : float, optional
+        max_leverage : float
             The maximum leverage for the algorithm. If not provided there will
             be no maximum.
         """
@@ -1988,7 +2000,7 @@ class TradingAlgorithm(object):
 
         Parameters
         ----------
-        restricted_list : set[Asset]
+        restricted_list : container[Asset]
             The assets that cannot be ordered.
         """
         control = RestrictedListOrder(restricted_list)
