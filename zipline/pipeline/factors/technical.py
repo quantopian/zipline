@@ -29,6 +29,7 @@ from zipline.utils.math_utils import (
     nanargmax,
     nanmax,
     nanmean,
+    nanstd,
     nansum,
 )
 from .factor import CustomFactor
@@ -396,3 +397,31 @@ class ExponentialWeightedMovingStdDev(_ExponentialWeightedFactor):
 # Convenience aliases.
 EWMA = ExponentialWeightedMovingAverage
 EWMSTD = ExponentialWeightedMovingStdDev
+
+
+class BollingerBands(CustomFactor):
+    """
+    Bollinger Bands
+
+    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
+
+    Parameters
+    ----------
+    inputs : length-1 iterable[BoundColumn]
+        The expression over which to compute bollinger bands.
+    window_length : int > 0
+        Length of the lookback window over which to compute the bollinger
+        bands.
+    k : float
+        The number of standard deviations to add or subtract to create the
+        upper and lower bands.
+    """
+    params = ('k',)
+    inputs = (USEquityPricing.close,)
+    outputs = 'lower', 'middle', 'upper'
+
+    def compute(self, today, assets, out, close, k):
+        difference = k * nanstd(close, axis=0)
+        out.middle = middle = nanmean(close, axis=0)
+        out.upper = middle + difference
+        out.lower = middle - difference

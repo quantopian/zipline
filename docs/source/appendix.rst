@@ -74,6 +74,9 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.AverageDollarVolume
    :members:
 
+.. autoclass:: zipline.pipeline.factors.BollingerBands
+   :members:
+
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
    :exclude-members: dtype

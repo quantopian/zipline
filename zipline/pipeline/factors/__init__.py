@@ -16,6 +16,7 @@ from .events import (
 )
 from .technical import (
     AverageDollarVolume,
+    BollingerBands,
     EWMA,
     EWMSTD,
     ExponentialWeightedMovingAverage,
@@ -29,6 +30,7 @@ from .technical import (
 )
 
 __all__ = [
+    'BollingerBands',
     'BusinessDaysSince13DFilingsDate',
     'BusinessDaysSinceCashBuybackAuth',
     'BusinessDaysSinceDividendAnnouncement',
