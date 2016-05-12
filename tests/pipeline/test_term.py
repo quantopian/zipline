@@ -27,6 +27,7 @@ from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.testing import parameter_space
+from zipline.testing.predicates import assert_equal, assert_raises
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
@@ -358,26 +359,53 @@ class ObjectIdentityTestCase(TestCase):
             method = getattr(f, funcname)
             self.assertIs(method(), method())
 
+    class SomeFactorParameterized(SomeFactor):
+        params = ('a', 'b')
+
     def test_parameterized_term(self):
 
-        class SomeFactorParameterized(SomeFactor):
-            params = ('a', 'b')
-
-        f = SomeFactorParameterized(a=1, b=2)
+        f = self.SomeFactorParameterized(a=1, b=2)
         self.assertEqual(f.params, {'a': 1, 'b': 2})
 
-        g = SomeFactorParameterized(a=1, b=3)
-        h = SomeFactorParameterized(a=2, b=2)
+        g = self.SomeFactorParameterized(a=1, b=3)
+        h = self.SomeFactorParameterized(a=2, b=2)
         self.assertDifferentObjects(f, g, h)
 
-        f2 = SomeFactorParameterized(a=1, b=2)
-        f3 = SomeFactorParameterized(b=2, a=1)
+        f2 = self.SomeFactorParameterized(a=1, b=2)
+        f3 = self.SomeFactorParameterized(b=2, a=1)
         self.assertSameObject(f, f2, f3)
 
         self.assertEqual(f.params['a'], 1)
         self.assertEqual(f.params['b'], 2)
         self.assertEqual(f.window_length, SomeFactor.window_length)
         self.assertEqual(f.inputs, tuple(SomeFactor.inputs))
+
+    def test_parameterized_term_non_hashable_arg(self):
+        with assert_raises(TypeError) as e:
+            self.SomeFactorParameterized(a=[], b=1)
+        assert_equal(
+            str(e.exception),
+            "SomeFactorParameterized expected a hashable value for parameter"
+            " 'a', but got [] instead.",
+        )
+
+        with assert_raises(TypeError) as e:
+            self.SomeFactorParameterized(a=1, b=[])
+        assert_equal(
+            str(e.exception),
+            "SomeFactorParameterized expected a hashable value for parameter"
+            " 'b', but got [] instead.",
+        )
+
+        with assert_raises(TypeError) as e:
+            self.SomeFactorParameterized(a=[], b=[])
+        assert_equal(
+            str(e.exception),
+            "SomeFactorParameterized expected a hashable value for parameter"
+            " 'a', but got [] instead.",
+        )
+
+
 
     def test_bad_input(self):
 
