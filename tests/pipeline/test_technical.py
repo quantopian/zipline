@@ -1,9 +1,8 @@
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 
 import numpy as np
 from operator import itemgetter
 import pandas as pd
-from six import with_metaclass
 import talib
 from toolz import compose, excepts
 
@@ -19,10 +18,7 @@ from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 
 
-_meta = type('_', (type(ZiplineTestCase), ABCMeta), {})
-
-
-class WithTechnicalFactor(with_metaclass(_meta, WithAssetFinder)):
+class WithTechnicalFactor(WithAssetFinder):
     """ZiplineTestCase fixture for testing technical factors.
     """
     ASSET_FINDER_EQUITY_SIDS = tuple(range(5))
