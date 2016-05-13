@@ -128,15 +128,6 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
             closes,
         )
 
-        assert_equal(
-            result.upper,
-            expected_upper,
-        )
-        assert_equal(
-            result.middle,
-            expected_middle,
-        )
-        assert_equal(
-            result.lower,
-            expected_lower,
-        )
+        assert_equal(result.upper, expected_upper)
+        assert_equal(result.middle, expected_middle)
+        assert_equal(result.lower, expected_lower)
