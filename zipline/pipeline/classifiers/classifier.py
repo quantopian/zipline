@@ -211,7 +211,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
 
         See Also
         --------
-        https://docs.python.org/library/re.html
+        :mod:`Python Regular Expressions <re>`
         """
         return ArrayPredicate(
             term=self,
