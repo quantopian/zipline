@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 import responses
 
-
 from .core import (
     create_daily_bar_data,
     create_minute_bar_data,
@@ -37,7 +36,7 @@ from ..finance.trading import TradingEnvironment
 from ..utils import tradingcalendar, factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
-from ..utils.metautils import compose_types
+from ..utils.metautils import with_metaclasses
 from .core import tmp_asset_finder, make_simple_equity_info, gen_calendars
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
@@ -818,8 +817,8 @@ class WithAdjustmentReader(WithBcolzDailyBarReader):
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
 
 
-class WithPipelineEventDataLoader(with_metaclass(
-        compose_types(ABCMeta, type(ZiplineTestCase)), WithAssetFinder)):
+class WithPipelineEventDataLoader(
+        with_metaclasses((type(ZiplineTestCase), ABCMeta), WithAssetFinder)):
     """
     ZiplineTestCase mixin providing common test methods/behaviors for event
     data loaders.

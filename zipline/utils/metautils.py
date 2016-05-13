@@ -1,7 +1,9 @@
 from operator import attrgetter
 
+import six
 
-def compose_types(a, b, *cs):
+
+def compose_types(a, *cs):
     """Compose multiple classes together.
 
     Parameters
@@ -66,9 +68,40 @@ def compose_types(a, b, *cs):
     Always using ``super()`` to dispatch to your superclass is best practices
     anyways so most classes should compose without much special considerations.
     """
-    mcls = (a, b) + cs
+    if not cs:
+        # if there are no types to compose then just return the single type
+        return a
+
+    mcls = (a,) + cs
     return type(
         'compose_types(%s)' % ', '.join(map(attrgetter('__name__'), mcls)),
         mcls,
         {},
     )
+
+
+def with_metaclasses(metaclasses, *bases):
+    """Make a class inheriting from ``bases`` whose metaclass inherits from
+    all of ``metaclasses``.
+
+    Like :func:`six.with_metaclass`, but allows multiple metaclasses.
+
+    Parameters
+    ----------
+    metaclasses : iterable[type]
+        A tuple of types to use as metaclasses.
+    *bases : tuple[type]
+        A tuple of types to use as bases.
+
+    Returns
+    -------
+    base : type
+        A subtype of ``bases`` whose metaclass is a subtype of ``metaclasses``.
+
+    Notes
+    -----
+    The metaclasses must be written to support cooperative multiple
+    inheritance. This means that they must delegate all calls to ``super()``
+    instead of inlining their super class by name.
+    """
+    return six.with_metaclass(compose_types(*metaclasses), *bases)

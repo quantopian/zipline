@@ -131,8 +131,7 @@ class Term(with_metaclass(ABCMeta, object)):
                 value = kwargs.pop(key)
                 # Check here that the value is hashable so that we fail here
                 # instead of trying to hash the param values tuple later.
-                hash(key)
-                param_values.append(value)
+                hash(value)
             except KeyError:
                 raise TypeError(
                     "{typename} expected a keyword parameter {name!r}.".format(
@@ -150,6 +149,8 @@ class Term(with_metaclass(ABCMeta, object)):
                         value=value,
                     )
                 )
+
+            param_values.append(value)
         return tuple(zip(cls.params, param_values))
 
     @staticmethod
@@ -268,7 +269,7 @@ class Term(with_metaclass(ABCMeta, object)):
             if hasattr(self, name):
                 raise TypeError(
                     "Parameter {name!r} conflicts with already-present"
-                    "attribute with value {value!r}.".format(
+                    " attribute with value {value!r}.".format(
                         name=name,
                         value=getattr(self, name),
                     )
