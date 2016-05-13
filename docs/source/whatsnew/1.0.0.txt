@@ -127,6 +127,10 @@ Enhancements
   ``element_of`` is defined for all classifiers.  The remaining methods are
   only defined for strings. (:issue:`1174`)
 
+* Added :class:`~zipline.pipeline.factors.BollingerBands` factor. This factor
+  implements the Bollinger Bands technical indicator:
+  https://en.wikipedia.org/wiki/Bollinger_Bands (:issue:`1199`).
+
 
 Experimental Features
 ~~~~~~~~~~~~~~~~~~~~~
@@ -165,7 +169,10 @@ None
 Documentation
 ~~~~~~~~~~~~~
 
-None
+* Updated documentation for the API methods (:issue:`1188`).
+
+* Updated release process to mention that docs should be built with python 3
+  (:issue:`1188`).
 
 Miscellaneous
 ~~~~~~~~~~~~~

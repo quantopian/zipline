@@ -401,7 +401,8 @@ EWMSTD = ExponentialWeightedMovingStdDev
 
 class BollingerBands(CustomFactor):
     """
-    Bollinger Bands
+    Bollinger Bands technical indicator.
+    https://en.wikipedia.org/wiki/Bollinger_Bands
 
     **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.close`
 
