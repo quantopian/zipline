@@ -78,7 +78,7 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
                 upper, middle, lower = [np.full(self.ndays, np.nan)] * 3
             else:
                 upper, middle, lower = talib.BBANDS(
-                    closes[:, n],
+                    close_col,
                     window_length,
                     k,
                     k,
