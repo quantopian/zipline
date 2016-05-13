@@ -72,17 +72,17 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         middle_cols = []
         upper_cols = []
         for n in range(self.nassets):
-            try:
+            close_col = closes[:, n]
+            if np.isnan(close_col).all():
+                # ta-lib doesn't deal well with all nans.
+                upper, middle, lower = [np.full(self.ndays, np.nan)] * 3
+            else:
                 upper, middle, lower = talib.BBANDS(
                     closes[:, n],
                     window_length,
                     k,
                     k,
                 )
-            except Exception:
-                # If the input array is all nan then talib raises an instance
-                # of Exception.
-                upper, middle, lower = [np.full(self.ndays, np.nan)] * 3
 
             upper_cols.append(upper)
             middle_cols.append(middle)
