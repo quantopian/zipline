@@ -24,7 +24,10 @@ LEVERAGED_ETFS = load_from_directory('leveraged_etf_list')
 
 class RestrictedAlgoWithCheck(TradingAlgorithm):
     def initialize(self, symbol):
-        self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
+        self.rl = SecurityListSet(
+            self.get_datetime,
+            self.asset_finder,
+            load_from_directory('leveraged_etf_list'))
         self.set_do_not_order_list(self.rl.leveraged_etf_list)
         self.order_count = 0
         self.sid = self.symbol(symbol)
@@ -39,7 +42,10 @@ class RestrictedAlgoWithCheck(TradingAlgorithm):
 
 class RestrictedAlgoWithoutCheck(TradingAlgorithm):
     def initialize(self, symbol):
-        self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
+        self.rl = SecurityListSet(
+            self.get_datetime,
+            self.asset_finder,
+            load_from_directory('leveraged_etf_list'))
         self.set_do_not_order_list(self.rl.leveraged_etf_list)
         self.order_count = 0
         self.sid = self.symbol(symbol)
@@ -51,7 +57,10 @@ class RestrictedAlgoWithoutCheck(TradingAlgorithm):
 
 class IterateRLAlgo(TradingAlgorithm):
     def initialize(self, symbol):
-        self.rl = SecurityListSet(self.get_datetime, self.asset_finder)
+        self.rl = SecurityListSet(
+            self.get_datetime,
+            self.asset_finder,
+            load_from_directory('leveraged_etf_list'))
         self.set_do_not_order_list(self.rl.leveraged_etf_list)
         self.order_count = 0
         self.sid = self.symbol(symbol)
@@ -132,7 +141,6 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
         def get_datetime():
             return list(LEVERAGED_ETFS.keys())[0]
 
-        rl = SecurityListSet(get_datetime, self.env.asset_finder)
         # assert that a sample from the leveraged list are in restricted
         should_exist = [
             asset.sid for asset in
@@ -141,6 +149,11 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
                 as_of_date=self.extra_knowledge_date)
              for symbol in ["BZQ", "URTY", "JFT"]]
         ]
+        rl = SecurityListSet(
+            get_datetime,
+            self.env.asset_finder,
+            load_from_directory('leveraged_etf_list'))
+
         for sid in should_exist:
             self.assertIn(sid, rl.leveraged_etf_list)
 
@@ -160,7 +173,6 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
             return pd.Timestamp("2015-01-27", tz='UTC')
         with security_list_copy():
             add_security_data(['AAPL', 'GOOG'], [])
-            rl = SecurityListSet(get_datetime, self.env.asset_finder)
             should_exist = [
                 asset.sid for asset in
                 [self.env.asset_finder.lookup_symbol(
@@ -168,6 +180,10 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
                     as_of_date=self.extra_knowledge_date
                 ) for symbol in ["AAPL", "GOOG", "BZQ", "URTY"]]
             ]
+            rl = SecurityListSet(
+                get_datetime,
+                self.env.asset_finder,
+                load_from_directory('leveraged_etf_list'))
             for sid in should_exist:
                 self.assertIn(sid, rl.leveraged_etf_list)
 
@@ -175,7 +191,10 @@ class SecurityListTestCase(WithLogger, ZiplineTestCase):
         with security_list_copy():
             def get_datetime():
                 return pd.Timestamp("2015-01-27", tz='UTC')
-            rl = SecurityListSet(get_datetime, self.env.asset_finder)
+            rl = SecurityListSet(
+                get_datetime,
+                self.env.asset_finder,
+                load_from_directory('leveraged_etf_list'))
             self.assertNotIn("BZQ", rl.leveraged_etf_list)
             self.assertNotIn("URTY", rl.leveraged_etf_list)
 
