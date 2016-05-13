@@ -131,3 +131,10 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         assert_equal(result.upper, expected_upper)
         assert_equal(result.middle, expected_middle)
         assert_equal(result.lower, expected_lower)
+
+    def test_bollinger_bands_output_ordering(self):
+        bbands = BollingerBands(window_length=5, k=2)
+        lower, middle, upper = bbands
+        self.assertIs(lower, bbands.lower)
+        self.assertIs(middle, bbands.middle)
+        self.assertIs(upper, bbands.upper)
