@@ -14,12 +14,13 @@
 # limitations under the License.
 import warnings
 from contextlib import contextmanager
+from functools import wraps
 
 from pandas.tslib import normalize_date
 import pandas as pd
 import numpy as np
 
-from six import iteritems
+from six import iteritems, PY2
 from cpython cimport bool
 from collections import Iterable
 
@@ -29,6 +30,17 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 cdef bool _is_iterable(obj):
     return isinstance(obj, Iterable) and not isinstance(obj, str)
+
+
+# Wraps doesn't work for method objects in python2. Docs should be generated
+# with python3 so it is not a big deal.
+if PY2:
+    def no_wraps_py2(f):
+        def dec(g):
+            return g
+        return dec
+else:
+    no_wraps_py2 = wraps
 
 
 cdef class check_parameters(object):
@@ -52,6 +64,7 @@ cdef class check_parameters(object):
         self.keys_to_types = dict(zip(keyword_names, types))
 
     def __call__(self, func):
+        @no_wraps_py2(func)
         def assert_keywords_and_call(*args, **kwargs):
             cdef short i
 
@@ -123,6 +136,27 @@ def handle_non_market_minutes(bar_data):
 
 
 cdef class BarData:
+    """
+    Provides methods to access spot value or history windows of price data.
+    Also provides some utility methods to determine if an asset is alive,
+    has recent trade data, etc.
+
+    This is what is passed as ``data`` to the ``handle_data`` function.
+
+    Parameters
+    ----------
+    data_portal : DataPortal
+        Provider for bar pricing data.
+    simulation_dt_func : callable
+        Function which returns the current simulation time.
+        This is usually bound to a method of TradingSimulation.
+    data_frequency : {'minute', 'daily'}
+        The frequency of the bar data; i.e. whether the data is
+        daily or minute bars
+    universe_func : callable, optional
+        Function which returns the current 'universe'.  This is for
+        backwards compatibility with older API concepts.
+    """
     cdef object data_portal
     cdef object simulation_dt_func
     cdef object data_frequency
@@ -133,32 +167,10 @@ cdef class BarData:
 
     cdef bool _adjust_minutes
 
-    """
-    Provides methods to access spot value or history windows of price data.
-    Also provides some utility methods to determine if an asset is alive,
-    has recent trade data, etc.
-
-    This is what is passed as `data` to the `handle_data` function.
-    """
     def __init__(self, data_portal, simulation_dt_func, data_frequency,
                  universe_func=None):
         """
-        Parameters
-        ---------
-        data_portal : DataPortal
-            Provider for bar pricing data.
 
-        simulation_dt_func: function
-            Function which returns the current simulation time.
-            This is usually bound to a method of TradingSimulation.
-
-        data_frequency: string
-            The frequency of the bar data; i.e. whether the data is
-            'daily' or 'minute' bars
-
-        universe_func: function
-            Function which returns the current 'universe'.  This is for
-            backwards compatibility with older API concepts.
         """
         self.data_portal = data_portal
         self.simulation_dt_func = simulation_dt_func
@@ -183,7 +195,7 @@ cdef class BarData:
 
         Returns
         -------
-        SidView: Accessor into the given asset's data.
+        SidView : Accessor into the given asset's data.
         """
         try:
             self._warn_deprecated("`data[sid(N)]` is deprecated. Use "
@@ -226,14 +238,15 @@ cdef class BarData:
         Parameters
         ----------
         assets : Asset or iterable of Assets
-
-        fields : string or iterable of strings.  Valid values are: "price",
+        fields : str or iterable[str].
+            Valid values are: "price",
             "last_traded", "open", "high", "low", "close", "volume", or column
-            names in files read by fetch_csv.
+            names in files read by ``fetch_csv``.
 
         Returns
         -------
-        Scalar, pandas Series, or pandas DataFrame.  See notes below.
+        current_value : Scalar, pandas Series, or pandas DataFrame.
+            See notes below.
 
         Notes
         -----
@@ -403,7 +416,7 @@ cdef class BarData:
 
         Returns
         -------
-        boolean or Series of booleans, indexed by asset.
+        can_trade : bool or pd.Series[bool] indexed by asset.
         """
         dt = self.simulation_dt_func()
 
@@ -522,8 +535,9 @@ cdef class BarData:
 
         Returns
         -------
-        Series or DataFrame or Panel, depending on the dimensionality of
-            the 'assets' and 'fields' parameters.
+        history : Series or DataFrame or Panel
+            Return type depends on the dimensionality of the 'assets' and
+            'fields' parameters.
 
             If single asset and field are passed in, the returned Series is
             indexed by dt.
@@ -720,7 +734,7 @@ cdef class SidView:
     cdef object data_portal
     cdef object simulation_dt_func
     cdef object data_frequency
-    
+
     """
     This class exists to temporarily support the deprecated data[sid(N)] API.
     """

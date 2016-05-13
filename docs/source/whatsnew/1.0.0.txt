@@ -39,10 +39,10 @@ loop in :meth:`~zipline.gens.tradesimulation.AlgorithmSimulator.transform`.
 
 We've retired the ``data[sid(N)]`` and ``history`` APIs, replacing them with
 several methods on the :class:`~zipline.protocol.BarData` object:
-:meth:`zipline.protocol.BarData.current`,
-:meth:`zipline.protocol.BarData.history`,
-:meth:`zipline.protocol.BarData.can_trade`, and
-:meth:`zipline.protocol.BarData.is_stale`. Old APIs will continue to work for
+:meth:`~zipline.protocol.BarData.current`,
+:meth:`~zipline.protocol.BarData.history`,
+:meth:`~zipline.protocol.BarData.can_trade`, and
+:meth:`~zipline.protocol.BarData.is_stale`. Old APIs will continue to work for
 now, but will issue deprecation warnings.
 
 You can now pass in an adjustments source to the

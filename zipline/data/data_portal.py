@@ -729,24 +729,26 @@ class DataPortal(object):
         of the desired asset's field at either the given dt.
 
         Parameters
-        ---------
+        ----------
         asset : Asset
             The asset whose data is desired.
-
-        field: string
-            The desired field of the asset.  Valid values are "open", "high",
-            "low", "close", "volume", "price", and "last_traded".
-
-        dt: pd.Timestamp
+        field : {'open', 'high', 'low', 'close', 'volume',
+                 'price', 'last_traded'}
+            The desired field of the asset.
+        dt : pd.Timestamp
             The timestamp for the desired value.
-
-        data_frequency: string
+        data_frequency : str
             The frequency of the data to query; i.e. whether the data is
             'daily' or 'minute' bars
 
         Returns
         -------
-        The value of the desired field at the desired time.
+        value : float, int, or pd.Timestamp
+            The spot value of ``field`` for ``asset`` The return type is based
+            on the ``field`` requested. If the field is one of 'open', 'high',
+            'low', 'close', or 'price', the value will be a float. If the
+            ``field`` is 'volume' the value will be a int. If the ``field`` is
+            'last_traded' the value will be a Timestamp.
         """
         if self._is_extra_source(asset, field, self._augmented_sources_map):
             return self._get_fetcher_value(asset, field, dt)
@@ -788,28 +790,24 @@ class DataPortal(object):
         given field and list of assets
 
         Parameters
-        ---------
+        ----------
         assets : list of type Asset, or Asset
             The asset, or assets whose adjustments are desired.
-
-        field: string
-            The desired field of the asset.  Valid values are "open",
-            "open_price", "high", "low", "close", "close_price", "volume", and
-            "price".
-
-        dt: pd.Timestamp
+        field : {'open', 'high', 'low', 'close', 'volume', \
+                 'price', 'last_traded'}
+            The desired field of the asset.
+        dt : pd.Timestamp
             The timestamp for the desired value.
-
         perspective_dt : pd.Timestamp
             The timestamp from which the data is being viewed back from.
-
-        data_frequency: string
+        data_frequency : str
             The frequency of the data to query; i.e. whether the data is
             'daily' or 'minute' bars
 
         Returns
         -------
-        The list of adjustments for the asset(s)
+        adjustments : list[Adjustment]
+            The adjustments to that field.
         """
         if isinstance(assets, Asset):
             assets = [assets]
@@ -861,28 +859,29 @@ class DataPortal(object):
         of the desired asset's field at the given dt with adjustments applied.
 
         Parameters
-        ---------
+        ----------
         asset : Asset
             The asset whose data is desired.
-
-        field: string
-            The desired field of the asset.  Valid values are "open",
-            "open_price", "high", "low", "close", "close_price", "volume", and
-            "price".
-
-        dt: pd.Timestamp
+        field : {'open', 'high', 'low', 'close', 'volume', \
+                 'price', 'last_traded'}
+            The desired field of the asset.
+        dt : pd.Timestamp
             The timestamp for the desired value.
-
         perspective_dt : pd.Timestamp
             The timestamp from which the data is being viewed back from.
-
-        data_frequency: string
+        data_frequency : str
             The frequency of the data to query; i.e. whether the data is
             'daily' or 'minute' bars
 
         Returns
         -------
-        The value of the desired field at the desired time.
+        value : float, int, or pd.Timestamp
+            The value of the given ``field`` for ``asset`` at ``dt`` with any
+            adjustments known by ``perspective_dt`` applied. The return type is
+            based on the ``field`` requested. If the field is one of 'open',
+            'high', 'low', 'close', or 'price', the value will be a float. If
+            the ``field`` is 'volume' the value will be a int. If the ``field``
+            is 'last_traded' the value will be a Timestamp.
         """
         if spot_value is None:
             # if this a fetcher field, we want to use perspective_dt (not dt)
@@ -1205,7 +1204,7 @@ class DataPortal(object):
         history window.  Data is fully adjusted.
 
         Parameters
-        ---------
+        ----------
         assets : list of zipline.data.Asset objects
             The assets whose data is desired.
 
@@ -1582,14 +1581,14 @@ class DataPortal(object):
         ----------
         sids : container
             Sids for which we want splits.
-
-        dt: pd.Timestamp
-            The date for which we are checking for splits.  Note: this is
+        dt : pd.Timestamp
+            The date for which we are checking for splits. Note: this is
             expected to be midnight UTC.
 
         Returns
         -------
-        list: List of splits, where each split is a (sid, ratio) tuple.
+        splits : list[(int, float)]
+            List of splits, where each split is a (sid, ratio) tuple.
         """
         if self._adjustment_reader is None or not sids:
             return {}

@@ -521,11 +521,11 @@ class BcolzMinuteBarWriter(object):
         cols : dict of str -> np.array
             dict of market data with the following characteristics.
             keys are ('open', 'high', 'low', 'close', 'volume')
-                open : float64
-                high : float64
-                low  : float64
-                close : float64
-                volume : float64|int64
+            open : float64
+            high : float64
+            low  : float64
+            close : float64
+            volume : float64|int64
         """
         if not all(len(dts) == len(cols[name]) for name in self.COL_NAMES):
             raise BcolzMinuteWriterColumnMismatch(
@@ -548,11 +548,11 @@ class BcolzMinuteBarWriter(object):
         cols : dict of str -> np.array
             dict of market data with the following characteristics.
             keys are ('open', 'high', 'low', 'close', 'volume')
-                open : float64
-                high : float64
-                low  : float64
-                close : float64
-                volume : float64|int64
+            open : float64
+            high : float64
+            low  : float64
+            close : float64
+            volume : float64|int64
         """
         table = self._ensure_ctable(sid)
 
