@@ -331,6 +331,48 @@ class BcolzMinuteBarTestCase(TestCase):
         with self.assertRaises(BcolzMinuteOverlappingData):
             self.writer.write_sid(sid, data)
 
+    def test_append_to_same_day(self):
+        """
+        Test writing data with the same date as existing data in our file.
+        """
+        sid = 1
+
+        first_minute = self.market_opens[TEST_CALENDAR_START]
+        data = DataFrame(
+            data={
+                'open': [10.0],
+                'high': [20.0],
+                'low': [30.0],
+                'close': [40.0],
+                'volume': [50.0]
+            },
+            index=[first_minute])
+        self.writer.write_sid(sid, data)
+
+        # Write data in the same day as the previous minute
+        second_minute = first_minute + Timedelta(minutes=1)
+        new_data = DataFrame(
+            data={
+                'open': [5.0],
+                'high': [10.0],
+                'low': [3.0],
+                'close': [7.0],
+                'volume': [10.0]
+            },
+            index=[second_minute])
+        self.writer.write_sid(sid, new_data)
+
+        open_price = self.reader.get_value(sid, second_minute, 'open')
+        self.assertEquals(5.0, open_price)
+        high_price = self.reader.get_value(sid, second_minute, 'high')
+        self.assertEquals(10.0, high_price)
+        low_price = self.reader.get_value(sid, second_minute, 'low')
+        self.assertEquals(3.0, low_price)
+        close_price = self.reader.get_value(sid, second_minute, 'close')
+        self.assertEquals(7.0, close_price)
+        volume_price = self.reader.get_value(sid, second_minute, 'volume')
+        self.assertEquals(10.0, volume_price)
+
     def test_write_multiple_sids(self):
         """
         Test writing multiple sids.
@@ -806,3 +848,22 @@ class BcolzMinuteBarTestCase(TestCase):
                 Timestamp('2015-11-30 21:01:00', tz='UTC'),
                 'open'),
             600)
+
+    def test_set_sid_attrs(self):
+        """Confirm that we can set the attributes of a sid's file correctly.
+        """
+
+        sid = 1
+        start_day = Timestamp('2015-11-27', tz='UTC')
+        end_day = Timestamp('2015-06-02', tz='UTC')
+        attrs = {
+            'start_day': start_day.value / int(1e9),
+            'end_day': end_day.value / int(1e9),
+            'factor': 100,
+        }
+
+        # Write the attributes
+        self.writer.set_sid_attrs(sid, **attrs)
+        # Read the attributes
+        for k, v in attrs.items():
+            self.assertEqual(self.reader.get_sid_attr(sid, k), v)
