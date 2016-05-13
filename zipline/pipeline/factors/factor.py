@@ -1209,8 +1209,11 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             return RecarrayField(factor=self, attribute=attribute_name)
         else:
             raise AttributeError(
-                'Instance of {factor} has no output called {attr!r}.'.format(
-                    factor=type(self).__name__, attr=attribute_name,
+                'Instance of {factor} has no output named {attr!r}.'
+                ' Possible choices are: {choices}.'.format(
+                    factor=type(self).__name__,
+                    attr=attribute_name,
+                    choices=self.outputs,
                 )
             )
 
