@@ -21,16 +21,38 @@ from zipline.gens.sim_engine import DAY_END
 
 
 class CancelPolicy(with_metaclass(abc.ABCMeta)):
+    """Abstract cancellation policy interface.
+    """
 
     @abstractmethod
     def should_cancel(self, event):
+        """Should all open orders be cancelled?
+
+        Parameters
+        ----------
+        event : enum-value
+            An event type, one of:
+              - :data:`zipline.gens.sim_engine.BAR`
+              - :data:`zipline.gens.sim_engine.DAY_START`
+              - :data:`zipline.gens.sim_engine.DAY_END`
+              - :data:`zipline.gens.sim_engine.MINUTE_END`
+
+        Returns
+        -------
+        should_cancel : bool
+            Should all open orders be cancelled?
+        """
         pass
 
 
 class EODCancel(CancelPolicy):
-    """
-    This policy cancels open orders at the end of the day.  For now, Zipline
-    will only apply this policy to minutely simulations.
+    """This policy cancels open orders at the end of the day.  For now,
+    Zipline will only apply this policy to minutely simulations.
+
+    Parameters
+    ----------
+    warn_on_cancel : bool, optional
+        Should a warning be raised if this causes an order to be cancelled?
     """
     def __init__(self, warn_on_cancel=True):
         self.warn_on_cancel = warn_on_cancel
@@ -40,8 +62,7 @@ class EODCancel(CancelPolicy):
 
 
 class NeverCancel(CancelPolicy):
-    """
-    Orders are never automatically canceled.
+    """Orders are never automatically canceled.
     """
     def __init__(self):
         self.warn_on_cancel = False

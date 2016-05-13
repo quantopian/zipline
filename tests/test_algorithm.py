@@ -161,7 +161,7 @@ from zipline.utils.api_support import ZiplineAPI, set_algo_instance
 from zipline.utils.context_tricks import CallbackManager
 from zipline.utils.control_flow import nullctx
 import zipline.utils.events
-from zipline.utils.events import DateRuleFactory, TimeRuleFactory, Always
+from zipline.utils.events import date_rules, time_rules, Always
 import zipline.utils.factory as factory
 from zipline.utils.tradingcalendar import trading_day, trading_days
 
@@ -389,8 +389,6 @@ def handle_data(context, data):
         algo.run(self.data_portal)
 
     def test_schedule_function(self):
-        date_rules = DateRuleFactory
-        time_rules = TimeRuleFactory
         us_eastern = pytz.timezone('US/Eastern')
 
         def incrementer(algo, data):

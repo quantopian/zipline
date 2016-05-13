@@ -42,8 +42,6 @@ __all__ = [
     'OncePerDay',
 
     # Factory API
-    'DateRuleFactory',
-    'TimeRuleFactory',
     'date_rules',
     'time_rules',
     'make_eventrule',
@@ -668,7 +666,7 @@ class OncePerDay(StatefulRule):
 
 # Factory API
 
-class DateRuleFactory(object):
+class date_rules(object):
     every_day = Always
 
     @staticmethod
@@ -688,14 +686,9 @@ class DateRuleFactory(object):
         return NDaysBeforeLastTradingDayOfWeek(n=days_offset)
 
 
-class TimeRuleFactory(object):
+class time_rules(object):
     market_open = AfterOpen
     market_close = BeforeClose
-
-
-# Convenience aliases.
-date_rules = DateRuleFactory
-time_rules = TimeRuleFactory
 
 
 def make_eventrule(date_rule, time_rule, half_days=True):

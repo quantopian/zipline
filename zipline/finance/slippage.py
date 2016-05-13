@@ -34,6 +34,8 @@ DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT = 0.025
 
 
 class SlippageModel(with_metaclass(abc.ABCMeta)):
+    """Abstract interface for defining a slippage model.
+    """
     def __init__(self):
         self._volume_for_bar = 0
 
@@ -43,6 +45,24 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
 
     @abc.abstractproperty
     def process_order(self, data, order):
+        """Process how orders get filled.
+
+        Parameters
+        ----------
+        data : BarData
+            The data for the given bar.
+        order : Order
+            The order to simulate.
+
+        Returns
+        -------
+        execution_price : float
+            The price to execute the trade at.
+        execution_volume : int
+            The number of shares that could be filled. This may not be all
+            the shares ordered in which case the order will be filled over
+            multiple bars.
+        """
         pass
 
     def simulate(self, data, asset, orders_for_asset):
@@ -91,6 +111,8 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
 
 
 class VolumeShareSlippage(SlippageModel):
+    """Model slippage as a function of the volume of shares traded.
+    """
 
     def __init__(self, volume_limit=DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
                  price_impact=0.1):
@@ -162,13 +184,15 @@ class VolumeShareSlippage(SlippageModel):
 
 
 class FixedSlippage(SlippageModel):
+    """Model slippage as a fixed spread.
+
+    Parameters
+    ----------
+    spread : float, optional
+        spread / 2 will be added to buys and subtracted from sells.
+    """
 
     def __init__(self, spread=0.0):
-        """
-        Use the fixed slippage model, which will just add/subtract
-        a specified spread spread/2 will be added on buys and subtracted
-        on sells per share
-        """
         self.spread = spread
 
     def process_order(self, data, order):
