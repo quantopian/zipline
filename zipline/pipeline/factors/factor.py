@@ -1,7 +1,7 @@
 """
 factor.py
 """
-from functools import partial, wraps
+from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
@@ -1224,8 +1224,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                     factor=type(self).__name__,
                 )
             )
-        RecarrayField_ = partial(RecarrayField, self)
-        return iter(map(RecarrayField_, self.outputs))
+        return (RecarrayField(self, attr) for attr in self.outputs)
 
 
 class RecarrayField(SingleInputMixin, Factor):
