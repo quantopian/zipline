@@ -333,6 +333,7 @@ def download_with_progress(url, chunk_size, **progress_kwargs):
             data.write(chunk)
             pbar.update(len(chunk))
 
+    data.seek(0)
     return data
 
 

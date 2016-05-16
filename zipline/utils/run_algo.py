@@ -187,7 +187,7 @@ def load_extensions(default, extensions, strict, environ, reload=False):
     """
     if default:
         default_extension_path = pth.default_extension(environ=environ)
-        open(default_extension_path, 'a+').close()  # touch the file
+        pth.ensure_file(default_extension_path)
         # put the default extension first so other extensions can depend on
         # the order they are loaded
         extensions = concatv([default_extension_path], extensions)
