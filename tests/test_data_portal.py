@@ -42,7 +42,7 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # all the minutes of 7/6, 7/7, 7/8, and 31 minutes of 7/9
 
         july_9_dt = self.trading_schedule.start_and_end(
-            pd.Timestamp("2015-07-09")
+            pd.Timestamp("2015-07-09", tz='UTC')
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(
@@ -65,7 +65,7 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # all the minutes of 11/24, 11/25, 11/27 (half day!), and 31 minutes
         # of 11/30
         nov_30_dt = self.trading_schedule.start_and_end(
-            pd.Timestamp("2015-11-30")
+            pd.Timestamp("2015-11-30", tz='UTC')
         )[0] + Timedelta("30 minutes")
 
         self.assertEqual(
