@@ -391,10 +391,41 @@ class BcolzDailyBarReader(DailyBarReader):
     """
     Reader for raw pricing data written by BcolzDailyOHLCVWriter.
 
-    A Bcolz CTable is comprised of Columns and Attributes.
+    Parameters
+    ----------
+    table : bcolz.ctable
+        The ctable contaning the pricing data, with attrs corresponding to the
+        Attributes list below.
+    read_all_threshold : int
+        The number of equities at which; below, the data is read by reading a
+        slice from the carray per asset.  above, the data is read by pulling
+        all of the data for all assets into memory and then indexing into that
+        array for each day and asset pair.  Used to tune performance of reads
+        when using a small or large number of equities.
 
-    Columns
-    -------
+    Attributes
+    ----------
+    The table with which this loader interacts contains the following
+    attributes:
+
+    first_row : dict
+        Map from asset_id -> index of first row in the dataset with that id.
+    last_row : dict
+        Map from asset_id -> index of last row in the dataset with that id.
+    calendar_offset : dict
+        Map from asset_id -> calendar index of first row.
+    calendar : list[int64]
+        Calendar used to compute offsets, in asi8 format (ns since EPOCH).
+
+    We use first_row and last_row together to quickly find ranges of rows to
+    load when reading an asset's data into memory.
+
+    We use calendar_offset and calendar to orient loaded blocks within a
+    range of queried dates.
+
+    Notes
+    ------
+    A Bcolz CTable is comprised of Columns and Attributes.
     The table with which this loader interacts contains the following columns:
 
     ['open', 'high', 'low', 'close', 'volume', 'day', 'id'].
@@ -418,41 +449,6 @@ class BcolzDailyBarReader(DailyBarReader):
 
     When read across the open, high, low, close, and volume with the same
     index should represent the same asset and day.
-
-    Parameters
-    ----------
-    table : bcolz.ctable
-        The ctable contaning the pricing data, with attrs corresponding to the
-        Attributes list below.
-    read_all_threshold : int
-        The number of equities at which;
-            below, the data is read by reading a slice from the carray
-            per asset.
-            above, the data is read by pulling all of the data for all assets
-            into memory and then indexing into that array for each day and
-            asset pair.
-        Used to tune performance of reads when using a small or large number
-        of equities.
-
-    Attributes
-    ----------
-    The table with which this loader interacts contains the following
-    attributes:
-
-    first_row : dict
-        Map from asset_id -> index of first row in the dataset with that id.
-    last_row : dict
-        Map from asset_id -> index of last row in the dataset with that id.
-    calendar_offset : dict
-        Map from asset_id -> calendar index of first row.
-    calendar : list[int64]
-        Calendar used to compute offsets, in asi8 format (ns since EPOCH).
-
-    We use first_row and last_row together to quickly find ranges of rows to
-    load when reading an asset's data into memory.
-
-    We use calendar_offset and calendar to orient loaded blocks within a
-    range of queried dates.
 
     See Also
     --------
@@ -1182,7 +1178,7 @@ class SQLiteAdjustmentReader(object):
 
     See Also
     --------
-    zipline.data.us_equity_pricing.SQLiteAdjustmentWriter
+    :class:`zipline.data.us_equity_pricing.SQLiteAdjustmentWriter`
     """
 
     @preprocess(conn=coerce_string(sqlite3.connect))

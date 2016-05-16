@@ -15,6 +15,12 @@ The following methods are available for use in the ``initialize``,
 In all listed functions, the ``self`` argument is implicitly the
 currently-executing :class:`~zipline.algorithm.TradingAlgorithm` instance.
 
+Data Object
+```````````
+
+.. autoclass:: zipline.protocol.BarData
+   :members:
+
 Scheduling Functions
 ````````````````````
 
@@ -269,6 +275,9 @@ Readers
    :members:
 
 .. autoclass:: zipline.assets.AssetFinderCachedEquities
+   :members:
+
+.. autoclass:: zipline.data.data_portal.DataPortal
    :members:
 
 Bundles
