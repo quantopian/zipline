@@ -240,6 +240,23 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         )
 
     def add_trading_days(self, n, date):
+        """
+        Adds n trading days to date. If this would fall outside of the
+        ExchangeCalendar, a NoFurtherDataError is raised.
+
+        Parameters
+        ----------
+        n : int
+            The number of days to add to date, this can be positive or
+            negative.
+        date : datetime
+            The date to add to.
+
+        Returns
+        -------
+        datetime
+            n trading days added to date.
+        """
         return add_scheduled_days(
             n, date,
             next_scheduled_day_hook=self.next_trading_day,

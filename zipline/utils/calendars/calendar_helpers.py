@@ -49,12 +49,24 @@ def _get_index(dt, all_trading_days):
         return all_trading_days.searchsorted(ndt) - 1
 
 # The following methods are intended to be inserted in both the
-# ExchangeCalendar and TradingSchedule classes with partial hooks to those
-# class' methods. These methods live in the helpers module to avoid code
-# duplication.
+# ExchangeCalendar and TradingSchedule classes.
+# These methods live in the helpers module to avoid code duplication.
 
 
 def next_scheduled_day(date, last_trading_day, is_scheduled_day_hook):
+    """
+    Returns the next session date in the calendar after the provided date.
+
+    Parameters
+    ----------
+    date : Timestamp
+        The date whose following date is needed.
+
+    Returns
+    -------
+    Timestamp
+        The next scheduled date after the provided date.
+    """
     dt = normalize_date(date)
     delta = pd.Timedelta(days=1)
 
@@ -66,6 +78,19 @@ def next_scheduled_day(date, last_trading_day, is_scheduled_day_hook):
 
 
 def previous_scheduled_day(date, first_trading_day, is_scheduled_day_hook):
+    """
+    Returns the previous session date in the calendar before the provided date.
+
+    Parameters
+    ----------
+    date : Timestamp
+        The date whose previous date is needed.
+
+    Returns
+    -------
+    Timestamp
+        The previous scheduled date before the provided date.
+    """
     dt = normalize_date(date)
     delta = pd.Timedelta(days=-1)
 
@@ -141,16 +166,18 @@ def add_scheduled_days(n, date, next_scheduled_day_hook,
     Adds n trading days to date. If this would fall outside of the
     trading calendar, a NoFurtherDataError is raised.
 
-    :Arguments:
-        n : int
-            The number of days to add to date, this can be positive or
-            negative.
-        date : datetime
-            The date to add to.
+    Parameters
+    ----------
+    n : int
+        The number of days to add to date, this can be positive or
+        negative.
+    date : datetime
+        The date to add to.
 
-    :Returns:
-        new_date : datetime
-            n trading days added to date.
+    Returns
+    -------
+    datetime
+        n trading days added to date.
     """
     if n == 1:
         return next_scheduled_day_hook(date)

@@ -97,6 +97,23 @@ class TradingSchedule(with_metaclass(ABCMeta)):
         )
 
     def add_execution_days(self, n, date):
+        """
+        Adds n execution days to date. If this would fall outside of the
+        TradingSchedule, a NoFurtherDataError is raised.
+
+        Parameters
+        ----------
+        n : int
+            The number of days to add to date, this can be positive or
+            negative.
+        date : datetime
+            The date to add to.
+
+        Returns
+        -------
+        datetime
+            n trading days added to date.
+        """
         return add_scheduled_days(
             n, date,
             next_scheduled_day_hook=self.next_execution_day,

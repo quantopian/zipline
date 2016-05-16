@@ -437,6 +437,14 @@ class NYSEExchangeCalendar(ExchangeCalendar):
         Timestamp
             The date of the exchange session in which dt belongs.
         """
+        # Check if the dt is after the market close
+        # If so, advance to the next day
+        if self.is_open_on_day(dt):
+            _, close = self._get_open_and_close(normalize_date(dt))
+            if dt > close:
+                dt += Timedelta(days=1)
+
         while not self.is_open_on_day(dt):
             dt += Timedelta(days=1)
+
         return normalize_date(dt)
