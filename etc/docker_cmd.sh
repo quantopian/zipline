@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 
+#
 # generate configuration, cert, and password if this is the first run
-# 
+#
 if [ ! -f /var/tmp/zipline_init ] ; then
     jupyter notebook --generate-config
     if [ ! -f ${SSL_CERT_PEM} ] ; then
@@ -12,7 +12,7 @@ if [ ! -f /var/tmp/zipline_init ] ; then
     fi
     echo "c.NotebookApp.password = ${PW_HASH}" >> ${CONFIG_PATH}
     touch /var/tmp/zipline_init
-fi 
+fi
 
 jupyter notebook -y --no-browser --notebook-dir=${PROJECT_DIR} \
     --certfile=${SSL_CERT_PEM} --keyfile=${SSL_CERT_KEY} --ip='*' \
