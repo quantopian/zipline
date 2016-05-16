@@ -7,6 +7,7 @@ from unittest import TestCase
 
 from zipline.errors import (
     DTypeNotSpecified,
+    InvalidOutputName,
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
@@ -473,6 +474,13 @@ class ObjectIdentityTestCase(TestCase):
         self.assertEqual(
             errmsg, "GenericCustomFactor does not have multiple outputs.",
         )
+
+        # Public method name, private method name, non-callable attribute name.
+        disallowed_output_names = ['compute', '_compute', 'inputs']
+
+        for name in disallowed_output_names:
+            with self.assertRaises(InvalidOutputName):
+                GenericCustomFactor(outputs=[name])
 
     def test_require_super_call_in_validate(self):
 
