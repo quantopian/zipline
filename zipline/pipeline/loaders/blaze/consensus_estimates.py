@@ -1,4 +1,9 @@
-from zipline.pipeline.common import (
+from .events import BlazeEventsLoader
+from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME
+from zipline.pipeline.data import ConsensusEstimates
+from zipline.pipeline.loaders import ConsensusEstimatesLoader
+from zipline.pipeline.loaders.consensus_estimates import (
+    ACTUAL_VALUE_FIELD_NAME,
     COUNT_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
     FISCAL_YEAR_FIELD_NAME,
@@ -6,14 +11,8 @@ from zipline.pipeline.common import (
     LOW_FIELD_NAME,
     MEAN_FIELD_NAME,
     RELEASE_DATE_FIELD_NAME,
-    SID_FIELD_NAME,
     STANDARD_DEVIATION_FIELD_NAME,
-    TS_FIELD_NAME,
-    ACTUAL_VALUE_FIELD_NAME
 )
-from zipline.pipeline.data import ConsensusEstimates
-from zipline.pipeline.loaders import ConsensusEstimatesLoader
-from .events import BlazeEventsLoader
 
 
 class BlazeConsensusEstimatesLoader(BlazeEventsLoader):

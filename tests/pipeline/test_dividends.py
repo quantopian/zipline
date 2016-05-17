@@ -8,25 +8,8 @@ from six import iteritems
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
-    CASH_AMOUNT_FIELD_NAME,
-    CURRENCY_FIELD_NAME,
-    DAYS_SINCE_PREV_DIVIDEND_ANNOUNCEMENT,
-    DAYS_SINCE_PREV_EX_DATE,
-    DAYS_TO_NEXT_EX_DATE,
-    DIVIDEND_TYPE_FIELD_NAME,
-    EX_DATE_FIELD_NAME,
-    NEXT_AMOUNT,
-    NEXT_CURRENCY_TYPE,
-    NEXT_DIVIDEND_TYPE,
-    NEXT_EX_DATE,
-    NEXT_PAY_DATE,
-    PAY_DATE_FIELD_NAME,
     PREVIOUS_AMOUNT,
     PREVIOUS_ANNOUNCEMENT,
-    PREVIOUS_CURRENCY_TYPE,
-    PREVIOUS_DIVIDEND_TYPE,
-    PREVIOUS_EX_DATE,
-    PREVIOUS_PAY_DATE,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
@@ -46,9 +29,14 @@ from zipline.pipeline.loaders.blaze.dividends import (
     BlazeDividendsByExDateLoader
 )
 from zipline.pipeline.loaders.dividends import (
+    CASH_AMOUNT_FIELD_NAME,
+    CURRENCY_FIELD_NAME,
+    DIVIDEND_TYPE_FIELD_NAME,
     DividendsByAnnouncementDateLoader,
     DividendsByExDateLoader,
-    DividendsByPayDateLoader
+    DividendsByPayDateLoader,
+    EX_DATE_FIELD_NAME,
+    PAY_DATE_FIELD_NAME,
 )
 from zipline.pipeline.loaders.utils import (
     zip_with_dates,
@@ -59,6 +47,20 @@ from zipline.testing.fixtures import (
     WithPipelineEventDataLoader,
     ZiplineTestCase
 )
+
+DAYS_SINCE_PREV_DIVIDEND_ANNOUNCEMENT = 'days_since_prev_dividend_announcement'
+DAYS_SINCE_PREV_EX_DATE = 'days_since_prev_ex_date'
+DAYS_TO_NEXT_EX_DATE = 'days_to_next_ex_date'
+NEXT_AMOUNT = 'next_amount'
+NEXT_CURRENCY_TYPE = 'next_currency_type'
+NEXT_DIVIDEND_TYPE = 'next_dividend_type'
+NEXT_EX_DATE = 'next_ex_date'
+NEXT_PAY_DATE = 'next_pay_date'
+PREVIOUS_CURRENCY_TYPE = 'previous_currency_type'
+PREVIOUS_DIVIDEND_TYPE = 'previous_dividend_type'
+PREVIOUS_EX_DATE = 'previous_ex_date'
+PREVIOUS_PAY_DATE = 'previous_pay_date'
+
 
 dividends_cases = [
     # K1--K2--A1--A2.

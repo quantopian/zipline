@@ -6,36 +6,19 @@ from blaze.compute.core import swap_resources_into_scope
 import pandas as pd
 from six import iteritems
 
-from zipline.pipeline.common import (
+from zipline.pipeline.common import SID_FIELD_NAME
+from zipline.pipeline.data import ConsensusEstimates
+from zipline.pipeline.loaders.consensus_estimates import (
     ACTUAL_VALUE_FIELD_NAME,
+    ConsensusEstimatesLoader,
     COUNT_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
     FISCAL_YEAR_FIELD_NAME,
     HIGH_FIELD_NAME,
     LOW_FIELD_NAME,
     MEAN_FIELD_NAME,
-    NEXT_COUNT,
-    NEXT_FISCAL_QUARTER,
-    NEXT_FISCAL_YEAR,
-    NEXT_HIGH,
-    NEXT_LOW,
-    NEXT_RELEASE_DATE,
-    NEXT_STANDARD_DEVIATION,
-    PREVIOUS_ACTUAL_VALUE,
-    PREVIOUS_COUNT,
-    PREVIOUS_FISCAL_QUARTER,
-    PREVIOUS_FISCAL_YEAR,
-    PREVIOUS_HIGH,
-    PREVIOUS_LOW,
-    PREVIOUS_MEAN, NEXT_MEAN,
-    PREVIOUS_RELEASE_DATE,
-    PREVIOUS_STANDARD_DEVIATION,
     RELEASE_DATE_FIELD_NAME,
     STANDARD_DEVIATION_FIELD_NAME,
-    SID_FIELD_NAME)
-from zipline.pipeline.data import ConsensusEstimates
-from zipline.pipeline.loaders.consensus_estimates import (
-    ConsensusEstimatesLoader
 )
 from zipline.pipeline.loaders.blaze import BlazeConsensusEstimatesLoader
 from zipline.pipeline.loaders.utils import (
@@ -45,6 +28,25 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
     WithNextAndPreviousEventDataLoader
 )
+
+NEXT_COUNT = 'next_count'
+NEXT_FISCAL_QUARTER = 'next_fiscal_quarter'
+NEXT_FISCAL_YEAR = 'next_fiscal_year'
+NEXT_HIGH = 'next_high'
+NEXT_LOW = 'next_low'
+NEXT_MEAN = 'next_mean'
+NEXT_RELEASE_DATE = 'next_release_date'
+NEXT_STANDARD_DEVIATION = 'next_standard_deviation'
+PREVIOUS_ACTUAL_VALUE = 'previous_actual_value'
+PREVIOUS_COUNT = 'previous_count'
+PREVIOUS_FISCAL_QUARTER = 'previous_fiscal_quarter'
+PREVIOUS_FISCAL_YEAR = 'previous_fiscal_year'
+PREVIOUS_HIGH = 'previous_high'
+PREVIOUS_LOW = 'previous_low'
+PREVIOUS_MEAN = 'previous_mean'
+PREVIOUS_RELEASE_DATE = 'previous_release_date'
+PREVIOUS_STANDARD_DEVIATION = 'previous_standard_deviation'
+
 
 consensus_estimates_cases = [
     # K1--K2--A1--A2.

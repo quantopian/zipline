@@ -1,18 +1,19 @@
-from zipline.pipeline.common import (
-    ANNOUNCEMENT_FIELD_NAME,
-    CASH_AMOUNT_FIELD_NAME,
-    CURRENCY_FIELD_NAME,
-    DIVIDEND_TYPE_FIELD_NAME,
-    EX_DATE_FIELD_NAME,
-    PAY_DATE_FIELD_NAME,
-)
+from zipline.pipeline.common import ANNOUNCEMENT_FIELD_NAME
 from zipline.pipeline.loaders.events import EventsLoader
 from ..data import (
-    DividendsByExDate,
     DividendsByAnnouncementDate,
-    DividendsByPayDate
+    DividendsByExDate,
+    DividendsByPayDate,
 )
 from zipline.utils.memoize import lazyval
+
+
+CASH_AMOUNT_FIELD_NAME = 'cash_amount'
+CASH_AMOUNT_FIELD_NAME = 'cash_amount'
+CURRENCY_FIELD_NAME = 'currency_type'
+DIVIDEND_TYPE_FIELD_NAME = 'dividend_type'
+EX_DATE_FIELD_NAME = 'ex_date'
+PAY_DATE_FIELD_NAME = 'pay_date'
 
 
 class DividendsByAnnouncementDateLoader(EventsLoader):

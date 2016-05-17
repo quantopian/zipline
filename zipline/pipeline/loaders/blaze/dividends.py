@@ -1,10 +1,5 @@
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
-    CASH_AMOUNT_FIELD_NAME,
-    CURRENCY_FIELD_NAME,
-    DIVIDEND_TYPE_FIELD_NAME,
-    EX_DATE_FIELD_NAME,
-    PAY_DATE_FIELD_NAME,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
@@ -19,6 +14,13 @@ from zipline.pipeline.loaders import (
     DividendsByExDateLoader
 )
 from .events import BlazeEventsLoader
+from zipline.pipeline.loaders.dividends import (
+    CASH_AMOUNT_FIELD_NAME,
+    CURRENCY_FIELD_NAME,
+    DIVIDEND_TYPE_FIELD_NAME,
+    EX_DATE_FIELD_NAME,
+    PAY_DATE_FIELD_NAME,
+)
 
 
 class BlazeDividendsByAnnouncementDateLoader(BlazeEventsLoader):

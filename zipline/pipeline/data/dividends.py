@@ -2,9 +2,9 @@
 Dataset representing dates of upcoming dividends.
 """
 from zipline.utils.numpy_utils import (
+    categorical_dtype,
     datetime64ns_dtype,
     float64_dtype,
-    categorical_dtype
 )
 
 from .dataset import Column, DataSet
@@ -17,8 +17,8 @@ class DividendsByExDate(DataSet):
     previous_amount = Column(float64_dtype)
     next_currency = Column(categorical_dtype)
     previous_currency = Column(categorical_dtype)
-    previous_type = Column(categorical_dtype)
     next_type = Column(categorical_dtype)
+    previous_type = Column(categorical_dtype)
 
 
 class DividendsByPayDate(DataSet):
@@ -28,8 +28,8 @@ class DividendsByPayDate(DataSet):
     previous_amount = Column(float64_dtype)
     next_currency = Column(categorical_dtype)
     previous_currency = Column(categorical_dtype)
-    previous_type = Column(categorical_dtype)
     next_type = Column(categorical_dtype)
+    previous_type = Column(categorical_dtype)
 
 
 class DividendsByAnnouncementDate(DataSet):

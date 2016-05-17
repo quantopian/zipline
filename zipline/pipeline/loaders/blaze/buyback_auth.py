@@ -2,15 +2,16 @@ from .core import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.pipeline.common import (
-    BUYBACK_AMOUNT_FIELD_NAME,
+
+from zipline.pipeline.data import BuybackAuthorizations
+from zipline.pipeline.loaders import BuybackAuthorizationsLoader
+from .events import BlazeEventsLoader
+from zipline.pipeline.loaders.buyback_auth import (
     BUYBACK_ANNOUNCEMENT_FIELD_NAME,
     BUYBACK_TYPE_FIELD_NAME,
     BUYBACK_UNIT_FIELD_NAME,
 )
-from zipline.pipeline.data import BuybackAuthorizations
-from zipline.pipeline.loaders import BuybackAuthorizationsLoader
-from .events import BlazeEventsLoader
+from zipline.pipeline.loaders.buyback_auth import BUYBACK_AMOUNT_FIELD_NAME
 
 
 class BlazeBuybackAuthorizationsLoader(BlazeEventsLoader):

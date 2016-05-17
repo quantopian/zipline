@@ -7,21 +7,19 @@ import pandas as pd
 from six import iteritems
 
 from zipline.pipeline.common import(
-    BUYBACK_AMOUNT_FIELD_NAME,
-    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-    BUYBACK_TYPE_FIELD_NAME,
-    BUYBACK_UNIT_FIELD_NAME,
     DAYS_SINCE_PREV,
-    PREVIOUS_BUYBACK_AMOUNT,
-    PREVIOUS_BUYBACK_ANNOUNCEMENT,
-    PREVIOUS_BUYBACK_TYPE,
-    PREVIOUS_BUYBACK_UNIT,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
 from zipline.pipeline.data import BuybackAuthorizations
 from zipline.pipeline.factors.events import BusinessDaysSinceBuybackAuth
-from zipline.pipeline.loaders.buyback_auth import BuybackAuthorizationsLoader
+from zipline.pipeline.loaders.buyback_auth import (
+    BUYBACK_AMOUNT_FIELD_NAME,
+    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
+    BUYBACK_TYPE_FIELD_NAME,
+    BUYBACK_UNIT_FIELD_NAME,
+    BuybackAuthorizationsLoader,
+)
 from zipline.pipeline.loaders.blaze import BlazeBuybackAuthorizationsLoader
 from zipline.pipeline.loaders.utils import (
     zip_with_dates,
@@ -31,6 +29,13 @@ from zipline.pipeline.loaders.utils import (
 from zipline.testing.fixtures import (
     WithPipelineEventDataLoader, ZiplineTestCase
 )
+
+PREVIOUS_BUYBACK_AMOUNT = 'previous_value'
+PREVIOUS_BUYBACK_ANNOUNCEMENT = 'previous_buyback_announcement'
+PREVIOUS_BUYBACK_CASH = 'previous_buyback_cash'
+PREVIOUS_BUYBACK_SHARE_COUNT = 'previous_buyback_share_count'
+PREVIOUS_BUYBACK_TYPE = 'previous_buyback_type'
+PREVIOUS_BUYBACK_UNIT = 'previous_buyback_unit'
 
 date_intervals = [
     [['2014-01-01', '2014-01-04'], ['2014-01-05', '2014-01-09'],
