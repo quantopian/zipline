@@ -8,7 +8,6 @@ from numpy import (
     arange,
     average,
     clip,
-    corrcoef,
     diff,
     exp,
     fmax,
@@ -22,7 +21,7 @@ from numpy import (
     sum as np_sum,
 )
 from numexpr import evaluate
-from scipy.stats import linregress, spearmanr
+from scipy.stats import linregress, pearsonr, spearmanr
 
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.filters import SingleAsset
@@ -262,8 +261,10 @@ class RollingPearsonOfReturns(_RollingCorrelationOfReturns):
     :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
     """
     def compute(self, today, assets, out, data, target):
-        asset_col = searchsorted(assets.values, target.sid)
-        out[:] = corrcoef(data, rowvar=0)[asset_col]
+        target_col = data[:, searchsorted(assets.values, target.sid)]
+        for i in range(len(out)):
+            # pearsonr returns the R-value and the P-value.
+            out[i] = pearsonr(data[:, i], target_col)[0]
 
 
 class RollingSpearmanOfReturns(_RollingCorrelationOfReturns):
@@ -288,8 +289,10 @@ class RollingSpearmanOfReturns(_RollingCorrelationOfReturns):
     :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
     """
     def compute(self, today, assets, out, data, target):
-        asset_col = searchsorted(assets.values, target.sid)
-        out[:] = spearmanr(data)[0][asset_col]
+        target_col = data[:, searchsorted(assets.values, target.sid)]
+        for i in range(len(out)):
+            # spearmanr returns the R-value and the P-value.
+            out[i] = spearmanr(data[:, i], target_col)[0]
 
 
 class RollingLinearRegressionOfReturns(CustomFactor, SingleInputMixin):
@@ -402,16 +405,22 @@ class RollingLinearRegressionOfReturns(CustomFactor, SingleInputMixin):
     def compute(self, today, assets, out, returns, target):
         asset_col = searchsorted(assets.values, target.sid)
         my_asset = returns[:, asset_col]
+
+        alpha = out.alpha
+        beta = out.beta
+        r_value = out.r_value
+        p_value = out.p_value
+        stderr = out.stderr
         for i in range(len(out)):
             other_asset = returns[:, i]
             regr_results = linregress(y=other_asset, x=my_asset)
             # `linregress` returns its results in the following order:
             # slope, intercept, r-value, p-value, stderr
-            out.alpha[i] = regr_results[1]
-            out.beta[i] = regr_results[0]
-            out.r_value[i] = regr_results[2]
-            out.p_value[i] = regr_results[3]
-            out.stderr[i] = regr_results[4]
+            alpha[i] = regr_results[1]
+            beta[i] = regr_results[0]
+            r_value[i] = regr_results[2]
+            p_value[i] = regr_results[3]
+            stderr[i] = regr_results[4]
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
