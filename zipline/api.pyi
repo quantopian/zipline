@@ -508,8 +508,8 @@ def set_commission(commission):
 
     Parameters
     ----------
-    commision : PerShare, PerTrade, or PerDollar
-        The commision model to use.
+    commission : PerShare, PerTrade, or PerDollar
+        The commission model to use.
 
     See Also
     --------
