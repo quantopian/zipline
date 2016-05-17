@@ -1030,40 +1030,30 @@ class BlazeLoader(dict):
                     )
                 else:
                     last_in_group = last_in_group.reindex(dates)
-            # Unstack will fill all missing values with NaN; we need to fix
-            # this for all types that are not float.
-            if not df.empty:
-                for column in columns:
-                    if df[column.name].dtype == categorical_dtype:
-                        last_in_group[column.name] = last_in_group[
-                            column.name
-                        ].where(pd.notnull(last_in_group[column.name]),
-                                column.missing_value)
-                    # Need to convert from float col to datetime col
-                    elif df[column.name].dtype == datetime64ns_dtype:
-                        last_in_group[column.name] = last_in_group[
-                            column.name
-                        ].astype('datetime64[ns]')
-                    else:
-                        last_in_group[column.name] = last_in_group[
-                            column.name
-                        ].fillna(column.missing_value)
 
             return last_in_group
 
         sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
         dense_output = last_in_date_group(sparse_output, reindex=True)
+        dense_output = dense_output.ffill()
+
+        # Unstack will fill all missing values with NaN; we need to fix
+        # this for all types that are not float.
         for column in columns:
-            if have_sids:
+            if column.dtype == categorical_dtype:
                 dense_output[column.name] = dense_output[
                     column.name
-                ].apply(lambda x: x.replace(
-                    to_replace=column.missing_value, method='ffill'
-                ))
+                ].where(pd.notnull(dense_output[column.name]),
+                        column.missing_value)
+            # Need to convert from float col to datetime col
+            elif column.dtype == datetime64ns_dtype:
+                dense_output[column.name] = dense_output[
+                    column.name
+                ].astype('datetime64[ns]')
             else:
-                dense_output[column.name] = dense_output[column.name].replace(
-                    to_replace=column.missing_value, method='ffill'
-                )
+                dense_output[column.name] = dense_output[
+                    column.name
+                ].fillna(column.missing_value)
 
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
