@@ -26,7 +26,7 @@ from scipy.stats import linregress, pearsonr, spearmanr
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
-from zipline.pipeline.term import NotSpecified
+from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.utils.numpy_utils import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
@@ -183,9 +183,12 @@ class _RollingCorrelationOfReturns(CustomFactor, SingleInputMixin):
                 correlation_length,
                 mask=NotSpecified,
                 **kwargs):
-        if mask is not NotSpecified:
-            # Make sure we do not filter out the asset of interest.
-            mask = mask | SingleAsset(asset=target)
+        if mask is NotSpecified:
+            mask = AssetExists()
+
+        # Make sure we do not filter out the asset of interest.
+        mask = mask | SingleAsset(asset=target)
+
         return super(_RollingCorrelationOfReturns, cls).__new__(
             cls,
             target=target,
@@ -390,9 +393,12 @@ class RollingLinearRegressionOfReturns(CustomFactor, SingleInputMixin):
                 regression_length,
                 mask=NotSpecified,
                 **kwargs):
-        if mask is not NotSpecified:
-            # Make sure we do not filter out the asset of interest.
-            mask = mask | SingleAsset(asset=target)
+        if mask is NotSpecified:
+            mask = AssetExists()
+
+        # Make sure we do not filter out the asset of interest.
+        mask = mask | SingleAsset(asset=target)
+
         return super(RollingLinearRegressionOfReturns, cls).__new__(
             cls,
             target=target,

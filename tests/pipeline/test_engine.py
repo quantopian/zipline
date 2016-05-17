@@ -41,7 +41,9 @@ from scipy.stats.stats import linregress, pearsonr, spearmanr
 from six import iteritems, itervalues
 from toolz import merge
 
+from zipline.assets import Equity
 from zipline.assets.synthetic import make_rotating_equity_info
+from zipline.errors import NonExistentAssetInTimeFrame
 from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import CustomFactor, Pipeline
@@ -1429,6 +1431,59 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
                         index=self.dates[start_date_index:end_date_index + 1],
                         columns=assets,
                     ),
+                )
+
+    def test_correlation_and_regression_with_bad_asset(self):
+        """
+        Test that `RollingPearsonOfReturns`, `RollingSpearmanOfReturns` and
+        `RollingLinearRegressionOfReturns` raise the proper exception when
+        given a nonexistent target asset.
+        """
+        start_date_index = 6
+        end_date_index = 10
+        my_asset = Equity(0)
+
+        # This filter is arbitrary; the important thing is that we test each
+        # factor both with and without a specified mask.
+        my_asset_filter = AssetID().eq(1)
+
+        for mask in (NotSpecified, my_asset_filter):
+            pearson_factor = RollingPearsonOfReturns(
+                target=my_asset,
+                returns_length=3,
+                correlation_length=3,
+                mask=mask,
+            )
+            spearman_factor = RollingSpearmanOfReturns(
+                target=my_asset,
+                returns_length=3,
+                correlation_length=3,
+                mask=mask,
+            )
+            regression_factor = RollingLinearRegressionOfReturns(
+                target=my_asset,
+                returns_length=3,
+                regression_length=3,
+                mask=mask,
+            )
+
+            with self.assertRaises(NonExistentAssetInTimeFrame):
+                self.engine.run_pipeline(
+                    Pipeline(columns={'pearson_factor': pearson_factor}),
+                    self.dates[start_date_index],
+                    self.dates[end_date_index],
+                )
+            with self.assertRaises(NonExistentAssetInTimeFrame):
+                self.engine.run_pipeline(
+                    Pipeline(columns={'spearman_factor': spearman_factor}),
+                    self.dates[start_date_index],
+                    self.dates[end_date_index],
+                )
+            with self.assertRaises(NonExistentAssetInTimeFrame):
+                self.engine.run_pipeline(
+                    Pipeline(columns={'regression_factor': regression_factor}),
+                    self.dates[start_date_index],
+                    self.dates[end_date_index],
                 )
 
 
