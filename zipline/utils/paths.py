@@ -45,6 +45,20 @@ def ensure_directory_containing(path):
     ensure_directory(os.path.dirname(path))
 
 
+def ensure_file(path):
+    """
+    Ensure that a file exists. This will create any parent directories needed
+    and create an empty file if it does not exists.
+
+    Parameters
+    ----------
+    path : str
+        The file path to ensure exists.
+    """
+    ensure_directory_containing(path)
+    open(path, 'a+').close()  # touch the file
+
+
 def last_modified_time(path):
     """
     Get the last modified time of path as a Timestamp.
