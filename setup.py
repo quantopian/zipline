@@ -143,7 +143,8 @@ def _filter_requirements(lines_iter, filter_names=None,
 
 
 REQ_UPPER_BOUNDS = {
-    'bcolz': '<1'
+    'bcolz': '<1',
+    'pandas': '<0.18',
 }
 
 
