@@ -62,30 +62,49 @@ class TermGraph(DiGraph):
     def offset(self):
         """
         For all pairs (term, input) such that `input` is an input to `term`,
-        compute a mapping:
+        compute a mapping::
 
             (term, input) -> offset(term, input)
 
-        where `offset(term, input)` is defined as
+        where ``offset(term, input)`` is the number of rows that ``term``
+        should truncate off the raw array produced for ``input`` before using
+        it. We compute this value as follows::
 
-            Max number of extra rows needed by any term depending on `input`
-            minus
-            Number of extra rows needed by `term`.
+            offset(term, input) = (extra_rows_computed(input)
+                                   - extra_rows_computed(term)
+                                   - requested_extra_rows(term, input))
+        Examples
+        --------
 
-        Example
-        -------
+        Case 1
+        ~~~~~~
 
         Factor A needs 5 extra rows of USEquityPricing.close, and Factor B
         needs 3 extra rows of the same.  Factor A also requires 5 extra rows of
-        USEquityPricing.high, which no other Factor uses.
+        USEquityPricing.high, which no other Factor uses.  We don't require any
+        extra rows of Factor A or Factor B
 
         We load 5 extra rows of both `price` and `high` to ensure we can
-        service Factor A, and the following offsets get computed:
+        service Factor A, and the following offsets get computed::
 
-        self.offset[Factor A, USEquityPricing.close] == 0
-        self.offset[Factor A, USEquityPricing.high] == 0
-        self.offset[Factor B, USEquityPricing.close] == 2
-        self.offset[Factor B, USEquityPricing.high] raises KeyError.
+            offset[Factor A, USEquityPricing.close] == (5 - 0) - 5 == 0
+            offset[Factor A, USEquityPricing.high]  == (5 - 0) - 5 == 0
+            offset[Factor B, USEquityPricing.close] == (5 - 0) - 3 == 2
+            offset[Factor B, USEquityPricing.high] raises KeyError.
+
+        Case 2
+        ~~~~~~
+
+        Factor A needs 5 extra rows of USEquityPricing.close, and Factor B
+        needs 3 extra rows of Factor A, and Factor B needs 2 extra rows of
+        USEquityPricing.close.
+
+        We load 8 extra rows of USEquityPricing.close (enough to load 5 extra
+        rows of Factor A), and the following offsets get computed::
+
+            offset[Factor A, USEquityPricing.close] == (8 - 3) - 5 == 0
+            offset[Factor B, USEquityPricing.close] == (8 - 0) - 2 == 6
+            offset[Factor B, Factor A]              == (3 - 0) - 3 == 0
 
         Notes
         -----
@@ -104,9 +123,15 @@ class TermGraph(DiGraph):
         zipline.pipeline.engine.SimplePipelineEngine._inputs_for_term
         zipline.pipeline.engine.SimplePipelineEngine._mask_and_dates_for_term
         """
-        return {(term, dep): self.extra_rows[dep] - additional_extra_rows
-                for term in self
-                for dep, additional_extra_rows in term.dependencies.items()}
+        extra = self.extra_rows
+        return {
+            # Another way of thinking about this is:
+            # How much bigger is the array for ``dep`` compared to ``term``?
+            # How much of that difference did I ask for.
+            (term, dep): (extra[dep] - extra[term]) - requested_extra_rows
+            for term in self
+            for dep, requested_extra_rows in term.dependencies.items()
+        }
 
     @lazyval
     def extra_rows(self):

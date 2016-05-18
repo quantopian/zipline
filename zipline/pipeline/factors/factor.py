@@ -577,6 +577,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             factor=self,
             mask=mask,
             groupby=groupby,
+            window_safe=True,
         )
 
     def rank(self, method='ordinal', ascending=True, mask=NotSpecified):
@@ -908,7 +909,7 @@ class GroupedRowTransform(Factor):
     """
     window_length = 0
 
-    def __new__(cls, transform, factor, mask, groupby):
+    def __new__(cls, transform, factor, mask, groupby, **kwargs):
 
         if mask is NotSpecified:
             mask = factor.mask
@@ -925,6 +926,7 @@ class GroupedRowTransform(Factor):
             missing_value=factor.missing_value,
             mask=mask,
             dtype=factor.dtype,
+            **kwargs
         )
 
     def _init(self, transform, *args, **kwargs):
@@ -1001,6 +1003,7 @@ class Rank(SingleInputMixin, Factor):
     """
     window_length = 0
     dtype = float64_dtype
+    window_safe = True
 
     def __new__(cls, factor, method, ascending, mask):
         return super(Rank, cls).__new__(

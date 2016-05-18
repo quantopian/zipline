@@ -6,6 +6,7 @@ from .filter import (
     NullFilter,
     NumExprFilter,
     PercentileFilter,
+    SingleAsset,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     'NullFilter',
     'NumExprFilter',
     'PercentileFilter',
+    'SingleAsset',
 ]

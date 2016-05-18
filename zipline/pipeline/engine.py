@@ -20,7 +20,7 @@ from pandas import (
 from toolz import groupby, juxt
 from toolz.curried.operator import getitem
 
-from zipline.lib.adjusted_array import ensure_ndarray
+from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
 from zipline.errors import NoFurtherDataError
 from zipline.utils.numpy_utils import repeat_first_axis, repeat_last_axis
 from zipline.utils.pandas_utils import explode
@@ -265,28 +265,31 @@ class SimplePipelineEngine(object):
         that input.
         """
         offsets = graph.offset
+        out = []
         if term.windowed:
             # If term is windowed, then all input data should be instances of
             # AdjustedArray.
-            return [
-                workspace[input_].traverse(
-                    window_length=term.window_length,
-                    offset=offsets[term, input_]
+            for input_ in term.inputs:
+                adjusted_array = ensure_adjusted_array(
+                    workspace[input_], input_.missing_value,
                 )
-                for input_ in term.inputs
-            ]
-
-        # If term is not windowed, input_data may be an AdjustedArray or
-        # np.ndarray.  Coerce the former to the latter.
-        out = []
-        for input_ in term.inputs:
-            input_data = ensure_ndarray(workspace[input_])
-            offset = offsets[term, input_]
-            # OPTIMIZATION: Don't make a copy by doing input_data[0:] if
-            # offset is zero.
-            if offset:
-                input_data = input_data[offset:]
-            out.append(input_data)
+                out.append(
+                    adjusted_array.traverse(
+                        window_length=term.window_length,
+                        offset=offsets[term, input_],
+                    )
+                )
+        else:
+            # If term is not windowed, input_data may be an AdjustedArray or
+            # np.ndarray.  Coerce the former to the latter.
+            for input_ in term.inputs:
+                input_data = ensure_ndarray(workspace[input_])
+                offset = offsets[term, input_]
+                # OPTIMIZATION: Don't make a copy by doing input_data[0:] if
+                # offset is zero.
+                if offset:
+                    input_data = input_data[offset:]
+                out.append(input_data)
         return out
 
     def get_loader(self, term):
