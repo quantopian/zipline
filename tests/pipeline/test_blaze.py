@@ -270,19 +270,190 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             NonPipelineField,
         )
 
-    def test_cols_with_missing_vals(self):
-        dates = (self.dates[0], self.dates[-1])
+    def test_cols_with_all_missing_vals(self):
+        """
+        Tests that when there is no known data, we get output where the
+        columns have the right dtypes and the right missing values filled in.
+
+        input (self.df):
+        Empty DataFrame
+        Columns: [sid, float_value, str_value, int_value, bool_value, dt_value,
+            asof_date, timestamp]
+        Index: []
+
+        output (expected)
+                                          str_value  float_value  int_value
+        2014-01-01 Equity(65 [A])      None          NaN          0
+                   Equity(66 [B])      None          NaN          0
+                   Equity(67 [C])      None          NaN          0
+        2014-01-02 Equity(65 [A])      None          NaN          0
+                   Equity(66 [B])      None          NaN          0
+                   Equity(67 [C])      None          NaN          0
+        2014-01-03 Equity(65 [A])      None          NaN          0
+                   Equity(66 [B])      None          NaN          0
+                   Equity(67 [C])      None          NaN          0
+
+                                  dt_value  bool_value
+        2014-01-01 Equity(65 [A])      NaT  False
+                   Equity(66 [B])      NaT  False
+                   Equity(67 [C])      NaT  False
+        2014-01-02 Equity(65 [A])      NaT  False
+                   Equity(66 [B])      NaT  False
+                   Equity(67 [C])      NaT  False
+        2014-01-03 Equity(65 [A])      NaT  False
+                   Equity(66 [B])      NaT  False
+                   Equity(67 [C])      NaT  False
+        """
+        df = pd.DataFrame(columns=['sid', 'float_value', 'str_value',
+                                   'int_value', 'bool_value', 'dt_value',
+                                   'asof_date', 'timestamp'])
+
+        expr = bz.data(
+            df,
+            dshape="""
+            var * {
+                 sid: int64,
+                 float_value: float64,
+                 str_value: string,
+                 int_value: int64,
+                 bool_value: bool,
+                 dt_value: datetime,
+                 asof_date: datetime,
+                 timestamp: datetime,
+            }""",
+        )
+        fields = OrderedDict(expr.dshape.measure.fields)
+
+        expected = pd.DataFrame({
+            "str_value": np.array([None,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   None,
+                                   None],
+                                  dtype='object'),
+            "float_value": np.array([np.NaN,
+                                     np.NaN,
+                                     np.NaN,
+                                     np.NaN,
+                                     np.NaN,
+                                     np.NaN,
+                                     np.NaN,
+                                     np.NaN,
+                                     np.NaN],
+                                    dtype='float64'),
+            "int_value": np.array([0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0,
+                                   0],
+                                  dtype='int64'),
+            "bool_value": np.array([False,
+                                    False,
+                                    False,
+                                    False,
+                                    False,
+                                    False,
+                                    False,
+                                    False,
+                                    False],
+                                   dtype='bool'),
+            "dt_value": [pd.NaT,
+                         pd.NaT,
+                         pd.NaT,
+                         pd.NaT,
+                         pd.NaT,
+                         pd.NaT,
+                         pd.NaT,
+                         pd.NaT,
+                         pd.NaT],
+        },
+            columns=['str_value', 'float_value', 'int_value', 'bool_value',
+                     'dt_value'],
+            index=pd.MultiIndex.from_product(
+                (self.dates, self.asset_finder.retrieve_all(
+                    self.ASSET_FINDER_EQUITY_SIDS
+                ))
+            )
+        )
+
+        self._test_id(
+            df,
+            var * Record(fields),
+            expected,
+            self.asset_finder,
+            ('float_value', 'str_value', 'int_value', 'bool_value',
+             'dt_value'),
+        )
+
+    def test_cols_with_some_missing_vals(self):
+        """
+        Tests the following:
+            1) Forward filling replaces missing values correctly for the data
+            types supported in pipeline.
+            2) We don't forward fill when the missing value is the actual value
+             we got for a date in the case of int/bool columns.
+            3) We get the correct type of missing value in the output.
+
+        input (self.df):
+           asof_date bool_value   dt_value  float_value  int_value  sid
+        0 2014-01-01       True 2011-01-01            0          1   65
+        1 2014-01-03       True 2011-01-02            1          2   66
+        2 2014-01-01       True 2011-01-03            2          3   67
+        3 2014-01-02      False        NaT          NaN          0   67
+
+          str_value  timestamp
+        0         a  2014-01-01
+        1         b  2014-01-03
+        2         c  2014-01-01
+        3      None  2014-01-02
+
+        output (expected)
+                                  str_value  float_value  int_value bool_value
+        2014-01-01 Equity(65 [A])         a            0          1       True
+                   Equity(66 [B])      None          NaN          0      False
+                   Equity(67 [C])         c            2          3       True
+        2014-01-02 Equity(65 [A])         a            0          1       True
+                   Equity(66 [B])      None          NaN          0      False
+                   Equity(67 [C])         c            2          0      False
+        2014-01-03 Equity(65 [A])         a            0          1       True
+                   Equity(66 [B])         b            1          2       True
+                   Equity(67 [C])         c            2          0      False
+
+                                    dt_value
+        2014-01-01 Equity(65 [A]) 2011-01-01
+                   Equity(66 [B])        NaT
+                   Equity(67 [C]) 2011-01-03
+        2014-01-02 Equity(65 [A]) 2011-01-01
+                   Equity(66 [B])        NaT
+                   Equity(67 [C]) 2011-01-03
+        2014-01-03 Equity(65 [A]) 2011-01-01
+                   Equity(66 [B]) 2011-01-02
+                   Equity(67 [C]) 2011-01-03
+        """
+        dates = (self.dates[0], self.dates[-1], self.dates[0], self.dates[1])
         df = pd.DataFrame({
-            'sid': self.ASSET_FINDER_EQUITY_SIDS[:-1],
-            'float_value': (0., 1.,),
-            'str_value': ("a", "b",),
-            'int_value': (1, 2),
-            'bool_value': (True, True),
+            'sid': self.ASSET_FINDER_EQUITY_SIDS[:-1] +
+            (self.ASSET_FINDER_EQUITY_SIDS[-1],)*2,
+            'float_value': (0., 1., 2., np.NaN),
+            'str_value': ("a", "b", "c", None),
+            'int_value': (1, 2, 3, 0),
+            'bool_value': (True, True, True, False),
             'dt_value': (pd.Timestamp('2011-01-01'),
-                         pd.Timestamp('2011-01-02')),
+                         pd.Timestamp('2011-01-02'),
+                         pd.Timestamp('2011-01-03'),
+                         pd.NaT),
             'asof_date': dates,
             'timestamp': dates,
         })
+
         expr = bz.data(
             df,
             dshape="""
@@ -302,27 +473,27 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         expected = pd.DataFrame({
             "str_value": np.array(["a",
                                    None,
-                                   None,
+                                   "c",
                                    "a",
                                    None,
-                                   None,
+                                   "c",
                                    "a",
                                    "b",
-                                   None],
+                                   "c"],
                                   dtype='object'),
             "float_value": np.array([0,
                                      np.NaN,
-                                     np.NaN,
+                                     2,
                                      0,
                                      np.NaN,
-                                     np.NaN,
+                                     2,
                                      0,
                                      1,
-                                     np.NaN],
+                                     2],
                                     dtype='float64'),
             "int_value": np.array([1,
                                    0,
-                                   0,
+                                   3,
                                    1,
                                    0,
                                    0,
@@ -332,7 +503,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                                   dtype='int64'),
             "bool_value": np.array([True,
                                     False,
-                                    False,
+                                    True,
                                     True,
                                     False,
                                     False,
@@ -342,13 +513,13 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                                    dtype='bool'),
             "dt_value": [pd.Timestamp('2011-01-01'),
                          pd.NaT,
-                         pd.NaT,
+                         pd.Timestamp('2011-01-03'),
                          pd.Timestamp('2011-01-01'),
                          pd.NaT,
-                         pd.NaT,
+                         pd.Timestamp('2011-01-03'),
                          pd.Timestamp('2011-01-01'),
                          pd.Timestamp('2011-01-02'),
-                         pd.NaT],
+                         pd.Timestamp('2011-01-03')],
         },
             columns=['str_value', 'float_value', 'int_value', 'bool_value',
                      'dt_value'],

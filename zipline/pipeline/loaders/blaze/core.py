@@ -179,7 +179,6 @@ from zipline.utils.input_validation import (
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     repeat_last_axis,
-    datetime64ns_dtype
 )
 from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
@@ -1035,25 +1034,38 @@ class BlazeLoader(dict):
 
         sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
         dense_output = last_in_date_group(sparse_output, reindex=True)
-        dense_output = dense_output.ffill()
+        dense_output.ffill(inplace=True)
 
-        # Unstack will fill all missing values with NaN; we need to fix
-        # this for all types that are not float.
+        # Fill in missing values specified by each column. This is made
+        # significantly more complex by the fact that we need to work around
+        # two pandas issues:
+
+        # 1) When we have sids, if there are no records for a given sid for any
+        #    dates, pandas will generate a column full of NaNs for that sid.
+        #    This means that some of the columns in `dense_output` are now
+        #    float instead of the intended dtype, so we have to coerce back to
+        #    our expected type and convert NaNs into the desired missing value.
+
+        # 2) DataFrame.ffill assumes that receiving None as a fill-value means
+        #    that no value was passed.  Consequently, there's no way to tell
+        #    pandas to replace NaNs in an object column with None using fillna,
+        #    so we have to roll our own instead using df.where.
         for column in columns:
+            # Special logic for strings since `fillna` doesn't work if the
+            # missing value is `None`.
             if column.dtype == categorical_dtype:
                 dense_output[column.name] = dense_output[
                     column.name
                 ].where(pd.notnull(dense_output[column.name]),
                         column.missing_value)
-            # Need to convert from float col to datetime col
-            elif column.dtype == datetime64ns_dtype:
-                dense_output[column.name] = dense_output[
-                    column.name
-                ].astype('datetime64[ns]')
             else:
+                # We need to execute `fillna` before `astype` in case the
+                # column contains NaNs and needs to be cast to bool or int.
+                # This is so that the NaNs are replaced first, since pandas
+                # can't convert NaNs for those types.
                 dense_output[column.name] = dense_output[
                     column.name
-                ].fillna(column.missing_value)
+                ].fillna(column.missing_value).astype(column.dtype)
 
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
