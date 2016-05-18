@@ -217,6 +217,15 @@ class RollingPearsonOfReturns(_RollingCorrelationOfReturns):
     correlation_length : int >= 1
         Length of the lookback window over which to compute each correlation
         coefficient.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing which assets should have their correlation with the
+        target asset computed each day.
+
+    Note
+    ----
+    Computing this factor over many assets can be time consuming. It is
+    recommended that a mask be used in order to limit the number of assets over
+    which correlations are computed.
 
     Example
     -------
@@ -285,6 +294,15 @@ class RollingSpearmanOfReturns(_RollingCorrelationOfReturns):
     correlation_length : int >= 1
         Length of the lookback window over which to compute each correlation
         coefficient.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing which assets should have their correlation with the
+        target asset computed each day.
+
+    Note
+    ----
+    Computing this factor over many assets can be time consuming. It is
+    recommended that a mask be used in order to limit the number of assets over
+    which correlations are computed.
 
     See Also
     --------
@@ -312,9 +330,16 @@ class RollingLinearRegressionOfReturns(CustomFactor, SingleInputMixin):
         returns require a window length of 2.
     regression_length : int >= 1
         Length of the lookback window over which to compute each regression.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing which assets should be regressed against the target
+        asset each day.
 
-    Note
-    ----
+    Notes
+    -----
+    Computing this factor over many assets can be time consuming. It is
+    recommended that a mask be used in order to limit the number of assets over
+    which regressions are computed.
+
     This factor is designed to return five outputs:
         - alpha, a factor that computes the intercepts of each regression.
         - beta, a factor that computes the slopes of each regression.
