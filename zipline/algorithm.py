@@ -56,7 +56,7 @@ from zipline.errors import (
     OrderInBeforeTradingStart)
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
-from zipline.finance.commission import PerShare, PerTrade, PerDollar
+from zipline.finance.commission import PerShare, CommissionModel
 from zipline.finance.controls import (
     LongOnly,
     MaxOrderCount,
@@ -1483,11 +1483,11 @@ class TradingAlgorithm(object):
 
     @api_method
     def set_commission(self, commission):
-        """Sets the commision model for the simulation.
+        """Sets the commission model for the simulation.
 
         Parameters
         ----------
-        commission : PerShare, PerTrade, or PerDollar
+        commission : CommissionModel
             The commission model to use.
 
         See Also
@@ -1496,11 +1496,12 @@ class TradingAlgorithm(object):
         :class:`zipline.finance.commission.PerTrade`
         :class:`zipline.finance.commission.PerDollar`
         """
-        if not isinstance(commission, (PerShare, PerTrade, PerDollar)):
+        if not isinstance(commission, CommissionModel):
             raise UnsupportedCommissionModel()
 
         if self.initialized:
             raise SetCommissionPostInit()
+
         self.blotter.commission = commission
 
     @api_method

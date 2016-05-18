@@ -11,9 +11,11 @@ import pandas as pd
 from zipline import examples, run_algorithm
 from zipline.testing import test_resource_path, tmp_dir
 from zipline.utils.cache import dataframe_cache
+from zipline.data.bundles import register
 
 banner = """
-Please verify that the new perfomance is more correct than the old performance.
+Please verify that the new performance is more correct than the old
+performance.
 
 To do this, please inspect `new` and `old` which are mappings from the name of
 the example to the results.
@@ -37,6 +39,9 @@ def main(ctx):
     """Rebuild the perf data for test_examples
     """
     example_path = test_resource_path('example_data.tar.gz')
+
+    register('test', lambda *args: None)
+
     with tmp_dir() as d:
         with tarfile.open(example_path) as tar:
             tar.extractall(d.path)
@@ -67,6 +72,7 @@ def main(ctx):
                     environ={
                         'ZIPLINE_ROOT': d.getpath('example_data/root'),
                     },
+                    capital_base=1e7,
                     **mod._test_args()
                 )
 

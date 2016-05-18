@@ -46,7 +46,7 @@ class Order(object):
                  "limit_reached", "direction", "type", "broker_order_id"]
 
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
-                 commission=None, id=None):
+                 commission=0, id=None):
         """
         @dt - datetime.datetime that the order was placed
         @sid - asset for the order.  called sid for historical reasons.
