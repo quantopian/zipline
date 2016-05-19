@@ -280,9 +280,9 @@ class PercentileFilter(SingleInputMixin, Filter):
         return super(PercentileFilter, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, min_percentile, max_percentile, *args, **kwargs):
+    def _static_identity(cls, min_percentile, max_percentile, *args, **kwargs):
         return (
-            super(PercentileFilter, cls).static_identity(*args, **kwargs),
+            super(PercentileFilter, cls)._static_identity(*args, **kwargs),
             min_percentile,
             max_percentile,
         )
@@ -411,9 +411,9 @@ class ArrayPredicate(SingleInputMixin, Filter):
         return super(ArrayPredicate, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, op, opargs, *args, **kwargs):
+    def _static_identity(cls, op, opargs, *args, **kwargs):
         return (
-            super(ArrayPredicate, cls).static_identity(*args, **kwargs),
+            super(ArrayPredicate, cls)._static_identity(*args, **kwargs),
             op,
             opargs,
         )
@@ -445,9 +445,9 @@ class SingleAsset(Filter):
         return super(SingleAsset, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, asset, *args, **kwargs):
+    def _static_identity(cls, asset, *args, **kwargs):
         return (
-            super(SingleAsset, cls).static_identity(*args, **kwargs), asset,
+            super(SingleAsset, cls)._static_identity(*args, **kwargs), asset,
         )
 
     def _compute(self, arrays, dates, assets, mask):

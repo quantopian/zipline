@@ -450,6 +450,17 @@ class TermOutputsEmpty(ZiplineError):
     )
 
 
+class InvalidOutputName(ZiplineError):
+    """
+    Raised if a term's output names conflict with any of its attributes.
+    """
+    msg = (
+        "{output_name!r} cannot be used as an output name for {termname}. "
+        "Output names cannot start with an underscore or be contained in the "
+        "following list: {disallowed_names}."
+    )
+
+
 class WindowLengthNotSpecified(ZiplineError):
     """
     Raised if a user attempts to construct a term without specifying window

@@ -2,12 +2,14 @@
 Base class for Filters, Factors and Classifiers
 """
 from abc import ABCMeta, abstractproperty
+from bisect import insort
 from weakref import WeakValueDictionary
 
 from numpy import array, dtype as dtype_class, ndarray
 from six import with_metaclass
 from zipline.errors import (
     DTypeNotSpecified,
+    InvalidOutputName,
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
@@ -82,14 +84,14 @@ class Term(with_metaclass(ABCMeta, object)):
         if window_safe is NotSpecified:
             window_safe = cls.window_safe
 
-        dtype, missing_value = cls.validate_dtype(
+        dtype, missing_value = validate_dtype(
             cls.__name__,
             dtype,
             missing_value,
         )
         params = cls._pop_params(kwargs)
 
-        identity = cls.static_identity(
+        identity = cls._static_identity(
             domain=domain,
             dtype=dtype,
             missing_value=missing_value,
@@ -161,72 +163,6 @@ class Term(with_metaclass(ABCMeta, object)):
             param_values.append(value)
         return tuple(zip(cls.params, param_values))
 
-    @staticmethod
-    def validate_dtype(termname, dtype, missing_value):
-        """
-        Validate a `dtype` and `missing_value` passed to Term.__new__.
-
-        Ensures that we know how to represent ``dtype``, and that missing_value
-        is specified for types without default missing values.
-
-        Returns
-        -------
-        validated_dtype, validated_missing_value : np.dtype, any
-            The dtype and missing_value to use for the new term.
-
-        Raises
-        ------
-        DTypeNotSpecified
-            When no dtype was passed to the instance, and the class doesn't
-            provide a default.
-        NotDType
-            When either the class or the instance provides a value not
-            coercible to a numpy dtype.
-        NoDefaultMissingValue
-            When dtype requires an explicit missing_value, but
-            ``missing_value`` is NotSpecified.
-        """
-        if dtype is NotSpecified:
-            raise DTypeNotSpecified(termname=termname)
-
-        try:
-            dtype = dtype_class(dtype)
-        except TypeError:
-            raise NotDType(dtype=dtype, termname=termname)
-
-        if not can_represent_dtype(dtype):
-            raise UnsupportedDType(dtype=dtype, termname=termname)
-
-        if missing_value is NotSpecified:
-            missing_value = default_missing_value_for_dtype(dtype)
-
-        try:
-            if (dtype == categorical_dtype):
-                # This check is necessary because we use object dtype for
-                # categoricals, and numpy will allow us to promote numerical
-                # values to object even though we don't support them.
-                _assert_valid_categorical_missing_value(missing_value)
-
-            # For any other type, we can check if the missing_value is safe by
-            # making an array of that value and trying to safely convert it to
-            # the desired type.
-            # 'same_kind' allows casting between things like float32 and
-            # float64, but not str and int.
-            array([missing_value]).astype(dtype=dtype, casting='same_kind')
-        except TypeError as e:
-            raise TypeError(
-                "Missing value {value!r} is not a valid choice "
-                "for term {termname} with dtype {dtype}.\n\n"
-                "Coercion attempt failed with: {error}".format(
-                    termname=termname,
-                    value=missing_value,
-                    dtype=dtype,
-                    error=e,
-                )
-            )
-
-        return dtype, missing_value
-
     def __init__(self, *args, **kwargs):
         """
         Noop constructor to play nicely with our caching __new__.  Subclasses
@@ -244,12 +180,12 @@ class Term(with_metaclass(ABCMeta, object)):
         pass
 
     @classmethod
-    def static_identity(cls,
-                        domain,
-                        dtype,
-                        missing_value,
-                        window_safe,
-                        params):
+    def _static_identity(cls,
+                         domain,
+                         dtype,
+                         missing_value,
+                         window_safe,
+                         params):
         """
         Return the identity of the Term that would be constructed from the
         given arguments.
@@ -445,15 +381,15 @@ class ComputableTerm(Term):
         return super(ComputableTerm, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls,
-                        inputs,
-                        outputs,
-                        window_length,
-                        mask,
-                        *args,
-                        **kwargs):
+    def _static_identity(cls,
+                         inputs,
+                         outputs,
+                         window_length,
+                         mask,
+                         *args,
+                         **kwargs):
         return (
-            super(ComputableTerm, cls).static_identity(*args, **kwargs),
+            super(ComputableTerm, cls)._static_identity(*args, **kwargs),
             inputs,
             outputs,
             window_length,
@@ -466,8 +402,29 @@ class ComputableTerm(Term):
         if self.inputs is NotSpecified:
             raise TermInputsNotSpecified(termname=type(self).__name__)
 
-        if not self.outputs:
+        if self.outputs is NotSpecified:
+            pass
+        elif not self.outputs:
             raise TermOutputsEmpty(termname=type(self).__name__)
+        else:
+            # Raise an exception if there are any naming conflicts between the
+            # term's output names and certain attributes.
+            disallowed_names = [
+                attr for attr in dir(ComputableTerm)
+                if not attr.startswith('_')
+            ]
+
+            # The name 'compute' is an added special case that is disallowed.
+            # Use insort to add it to the list in alphabetical order.
+            insort(disallowed_names, 'compute')
+
+            for output in self.outputs:
+                if output.startswith('_') or output in disallowed_names:
+                    raise InvalidOutputName(
+                        output_name=output,
+                        termname=type(self).__name__,
+                        disallowed_names=disallowed_names,
+                    )
 
         if self.window_length is NotSpecified:
             raise WindowLengthNotSpecified(termname=type(self).__name__)
@@ -541,6 +498,72 @@ class ComputableTerm(Term):
             inputs=self.inputs,
             window_length=self.window_length,
         )
+
+
+def validate_dtype(termname, dtype, missing_value):
+    """
+    Validate a `dtype` and `missing_value` passed to Term.__new__.
+
+    Ensures that we know how to represent ``dtype``, and that missing_value
+    is specified for types without default missing values.
+
+    Returns
+    -------
+    validated_dtype, validated_missing_value : np.dtype, any
+        The dtype and missing_value to use for the new term.
+
+    Raises
+    ------
+    DTypeNotSpecified
+        When no dtype was passed to the instance, and the class doesn't
+        provide a default.
+    NotDType
+        When either the class or the instance provides a value not
+        coercible to a numpy dtype.
+    NoDefaultMissingValue
+        When dtype requires an explicit missing_value, but
+        ``missing_value`` is NotSpecified.
+    """
+    if dtype is NotSpecified:
+        raise DTypeNotSpecified(termname=termname)
+
+    try:
+        dtype = dtype_class(dtype)
+    except TypeError:
+        raise NotDType(dtype=dtype, termname=termname)
+
+    if not can_represent_dtype(dtype):
+        raise UnsupportedDType(dtype=dtype, termname=termname)
+
+    if missing_value is NotSpecified:
+        missing_value = default_missing_value_for_dtype(dtype)
+
+    try:
+        if (dtype == categorical_dtype):
+            # This check is necessary because we use object dtype for
+            # categoricals, and numpy will allow us to promote numerical
+            # values to object even though we don't support them.
+            _assert_valid_categorical_missing_value(missing_value)
+
+        # For any other type, we can check if the missing_value is safe by
+        # making an array of that value and trying to safely convert it to
+        # the desired type.
+        # 'same_kind' allows casting between things like float32 and
+        # float64, but not str and int.
+        array([missing_value]).astype(dtype=dtype, casting='same_kind')
+    except TypeError as e:
+        raise TypeError(
+            "Missing value {value!r} is not a valid choice "
+            "for term {termname} with dtype {dtype}.\n\n"
+            "Coercion attempt failed with: {error}".format(
+                termname=termname,
+                value=missing_value,
+                dtype=dtype,
+                error=e,
+            )
+        )
+
+    return dtype, missing_value
 
 
 def _assert_valid_categorical_missing_value(value):

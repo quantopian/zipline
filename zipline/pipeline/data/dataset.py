@@ -14,7 +14,7 @@ from zipline.pipeline.term import (
     AssetExists,
     LoadableTerm,
     NotSpecified,
-    Term,
+    validate_dtype,
 )
 from zipline.utils.input_validation import ensure_dtype
 from zipline.utils.numpy_utils import NoDefaultMissingValue
@@ -56,7 +56,7 @@ class _BoundColumnDescr(object):
         # (e.g. int64), but still enables us to provide an error message that
         # points to the name of the failing column.
         try:
-            self.dtype, self.missing_value = Term.validate_dtype(
+            self.dtype, self.missing_value = validate_dtype(
                 termname="Column(name={name!r})".format(name=name),
                 dtype=dtype,
                 missing_value=missing_value,
@@ -131,9 +131,9 @@ class BoundColumn(LoadableTerm):
         return super(BoundColumn, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, dataset, name, *args, **kwargs):
+    def _static_identity(cls, dataset, name, *args, **kwargs):
         return (
-            super(BoundColumn, cls).static_identity(*args, **kwargs),
+            super(BoundColumn, cls)._static_identity(*args, **kwargs),
             dataset,
             name,
         )

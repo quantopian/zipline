@@ -194,9 +194,9 @@ class NumericalExpression(ComputableTerm):
         return super(NumericalExpression, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, expr, *args, **kwargs):
+    def _static_identity(cls, expr, *args, **kwargs):
         return (
-            super(NumericalExpression, cls).static_identity(*args, **kwargs),
+            super(NumericalExpression, cls)._static_identity(*args, **kwargs),
             expr,
         )
 
