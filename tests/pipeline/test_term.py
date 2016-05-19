@@ -457,14 +457,16 @@ class ObjectIdentityTestCase(TestCase):
             errmsg, "'SomeFactor' object has no attribute 'not_an_attr'",
         )
 
+        mo = MultipleOutputs()
         with self.assertRaises(AttributeError) as e:
-            MultipleOutputs().not_an_attr
+            mo.not_an_attr
 
         errmsg = str(e.exception)
-        self.assertEqual(
-            errmsg,
-            "Instance of MultipleOutputs has no output called 'not_an_attr'.",
+        expected = (
+            "Instance of MultipleOutputs has no output named 'not_an_attr'."
+            " Possible choices are: ('alpha', 'beta')."
         )
+        self.assertEqual(errmsg, expected)
 
         with self.assertRaises(ValueError) as e:
             alpha, beta = GenericCustomFactor()

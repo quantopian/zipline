@@ -1,7 +1,7 @@
 """
 factor.py
 """
-from functools import partial, wraps
+from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
@@ -1212,8 +1212,11 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
             return RecarrayField(factor=self, attribute=attribute_name)
         else:
             raise AttributeError(
-                'Instance of {factor} has no output called {attr!r}.'.format(
-                    factor=type(self).__name__, attr=attribute_name,
+                'Instance of {factor} has no output named {attr!r}.'
+                ' Possible choices are: {choices}.'.format(
+                    factor=type(self).__name__,
+                    attr=attribute_name,
+                    choices=self.outputs,
                 )
             )
 
@@ -1224,8 +1227,7 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
                     factor=type(self).__name__,
                 )
             )
-        RecarrayField_ = partial(RecarrayField, self)
-        return iter(map(RecarrayField_, self.outputs))
+        return (RecarrayField(self, attr) for attr in self.outputs)
 
 
 class RecarrayField(SingleInputMixin, Factor):
