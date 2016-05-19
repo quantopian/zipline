@@ -224,4 +224,8 @@ Documentation
 Miscellaneous
 ~~~~~~~~~~~~~
 
-None
+* Zipline now provides a `stub file
+  <https://www.python.org/dev/peps/pep-0484/#stub-files>`_ for the
+  ``zipline.api`` module. This module is normally dynamically created so the
+  stub file provides some static information for utilities that can consume it,
+  for example PyCharm (:issue:`1208`).
