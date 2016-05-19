@@ -270,9 +270,13 @@ setup(
     },
     author='Quantopian Inc.',
     author_email='opensource@quantopian.com',
-    packages=find_packages('.', include=['zipline', 'zipline.*']),
+    packages=find_packages(include=['zipline', 'zipline.*']),
     ext_modules=ext_modules,
     include_package_data=True,
+    package_data={root.replace(os.sep, '.'):
+                  ['*.pyi', '*.pyx', '*.pxi', '*.pxd']
+                  for root, dirnames, filenames in os.walk('zipline')
+                  if '__pycache__' not in root},
     license='Apache 2.0',
     classifiers=[
         'Development Status :: 4 - Beta',
