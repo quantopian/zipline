@@ -404,12 +404,13 @@ def _make_bundle_core():
                 environ=environ,
             )
         except (ValueError, OSError) as e:
-            if getattr(e, 'errno', ~errno.ENOENT) != errno.ENOENT:
+            if getattr(e, 'errno', errno.ENOENT) != errno.ENOENT:
                 raise
             raise ValueError(
-                'no data for bundle %r on or before %s' % (
-                    bundle_name,
-                    timestamp,
+                'no data for bundle {bundle!r} on or before {timestamp}\n'
+                'maybe you need to run: $ zipline ingest {bundle}'.format(
+                    bundle=bundle_name,
+                    timestamp=timestamp,
                 ),
             )
 
