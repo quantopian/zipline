@@ -4,17 +4,17 @@ Reference implementation for ConsensusEstimates loaders.
 
 from ..data import ConsensusEstimates
 from .events import EventsLoader
-from zipline.pipeline.common import (
-    COUNT_FIELD_NAME,
-    FISCAL_QUARTER_FIELD_NAME,
-    FISCAL_YEAR_FIELD_NAME,
-    HIGH_FIELD_NAME,
-    LOW_FIELD_NAME,
-    MEAN_FIELD_NAME,
-    RELEASE_DATE_FIELD_NAME,
-    STANDARD_DEVIATION_FIELD_NAME,
-    ACTUAL_VALUE_FIELD_NAME)
 from zipline.utils.memoize import lazyval
+
+ACTUAL_VALUE_FIELD_NAME = 'actual_value'
+COUNT_FIELD_NAME = 'count'
+FISCAL_QUARTER_FIELD_NAME = 'fiscal_quarter'
+FISCAL_YEAR_FIELD_NAME = 'fiscal_year'
+HIGH_FIELD_NAME = 'high'
+LOW_FIELD_NAME = 'low'
+MEAN_FIELD_NAME = 'mean'
+RELEASE_DATE_FIELD_NAME = 'release_date'
+STANDARD_DEVIATION_FIELD_NAME = 'standard_deviation'
 
 
 class ConsensusEstimatesLoader(EventsLoader):

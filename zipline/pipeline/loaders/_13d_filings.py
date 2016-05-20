@@ -2,14 +2,14 @@
 Reference implementation for 13d filings loaders.
 """
 
-from zipline.pipeline.common import (
-    DISCLOSURE_DATE,
-    PERCENT_SHARES,
-    NUM_SHARES
-)
 from zipline.pipeline.data import _13DFilings
 from zipline.pipeline.loaders.events import EventsLoader
 from zipline.utils.memoize import lazyval
+
+
+DISCLOSURE_DATE = 'disclosure_date'
+NUM_SHARES = 'number_shares'
+PERCENT_SHARES = 'percent_shares'
 
 
 class _13DFilingsLoader(EventsLoader):

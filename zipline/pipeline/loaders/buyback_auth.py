@@ -4,13 +4,13 @@ Reference implementation for buyback auth loaders.
 
 from ..data import BuybackAuthorizations
 from .events import EventsLoader
-from zipline.pipeline.common import (
-    BUYBACK_AMOUNT_FIELD_NAME,
-    BUYBACK_ANNOUNCEMENT_FIELD_NAME,
-    BUYBACK_TYPE_FIELD_NAME,
-    BUYBACK_UNIT_FIELD_NAME
-)
+
 from zipline.utils.memoize import lazyval
+
+BUYBACK_AMOUNT_FIELD_NAME = 'buyback_amount'
+BUYBACK_ANNOUNCEMENT_FIELD_NAME = 'buyback_date'
+BUYBACK_TYPE_FIELD_NAME = 'buyback_type'
+BUYBACK_UNIT_FIELD_NAME = 'buyback_unit'
 
 
 class BuybackAuthorizationsLoader(EventsLoader):

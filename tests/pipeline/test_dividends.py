@@ -8,21 +8,10 @@ from six import iteritems
 
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
-    DAYS_SINCE_PREV_DIVIDEND_ANNOUNCEMENT,
-    DAYS_SINCE_PREV_EX_DATE,
-    DAYS_TO_NEXT_EX_DATE,
-    NEXT_AMOUNT,
-    NEXT_EX_DATE,
-    NEXT_PAY_DATE,
-    PREVIOUS_ANNOUNCEMENT,
-    PREVIOUS_EX_DATE,
-    PREVIOUS_PAY_DATE,
     PREVIOUS_AMOUNT,
+    PREVIOUS_ANNOUNCEMENT,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
-    CASH_AMOUNT_FIELD_NAME,
-    EX_DATE_FIELD_NAME,
-    PAY_DATE_FIELD_NAME
 )
 from zipline.pipeline.data.dividends import (
     DividendsByAnnouncementDate,
@@ -40,18 +29,38 @@ from zipline.pipeline.loaders.blaze.dividends import (
     BlazeDividendsByExDateLoader
 )
 from zipline.pipeline.loaders.dividends import (
+    CASH_AMOUNT_FIELD_NAME,
+    CURRENCY_FIELD_NAME,
+    DIVIDEND_TYPE_FIELD_NAME,
     DividendsByAnnouncementDateLoader,
     DividendsByExDateLoader,
-    DividendsByPayDateLoader
+    DividendsByPayDateLoader,
+    EX_DATE_FIELD_NAME,
+    PAY_DATE_FIELD_NAME,
 )
 from zipline.pipeline.loaders.utils import (
     zip_with_dates,
-    zip_with_floats
+    zip_with_floats,
+    zip_with_strs,
 )
 from zipline.testing.fixtures import (
     WithPipelineEventDataLoader,
     ZiplineTestCase
 )
+
+DAYS_SINCE_PREV_DIVIDEND_ANNOUNCEMENT = 'days_since_prev_dividend_announcement'
+DAYS_SINCE_PREV_EX_DATE = 'days_since_prev_ex_date'
+DAYS_TO_NEXT_EX_DATE = 'days_to_next_ex_date'
+NEXT_AMOUNT = 'next_amount'
+NEXT_CURRENCY_TYPE = 'next_currency_type'
+NEXT_DIVIDEND_TYPE = 'next_dividend_type'
+NEXT_EX_DATE = 'next_ex_date'
+NEXT_PAY_DATE = 'next_pay_date'
+PREVIOUS_CURRENCY_TYPE = 'previous_currency_type'
+PREVIOUS_DIVIDEND_TYPE = 'previous_dividend_type'
+PREVIOUS_EX_DATE = 'previous_ex_date'
+PREVIOUS_PAY_DATE = 'previous_pay_date'
+
 
 dividends_cases = [
     # K1--K2--A1--A2.
@@ -60,7 +69,9 @@ dividends_cases = [
         EX_DATE_FIELD_NAME: pd.to_datetime(['2014-01-15', '2014-01-20']),
         PAY_DATE_FIELD_NAME: pd.to_datetime(['2014-01-15', '2014-01-20']),
         TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-09'])
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-09']),
+        CURRENCY_FIELD_NAME: ["$", "EUR"],
+        DIVIDEND_TYPE_FIELD_NAME: ["Stock", "Mixed"]
     }),
     # K1--K2--A2--A1.
     pd.DataFrame({
@@ -68,7 +79,9 @@ dividends_cases = [
         EX_DATE_FIELD_NAME: pd.to_datetime(['2014-01-20', '2014-01-15']),
         PAY_DATE_FIELD_NAME: pd.to_datetime(['2014-01-20', '2014-01-15']),
         TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-09'])
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-09']),
+        CURRENCY_FIELD_NAME: ["EUR", "$"],
+        DIVIDEND_TYPE_FIELD_NAME: ["Mixed", "Stock"]
     }),
     # K1--A1--K2--A2.
     pd.DataFrame({
@@ -76,7 +89,9 @@ dividends_cases = [
         EX_DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-20']),
         PAY_DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-20']),
         TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-14'])
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-14']),
+        CURRENCY_FIELD_NAME: ["$", "EUR"],
+        DIVIDEND_TYPE_FIELD_NAME: ["Stock", "Mixed"]
     }),
     # K1 == K2.
     pd.DataFrame({
@@ -84,14 +99,18 @@ dividends_cases = [
         EX_DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-15']),
         PAY_DATE_FIELD_NAME: pd.to_datetime(['2014-01-10', '2014-01-15']),
         TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
-        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-04'])
+        ANNOUNCEMENT_FIELD_NAME: pd.to_datetime(['2014-01-04', '2014-01-04']),
+        CURRENCY_FIELD_NAME: ["$", "EUR"],
+        DIVIDEND_TYPE_FIELD_NAME: ["Stock", "Mixed"]
     }),
     pd.DataFrame(
         columns=[CASH_AMOUNT_FIELD_NAME,
                  EX_DATE_FIELD_NAME,
                  PAY_DATE_FIELD_NAME,
                  TS_FIELD_NAME,
-                 ANNOUNCEMENT_FIELD_NAME],
+                 ANNOUNCEMENT_FIELD_NAME,
+                 CURRENCY_FIELD_NAME,
+                 DIVIDEND_TYPE_FIELD_NAME],
         dtype='datetime64[ns]'
     ),
 ]
@@ -157,6 +176,26 @@ next_amounts = [['NaN', 1, 15, 'NaN'],
                 ['NaN', 3, 'NaN', 1, 'NaN'],
                 ['NaN', 6, 23, 'NaN']]
 
+prev_currency_types = [[None, "$", "EUR"],
+                       [None, "$", "EUR"],
+                       [None, "$", "EUR"],
+                       [None, "$", "EUR"]]
+
+next_currency_types = [[None, "$", "EUR", None],
+                       [None, "EUR", "$", "EUR", None],
+                       [None, "$", None, "EUR", None],
+                       [None, "$", "EUR", None]]
+
+prev_dividend_types = [[None, "Stock", "Mixed"],
+                       [None, "Stock", "Mixed"],
+                       [None, "Stock", "Mixed"],
+                       [None, "Stock", "Mixed"]]
+
+next_dividend_types = [[None, "Stock", "Mixed", None],
+                       [None, "Mixed", "Stock", "Mixed", None],
+                       [None, "Stock", None, "Mixed", None],
+                       [None, "Stock", "Mixed", None]]
+
 
 class DividendsByAnnouncementDateTestCase(WithPipelineEventDataLoader,
                                           ZiplineTestCase):
@@ -169,6 +208,10 @@ class DividendsByAnnouncementDateTestCase(WithPipelineEventDataLoader,
         PREVIOUS_AMOUNT: DividendsByAnnouncementDate.previous_amount.latest,
         DAYS_SINCE_PREV_DIVIDEND_ANNOUNCEMENT:
             BusinessDaysSinceDividendAnnouncement(),
+        PREVIOUS_CURRENCY_TYPE:
+            DividendsByAnnouncementDate.previous_currency.latest,
+        PREVIOUS_DIVIDEND_TYPE:
+            DividendsByAnnouncementDate.previous_type.latest,
     }
 
     @classmethod
@@ -204,6 +247,10 @@ class DividendsByAnnouncementDateTestCase(WithPipelineEventDataLoader,
                               ['NaT', '2014-01-04', '2014-01-14'],
                               ['NaT', '2014-01-04']]
         amounts = [['NaN', 1, 15], ['NaN', 7, 13], ['NaN', 3, 1], ['NaN', 23]]
+        currency_types = [[None, "$", "EUR"], [None, "EUR", "$"],
+                          [None, "$", "EUR"], [None, "EUR"]]
+        dividend_types = [[None, "Stock", "Mixed"], [None, "Mixed", "Stock"],
+                          [None, "Stock", "Mixed"], [None, "Mixed"]]
         cols = {
             PREVIOUS_ANNOUNCEMENT: self.get_sids_to_frames(
                 zip_with_dates, announcement_dates, date_intervals, dates,
@@ -211,6 +258,14 @@ class DividendsByAnnouncementDateTestCase(WithPipelineEventDataLoader,
             ),
             PREVIOUS_AMOUNT: self.get_sids_to_frames(
                 zip_with_floats, amounts, date_intervals, dates, 'float', 'NaN'
+            ),
+            PREVIOUS_CURRENCY_TYPE: self.get_sids_to_frames(
+                zip_with_strs, currency_types, date_intervals, dates,
+                'category', None
+            ),
+            PREVIOUS_DIVIDEND_TYPE: self.get_sids_to_frames(
+                zip_with_strs, dividend_types, date_intervals, dates,
+                'category', None
             ),
         }
 
@@ -235,7 +290,9 @@ class BlazeDividendsByAnnouncementDateTestCase(
                 ANNOUNCEMENT_FIELD_NAME: df[ANNOUNCEMENT_FIELD_NAME],
                 TS_FIELD_NAME: df[TS_FIELD_NAME],
                 SID_FIELD_NAME: sid,
-                CASH_AMOUNT_FIELD_NAME: df[CASH_AMOUNT_FIELD_NAME]
+                CASH_AMOUNT_FIELD_NAME: df[CASH_AMOUNT_FIELD_NAME],
+                CURRENCY_FIELD_NAME: df[CURRENCY_FIELD_NAME],
+                DIVIDEND_TYPE_FIELD_NAME: df[DIVIDEND_TYPE_FIELD_NAME],
             })
             for sid, df in iteritems(mapping)
         ).reset_index(drop=True)),)
@@ -263,6 +320,10 @@ class DividendsByExDateTestCase(WithPipelineEventDataLoader, ZiplineTestCase):
         PREVIOUS_EX_DATE: DividendsByExDate.previous_date.latest,
         NEXT_AMOUNT: DividendsByExDate.next_amount.latest,
         PREVIOUS_AMOUNT: DividendsByExDate.previous_amount.latest,
+        PREVIOUS_CURRENCY_TYPE: DividendsByExDate.previous_currency.latest,
+        NEXT_CURRENCY_TYPE: DividendsByExDate.next_currency.latest,
+        PREVIOUS_DIVIDEND_TYPE: DividendsByExDate.previous_type.latest,
+        NEXT_DIVIDEND_TYPE: DividendsByExDate.next_type.latest,
         DAYS_TO_NEXT_EX_DATE: BusinessDaysUntilNextExDate(),
         DAYS_SINCE_PREV_EX_DATE: BusinessDaysSincePreviousExDate()
     }
@@ -296,7 +357,23 @@ class DividendsByExDateTestCase(WithPipelineEventDataLoader, ZiplineTestCase):
             PREVIOUS_AMOUNT: self.get_sids_to_frames(
                 zip_with_floats, prev_amounts, prev_date_intervals, dates,
                 'float', 'NaN'
-            )
+            ),
+            PREVIOUS_CURRENCY_TYPE: self.get_sids_to_frames(
+                zip_with_strs, prev_currency_types, prev_date_intervals, dates,
+                'category', None
+            ),
+            NEXT_CURRENCY_TYPE: self.get_sids_to_frames(
+                zip_with_strs, next_currency_types, next_date_intervals, dates,
+                'category', None
+            ),
+            PREVIOUS_DIVIDEND_TYPE: self.get_sids_to_frames(
+                zip_with_strs, prev_dividend_types, prev_date_intervals, dates,
+                'category', None
+            ),
+            NEXT_DIVIDEND_TYPE: self.get_sids_to_frames(
+                zip_with_strs, next_dividend_types, next_date_intervals, dates,
+                'category', None
+            ),
         }
 
         cols[DAYS_TO_NEXT_EX_DATE] = self._compute_busday_offsets(
@@ -321,7 +398,9 @@ class BlazeDividendsByExDateLoaderTestCase(DividendsByExDateTestCase):
                 EX_DATE_FIELD_NAME: df[EX_DATE_FIELD_NAME],
                 TS_FIELD_NAME: df[TS_FIELD_NAME],
                 SID_FIELD_NAME: sid,
-                CASH_AMOUNT_FIELD_NAME: df[CASH_AMOUNT_FIELD_NAME]
+                CASH_AMOUNT_FIELD_NAME: df[CASH_AMOUNT_FIELD_NAME],
+                CURRENCY_FIELD_NAME: df[CURRENCY_FIELD_NAME],
+                DIVIDEND_TYPE_FIELD_NAME: df[DIVIDEND_TYPE_FIELD_NAME],
             })
             for sid, df in iteritems(mapping)
         ).reset_index(drop=True)),)
@@ -349,6 +428,10 @@ class DividendsByPayDateTestCase(WithPipelineEventDataLoader, ZiplineTestCase):
         PREVIOUS_PAY_DATE: DividendsByPayDate.previous_date.latest,
         NEXT_AMOUNT: DividendsByPayDate.next_amount.latest,
         PREVIOUS_AMOUNT: DividendsByPayDate.previous_amount.latest,
+        PREVIOUS_CURRENCY_TYPE: DividendsByPayDate.previous_currency.latest,
+        NEXT_CURRENCY_TYPE: DividendsByPayDate.next_currency.latest,
+        PREVIOUS_DIVIDEND_TYPE: DividendsByPayDate.previous_type.latest,
+        NEXT_DIVIDEND_TYPE: DividendsByPayDate.next_type.latest,
     }
 
     @classmethod
@@ -380,7 +463,23 @@ class DividendsByPayDateTestCase(WithPipelineEventDataLoader, ZiplineTestCase):
             PREVIOUS_AMOUNT: self.get_sids_to_frames(
                 zip_with_floats, prev_amounts, prev_date_intervals, dates,
                 'float', 'NaN'
-            )
+            ),
+            PREVIOUS_CURRENCY_TYPE: self.get_sids_to_frames(
+                zip_with_strs, prev_currency_types, prev_date_intervals, dates,
+                'category', None
+            ),
+            NEXT_CURRENCY_TYPE: self.get_sids_to_frames(
+                zip_with_strs, next_currency_types, next_date_intervals, dates,
+                'category', None
+            ),
+            PREVIOUS_DIVIDEND_TYPE: self.get_sids_to_frames(
+                zip_with_strs, prev_dividend_types, prev_date_intervals, dates,
+                'category', None
+            ),
+            NEXT_DIVIDEND_TYPE: self.get_sids_to_frames(
+                zip_with_strs, next_dividend_types, next_date_intervals, dates,
+                'category', None
+            ),
         }
 
 
@@ -397,7 +496,9 @@ class BlazeDividendsByPayDateLoaderTestCase(DividendsByPayDateTestCase):
                 PAY_DATE_FIELD_NAME: df[PAY_DATE_FIELD_NAME],
                 TS_FIELD_NAME: df[TS_FIELD_NAME],
                 SID_FIELD_NAME: sid,
-                CASH_AMOUNT_FIELD_NAME: df[CASH_AMOUNT_FIELD_NAME]
+                CASH_AMOUNT_FIELD_NAME: df[CASH_AMOUNT_FIELD_NAME],
+                CURRENCY_FIELD_NAME: df[CURRENCY_FIELD_NAME],
+                DIVIDEND_TYPE_FIELD_NAME: df[DIVIDEND_TYPE_FIELD_NAME],
             })
             for sid, df in iteritems(mapping)
         ).reset_index(drop=True)),)

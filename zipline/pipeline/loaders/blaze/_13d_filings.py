@@ -1,12 +1,12 @@
-from zipline.pipeline.common import (
-    SID_FIELD_NAME,
-    TS_FIELD_NAME,
-    PERCENT_SHARES,
-    NUM_SHARES,
-    DISCLOSURE_DATE)
+from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME
 from zipline.pipeline.data import _13DFilings
 from zipline.pipeline.loaders import _13DFilingsLoader
 from .events import BlazeEventsLoader
+from zipline.pipeline.loaders._13d_filings import (
+    DISCLOSURE_DATE,
+    NUM_SHARES,
+    PERCENT_SHARES,
+)
 
 
 class Blaze_13DFilingsLoader(BlazeEventsLoader):

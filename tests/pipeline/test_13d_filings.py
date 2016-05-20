@@ -3,25 +3,27 @@ Tests for the reference loader for 13d filings.
 """
 import pandas as pd
 
-from zipline.pipeline.common import(
-    DAYS_SINCE_PREV_DISCLOSURE,
+from zipline.pipeline.common import TS_FIELD_NAME
+from zipline.pipeline.data import _13DFilings
+from zipline.pipeline.factors.events import BusinessDaysSince13DFilingsDate
+from zipline.pipeline.loaders._13d_filings import (
+    _13DFilingsLoader,
     DISCLOSURE_DATE,
     NUM_SHARES,
     PERCENT_SHARES,
-    PREVIOUS_NUM_SHARES,
-    PREVIOUS_PERCENT_SHARES,
-    PREVIOUS_DISCLOSURE_DATE,
-    TS_FIELD_NAME,
 )
-from zipline.pipeline.data import _13DFilings
-from zipline.pipeline.factors.events import BusinessDaysSince13DFilingsDate
-from zipline.pipeline.loaders._13d_filings import _13DFilingsLoader
 from zipline.pipeline.loaders.utils import (
     zip_with_floats,
     zip_with_dates
 )
 from zipline.testing.fixtures import WithPipelineEventDataLoader
 from zipline.testing.fixtures import ZiplineTestCase
+
+DAYS_SINCE_PREV_DISCLOSURE = 'days_since_prev_disclosure'
+PREVIOUS_DISCLOSURE_DATE = 'previous_disclosure_date'
+PREVIOUS_NUM_SHARES = 'previous_number_shares'
+PREVIOUS_PERCENT_SHARES = 'previous_percentage'
+
 
 date_intervals = [
     [['2014-01-01', '2014-01-04'],

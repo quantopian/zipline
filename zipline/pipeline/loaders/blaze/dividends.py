@@ -1,8 +1,5 @@
 from zipline.pipeline.common import (
     ANNOUNCEMENT_FIELD_NAME,
-    CASH_AMOUNT_FIELD_NAME,
-    EX_DATE_FIELD_NAME,
-    PAY_DATE_FIELD_NAME,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
@@ -17,6 +14,13 @@ from zipline.pipeline.loaders import (
     DividendsByExDateLoader
 )
 from .events import BlazeEventsLoader
+from zipline.pipeline.loaders.dividends import (
+    CASH_AMOUNT_FIELD_NAME,
+    CURRENCY_FIELD_NAME,
+    DIVIDEND_TYPE_FIELD_NAME,
+    EX_DATE_FIELD_NAME,
+    PAY_DATE_FIELD_NAME,
+)
 
 
 class BlazeDividendsByAnnouncementDateLoader(BlazeEventsLoader):
@@ -47,6 +51,8 @@ class BlazeDividendsByAnnouncementDateLoader(BlazeEventsLoader):
            {TS_FIELD_NAME}: datetime,
            {CASH_AMOUNT_FIELD_NAME}: ?float64,
            {ANNOUNCEMENT_FIELD_NAME}: ?datetime,
+           {CURRENCY_FIELD_NAME}: ?string,
+           {DIVIDEND_TYPE_FIELD_NAME}: ?string,
        }}
 
     Where each row of the table is a record including the sid to identify the
@@ -61,14 +67,18 @@ class BlazeDividendsByAnnouncementDateLoader(BlazeEventsLoader):
         TS_FIELD_NAME=TS_FIELD_NAME,
         SID_FIELD_NAME=SID_FIELD_NAME,
         CASH_AMOUNT_FIELD_NAME=CASH_AMOUNT_FIELD_NAME,
-        ANNOUNCEMENT_FIELD_NAME=ANNOUNCEMENT_FIELD_NAME
+        ANNOUNCEMENT_FIELD_NAME=ANNOUNCEMENT_FIELD_NAME,
+        CURRENCY_FIELD_NAME=CURRENCY_FIELD_NAME,
+        DIVIDEND_TYPE_FIELD_NAME=DIVIDEND_TYPE_FIELD_NAME,
     )
 
     _expected_fields = frozenset({
         TS_FIELD_NAME,
         SID_FIELD_NAME,
         CASH_AMOUNT_FIELD_NAME,
-        ANNOUNCEMENT_FIELD_NAME
+        CURRENCY_FIELD_NAME,
+        ANNOUNCEMENT_FIELD_NAME,
+        DIVIDEND_TYPE_FIELD_NAME
     })
 
     concrete_loader = DividendsByAnnouncementDateLoader
@@ -103,6 +113,8 @@ class BlazeDividendsByExDateLoader(BlazeEventsLoader):
            {TS_FIELD_NAME}: datetime,
            {EX_DATE_FIELD_NAME}: ?datetime,
            {CASH_AMOUNT_FIELD_NAME}: ?datetime,
+           {CURRENCY_FIELD_NAME}: ?string,
+           {DIVIDEND_TYPE_FIELD_NAME}: ?string,
        }}
 
     Where each row of the table is a record including the sid to identify the
@@ -118,6 +130,8 @@ class BlazeDividendsByExDateLoader(BlazeEventsLoader):
         SID_FIELD_NAME=SID_FIELD_NAME,
         EX_DATE_FIELD_NAME=EX_DATE_FIELD_NAME,
         CASH_AMOUNT_FIELD_NAME=CASH_AMOUNT_FIELD_NAME,
+        CURRENCY_FIELD_NAME=CURRENCY_FIELD_NAME,
+        DIVIDEND_TYPE_FIELD_NAME=DIVIDEND_TYPE_FIELD_NAME,
     )
 
     _expected_fields = frozenset({
@@ -125,6 +139,8 @@ class BlazeDividendsByExDateLoader(BlazeEventsLoader):
         SID_FIELD_NAME,
         EX_DATE_FIELD_NAME,
         CASH_AMOUNT_FIELD_NAME,
+        CURRENCY_FIELD_NAME,
+        DIVIDEND_TYPE_FIELD_NAME,
     })
 
     concrete_loader = DividendsByExDateLoader
@@ -159,6 +175,8 @@ class BlazeDividendsByPayDateLoader(BlazeEventsLoader):
            {TS_FIELD_NAME}: datetime,
            {PAY_DATE_FIELD_NAME}: ?datetime,
            {CASH_AMOUNT_FIELD_NAME}: ?datetime,
+           {CURRENCY_FIELD_NAME}: ?string,
+           {DIVIDEND_TYPE_FIELD_NAME}: ?string,
        }}
 
     Where each row of the table is a record including the sid to identify the
@@ -174,6 +192,8 @@ class BlazeDividendsByPayDateLoader(BlazeEventsLoader):
         SID_FIELD_NAME=SID_FIELD_NAME,
         PAY_DATE_FIELD_NAME=PAY_DATE_FIELD_NAME,
         CASH_AMOUNT_FIELD_NAME=CASH_AMOUNT_FIELD_NAME,
+        CURRENCY_FIELD_NAME=CURRENCY_FIELD_NAME,
+        DIVIDEND_TYPE_FIELD_NAME=DIVIDEND_TYPE_FIELD_NAME
     )
 
     _expected_fields = frozenset({
@@ -181,6 +201,8 @@ class BlazeDividendsByPayDateLoader(BlazeEventsLoader):
         SID_FIELD_NAME,
         PAY_DATE_FIELD_NAME,
         CASH_AMOUNT_FIELD_NAME,
+        CURRENCY_FIELD_NAME,
+        DIVIDEND_TYPE_FIELD_NAME,
     })
 
     concrete_loader = DividendsByPayDateLoader
