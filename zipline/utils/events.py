@@ -689,6 +689,7 @@ class date_rules(object):
 class time_rules(object):
     market_open = AfterOpen
     market_close = BeforeClose
+    every_minute = Always
 
 
 def make_eventrule(date_rule, time_rule, half_days=True):
