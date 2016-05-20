@@ -6,7 +6,7 @@ from os.path import (
     dirname,
     join,
 )
-from pandas.io.data import get_data_yahoo
+from pandas_datareader.data import DataReader
 
 here = join(dirname(__file__))
 
@@ -15,7 +15,12 @@ def main():
     symbols = ['AAPL', 'MSFT', 'BRK-A']
     # Specifically chosen to include the AAPL split on June 9, 2014.
     for symbol in symbols:
-        data = get_data_yahoo(symbol, start='2014-03-01', end='2014-09-01')
+        data = DataReader(
+            symbol,
+            'yahoo',
+            start='2014-03-01',
+            end='2014-09-01',
+        )
         data.rename(
             columns={
                 'Open': 'open',
