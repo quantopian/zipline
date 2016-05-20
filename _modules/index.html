@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Overview: module code &mdash; Zipline 0.9.0 documentation</title>
+  <title>Overview: module code &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 0.9.0 documentation" href="../index.html"/> 
+    <link rel="top" title="Zipline 1.0.0 documentation" href="../index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -88,7 +88,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
@@ -96,9 +95,42 @@
 <li class="toctree-l2"><a class="reference internal" href="../beginner-tutorial.html#conclusions">Conclusions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../releases.html#development">Development</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../releases.html#highlights">Highlights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../releases.html#experimental-features">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../releases.html#bug-fixes">Bug Fixes</a></li>
@@ -168,14 +200,39 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../appendix.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#simulation-parameters">Simulation Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../appendix.html#asset-metadata">Asset Metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../appendix.html#data-api">Data API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../release-process.html">Zipline Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
@@ -223,21 +280,34 @@
           <div role="main" class="document">
             
   <h1>All modules for which code is available</h1>
-<ul><li><a href="zipline/algorithm.html">zipline.algorithm</a></li>
+<ul><li><a href="abc.html">abc</a></li>
+<li><a href="toolz/functoolz.html">toolz.functoolz</a></li>
+<li><a href="zipline/_protocol.html">zipline._protocol</a></li>
+<li><a href="zipline/algorithm.html">zipline.algorithm</a></li>
 <li><a href="zipline/assets/_assets.html">zipline.assets._assets</a></li>
 <li><a href="zipline/assets/asset_writer.html">zipline.assets.asset_writer</a></li>
 <li><a href="zipline/assets/assets.html">zipline.assets.assets</a></li>
+<li><a href="zipline/data/bundles/core.html">zipline.data.bundles.core</a></li>
+<li><a href="zipline/data/bundles/yahoo.html">zipline.data.bundles.yahoo</a></li>
+<li><a href="zipline/data/data_portal.html">zipline.data.data_portal</a></li>
 <li><a href="zipline/data/minute_bars.html">zipline.data.minute_bars</a></li>
+<li><a href="zipline/data/us_equity_pricing.html">zipline.data.us_equity_pricing</a></li>
+<li><a href="zipline/finance/cancel_policy.html">zipline.finance.cancel_policy</a></li>
+<li><a href="zipline/finance/commission.html">zipline.finance.commission</a></li>
+<li><a href="zipline/finance/execution.html">zipline.finance.execution</a></li>
+<li><a href="zipline/finance/slippage.html">zipline.finance.slippage</a></li>
 <li><a href="zipline/pipeline/data/dataset.html">zipline.pipeline.data.dataset</a></li>
 <li><a href="zipline/pipeline/data/earnings.html">zipline.pipeline.data.earnings</a></li>
 <li><a href="zipline/pipeline/data/equity_pricing.html">zipline.pipeline.data.equity_pricing</a></li>
 <li><a href="zipline/pipeline/factors/events.html">zipline.pipeline.factors.events</a></li>
 <li><a href="zipline/pipeline/factors/factor.html">zipline.pipeline.factors.factor</a></li>
-<li><a href="zipline/pipeline/factors/latest.html">zipline.pipeline.factors.latest</a></li>
 <li><a href="zipline/pipeline/factors/technical.html">zipline.pipeline.factors.technical</a></li>
 <li><a href="zipline/pipeline/filters/filter.html">zipline.pipeline.filters.filter</a></li>
 <li><a href="zipline/pipeline/pipeline.html">zipline.pipeline.pipeline</a></li>
-<li><a href="zipline/transforms/batch_transform.html">zipline.transforms.batch_transform</a></li>
+<li><a href="zipline/utils/cache.html">zipline.utils.cache</a></li>
+<li><a href="zipline/utils/cli.html">zipline.utils.cli</a></li>
+<li><a href="zipline/utils/events.html">zipline.utils.events</a></li>
+<li><a href="zipline/utils/run_algo.html">zipline.utils.run_algo</a></li>
 </ul>
 
           </div>
@@ -269,7 +339,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../',
-            VERSION:'0.9.0',
+            VERSION:'1.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

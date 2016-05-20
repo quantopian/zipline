@@ -1,0 +1,548 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>zipline.finance.slippage &mdash; Zipline 1.0.0 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline 1.0.0 documentation" href="../../../index.html"/>
+        <link rel="up" title="Module code" href="../../index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="../../../index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Contributors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../appendix.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#simulation-parameters">Simulation Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release-process.html">Zipline Release Process</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#next-commit">Next Commit</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      
+    <li>zipline.finance.slippage</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <h1>Source code for zipline.finance.slippage</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2015 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
+
+<span class="kn">from</span> <span class="nn">zipline.finance.transaction</span> <span class="kn">import</span> <span class="n">create_transaction</span>
+
+<span class="n">SELL</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">0</span>
+<span class="n">BUY</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">1</span>
+<span class="n">STOP</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">2</span>
+<span class="n">LIMIT</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">3</span>
+
+
+<span class="k">class</span> <span class="nc">LiquidityExceeded</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="n">DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT</span> <span class="o">=</span> <span class="mf">0.025</span>
+
+
+<div class="viewcode-block" id="SlippageModel"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.slippage.SlippageModel">[docs]</a><span class="k">class</span> <span class="nc">SlippageModel</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract interface for defining a slippage model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">volume_for_bar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span>
+
+    <span class="nd">@abc.abstractproperty</span>
+    <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Process how orders get filled.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : BarData</span>
+<span class="sd">            The data for the given bar.</span>
+<span class="sd">        order : Order</span>
+<span class="sd">            The order to simulate.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        execution_price : float</span>
+<span class="sd">            The price to execute the trade at.</span>
+<span class="sd">        execution_volume : int</span>
+<span class="sd">            The number of shares that could be filled. This may not be all</span>
+<span class="sd">            the shares ordered in which case the order will be filled over</span>
+<span class="sd">            multiple bars.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">orders_for_asset</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;volume&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">volume</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="c"># can use the close price, since we verified there&#39;s volume in this</span>
+        <span class="c"># bar.</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current_dt</span>
+
+        <span class="k">for</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">orders_for_asset</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">open_amount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">order</span><span class="o">.</span><span class="n">check_triggers</span><span class="p">(</span><span class="n">price</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">order</span><span class="o">.</span><span class="n">triggered</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">txn</span> <span class="o">=</span> <span class="bp">None</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">execution_price</span><span class="p">,</span> <span class="n">execution_volume</span> <span class="o">=</span> \
+                    <span class="bp">self</span><span class="o">.</span><span class="n">process_order</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">execution_price</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">txn</span> <span class="o">=</span> <span class="n">create_transaction</span><span class="p">(</span>
+                        <span class="n">order</span><span class="p">,</span>
+                        <span class="n">data</span><span class="o">.</span><span class="n">current_dt</span><span class="p">,</span>
+                        <span class="n">execution_price</span><span class="p">,</span>
+                        <span class="n">execution_volume</span>
+                    <span class="p">)</span>
+
+            <span class="k">except</span> <span class="n">LiquidityExceeded</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">txn</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_volume_for_bar</span> <span class="o">+=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">txn</span><span class="o">.</span><span class="n">amount</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">order</span><span class="p">,</span> <span class="n">txn</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar_data</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">current_orders</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">bar_data</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">current_orders</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="VolumeShareSlippage"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.slippage.VolumeShareSlippage">[docs]</a><span class="k">class</span> <span class="nc">VolumeShareSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Model slippage as a function of the volume of shares traded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">volume_limit</span><span class="o">=</span><span class="n">DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT</span><span class="p">,</span>
+                 <span class="n">price_impact</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">=</span> <span class="n">volume_limit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span> <span class="o">=</span> <span class="n">price_impact</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">VolumeShareSlippage</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">{class_name}(</span>
+<span class="s">    volume_limit={volume_limit},</span>
+<span class="s">    price_impact={price_impact})</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">class_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+                   <span class="n">volume_limit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">,</span>
+                   <span class="n">price_impact</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;volume&quot;</span><span class="p">)</span>
+
+        <span class="n">max_volume</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span> <span class="o">*</span> <span class="n">volume</span>
+
+        <span class="c"># price impact accounts for the total volume of transactions</span>
+        <span class="c"># created against the current minute bar</span>
+        <span class="n">remaining_volume</span> <span class="o">=</span> <span class="n">max_volume</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_for_bar</span>
+        <span class="k">if</span> <span class="n">remaining_volume</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c"># we can&#39;t fill any more transactions</span>
+            <span class="k">raise</span> <span class="n">LiquidityExceeded</span><span class="p">()</span>
+
+        <span class="c"># the current order amount will be the min of the</span>
+        <span class="c"># volume available in the bar or the open amount.</span>
+        <span class="n">cur_volume</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">remaining_volume</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">open_amount</span><span class="p">)))</span>
+
+        <span class="k">if</span> <span class="n">cur_volume</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+        <span class="c"># tally the current amount into our total amount ordered.</span>
+        <span class="c"># total amount will be used to calculate price impact</span>
+        <span class="n">total_volume</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_for_bar</span> <span class="o">+</span> <span class="n">cur_volume</span>
+
+        <span class="n">volume_share</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">total_volume</span> <span class="o">/</span> <span class="n">volume</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">volume_limit</span><span class="p">)</span>
+
+        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">)</span>
+
+        <span class="n">simulated_impact</span> <span class="o">=</span> <span class="n">volume_share</span> <span class="o">**</span> <span class="mi">2</span> \
+            <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">price_impact</span><span class="p">,</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">)</span> \
+            <span class="o">*</span> <span class="n">price</span>
+        <span class="n">impacted_price</span> <span class="o">=</span> <span class="n">price</span> <span class="o">+</span> <span class="n">simulated_impact</span>
+
+        <span class="k">if</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+            <span class="c"># this is tricky! if an order with a limit price has reached</span>
+            <span class="c"># the limit price, we will try to fill the order. do not fill</span>
+            <span class="c"># these shares if the impacted price is worse than the limit</span>
+            <span class="c"># price. return early to avoid creating the transaction.</span>
+
+            <span class="c"># buy order is worse if the impacted price is greater than</span>
+            <span class="c"># the limit price. sell order is worse if the impacted price</span>
+            <span class="c"># is less than the limit price</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">direction</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">impacted_price</span> <span class="o">&gt;</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">)</span> <span class="ow">or</span> \
+                    <span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">direction</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">impacted_price</span> <span class="o">&lt;</span> <span class="n">order</span><span class="o">.</span><span class="n">limit</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">impacted_price</span><span class="p">,</span>
+            <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="n">cur_volume</span><span class="p">,</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">)</span>
+        <span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="FixedSlippage"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.slippage.FixedSlippage">[docs]</a><span class="k">class</span> <span class="nc">FixedSlippage</span><span class="p">(</span><span class="n">SlippageModel</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Model slippage as a fixed spread.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    spread : float, optional</span>
+<span class="sd">        spread / 2 will be added to buys and subtracted from sells.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spread</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spread</span> <span class="o">=</span> <span class="n">spread</span>
+
+    <span class="k">def</span> <span class="nf">process_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">order</span><span class="o">.</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">price</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spread</span> <span class="o">/</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">order</span><span class="o">.</span><span class="n">direction</span><span class="p">),</span>
+            <span class="n">order</span><span class="o">.</span><span class="n">amount</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Quantopian Inc..
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'1.0.0',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

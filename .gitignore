@@ -12,3 +12,5 @@ etc
 docs
 # PyCharm config
 .idea
+dist/
+TAGS

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline beginner tutorial &mdash; Zipline 0.9.0 documentation</title>
+  <title>Zipline beginner tutorial &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -30,8 +30,8 @@
   
 
   
-    <link rel="top" title="Zipline 0.9.0 documentation" href="index.html"/>
-        <link rel="next" title="Release Notes" href="releases.html"/>
+    <link rel="top" title="Zipline 1.0.0 documentation" href="index.html"/>
+        <link rel="next" title="Data Bundles" href="bundles.html"/>
         <link rel="prev" title="Install" href="install.html"/> 
 
   
@@ -90,7 +90,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#manual-advanced">Manual (advanced)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
@@ -98,9 +97,42 @@
 <li class="toctree-l2"><a class="reference internal" href="#conclusions">Conclusions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#development">Development</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
@@ -170,14 +202,39 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#simulation-parameters">Simulation Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#asset-metadata">Asset Metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Zipline Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
@@ -270,96 +327,95 @@ Quantopian docs</a>.</p>
 <h2>My first algorithm<a class="headerlink" href="#my-first-algorithm" title="Permalink to this headline">¶</a></h2>
 <p>Lets take a look at a very simple algorithm from the <code class="docutils literal"><span class="pre">examples</span></code>
 directory, <code class="docutils literal"><span class="pre">buyapple.py</span></code>:</p>
-<div class="code python highlight-python"><div class="highlight"><pre>!tail ../../zipline/examples/buyapple.py
+<div class="highlight-python"><div class="highlight"><pre>from zipline.examples import buyapple
+buyapple??
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># Load price data from yahoo.</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">load_from_yahoo</span><span class="p">(</span><span class="n">stocks</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;AAPL&#39;</span><span class="p">],</span> <span class="n">indexes</span><span class="o">=</span><span class="p">{},</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
-                       <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span>
 
-<span class="c"># Create and run the algorithm.</span>
-<span class="n">algo</span> <span class="o">=</span> <span class="n">TradingAlgorithm</span><span class="p">(</span><span class="n">initialize</span><span class="o">=</span><span class="n">initialize</span><span class="p">,</span> <span class="n">handle_data</span><span class="o">=</span><span class="n">handle_data</span><span class="p">,</span>
-                        <span class="n">identifiers</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;AAPL&#39;</span><span class="p">])</span>
-<span class="n">results</span> <span class="o">=</span> <span class="n">algo</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 
-<span class="n">analyze</span><span class="p">(</span><span class="n">results</span><span class="o">=</span><span class="n">results</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">order</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">current</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="s">&#39;price&#39;</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>As you can see, we first have to import some functions we would like to
 use. All functions commonly used in your algorithm can be found in
-<code class="docutils literal"><span class="pre">zipline.api</span></code>. Here we are using <code class="docutils literal"><span class="pre">order()</span></code> which takes two arguments
-&#8211; a security object, and a number specifying how many stocks you would
-like to order (if negative, <code class="docutils literal"><span class="pre">order()</span></code> will sell/short stocks). In this
-case we want to order 10 shares of Apple at each iteration. For more
-documentation on <code class="docutils literal"><span class="pre">order()</span></code>, see the <a class="reference external" href="https://www.quantopian.com/help#api-order">Quantopian
-docs</a>.</p>
-<p>You don&#8217;t have to use the <code class="docutils literal"><span class="pre">symbol()</span></code> function and could just pass in
-<code class="docutils literal"><span class="pre">AAPL</span></code> directly but it is good practice as this way your code will be
-Quantopian compatible.</p>
-<p>Finally, the <code class="docutils literal"><span class="pre">record()</span></code> function allows you to save the value of a
-variable at each iteration. You provide it with a name for the variable
+<code class="docutils literal"><span class="pre">zipline.api</span></code>. Here we are using <a class="reference internal" href="appendix.html#zipline.api.order" title="zipline.api.order"><code class="xref py py-func docutils literal"><span class="pre">order()</span></code></a> which takes two
+arguments: a security object, and a number specifying how many stocks you would
+like to order (if negative, <a class="reference internal" href="appendix.html#zipline.api.order" title="zipline.api.order"><code class="xref py py-func docutils literal"><span class="pre">order()</span></code></a> will sell/short
+stocks). In this case we want to order 10 shares of Apple at each iteration. For
+more documentation on <code class="docutils literal"><span class="pre">order()</span></code>, see the <a class="reference external" href="https://www.quantopian.com/help#api-order">Quantopian docs</a>.</p>
+<p>Finally, the <a class="reference internal" href="appendix.html#zipline.api.record" title="zipline.api.record"><code class="xref py py-func docutils literal"><span class="pre">record()</span></code></a> function allows you to save the value
+of a variable at each iteration. You provide it with a name for the variable
 together with the variable itself: <code class="docutils literal"><span class="pre">varname=var</span></code>. After the algorithm
 finished running you will have access to each variable value you tracked
-with <code class="docutils literal"><span class="pre">record()</span></code> under the name you provided (we will see this further
-below). You also see how we can access the current price data of the
+with <a class="reference internal" href="appendix.html#zipline.api.record" title="zipline.api.record"><code class="xref py py-func docutils literal"><span class="pre">record()</span></code></a> under the name you provided (we will see this
+further below). You also see how we can access the current price data of the
 AAPL stock in the <code class="docutils literal"><span class="pre">data</span></code> event frame (for more information see
 <a class="reference external" href="https://www.quantopian.com/help#api-event-properties">here</a>.</p>
 </div>
 <div class="section" id="running-the-algorithm">
 <h2>Running the algorithm<a class="headerlink" href="#running-the-algorithm" title="Permalink to this headline">¶</a></h2>
-<p>To now test this algorithm on financial data, <code class="docutils literal"><span class="pre">zipline</span></code> provides two
-interfaces. A command-line interface and an <code class="docutils literal"><span class="pre">IPython</span> <span class="pre">Notebook</span></code>
-interface.</p>
+<p>To now test this algorithm on financial data, <code class="docutils literal"><span class="pre">zipline</span></code> provides three
+interfaces: A command-line interface, <code class="docutils literal"><span class="pre">IPython</span> <span class="pre">Notebook</span></code> magic, and
+<a class="reference internal" href="appendix.html#zipline.run_algorithm" title="zipline.run_algorithm"><code class="xref py py-func docutils literal"><span class="pre">run_algorithm()</span></code></a>.</p>
 <div class="section" id="command-line-interface">
 <h3>Command line interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h3>
 <p>After you installed zipline you should be able to execute the following
 from your command line (e.g. <code class="docutils literal"><span class="pre">cmd.exe</span></code> on Windows, or the Terminal app
 on OSX):</p>
-<div class="code python highlight-python"><div class="highlight"><pre>!run_algo.py --help
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python -m zipline run --help
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre>usage: run_algo.py [-h] [-c FILE] [--algofile ALGOFILE] [--data-frequency {minute,daily}] [--start START] [--end END]
-                   [--capital_base CAPITAL_BASE] [--source {yahoo}] [--source_time_column SOURCE_TIME_COLUMN] [--symbols SYMBOLS]
-                   [--output OUTPUT] [--metadata_path METADATA_PATH] [--metadata_index METADATA_INDEX] [--print-algo] [--no-print-algo]
+<div class="highlight-python"><div class="highlight"><pre>Usage: __main__.py run [OPTIONS]
 
-Zipline version 0.8.3.
+  Run a backtest for the given algorithm.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -c FILE, --conf_file FILE
-                        Specify config file
-  --algofile ALGOFILE, -f ALGOFILE
-  --data-frequency {minute,daily}
-  --start START, -s START
-  --end END, -e END
-  --capital_base CAPITAL_BASE
-  --source {yahoo}, -d {yahoo}
-  --source_time_column SOURCE_TIME_COLUMN, -t SOURCE_TIME_COLUMN
-  --symbols SYMBOLS
-  --output OUTPUT, -o OUTPUT
-  --metadata_path METADATA_PATH, -m METADATA_PATH
-  --metadata_index METADATA_INDEX, -x METADATA_INDEX
-  --print-algo, -p
-  --no-print-algo, -q
+Options:
+  -f, --algofile FILENAME         The file that contains the algorithm to run.
+  -t, --algotext TEXT             The algorithm script to run.
+  -D, --define TEXT               Define a name to be bound in the namespace
+                                  before executing the algotext. For example
+                                  &#39;-Dname=value&#39;. The value may be any python
+                                  expression. These are evaluated in order so
+                                  they may refer to previously defined names.
+  --data-frequency [minute|daily]
+                                  The data frequency of the simulation.
+                                  [default: daily]
+  --capital-base FLOAT            The starting capital for the simulation.
+                                  [default: 10000000.0]
+  -b, --bundle BUNDLE-NAME        The data bundle to use for the simulation.
+                                  [default: quantopian-quandl]
+  --bundle-timestamp TIMESTAMP    The date to lookup data on or before.
+                                  [default: &lt;current-time&gt;]
+  -s, --start DATE                The start date of the simulation.
+  -e, --end DATE                  The end date of the simulation.
+  -o, --output FILENAME           The location to write the perf data. If this
+                                  is &#39;-&#39; the perf will be written to stdout.
+                                  [default: -]
+  --print-algo / --no-print-algo  Print the algorithm to stdout.
+  --help                          Show this message and exit.
 </pre></div>
 </div>
-<p>Note that you have to omit the preceding &#8216;!&#8217; when you call
-<code class="docutils literal"><span class="pre">run_algo.py</span></code>, this is only required by the IPython Notebook in which
-this tutorial was written.</p>
-<p>As you can see there are a couple of flags that specify where to find
-your algorithm (<code class="docutils literal"><span class="pre">-f</span></code>) as well as parameters specifying which stock
-data to load from Yahoo! finance (<code class="docutils literal"><span class="pre">--symbols</span></code>) and the time-range
-(<code class="docutils literal"><span class="pre">--start</span></code> and <code class="docutils literal"><span class="pre">--end</span></code>). Finally, you&#8217;ll want to save the
-performance metrics of your algorithm so that you can analyze how it
-performed. This is done via the <code class="docutils literal"><span class="pre">--output</span></code> flag and will cause it to
-write the performance <code class="docutils literal"><span class="pre">DataFrame</span></code> in the pickle Python file format.
-Note that you can also define a configuration file with these parameters
-that you can then conveniently pass to the <code class="docutils literal"><span class="pre">-c</span></code> option so that you
-don&#8217;t have to supply the command line args all the time (see the .conf
-files in the examples directory).</p>
+<p>As you can see there are a couple of flags that specify where to find your
+algorithm (<code class="docutils literal"><span class="pre">-f</span></code>) as well as parameters specifying which data to use,
+defaulting to the <a class="reference internal" href="bundles.html#quantopian-quandl-mirror"><span>Quantopian Quandl WIKI Mirror</span></a>. There are also arguments for
+the date range to run the algorithm over (<code class="docutils literal"><span class="pre">--start</span></code> and <code class="docutils literal"><span class="pre">--end</span></code>). Finally,
+you&#8217;ll want to save the performance metrics of your algorithm so that you can
+analyze how it performed. This is done via the <code class="docutils literal"><span class="pre">--output</span></code> flag and will cause
+it to write the performance <code class="docutils literal"><span class="pre">DataFrame</span></code> in the pickle Python file format.
+Note that you can also define a configuration file with these parameters that
+you can then conveniently pass to the <code class="docutils literal"><span class="pre">-c</span></code> option so that you don&#8217;t have to
+supply the command line args all the time (see the .conf files in the examples
+directory).</p>
 <p>Thus, to execute our algorithm from above and save the results to
-<code class="docutils literal"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal"><span class="pre">run_algo.py</span></code> as follows:</p>
-<div class="code python highlight-python"><div class="highlight"><pre>!run_algo.py -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o buyapple_out.pickle
+<code class="docutils literal"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">zipline</span> <span class="pre">run</span></code> as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">symbols</span> <span class="n">AAPL</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre>AAPL
@@ -368,9 +424,7 @@ files in the examples directory).</p>
 [2015-11-04 22:45:32.820401] INFO: Performance: last close: 2013-12-31 21:00:00+00:00
 </pre></div>
 </div>
-<p><code class="docutils literal"><span class="pre">run_algo.py</span></code> first outputs the algorithm contents. It then fetches
-historical price and volume data of Apple from Yahoo! finance in the
-desired time range, calls the <code class="docutils literal"><span class="pre">initialize()</span></code> function, and then
+<p><code class="docutils literal"><span class="pre">run</span></code> first calls the <code class="docutils literal"><span class="pre">initialize()</span></code> function, and then
 streams the historical stock price day-by-day through <code class="docutils literal"><span class="pre">handle_data()</span></code>.
 After each call to <code class="docutils literal"><span class="pre">handle_data()</span></code> we instruct <code class="docutils literal"><span class="pre">zipline</span></code> to order 10
 stocks of AAPL. After the call of the <code class="docutils literal"><span class="pre">order()</span></code> function, <code class="docutils literal"><span class="pre">zipline</span></code>
@@ -384,21 +438,12 @@ stock price * 10. (Note, that you can also change the commission and
 slippage model that <code class="docutils literal"><span class="pre">zipline</span></code> uses, see the <a class="reference external" href="https://www.quantopian.com/help#ide-slippage">Quantopian
 docs</a> for more
 information).</p>
-<p>Note that there is also an <code class="docutils literal"><span class="pre">analyze()</span></code> function printed.
-<code class="docutils literal"><span class="pre">run_algo.py</span></code> will try and look for a file with the ending with
-<code class="docutils literal"><span class="pre">_analyze.py</span></code> and the same name of the algorithm (so
-<code class="docutils literal"><span class="pre">buyapple_analyze.py</span></code>) or an <code class="docutils literal"><span class="pre">analyze()</span></code> function directly in the
-script. If an <code class="docutils literal"><span class="pre">analyze()</span></code> function is found it will be called <em>after</em>
-the simulation has finished and passed in the performance <code class="docutils literal"><span class="pre">DataFrame</span></code>.
-(The reason for allowing specification of an <code class="docutils literal"><span class="pre">analyze()</span></code> function in a
-separate file is that this way <code class="docutils literal"><span class="pre">buyapple.py</span></code> remains a valid
-Quantopian algorithm that you can copy&amp;paste to the platform).</p>
 <p>Lets take a quick look at the performance <code class="docutils literal"><span class="pre">DataFrame</span></code>. For this, we
 use <code class="docutils literal"><span class="pre">pandas</span></code> from inside the IPython Notebook and print the first ten
 rows. Note that <code class="docutils literal"><span class="pre">zipline</span></code> makes heavy usage of <code class="docutils literal"><span class="pre">pandas</span></code>, especially
 for data input and outputting so it&#8217;s worth spending some time to learn
 it.</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="n">perf</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_pickle</span><span class="p">(</span><span class="s">&#39;buyapple_out.pickle&#39;</span><span class="p">)</span> <span class="c"># read in perf DataFrame</span>
 <span class="n">perf</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
@@ -562,16 +607,16 @@ information about the state of your algorithm. The very first column
 and allows us to plot the price of apple. For example, we could easily
 examine now how our portfolio value changed over time compared to the
 AAPL stock price.</p>
-<div class="code python highlight-python"><div class="highlight"><pre>%pylab inline
-figsize(12, 12)
-import matplotlib.pyplot as plt
+<div class="highlight-python"><div class="highlight"><pre><span class="o">%</span><span class="n">pylab</span> <span class="n">inline</span>
+<span class="n">figsize</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
 
-ax1 = plt.subplot(211)
-perf.portfolio_value.plot(ax=ax1)
-ax1.set_ylabel(&#39;portfolio value&#39;)
-ax2 = plt.subplot(212, sharex=ax1)
-perf.AAPL.plot(ax=ax2)
-ax2.set_ylabel(&#39;AAPL stock price&#39;)
+<span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
+<span class="n">perf</span><span class="o">.</span><span class="n">portfolio_value</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;portfolio value&#39;</span><span class="p">)</span>
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">,</span> <span class="n">sharex</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
+<span class="n">perf</span><span class="o">.</span><span class="n">AAPL</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;AAPL stock price&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre>Populating the interactive namespace from numpy and matplotlib
@@ -601,22 +646,18 @@ the same arguments as the command line interface described above. Thus
 to run the algorithm from above with the same parameters we just have to
 execute the following cell after importing <code class="docutils literal"><span class="pre">zipline</span></code> to register the
 magic.</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">zipline</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="o">%</span><span class="n">load_ext</span> <span class="n">zipline</span>
 </pre></div>
 </div>
-<div class="code python highlight-python"><div class="highlight"><pre>%%zipline --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o perf_ipython
+<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">symbols</span> <span class="n">AAPL</span>
+<span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span>
 
-from zipline.api import symbol, order, record
+<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="k">pass</span>
 
-def initialize(context):
-    pass
-
-def handle_data(context, data):
-    order(symbol(&#39;AAPL&#39;), 10)
-    record(AAPL=data[symbol(&#39;AAPL&#39;)].price)
-</pre></div>
-</div>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">AAPL</span>
+<span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="n">order</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">price</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Note that we did not have to specify an input file as above since the
@@ -624,7 +665,7 @@ magic will use the contents of the cell and look for your algorithm
 functions there. Also, instead of defining an output file we are
 specifying a variable name with <code class="docutils literal"><span class="pre">-o</span></code> that will be created in the name
 space and contain the performance <code class="docutils literal"><span class="pre">DataFrame</span></code> we looked at above.</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="n">perf_ipython</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">_</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
 </pre></div>
 </div>
 <div style="max-height:1000px;max-width:1500px;overflow:auto;">
@@ -780,51 +821,6 @@ space and contain the performance <code class="docutils literal"><span class="pr
 </table>
 <p>5 rows × 39 columns</p>
 </div></div>
-<div class="section" id="manual-advanced">
-<h2>Manual (advanced)<a class="headerlink" href="#manual-advanced" title="Permalink to this headline">¶</a></h2>
-<p>If you are happy with either way above you can safely skip this passage.
-To provide a closer look at how <code class="docutils literal"><span class="pre">zipline</span></code> actually works it is
-instructive to see how we run an algorithm without any of the interfaces
-demonstrated above which hide the actual <code class="docutils literal"><span class="pre">zipline</span></code> API.</p>
-<div class="code python highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">pytz</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-
-<span class="kn">from</span> <span class="nn">zipline.algorithm</span> <span class="kn">import</span> <span class="n">TradingAlgorithm</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">load_bars_from_yahoo</span>
-
-<span class="c"># Load data manually from Yahoo! finance</span>
-<span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
-<span class="n">end</span> <span class="o">=</span> <span class="n">datetime</span><span class="p">(</span><span class="mi">2012</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">load_bars_from_yahoo</span><span class="p">(</span><span class="n">stocks</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;AAPL&#39;</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
-                            <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">)</span>
-
-<span class="c"># Define algorithm</span>
-<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="k">pass</span>
-
-<span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-    <span class="n">order</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">10</span><span class="p">)</span>
-    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">price</span><span class="p">)</span>
-
-<span class="c"># Create algorithm object passing in initialize and</span>
-<span class="c"># handle_data functions</span>
-<span class="n">algo_obj</span> <span class="o">=</span> <span class="n">TradingAlgorithm</span><span class="p">(</span><span class="n">initialize</span><span class="o">=</span><span class="n">initialize</span><span class="p">,</span>
-                            <span class="n">handle_data</span><span class="o">=</span><span class="n">handle_data</span><span class="p">)</span>
-
-<span class="c"># Run algorithm</span>
-<span class="n">perf_manual</span> <span class="o">=</span> <span class="n">algo_obj</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">AAPL</span>
-</pre></div>
-</div>
-<p>As you can see, we again define the functions as above but we manually
-pass them to the <code class="docutils literal"><span class="pre">TradingAlgorithm</span></code> class which is the main
-<code class="docutils literal"><span class="pre">zipline</span></code> class for running algorithms. We also manually load the data
-using <code class="docutils literal"><span class="pre">load_bars_from_yahoo()</span></code> and pass it to the
-<code class="docutils literal"><span class="pre">TradingAlgorithm.run()</span></code> method which kicks off the backtest
-simulation.</p>
-</div>
 <div class="section" id="access-to-previous-prices-using-history">
 <h2>Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code><a class="headerlink" href="#access-to-previous-prices-using-history" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="working-example-dual-moving-average-cross-over">
@@ -850,71 +846,68 @@ you can directly use the <code class="docutils literal"><span class="pre">histor
 <code class="docutils literal"><span class="pre">zipline</span></code> you have to register each history container you want to use
 with <code class="docutils literal"><span class="pre">add_history()</span></code> and pass it the same arguments as the history
 function below. Lets look at the strategy which should make this clear:</p>
-<div class="code python highlight-python"><div class="highlight"><pre>%%zipline --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o perf_dma
+<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">perf_dma</span>
 
 
-from zipline.api import order_target, record, symbol, history, add_history
-import numpy as np
+<span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">add_history</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
-def initialize(context):
-    # Register 2 histories that track daily prices,
-    # one with a 100 window and one with a 300 day window
-    add_history(100, &#39;1d&#39;, &#39;price&#39;)
-    add_history(300, &#39;1d&#39;, &#39;price&#39;)
+<span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="c"># Register 2 histories that track daily prices,</span>
+    <span class="c"># one with a 100 window and one with a 300 day window</span>
+    <span class="n">add_history</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span>
+    <span class="n">add_history</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span>
 
-    context.i = 0
-
-
-def handle_data(context, data):
-    # Skip first 300 days to get full windows
-    context.i += 1
-    if context.i &lt; 300:
-        return
-
-    # Compute averages
-    # history() has to be called with the same params
-    # from above and returns a pandas dataframe.
-    short_mavg = history(100, &#39;1d&#39;, &#39;price&#39;).mean()
-    long_mavg = history(300, &#39;1d&#39;, &#39;price&#39;).mean()
-
-    # Trading logic
-    if short_mavg[0] &gt; long_mavg[0]:
-        # order_target orders as many shares as needed to
-        # achieve the desired number of shares.
-        order_target(symbol(&#39;AAPL&#39;), 100)
-    elif short_mavg[0] &lt; long_mavg[0]:
-        order_target(symbol(&#39;AAPL&#39;), 0)
-
-    # Save values for later inspection
-    record(AAPL=data[symbol(&#39;AAPL&#39;)].price,
-           short_mavg=short_mavg[0],
-           long_mavg=long_mavg[0])
+    <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
 
 
-def analyze(context, perf):
-    fig = plt.figure()
-    ax1 = fig.add_subplot(211)
-    perf.portfolio_value.plot(ax=ax1)
-    ax1.set_ylabel(&#39;portfolio value in $&#39;)
+<span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="c"># Skip first 300 days to get full windows</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">&lt;</span> <span class="mi">300</span><span class="p">:</span>
+        <span class="k">return</span>
 
-    ax2 = fig.add_subplot(212)
-    perf[&#39;AAPL&#39;].plot(ax=ax2)
-    perf[[&#39;short_mavg&#39;, &#39;long_mavg&#39;]].plot(ax=ax2)
+    <span class="c"># Compute averages</span>
+    <span class="c"># history() has to be called with the same params</span>
+    <span class="c"># from above and returns a pandas dataframe.</span>
+    <span class="n">short_mavg</span> <span class="o">=</span> <span class="n">history</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">long_mavg</span> <span class="o">=</span> <span class="n">history</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 
-    perf_trans = perf.ix[[t != [] for t in perf.transactions]]
-    buys = perf_trans.ix[[t[0][&#39;amount&#39;] &gt; 0 for t in perf_trans.transactions]]
-    sells = perf_trans.ix[
-        [t[0][&#39;amount&#39;] &lt; 0 for t in perf_trans.transactions]]
-    ax2.plot(buys.index, perf.short_mavg.ix[buys.index],
-             &#39;^&#39;, markersize=10, color=&#39;m&#39;)
-    ax2.plot(sells.index, perf.short_mavg.ix[sells.index],
-             &#39;v&#39;, markersize=10, color=&#39;k&#39;)
-    ax2.set_ylabel(&#39;price in $&#39;)
-    plt.legend(loc=0)
-    plt.show()
-</pre></div>
-</div>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">AAPL</span>
+    <span class="c"># Trading logic</span>
+    <span class="k">if</span> <span class="n">short_mavg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">long_mavg</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="c"># order_target orders as many shares as needed to</span>
+        <span class="c"># achieve the desired number of shares.</span>
+        <span class="n">order_target</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">short_mavg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">long_mavg</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">order_target</span><span class="p">(</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c"># Save values for later inspection</span>
+    <span class="n">record</span><span class="p">(</span><span class="n">AAPL</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="n">symbol</span><span class="p">(</span><span class="s">&#39;AAPL&#39;</span><span class="p">)]</span><span class="o">.</span><span class="n">price</span><span class="p">,</span>
+           <span class="n">short_mavg</span><span class="o">=</span><span class="n">short_mavg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+           <span class="n">long_mavg</span><span class="o">=</span><span class="n">long_mavg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">analyze</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">perf</span><span class="p">):</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+    <span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
+    <span class="n">perf</span><span class="o">.</span><span class="n">portfolio_value</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax1</span><span class="p">)</span>
+    <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;portfolio value in $&#39;</span><span class="p">)</span>
+
+    <span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
+    <span class="n">perf</span><span class="p">[</span><span class="s">&#39;AAPL&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+    <span class="n">perf</span><span class="p">[[</span><span class="s">&#39;short_mavg&#39;</span><span class="p">,</span> <span class="s">&#39;long_mavg&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax2</span><span class="p">)</span>
+
+    <span class="n">perf_trans</span> <span class="o">=</span> <span class="n">perf</span><span class="o">.</span><span class="n">ix</span><span class="p">[[</span><span class="n">t</span> <span class="o">!=</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
+    <span class="n">buys</span> <span class="o">=</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">ix</span><span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;amount&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
+    <span class="n">sells</span> <span class="o">=</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span>
+        <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;amount&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">perf_trans</span><span class="o">.</span><span class="n">transactions</span><span class="p">]]</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">buys</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">perf</span><span class="o">.</span><span class="n">short_mavg</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">buys</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+             <span class="s">&#39;^&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">sells</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">perf</span><span class="o">.</span><span class="n">short_mavg</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span><span class="n">sells</span><span class="o">.</span><span class="n">index</span><span class="p">],</span>
+             <span class="s">&#39;v&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+    <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;price in $&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
 <img alt="_images/tutorial_22_1.png" src="_images/tutorial_22_1.png" />
@@ -959,7 +952,7 @@ and <a class="reference external" href="https://quantopian.com">checkout Quantop
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="releases.html" class="btn btn-neutral float-right" title="Release Notes" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="bundles.html" class="btn btn-neutral float-right" title="Data Bundles" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="install.html" class="btn btn-neutral" title="Install" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -992,7 +985,7 @@ and <a class="reference external" href="https://quantopian.com">checkout Quantop
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.9.0',
+            VERSION:'1.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

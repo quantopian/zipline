@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.pipeline &mdash; Zipline 1.0.0 documentation</title>
+  <title>zipline.finance.cancel_policy &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -271,7 +271,7 @@
       
           <li><a href="../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.pipeline</li>
+    <li>zipline.finance.cancel_policy</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -282,173 +282,78 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.pipeline</h1><div class="highlight"><pre>
-<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span><span class="p">,</span> <span class="n">optional</span>
+  <h1>Source code for zipline.finance.cancel_policy</h1><div class="highlight"><pre>
+<span class="c">#</span>
+<span class="c"># Copyright 2016 Quantopian, Inc.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="kn">import</span> <span class="nn">abc</span>
 
-<span class="kn">from</span> <span class="nn">.term</span> <span class="kn">import</span> <span class="n">Term</span><span class="p">,</span> <span class="n">AssetExists</span>
-<span class="kn">from</span> <span class="nn">.filters</span> <span class="kn">import</span> <span class="n">Filter</span>
-<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">TermGraph</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
+
+<span class="kn">from</span> <span class="nn">zipline.gens.sim_engine</span> <span class="kn">import</span> <span class="n">DAY_END</span>
 
 
-<div class="viewcode-block" id="Pipeline"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline">[docs]</a><span class="k">class</span> <span class="nc">Pipeline</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A Pipeline object represents a collection of named expressions to be</span>
-<span class="sd">    compiled and executed by a PipelineEngine.</span>
-
-<span class="sd">    A Pipeline has two important attributes: &#39;columns&#39;, a dictionary of named</span>
-<span class="sd">    `Term` instances, and &#39;screen&#39;, a Filter representing criteria for</span>
-<span class="sd">    including an asset in the results of a Pipeline.</span>
-
-<span class="sd">    To compute a pipeline in the context of a TradingAlgorithm, users must call</span>
-<span class="sd">    ``attach_pipeline`` in their ``initialize`` function to register that the</span>
-<span class="sd">    pipeline should be computed each trading day.  The outputs of a pipeline on</span>
-<span class="sd">    a given day can be accessed by calling ``pipeline_output`` in</span>
-<span class="sd">    ``handle_data`` or ``before_trading_start``.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    columns : dict, optional</span>
-<span class="sd">        Initial columns.</span>
-<span class="sd">    screen : zipline.pipeline.term.Filter, optional</span>
-<span class="sd">        Initial screen.</span>
+<div class="viewcode-block" id="CancelPolicy"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.cancel_policy.CancelPolicy">[docs]</a><span class="k">class</span> <span class="nc">CancelPolicy</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">)):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract cancellation policy interface.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;_columns&#39;</span><span class="p">,</span> <span class="s">&#39;_screen&#39;</span><span class="p">,</span> <span class="s">&#39;__weakref__&#39;</span><span class="p">)</span>
 
-    <span class="nd">@expect_types</span><span class="p">(</span>
-        <span class="n">columns</span><span class="o">=</span><span class="n">optional</span><span class="p">(</span><span class="nb">dict</span><span class="p">),</span>
-        <span class="n">screen</span><span class="o">=</span><span class="n">optional</span><span class="p">(</span><span class="n">Filter</span><span class="p">),</span>
-    <span class="p">)</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-
-        <span class="k">if</span> <span class="n">columns</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">columns</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span> <span class="o">=</span> <span class="n">columns</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span> <span class="o">=</span> <span class="n">screen</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The columns registered with this pipeline.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span>
-
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">screen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The screen applied to the rows of this pipeline.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span>
-
-    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
-<div class="viewcode-block" id="Pipeline.add"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Add a column.</span>
-
-<span class="sd">        The results of computing `term` will show up as a column in the</span>
-<span class="sd">        DataFrame produced by running this pipeline.</span>
+    <span class="nd">@abstractmethod</span>
+<div class="viewcode-block" id="CancelPolicy.should_cancel"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.cancel_policy.CancelPolicy.should_cancel">[docs]</a>    <span class="k">def</span> <span class="nf">should_cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Should all open orders be cancelled?</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        column : zipline.pipeline.Term</span>
-<span class="sd">            A Filter, Factor, or Classifier to add to the pipeline.</span>
-<span class="sd">        name : str</span>
-<span class="sd">            Name of the column to add.</span>
-<span class="sd">        overwrite : bool</span>
-<span class="sd">            Whether to overwrite the existing entry if we already have a column</span>
-<span class="sd">            named `name`.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span>
-        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&quot;Column &#39;{}&#39; already exists.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">term</span>
-</div>
-    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
-<div class="viewcode-block" id="Pipeline.remove"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.remove">[docs]</a>    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Remove a column.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        name : str</span>
-<span class="sd">            The name of the column to remove.</span>
-
-<span class="sd">        Raises</span>
-<span class="sd">        ------</span>
-<span class="sd">        KeyError</span>
-<span class="sd">            If `name` is not in self.columns.</span>
+<span class="sd">        event : enum-value</span>
+<span class="sd">            An event type, one of:</span>
+<span class="sd">              - :data:`zipline.gens.sim_engine.BAR`</span>
+<span class="sd">              - :data:`zipline.gens.sim_engine.DAY_START`</span>
+<span class="sd">              - :data:`zipline.gens.sim_engine.DAY_END`</span>
+<span class="sd">              - :data:`zipline.gens.sim_engine.MINUTE_END`</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        removed : zipline.pipeline.term.Term</span>
-<span class="sd">            The removed term.</span>
+<span class="sd">        should_cancel : bool</span>
+<span class="sd">            Should all open orders be cancelled?</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">pass</span>
+
+</div></div>
+<div class="viewcode-block" id="EODCancel"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.cancel_policy.EODCancel">[docs]</a><span class="k">class</span> <span class="nc">EODCancel</span><span class="p">(</span><span class="n">CancelPolicy</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This policy cancels open orders at the end of the day.  For now,</span>
+<span class="sd">    Zipline will only apply this policy to minutely simulations.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    warn_on_cancel : bool, optional</span>
+<span class="sd">        Should a warning be raised if this causes an order to be cancelled?</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">warn_on_cancel</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warn_on_cancel</span> <span class="o">=</span> <span class="n">warn_on_cancel</span>
+
+    <span class="k">def</span> <span class="nf">should_cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">event</span> <span class="o">==</span> <span class="n">DAY_END</span>
+
 </div>
-    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">screen</span><span class="o">=</span><span class="n">Filter</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">))</span>
-<div class="viewcode-block" id="Pipeline.set_screen"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.set_screen">[docs]</a>    <span class="k">def</span> <span class="nf">set_screen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">screen</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Set a screen on this Pipeline.</span>
+<div class="viewcode-block" id="NeverCancel"><a class="viewcode-back" href="../../../appendix.html#zipline.finance.cancel_policy.NeverCancel">[docs]</a><span class="k">class</span> <span class="nc">NeverCancel</span><span class="p">(</span><span class="n">CancelPolicy</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Orders are never automatically canceled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warn_on_cancel</span> <span class="o">=</span> <span class="bp">False</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        filter : zipline.pipeline.Filter</span>
-<span class="sd">            The filter to apply as a screen.</span>
-<span class="sd">        overwrite : bool</span>
-<span class="sd">            Whether to overwrite any existing screen.  If overwrite is False</span>
-<span class="sd">            and self.screen is not None, we raise an error.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s">&quot;set_screen() called with overwrite=False and screen already &quot;</span>
-                <span class="s">&quot;set.</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;If you want to apply multiple filters as a screen use &quot;</span>
-                <span class="s">&quot;set_screen(filter1 &amp; filter2 &amp; ...).</span><span class="se">\n</span><span class="s">&quot;</span>
-                <span class="s">&quot;If you want to replace the previous screen with a new one, &quot;</span>
-                <span class="s">&quot;use set_screen(new_filter, overwrite=True).&quot;</span>
-            <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_screen</span> <span class="o">=</span> <span class="n">screen</span>
-</div>
-<div class="viewcode-block" id="Pipeline.to_graph"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.to_graph">[docs]</a>    <span class="k">def</span> <span class="nf">to_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">screen_name</span><span class="p">,</span> <span class="n">default_screen</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compile into a TermGraph.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        screen_name : str</span>
-<span class="sd">            Name to supply for self.screen.</span>
-<span class="sd">        default_screen : zipline.pipeline.term.Term</span>
-<span class="sd">            Term to use as a screen if self.screen is None.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">screen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">screen</span>
-        <span class="k">if</span> <span class="n">screen</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="n">screen</span> <span class="o">=</span> <span class="n">default_screen</span>
-        <span class="n">columns</span><span class="p">[</span><span class="n">screen_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">screen</span>
-
-        <span class="k">return</span> <span class="n">TermGraph</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
-</div>
-<div class="viewcode-block" id="Pipeline.show_graph"><a class="viewcode-back" href="../../../appendix.html#zipline.pipeline.Pipeline.show_graph">[docs]</a>    <span class="k">def</span> <span class="nf">show_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&#39;svg&#39;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Render this Pipeline as a DAG.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        format : {&#39;svg&#39;, &#39;png&#39;, &#39;jpeg&#39;}</span>
-<span class="sd">            Image format to render with.  Default is &#39;svg&#39;.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_graph</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">AssetExists</span><span class="p">())</span>
-        <span class="k">if</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;svg&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">svg</span>
-        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;png&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">png</span>
-        <span class="k">elif</span> <span class="n">format</span> <span class="o">==</span> <span class="s">&#39;jpeg&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">jpeg</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Unknown graph format </span><span class="si">%r</span><span class="s">.&quot;</span> <span class="o">%</span> <span class="n">format</span><span class="p">)</span></div></div>
+    <span class="k">def</span> <span class="nf">should_cancel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">False</span></div>
 </pre></div>
 
           </div>

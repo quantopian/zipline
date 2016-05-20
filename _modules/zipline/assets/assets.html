@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.assets.assets &mdash; Zipline 0.9.0 documentation</title>
+  <title>zipline.assets.assets &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 0.9.0 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.0 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -89,7 +89,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
@@ -97,9 +96,42 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#development">Development</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
@@ -169,14 +201,39 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../appendix.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#simulation-parameters">Simulation Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../release-process.html">Zipline Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
@@ -249,7 +306,7 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">isnull</span>
 <span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span><span class="p">,</span> <span class="n">string_types</span><span class="p">,</span> <span class="n">viewkeys</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">map</span> <span class="k">as</span> <span class="n">imap</span><span class="p">,</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">map</span> <span class="k">as</span> <span class="n">imap</span>
 <span class="kn">import</span> <span class="nn">sqlalchemy</span> <span class="kn">as</span> <span class="nn">sa</span>
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
@@ -268,12 +325,12 @@
     <span class="n">check_version_info</span><span class="p">,</span>
     <span class="n">split_delimited_symbol</span><span class="p">,</span>
     <span class="n">asset_db_table_names</span><span class="p">,</span>
-    <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.assets.asset_db_schema</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ASSET_DB_VERSION</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.control_flow</span> <span class="kn">import</span> <span class="n">invert</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.sqlite_utils</span> <span class="kn">import</span> <span class="n">group_into_chunks</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">Logger</span><span class="p">(</span><span class="s">&#39;assets.py&#39;</span><span class="p">)</span>
 
@@ -306,7 +363,7 @@
     <span class="k">return</span> <span class="n">dict_</span>
 
 
-<div class="viewcode-block" id="AssetFinder"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder">[docs]</a><span class="k">class</span> <span class="nc">AssetFinder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="AssetFinder"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder">[docs]</a><span class="k">class</span> <span class="nc">AssetFinder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    An AssetFinder is an interface to a database of Asset metadata written by</span>
 <span class="sd">    an ``AssetDBWriter``.</span>
@@ -322,13 +379,15 @@
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
-<span class="sd">    :class:`zipline.assets.asset_writer.AssetDBWriter`</span>
+<span class="sd">    :class:`zipline.assets.AssetDBWriter`</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c"># Token used as a substitute for pickling objects that contain a</span>
     <span class="c"># reference to an AssetFinder.</span>
     <span class="n">PERSISTENT_TOKEN</span> <span class="o">=</span> <span class="s">&quot;&lt;AssetFinder&gt;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
+            <span class="n">engine</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">create_engine</span><span class="p">(</span><span class="s">&#39;sqlite:///&#39;</span> <span class="o">+</span> <span class="n">engine</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">MetaData</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
@@ -364,7 +423,7 @@
         <span class="k">for</span> <span class="n">cache</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span><span class="p">:</span>
             <span class="n">cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 
-<div class="viewcode-block" id="AssetFinder.lookup_asset_types"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.lookup_asset_types">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_asset_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+<div class="viewcode-block" id="AssetFinder.lookup_asset_types"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_asset_types">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_asset_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve asset types for a list of sids.</span>
 
@@ -391,7 +450,7 @@
 
         <span class="n">router_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset_router</span><span class="o">.</span><span class="n">c</span>
 
-        <span class="k">for</span> <span class="n">assets</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_into_chunks</span><span class="p">(</span><span class="n">missing</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">assets</span> <span class="ow">in</span> <span class="n">group_into_chunks</span><span class="p">(</span><span class="n">missing</span><span class="p">):</span>
             <span class="n">query</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="n">router_cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">router_cols</span><span class="o">.</span><span class="n">asset_type</span><span class="p">))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">asset_router</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">assets</span><span class="p">))</span>
             <span class="p">)</span>
@@ -402,15 +461,9 @@
             <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">missing</span><span class="p">:</span>
                 <span class="n">found</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_type_cache</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
 
-        <span class="k">return</span> <span class="n">found</span></div>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_group_into_chunks</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="n">SQLITE_MAX_VARIABLE_NUMBER</span><span class="p">):</span>
-        <span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">items</span><span class="p">[</span><span class="n">x</span><span class="p">:</span><span class="n">x</span><span class="o">+</span><span class="n">chunk_size</span><span class="p">]</span>
-                <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">),</span> <span class="n">chunk_size</span><span class="p">)]</span>
-
-<div class="viewcode-block" id="AssetFinder.group_by_type"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.group_by_type">[docs]</a>    <span class="k">def</span> <span class="nf">group_by_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">found</span>
+</div>
+<div class="viewcode-block" id="AssetFinder.group_by_type"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.group_by_type">[docs]</a>    <span class="k">def</span> <span class="nf">group_by_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Group a list of sids by asset type.</span>
 
@@ -424,21 +477,21 @@
 <span class="sd">            A dict mapping unique asset types to lists of sids drawn from sids.</span>
 <span class="sd">            If we fail to look up an asset, we assign it a key of None.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">invert</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lookup_asset_types</span><span class="p">(</span><span class="n">sids</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="AssetFinder.retrieve_asset"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.retrieve_asset">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_asset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">default_none</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">invert</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lookup_asset_types</span><span class="p">(</span><span class="n">sids</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="AssetFinder.retrieve_asset"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.retrieve_asset">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_asset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">default_none</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve the Asset for a given sid.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">((</span><span class="n">sid</span><span class="p">,),</span> <span class="n">default_none</span><span class="o">=</span><span class="n">default_none</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="AssetFinder.retrieve_all"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.retrieve_all">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">default_none</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">((</span><span class="n">sid</span><span class="p">,),</span> <span class="n">default_none</span><span class="o">=</span><span class="n">default_none</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="AssetFinder.retrieve_all"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.retrieve_all">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">,</span> <span class="n">default_none</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve all assets in `sids`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        sids : interable of int</span>
+<span class="sd">        sids : iterable of int</span>
 <span class="sd">            Assets to retrieve.</span>
 <span class="sd">        default_none : bool</span>
 <span class="sd">            If True, return None for failed lookups.</span>
@@ -446,7 +499,7 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        assets : list[int or None]</span>
+<span class="sd">        assets : list[Asset or None]</span>
 <span class="sd">            A list of the same length as `sids` containing Assets (or Nones)</span>
 <span class="sd">            corresponding to the requested sids.</span>
 
@@ -497,9 +550,9 @@
                 <span class="s">&quot;Found asset types: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">list</span><span class="p">(</span><span class="n">type_to_assets</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
             <span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">[</span><span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="AssetFinder.retrieve_equities"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.retrieve_equities">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_equities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">hits</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="AssetFinder.retrieve_equities"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.retrieve_equities">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_equities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve Equity objects for a list of sids.</span>
 
@@ -520,12 +573,12 @@
 <span class="sd">        EquitiesNotFound</span>
 <span class="sd">            When any requested asset isn&#39;t found.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_assets</span><span class="p">(</span><span class="n">sids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="p">,</span> <span class="n">Equity</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_assets</span><span class="p">(</span><span class="n">sids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="p">,</span> <span class="n">Equity</span><span class="p">)</span>
+</div>
     <span class="k">def</span> <span class="nf">_retrieve_equity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_equities</span><span class="p">((</span><span class="n">sid</span><span class="p">,))[</span><span class="n">sid</span><span class="p">]</span>
 
-<div class="viewcode-block" id="AssetFinder.retrieve_futures_contracts"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.retrieve_futures_contracts">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_futures_contracts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+<div class="viewcode-block" id="AssetFinder.retrieve_futures_contracts"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.retrieve_futures_contracts">[docs]</a>    <span class="k">def</span> <span class="nf">retrieve_futures_contracts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieve Future objects for an iterable of sids.</span>
 
@@ -546,8 +599,8 @@
 <span class="sd">        EquitiesNotFound</span>
 <span class="sd">            When any requested asset isn&#39;t found.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_assets</span><span class="p">(</span><span class="n">sids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">futures_contracts</span><span class="p">,</span> <span class="n">Future</span><span class="p">)</span></div>
-
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_assets</span><span class="p">(</span><span class="n">sids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">futures_contracts</span><span class="p">,</span> <span class="n">Future</span><span class="p">)</span>
+</div>
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_select_assets_by_sid</span><span class="p">(</span><span class="n">asset_tbl</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">([</span><span class="n">asset_tbl</span><span class="p">])</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
@@ -586,7 +639,7 @@
         <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset_cache</span>
         <span class="n">hits</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="k">for</span> <span class="n">assets</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_into_chunks</span><span class="p">(</span><span class="n">sids</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">assets</span> <span class="ow">in</span> <span class="n">group_into_chunks</span><span class="p">(</span><span class="n">sids</span><span class="p">):</span>
             <span class="c"># Load misses from the db.</span>
             <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_assets_by_sid</span><span class="p">(</span><span class="n">asset_tbl</span><span class="p">,</span> <span class="n">assets</span><span class="p">)</span>
 
@@ -687,7 +740,7 @@
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_equities</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">results</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">]</span>
 
-<div class="viewcode-block" id="AssetFinder.lookup_symbol"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.lookup_symbol">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="AssetFinder.lookup_symbol"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_symbol">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">fuzzy</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return matching Equity of name symbol in database.</span>
 
@@ -757,9 +810,9 @@
                 <span class="k">raise</span> <span class="n">MultipleSymbolsFound</span><span class="p">(</span>
                     <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
                     <span class="n">options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_equities_from_candidates</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span>
-                <span class="p">)</span></div>
-
-<div class="viewcode-block" id="AssetFinder.lookup_future_symbol"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.lookup_future_symbol">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_future_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+                <span class="p">)</span>
+</div>
+<div class="viewcode-block" id="AssetFinder.lookup_future_symbol"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_future_symbol">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_future_symbol</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Return the Future object for a given symbol.</span>
 
 <span class="sd">        Parameters</span>
@@ -785,9 +838,9 @@
         <span class="c"># If no data found, raise an exception</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">SymbolNotFound</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;sid&#39;</span><span class="p">])</span></div>
-
-<div class="viewcode-block" id="AssetFinder.lookup_future_chain"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.lookup_future_chain">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_future_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_asset</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s">&#39;sid&#39;</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="AssetFinder.lookup_future_chain"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_future_chain">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_future_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Return the futures chain for a given root symbol.</span>
 
 <span class="sd">        Parameters</span>
@@ -892,14 +945,56 @@
                 <span class="k">raise</span> <span class="n">RootSymbolNotFound</span><span class="p">(</span><span class="n">root_symbol</span><span class="o">=</span><span class="n">root_symbol</span><span class="p">)</span>
 
         <span class="n">contracts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieve_futures_contracts</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">contracts</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="p">[</span><span class="n">contracts</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">]</span>
+</div>
+    <span class="k">def</span> <span class="nf">lookup_expired_futures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">):</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">start</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">):</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">end</span><span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">end</span><span class="o">.</span><span class="n">value</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">sids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+        <span class="n">fc_cols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">futures_contracts</span><span class="o">.</span><span class="n">c</span>
+
+        <span class="n">nd</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">nullif</span><span class="p">(</span><span class="n">fc_cols</span><span class="o">.</span><span class="n">notice_date</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">tslib</span><span class="o">.</span><span class="n">iNaT</span><span class="p">)</span>
+        <span class="n">ed</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">nullif</span><span class="p">(</span><span class="n">fc_cols</span><span class="o">.</span><span class="n">expiration_date</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">tslib</span><span class="o">.</span><span class="n">iNaT</span><span class="p">)</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">sa</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">nd</span><span class="p">,</span> <span class="n">ed</span><span class="p">),</span> <span class="n">ed</span><span class="p">,</span> <span class="n">nd</span><span class="p">)</span>
+
+        <span class="n">sids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
             <span class="n">itemgetter</span><span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">),</span>
-            <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">asset_router</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="p">,))</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
+            <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="n">fc_cols</span><span class="o">.</span><span class="n">sid</span><span class="p">,))</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">date</span> <span class="o">&gt;=</span> <span class="n">start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">date</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">))</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+                <span class="n">sa</span><span class="o">.</span><span class="n">func</span><span class="o">.</span><span class="n">coalesce</span><span class="p">(</span><span class="n">ed</span><span class="p">,</span> <span class="n">nd</span><span class="p">)</span><span class="o">.</span><span class="n">asc</span><span class="p">()</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
         <span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">sids</span>
+
+    <span class="k">def</span> <span class="nf">_make_sids</span><span class="p">(</span><span class="n">tblattr</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+                <span class="n">itemgetter</span><span class="p">(</span><span class="s">&#39;sid&#39;</span><span class="p">),</span>
+                <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span>
+                    <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tblattr</span><span class="p">)</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
+                <span class="p">))</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">(),</span>
+            <span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">_</span>
+
+    <span class="n">sids</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span>
+        <span class="n">_make_sids</span><span class="p">(</span><span class="s">&#39;asset_router&#39;</span><span class="p">),</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s">&#39;All the sids in the asset finder.&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">equities_sids</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span>
+        <span class="n">_make_sids</span><span class="p">(</span><span class="s">&#39;equities&#39;</span><span class="p">),</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s">&#39;All of the sids for equities in the asset finder.&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">futures_sids</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span>
+        <span class="n">_make_sids</span><span class="p">(</span><span class="s">&#39;futures_contracts&#39;</span><span class="p">),</span>
+        <span class="n">doc</span><span class="o">=</span><span class="s">&#39;All of the sids for futures consracts in the asset finder.&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">del</span> <span class="n">_make_sids</span>
 
     <span class="k">def</span> <span class="nf">_lookup_generic_scalar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                <span class="n">asset_convertible</span><span class="p">,</span>
@@ -937,7 +1032,7 @@
                 <span class="o">%</span> <span class="n">asset_convertible</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="AssetFinder.lookup_generic"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.lookup_generic">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_generic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="AssetFinder.lookup_generic"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lookup_generic">[docs]</a>    <span class="k">def</span> <span class="nf">lookup_generic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">asset_convertible_or_iterable</span><span class="p">,</span>
                        <span class="n">as_of_date</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -983,9 +1078,9 @@
 
         <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_lookup_generic_scalar</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">,</span> <span class="n">matches</span><span class="p">,</span> <span class="n">missing</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">matches</span><span class="p">,</span> <span class="n">missing</span></div>
-
-<div class="viewcode-block" id="AssetFinder.map_identifier_index_to_sids"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.map_identifier_index_to_sids">[docs]</a>    <span class="k">def</span> <span class="nf">map_identifier_index_to_sids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">matches</span><span class="p">,</span> <span class="n">missing</span>
+</div>
+<div class="viewcode-block" id="AssetFinder.map_identifier_index_to_sids"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.map_identifier_index_to_sids">[docs]</a>    <span class="k">def</span> <span class="nf">map_identifier_index_to_sids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">as_of_date</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method is for use in sanitizing a user&#39;s DataFrame or Panel</span>
 <span class="sd">        inputs.</span>
@@ -1029,8 +1124,8 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;Missing assets for identifiers: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">missing</span><span class="p">)</span>
 
         <span class="c"># Return a list of the sids of the found assets</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span> <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">]</span></div>
-
+        <span class="k">return</span> <span class="p">[</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span> <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">]</span>
+</div>
     <span class="k">def</span> <span class="nf">_compute_asset_lifetimes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute and cache a recarry of asset lifetimes.</span>
@@ -1065,7 +1160,7 @@
             <span class="p">(</span><span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="s">&#39;&lt;i8&#39;</span><span class="p">),</span>
         <span class="p">])</span>
 
-<div class="viewcode-block" id="AssetFinder.lifetimes"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinder.lifetimes">[docs]</a>    <span class="k">def</span> <span class="nf">lifetimes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">include_start_date</span><span class="p">):</span>
+<div class="viewcode-block" id="AssetFinder.lifetimes"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinder.lifetimes">[docs]</a>    <span class="k">def</span> <span class="nf">lifetimes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">include_start_date</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute a DataFrame representing asset lifetimes for the specified date</span>
 <span class="sd">        range.</span>
@@ -1112,19 +1207,19 @@
             <span class="n">mask</span> <span class="o">=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">raw_dates</span>
         <span class="n">mask</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="n">raw_dates</span> <span class="o">&lt;=</span> <span class="n">lifetimes</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">lifetimes</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">dates</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">lifetimes</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="AssetConvertible"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetConvertible">[docs]</a><span class="k">class</span> <span class="nc">AssetConvertible</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span>
+</div></div>
+<div class="viewcode-block" id="AssetConvertible"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetConvertible">[docs]</a><span class="k">class</span> <span class="nc">AssetConvertible</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    ABC for types that are convertible to integer-representations of</span>
 <span class="sd">    Assets.</span>
 
 <span class="sd">    Includes Asset, six.string_types, and Integral</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">pass</span></div>
+    <span class="k">pass</span>
 
-
+</div>
 <span class="n">AssetConvertible</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Integral</span><span class="p">)</span>
 <span class="n">AssetConvertible</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">Asset</span><span class="p">)</span>
 <span class="c"># Use six.string_types for Python2/3 compatibility</span>
@@ -1136,39 +1231,39 @@
     <span class="k">pass</span>
 
 
-<div class="viewcode-block" id="AssetFinderCachedEquities"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.assets.AssetFinderCachedEquities">[docs]</a><span class="k">class</span> <span class="nc">AssetFinderCachedEquities</span><span class="p">(</span><span class="n">AssetFinder</span><span class="p">):</span>
+<div class="viewcode-block" id="AssetFinderCachedEquities"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinderCachedEquities">[docs]</a><span class="k">class</span> <span class="nc">AssetFinderCachedEquities</span><span class="p">(</span><span class="n">AssetFinder</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    An extension to AssetFinder that loads all equities from equities table</span>
-<span class="sd">    into memory and overrides the methods that lookup_symbol uses to look up</span>
-<span class="sd">    those equities.</span>
+<span class="sd">    An extension to AssetFinder that preloads all equities from equities table</span>
+<span class="sd">    into memory and does lookups from there.</span>
+
+<span class="sd">    To have any changes in the underlying assets db reflected by this asset</span>
+<span class="sd">    finder one must manually call the ``rehash_equities`` method.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">AssetFinderCachedEquities</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_symbol_hashed_equities</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">company_share_class_hashed_equities</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hashed_equities</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_load_hashed_equities</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fuzzy_symbol_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_company_share_class_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="k">def</span> <span class="nf">_load_hashed_equities</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Populates two maps - fuzzy symbol to list of equities having that</span>
-<span class="sd">        fuzzy symbol and company symbol/share class symbol to list of</span>
-<span class="sd">        equities having that combination of company symbol/share class symbol.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rehash_equities</span><span class="p">()</span>
+
+<div class="viewcode-block" id="AssetFinderCachedEquities.rehash_equities"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetFinderCachedEquities.rehash_equities">[docs]</a>    <span class="k">def</span> <span class="nf">rehash_equities</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reload the underlying assets db into the in memory cache.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">equity</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hashed_equities</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">equity</span> <span class="ow">in</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">equities</span><span class="o">.</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
             <span class="n">company_symbol</span> <span class="o">=</span> <span class="n">equity</span><span class="p">[</span><span class="s">&#39;company_symbol&#39;</span><span class="p">]</span>
             <span class="n">share_class_symbol</span> <span class="o">=</span> <span class="n">equity</span><span class="p">[</span><span class="s">&#39;share_class_symbol&#39;</span><span class="p">]</span>
             <span class="n">fuzzy_symbol</span> <span class="o">=</span> <span class="n">equity</span><span class="p">[</span><span class="s">&#39;fuzzy_symbol&#39;</span><span class="p">]</span>
             <span class="n">asset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_row_to_equity</span><span class="p">(</span><span class="n">equity</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">company_share_class_hashed_equities</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_company_share_class_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
                 <span class="p">(</span><span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span><span class="p">),</span>
                 <span class="p">[]</span>
             <span class="p">)</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_symbol_hashed_equities</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
-                <span class="n">fuzzy_symbol</span><span class="p">,</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fuzzy_symbol_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+                <span class="n">fuzzy_symbol</span><span class="p">,</span>
+                <span class="p">[],</span>
             <span class="p">)</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
-
+</div>
     <span class="k">def</span> <span class="nf">_convert_row_to_equity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Converts a SQLAlchemy equity row to an Equity object.</span>
@@ -1176,7 +1271,7 @@
         <span class="k">return</span> <span class="n">Equity</span><span class="p">(</span><span class="o">**</span><span class="n">_convert_asset_timestamp_fields</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">row</span><span class="p">)))</span>
 
     <span class="k">def</span> <span class="nf">_get_fuzzy_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fuzzy_symbol</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fuzzy_symbol_hashed_equities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fuzzy_symbol</span><span class="p">,</span> <span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fuzzy_symbol_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fuzzy_symbol</span><span class="p">,</span> <span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">_get_fuzzy_candidates_in_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fuzzy_symbol</span><span class="p">,</span> <span class="n">ad_value</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">only_active_assets</span><span class="p">(</span>
@@ -1185,7 +1280,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_split_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">company_share_class_hashed_equities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_company_share_class_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
             <span class="p">(</span><span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span><span class="p">),</span>
             <span class="p">(),</span>
         <span class="p">)</span>
@@ -1208,7 +1303,8 @@
                                         <span class="n">share_class_symbol</span><span class="p">,</span>
                                         <span class="n">ad_value</span><span class="p">):</span>
         <span class="n">equities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_split_candidates</span><span class="p">(</span>
-            <span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span>
+            <span class="n">company_symbol</span><span class="p">,</span>
+            <span class="n">share_class_symbol</span>
         <span class="p">)</span>
         <span class="n">partial_candidates</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">equity</span> <span class="ow">in</span> <span class="n">equities</span><span class="p">:</span>
@@ -1226,9 +1322,9 @@
         <span class="k">return</span> <span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_get_equities_from_candidates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">candidates</span></div>
+        <span class="k">return</span> <span class="n">candidates</span>
 
-
+</div>
 <span class="k">def</span> <span class="nf">was_active</span><span class="p">(</span><span class="n">reference_date_value</span><span class="p">,</span> <span class="n">asset</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Whether or not `asset` was active at the time corresponding to</span>
@@ -1306,7 +1402,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'0.9.0',
+            VERSION:'1.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

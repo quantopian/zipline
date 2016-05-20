@@ -90,18 +90,13 @@ following brew packages:
 Windows
 ~~~~~~~
 
-.. todo::
+For windows, the easiest and best supported way to install zipline is to use
+:ref:`Conda <conda>`.
 
-   Add notes on installing with Anaconda, then point to ``Installing with Conda``.
+.. _conda:
 
 Installing with ``conda``
 -------------------------
-.. _conda:
-
-.. warning::
-
-   The ``zipline`` packages for ``conda`` are currently out of date.  We plan
-   to provide a conda package for the upcoming ``0.8.4`` release.
 
 Another way to install Zipline is via the ``conda`` package manager, which
 comes as part of Continuum Analytics' `Anaconda

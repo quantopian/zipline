@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Install &mdash; Zipline 0.9.0 documentation</title>
+  <title>Install &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 0.9.0 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 1.0.0 documentation" href="index.html"/>
         <link rel="next" title="Zipline beginner tutorial" href="beginner-tutorial.html"/>
         <link rel="prev" title="Zipline" href="index.html"/> 
 
@@ -90,7 +90,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
@@ -98,9 +97,42 @@
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#conclusions">Conclusions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#development">Development</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
@@ -170,14 +202,39 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#simulation-parameters">Simulation Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#asset-metadata">Asset Metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Zipline Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
@@ -293,19 +350,12 @@ following brew packages:</p>
 </div>
 <div class="section" id="windows">
 <h3>Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h3>
-<div class="admonition-todo admonition" id="index-0">
-<p class="first admonition-title">Todo</p>
-<p class="last">Add notes on installing with Anaconda, then point to <code class="docutils literal"><span class="pre">Installing</span> <span class="pre">with</span> <span class="pre">Conda</span></code>.</p>
-</div>
+<p>For windows, the easiest and best supported way to install zipline is to use
+<a class="reference internal" href="#conda"><span>Conda</span></a>.</p>
 </div>
 </div>
 <div class="section" id="installing-with-conda">
-<h2>Installing with <code class="docutils literal"><span class="pre">conda</span></code><a class="headerlink" href="#installing-with-conda" title="Permalink to this headline">¶</a></h2>
-<div class="admonition warning" id="conda">
-<p class="first admonition-title">Warning</p>
-<p class="last">The <code class="docutils literal"><span class="pre">zipline</span></code> packages for <code class="docutils literal"><span class="pre">conda</span></code> are currently out of date.  We plan
-to provide a conda package for the upcoming <code class="docutils literal"><span class="pre">0.8.4</span></code> release.</p>
-</div>
+<span id="conda"></span><h2>Installing with <code class="docutils literal"><span class="pre">conda</span></code><a class="headerlink" href="#installing-with-conda" title="Permalink to this headline">¶</a></h2>
 <p>Another way to install Zipline is via the <code class="docutils literal"><span class="pre">conda</span></code> package manager, which
 comes as part of Continuum Analytics&#8217; <a class="reference external" href="http://continuum.io/downloads">Anaconda</a> distribution.</p>
 <p>The primary advantage of using Conda over <code class="docutils literal"><span class="pre">pip</span></code> is that conda natively
@@ -362,7 +412,7 @@ channel:</p>
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.9.0',
+            VERSION:'1.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

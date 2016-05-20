@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.data.earnings &mdash; Zipline 1.0.0 documentation</title>
+  <title>zipline.data.bundles.yahoo &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -271,7 +271,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.data.earnings</li>
+    <li>zipline.data.bundles.yahoo</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -282,24 +282,172 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.data.earnings</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Dataset representing dates of upcoming earnings.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">datetime64ns_dtype</span>
+  <h1>Source code for zipline.data.bundles.yahoo</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">os</span>
 
-<span class="kn">from</span> <span class="nn">.dataset</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">DataSet</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pandas_datareader.data</span> <span class="kn">import</span> <span class="n">DataReader</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+<span class="kn">from</span> <span class="nn">zipline.utils.cli</span> <span class="kn">import</span> <span class="n">maybe_show_progress</span>
 
 
-<div class="viewcode-block" id="EarningsCalendar"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.EarningsCalendar">[docs]</a><span class="k">class</span> <span class="nc">EarningsCalendar</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Dataset representing dates of upcoming or recently announced earnings.</span>
+<span class="k">def</span> <span class="nf">_cachpath</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">type_</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="n">symbol</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">,</span> <span class="s">&#39;_&#39;</span><span class="p">),</span> <span class="n">type_</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="yahoo_equities"><a class="viewcode-back" href="../../../../appendix.html#zipline.data.bundles.yahoo_equities">[docs]</a><span class="k">def</span> <span class="nf">yahoo_equities</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a data bundle ingest function from a set of symbols loaded from</span>
+<span class="sd">    yahoo.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    symbols : iterable[str]</span>
+<span class="sd">        The ticker symbols to load data for.</span>
+<span class="sd">    start : datetime, optional</span>
+<span class="sd">        The start date to query for. By default this pulls the full history</span>
+<span class="sd">        for the calendar.</span>
+<span class="sd">    end : datetime, optional</span>
+<span class="sd">        The end date to query for. By default this pulls the full history</span>
+<span class="sd">        for the calendar.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ingest : callable</span>
+<span class="sd">        The bundle ingest function for the given set of symbols.</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    This code should be added to ~/.zipline/extension.py</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">       from zipline.data.bundles import yahoo_equities, register</span>
+
+<span class="sd">       symbols = (</span>
+<span class="sd">           &#39;AAPL&#39;,</span>
+<span class="sd">           &#39;IBM&#39;,</span>
+<span class="sd">           &#39;MSFT&#39;,</span>
+<span class="sd">       )</span>
+<span class="sd">       register(&#39;my_bundle&#39;, yahoo_equities(symbols))</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    The sids for each symbol will be the index into the symbols sequence.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">next_announcement</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">datetime64ns_dtype</span><span class="p">)</span>
-    <span class="n">previous_announcement</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">datetime64ns_dtype</span><span class="p">)</span>
+    <span class="c"># strict this in memory so that we can reiterate over it</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
 
-    <span class="c"># TODO: Provide categorical columns for when during the day the</span>
-    <span class="c"># announcement occurred.</span></div>
+    <span class="k">def</span> <span class="nf">ingest</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span>
+               <span class="n">asset_db_writer</span><span class="p">,</span>
+               <span class="n">minute_bar_writer</span><span class="p">,</span>  <span class="c"># unused</span>
+               <span class="n">daily_bar_writer</span><span class="p">,</span>
+               <span class="n">adjustment_writer</span><span class="p">,</span>
+               <span class="n">calendar</span><span class="p">,</span>
+               <span class="n">cache</span><span class="p">,</span>
+               <span class="n">show_progress</span><span class="p">,</span>
+               <span class="n">output_dir</span><span class="p">,</span>
+               <span class="c"># pass these as defaults to make them &#39;nonlocal&#39; in py2</span>
+               <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+               <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">calendar</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">end</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="p">[</span>
+            <span class="p">(</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;datetime64[ns]&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;end_date&#39;</span><span class="p">,</span> <span class="s">&#39;datetime64[ns]&#39;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s">&#39;symbol&#39;</span><span class="p">,</span> <span class="s">&#39;object&#39;</span><span class="p">),</span>
+        <span class="p">]))</span>
+
+        <span class="k">def</span> <span class="nf">_pricing_iter</span><span class="p">():</span>
+            <span class="n">sid</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">with</span> <span class="n">maybe_show_progress</span><span class="p">(</span>
+                    <span class="n">symbols</span><span class="p">,</span>
+                    <span class="n">show_progress</span><span class="p">,</span>
+                    <span class="n">label</span><span class="o">=</span><span class="s">&#39;Downloading Yahoo pricing data: &#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">it</span><span class="p">,</span> \
+                    <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+                    <span class="n">path</span> <span class="o">=</span> <span class="n">_cachpath</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="s">&#39;ohlcv&#39;</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">df</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">path</span><span class="p">]</span>
+                    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                        <span class="n">df</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="n">DataReader</span><span class="p">(</span>
+                            <span class="n">symbol</span><span class="p">,</span>
+                            <span class="s">&#39;yahoo&#39;</span><span class="p">,</span>
+                            <span class="n">start</span><span class="p">,</span>
+                            <span class="n">end</span><span class="p">,</span>
+                            <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+                    <span class="c"># the start date is the date of the first trade and</span>
+                    <span class="c"># the end date is the date of the last trade</span>
+                    <span class="n">metadata</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">symbol</span>
+                    <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                        <span class="n">columns</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s">&#39;Open&#39;</span><span class="p">:</span> <span class="s">&#39;open&#39;</span><span class="p">,</span>
+                            <span class="s">&#39;High&#39;</span><span class="p">:</span> <span class="s">&#39;high&#39;</span><span class="p">,</span>
+                            <span class="s">&#39;Low&#39;</span><span class="p">:</span> <span class="s">&#39;low&#39;</span><span class="p">,</span>
+                            <span class="s">&#39;Close&#39;</span><span class="p">:</span> <span class="s">&#39;close&#39;</span><span class="p">,</span>
+                            <span class="s">&#39;Volume&#39;</span><span class="p">:</span> <span class="s">&#39;volume&#39;</span><span class="p">,</span>
+                        <span class="p">},</span>
+                        <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">sid</span><span class="p">,</span> <span class="n">df</span>
+                    <span class="n">sid</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">daily_bar_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">_pricing_iter</span><span class="p">(),</span> <span class="n">show_progress</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="n">symbol_map</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">metadata</span><span class="o">.</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">asset_db_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">equities</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+
+        <span class="n">adjustments</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="n">maybe_show_progress</span><span class="p">(</span>
+                <span class="n">symbols</span><span class="p">,</span>
+                <span class="n">show_progress</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="s">&#39;Downloading Yahoo adjustment data: &#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">it</span><span class="p">,</span> \
+                <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">_cachpath</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="s">&#39;adjustment&#39;</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">df</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">path</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="n">df</span> <span class="o">=</span> <span class="n">cache</span><span class="p">[</span><span class="n">path</span><span class="p">]</span> <span class="o">=</span> <span class="n">DataReader</span><span class="p">(</span>
+                        <span class="n">symbol</span><span class="p">,</span>
+                        <span class="s">&#39;yahoo-actions&#39;</span><span class="p">,</span>
+                        <span class="n">start</span><span class="p">,</span>
+                        <span class="n">end</span><span class="p">,</span>
+                        <span class="n">session</span><span class="o">=</span><span class="n">session</span><span class="p">,</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+                <span class="n">df</span><span class="p">[</span><span class="s">&#39;sid&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">symbol_map</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span>
+                <span class="n">adjustments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+        <span class="n">adj_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">adjustments</span><span class="p">)</span>
+        <span class="n">adj_df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&#39;date&#39;</span>
+        <span class="n">adj_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="n">splits</span> <span class="o">=</span> <span class="n">adj_df</span><span class="p">[</span><span class="n">adj_df</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s">&#39;SPLIT&#39;</span><span class="p">]</span>
+        <span class="n">splits</span> <span class="o">=</span> <span class="n">splits</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;value&#39;</span><span class="p">:</span> <span class="s">&#39;ratio&#39;</span><span class="p">,</span> <span class="s">&#39;date&#39;</span><span class="p">:</span> <span class="s">&#39;effective_date&#39;</span><span class="p">},</span>
+        <span class="p">)</span>
+        <span class="n">splits</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s">&#39;action&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="n">dividends</span> <span class="o">=</span> <span class="n">adj_df</span><span class="p">[</span><span class="n">adj_df</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s">&#39;DIVIDEND&#39;</span><span class="p">]</span>
+        <span class="n">dividends</span> <span class="o">=</span> <span class="n">dividends</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;value&#39;</span><span class="p">:</span> <span class="s">&#39;amount&#39;</span><span class="p">,</span> <span class="s">&#39;date&#39;</span><span class="p">:</span> <span class="s">&#39;ex_date&#39;</span><span class="p">},</span>
+        <span class="p">)</span>
+        <span class="n">dividends</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s">&#39;action&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="c"># we do not have this data in the yahoo dataset</span>
+        <span class="n">dividends</span><span class="p">[</span><span class="s">&#39;record_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span>
+        <span class="n">dividends</span><span class="p">[</span><span class="s">&#39;declared_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span>
+        <span class="n">dividends</span><span class="p">[</span><span class="s">&#39;pay_date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span>
+
+        <span class="n">adjustment_writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">splits</span><span class="o">=</span><span class="n">splits</span><span class="p">,</span> <span class="n">dividends</span><span class="o">=</span><span class="n">dividends</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ingest</span></div>
 </pre></div>
 
           </div>

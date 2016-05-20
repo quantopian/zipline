@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.filters.filter &mdash; Zipline 0.9.0 documentation</title>
+  <title>zipline.pipeline.filters.filter &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 0.9.0 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.0 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -89,7 +89,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
@@ -97,9 +96,42 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#development">Development</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
@@ -169,14 +201,39 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../appendix.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#simulation-parameters">Simulation Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
@@ -229,19 +286,22 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">filter.py</span>
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
+
+
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">float64</span><span class="p">,</span>
     <span class="n">nan</span><span class="p">,</span>
     <span class="n">nanpercentile</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
-
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BadPercentileBounds</span><span class="p">,</span>
+    <span class="n">NonExistentAssetInTimeFrame</span><span class="p">,</span>
     <span class="n">UnsupportedDataType</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">ismissing</span>
+<span class="kn">from</span> <span class="nn">zipline.lib.labelarray</span> <span class="kn">import</span> <span class="n">LabelArray</span>
+<span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">is_missing</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CustomTermMixin</span><span class="p">,</span>
     <span class="n">LatestMixin</span><span class="p">,</span>
@@ -256,7 +316,8 @@
     <span class="n">method_name_for_op</span><span class="p">,</span>
     <span class="n">NumericalExpression</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">bool_dtype</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">bool_dtype</span><span class="p">,</span> <span class="n">repeat_first_axis</span>
 
 
 <span class="k">def</span> <span class="nf">concat_tuples</span><span class="p">(</span><span class="o">*</span><span class="n">tuples</span><span class="p">):</span>
@@ -419,9 +480,9 @@
                 <span class="n">typename</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span>
             <span class="p">)</span>
-        <span class="k">return</span> <span class="n">retval</span></div>
+        <span class="k">return</span> <span class="n">retval</span>
 
-
+</div>
 <span class="k">class</span> <span class="nc">NumExprFilter</span><span class="p">(</span><span class="n">NumericalExpression</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A Filter computed from a numexpr expression.</span>
@@ -456,19 +517,22 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    factor : zipline.pipeline.Factor</span>
+<span class="sd">    factor : zipline.pipeline.Term</span>
 <span class="sd">        The factor to compare against its missing_value.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NullFilter</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
             <span class="n">cls</span><span class="p">,</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">factor</span><span class="p">,),</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">term</span><span class="p">,),</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">ismissing</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">missing_value</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">LabelArray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">is_missing</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">is_missing</span><span class="p">(</span><span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">missing_value</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">PercentileFilter</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
@@ -600,11 +664,87 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
 
+<span class="k">class</span> <span class="nc">ArrayPredicate</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">Filter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A filter applying a function from (ndarray, *args) -&gt; ndarray[bool].</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    term : zipline.pipeline.Term</span>
+<span class="sd">        Term producing the array over which the predicate will be computed.</span>
+<span class="sd">    op : function(ndarray, *args) -&gt; ndarray[bool]</span>
+<span class="sd">        Function to apply to the result of `term`.</span>
+<span class="sd">    opargs : tuple[hashable]</span>
+<span class="sd">        Additional argument to apply to ``op``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">term</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">opargs</span><span class="o">=</span><span class="nb">tuple</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">term</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">opargs</span><span class="p">):</span>
+        <span class="nb">hash</span><span class="p">(</span><span class="n">opargs</span><span class="p">)</span>  <span class="c"># fail fast if opargs isn&#39;t hashable.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ArrayPredicate</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">ArrayPredicate</span><span class="p">,</span>
+            <span class="n">op</span><span class="o">=</span><span class="n">op</span><span class="p">,</span>
+            <span class="n">opargs</span><span class="o">=</span><span class="n">opargs</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">term</span><span class="p">,),</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">term</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">opargs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_op</span> <span class="o">=</span> <span class="n">op</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_opargs</span> <span class="o">=</span> <span class="n">opargs</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ArrayPredicate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">opargs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">ArrayPredicate</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+            <span class="n">op</span><span class="p">,</span>
+            <span class="n">opargs</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_op</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_opargs</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">mask</span>
+
+
 <span class="k">class</span> <span class="nc">Latest</span><span class="p">(</span><span class="n">LatestMixin</span><span class="p">,</span> <span class="n">CustomFilter</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Filter producing the most recently-known value of `inputs[0]` on each day.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">SingleAsset</span><span class="p">(</span><span class="n">Filter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Filter that computes to True only for the given asset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">asset</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">asset</span><span class="o">=</span><span class="n">asset</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_asset</span> <span class="o">=</span> <span class="n">asset</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">SingleAsset</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">asset</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+        <span class="n">is_my_asset</span> <span class="o">=</span> <span class="p">(</span><span class="n">assets</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_asset</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">repeat_first_axis</span><span class="p">(</span><span class="n">is_my_asset</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="p">))</span>
+        <span class="c"># Raise an exception if `self._asset` does not exist for the entirety</span>
+        <span class="c"># of the timeframe over which we are computing.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">is_my_asset</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">((</span><span class="n">out</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="n">NonExistentAssetInTimeFrame</span><span class="p">(</span>
+                <span class="n">asset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_asset</span><span class="p">,</span> <span class="n">start_date</span><span class="o">=</span><span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">end_date</span><span class="o">=</span><span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
 </pre></div>
 
           </div>
@@ -636,7 +776,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'0.9.0',
+            VERSION:'1.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

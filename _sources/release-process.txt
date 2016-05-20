@@ -27,6 +27,32 @@ update the underline of the title to match the title's width.
 If you are renaming the release at this point, you'll need to git mv the file
 and also update releases.rst to reference the renamed file.
 
+Updating the Python stub files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PyCharm and other linters and type checkers can use `Python stub files
+<https://www.python.org/dev/peps/pep-0484/#stub-files>`__ for type hinting. For
+example, we generate stub files for the :mod:`~zipline.api` namespace, since that
+namespace is populated at import time by decorators on TradingAlgorithm
+methods. Those functions are therefore hidden from static analysis tools, but
+we can generate static files to make them available. Under **Python 3**, run
+the following to generate any stub files:
+
+.. code-block:: bash
+
+   $ python etc/gen_type_stubs.py
+
+.. note::
+
+   In order to make stub consumers aware of the classes referred to in the
+   stub, the stub file should import those classes.  However, since
+   ``... import *`` and ``... import ... as ...`` in a stub file will export
+   those imports, we import the names explicitly.  For the stub for
+   ``zipline.api``, this is done in a header string in the
+   ``gen_type_stubs.py`` script mentioned above.  If new classes are added as
+   parameters or return types of ``zipline.api`` functions, then new imports
+   should be added to that header.
+
 Updating the ``__version__``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -160,6 +186,13 @@ latest master and run:
 
 This will build the documentation, checkout a fresh copy of the ``gh-pages``
 git branch, and copy the built docs into the zipline root.
+
+.. note::
+
+   The docs should always be built with **Python 3**. Many of our api functions
+   are wrapped by preprocessing functions which accept \*args and \**kwargs. In
+   Python 3, sphinx will respect the ``__wrapped__`` attribute and display the
+   correct arguments.
 
 Now, using our browser of choice, view the ``index.html`` page and verify that
 the docs look correct.

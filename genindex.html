@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; Zipline 0.9.0 documentation</title>
+  <title>Index &mdash; Zipline 1.0.0 documentation</title>
   
 
   
@@ -31,7 +31,7 @@
   
 
   
-    <link rel="top" title="Zipline 0.9.0 documentation" href="index.html"/> 
+    <link rel="top" title="Zipline 1.0.0 documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -89,7 +89,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
-<li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#manual-advanced">Manual (advanced)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
 </ul>
@@ -97,9 +96,42 @@
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#conclusions">Conclusions</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#development">Development</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a></li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
@@ -169,14 +201,39 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="appendix.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#simulation-parameters">Simulation Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#asset-metadata">Asset Metadata</a></li>
-<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="release-process.html">Zipline Release Process</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
@@ -231,6 +288,7 @@
  | <a href="#A"><strong>A</strong></a>
  | <a href="#B"><strong>B</strong></a>
  | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
  | <a href="#E"><strong>E</strong></a>
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
@@ -247,6 +305,7 @@
  | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
+ | <a href="#Y"><strong>Y</strong></a>
  | <a href="#Z"><strong>Z</strong></a>
  
 </div>
@@ -318,29 +377,25 @@
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.api.add_transform">add_transform() (in module zipline.api)</a>
+  <dt><a href="appendix.html#zipline.assets.Asset">Asset (class in zipline.assets)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.Asset">Asset (class in zipline.assets.assets)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetConvertible">AssetConvertible (class in zipline.assets)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetConvertible">AssetConvertible (class in zipline.assets.assets)</a>
-  </dt>
-
-      
-  <dt><a href="appendix.html#zipline.assets.asset_writer.AssetDBWriter">AssetDBWriter (class in zipline.assets.asset_writer)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetDBWriter">AssetDBWriter (class in zipline.assets)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder">AssetFinder (class in zipline.assets.assets)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder">AssetFinder (class in zipline.assets)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinderCachedEquities">AssetFinderCachedEquities (class in zipline.assets.assets)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinderCachedEquities">AssetFinderCachedEquities (class in zipline.assets)</a>
   </dt>
 
       
@@ -358,19 +413,35 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.api.batch_transform">batch_transform (in module zipline.api)</a>
+  <dt><a href="appendix.html#zipline.protocol.BarData">BarData (class in zipline.protocol)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarReader">BcolzDailyBarReader (class in zipline.data.us_equity_pricing)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarWriter">BcolzDailyBarWriter (class in zipline.data.us_equity_pricing)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader">BcolzMinuteBarReader (class in zipline.data.minute_bars)</a>
   </dt>
 
       
   <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter">BcolzMinuteBarWriter (class in zipline.data.minute_bars)</a>
   </dt>
 
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.BollingerBands">BollingerBands (class in zipline.pipeline.factors)</a>
+  </dt>
+
       
   <dt><a href="appendix.html#zipline.pipeline.factors.Factor.bottom">bottom() (zipline.pipeline.factors.Factor method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.pipeline.factors.BusinessDaysSincePreviousEarnings">BusinessDaysSincePreviousEarnings (class in zipline.pipeline.factors)</a>
   </dt>
@@ -386,21 +457,61 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.asset_writer.AssetDBWriter.check_for_tables">check_for_tables() (zipline.assets.asset_writer.AssetDBWriter method)</a>
+  <dt><a href="appendix.html#zipline.utils.cache.CachedObject">CachedObject (class in zipline.utils.cache)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.pipeline.data.USEquityPricing.close">close (zipline.pipeline.data.USEquityPricing attribute)</a>
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter.calc_dividend_ratios">calc_dividend_ratios() (zipline.data.us_equity_pricing.SQLiteAdjustmentWriter method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.protocol.BarData.can_trade">can_trade() (zipline.protocol.BarData method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.cancel_order">cancel_order() (in module zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.cancel_policy.CancelPolicy">CancelPolicy (class in zipline.finance.cancel_policy)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="appendix.html#zipline.pipeline.data.USEquityPricing.close">close (zipline.pipeline.data.USEquityPricing attribute)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.Pipeline.columns">columns (zipline.pipeline.Pipeline attribute)</a>
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.protocol.BarData.current">current() (zipline.protocol.BarData method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.CustomFactor">CustomFactor (class in zipline.pipeline)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.utils.cache.dataframe_cache">dataframe_cache (class in zipline.utils.cache)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal">DataPortal (class in zipline.data.data_portal)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.api.date_rules">date_rules (class in zipline.api)</a>
   </dt>
 
   </dl></td>
@@ -414,15 +525,39 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.api.EODCancel">EODCancel() (in module zipline.api)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.factors.Factor.eq">eq() (zipline.pipeline.factors.Factor method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.Equity">Equity (class in zipline.assets.assets)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.equities_sids">equities_sids (zipline.assets.AssetFinder attribute)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.Equity">Equity (class in zipline.assets)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.date_rules.every_day">every_day (zipline.api.date_rules attribute)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.finance.execution.ExecutionStyle.exchange">exchange (zipline.finance.execution.ExecutionStyle attribute)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.execution.ExecutionStyle">ExecutionStyle (class in zipline.finance.execution)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.utils.cache.ExpiringCache">ExpiringCache (class in zipline.utils.cache)</a>
+  </dt>
+
       
   <dt><a href="appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingAverage">ExponentialWeightedMovingAverage (class in zipline.pipeline.factors)</a>
   </dt>
@@ -442,21 +577,29 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.api.fetch_csv">fetch_csv() (in module zipline.api)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.filters.Filter">Filter (class in zipline.pipeline.filters)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.Asset.first_traded">first_traded (zipline.assets.assets.Asset attribute)</a>
+  <dt><a href="appendix.html#zipline.assets.Asset.first_traded">first_traded (zipline.assets.Asset attribute)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.Asset.from_dict">from_dict() (zipline.assets.assets.Asset method)</a>
+  <dt><a href="appendix.html#zipline.finance.slippage.FixedSlippage">FixedSlippage (class in zipline.finance.slippage)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.assets.Future">Future (class in zipline.assets.assets)</a>
+  <dt><a href="appendix.html#zipline.assets.Asset.from_dict">from_dict() (zipline.assets.Asset method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.Future">Future (class in zipline.assets)</a>
   </dt>
 
       
@@ -467,6 +610,10 @@
   <dt><a href="appendix.html#zipline.api.future_symbol">future_symbol() (in module zipline.api)</a>
   </dt>
 
+      
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.futures_sids">futures_sids (zipline.assets.AssetFinder attribute)</a>
+  </dt>
+
   </dl></td>
 </tr></table>
 
@@ -474,13 +621,65 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.api.get_datetime">get_datetime() (in module zipline.api)</a>
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_adjusted_value">get_adjusted_value() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_adjustments">get_adjustments() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.get_environment">get_environment() (in module zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_fetcher_assets">get_fetcher_assets() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_history_window">get_history_window() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_last_traded_dt">get_last_traded_dt() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.execution.ExecutionStyle.get_limit_price">get_limit_price() (zipline.finance.execution.ExecutionStyle method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.get_open_orders">get_open_orders() (in module zipline.api)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.group_by_type">group_by_type() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.api.get_order">get_order() (in module zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_splits">get_splits() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_spot_value">get_spot_value() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.get_stock_dividends">get_stock_dividends() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.execution.ExecutionStyle.get_stop_price">get_stop_price() (zipline.finance.execution.ExecutionStyle method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader.get_value">get_value() (zipline.data.minute_bars.BcolzMinuteBarReader method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.group_by_type">group_by_type() (zipline.assets.AssetFinder method)</a>
   </dt>
 
   </dl></td>
@@ -490,7 +689,17 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="appendix.html#zipline.data.data_portal.DataPortal.handle_extra_source">handle_extra_source() (zipline.data.data_portal.DataPortal method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.data.USEquityPricing.high">high (zipline.pipeline.data.USEquityPricing attribute)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.protocol.BarData.history">history() (zipline.protocol.BarData method)</a>
   </dt>
 
   </dl></td>
@@ -500,15 +709,23 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.asset_writer.AssetDBWriter.init_db">init_db() (zipline.assets.asset_writer.AssetDBWriter method)</a>
+  <dt><a href="appendix.html#zipline.data.bundles.ingest">ingest() (in module zipline.data.bundles)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.pipeline.factors.Factor.isfinite">isfinite() (zipline.pipeline.factors.Factor method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetDBWriter.init_db">init_db() (zipline.assets.AssetDBWriter method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.protocol.BarData.is_stale">is_stale() (zipline.protocol.BarData method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.Factor.isfinite">isfinite() (zipline.pipeline.factors.Factor method)</a>
+  </dt>
+
       
   <dt><a href="appendix.html#zipline.pipeline.factors.Factor.isnan">isnan() (zipline.pipeline.factors.Factor method)</a>
   </dt>
@@ -528,33 +745,41 @@
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lifetimes">lifetimes() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.lifetimes">lifetimes() (zipline.assets.AssetFinder method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.asset_writer.AssetDBWriter.load_data">load_data() (zipline.assets.asset_writer.AssetDBWriter method)</a>
+  <dt><a href="appendix.html#zipline.finance.execution.LimitOrder">LimitOrder (class in zipline.finance.execution)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_asset_types">lookup_asset_types() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.data.bundles.load">load() (in module zipline.data.bundles)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader.load_raw_arrays">load_raw_arrays() (zipline.data.minute_bars.BcolzMinuteBarReader method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_future_chain">lookup_future_chain() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.lookup_asset_types">lookup_asset_types() (zipline.assets.AssetFinder method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_future_symbol">lookup_future_symbol() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.lookup_future_chain">lookup_future_chain() (zipline.assets.AssetFinder method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_generic">lookup_generic() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.lookup_future_symbol">lookup_future_symbol() (zipline.assets.AssetFinder method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.lookup_symbol">lookup_symbol() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.lookup_generic">lookup_generic() (zipline.assets.AssetFinder method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.lookup_symbol">lookup_symbol() (zipline.assets.AssetFinder method)</a>
   </dt>
 
       
@@ -568,7 +793,19 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.map_identifier_index_to_sids">map_identifier_index_to_sids() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.map_identifier_index_to_sids">map_identifier_index_to_sids() (zipline.assets.AssetFinder method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.time_rules.market_close">market_close (zipline.api.time_rules attribute)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.time_rules.market_open">market_open (zipline.api.time_rules attribute)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.execution.MarketOrder">MarketOrder (class in zipline.finance.execution)</a>
   </dt>
 
   </dl></td>
@@ -577,12 +814,28 @@
   <dt><a href="appendix.html#zipline.pipeline.factors.MaxDrawdown">MaxDrawdown (class in zipline.pipeline.factors)</a>
   </dt>
 
+      
+  <dt><a href="appendix.html#zipline.utils.cli.maybe_show_progress">maybe_show_progress() (in module zipline.utils.cli)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.date_rules.month_end">month_end() (zipline.api.date_rules static method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.date_rules.month_start">month_start() (zipline.api.date_rules static method)</a>
+  </dt>
+
   </dl></td>
 </tr></table>
 
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.api.NeverCancel">NeverCancel() (in module zipline.api)</a>
+  </dt>
+
       
   <dt><a href="appendix.html#zipline.pipeline.data.EarningsCalendar.next_announcement">next_announcement (zipline.pipeline.data.EarningsCalendar attribute)</a>
   </dt>
@@ -644,17 +897,33 @@
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.pipeline.Pipeline">Pipeline (class in zipline.pipeline)</a>
+  <dt><a href="appendix.html#zipline.finance.commission.PerDollar">PerDollar (class in zipline.finance.commission)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.commission.PerShare">PerShare (class in zipline.finance.commission)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.commission.PerTrade">PerTrade (class in zipline.finance.commission)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.pipeline.Pipeline">Pipeline (class in zipline.pipeline)</a>
+  </dt>
+
       
   <dt><a href="appendix.html#zipline.api.pipeline_output">pipeline_output() (in module zipline.api)</a>
   </dt>
 
       
   <dt><a href="appendix.html#zipline.pipeline.data.EarningsCalendar.previous_announcement">previous_announcement (zipline.pipeline.data.EarningsCalendar attribute)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.slippage.SlippageModel.process_order">process_order (zipline.finance.slippage.SlippageModel attribute)</a>
   </dt>
 
   </dl></td>
@@ -672,25 +941,33 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.data.bundles.register">register() (in module zipline.data.bundles)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.AssetFinderCachedEquities.rehash_equities">rehash_equities() (zipline.assets.AssetFinderCachedEquities method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.Pipeline.remove">remove() (zipline.pipeline.Pipeline method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_all">retrieve_all() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.retrieve_all">retrieve_all() (zipline.assets.AssetFinder method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_asset">retrieve_asset() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.retrieve_asset">retrieve_asset() (zipline.assets.AssetFinder method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.retrieve_equities">retrieve_equities() (zipline.assets.AssetFinder method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_equities">retrieve_equities() (zipline.assets.assets.AssetFinder method)</a>
-  </dt>
-
-      
-  <dt><a href="appendix.html#zipline.assets.assets.AssetFinder.retrieve_futures_contracts">retrieve_futures_contracts() (zipline.assets.assets.AssetFinder method)</a>
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.retrieve_futures_contracts">retrieve_futures_contracts() (zipline.assets.AssetFinder method)</a>
   </dt>
 
       
@@ -698,7 +975,23 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.pipeline.factors.RollingLinearRegressionOfReturns">RollingLinearRegressionOfReturns (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.RollingPearsonOfReturns">RollingPearsonOfReturns (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.pipeline.factors.RollingSpearmanOfReturns">RollingSpearmanOfReturns (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.factors.RSI">RSI (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.run_algorithm">run_algorithm() (in module zipline)</a>
   </dt>
 
   </dl></td>
@@ -716,15 +1009,27 @@
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.Equity.security_end_date">security_end_date (zipline.assets.assets.Equity attribute)</a>
+  <dt><a href="appendix.html#zipline.assets.Equity.security_end_date">security_end_date (zipline.assets.Equity attribute)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.Equity.security_name">security_name (zipline.assets.assets.Equity attribute)</a>
+  <dt><a href="appendix.html#zipline.assets.Equity.security_name">security_name (zipline.assets.Equity attribute)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.assets.assets.Equity.security_start_date">security_start_date (zipline.assets.assets.Equity attribute)</a>
+  <dt><a href="appendix.html#zipline.assets.Equity.security_start_date">security_start_date (zipline.assets.Equity attribute)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.set_benchmark">set_benchmark() (in module zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.set_cancel_policy">set_cancel_policy() (in module zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.set_commission">set_commission() (in module zipline.api)</a>
   </dt>
 
       
@@ -747,8 +1052,6 @@
   <dt><a href="appendix.html#zipline.api.set_max_order_size">set_max_order_size() (in module zipline.api)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.api.set_max_position_size">set_max_position_size() (in module zipline.api)</a>
   </dt>
@@ -758,7 +1061,21 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.set_sid_attrs">set_sid_attrs() (zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.set_slippage">set_slippage() (in module zipline.api)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
   <dt><a href="appendix.html#zipline.api.set_symbol_lookup_date">set_symbol_lookup_date() (in module zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.cancel_policy.CancelPolicy.should_cancel">should_cancel() (zipline.finance.cancel_policy.CancelPolicy method)</a>
   </dt>
 
       
@@ -770,11 +1087,43 @@
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarReader.sid_day_index">sid_day_index() (zipline.data.us_equity_pricing.BcolzDailyBarReader method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.sidpath">sidpath() (zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
   </dt>
 
       
+  <dt><a href="appendix.html#zipline.assets.AssetFinder.sids">sids (zipline.assets.AssetFinder attribute)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.factors.SimpleMovingAverage">SimpleMovingAverage (class in zipline.pipeline.factors)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.slippage.SlippageModel">SlippageModel (class in zipline.finance.slippage)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarReader.spot_price">spot_price() (zipline.data.us_equity_pricing.BcolzDailyBarReader method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentReader">SQLiteAdjustmentReader (class in zipline.data.us_equity_pricing)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter">SQLiteAdjustmentWriter (class in zipline.data.us_equity_pricing)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.execution.StopLimitOrder">StopLimitOrder (class in zipline.finance.execution)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.finance.execution.StopOrder">StopOrder (class in zipline.finance.execution)</a>
   </dt>
 
       
@@ -792,27 +1141,27 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.assets.Asset.to_dict">to_dict() (zipline.assets.assets.Asset method)</a>
+  <dt><a href="appendix.html#zipline.api.time_rules">time_rules (class in zipline.api)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.Asset.to_dict">to_dict() (zipline.assets.Asset method)</a>
   </dt>
 
       <dd><dl>
         
-  <dt><a href="appendix.html#zipline.assets.assets.Future.to_dict">(zipline.assets.assets.Future method)</a>
+  <dt><a href="appendix.html#zipline.assets.Future.to_dict">(zipline.assets.Future method)</a>
   </dt>
 
       </dl></dd>
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.pipeline.Pipeline.to_graph">to_graph() (zipline.pipeline.Pipeline method)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.pipeline.factors.Factor.top">top() (zipline.pipeline.factors.Factor method)</a>
-  </dt>
-
-      
-  <dt><a href="appendix.html#zipline.algorithm.TradingAlgorithm">TradingAlgorithm (class in zipline.algorithm)</a>
   </dt>
 
   </dl></td>
@@ -820,6 +1169,12 @@
 
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.data.bundles.unregister">unregister() (in module zipline.data.bundles)</a>
+  </dt>
+
+  </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="appendix.html#zipline.pipeline.data.USEquityPricing">USEquityPricing (class in zipline.pipeline.data)</a>
@@ -835,6 +1190,10 @@
   <dt><a href="appendix.html#zipline.pipeline.data.USEquityPricing.volume">volume (zipline.pipeline.data.USEquityPricing attribute)</a>
   </dt>
 
+      
+  <dt><a href="appendix.html#zipline.finance.slippage.VolumeShareSlippage">VolumeShareSlippage (class in zipline.finance.slippage)</a>
+  </dt>
+
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
@@ -848,21 +1207,73 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="appendix.html#zipline.api.date_rules.week_end">week_end() (zipline.api.date_rules static method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.api.date_rules.week_start">week_start() (zipline.api.date_rules static method)</a>
+  </dt>
+
+      
   <dt><a href="appendix.html#zipline.pipeline.factors.WeightedAverageValue">WeightedAverageValue (class in zipline.pipeline.factors)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write">write() (zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
+  <dt><a href="appendix.html#zipline.utils.cache.working_dir">working_dir (class in zipline.utils.cache)</a>
   </dt>
 
+      
+  <dt><a href="appendix.html#zipline.utils.cache.working_file">working_file (class in zipline.utils.cache)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.assets.AssetDBWriter.write">write() (zipline.assets.AssetDBWriter method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write">(zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
+  </dt>
+
+        
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarWriter.write">(zipline.data.us_equity_pricing.BcolzDailyBarWriter method)</a>
+  </dt>
+
+        
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter.write">(zipline.data.us_equity_pricing.SQLiteAdjustmentWriter method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#zipline.assets.asset_writer.AssetDBWriter.write_all">write_all() (zipline.assets.asset_writer.AssetDBWriter method)</a>
+  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write_cols">write_cols() (zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
   </dt>
 
       
-  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write_cols">write_cols() (zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.BcolzDailyBarWriter.write_csvs">write_csvs() (zipline.data.us_equity_pricing.BcolzDailyBarWriter method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter.write_dividend_data">write_dividend_data() (zipline.data.us_equity_pricing.SQLiteAdjustmentWriter method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter.write_dividend_payouts">write_dividend_payouts() (zipline.data.us_equity_pricing.SQLiteAdjustmentWriter method)</a>
+  </dt>
+
+      
+  <dt><a href="appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.write_sid">write_sid() (zipline.data.minute_bars.BcolzMinuteBarWriter method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="Y">Y</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="appendix.html#zipline.data.bundles.yahoo_equities">yahoo_equities() (in module zipline.data.bundles)</a>
   </dt>
 
   </dl></td>
@@ -872,7 +1283,7 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="appendix.html#module-zipline.api">zipline.api (module)</a>
+  <dt><a href="appendix.html#zipline.data.bundles.bundles">zipline.data.bundles.bundles (built-in variable)</a>
   </dt>
 
   </dl></td>
@@ -909,7 +1320,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'0.9.0',
+            VERSION:'1.0.0',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
