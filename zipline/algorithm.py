@@ -1074,7 +1074,7 @@ class TradingAlgorithm(object):
     @api_method
     @preprocess(symbol=ensure_upper_case)
     def future_symbol(self, symbol):
-        """ Lookup a futures contract with a given symbol.
+        """Lookup a futures contract with a given symbol.
 
         Parameters
         ----------
@@ -1218,6 +1218,10 @@ class TradingAlgorithm(object):
             The amount of shares to order. If ``amount`` is positive, this is
             the number of shares to buy or cover. If ``amount`` is negative,
             this is the number of shares to sell or short.
+        limit_price : float, optional
+            The limit price for the order.
+        stop_price : float, optional
+            The stop price for the order.
         style : ExecutionStyle, optional
             The execution style for the order.
 
@@ -1225,6 +1229,16 @@ class TradingAlgorithm(object):
         -------
         order_id : str
             The unique identifier for this order.
+
+        Notes
+        -----
+        The ``limit_price`` and ``stop_price`` arguments provide shorthands for
+        passing common execution styles. Passing ``limit_price=N`` is
+        equivalent to ``style=LimitOrder(N)``. Similarly, passing
+        ``stop_price=M`` is equivalent to ``style=StopOrder(M)``, and passing
+        ``limit_price=N`` and ``stop_price=M`` is equivalent to
+        ``style=StopLimitOrder(N, M)``. It is an error to pass both a ``style``
+        and ``limit_price`` or ``stop_price``.
 
         See Also
         --------
@@ -1298,7 +1312,6 @@ class TradingAlgorithm(object):
         This function assumes that either style == None or (limit_price,
         stop_price) == (None, None).
         """
-        # TODO_SS: DeprecationWarning for usage of limit_price and stop_price.
         if style:
             assert (limit_price, stop_price) == (None, None)
             return style
@@ -1334,6 +1347,10 @@ class TradingAlgorithm(object):
 
             value > 0 :: Buy/Cover
             value < 0 :: Sell/Short
+        limit_price : float, optional
+            The limit price for the order.
+        stop_price : float, optional
+            The stop price for the order.
         style : ExecutionStyle
             The execution style for the order.
 
@@ -1341,6 +1358,11 @@ class TradingAlgorithm(object):
         -------
         order_id : str
             The unique identifier for this order.
+
+        Notes
+        -----
+        See :func:`zipline.api.order` for more information about
+        ``limit_price``, ``stop_price``, and ``style``
 
         See Also
         --------
@@ -1548,6 +1570,10 @@ class TradingAlgorithm(object):
         percent : float
             The percentage of the porfolio value to allocate to ``asset``.
             This is specified as a decimal, for example: 0.50 means 50%.
+        limit_price : float, optional
+            The limit price for the order.
+        stop_price : float, optional
+            The stop price for the order.
         style : ExecutionStyle
             The execution style for the order.
 
@@ -1555,6 +1581,11 @@ class TradingAlgorithm(object):
         -------
         order_id : str
             The unique identifier for this order.
+
+        Notes
+        -----
+        See :func:`zipline.api.order` for more information about
+        ``limit_price``, ``stop_price``, and ``style``
 
         See Also
         --------
@@ -1591,6 +1622,10 @@ class TradingAlgorithm(object):
             The asset that this order is for.
         target : int
             The desired number of shares of ``asset``.
+        limit_price : float, optional
+            The limit price for the order.
+        stop_price : float, optional
+            The stop price for the order.
         style : ExecutionStyle
             The execution style for the order.
 
@@ -1613,6 +1648,9 @@ class TradingAlgorithm(object):
         This code will result in 20 shares of ``sid(0)`` because the first
         call to ``order_target`` will not have been filled when the second
         ``order_target`` call is made.
+
+        See :func:`zipline.api.order` for more information about
+        ``limit_price``, ``stop_price``, and ``style``
 
         See Also
         --------
@@ -1659,6 +1697,10 @@ class TradingAlgorithm(object):
             The asset that this order is for.
         target : float
             The desired total value of ``asset``.
+        limit_price : float, optional
+            The limit price for the order.
+        stop_price : float, optional
+            The stop price for the order.
         style : ExecutionStyle
             The execution style for the order.
 
@@ -1680,6 +1722,9 @@ class TradingAlgorithm(object):
         This code will result in 20 dollars of ``sid(0)`` because the first
         call to ``order_target_value`` will not have been filled when the
         second ``order_target_value`` call is made.
+
+        See :func:`zipline.api.order` for more information about
+        ``limit_price``, ``stop_price``, and ``style``
 
         See Also
         --------
@@ -1715,6 +1760,10 @@ class TradingAlgorithm(object):
             The desired percentage of the porfolio value to allocate to
             ``asset``. This is specified as a decimal, for example:
             0.50 means 50%.
+        limit_price : float, optional
+            The limit price for the order.
+        stop_price : float, optional
+            The stop price for the order.
         style : ExecutionStyle
             The execution style for the order.
 
@@ -1736,6 +1785,9 @@ class TradingAlgorithm(object):
         This code will result in 20% of the portfolio being allocated to sid(0)
         because the first call to ``order_target_percent`` will not have been
         filled when the second ``order_target_percent`` call is made.
+
+        See :func:`zipline.api.order` for more information about
+        ``limit_price``, ``stop_price``, and ``style``
 
         See Also
         --------
