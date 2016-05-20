@@ -109,20 +109,20 @@ def future_chain(root_symbol, as_of_date=None):
 def future_symbol(symbol):
     """Lookup a futures contract with a given symbol.
 
-   Parameters
-   ----------
-   symbol : str
-       The symbol of the desired contract.
+    Parameters
+    ----------
+    symbol : str
+        The symbol of the desired contract.
 
-   Returns
-   -------
-   future : Future
-       The future that trades with the name ``symbol``.
+    Returns
+    -------
+    future : Future
+        The future that trades with the name ``symbol``.
 
-   Raises
-   ------
-   SymbolNotFound
-       Raised when no contract named 'symbol' is found.
+    Raises
+    ------
+    SymbolNotFound
+        Raised when no contract named 'symbol' is found.
     """
 
 def get_datetime(tz=None):
@@ -208,6 +208,10 @@ def order(asset, amount, limit_price=None, stop_price=None, style=None):
         The amount of shares to order. If ``amount`` is positive, this is
         the number of shares to buy or cover. If ``amount`` is negative,
         this is the number of shares to sell or short.
+    limit_price : float, optional
+        The limit price for the order.
+    stop_price : float, optional
+        The stop price for the order.
     style : ExecutionStyle, optional
         The execution style for the order.
 
@@ -215,6 +219,16 @@ def order(asset, amount, limit_price=None, stop_price=None, style=None):
     -------
     order_id : str
         The unique identifier for this order.
+
+    Notes
+    -----
+    The ``limit_price`` and ``stop_price`` arguments provide shorthands for
+    passing common execution styles. Passing ``limit_price=N`` is
+    equivalent to ``style=LimitOrder(N)``. Similarly, passing
+    ``stop_price=M`` is equivalent to ``style=StopOrder(M)``, and passing
+    ``limit_price=N`` and ``stop_price=M`` is equivalent to
+    ``style=StopLimitOrder(N, M)``. It is an error to pass both a ``style``
+    and ``limit_price`` or ``stop_price``.
 
     See Also
     --------
@@ -234,6 +248,10 @@ def order_percent(asset, percent, limit_price=None, stop_price=None, style=None)
     percent : float
         The percentage of the porfolio value to allocate to ``asset``.
         This is specified as a decimal, for example: 0.50 means 50%.
+    limit_price : float, optional
+        The limit price for the order.
+    stop_price : float, optional
+        The stop price for the order.
     style : ExecutionStyle
         The execution style for the order.
 
@@ -241,6 +259,11 @@ def order_percent(asset, percent, limit_price=None, stop_price=None, style=None)
     -------
     order_id : str
         The unique identifier for this order.
+
+    Notes
+    -----
+    See :func:`zipline.api.order` for more information about
+    ``limit_price``, ``stop_price``, and ``style``
 
     See Also
     --------
@@ -262,6 +285,10 @@ def order_target(asset, target, limit_price=None, stop_price=None, style=None):
         The asset that this order is for.
     target : int
         The desired number of shares of ``asset``.
+    limit_price : float, optional
+        The limit price for the order.
+    stop_price : float, optional
+        The stop price for the order.
     style : ExecutionStyle
         The execution style for the order.
 
@@ -284,6 +311,9 @@ def order_target(asset, target, limit_price=None, stop_price=None, style=None):
     This code will result in 20 shares of ``sid(0)`` because the first
     call to ``order_target`` will not have been filled when the second
     ``order_target`` call is made.
+
+    See :func:`zipline.api.order` for more information about
+    ``limit_price``, ``stop_price``, and ``style``
 
     See Also
     --------
@@ -308,6 +338,10 @@ def order_target_percent(asset, target, limit_price=None, stop_price=None, style
         The desired percentage of the porfolio value to allocate to
         ``asset``. This is specified as a decimal, for example:
         0.50 means 50%.
+    limit_price : float, optional
+        The limit price for the order.
+    stop_price : float, optional
+        The stop price for the order.
     style : ExecutionStyle
         The execution style for the order.
 
@@ -329,6 +363,9 @@ def order_target_percent(asset, target, limit_price=None, stop_price=None, style
     This code will result in 20% of the portfolio being allocated to sid(0)
     because the first call to ``order_target_percent`` will not have been
     filled when the second ``order_target_percent`` call is made.
+
+    See :func:`zipline.api.order` for more information about
+    ``limit_price``, ``stop_price``, and ``style``
 
     See Also
     --------
@@ -353,6 +390,10 @@ def order_target_value(asset, target, limit_price=None, stop_price=None, style=N
         The asset that this order is for.
     target : float
         The desired total value of ``asset``.
+    limit_price : float, optional
+        The limit price for the order.
+    stop_price : float, optional
+        The stop price for the order.
     style : ExecutionStyle
         The execution style for the order.
 
@@ -374,6 +415,9 @@ def order_target_value(asset, target, limit_price=None, stop_price=None, style=N
     This code will result in 20 dollars of ``sid(0)`` because the first
     call to ``order_target_value`` will not have been filled when the
     second ``order_target_value`` call is made.
+
+    See :func:`zipline.api.order` for more information about
+    ``limit_price``, ``stop_price``, and ``style``
 
     See Also
     --------
@@ -399,6 +443,10 @@ def order_value(asset, value, limit_price=None, stop_price=None, style=None):
 
         value > 0 :: Buy/Cover
         value < 0 :: Sell/Short
+    limit_price : float, optional
+        The limit price for the order.
+    stop_price : float, optional
+        The stop price for the order.
     style : ExecutionStyle
         The execution style for the order.
 
@@ -406,6 +454,11 @@ def order_value(asset, value, limit_price=None, stop_price=None, style=None):
     -------
     order_id : str
         The unique identifier for this order.
+
+    Notes
+    -----
+    See :func:`zipline.api.order` for more information about
+    ``limit_price``, ``stop_price``, and ``style``
 
     See Also
     --------

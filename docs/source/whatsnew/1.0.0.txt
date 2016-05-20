@@ -2,11 +2,7 @@ Development
 -----------
 
 :Release: 1.0.0
-:Date: TBD
-
-.. warning::
-   This release is still under active development.  All changes listed are
-   subject to change at any time.
+:Date: May 19, 2016
 
 
 Highlights
