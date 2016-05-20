@@ -164,7 +164,7 @@ create a bundle from a set of equities, add the following to your
 
 .. code-block:: python
 
-   from zipline.bundles import register, yahoo_equities
+   from zipline.data.bundles import register, yahoo_equities
 
    # these are the tickers you would like data for
    equities = {
@@ -182,7 +182,7 @@ This may now be used like:
 
 .. code-block:: bash
 
-   $ zipline ingest my-yahoo-equities-bundle
+   $ zipline ingest -b my-yahoo-equities-bundle
    $ zipline run -f algo.py --bundle my-yahoo-equities-bundle
 
 
