@@ -8,6 +8,7 @@ from numpy import array, dtype as dtype_class, ndarray
 from six import with_metaclass
 from zipline.errors import (
     DTypeNotSpecified,
+    InvalidOutputName,
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
@@ -466,8 +467,20 @@ class ComputableTerm(Term):
         if self.inputs is NotSpecified:
             raise TermInputsNotSpecified(termname=type(self).__name__)
 
-        if not self.outputs:
+        if self.outputs is NotSpecified:
+            pass
+        elif not self.outputs:
             raise TermOutputsEmpty(termname=type(self).__name__)
+        else:
+            # Raise an exception if there are any naming conflicts between the
+            # term's output names and its attributes.
+            term_attributes = dir(self.__class__)
+            for output_name in self.outputs:
+                if output_name in term_attributes:
+                    raise InvalidOutputName(
+                        output_name=output_name,
+                        termname=type(self).__name__,
+                    )
 
         if self.window_length is NotSpecified:
             raise WindowLengthNotSpecified(termname=type(self).__name__)
