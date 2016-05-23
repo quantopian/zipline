@@ -137,11 +137,9 @@ from datashape import (
     Date,
     DateTime,
     Option,
-    float64,
     floating,
     isrecord,
     isscalar,
-    promote,
 )
 import numpy as np
 from odo import odo
@@ -170,7 +168,7 @@ from zipline.pipeline.loaders.utils import (
     normalize_timestamp_to_query_time,
 )
 from zipline.pipeline.term import NotSpecified
-from zipline.lib.adjusted_array import AdjustedArray
+from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum
 from zipline.utils.input_validation import (
@@ -178,7 +176,10 @@ from zipline.utils.input_validation import (
     ensure_timezone,
     optionally,
 )
-from zipline.utils.numpy_utils import repeat_last_axis
+from zipline.utils.numpy_utils import (
+    categorical_dtype,
+    repeat_last_axis,
+)
 from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
 
@@ -276,6 +277,31 @@ class NotPipelineCompatible(TypeError):
 _new_names = ('BlazeDataSet_%d' % n for n in count())
 
 
+def datashape_type_to_numpy(type_):
+    """
+    Given a datashape type, return the associated numpy type. Maps
+    datashape's DateTime type to numpy's `datetime64[ns]` dtype, since the
+    numpy datetime returned by datashape isn't supported by pipeline.
+
+    Parameters
+    ----------
+    type_: datashape.coretypes.Type
+        The datashape type.
+
+    Returns
+    -------
+    type_ np.dtype
+        The numpy dtype.
+
+    """
+    if isinstance(type_, Option):
+        type_ = type_.ty
+    if isinstance(type_, DateTime):
+        return np.dtype('datetime64[ns]')
+    else:
+        return type_.to_numpy_dtype()
+
+
 @memoize
 def new_dataset(expr, deltas, missing_values):
     """
@@ -311,22 +337,14 @@ def new_dataset(expr, deltas, missing_values):
         # Terms.
         if name in (SID_FIELD_NAME, TS_FIELD_NAME):
             continue
-        try:
-            # TODO: This should support datetime and bool columns.
-            if promote(type_, float64, promote_option=False) != float64:
-                raise NotPipelineCompatible()
-            if isinstance(type_, Option):
-                type_ = type_.ty
-        except NotPipelineCompatible:
-            col = NonPipelineField(name, type_)
-        except TypeError:
-            col = NonNumpyField(name, type_)
-        else:
+        type_ = datashape_type_to_numpy(type_)
+        if can_represent_dtype(type_):
             col = Column(
-                type_.to_numpy_dtype(),
+                type_,
                 missing_values.get(name, NotSpecified),
             )
-
+        else:
+            col = NonPipelineField(name, type_)
         columns[name] = col
 
     name = expr._name
@@ -1017,6 +1035,37 @@ class BlazeLoader(dict):
         sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
         dense_output = last_in_date_group(sparse_output, reindex=True)
         dense_output.ffill(inplace=True)
+
+        # Fill in missing values specified by each column. This is made
+        # significantly more complex by the fact that we need to work around
+        # two pandas issues:
+
+        # 1) When we have sids, if there are no records for a given sid for any
+        #    dates, pandas will generate a column full of NaNs for that sid.
+        #    This means that some of the columns in `dense_output` are now
+        #    float instead of the intended dtype, so we have to coerce back to
+        #    our expected type and convert NaNs into the desired missing value.
+
+        # 2) DataFrame.ffill assumes that receiving None as a fill-value means
+        #    that no value was passed.  Consequently, there's no way to tell
+        #    pandas to replace NaNs in an object column with None using fillna,
+        #    so we have to roll our own instead using df.where.
+        for column in columns:
+            # Special logic for strings since `fillna` doesn't work if the
+            # missing value is `None`.
+            if column.dtype == categorical_dtype:
+                dense_output[column.name] = dense_output[
+                    column.name
+                ].where(pd.notnull(dense_output[column.name]),
+                        column.missing_value)
+            else:
+                # We need to execute `fillna` before `astype` in case the
+                # column contains NaNs and needs to be cast to bool or int.
+                # This is so that the NaNs are replaced first, since pandas
+                # can't convert NaNs for those types.
+                dense_output[column.name] = dense_output[
+                    column.name
+                ].fillna(column.missing_value).astype(column.dtype)
 
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
