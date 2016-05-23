@@ -341,15 +341,19 @@ class RollingLinearRegressionOfReturns(CustomFactor, SingleInputMixin):
     which regressions are computed.
 
     This factor is designed to return five outputs:
-        - alpha, a factor that computes the intercepts of each regression.
-        - beta, a factor that computes the slopes of each regression.
-        - r_value, a factor that computes the correlation coefficient of each
-          regression.
-        - p_value, a factor that computes, for each regression, the two-sided
-          p-value for a hypothesis test whose null hypothesis is that the slope
-          is zero.
-        - stderr, a factor that computes the standard error of the estimate of
-          each regression.
+
+    - alpha, a factor that computes the intercepts of each regression.
+    - beta, a factor that computes the slopes of each regression.
+    - r_value, a factor that computes the correlation coefficient of each
+      regression.
+    - p_value, a factor that computes, for each regression, the two-sided
+      p-value for a hypothesis test whose null hypothesis is that the slope is
+      zero.
+    - stderr, a factor that computes the standard error of the estimate of each
+      regression.
+
+    For more help on factors with multiple outputs, see
+    :class:`zipline.pipeline.factors.CustomFactor`.
 
     Example
     -------
