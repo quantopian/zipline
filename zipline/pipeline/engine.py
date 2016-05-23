@@ -12,11 +12,7 @@ from six import (
     with_metaclass,
 )
 from numpy import array
-from pandas import (
-    DataFrame,
-    date_range,
-    MultiIndex,
-)
+from pandas import DataFrame, MultiIndex
 from toolz import groupby, juxt
 from toolz.curried.operator import getitem
 
@@ -63,16 +59,21 @@ class PipelineEngine(with_metaclass(ABCMeta)):
         raise NotImplementedError("run_pipeline")
 
 
-class NoOpPipelineEngine(PipelineEngine):
+class NoEngineRegistered(Exception):
+    """
+    Raised if a user tries to call pipeline_output in an algorithm that hasn't
+    set up a pipeline engine.
+    """
+
+
+class ExplodingPipelineEngine(PipelineEngine):
     """
     A PipelineEngine that doesn't do anything.
     """
     def run_pipeline(self, pipeline, start_date, end_date):
-        return DataFrame(
-            index=MultiIndex.from_product(
-                [date_range(start=start_date, end=end_date, freq='D'), ()],
-            ),
-            columns=sorted(pipeline.columns.keys()),
+        raise NoEngineRegistered(
+            "Attempted to run a pipeline but no pipeline "
+            "resources were registered."
         )
 
 

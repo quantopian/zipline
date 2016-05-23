@@ -8,10 +8,33 @@ import click
 import numpy as np
 import pandas as pd
 
-from zipline import examples, run_algorithm
+from zipline import examples
+from zipline.data.bundles import clean, ingest, register, yahoo_equities
 from zipline.testing import test_resource_path, tmp_dir
 from zipline.utils.cache import dataframe_cache
-from zipline.data.bundles import register
+
+
+INPUT_DATA_START_DATE = pd.Timestamp('2004-01-02')
+INPUT_DATA_END_DATE = pd.Timestamp('2014-12-31')
+INPUT_DATA_SYMBOLS = (
+    'AMD',
+    'CERN',
+    'COST',
+    'DELL',
+    'GPS',
+    'INTC',
+    'MMM',
+    'AAPL',
+    'MSFT',
+)
+TEST_BUNDLE_NAME = 'test'
+input_bundle = yahoo_equities(
+    INPUT_DATA_SYMBOLS,
+    INPUT_DATA_START_DATE,
+    INPUT_DATA_END_DATE,
+)
+register(TEST_BUNDLE_NAME, input_bundle)
+
 
 banner = """
 Please verify that the new performance is more correct than the old
@@ -19,6 +42,13 @@ performance.
 
 To do this, please inspect `new` and `old` which are mappings from the name of
 the example to the results.
+
+The name `cols_to_check` has been bound to a list of perf columns that we
+expect to be reliably deterministic (excluding, e.g. `orders`, which contains
+UUIDs).
+
+Calling `changed_results(new, old)` will compute a list of names of results
+that produced a different value in one of the `cols_to_check` fields.
 
 If you are sure that the new results are more correct, or that the difference
 is acceptable, please call `correct()`. Otherwise, call `incorrect()`.
@@ -29,28 +59,58 @@ Remember to run this with the other supported versions of pandas!
 """
 
 
+def changed_results(new, old):
+    """
+    Get the names of results that changed since the last invocation.
+
+    Useful for verifying that only expected results changed.
+    """
+    changed = []
+    for col in new:
+        if col not in old:
+            changed.append(col)
+            continue
+        try:
+            pd.util.testing.assert_frame_equal(
+                new[col][examples._cols_to_check],
+                old[col][examples._cols_to_check],
+            )
+        except AssertionError:
+            changed.append(col)
+    return changed
+
+
 def eof(*args, **kwargs):
     raise EOFError()
 
 
+def rebuild_input_data(environ):
+    ingest(TEST_BUNDLE_NAME, environ=environ, show_progress=True)
+    clean(TEST_BUNDLE_NAME, keep_last=1, environ=environ)
+
+
 @click.command()
+@click.option(
+    '--rebuild-input',
+    is_flag=True,
+    default=False,
+    help="Should we rebuild the input data from Yahoo?",
+)
 @click.pass_context
-def main(ctx):
+def main(ctx, rebuild_input):
     """Rebuild the perf data for test_examples
     """
     example_path = test_resource_path('example_data.tar.gz')
-
-    register('test', lambda *args: None)
 
     with tmp_dir() as d:
         with tarfile.open(example_path) as tar:
             tar.extractall(d.path)
 
-        mods = (
-            (e, getattr(examples, e))
-            for e in dir(examples)
-            if not e.startswith('_')
-        )
+        # The environ here should be the same (modulo the tempdir location)
+        # as we use in test_examples.py.
+        environ = {'ZIPLINE_ROOT': d.getpath('example_data/root')}
+        if rebuild_input:
+            rebuild_input_data(environ)
 
         new_perf_path = d.getpath(
             'example_data/new_perf/%s' % pd.__version__.replace('.', '-'),
@@ -60,21 +120,8 @@ def main(ctx):
             serialization='pickle:2',
         )
         with c:
-            for name, mod in mods:
-                c[name] = run_algorithm(
-                    handle_data=mod.handle_data,
-                    initialize=mod.initialize,
-                    before_trading_start=getattr(
-                        mod, 'before_trading_start', None,
-                    ),
-                    analyze=getattr(mod, 'analyze', None),
-                    bundle='test',
-                    environ={
-                        'ZIPLINE_ROOT': d.getpath('example_data/root'),
-                    },
-                    capital_base=1e7,
-                    **mod._test_args()
-                )
+            for name in examples.EXAMPLE_MODULES:
+                c[name] = examples.run_example(name, environ=environ)
 
             correct_called = [False]
 
@@ -105,6 +152,8 @@ def main(ctx):
                     serialization='pickle',
                 ),
                 'pd': pd,
+                'cols_to_check': examples._cols_to_check,
+                'changed_results': changed_results,
             })
             console.interact(banner)
 

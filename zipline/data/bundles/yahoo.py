@@ -74,6 +74,7 @@ def yahoo_equities(symbols, start=None, end=None):
         metadata = pd.DataFrame(np.empty(len(symbols), dtype=[
             ('start_date', 'datetime64[ns]'),
             ('end_date', 'datetime64[ns]'),
+            ('auto_close_date', 'datetime64[ns]'),
             ('symbol', 'object'),
         ]))
 
@@ -99,7 +100,12 @@ def yahoo_equities(symbols, start=None, end=None):
 
                     # the start date is the date of the first trade and
                     # the end date is the date of the last trade
-                    metadata.iloc[sid] = df.index[0], df.index[-1], symbol
+                    start_date = df.index[0]
+                    end_date = df.index[-1]
+                    # The auto_close date is the day after the last trade.
+                    ac_date = end_date + pd.Timedelta(days=1)
+                    metadata.iloc[sid] = start_date, end_date, ac_date, symbol
+
                     df.rename(
                         columns={
                             'Open': 'open',

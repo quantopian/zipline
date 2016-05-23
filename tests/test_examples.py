@@ -19,7 +19,7 @@ import matplotlib
 from nose_parameterized import parameterized
 import pandas as pd
 
-from zipline import examples, run_algorithm
+from zipline import examples
 from zipline.data.bundles import register, unregister
 from zipline.testing import test_resource_path
 from zipline.testing.fixtures import WithTmpDir, ZiplineTestCase
@@ -34,42 +34,6 @@ matplotlib.use('Agg')
 
 class ExamplesTests(WithTmpDir, ZiplineTestCase):
     # some columns contain values with unique ids that will not be the same
-    cols_to_check = [
-        'algo_volatility',
-        'algorithm_period_return',
-        'alpha',
-        'benchmark_period_return',
-        'benchmark_volatility',
-        'beta',
-        'capital_used',
-        'ending_cash',
-        'ending_exposure',
-        'ending_value',
-        'excess_return',
-        'gross_leverage',
-        'long_exposure',
-        'long_value',
-        'longs_count',
-        'max_drawdown',
-        'max_leverage',
-        'net_leverage',
-        'period_close',
-        'period_label',
-        'period_open',
-        'pnl',
-        'portfolio_value',
-        'positions',
-        'returns',
-        'short_exposure',
-        'short_value',
-        'shorts_count',
-        'sortino',
-        'starting_cash',
-        'starting_exposure',
-        'starting_value',
-        'trading_days',
-        'treasury_period_return',
-    ]
 
     @classmethod
     def init_class_fixtures(cls):
@@ -89,24 +53,19 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             serialization='pickle',
         )
 
-    @parameterized.expand(e for e in dir(examples) if not e.startswith('_'))
-    def test_example(self, example):
-        mod = getattr(examples, example)
-        actual_perf = run_algorithm(
-            handle_data=mod.handle_data,
-            initialize=mod.initialize,
-            before_trading_start=getattr(mod, 'before_trading_start', None),
-            analyze=getattr(mod, 'analyze', None),
-            bundle='test',
+    @parameterized.expand(examples.EXAMPLE_MODULES)
+    def test_example(self, example_name):
+        actual_perf = examples.run_example(
+            example_name,
+            # This should match the invocation in
+            # zipline/tests/resources/rebuild_example_data
             environ={
                 'ZIPLINE_ROOT': self.tmpdir.getpath('example_data/root'),
             },
-            capital_base=1e7,
-            **mod._test_args()
         )
         assert_equal(
-            actual_perf[self.cols_to_check],
-            self.expected_perf[example][self.cols_to_check],
+            actual_perf[examples._cols_to_check],
+            self.expected_perf[example_name][examples._cols_to_check],
             # There is a difference in the datetime columns in pandas
             # 0.16 and 0.17 because in 16 they are object and in 17 they are
             # datetime[ns, UTC]. We will just ignore the dtypes for now.

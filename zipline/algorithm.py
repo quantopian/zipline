@@ -82,7 +82,7 @@ from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline.engine import (
-    NoOpPipelineEngine,
+    ExplodingPipelineEngine,
     SimplePipelineEngine,
 )
 from zipline.utils.api_support import (
@@ -401,7 +401,7 @@ class TradingAlgorithm(object):
         """
         Construct and store a PipelineEngine from loader.
 
-        If get_loader is None, constructs a NoOpPipelineEngine.
+        If get_loader is None, constructs an ExplodingPipelineEngine
         """
         if get_loader is not None:
             self.engine = SimplePipelineEngine(
@@ -410,7 +410,7 @@ class TradingAlgorithm(object):
                 self.asset_finder,
             )
         else:
-            self.engine = NoOpPipelineEngine()
+            self.engine = ExplodingPipelineEngine()
 
     def initialize(self, *args, **kwargs):
         """

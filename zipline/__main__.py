@@ -355,7 +355,7 @@ def bundles():
                  if not pth.hidden(ing)),
                 reverse=True,
             )
-        except IOError as e:
+        except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
             ingestions = []
