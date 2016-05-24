@@ -31,7 +31,7 @@ from pandas import (
 )
 from pandas.util.testing import assert_frame_equal
 
-from zipline.utils.calendars.nyse_exchange_calendar import NYSEExchangeCalendar
+from zipline.utils.calendars.exchange_calendar_nyse import NYSEExchangeCalendar
 
 
 class ExchangeCalendarTestBase(object):
