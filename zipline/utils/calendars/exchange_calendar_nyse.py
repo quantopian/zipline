@@ -54,7 +54,7 @@ NYSE_OPEN = time(9, 31)
 NYSE_CLOSE = time(16)
 NYSE_STANDARD_EARLY_CLOSE = time(13)
 # Does the market open or close on a different calendar day, compared to the
-# calendar day assigned by the exchang to this session?
+# calendar day assigned by the exchange to this session?
 NYSE_OPEN_OFFSET = 0
 NYSE_CLOSE_OFFSET = 0
 

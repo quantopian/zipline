@@ -482,7 +482,7 @@ def get_calendar(name):
             raise InvalidCalendarName(calendar_name=name)
 
         if name == 'NYSE':
-            from zipline.utils.calendars.nyse_exchange_calendar \
+            from zipline.utils.calendars.exchange_calendar_nyse \
                 import NYSEExchangeCalendar
             nyse_cal = NYSEExchangeCalendar()
             register_calendar(nyse_cal)
