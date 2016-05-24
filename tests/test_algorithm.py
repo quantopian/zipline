@@ -19,6 +19,7 @@ from textwrap import dedent
 from unittest import TestCase, skip
 
 import logbook
+import toolz
 from logbook import TestHandler, WARNING
 from mock import MagicMock
 from nose_parameterized import parameterized
@@ -1488,13 +1489,17 @@ def handle_data(context, data):
         self.assertEqual(len(all_txns), 1)
         txn = all_txns[0]
 
-        self.assertEqual(100.0, txn["commission"])
         expected_spread = 0.05
-        expected_commish = 0.10
-        expected_price = test_algo.recorded_vars["price"] - expected_spread \
-            - expected_commish
+        expected_price = test_algo.recorded_vars["price"] - expected_spread
 
         self.assertEqual(expected_price, txn['price'])
+
+        # make sure that the $100 commission was applied to our cash
+        # the txn was for -1000 shares at 9.95, means -9.95k.  our capital_used
+        # for that day was therefore 9.95k, but after the $100 commission,
+        # it should be 9.85k.
+        self.assertEqual(9850, results.capital_used[1])
+        self.assertEqual(100, results["orders"][1][0]["commission"])
 
     @parameterized.expand(
         [
@@ -1543,7 +1548,6 @@ def handle_data(context, data):
                 sim_params=self.sim_params,
                 env=self.env,
             )
-            set_algo_instance(test_algo)
             trades = factory.create_daily_trade_source(
                 [0], self.sim_params, self.env)
             data_portal = create_data_portal_from_trade_history(
@@ -1555,13 +1559,28 @@ def handle_data(context, data):
                 for val in sublist]
 
             self.assertEqual(len(all_txns), 67)
-            first_txn = all_txns[0]
+            # all_orders are all the incremental versions of the
+            # orders as each new fill comes in.
+            all_orders = list(toolz.concat(results['orders']))
 
             if minimum_commission == 0:
-                commish = first_txn["amount"] * 0.02
-                self.assertEqual(commish, first_txn["commission"])
+                # for each incremental version of each order, the commission
+                # should be its filled amount * 0.02
+                for order_ in all_orders:
+                    self.assertAlmostEqual(
+                        order_["filled"] * 0.02,
+                        order_["commission"]
+                    )
             else:
-                self.assertEqual(minimum_commission, first_txn["commission"])
+                # the commission should be at least the min_trade_cost
+                for order_ in all_orders:
+                    if order_["filled"] > 0:
+                        self.assertAlmostEqual(
+                            max(order_["filled"] * 0.02, minimum_commission),
+                            order_["commission"]
+                        )
+                    else:
+                        self.assertEqual(0, order_["commission"])
         finally:
             tempdir.cleanup()
 
@@ -3046,7 +3065,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
             self.assertDictContainsSubset(
                 {
                     'amount': order_size,
-                    'commission': 0.0,
+                    'commission': None,
                     'dt': self.test_days[1],
                     'price': initial_fill_prices[sid],
                     'sid': sid,
@@ -3143,7 +3162,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         self.assertDictContainsSubset(
             {
                 'amount': 10,
-                'commission': None,
+                'commission': 0,
                 'created': first_asset_end_date,
                 'dt': first_asset_end_date,
                 'sid': assets[0],
@@ -3158,7 +3177,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         self.assertDictContainsSubset(
             {
                 'amount': 10,
-                'commission': None,
+                'commission': 0,
                 'created': first_asset_end_date,
                 'dt': first_asset_auto_close_date,
                 'sid': assets[0],
@@ -3252,7 +3271,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
             self.assertDictContainsSubset(
                 {
                     'amount': order_size,
-                    'commission': 0.0,
+                    'commission': None,
                     'dt': backtest_minutes[1],
                     'price': initial_fill_prices[sid],
                     'sid': sid,

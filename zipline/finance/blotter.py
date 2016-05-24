@@ -12,17 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import math
-
 from logbook import Logger
 from collections import defaultdict
 from copy import copy
 
-import pandas as pd
 from six import iteritems
 
 from zipline.finance.order import Order
-
 from zipline.finance.slippage import VolumeShareSlippage
 from zipline.finance.commission import PerShare
 from zipline.finance.cancel_policy import NeverCancel
@@ -293,9 +289,7 @@ class Blotter(object):
         commissions_list: List
             commissions_list: list of commissions resulting from filling the
             open orders.  A commission is an object with "sid" and "cost"
-            parameters.  If there are no commission events (because, for
-            example, Zipline models the commission cost into the fill price
-            of the transaction), then this is None.
+            parameters.
 
         closed_orders: List
             closed_orders: list of all the orders that have filled.
@@ -303,6 +297,7 @@ class Blotter(object):
 
         closed_orders = []
         transactions = []
+        commissions = []
 
         if self.open_orders:
             assets = self.asset_finder.retrieve_all(self.open_orders)
@@ -313,18 +308,19 @@ class Blotter(object):
 
                 for order, txn in \
                         self.slippage_func(bar_data, asset, asset_orders):
-                    direction = math.copysign(1, txn.amount)
-                    per_share, total_commission = \
-                        self.commission.calculate(txn)
-                    txn.price += per_share * direction
-                    txn.commission = total_commission
+                    additional_commission = \
+                        self.commission.calculate(order, txn)
+
+                    if additional_commission > 0:
+                        commissions.append({
+                            "sid": order.sid,
+                            "order": order,
+                            "cost": additional_commission
+                        })
+
                     order.filled += txn.amount
+                    order.commission += additional_commission
 
-                    if txn.commission is not None:
-                        order.commission = (order.commission or 0.0) + \
-                            txn.commission
-
-                    txn.dt = pd.Timestamp(txn.dt, tz='UTC')
                     order.dt = txn.dt
 
                     transactions.append(txn)
@@ -332,7 +328,7 @@ class Blotter(object):
                     if not order.open:
                         closed_orders.append(order)
 
-        return transactions, None, closed_orders
+        return transactions, commissions, closed_orders
 
     def prune_orders(self, closed_orders):
         """
