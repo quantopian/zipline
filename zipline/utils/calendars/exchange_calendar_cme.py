@@ -46,7 +46,7 @@ from zipline.utils.calendars import ExchangeCalendar
 
 MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY = range(7)
 
-US_CENTRAL = timezone('Americas/Chicago')
+US_CENTRAL = timezone('America/Chicago')
 CME_OPEN = time(17)
 CME_CLOSE = time(16)
 # CME_STANDARD_EARLY_CLOSE = time(13)
@@ -206,8 +206,8 @@ class CMEExchangeCalendar(ExchangeCalendar):
     """
     Exchange calendar for CME
 
-    Open Time: 5:00 AM, Americas/Chicago
-    Close Time: 5:00 PM, Americas/Chicago
+    Open Time: 5:00 AM, America/Chicago
+    Close Time: 5:00 PM, America/Chicago
 
     Regularly-Observed Holidays:
     - New Years Day (observed on monday when Jan 1 is a Sunday)
