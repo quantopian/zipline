@@ -488,7 +488,7 @@ def get_calendar(name):
             register_calendar(nyse_cal)
 
         if name == 'CME':
-            from zipline.utils.calendars.cme_exchange_calendar \
+            from zipline.utils.calendars.exchange_calendar_cme \
                 import CMEExchangeCalendar
             cme_cal = CMEExchangeCalendar()
             register_calendar(cme_cal)
