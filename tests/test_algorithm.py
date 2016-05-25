@@ -17,6 +17,7 @@ import datetime
 from datetime import timedelta
 from textwrap import dedent
 from unittest import TestCase, skip
+from copy import deepcopy
 
 import logbook
 import toolz
@@ -1852,6 +1853,548 @@ def handle_data(context, data):
             env=self.env
         )
         algo.run(self.data_portal)
+
+
+class TestCapitalChanges(WithLogger,
+                         WithDataPortal,
+                         WithSimParams,
+                         ZiplineTestCase):
+
+    sids = 0, 1
+
+    @classmethod
+    def make_equity_info(cls):
+        data = make_simple_equity_info(
+            cls.sids,
+            pd.Timestamp('2006-01-03', tz='UTC'),
+            pd.Timestamp('2006-01-09', tz='UTC'),
+        )
+        return data
+
+    @classmethod
+    def make_minute_bar_data(cls):
+        minutes = cls.env.minutes_for_days_in_range(
+            pd.Timestamp('2006-01-03', tz='UTC'),
+            pd.Timestamp('2006-01-09', tz='UTC')
+        )
+        return trades_by_sid_to_dfs(
+            {
+                1: factory.create_trade_history(
+                    1,
+                    np.arange(100.0, 100.0 + len(minutes), 1),
+                    [10000] * len(minutes),
+                    timedelta(minutes=1),
+                    cls.sim_params,
+                    cls.env),
+            },
+            index=pd.DatetimeIndex(minutes),
+        )
+
+    @classmethod
+    def make_daily_bar_data(cls):
+        days = cls.env.days_in_range(
+            pd.Timestamp('2006-01-03', tz='UTC'),
+            pd.Timestamp('2006-01-09', tz='UTC')
+        )
+        return trades_by_sid_to_dfs(
+            {
+                0: factory.create_trade_history(
+                    0,
+                    np.arange(10.0, 10.0 + len(days), 1.0),
+                    [10000] * len(days),
+                    timedelta(days=1),
+                    cls.sim_params,
+                    cls.env),
+            },
+            index=pd.DatetimeIndex(days),
+        )
+
+    def test_capital_changes_daily_mode(self):
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp('2006-01-03', tz='UTC'),
+            end=pd.Timestamp('2006-01-09', tz='UTC')
+        )
+
+        capital_changes = {
+            pd.Timestamp('2006-01-06', tz='UTC'): 50000
+        }
+
+        algocode = """
+from zipline.api import set_slippage, set_commission, slippage, commission, \
+    schedule_function, time_rules, order, sid
+
+def initialize(context):
+    set_slippage(slippage.FixedSlippage(spread=0))
+    set_commission(commission.PerShare(0, 0))
+    schedule_function(order_stuff, time_rule=time_rules.market_open())
+
+def order_stuff(context, data):
+    order(sid(0), 1000)
+"""
+
+        algo = TradingAlgorithm(
+            script=algocode,
+            sim_params=sim_params,
+            env=self.env,
+            data_portal=self.data_portal,
+            capital_changes=capital_changes
+        )
+
+        gen = algo.get_generator()
+        results = list(gen)
+
+        cumulative_perf = \
+            [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
+        daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
+
+        # 1/03: price = 10, place orders
+        # 1/04: orders execute at price = 11, place orders
+        # 1/05: orders execute at price = 12, place orders
+        # 1/06: +50000 capital change,
+        #       orders execute at price = 13, place orders
+        # 1/09: orders execute at price = 14, place orders
+
+        expected_daily = {}
+
+        expected_capital_changes = np.array([
+            0.0, 0.0, 0.0, 50000.0, 0.0
+        ])
+
+        # Day 1, no transaction. Day 2, we transact, but the price of our stock
+        # does not change. Day 3, we start getting returns
+        expected_daily['returns'] = np.array([
+            0.0,
+            0.0,
+            # 1000 shares * gain of 1
+            (100000.0 + 1000.0)/100000.0 - 1.0,
+            # 2000 shares * gain of 1, capital change of +5000
+            (151000.0 + 2000.0)/151000.0 - 1.0,
+            # 3000 shares * gain of 1
+            (153000.0 + 3000.0)/153000.0 - 1.0,
+        ])
+
+        expected_daily['pnl'] = np.array([
+            0.0,
+            0.0,
+            1000.00,  # 1000 shares * gain of 1
+            2000.00,  # 2000 shares * gain of 1
+            3000.00,  # 3000 shares * gain of 1
+        ])
+
+        expected_daily['capital_used'] = np.array([
+            0.0,
+            -11000.0,  # 1000 shares at price = 11
+            -12000.0,  # 1000 shares at price = 12
+            -13000.0,  # 1000 shares at price = 13
+            -14000.0,  # 1000 shares at price = 14
+        ])
+
+        expected_daily['ending_cash'] = \
+            np.array([100000.0] * 5) + \
+            np.cumsum(expected_capital_changes) + \
+            np.cumsum(expected_daily['capital_used'])
+
+        expected_daily['starting_cash'] = \
+            expected_daily['ending_cash'] - \
+            expected_daily['capital_used']
+
+        expected_daily['starting_value'] = [
+            0.0,
+            0.0,
+            11000.0,  # 1000 shares at price = 11
+            24000.0,  # 2000 shares at price = 12
+            39000.0,  # 3000 shares at price = 13
+        ]
+
+        expected_daily['ending_value'] = \
+            expected_daily['starting_value'] + \
+            expected_daily['pnl'] - \
+            expected_daily['capital_used']
+
+        expected_daily['portfolio_value'] = \
+            expected_daily['ending_value'] + \
+            expected_daily['ending_cash']
+
+        stats = [
+            'returns', 'pnl', 'capital_used', 'starting_cash', 'ending_cash',
+            'starting_value', 'ending_value', 'portfolio_value'
+        ]
+
+        expected_cumulative = {
+            'returns': np.cumprod(expected_daily['returns'] + 1) - 1,
+            'pnl': np.cumsum(expected_daily['pnl']),
+            'capital_used': np.cumsum(expected_daily['capital_used']),
+            'starting_cash':
+                np.repeat(expected_daily['starting_cash'][0:1], 5),
+            'ending_cash': expected_daily['ending_cash'],
+            'starting_value':
+                np.repeat(expected_daily['starting_value'][0:1], 5),
+            'ending_value': expected_daily['ending_value'],
+            'portfolio_value': expected_daily['portfolio_value'],
+        }
+
+        for stat in stats:
+            np.testing.assert_array_almost_equal(
+                np.array([perf[stat] for perf in daily_perf]),
+                expected_daily[stat]
+            )
+            np.testing.assert_array_almost_equal(
+                np.array([perf[stat] for perf in cumulative_perf]),
+                expected_cumulative[stat]
+            )
+
+    @parameterized.expand([('interday',), ('intraday',)])
+    def test_capital_changes_minute_mode_daily_emission(self, change):
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp('2006-01-03', tz='UTC'),
+            end=pd.Timestamp('2006-01-05', tz='UTC'),
+            data_frequency='minute',
+            capital_base=1000.0
+        )
+
+        if change == 'intraday':
+            capital_changes = {
+                pd.Timestamp('2006-01-04 17:00', tz='UTC'): 500.0,
+                pd.Timestamp('2006-01-04 18:00', tz='UTC'): 500.0,
+            }
+        else:
+            capital_changes = {pd.Timestamp('2006-01-04', tz='UTC'): 1000.0}
+
+        algocode = """
+from zipline.api import set_slippage, set_commission, slippage, commission, \
+    schedule_function, time_rules, order, sid
+
+def initialize(context):
+    set_slippage(slippage.FixedSlippage(spread=0))
+    set_commission(commission.PerShare(0, 0))
+    schedule_function(order_stuff, time_rule=time_rules.market_open())
+
+def order_stuff(context, data):
+    order(sid(1), 1)
+"""
+
+        algo = TradingAlgorithm(
+            script=algocode,
+            sim_params=sim_params,
+            env=self.env,
+            data_portal=self.data_portal,
+            capital_changes=capital_changes
+        )
+
+        gen = algo.get_generator()
+        results = list(gen)
+
+        cumulative_perf = \
+            [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
+        daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
+
+        # 1/03: place orders at price = 100, execute at 101
+        # 1/04: place orders at price = 490, execute at 491,
+        #       +500 capital change at 17:00 and 18:00 (intraday)
+        #       or +1000 at 00:00 (interday),
+        # 1/05: place orders at price = 880, execute at 881
+
+        expected_daily = {}
+
+        expected_capital_changes = np.array([
+            0.0, 1000.0, 0.0
+        ])
+
+        if change == 'intraday':
+            # Fills at 491, +500 capital change comes at 638 (17:00) and
+            # 698 (18:00), ends day at 879
+            day2_return = (1388.0 + 149.0 + 147.0)/1388.0 * \
+                          (2184.0 + 60.0 + 60.0)/2184.0 * \
+                          (2804.0 + 181.0 + 181.0)/2804.0 - 1.0
+        else:
+            # Fills at 491, ends day at 879, capital change +1000
+            day2_return = (2388.0 + 390.0 + 388.0)/2388.0 - 1
+
+        expected_daily['returns'] = np.array([
+            # Fills at 101, ends day at 489
+            (1000.0 + 388.0)/1000.0 - 1.0,
+            day2_return,
+            # Fills at 881, ends day at 1269
+            (3166.0 + 390.0 + 390.0 + 388.0)/3166.0 - 1.0,
+        ])
+
+        expected_daily['pnl'] = np.array([
+            388.0,
+            390.0 + 388.0,
+            390.0 + 390.0 + 388.0,
+        ])
+
+        expected_daily['capital_used'] = np.array([
+            -101.0, -491.0, -881.0
+        ])
+
+        expected_daily['ending_cash'] = \
+            np.array([1000.0] * 3) + \
+            np.cumsum(expected_capital_changes) + \
+            np.cumsum(expected_daily['capital_used'])
+
+        expected_daily['starting_cash'] = \
+            expected_daily['ending_cash'] - \
+            expected_daily['capital_used']
+
+        if change == 'intraday':
+            # Capital changes come after day start
+            expected_daily['starting_cash'] -= expected_capital_changes
+
+        expected_daily['starting_value'] = np.array([
+            0.0, 489.0, 879.0 * 2
+        ])
+
+        expected_daily['ending_value'] = \
+            expected_daily['starting_value'] + \
+            expected_daily['pnl'] - \
+            expected_daily['capital_used']
+
+        expected_daily['portfolio_value'] = \
+            expected_daily['ending_value'] + \
+            expected_daily['ending_cash']
+
+        stats = [
+            'returns', 'pnl', 'capital_used', 'starting_cash', 'ending_cash',
+            'starting_value', 'ending_value', 'portfolio_value'
+        ]
+
+        expected_cumulative = {
+            'returns': np.cumprod(expected_daily['returns'] + 1) - 1,
+            'pnl': np.cumsum(expected_daily['pnl']),
+            'capital_used': np.cumsum(expected_daily['capital_used']),
+            'starting_cash':
+                np.repeat(expected_daily['starting_cash'][0:1], 3),
+            'ending_cash': expected_daily['ending_cash'],
+            'starting_value':
+                np.repeat(expected_daily['starting_value'][0:1], 3),
+            'ending_value': expected_daily['ending_value'],
+            'portfolio_value': expected_daily['portfolio_value'],
+        }
+
+        for stat in stats:
+            np.testing.assert_array_almost_equal(
+                np.array([perf[stat] for perf in daily_perf]),
+                expected_daily[stat]
+            )
+            np.testing.assert_array_almost_equal(
+                np.array([perf[stat] for perf in cumulative_perf]),
+                expected_cumulative[stat]
+            )
+
+    @parameterized.expand([('interday',), ('intraday',)])
+    def test_capital_changes_minute_mode_minute_emission(self, change):
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp('2006-01-03', tz='UTC'),
+            end=pd.Timestamp('2006-01-05', tz='UTC'),
+            data_frequency='minute',
+            emission_rate='minute',
+            capital_base=1000.0
+        )
+
+        if change == 'intraday':
+            capital_changes = {
+                pd.Timestamp('2006-01-04 17:00', tz='UTC'): 500.0,
+                pd.Timestamp('2006-01-04 18:00', tz='UTC'): 500.0,
+            }
+        else:
+            capital_changes = {pd.Timestamp('2006-01-04', tz='UTC'): 1000.0}
+
+        algocode = """
+from zipline.api import set_slippage, set_commission, slippage, commission, \
+    schedule_function, time_rules, order, sid
+
+def initialize(context):
+    set_slippage(slippage.FixedSlippage(spread=0))
+    set_commission(commission.PerShare(0, 0))
+    schedule_function(order_stuff, time_rule=time_rules.market_open())
+
+def order_stuff(context, data):
+    order(sid(1), 1)
+"""
+
+        algo = TradingAlgorithm(
+            script=algocode,
+            sim_params=sim_params,
+            env=self.env,
+            data_portal=self.data_portal,
+            capital_changes=capital_changes
+        )
+
+        gen = algo.get_generator()
+        results = list(gen)
+
+        cumulative_perf = \
+            [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
+        minute_perf = [r['minute_perf'] for r in results if 'minute_perf' in r]
+        daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
+
+        # 1/03: place orders at price = 100, execute at 101
+        # 1/04: place orders at price = 490, execute at 491,
+        #       +500 capital change at 17:00 and 18:00 (intraday)
+        #       or +1000 at 00:00 (interday),
+        # 1/05: place orders at price = 880, execute at 881
+
+        # Minute perfs are cumulative for the day
+        expected_minute = {}
+
+        capital_changes_after_start = np.array([0.0] * 1170)
+        if change == 'intraday':
+            capital_changes_after_start[539:599] = 500.0
+            capital_changes_after_start[599:780] = 1000.0
+
+        expected_minute['pnl'] = np.array([0.0] * 1170)
+        expected_minute['pnl'][:2] = 0.0
+        expected_minute['pnl'][2:392] = 1.0
+        expected_minute['pnl'][392:782] = 2.0
+        expected_minute['pnl'][782:] = 3.0
+        for start, end in ((0, 390), (390, 780), (780, 1170)):
+            expected_minute['pnl'][start:end] = \
+                np.cumsum(expected_minute['pnl'][start:end])
+
+        expected_minute['capital_used'] = np.concatenate((
+            [0.0] * 1, [-101.0] * 389,
+            [0.0] * 1, [-491.0] * 389,
+            [0.0] * 1, [-881.0] * 389,
+        ))
+
+        # +1000 capital changes comes before the day start if interday
+        day2adj = 0.0 if change == 'intraday' else 1000.0
+
+        expected_minute['starting_cash'] = np.concatenate((
+            [1000.0] * 390,
+            # 101 spent on 1/03
+            [1000.0 - 101.0 + day2adj] * 390,
+            # 101 spent on 1/03, 491 on 1/04, +1000 capital change on 1/04
+            [1000.0 - 101.0 - 491.0 + 1000] * 390
+        ))
+
+        expected_minute['ending_cash'] = \
+            expected_minute['starting_cash'] + \
+            expected_minute['capital_used'] + \
+            capital_changes_after_start
+
+        expected_minute['starting_value'] = np.concatenate((
+            [0.0] * 390,
+            [489.0] * 390,
+            [879.0 * 2] * 390
+        ))
+
+        expected_minute['ending_value'] = \
+            expected_minute['starting_value'] + \
+            expected_minute['pnl'] - \
+            expected_minute['capital_used']
+
+        expected_minute['portfolio_value'] = \
+            expected_minute['ending_value'] + \
+            expected_minute['ending_cash']
+
+        expected_minute['returns'] = \
+            expected_minute['pnl'] / \
+            (expected_minute['starting_value'] +
+             expected_minute['starting_cash'])
+
+        # If the change is interday, we can just calculate the returns from
+        # the pnl, starting_value and starting_cash. If the change is intraday,
+        # the returns after the change have to be calculated from two
+        # subperiods
+        if change == 'intraday':
+            # The last packet (at 1/04 16:59) before the first capital change
+            prev_subperiod_return = expected_minute['returns'][538]
+
+            # From 1/04 17:00 to 17:59
+            cur_subperiod_pnl = \
+                expected_minute['pnl'][539:599] - expected_minute['pnl'][538]
+            cur_subperiod_starting_value = \
+                np.array([expected_minute['ending_value'][538]] * 60)
+            cur_subperiod_starting_cash = \
+                np.array([expected_minute['ending_cash'][538] + 500] * 60)
+
+            cur_subperiod_returns = cur_subperiod_pnl / \
+                (cur_subperiod_starting_value + cur_subperiod_starting_cash)
+            expected_minute['returns'][539:599] = \
+                (cur_subperiod_returns + 1.0) * \
+                (prev_subperiod_return + 1.0) - \
+                1.0
+
+            # The last packet (at 1/04 17:59) before the second capital change
+            prev_subperiod_return = expected_minute['returns'][598]
+
+            # From 1/04 18:00 to 21:00
+            cur_subperiod_pnl = \
+                expected_minute['pnl'][599:780] - expected_minute['pnl'][598]
+            cur_subperiod_starting_value = \
+                np.array([expected_minute['ending_value'][598]] * 181)
+            cur_subperiod_starting_cash = \
+                np.array([expected_minute['ending_cash'][598] + 500] * 181)
+
+            cur_subperiod_returns = cur_subperiod_pnl / \
+                (cur_subperiod_starting_value + cur_subperiod_starting_cash)
+            expected_minute['returns'][599:780] = \
+                (cur_subperiod_returns + 1.0) * \
+                (prev_subperiod_return + 1.0) - \
+                1.0
+
+        # The last minute packet of each day
+        expected_daily = {
+            k: np.array([v[389], v[779], v[1169]])
+            for k, v in iteritems(expected_minute)
+        }
+
+        stats = [
+            'pnl', 'capital_used', 'starting_cash', 'ending_cash',
+            'starting_value', 'ending_value', 'portfolio_value', 'returns'
+        ]
+
+        expected_cumulative = deepcopy(expected_minute)
+
+        # "Add" daily return from 1/03 to minute returns on 1/04 and 1/05
+        # "Add" daily return from 1/04 to minute returns on 1/05
+        expected_cumulative['returns'][390:] = \
+            (expected_cumulative['returns'][390:] + 1) * \
+            (expected_daily['returns'][0] + 1) - 1
+        expected_cumulative['returns'][780:] = \
+            (expected_cumulative['returns'][780:] + 1) * \
+            (expected_daily['returns'][1] + 1) - 1
+
+        # Add daily pnl/capital_used from 1/03 to 1/04 and 1/05
+        # Add daily pnl/capital_used from 1/04 to 1/05
+        expected_cumulative['pnl'][390:] += expected_daily['pnl'][0]
+        expected_cumulative['pnl'][780:] += expected_daily['pnl'][1]
+        expected_cumulative['capital_used'][390:] += \
+            expected_daily['capital_used'][0]
+        expected_cumulative['capital_used'][780:] += \
+            expected_daily['capital_used'][1]
+
+        # starting_cash, starting_value are same as those of the first daily
+        # packet
+        expected_cumulative['starting_cash'] = \
+            np.repeat(expected_daily['starting_cash'][0:1], 1170)
+        expected_cumulative['starting_value'] = \
+            np.repeat(expected_daily['starting_value'][0:1], 1170)
+
+        # extra cumulative packet per day from the daily packet
+        for stat in stats:
+            for i in (390, 781, 1172):
+                expected_cumulative[stat] = np.insert(
+                    expected_cumulative[stat],
+                    i,
+                    expected_cumulative[stat][i-1]
+                )
+
+        for stat in stats:
+            np.testing.assert_array_almost_equal(
+                np.array([perf[stat] for perf in minute_perf]),
+                expected_minute[stat]
+            )
+            np.testing.assert_array_almost_equal(
+                np.array([perf[stat] for perf in daily_perf]),
+                expected_daily[stat]
+            )
+            np.testing.assert_array_almost_equal(
+                np.array([perf[stat] for perf in cumulative_perf]),
+                expected_cumulative[stat]
+            )
 
 
 class TestGetDatetime(WithLogger,

@@ -1277,7 +1277,7 @@ class TestPositionPerformance(WithInstanceTmpDir, ZiplineTestCase):
         pp.calculate_performance()
 
         self.assertEqual(
-            pp.period_cash_flow,
+            pp.cash_flow,
             -1 * txn.price * txn.amount,
             "capital used should be equal to the opposite of the transaction \
             cost of sole txn in test"
@@ -1387,7 +1387,7 @@ single short-sale transaction"""
         pp.calculate_performance()
 
         self.assertEqual(
-            pp.period_cash_flow,
+            pp.cash_flow,
             -1 * txn.price * txn.amount,
             "capital used should be equal to the opposite of the transaction\
              cost of sole txn in test"
@@ -1443,7 +1443,7 @@ single short-sale transaction"""
         pp.calculate_performance()
 
         self.assertEqual(
-            pp.period_cash_flow,
+            pp.cash_flow,
             0,
             "capital used should be zero, there were no transactions in \
             performance period"
@@ -1506,7 +1506,7 @@ single short-sale transaction"""
         ppTotal.calculate_performance()
 
         self.assertEqual(
-            ppTotal.period_cash_flow,
+            ppTotal.cash_flow,
             -1 * txn.price * txn.amount,
             "capital used should be equal to the opposite of the transaction \
 cost of sole txn in test"
@@ -1624,7 +1624,7 @@ cost of sole txn in test"
         pp.calculate_performance()
 
         self.assertEqual(
-            pp.period_cash_flow,
+            pp.cash_flow,
             0,
             "there should be no cash flow on a futures txn"
         )
@@ -1737,7 +1737,7 @@ single short-sale transaction"""
         pp.calculate_performance()
 
         self.assertEqual(
-            pp.period_cash_flow,
+            pp.cash_flow,
             0,
             "there should be no cash flow on a futures txn"
         )
@@ -1797,7 +1797,7 @@ single short-sale transaction"""
         pp.calculate_performance()
 
         self.assertEqual(
-            pp.period_cash_flow,
+            pp.cash_flow,
             0,
             "capital used should be zero, there were no transactions in \
             performance period"
@@ -1869,7 +1869,7 @@ single short-sale transaction"""
         ppTotal.calculate_performance()
 
         self.assertEqual(
-            ppTotal.period_cash_flow,
+            ppTotal.cash_flow,
             0,
             "capital used should be equal to the opposite of the transaction \
 cost of sole txn in test"
@@ -1986,7 +1986,7 @@ trade after cover"""
         cover_txn_cost = cover_txn.price * cover_txn.amount
 
         self.assertEqual(
-            pp.period_cash_flow,
+            pp.cash_flow,
             -1 * short_txn_cost - cover_txn_cost,
             "capital used should be equal to the net transaction costs"
         )
@@ -2192,6 +2192,107 @@ shares in position"
         pp.calculate_performance()
 
         self.assertEqual(pp.positions[1].cost_basis, cost_bases[-1])
+
+    def test_capital_change_intra_period(self):
+        self.create_environment_stuff()
+
+        # post some trades in the market
+        trades = factory.create_trade_history(
+            self.asset1,
+            [10.0, 11.0, 12.0, 13.0],
+            [100, 100, 100, 100],
+            oneday,
+            self.sim_params,
+            env=self.env
+        )
+
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.instance_tmpdir,
+            self.sim_params,
+            {1: trades})
+        txn = create_txn(self.asset1, trades[0].dt, 10.0, 100)
+        pt = perf.PositionTracker(self.env.asset_finder,
+                                  self.sim_params.data_frequency)
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
+                                    self.sim_params.data_frequency,
+                                    period_open=self.sim_params.period_start,
+                                    period_close=self.sim_params.period_end)
+        pp.position_tracker = pt
+
+        pt.execute_transaction(txn)
+        pp.handle_execution(txn)
+
+        # sync prices and calculate performance before we introduce a capital
+        # change
+        pt.sync_last_sale_prices(trades[2].dt, False, data_portal)
+        pp.calculate_performance()
+
+        pp.subdivide_period(1000.0)
+
+        pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
+        pp.calculate_performance()
+
+        self.assertAlmostEqual(pp.returns, 1200/1000 * 2300/2200 - 1)
+        self.assertAlmostEqual(pp.pnl, 300)
+        self.assertAlmostEqual(pp.cash_flow, -1000)
+
+    def test_capital_change_inter_period(self):
+        self.create_environment_stuff()
+
+        # post some trades in the market
+        trades = factory.create_trade_history(
+            self.asset1,
+            [10.0, 11.0, 12.0, 13.0],
+            [100, 100, 100, 100],
+            oneday,
+            self.sim_params,
+            env=self.env
+        )
+
+        data_portal = create_data_portal_from_trade_history(
+            self.env,
+            self.instance_tmpdir,
+            self.sim_params,
+            {1: trades})
+        txn = create_txn(self.asset1, trades[0].dt, 10.0, 100)
+        pt = perf.PositionTracker(self.env.asset_finder,
+                                  self.sim_params.data_frequency)
+        pp = perf.PerformancePeriod(1000.0, self.env.asset_finder,
+                                    self.sim_params.data_frequency,
+                                    period_open=self.sim_params.period_start,
+                                    period_close=self.sim_params.period_end)
+        pp.position_tracker = pt
+
+        pt.execute_transaction(txn)
+        pp.handle_execution(txn)
+        pt.sync_last_sale_prices(trades[0].dt, False, data_portal)
+        pp.calculate_performance()
+        self.assertAlmostEqual(pp.returns, 0)
+        self.assertAlmostEqual(pp.pnl, 0)
+        self.assertAlmostEqual(pp.cash_flow, -1000)
+        pp.rollover()
+
+        pt.sync_last_sale_prices(trades[1].dt, False, data_portal)
+        pp.calculate_performance()
+        self.assertAlmostEqual(pp.returns, 1100.0/1000.0 - 1)
+        self.assertAlmostEqual(pp.pnl, 100)
+        self.assertAlmostEqual(pp.cash_flow, 0)
+        pp.rollover()
+
+        pp.adjust_period_starting_capital(1000)
+        pt.sync_last_sale_prices(trades[2].dt, False, data_portal)
+        pp.calculate_performance()
+        self.assertAlmostEqual(pp.returns, 2200.0/2100.0 - 1)
+        self.assertAlmostEqual(pp.pnl, 100)
+        self.assertAlmostEqual(pp.cash_flow, 0)
+        pp.rollover()
+
+        pt.sync_last_sale_prices(trades[3].dt, False, data_portal)
+        pp.calculate_performance()
+        self.assertAlmostEqual(pp.returns, 2300.0/2200.0 - 1)
+        self.assertAlmostEqual(pp.pnl, 100)
+        self.assertAlmostEqual(pp.cash_flow, 0)
 
 
 class TestPositionTracker(WithTradingEnvironment,

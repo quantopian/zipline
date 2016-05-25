@@ -231,6 +231,17 @@ class PerformanceTracker(object):
 
         return _dict
 
+    def process_capital_changes(self, capital_change, is_interday):
+        self.cumulative_performance.subdivide_period(capital_change)
+
+        if is_interday:
+            # Change comes between days
+            self.todays_performance.adjust_period_starting_capital(
+                capital_change)
+        else:
+            # Change comes in the middle of day
+            self.todays_performance.subdivide_period(capital_change)
+
     def process_transaction(self, transaction):
         self.txn_count += 1
         self.cumulative_performance.handle_execution(transaction)
