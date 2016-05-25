@@ -17,18 +17,21 @@ from mock import patch
 
 from nose_parameterized import parameterized
 from six.moves import range
-from unittest import TestCase
 from zipline import TradingAlgorithm
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.test_algorithms import NoopAlgorithm
 from zipline.utils import factory
 from zipline.testing.core import FakeDataPortal
+from zipline.testing.fixtures import (
+    WithTradingEnvironment,
+    ZiplineTestCase
+)
 
 
 class BeforeTradingAlgorithm(TradingAlgorithm):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, env, *args, **kwargs):
         self.before_trading_at = []
-        super(BeforeTradingAlgorithm, self).__init__(*args, **kwargs)
+        super(BeforeTradingAlgorithm, self).__init__(env, *args, **kwargs)
 
     def before_trading_start(self, data):
         self.before_trading_at.append(self.datetime)
@@ -40,7 +43,8 @@ class BeforeTradingAlgorithm(TradingAlgorithm):
 FREQUENCIES = {'daily': 0, 'minute': 1}  # daily is less frequent than minute
 
 
-class TestTradeSimulation(TestCase):
+class TestTradeSimulation(WithTradingEnvironment,
+                          ZiplineTestCase):
 
     def fake_minutely_benchmark(self, dt):
         return 0.01
@@ -51,7 +55,8 @@ class TestTradeSimulation(TestCase):
                                                       emission_rate='minute')
         with patch.object(BenchmarkSource, "get_value",
                           self.fake_minutely_benchmark):
-            algo = NoopAlgorithm(sim_params=params)
+            algo = NoopAlgorithm(env=self.env,
+                                 sim_params=params)
             algo.run(FakeDataPortal())
             self.assertEqual(algo.perf_tracker.day_count, 1.0)
 
@@ -72,7 +77,8 @@ class TestTradeSimulation(TestCase):
 
         with patch.object(BenchmarkSource, "get_value",
                           self.fake_minutely_benchmark):
-            algo = BeforeTradingAlgorithm(sim_params=params)
+            algo = BeforeTradingAlgorithm(env=self.env,
+                                          sim_params=params)
             algo.run(FakeDataPortal())
 
             self.assertEqual(algo.perf_tracker.day_count, num_days)

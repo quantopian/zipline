@@ -54,7 +54,6 @@ from zipline.errors import (
     UnsupportedSlippageModel,
     CannotOrderDelistedAsset, UnsupportedCancelPolicy, SetCancelPolicyPostInit,
     OrderInBeforeTradingStart)
-from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, CommissionModel
 from zipline.finance.controls import (
@@ -193,10 +192,12 @@ class TradingAlgorithm(object):
         default: 'zipline'
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, env, *args, **kwargs):
         """Initialize sids and other state variables.
 
         :Arguments:
+        :Required:
+            env : A TradingEnvironment object
         :Optional:
             initialize : function
                 Function that is called with a single
@@ -250,11 +251,7 @@ class TradingAlgorithm(object):
 
         self.data_portal = kwargs.pop('data_portal', None)
 
-        # If an env has been provided, pop it
-        self.trading_environment = kwargs.pop('env', None)
-
-        if self.trading_environment is None:
-            self.trading_environment = TradingEnvironment()
+        self.trading_environment = env
 
         # Update the TradingEnvironment with the provided asset metadata
         if 'equities_metadata' in kwargs or 'futures_metadata' in kwargs:

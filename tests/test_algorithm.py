@@ -282,6 +282,7 @@ def handle_data(algo, data):
     def test_zipline_api_resolves_dynamically(self):
         # Make a dummy algo.
         algo = TradingAlgorithm(
+            env=self.env,
             initialize=lambda context: None,
             handle_data=lambda context, data: None,
             sim_params=self.sim_params,
@@ -799,6 +800,7 @@ def before_trading_start(context, data):
 
     def test_run_twice(self):
         algo1 = TestRegisterTransformAlgorithm(
+            env=self.env,
             sim_params=self.sim_params,
             sids=[0, 1]
         )
@@ -808,6 +810,7 @@ def before_trading_start(context, data):
         # Create a new trading algorithm, which will
         # use the newly instantiated environment.
         algo2 = TestRegisterTransformAlgorithm(
+            env=self.env,
             sim_params=self.sim_params,
             sids=[0, 1]
         )
@@ -975,9 +978,9 @@ class TestPositions(WithLogger,
     sids = ASSET_FINDER_EQUITY_SIDS = [1, 133]
 
     def test_empty_portfolio(self):
-        algo = EmptyPositionsAlgorithm(self.sids,
+        algo = EmptyPositionsAlgorithm(env=self.env,
                                        sim_params=self.sim_params,
-                                       env=self.env)
+                                       sids=self.sids)
         daily_stats = algo.run(self.data_portal)
 
         expected_position_count = [
@@ -1417,16 +1420,19 @@ class TestAlgoScript(WithLogger,
         )
 
     def test_noop(self):
-        algo = TradingAlgorithm(initialize=initialize_noop,
+        algo = TradingAlgorithm(env=self.env,
+                                initialize=initialize_noop,
                                 handle_data=handle_data_noop)
         algo.run(self.data_portal)
 
     def test_noop_string(self):
-        algo = TradingAlgorithm(script=noop_algo)
+        algo = TradingAlgorithm(env=self.env,
+                                script=noop_algo)
         algo.run(self.data_portal)
 
     def test_no_handle_data(self):
-        algo = TradingAlgorithm(script=no_handle_data)
+        algo = TradingAlgorithm(env=self.env,
+                                script=no_handle_data)
         algo.run(self.data_portal)
 
     def test_api_calls(self):
@@ -1441,7 +1447,8 @@ class TestAlgoScript(WithLogger,
 
     def test_api_get_environment(self):
         platform = 'zipline'
-        algo = TradingAlgorithm(script=api_get_environment_algo,
+        algo = TradingAlgorithm(env=self.env,
+                                script=api_get_environment_algo,
                                 platform=platform)
         algo.run(self.data_portal)
         self.assertEqual(algo.environment, platform)
@@ -1604,6 +1611,7 @@ def handle_data(context, data):
         will end up returning a MagicMock instead of a DataFrame.
         """
         test_algo = TradingAlgorithm(
+            self.env,
             script=record_variables,
             sim_params=self.sim_params,
         )
@@ -2668,8 +2676,9 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                     algo.order(algo.sid(1), 1)
                     algo.order_count += 1
 
-            algo = SetMaxOrderCountAlgorithm(3, sim_params=sim_params,
-                                             env=env)
+            algo = SetMaxOrderCountAlgorithm(env=env,
+                                             sim_params=sim_params,
+                                             count=3)
             with self.assertRaises(TradingControlViolation):
                 algo._handle_data = handle_data
                 algo.run(data_portal)
@@ -2686,8 +2695,9 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
 
                 algo.minute_count += 1
 
-            algo = SetMaxOrderCountAlgorithm(9, sim_params=sim_params,
-                                             env=env)
+            algo = SetMaxOrderCountAlgorithm(env=env,
+                                             sim_params=sim_params,
+                                             count=9)
             with self.assertRaises(TradingControlViolation):
                 algo._handle_data = handle_data2
                 algo.run(data_portal)
@@ -2704,8 +2714,9 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
 
             # Only 5 orders are placed per day, so this should pass even
             # though in total more than 20 orders are placed.
-            algo = SetMaxOrderCountAlgorithm(5, sim_params=sim_params,
-                                             env=env)
+            algo = SetMaxOrderCountAlgorithm(env=env,
+                                             sim_params=sim_params,
+                                             count=5)
             algo._handle_data = handle_data3
             algo.run(data_portal)
 
@@ -2870,16 +2881,18 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
         def handle_data(algo, data):
             algo.order(algo.sid(self.sidint), 1)
 
-        algo = SetMaxLeverageAlgorithm(0, sim_params=self.sim_params,
-                                       env=self.env)
+        algo = SetMaxLeverageAlgorithm(self.env,
+                                       sim_params=self.sim_params,
+                                       max_leverage=0)
         self.check_algo_fails(algo, handle_data)
 
         # Set max leverage to 1 so buying one share passes
         def handle_data(algo, data):
             algo.order(algo.sid(self.sidint), 1)
 
-        algo = SetMaxLeverageAlgorithm(1,  sim_params=self.sim_params,
-                                       env=self.env)
+        algo = SetMaxLeverageAlgorithm(self.env,
+                                       sim_params=self.sim_params,
+                                       max_leverage=1)
         self.check_algo_succeeds(algo, handle_data)
 
 
@@ -3045,13 +3058,14 @@ class TestTradingAlgorithm(ZiplineTestCase):
         def analyze(context, perf):
             self.perf_ref = perf
 
-        algo = TradingAlgorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-            analyze=analyze,
-        )
-
         with empty_trading_env() as env:
+            algo = TradingAlgorithm(
+                env=env,
+                initialize=initialize,
+                handle_data=handle_data,
+                analyze=analyze,
+            )
+
             data_portal = FakeDataPortal(env)
             results = algo.run(data_portal)
 

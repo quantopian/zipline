@@ -36,10 +36,10 @@ class ExceptionTestCase(WithDataPortal, WithSimParams, ZiplineTestCase):
     sid, = ASSET_FINDER_EQUITY_SIDS = 133,
 
     def test_exception_in_handle_data(self):
-        algo = ExceptionAlgorithm('handle_data',
-                                  self.sid,
+        algo = ExceptionAlgorithm(env=self.env,
                                   sim_params=self.sim_params,
-                                  env=self.env)
+                                  throw_from='handle_data',
+                                  sid=self.sid)
 
         with self.assertRaises(Exception) as ctx:
             algo.run(self.data_portal)
@@ -47,9 +47,9 @@ class ExceptionTestCase(WithDataPortal, WithSimParams, ZiplineTestCase):
         self.assertEqual(str(ctx.exception), 'Algo exception in handle_data')
 
     def test_zerodivision_exception_in_handle_data(self):
-        algo = DivByZeroAlgorithm(self.sid,
+        algo = DivByZeroAlgorithm(env=self.env,
                                   sim_params=self.sim_params,
-                                  env=self.env)
+                                  sid=self.sid)
 
         with self.assertRaises(ZeroDivisionError):
             algo.run(self.data_portal)
@@ -58,9 +58,9 @@ class ExceptionTestCase(WithDataPortal, WithSimParams, ZiplineTestCase):
         """
         Are we protected against overwriting an algo's portfolio?
         """
-        algo = SetPortfolioAlgorithm(self.sid,
+        algo = SetPortfolioAlgorithm(env=self.env,
                                      sim_params=self.sim_params,
-                                     env=self.env)
+                                     sid=self.sid)
 
         with self.assertRaises(AttributeError):
             algo.run(self.data_portal)
