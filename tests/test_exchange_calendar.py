@@ -19,6 +19,7 @@ from os.path import (
     join,
 )
 from unittest import TestCase
+from collections import namedtuple
 
 import pandas as pd
 import pytz
@@ -31,7 +32,57 @@ from pandas import (
 )
 from pandas.util.testing import assert_frame_equal
 
+from zipline.errors import (
+    CalendarNameCollision,
+    InvalidCalendarName,
+)
 from zipline.utils.calendars.exchange_calendar_nyse import NYSEExchangeCalendar
+from zipline.utils.calendars.exchange_calendar import(
+    register_calendar,
+    deregister_calendar,
+    get_calendar,
+    clear_calendars,
+)
+
+
+class CalendarRegistrationTestCase(TestCase):
+
+    def setUp(self):
+        self.dummy_cal_type = namedtuple('DummyCal', ('name'))
+
+    def tearDown(self):
+        clear_calendars()
+
+    def test_register_calendar(self):
+        # Build a fake calendar
+        dummy_cal = self.dummy_cal_type('DMY')
+
+        # Try to register and retrieve the calendar
+        register_calendar(dummy_cal)
+        retr_cal = get_calendar('DMY')
+        self.assertEqual(dummy_cal, retr_cal)
+
+        # Try to register again, expecting a name collision
+        with self.assertRaises(CalendarNameCollision):
+            register_calendar(dummy_cal)
+
+        # Deregister the calendar and ensure that it is removed
+        deregister_calendar('DMY')
+        with self.assertRaises(InvalidCalendarName):
+            get_calendar('DMY')
+
+    def test_force_registration(self):
+        dummy_nyse = self.dummy_cal_type('NYSE')
+
+        # Get the actual NYSE calendar
+        real_nyse = get_calendar('NYSE')
+
+        # Force a registration of the dummy NYSE
+        register_calendar(dummy_nyse, force=True)
+
+        # Ensure that the dummy overwrote the real calendar
+        retr_cal = get_calendar('NYSE')
+        self.assertNotEqual(real_nyse, retr_cal)
 
 
 class ExchangeCalendarTestBase(object):

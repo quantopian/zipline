@@ -496,8 +496,52 @@ def get_calendar(name):
     return _static_calendars[name]
 
 
-def register_calendar(calendar):
+def deregister_calendar(cal_name):
+    """
+    If a calendar is registered with the given name, it is de-registered.
+
+    Parameters
+    ----------
+    cal_name : str
+        The name of the calendar to be deregistered.
+    """
+    try:
+        _static_calendars.pop(cal_name)
+    except KeyError:
+        pass
+
+
+def clear_calendars():
+    """
+    Deregisters all current registered calendars
+    """
+    _static_calendars.clear()
+
+
+def register_calendar(calendar, force=False):
+    """
+    Registers a calendar for retrieval by the get_calendar method.
+
+    Parameters
+    ----------
+    calendar : ExchangeCalendar
+        The calendar to be registered for retrieval.
+    force : bool, optional
+        If True, old calendars will be overwritten on a name collision.
+        If False, name collisions will raise an exception. Default: False.
+
+    Raises
+    ------
+    CalendarNameCollision
+        If a calendar is already registered with the given calendar's name.
+    """
+    # If we are forcing the registration, remove an existing calendar with the
+    # same name.
+    if force:
+        deregister_calendar(calendar.name)
+
     # Check if we are already holding a calendar with the same name
     if calendar.name in _static_calendars:
         raise CalendarNameCollision(calendar_name=calendar.name)
+
     _static_calendars[calendar.name] = calendar
