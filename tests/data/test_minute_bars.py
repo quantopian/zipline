@@ -373,6 +373,47 @@ class BcolzMinuteBarTestCase(TestCase):
         volume_price = self.reader.get_value(sid, second_minute, 'volume')
         self.assertEquals(10.0, volume_price)
 
+    def test_append_on_new_day(self):
+        sid = 1
+
+        ohlcv = {
+            'open': [2.0],
+            'high': [3.0],
+            'low': [1.0],
+            'close': [2.0],
+            'volume': [10.0]
+        }
+
+        first_minute = self.market_opens[TEST_CALENDAR_START]
+        data = DataFrame(
+            data=ohlcv,
+            index=[first_minute])
+        self.writer.write_sid(sid, data)
+
+        next_day_minute = first_minute + Timedelta(days=1)
+        new_data = DataFrame(
+            data=ohlcv,
+            index=[next_day_minute])
+        self.writer.write_sid(sid, new_data)
+
+        second_minute = first_minute + Timedelta(minutes=1)
+
+        # The second minute should have been padded with zeros
+        for col in ('open', 'high', 'low', 'close'):
+            assert_almost_equal(
+                nan, self.reader.get_value(sid, second_minute, col)
+            )
+        self.assertEqual(
+            0, self.reader.get_value(sid, second_minute, 'volume')
+        )
+
+        # The first day should contain US_EQUITIES_MINUTES_PER_DAY rows.
+        # The second day should contain a single row.
+        self.assertEqual(
+            len(self.writer._ensure_ctable(sid)),
+            US_EQUITIES_MINUTES_PER_DAY + 1,
+        )
+
     def test_write_multiple_sids(self):
         """
         Test writing multiple sids.
