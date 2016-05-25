@@ -184,7 +184,9 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
 
         self.first_trading_day = _all_days[0]
         self.last_trading_day = _all_days[-1]
-        self.early_closes = _special_closes.map(self.session_date)
+        self.early_closes = DatetimeIndex(
+            _special_closes.map(self.session_date)
+        )
 
     def next_trading_day(self, date):
         return next_scheduled_day(
