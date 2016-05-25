@@ -462,7 +462,7 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
 
 _static_calendars = {}
 
-_lazy_calendar_names = ['NYSE', 'CME']
+_lazy_calendar_names = ['NYSE', 'CME', 'BMF', 'LSE', 'TSX']
 
 
 def get_calendar(name):
@@ -492,6 +492,24 @@ def get_calendar(name):
                 import CMEExchangeCalendar
             cme_cal = CMEExchangeCalendar()
             register_calendar(cme_cal)
+
+        if name == 'BMF':
+            from zipline.utils.calendars.exchange_calendar_bmf \
+                import BMFExchangeCalendar
+            bmf_cal = BMFExchangeCalendar()
+            register_calendar(bmf_cal)
+
+        if name == 'LSE':
+            from zipline.utils.calendars.exchange_calendar_lse \
+                import LSEExchangeCalendar
+            lse_cal = LSEExchangeCalendar()
+            register_calendar(lse_cal)
+
+        if name == 'TSX':
+            from zipline.utils.calendars.exchange_calendar_tsx \
+                import TSXExchangeCalendar
+            tsx_cal = TSXExchangeCalendar()
+            register_calendar(tsx_cal)
 
     return _static_calendars[name]
 
