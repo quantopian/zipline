@@ -127,7 +127,7 @@ from __future__ import division, absolute_import
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
 from copy import copy
-from functools import partial, reduce
+from functools import partial
 from itertools import count
 import warnings
 from weakref import WeakKeyDictionary
@@ -137,7 +137,6 @@ from datashape import (
     Date,
     DateTime,
     Option,
-    floating,
     isrecord,
     isscalar,
 )
