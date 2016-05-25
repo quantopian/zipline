@@ -934,9 +934,9 @@ class GroupedRowTransform(Factor):
         return super(GroupedRowTransform, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, transform, *args, **kwargs):
+    def _static_identity(cls, transform, *args, **kwargs):
         return (
-            super(GroupedRowTransform, cls).static_identity(*args, **kwargs),
+            super(GroupedRowTransform, cls)._static_identity(*args, **kwargs),
             transform,
         )
 
@@ -1020,9 +1020,9 @@ class Rank(SingleInputMixin, Factor):
         return super(Rank, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, method, ascending, *args, **kwargs):
+    def _static_identity(cls, method, ascending, *args, **kwargs):
         return (
-            super(Rank, cls).static_identity(*args, **kwargs),
+            super(Rank, cls)._static_identity(*args, **kwargs),
             method,
             ascending,
         )
@@ -1205,20 +1205,24 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
     '''
     dtype = float64_dtype
 
-    def __getattr__(self, attribute_name):
-        if self.outputs is NotSpecified:
-            return getattr(super(CustomFactor, self), attribute_name)
-        if attribute_name in self.outputs:
-            return RecarrayField(factor=self, attribute=attribute_name)
+    def __getattribute__(self, name):
+        outputs = object.__getattribute__(self, 'outputs')
+        if outputs is NotSpecified:
+            return super(CustomFactor, self).__getattribute__(name)
+        elif name in outputs:
+            return RecarrayField(factor=self, attribute=name)
         else:
-            raise AttributeError(
-                'Instance of {factor} has no output named {attr!r}.'
-                ' Possible choices are: {choices}.'.format(
-                    factor=type(self).__name__,
-                    attr=attribute_name,
-                    choices=self.outputs,
+            try:
+                return super(CustomFactor, self).__getattribute__(name)
+            except AttributeError:
+                raise AttributeError(
+                    'Instance of {factor} has no output named {attr!r}. '
+                    'Possible choices are: {choices}.'.format(
+                        factor=type(self).__name__,
+                        attr=name,
+                        choices=self.outputs,
+                    )
                 )
-            )
 
     def __iter__(self):
         if self.outputs is NotSpecified:
@@ -1248,9 +1252,9 @@ class RecarrayField(SingleInputMixin, Factor):
         return super(RecarrayField, self)._init(*args, **kwargs)
 
     @classmethod
-    def static_identity(cls, attribute, *args, **kwargs):
+    def _static_identity(cls, attribute, *args, **kwargs):
         return (
-            super(RecarrayField, cls).static_identity(*args, **kwargs),
+            super(RecarrayField, cls)._static_identity(*args, **kwargs),
             attribute,
         )
 

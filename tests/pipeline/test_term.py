@@ -7,6 +7,7 @@ from unittest import TestCase
 
 from zipline.errors import (
     DTypeNotSpecified,
+    InvalidOutputName,
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
@@ -24,6 +25,7 @@ from zipline.pipeline import (
 )
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
+from zipline.pipeline.factors import RecarrayField
 from zipline.pipeline.term import AssetExists, NotSpecified
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.testing import parameter_space
@@ -89,6 +91,9 @@ class MultipleOutputs(CustomFactor):
     window_length = 5
     inputs = [SomeDataSet.foo, SomeDataSet.bar]
     outputs = ['alpha', 'beta']
+
+    def some_method(self):
+        return
 
 
 def gen_equivalent_factors():
@@ -475,6 +480,21 @@ class ObjectIdentityTestCase(TestCase):
         self.assertEqual(
             errmsg, "GenericCustomFactor does not have multiple outputs.",
         )
+
+        # Public method, user-defined method.
+        # Accessing these attributes should return the output, not the method.
+        conflicting_output_names = ['zscore', 'some_method']
+
+        mo = MultipleOutputs(outputs=conflicting_output_names)
+        for name in conflicting_output_names:
+            self.assertIsInstance(getattr(mo, name), RecarrayField)
+
+        # Non-callable attribute, private method, special method.
+        disallowed_output_names = ['inputs', '_init', '__add__']
+
+        for name in disallowed_output_names:
+            with self.assertRaises(InvalidOutputName):
+                GenericCustomFactor(outputs=[name])
 
     def test_require_super_call_in_validate(self):
 
