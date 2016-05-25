@@ -393,7 +393,12 @@ class BcolzMinuteBarWriter(object):
         return bcolz.ctable(rootdir=sidpath, mode='a')
 
     def _zerofill(self, table, numdays):
-        num_to_prepend = numdays * self._minutes_per_day
+        # Compute the number of minutes to be filled, accounting for the
+        # possibility of a partial day's worth of minutes existing for
+        # the previous day.
+        minute_offset = len(table) % self._minutes_per_day
+        num_to_prepend = numdays * self._minutes_per_day - minute_offset
+
         prepend_array = np.zeros(num_to_prepend, np.uint32)
         # Fill all OHLCV with zeros.
         table.append([prepend_array] * 5)
