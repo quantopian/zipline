@@ -107,13 +107,15 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
     @final
     @classmethod
     def tearDownClass(cls):
-        cls._class_teardown_stack.close()
+        # We need to get this before it's deleted by the loop.
+        stack = cls._class_teardown_stack
         for name in set(vars(cls)) - cls._static_class_attributes:
             # Remove all of the attributes that were added after the class was
             # constructed. This cleans up any large test data that is class
             # scoped while still allowing subclasses to access class level
             # attributes.
             delattr(cls, name)
+        stack.close()
 
     @final
     @classmethod
@@ -171,9 +173,11 @@ class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
 
     @final
     def tearDown(self):
-        self._instance_teardown_stack.close()
+        # We need to get this before it's deleted by the loop.
+        stack = self._instance_teardown_stack
         for attr in set(vars(self)) - self._pre_setup_attrs:
             delattr(self, attr)
+        stack.close()
 
     @final
     def enter_instance_context(self, context_manager):
