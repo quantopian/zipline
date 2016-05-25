@@ -31,6 +31,7 @@ from six import (
     iteritems,
     itervalues,
     string_types,
+    viewkeys,
 )
 
 from zipline._protocol import handle_non_market_minutes
@@ -332,29 +333,46 @@ class TradingAlgorithm(object):
 
         self._handle_data = None
 
+        def noop(*args, **kwargs):
+            pass
+
         if self.algoscript is not None:
+            api_methods = {
+                'initialize',
+                'handle_data',
+                'before_trading_start',
+                'analyze',
+            }
+            unexpected_api_methods = viewkeys(kwargs) & api_methods
+            if unexpected_api_methods:
+                raise ValueError(
+                    "TradingAlgorithm received a script and the following API"
+                    " methods as functions:\n{funcs}".format(
+                        funcs=unexpected_api_methods,
+                    )
+                )
+
             filename = kwargs.pop('algo_filename', None)
             if filename is None:
                 filename = '<string>'
             code = compile(self.algoscript, filename, 'exec')
             exec_(code, self.namespace)
-            self._initialize = self.namespace.get('initialize')
-            if 'handle_data' in self.namespace:
-                self._handle_data = self.namespace['handle_data']
 
-            self._before_trading_start = \
-                self.namespace.get('before_trading_start')
+            self._initialize = self.namespace.get('initialize', noop)
+            self._handle_data = self.namespace.get('handle_data', noop)
+            self._before_trading_start = self.namespace.get(
+                'before_trading_start',
+            )
             # Optional analyze function, gets called after run
             self._analyze = self.namespace.get('analyze')
 
-        elif kwargs.get('initialize') and kwargs.get('handle_data'):
-            if self.algoscript is not None:
-                raise ValueError('You can not set script and \
-                initialize/handle_data.')
-            self._initialize = kwargs.pop('initialize')
-            self._handle_data = kwargs.pop('handle_data')
-            self._before_trading_start = kwargs.pop('before_trading_start',
-                                                    None)
+        else:
+            self._initialize = kwargs.pop('initialize', noop)
+            self._handle_data = kwargs.pop('handle_data', noop)
+            self._before_trading_start = kwargs.pop(
+                'before_trading_start',
+                None,
+            )
             self._analyze = kwargs.pop('analyze', None)
 
         self.event_manager.add_event(
@@ -366,10 +384,6 @@ class TradingAlgorithm(object):
             ),
             prepend=True,
         )
-
-        # If method not defined, NOOP
-        if self._initialize is None:
-            self._initialize = lambda x: None
 
         # Alternative way of setting data_frequency for backwards
         # compatibility.
