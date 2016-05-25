@@ -408,9 +408,10 @@ class BcolzMinuteBarWriter(object):
         """
         Fill sid container with empty data through the specified date.
 
-        e.g. if the date is two days after the last date in the sid's existing
-        output, 2 x `minute_per_day` worth of zeros will be added to the
-        output.
+        If the last recorded trade is not at the close, then that day will be
+        padded with zeros until its close. Any day after that (up to and
+        including the specified date) will be padded with `minute_per_day`
+        worth of zeros
 
         Parameters:
         -----------
@@ -490,7 +491,7 @@ class BcolzMinuteBarWriter(object):
         If there is no bcolz ctable yet created for the sid, create it.
         If the length of the bcolz ctable is not exactly to the date before
         the first day provided, fill the ctable with 0s up to that date.
-        Writes in blocks of the size of the days times minutes per day.
+
         Parameters:
         -----------
         sid : int
@@ -523,7 +524,7 @@ class BcolzMinuteBarWriter(object):
         If there is no bcolz ctable yet created for the sid, create it.
         If the length of the bcolz ctable is not exactly to the date before
         the first day provided, fill the ctable with 0s up to that date.
-        Writes in blocks of the size of the days times minutes per day.
+
         Parameters:
         -----------
         sid : int
