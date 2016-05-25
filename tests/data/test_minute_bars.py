@@ -475,7 +475,9 @@ class BcolzMinuteBarTestCase(TestCase):
         self.assertEqual(last_date, TEST_CALENDAR_START)
 
         freq = self.market_opens.index.freq
-        minute = self.market_opens[TEST_CALENDAR_START + freq]
+        day = TEST_CALENDAR_START + freq
+        minute = self.market_opens[day]
+
         data = DataFrame(
             data={
                 'open': [15.0],
@@ -506,6 +508,15 @@ class BcolzMinuteBarTestCase(TestCase):
         volume_price = self.reader.get_value(sid, minute, 'volume')
 
         self.assertEquals(100.0, volume_price)
+
+        # Check that if we then pad the rest of this day, we end up with
+        # 2 days worth of minutes.
+        self.writer.pad(sid, day)
+
+        self.assertEqual(
+            len(self.writer._ensure_ctable(sid)),
+            self.writer._minutes_per_day * 2,
+        )
 
     def test_nans(self):
         """
