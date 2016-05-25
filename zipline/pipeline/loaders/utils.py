@@ -6,6 +6,7 @@ from six import iteritems
 from six.moves import zip
 
 from zipline.utils.numpy_utils import categorical_dtype, NaTns
+from zipline.utils.pandas_utils import mask_between_time
 
 
 def next_event_frame(events_by_sid,
@@ -209,6 +210,9 @@ def normalize_data_query_bounds(lower, upper, time, tz):
     return lower, upper
 
 
+_midnight = datetime.time(0, 0)
+
+
 def normalize_timestamp_to_query_time(df,
                                       time,
                                       tz,
@@ -246,7 +250,12 @@ def normalize_timestamp_to_query_time(df,
 
     dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
     dtidx_local_time = dtidx.tz_convert(tz)
-    to_roll_forward = dtidx_local_time.time >= time
+    to_roll_forward = mask_between_time(
+        dtidx_local_time,
+        time,
+        _midnight,
+        include_end=False,
+    )
     # for all of the times that are greater than our query time add 1
     # day and truncate to the date
     df.loc[to_roll_forward, ts_field] = (
