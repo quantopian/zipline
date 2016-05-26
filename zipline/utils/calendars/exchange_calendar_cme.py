@@ -23,6 +23,7 @@ from dateutil.relativedelta import (
 from pandas import (
     date_range,
     DateOffset,
+    Timedelta,
     Timestamp,
 )
 from pandas.tseries.holiday import(
@@ -39,6 +40,7 @@ from pandas.tseries.offsets import Day
 from pytz import timezone
 
 from zipline.utils.calendars import ExchangeCalendar
+from .calendar_helpers import normalize_date
 
 # Useful resources for making changes to this file:
 # http://www.nyse.com/pdfs/closings.pdf
@@ -260,11 +262,11 @@ class CMEExchangeCalendar(ExchangeCalendar):
     special_opens_calendars = ()
     special_closes_calendars = []
 
-    holidays_adhoc = chain(
+    holidays_adhoc = list(chain(
         September11Closings,
         HurricaneSandyClosings,
         USNationalDaysofMourning,
-    )
+    ))
 
     special_opens_adhoc = ()
     special_closes_adhoc = []
@@ -286,7 +288,7 @@ class CMEExchangeCalendar(ExchangeCalendar):
         """
         return self.native_timezone
 
-    def is_open(self, dt):
+    def is_open_on_minute(self, dt):
         """
         Parameters
         ----------
@@ -300,12 +302,29 @@ class CMEExchangeCalendar(ExchangeCalendar):
         # Retrieve the exchange session relevant for this datetime
         session = self.session_date(dt)
         # Retrieve the opens and closes for this exchange session
-        o_and_c_df = self.open_and_close(session)
+        session_open, session_close = self.open_and_close(session)
         # Is @dt within the trading hours for this exchange session
-        for index, row in o_and_c_df.iterrows():
-            if row['market_open'] <= dt and dt <= row['market_close']:
-                return True
-        return False
+        return (
+            session_open and session_close and
+            session_open <= dt <= session_close
+        )
+
+    def is_open_on_day(self, dt):
+        """
+        Is the exchange open (accepting orders) anytime during the calendar day
+        containing @dt.
+
+        Parameters
+        ----------
+        dt : Timestamp
+
+        Returns
+        -------
+        bool
+            True if  exchange is open at any time during the day containing @dt
+        """
+        dt_normalized = normalize_date(dt)
+        return dt_normalized in self.schedule.index
 
     def trading_days(self, start, end):
         """
@@ -329,7 +348,7 @@ class CMEExchangeCalendar(ExchangeCalendar):
         """
         return self.schedule.index[start:end]
 
-    def open_and_close(self, session):
+    def open_and_close(self, dt):
         """
         Given a UTC-canonicalized date, returns a tuple of timestamps of the
         open and close of the exchange session on that date.
@@ -348,10 +367,34 @@ class CMEExchangeCalendar(ExchangeCalendar):
         (Timestamp, Timestamp)
             The open and close for the given date.
         """
-        # Generalised logic for the case of trading pauses.
-        # Note: this logic is ~3-4 times slower than that used for the NYSE
-        # (pass a list, to ensure we get a DataFrame returned)
-        return self.schedule.loc[[session]]
+        session = self.session_date(dt)
+        return self._get_open_and_close(session)
+
+    def _get_open_and_close(self, session_date):
+        """
+        Retrieves the open and close for a given session.
+
+        Parameters
+        ----------
+        session_date : Timestamp
+            The canonicalized session_date whose open and close are needed.
+
+        Returns
+        -------
+        (Timestamp, Timestamp) or (None, None)
+            The open and close for the given dt, or Nones if the given date is
+            not a session.
+        """
+        # Return a tuple of nones if the given date is not a session.
+        if session_date not in self.schedule.index:
+            return (None, None)
+
+        o_and_c = self.schedule.loc[session_date]
+        # `market_open` and `market_close` should be timezone aware, but pandas
+        # 0.16.1 does not appear to support this:
+        # http://pandas.pydata.org/pandas-docs/stable/whatsnew.html#datetime-with-tz  # noqa
+        return (o_and_c['market_open'].tz_localize('UTC'),
+                o_and_c['market_close'].tz_localize('UTC'))
 
     def session_date(self, dt):
         """
@@ -370,5 +413,14 @@ class CMEExchangeCalendar(ExchangeCalendar):
         Timestamp
             The date of the exchange session in which dt belongs.
         """
-        dt_utc = dt.tz_convert('UTC').tz_convert(None)
-        return dt_utc.replace(hour=0, minute=0, second=0)
+        # Check if the dt is after the market close
+        # If so, advance to the next day
+        if self.is_open_on_day(dt):
+            _, close = self._get_open_and_close(normalize_date(dt))
+            if dt > close:
+                dt += Timedelta(days=1)
+
+        while not self.is_open_on_day(dt):
+            dt += Timedelta(days=1)
+
+        return normalize_date(dt)
