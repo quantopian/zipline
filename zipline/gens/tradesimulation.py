@@ -215,7 +215,9 @@ class AlgorithmSimulator(object):
                     # perspective as we have technically not "advanced" to the
                     # current dt yet.
                     algo.perf_tracker.position_tracker.sync_last_sale_prices(
-                        self.env.previous_market_minute(dt),
+                        self.algo.trading_schedule.previous_execution_minute(
+                            dt
+                        ),
                         False,
                         self.data_portal
                     )

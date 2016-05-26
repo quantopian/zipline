@@ -141,7 +141,7 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
                     [100.0] * num_days,
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env,
+                    trading_schedule=cls.trading_schedule,
                 ),
             },
             index=cls.sim_params.trading_days,

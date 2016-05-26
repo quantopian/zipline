@@ -2234,11 +2234,12 @@ shares in position"
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_schedule=self.trading_schedule,
         )
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
+            self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
@@ -2278,11 +2279,12 @@ shares in position"
             [100, 100, 100, 100],
             oneday,
             self.sim_params,
-            env=self.env
+            trading_schedule=self.trading_schedule,
         )
 
         data_portal = create_data_portal_from_trade_history(
             self.env,
+            self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
             {1: trades})
