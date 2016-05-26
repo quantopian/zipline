@@ -26,12 +26,12 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.blaze import (
     from_blaze,
     BlazeLoader,
-    NoDeltasWarning,
+    NoMetaDataWarning,
 )
 from zipline.pipeline.loaders.blaze.core import (
     NonPipelineField,
-    no_deltas_rules,
 )
+from zipline.testing import parameter_space
 from zipline.testing.fixtures import WithAssetFinder
 from zipline.utils.numpy_utils import (
     float64_dtype,
@@ -112,7 +112,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ds = from_blaze(
             expr,
             loader=self.garbage_loader,
-            no_deltas_rule=no_deltas_rules.ignore,
+            no_deltas_rule='ignore',
+            no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
         )
         self.assertEqual(ds.__name__, name)
@@ -129,7 +130,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule=no_deltas_rules.ignore,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
                 missing_values=self.missing_values,
             ),
             ds,
@@ -141,7 +143,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         value = from_blaze(
             expr.value,
             loader=self.garbage_loader,
-            no_deltas_rule=no_deltas_rules.ignore,
+            no_deltas_rule='ignore',
+            no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
         )
         self.assertEqual(value.name, 'value')
@@ -153,7 +156,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             from_blaze(
                 expr.value,
                 loader=self.garbage_loader,
-                no_deltas_rule=no_deltas_rules.ignore,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
                 missing_values=self.missing_values,
             ),
             value,
@@ -162,7 +166,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule=no_deltas_rules.ignore,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
                 missing_values=self.missing_values,
             ).value,
             value,
@@ -173,7 +178,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule=no_deltas_rules.ignore,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
                 missing_values=self.missing_values,
             ),
             value.dataset,
@@ -196,32 +202,49 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             from_blaze(
                 expr,
                 loader=self.garbage_loader,
-                no_deltas_rule=no_deltas_rules.ignore,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
             )
         self.assertIn("'asof_date'", str(e.exception))
         self.assertIn(repr(str(expr.dshape.measure)), str(e.exception))
 
-    def test_auto_deltas(self):
+    @parameter_space(deltas={True, False}, checkpoints={True, False})
+    def test_auto_metadata(self, deltas, checkpoints):
+        select_level = op.getitem(('ignore', 'raise'))
+        m = {'ds': self.df}
+        if deltas:
+            m['ds_deltas'] = pd.DataFrame(columns=self.df.columns),
+        if checkpoints:
+            m['ds_checkpoints'] = pd.DataFrame(columns=self.df.columns),
         expr = bz.data(
-            {'ds': self.df,
-             'ds_deltas': pd.DataFrame(columns=self.df.columns)},
-            dshape=var * Record((
-                ('ds', self.dshape.measure),
-                ('ds_deltas', self.dshape.measure),
-            )),
+            m,
+            dshape=var * Record((k, self.dshape.measure) for k in m),
         )
         loader = BlazeLoader()
         ds = from_blaze(
             expr.ds,
             loader=loader,
             missing_values=self.missing_values,
+            no_deltas_rule=select_level(deltas),
+            no_checkpoints_rule=select_level(checkpoints),
         )
         self.assertEqual(len(loader), 1)
         exprdata = loader[ds]
         self.assertTrue(exprdata.expr.isidentical(expr.ds))
-        self.assertTrue(exprdata.deltas.isidentical(expr.ds_deltas))
+        if deltas:
+            self.assertTrue(exprdata.deltas.isidentical(expr.ds_deltas))
+        else:
+            self.assertIsNone(exprdata.deltas)
+        if checkpoints:
+            self.assertTrue(
+                exprdata.checkpoints.isidentical(expr.ds_checkpoints),
+            )
+        else:
+            self.assertIsNone(exprdata.checkpoints)
 
-    def test_auto_deltas_fail_warn(self):
+    @parameter_space(deltas={True, False}, checkpoints={True, False})
+    def test_auto_metadata_fail_warn(self, deltas, checkpoints):
+        select_level = op.getitem(('ignore', 'warn'))
         with warnings.catch_warnings(record=True) as ws:
             warnings.simplefilter('always')
             loader = BlazeLoader()
@@ -229,22 +252,31 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             from_blaze(
                 expr,
                 loader=loader,
-                no_deltas_rule=no_deltas_rules.warn,
+                no_deltas_rule=select_level(deltas),
+                no_checkpoints_rule=select_level(checkpoints),
                 missing_values=self.missing_values,
             )
-        self.assertEqual(len(ws), 1)
-        w = ws[0].message
-        self.assertIsInstance(w, NoDeltasWarning)
-        self.assertIn(str(expr), str(w))
+            self.assertEqual(len(ws), deltas + checkpoints)
 
-    def test_auto_deltas_fail_raise(self):
+        for w in ws:
+            w = w.message
+            self.assertIsInstance(w, NoMetaDataWarning)
+            self.assertIn(str(expr), str(w))
+
+    @parameter_space(deltas={True, False}, checkpoints={True, False})
+    def test_auto_metadata_fail_raise(self, deltas, checkpoints):
+        if not (deltas or checkpoints):
+            # not a real case
+            return
+        select_level = op.getitem(('ignore', 'raise'))
         loader = BlazeLoader()
         expr = bz.data(self.df, dshape=self.dshape)
         with self.assertRaises(ValueError) as e:
             from_blaze(
                 expr,
                 loader=loader,
-                no_deltas_rule=no_deltas_rules.raise_,
+                no_deltas_rule=select_level(deltas),
+                no_checkpoints_rule=select_level(checkpoints),
             )
         self.assertIn(str(expr), str(e.exception))
 
@@ -261,7 +293,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ds = from_blaze(
             expr,
             loader=self.garbage_loader,
-            no_deltas_rule=no_deltas_rules.ignore,
+            no_deltas_rule='ignore',
+            no_checkpoints_rule='ignore',
         )
         with self.assertRaises(AttributeError):
             ds.a
@@ -550,6 +583,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             deltas=None,
             loader=self.garbage_loader,
             missing_values=self.missing_values,
+            no_checkpoints_rule='ignore',
         )
 
         with self.assertRaises(TypeError):
@@ -558,6 +592,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 deltas=None,
                 loader=self.garbage_loader,
                 missing_values=self.missing_values,
+                no_checkpoints_rule='ignore',
             )
 
         deltas = bz.data(
@@ -570,6 +605,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 deltas=deltas,
                 loader=self.garbage_loader,
                 missing_values=self.missing_values,
+                no_checkpoints_rule='ignore',
             )
 
         with self.assertRaises(TypeError):
@@ -578,6 +614,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 deltas=deltas,
                 loader=self.garbage_loader,
                 missing_values=self.missing_values,
+                no_checkpoints_rule='ignore',
             )
 
     def _test_id(self, df, dshape, expected, finder, add):
@@ -586,7 +623,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ds = from_blaze(
             expr,
             loader=loader,
-            no_deltas_rule=no_deltas_rules.ignore,
+            no_deltas_rule='ignore',
+            no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
         )
         p = Pipeline()
@@ -617,7 +655,8 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ds = from_blaze(
             expr,
             loader=loader,
-            no_deltas_rule=no_deltas_rules.ignore,
+            no_deltas_rule='ignore',
+            no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
         )
         p = Pipeline()
@@ -1044,6 +1083,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
     def _run_pipeline(self,
                       expr,
                       deltas,
+                      checkpoints,
                       expected_views,
                       expected_output,
                       finder,
@@ -1056,8 +1096,10 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         ds = from_blaze(
             expr,
             deltas,
+            checkpoints,
             loader=loader,
-            no_deltas_rule=no_deltas_rules.raise_,
+            no_deltas_rule='raise',
+            no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
         )
         p = Pipeline()
@@ -1070,7 +1112,11 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             window_length = window_length_
 
             def compute(self, today, assets, out, data):
-                assert_array_almost_equal(data, expected_views[today])
+                assert_array_almost_equal(
+                    data,
+                    expected_views[today],
+                    err_msg=str(today),
+                )
                 out[:] = compute_fn(data)
 
         p.add(TestFactor(), 'value')
@@ -1142,6 +1188,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             self._run_pipeline(
                 expr,
                 deltas,
+                None,
                 expected_views,
                 expected_output,
                 finder,
@@ -1194,6 +1241,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             self._run_pipeline(
                 expr,
                 deltas,
+                None,
                 expected_views,
                 expected_output,
                 finder,
@@ -1237,6 +1285,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             self._run_pipeline(
                 expr,
                 deltas,
+                None,
                 expected_views,
                 expected_output,
                 finder,
@@ -1311,6 +1360,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             self._run_pipeline(
                 expr,
                 deltas,
+                None,
                 expected_views,
                 expected_output,
                 finder,
@@ -1371,6 +1421,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             self._run_pipeline(
                 expr,
                 deltas,
+                None,
                 expected_views,
                 expected_output,
                 finder,
@@ -1378,5 +1429,60 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 start=cal[2],
                 end=cal[-1],
                 window_length=3,
+                compute_fn=op.itemgetter(-1),
+            )
+
+    def test_checkpoints(self):
+        dates = pd.Timestamp('2014-01-01'), pd.Timestamp('2014-01-04')
+        baseline = pd.DataFrame({
+            'value': [-1.0, 1.0],
+            'asof_date': dates,
+            'timestamp': dates,
+        })
+        checkpoints_ts = pd.Timestamp('2014-01-02')
+        checkpoints = pd.DataFrame({
+            'value': [0.0],
+            'asof_date': checkpoints_ts,
+            'timestamp': checkpoints_ts,
+        })
+
+        asset_info = asset_infos[0][0]
+        nassets = len(asset_info)
+        expected_views = keymap(pd.Timestamp, {
+            '2014-01-03': repeat_last_axis(
+                np.array([0.0]),
+                nassets,
+            ),
+            '2014-01-04': repeat_last_axis(
+                np.array([1.0]),
+                nassets,
+            ),
+        })
+
+        with tmp_asset_finder(equities=asset_info) as finder:
+            expected_output = pd.DataFrame(
+                list(concatv([0.0] * nassets, [1.0] * nassets)),
+                index=pd.MultiIndex.from_product((
+                    sorted(expected_views.keys()),
+                    finder.retrieve_all(asset_info.index),
+                )),
+                columns=('value',),
+            )
+
+            self._run_pipeline(
+                bz.data(baseline, name='expr', dshape=self.macro_dshape),
+                None,
+                bz.data(
+                    checkpoints,
+                    name='expr_checkpoints',
+                    dshape=self.macro_dshape,
+                ),
+                expected_views,
+                expected_output,
+                finder,
+                calendar=pd.date_range('2014-01-01', '2014-01-04'),
+                start=checkpoints_ts + pd.Timedelta('1 days'),
+                end=dates[-1],
+                window_length=1,
                 compute_fn=op.itemgetter(-1),
             )
