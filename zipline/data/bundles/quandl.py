@@ -96,6 +96,7 @@ def fetch_symbol_metadata_frame(api_key,
           name: the full name of the asset
           start_date: the first date of data for this asset
           end_date: the last date of data for this asset
+          auto_close_date: end_date + one day
           exchange: the exchange for the asset; this is always 'quandl'
         The index of the dataframe will be used for symbol->sid mappings but
         otherwise does not have specific meaning.
@@ -119,6 +120,7 @@ def fetch_symbol_metadata_frame(api_key,
     # we need to escape the paren because it is actually splitting on a regex
     data.asset_name = data.asset_name.str.split(r' \(', 1).str.get(0)
     data['exchange'] = 'quandl'
+    data['auto_close_date'] = data['end_date'] + pd.Timedelta(days=1)
     return data
 
 

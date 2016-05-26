@@ -3936,3 +3936,33 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
                                  "asset will be liquidated on "
                                  "2016-01-11 00:00:00+00:00.",
                                  w.message)
+
+
+class AlgoInputValidationTestCase(ZiplineTestCase):
+
+    def test_reject_passing_both_api_methods_and_script(self):
+        script = dedent(
+            """
+            def initialize(context):
+                pass
+
+            def handle_data(context, data):
+                pass
+
+            def before_trading_start(context, data):
+                pass
+
+            def analyze(context, results):
+                pass
+            """
+        )
+        for method in ('initialize',
+                       'handle_data',
+                       'before_trading_start',
+                       'analyze'):
+
+            with self.assertRaises(ValueError):
+                TradingAlgorithm(
+                    script=script,
+                    **{method: lambda *args, **kwargs: None}
+                )

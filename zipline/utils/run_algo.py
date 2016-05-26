@@ -18,6 +18,8 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.data.bundles.core import load
 from zipline.data.data_portal import DataPortal
 from zipline.finance.trading import TradingEnvironment
+from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.loaders import USEquityPricingLoader
 import zipline.utils.paths as pth
 
 
@@ -133,12 +135,25 @@ def _run(handle_data,
             adjustment_reader=bundle_data.adjustment_reader,
         )
 
+        pipeline_loader = USEquityPricingLoader(
+            bundle_data.daily_bar_reader,
+            bundle_data.adjustment_reader,
+        )
+
+        def choose_loader(column):
+            if column in USEquityPricing.columns:
+                return pipeline_loader
+            raise ValueError(
+                "No PipelineLoader registered for column %s." % column
+            )
+
     perf = TradingAlgorithm(
         namespace=namespace,
         capital_base=capital_base,
         start=start,
         end=end,
         env=env,
+        get_pipeline_loader=choose_loader,
         **{
             'initialize': initialize,
             'handle_data': handle_data,
