@@ -34,7 +34,6 @@ from pandas import (
     NaT,
     date_range,
 )
-from testfixtures import TempDirectory
 
 from zipline.data.minute_bars import (
     BcolzMinuteBarWriter,
