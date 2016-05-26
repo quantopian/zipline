@@ -45,7 +45,11 @@ from zipline.data.minute_bars import (
 )
 from zipline.utils.calendars import get_calendar
 
-from zipline.testing.fixtures import WithTradingSchedule, ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithInstanceTmpDir,
+    WithTradingSchedule,
+    ZiplineTestCase,
+)
 
 # Calendar is set to cover several half days, to check a case where half
 # days would be read out of order in cases of windows which spanned over
@@ -54,7 +58,8 @@ TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
-class BcolzMinuteBarTestCase(WithTradingSchedule, ZiplineTestCase):
+class BcolzMinuteBarTestCase(WithTradingSchedule, WithInstanceTmpDir,
+                             ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
@@ -67,16 +72,10 @@ class BcolzMinuteBarTestCase(WithTradingSchedule, ZiplineTestCase):
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
 
-    def dir_cleanup(self):
-        self.dir_.cleanup()
-
     def init_instance_fixtures(self):
         super(BcolzMinuteBarTestCase, self).init_instance_fixtures()
 
-        self.dir_ = TempDirectory()
-        self.dir_.create()
-        self.add_instance_callback(callback=self.dir_cleanup)
-        self.dest = self.dir_.getpath('minute_bars')
+        self.dest = self.instance_tmpdir.getpath('minute_bars')
         os.makedirs(self.dest)
         self.writer = BcolzMinuteBarWriter(
             TEST_CALENDAR_START,

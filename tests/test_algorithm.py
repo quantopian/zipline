@@ -1944,7 +1944,7 @@ class TestCapitalChanges(WithLogger,
 
     @classmethod
     def make_minute_bar_data(cls):
-        minutes = cls.env.minutes_for_days_in_range(
+        minutes = cls.trading_schedule.execution_minutes_for_days_in_range(
             pd.Timestamp('2006-01-03', tz='UTC'),
             pd.Timestamp('2006-01-09', tz='UTC')
         )
@@ -1956,14 +1956,14 @@ class TestCapitalChanges(WithLogger,
                     [10000] * len(minutes),
                     timedelta(minutes=1),
                     cls.sim_params,
-                    cls.env),
+                    cls.trading_schedule),
             },
             index=pd.DatetimeIndex(minutes),
         )
 
     @classmethod
     def make_daily_bar_data(cls):
-        days = cls.env.days_in_range(
+        days = cls.trading_schedule.execution_days_in_range(
             pd.Timestamp('2006-01-03', tz='UTC'),
             pd.Timestamp('2006-01-09', tz='UTC')
         )
@@ -1975,7 +1975,7 @@ class TestCapitalChanges(WithLogger,
                     [10000] * len(days),
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env),
+                    cls.trading_schedule),
             },
             index=pd.DatetimeIndex(days),
         )
