@@ -16,11 +16,13 @@ source:
 requirements:
   build:
     - python {{ PY_VER }}*
+    - libgfortran ==1  # [np == 19]
     {% for req in data.get('build_requires', []) -%}
     - {{req}}
     {% endfor %}
   run:
     - python
+    - libgfortran ==1 # [np == 19]
     {% for req in data.get('install_requires', []) -%}
     - {{req}}
     {% endfor %}
