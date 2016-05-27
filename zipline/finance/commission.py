@@ -24,25 +24,38 @@ DEFAULT_MINIMUM_COST_PER_TRADE = 1.0    # $1 per trade
 class CommissionModel(with_metaclass(abc.ABCMeta)):
     """
     Abstract commission model interface.
+
+    Commission models are responsible for accepting order/transaction pairs and
+    calculating how much commission should be charged to an algorithm's account
+    on each transaction.
     """
 
     @abstractmethod
     def calculate(self, order, transaction):
         """
+        Calculate the amount of commission to charge on ``order`` as a result
+        of ``transaction``.
+
         Parameters
         ----------
-        order: the order whose transaction we are processing.  Its `commission`
-            field is up to date with how much commission has been attributed
-            to this order so far.
+        order : zipline.finance.order.Order
+            The order being processed.
 
-        transaction: the transaction we are processing.
+            The ``commission`` field of ``order`` is a float indicating the
+            amount of commission already charged on this order.
+
+        transaction : zipline.finance.transaction.Transaction
+            The transaction being processed. A single order may generate
+            multiple transactions if there isn't enough volume in a given bar
+            to fill the full amount requested in the order.
 
         Returns
         -------
-        float: The additional commission, in dollars, that we should attribute
-            to this order.
+        amount_charged : float
+            The additional commission, in dollars, that we should attribute to
+            this order.
         """
-        pass
+        raise NotImplementedError('calculate')
 
 
 class PerShare(CommissionModel):

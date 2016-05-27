@@ -557,11 +557,11 @@ def set_cancel_policy(cancel_policy):
     """
 
 def set_commission(commission):
-    """Sets the commision model for the simulation.
+    """Sets the commission model for the simulation.
 
     Parameters
     ----------
-    commission : PerShare, PerTrade, or PerDollar
+    commission : CommissionModel
         The commission model to use.
 
     See Also
