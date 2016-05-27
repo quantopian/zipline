@@ -117,13 +117,24 @@ bugs that could cause undesirable behavior when trading with real money.
 Simulation Parameters
 `````````````````````
 
+.. autofunction:: zipline.api.set_benchmark
+
+Commission Models
+'''''''''''''''''
+
 .. autofunction:: zipline.api.set_commission
+
+.. autoclass:: zipline.finance.commission.CommissionModel
+   :members:
 
 .. autoclass:: zipline.finance.commission.PerShare
 
 .. autoclass:: zipline.finance.commission.PerTrade
 
 .. autoclass:: zipline.finance.commission.PerDollar
+
+Slippage Models
+'''''''''''''''
 
 .. autofunction:: zipline.api.set_slippage
 
@@ -133,8 +144,6 @@ Simulation Parameters
 .. autoclass:: zipline.finance.slippage.FixedSlippage
 
 .. autoclass:: zipline.finance.slippage.VolumeShareSlippage
-
-.. autofunction:: zipline.api.set_benchmark
 
 Pipeline
 ````````
