@@ -1,6 +1,7 @@
 """
 Utilities for working with pandas objects.
 """
+from itertools import product
 import operator as op
 
 import pandas as pd
@@ -37,7 +38,7 @@ def sort_values(ob, *args, **kwargs):
 
 
 def _time_to_micros(time):
-    """Convert a time into milliseconds since midnight.
+    """Convert a time into microseconds since midnight.
 
     Parameters
     ----------
@@ -46,19 +47,21 @@ def _time_to_micros(time):
 
     Returns
     -------
-    ms : int
-        The number of milliseconds since midnight.
+    us : int
+        The number of microseconds since midnight.
+
+    Notes
+    -----
+    This does not account for leap seconds or daylight savings.
     """
-    seconds = time.hour * 60 * 60 + 60 * time.minute + time.second
+    seconds = time.hour * 60 * 60 + time.minute * 60 + time.second
     return 1000000 * seconds + time.microsecond
 
 
-_opmap = {
-    (True, True): (op.le, op.le),
-    (True, False): (op.le, op.lt),
-    (False, True): (op.lt, op.le),
-    (False, False): (op.lt, op.lt),
-}
+_opmap = dict(zip(
+    product((True, False), repeat=3),
+    product((op.le, op.lt), (op.le, op.lt), (op.and_, op.or_)),
+))
 
 
 def mask_between_time(dts, start, end, include_start=True, include_end=True):
@@ -70,8 +73,9 @@ def mask_between_time(dts, start, end, include_start=True, include_end=True):
     dts : pd.DatetimeIndex
         The index to mask.
     start : time
+        Mask away times less than the start.
     end : time
-        The start and end times.
+        Mask away times greater than the end.
     include_start : bool, optional
         Inclusive on ``start``.
     include_end : bool, optional
@@ -84,19 +88,22 @@ def mask_between_time(dts, start, end, include_start=True, include_end=True):
 
     See Also
     --------
-    :meth:`pandas.DatetimeIndex.indexer_between_times`
+    :meth:`pandas.DatetimeIndex.indexer_between_time`
     """
+    # This function is adapted from
+    # `pandas.Datetime.Index.indexer_between_time` which was originally
+    # written by Wes McKinney, Chang She, and Grant Roch.
     time_micros = dts._get_time_micros()
     start_micros = _time_to_micros(start)
     end_micros = _time_to_micros(end)
 
-    lop, rop = _opmap[include_start, include_end]
-    if start_micros <= end_micros:
-        join_op = op.and_
-    else:
-        join_op = op.or_
+    left_op, right_op, join_op = _opmap[
+        bool(include_start),
+        bool(include_end),
+        start_micros <= end_micros,
+    ]
 
     return join_op(
-        lop(start_micros, time_micros),
-        rop(time_micros, end_micros),
+        left_op(start_micros, time_micros),
+        right_op(time_micros, end_micros),
     )
