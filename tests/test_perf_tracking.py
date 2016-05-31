@@ -316,7 +316,7 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
         # set up a long position in sid 1
         # 100 shares at $20 apiece = $2000 position
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.tmpdir,
             self.sim_params,
@@ -456,7 +456,7 @@ class TestDividendPerformance(WithSimParams,
         writer.write(splits, mergers, dividends)
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -533,7 +533,7 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -598,7 +598,7 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -660,7 +660,7 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -723,7 +723,7 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -790,7 +790,7 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -852,7 +852,7 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -911,7 +911,7 @@ class TestDividendPerformance(WithSimParams,
         adjustment_reader = SQLiteAdjustmentReader(dbpath)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -981,7 +981,7 @@ class TestDividendPerformance(WithSimParams,
         sim_params.update_internal_from_trading_schedule(self.trading_schedule)
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             sim_params,
@@ -1085,7 +1085,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingSchedule,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -1182,7 +1182,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingSchedule,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -1274,7 +1274,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingSchedule,
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -1392,7 +1392,7 @@ single short-sale transaction"""
         trades_1 = trades[:-2]
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -1624,7 +1624,7 @@ cost of sole txn in test"
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -1744,7 +1744,7 @@ single short-sale transaction"""
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -1989,7 +1989,7 @@ trade after cover"""
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -2078,7 +2078,7 @@ shares in position"
         transactions = factory.create_txn_history(*history_args)[:4]
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -2238,7 +2238,7 @@ shares in position"
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,
@@ -2283,7 +2283,7 @@ shares in position"
         )
 
         data_portal = create_data_portal_from_trade_history(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             self.instance_tmpdir,
             self.sim_params,

@@ -82,7 +82,7 @@ def create_test_zipline(**config):
             trades_by_sid[trade.sid].append(trade)
 
         data_portal = create_data_portal_from_trade_history(
-            config['env'],
+            config['env'].asset_finder,
             trading_schedule,
             config['tempdir'],
             config['sim_params'],

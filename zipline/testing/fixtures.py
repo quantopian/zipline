@@ -1197,7 +1197,7 @@ class WithDataPortal(WithAdjustmentReader,
             first_trading_day = None
 
         return DataPortal(
-            self.env,
+            self.env.asset_finder,
             self.trading_schedule,
             first_trading_day=first_trading_day,
             equity_daily_reader=(

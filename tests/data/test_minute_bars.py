@@ -42,7 +42,6 @@ from zipline.data.minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     BcolzMinuteWriterColumnMismatch
 )
-from zipline.utils.calendars import get_calendar
 
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
@@ -63,7 +62,7 @@ class BcolzMinuteBarTestCase(WithTradingSchedule, WithInstanceTmpDir,
     @classmethod
     def init_class_fixtures(cls):
         super(BcolzMinuteBarTestCase, cls).init_class_fixtures()
-        trading_days = get_calendar('NYSE').trading_days(
+        trading_days = cls.trading_schedule.trading_sessions(
             TEST_CALENDAR_START, TEST_CALENDAR_STOP
         )
         cls.market_opens = trading_days.market_open

@@ -495,7 +495,7 @@ class DataPortal(object):
         other adjustment data to the raw data from the readers.
     """
     def __init__(self,
-                 env,
+                 asset_finder,
                  trading_schedule,
                  first_trading_day,
                  equity_daily_reader=None,
@@ -503,12 +503,11 @@ class DataPortal(object):
                  future_daily_reader=None,
                  future_minute_reader=None,
                  adjustment_reader=None):
-        self.env = env
+
         self.trading_schedule = trading_schedule
+        self.asset_finder = asset_finder
 
         self.views = {}
-
-        self._asset_finder = env.asset_finder
 
         self._carrays = {
             'open': {},

@@ -632,7 +632,7 @@ class TradingAlgorithm(object):
                     copy_panel.items, copy_panel.major_axis[0],
                 )
                 self._assets_from_source = (
-                    self.trading_environment.asset_finder.retrieve_all(
+                    self.asset_finder.retrieve_all(
                         copy_panel.items
                     )
                 )
@@ -641,7 +641,7 @@ class TradingAlgorithm(object):
                     copy_panel,
                 )
                 self.data_portal = DataPortal(
-                    self.trading_environment,
+                    self.asset_finder,
                     self.trading_schedule,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
