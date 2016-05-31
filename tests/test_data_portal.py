@@ -26,7 +26,8 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
     def init_instance_fixtures(self):
         super(TestDataPortal, self).init_instance_fixtures()
 
-        self.data_portal = DataPortal(self.env, self.trading_schedule,
+        self.data_portal = DataPortal(self.env.asset_finder,
+                                      self.trading_schedule,
                                       first_trading_day=None)
 
     def test_bar_count_for_simple_transforms(self):

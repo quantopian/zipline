@@ -154,7 +154,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingSchedule,
         )
         with tmp_reader as reader:
             data_portal = DataPortal(
-                self.env, self.trading_schedule,
+                self.env.asset_finder, self.trading_schedule,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
                 equity_daily_reader=self.bcolz_daily_bar_reader,

@@ -110,7 +110,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
         cls.tempdir2 = cls.enter_class_context(tmp_dir())
 
         cls.data_portal = create_data_portal(
-            env=cls.env,
+            asset_finder=cls.env.asset_finder,
             tempdir=cls.tempdir,
             sim_params=cls.sim_params,
             sids=range(0, 5),
@@ -118,7 +118,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
         )
 
         cls.data_portal2 = create_data_portal(
-            env=cls.env2,
+            asset_finder=cls.env2.asset_finder,
             tempdir=cls.tempdir2,
             sim_params=cls.sim_params2,
             sids=range(0, 5),
@@ -221,7 +221,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
                 LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=5)
 
         data_portal = create_data_portal(
-            self.env,
+            self.env.asset_finder,
             self.tempdir,
             sim_params=sim_params,
             sids=range(0, 5),
@@ -273,7 +273,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
             add_security_data([], ['BZQ'])
 
             data_portal = create_data_portal(
-                env,
+                env.asset_finder,
                 new_tempdir,
                 sim_params,
                 range(0, 5),

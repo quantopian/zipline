@@ -475,15 +475,15 @@ def write_daily_data(tempdir, sim_params, sids):
     return path
 
 
-def create_data_portal(env, tempdir, sim_params, sids, trading_schedule,
-                       adjustment_reader=None):
+def create_data_portal(asset_finder, tempdir, sim_params, sids,
+                       trading_schedule, adjustment_reader=None):
     if sim_params.data_frequency == "daily":
         daily_path = write_daily_data(tempdir, sim_params, sids)
 
         equity_daily_reader = BcolzDailyBarReader(daily_path)
 
         return DataPortal(
-            env, trading_schedule,
+            asset_finder, trading_schedule,
             first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
             adjustment_reader=adjustment_reader
@@ -500,7 +500,7 @@ def create_data_portal(env, tempdir, sim_params, sids, trading_schedule,
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
 
         return DataPortal(
-            env, trading_schedule,
+            asset_finder, trading_schedule,
             first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
             adjustment_reader=adjustment_reader
@@ -613,8 +613,8 @@ def trades_by_sid_to_dfs(trades_by_sid, index):
         )
 
 
-def create_data_portal_from_trade_history(env, trading_schedule, tempdir,
-                                          sim_params, trades_by_sid):
+def create_data_portal_from_trade_history(asset_finder, trading_schedule,
+                                          tempdir, sim_params, trades_by_sid):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
         BcolzDailyBarWriter(path, sim_params.trading_days).write(
@@ -624,7 +624,7 @@ def create_data_portal_from_trade_history(env, trading_schedule, tempdir,
         equity_daily_reader = BcolzDailyBarReader(path)
 
         return DataPortal(
-            env, trading_schedule,
+            asset_finder, trading_schedule,
             first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
         )
@@ -676,7 +676,7 @@ def create_data_portal_from_trade_history(env, trading_schedule, tempdir,
         equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
         return DataPortal(
-            env, trading_schedule,
+            asset_finder, trading_schedule,
             first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
         )
@@ -689,7 +689,8 @@ class FakeDataPortal(DataPortal):
         if env is None:
             env = TradingEnvironment()
 
-        super(FakeDataPortal, self).__init__(env, trading_schedule,
+        super(FakeDataPortal, self).__init__(env.asset_finder,
+                                             trading_schedule,
                                              first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
@@ -721,8 +722,8 @@ class FetcherDataPortal(DataPortal):
     Mock dataportal that returns fake data for history and non-fetcher
     spot value.
     """
-    def __init__(self, env, trading_schedule, first_trading_day=None):
-        super(FetcherDataPortal, self).__init__(env, trading_schedule,
+    def __init__(self, asset_finder, trading_schedule, first_trading_day=None):
+        super(FetcherDataPortal, self).__init__(asset_finder, trading_schedule,
                                                 first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):

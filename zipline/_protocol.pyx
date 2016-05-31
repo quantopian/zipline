@@ -203,7 +203,7 @@ cdef class BarData:
             view = self._views[asset]
         except KeyError:
             try:
-                asset = self.data_portal.env.asset_finder.retrieve_asset(asset)
+                asset = self.data_portal.asset_finder.retrieve_asset(asset)
             except ValueError:
                 # assume fetcher
                 pass
