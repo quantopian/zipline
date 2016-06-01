@@ -129,7 +129,7 @@ AnoNovoSabado = Holiday(
     'Ano Novo Sabado',
     month=12,
     day=30,
-    days_of_week=(FRIDAY),
+    days_of_week=(FRIDAY,),
 )
 
 
@@ -199,7 +199,7 @@ class BMFExchangeCalendar(ExchangeCalendar):
 
     exchange_name = 'BMF'
     native_timezone = timezone('America/Sao_Paulo')
-    open_time = time(10, 01)
+    open_time = time(10, 1)
     close_time = time(17)
 
     # Does the market open or close on a different calendar day, compared to
@@ -209,7 +209,7 @@ class BMFExchangeCalendar(ExchangeCalendar):
 
     holidays_calendar = BMFHolidayCalendar()
     special_opens_calendars = [
-        (time(13, 01), BMFLateOpenCalendar()),
+        (time(13, 1), BMFLateOpenCalendar()),
     ]
     special_closes_calendars = ()
 
