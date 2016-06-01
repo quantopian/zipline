@@ -115,7 +115,7 @@ class LSEExchangeCalendar(ExchangeCalendar):
 
     exchange_name = 'LSE'
     native_timezone = timezone('Europe/London')
-    open_time = time(8, 01)
+    open_time = time(8, 1)
     close_time = time(16, 30)
     open_offset = 0
     close_offset = 0
