@@ -94,6 +94,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
         with tmp_bcolz_minute_bar_reader(self.env, days, assets) as reader:
             data_portal = DataPortal(
                 self.env,
+                first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
             )
 
@@ -482,6 +483,7 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
         with tmp_bcolz_minute_bar_reader(self.env, days, assets) as reader:
             data_portal = DataPortal(
                 self.env,
+                first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
             )
 

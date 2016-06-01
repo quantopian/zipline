@@ -483,6 +483,7 @@ def create_data_portal(env, tempdir, sim_params, sids, adjustment_reader=None):
 
         return DataPortal(
             env,
+            first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
             adjustment_reader=adjustment_reader
         )
@@ -498,6 +499,7 @@ def create_data_portal(env, tempdir, sim_params, sids, adjustment_reader=None):
 
         return DataPortal(
             env,
+            first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
             adjustment_reader=adjustment_reader
         )
@@ -618,6 +620,7 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
 
         return DataPortal(
             env,
+            first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
         )
     else:
@@ -669,17 +672,18 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
 
         return DataPortal(
             env,
+            first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
         )
 
 
 class FakeDataPortal(DataPortal):
 
-    def __init__(self, env=None):
+    def __init__(self, env=None, first_trading_day=None):
         if env is None:
             env = TradingEnvironment()
 
-        super(FakeDataPortal, self).__init__(env)
+        super(FakeDataPortal, self).__init__(env, first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         if field == "volume":
@@ -708,8 +712,8 @@ class FetcherDataPortal(DataPortal):
     Mock dataportal that returns fake data for history and non-fetcher
     spot value.
     """
-    def __init__(self, env):
-        super(FetcherDataPortal, self).__init__(env)
+    def __init__(self, env, first_trading_day=None):
+        super(FetcherDataPortal, self).__init__(env, first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path

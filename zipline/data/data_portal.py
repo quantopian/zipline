@@ -470,8 +470,10 @@ class DataPortal(object):
     env : TradingEnvironment
         The trading environment for the simulation. This includes the trading
         calendar and benchmark data.
+    first_trading_day : pd.Timestamp
+        The first trading day for the simulation.
     equity_daily_reader : BcolzDailyBarReader, optional
-        The daily bar ready for equities. This will be used to service
+        The daily bar reader for equities. This will be used to service
         daily data backtests or daily history calls in a minute backetest.
         If a daily bar reader is not provided but a minute bar reader is,
         the minutes will be rolled up to serve the daily requests.
@@ -494,6 +496,7 @@ class DataPortal(object):
     """
     def __init__(self,
                  env,
+                 first_trading_day,
                  equity_daily_reader=None,
                  equity_minute_reader=None,
                  future_daily_reader=None,
@@ -540,7 +543,7 @@ class DataPortal(object):
         self._future_daily_reader = future_daily_reader
         self._future_minute_reader = future_minute_reader
 
-        self._first_trading_day = None
+        self._first_trading_day = first_trading_day
 
         if self._equity_minute_reader is not None:
             self._equity_daily_aggregator = DailyHistoryAggregator(
@@ -553,14 +556,6 @@ class DataPortal(object):
             )
             self.MINUTE_PRICE_ADJUSTMENT_FACTOR = \
                 self._equity_minute_reader._ohlc_inverse
-
-        # get the first trading day from our readers.
-        if self._equity_daily_reader is not None:
-            self._first_trading_day = \
-                self._equity_daily_reader.first_trading_day
-        elif self._equity_minute_reader is not None:
-            self._first_trading_day = \
-                self._equity_minute_reader.first_trading_day
 
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')

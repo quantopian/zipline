@@ -151,6 +151,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
         with tmp_reader as reader:
             data_portal = DataPortal(
                 self.env,
+                first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
                 equity_daily_reader=self.bcolz_daily_bar_reader,
                 adjustment_reader=self.adjustment_reader,
