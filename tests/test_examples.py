@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
-import gc
 import tarfile
 
 import matplotlib
@@ -53,20 +52,6 @@ class ExamplesTests(WithTmpDir, ZiplineTestCase):
             ),
             serialization='pickle',
         )
-
-        # We need to call gc.collect before tearing down our class because we
-        # have a cycle between TradingAlgorithm and AlgorithmSimulator which
-        # ultimately holds a reference to the pipeline engine passed to the
-        # tests here.
-
-        # This means that we're not guaranteed to have deleted our disk-backed
-        # resource readers (e.g. SQLiteAdjustmentReader) before trying to
-        # delete the tempdir, which causes failures on Windows because Windows
-        # doesn't allow you to delete a file if someone still has an open
-        # handle to that file.
-
-        # :(
-        cls.add_class_callback(gc.collect)
 
     @parameterized.expand(examples.EXAMPLE_MODULES)
     def test_example(self, example_name):
