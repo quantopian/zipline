@@ -10,10 +10,10 @@ from six import (
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
 from zipline.pipeline.filters import Filter, Latest as LatestFilter
+from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import (
     AssetExists,
     LoadableTerm,
-    NotSpecified,
     validate_dtype,
 )
 from zipline.utils.input_validation import ensure_dtype

@@ -42,7 +42,9 @@ from zipline.data.us_equity_pricing import (
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
+from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.input_validation import expect_dimensions
@@ -1151,6 +1153,72 @@ def create_empty_splits_mergers_frame():
     )
 
 
+def make_alternating_boolean_array(shape, first_value=True):
+    """
+    Create a 2D numpy array with the given shape containing alternating values
+    of False, True, False, True,... along each row and each column.
+
+    Examples
+    --------
+    >>> make_alternating_boolean_array((4,4))
+    array([[ True, False,  True, False],
+           [False,  True, False,  True],
+           [ True, False,  True, False],
+           [False,  True, False,  True]], dtype=bool)
+    >>> make_alternating_boolean_array((4,3), first_value=False)
+    array([[False,  True, False],
+           [ True, False,  True],
+           [False,  True, False],
+           [ True, False,  True]], dtype=bool)
+    """
+    if len(shape) != 2:
+        raise ValueError(
+            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+        )
+    alternating = np.empty(shape, dtype=np.bool)
+    for row in alternating:
+        row[::2] = first_value
+        row[1::2] = not(first_value)
+        first_value = not(first_value)
+    return alternating
+
+
+def make_cascading_boolean_array(shape, first_value=True):
+    """
+    Create a numpy array with the given shape containing cascading boolean
+    values, with `first_value` being the top-left value.
+
+    Examples
+    --------
+    >>> make_cascading_boolean_array((4,4))
+    array([[ True,  True,  True, False],
+           [ True,  True, False, False],
+           [ True, False, False, False],
+           [False, False, False, False]], dtype=bool)
+    >>> make_cascading_boolean_array((4,2))
+    array([[ True, False],
+           [False, False],
+           [False, False],
+           [False, False]], dtype=bool)
+    >>> make_cascading_boolean_array((2,4))
+    array([[ True,  True,  True, False],
+           [ True,  True, False, False]], dtype=bool)
+    """
+    if len(shape) != 2:
+        raise ValueError(
+            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+        )
+    cascading = np.full(shape, not(first_value), dtype=np.bool)
+    ending_col = shape[1] - 1
+    for row in cascading:
+        if ending_col > 0:
+            row[:ending_col] = first_value
+            ending_col -= 1
+        else:
+            break
+    return cascading
+
+
 @expect_dimensions(array=2)
 def permute_rows(seed, array):
     """
@@ -1400,3 +1468,37 @@ def ensure_doctest(f, name=None):
         f.__name__ if name is None else name
     ] = f
     return f
+
+
+####################################
+# Shared factors for pipeline tests.
+####################################
+
+class AssetID(CustomFactor):
+    """
+    CustomFactor that returns the AssetID of each asset.
+
+    Useful for providing a Factor that produces a different value for each
+    asset.
+    """
+    window_length = 1
+    inputs = ()
+
+    def compute(self, today, assets, out):
+        out[:] = assets
+
+
+class AssetIDPlusDay(CustomFactor):
+    window_length = 1
+    inputs = ()
+
+    def compute(self, today, assets, out):
+        out[:] = assets + today.day
+
+
+class OpenPrice(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.open]
+
+    def compute(self, today, assets, out, open):
+        out[:] = open

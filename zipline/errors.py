@@ -666,3 +666,22 @@ class ScheduleFunctionWithoutCalendar(ZiplineError):
         "To use schedule_function, the TradingAlgorithm must be running on an "
         "ExchangeTradingSchedule, rather than {schedule}."
     )
+
+
+class UnsupportedPipelineOutput(ZiplineError):
+    """
+    Raised when a 1D term is added as a column to a pipeline.
+    """
+    msg = (
+        "Cannot add column {column_name!r} with term {term}. Adding slices or "
+        "single-column-output terms as pipeline columns is not currently "
+        "supported."
+    )
+
+
+class NonSliceableTerm(ZiplineError):
+    """
+    Raised when attempting to index into a non-sliceable term, e.g. instances
+    of `zipline.pipeline.term.LoadableTerm`.
+    """
+    msg = "Taking slices of {term} is not currently supported."
