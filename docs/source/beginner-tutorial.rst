@@ -30,7 +30,10 @@ instructions <https://github.com/quantopian/zipline#installation>`__ if
 you haven't set up zipline yet.
 
 Every ``zipline`` algorithm consists of two functions you have to
-define: \* ``initialize(context)`` \* ``handle_data(context, data)``
+define:
+
+* ``initialize(context)``
+* ``handle_data(context, data)``
 
 Before the start of the algorithm, ``zipline`` calls the
 ``initialize()`` function and passes in a ``context`` variable.
