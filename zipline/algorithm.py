@@ -617,12 +617,14 @@ class TradingAlgorithm(object):
                         copy_panel.items
                     )
                 )
+                equity_daily_reader = PanelDailyBarReader(
+                    self.trading_environment.trading_days,
+                    copy_panel,
+                )
                 self.data_portal = DataPortal(
                     self.trading_environment,
-                    equity_daily_reader=PanelDailyBarReader(
-                        self.trading_environment.trading_days,
-                        copy_panel,
-                    ),
+                    first_trading_day=equity_daily_reader.first_trading_day,
+                    equity_daily_reader=equity_daily_reader,
                 )
 
         # Force a reset of the performance tracker, in case

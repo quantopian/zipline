@@ -1156,8 +1156,16 @@ class WithDataPortal(WithAdjustmentReader,
     DATA_PORTAL_USE_ADJUSTMENTS = True
 
     def make_data_portal(self):
+        if self.DATA_PORTAL_USE_MINUTE_DATA:
+            first_trading_day = self.bcolz_minute_bar_reader.first_trading_day
+        elif self.DATA_PORTAL_USE_DAILY_DATA:
+            first_trading_day = self.bcolz_daily_bar_reader.first_trading_day
+        else:
+            first_trading_day = None
+
         return DataPortal(
             self.env,
+            first_trading_day=first_trading_day,
             equity_daily_reader=(
                 self.bcolz_daily_bar_reader
                 if self.DATA_PORTAL_USE_DAILY_DATA else

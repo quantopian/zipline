@@ -227,6 +227,7 @@ class FinanceTestCase(WithLogger,
 
                 data_portal = DataPortal(
                     env,
+                    first_trading_day=equity_minute_reader.first_trading_day,
                     equity_minute_reader=equity_minute_reader,
                 )
             else:
@@ -254,6 +255,7 @@ class FinanceTestCase(WithLogger,
 
                 data_portal = DataPortal(
                     env,
+                    first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
 

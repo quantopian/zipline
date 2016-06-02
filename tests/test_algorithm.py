@@ -3372,9 +3372,11 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
             BcolzDailyBarWriter(path, dates).write(
                 iteritems(trade_data_by_sid),
             )
+            reader = BcolzDailyBarReader(path)
             data_portal = DataPortal(
                 env,
-                equity_daily_reader=BcolzDailyBarReader(path)
+                first_trading_day=reader.first_trading_day,
+                equity_daily_reader=reader,
             )
         elif frequency == 'minute':
             dates = env.minutes_for_days_in_range(
@@ -3400,9 +3402,11 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
                 volume_step_by_date=10,
                 frequency=frequency
             )
+            reader = BcolzMinuteBarReader(self.tmpdir.path)
             data_portal = DataPortal(
                 env,
-                equity_minute_reader=BcolzMinuteBarReader(self.tmpdir.path)
+                first_trading_day=reader.first_trading_day,
+                equity_minute_reader=reader,
             )
         else:
             self.fail("Unknown frequency in make_data: %r" % frequency)

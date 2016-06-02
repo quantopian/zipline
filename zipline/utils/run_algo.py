@@ -130,6 +130,7 @@ def _run(handle_data,
         env = TradingEnvironment(asset_db_path=connstr)
         data = DataPortal(
             env,
+            first_trading_day=bundle_data.minute_bar_reader.first_trading_day,
             equity_minute_reader=bundle_data.minute_bar_reader,
             equity_daily_reader=bundle_data.daily_bar_reader,
             adjustment_reader=bundle_data.adjustment_reader,
