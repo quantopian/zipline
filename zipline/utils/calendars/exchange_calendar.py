@@ -464,8 +464,6 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
 
 _static_calendars = {}
 
-_lazy_calendar_names = ['NYSE', 'CME', 'BMF', 'LSE', 'TSX']
-
 
 def get_calendar(name):
     """
@@ -478,40 +476,41 @@ def get_calendar(name):
     """
     # First, check if the calendar is already registered
     if name not in _static_calendars:
-        # The calendar is not registered, so check if it is a lazy calendar
-        if name not in _lazy_calendar_names:
-            # It's not a lazy calendar, so raise an exception
-            raise InvalidCalendarName(calendar_name=name)
 
+        # Check if it is a lazy calendar. If so, build and register it.
         if name == 'NYSE':
             from zipline.utils.calendars.exchange_calendar_nyse \
                 import NYSEExchangeCalendar
             nyse_cal = NYSEExchangeCalendar()
             register_calendar(nyse_cal)
 
-        if name == 'CME':
+        elif name == 'CME':
             from zipline.utils.calendars.exchange_calendar_cme \
                 import CMEExchangeCalendar
             cme_cal = CMEExchangeCalendar()
             register_calendar(cme_cal)
 
-        if name == 'BMF':
+        elif name == 'BMF':
             from zipline.utils.calendars.exchange_calendar_bmf \
                 import BMFExchangeCalendar
             bmf_cal = BMFExchangeCalendar()
             register_calendar(bmf_cal)
 
-        if name == 'LSE':
+        elif name == 'LSE':
             from zipline.utils.calendars.exchange_calendar_lse \
                 import LSEExchangeCalendar
             lse_cal = LSEExchangeCalendar()
             register_calendar(lse_cal)
 
-        if name == 'TSX':
+        elif name == 'TSX':
             from zipline.utils.calendars.exchange_calendar_tsx \
                 import TSXExchangeCalendar
             tsx_cal = TSXExchangeCalendar()
             register_calendar(tsx_cal)
+
+        else:
+            # It's not a lazy calendar, so raise an exception
+            raise InvalidCalendarName(calendar_name=name)
 
     return _static_calendars[name]
 
