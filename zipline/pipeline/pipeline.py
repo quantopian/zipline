@@ -1,3 +1,5 @@
+
+from zipline.errors import UnsupportedPipelineColumn
 from zipline.utils.input_validation import expect_types, optional
 
 from .term import Term, AssetExists
@@ -37,6 +39,9 @@ class Pipeline(object):
 
         if columns is None:
             columns = {}
+        for term in columns.values():
+            if term.ndim == 1:
+                raise UnsupportedPipelineColumn()
         self._columns = columns
         self._screen = screen
 
@@ -72,6 +77,9 @@ class Pipeline(object):
             Whether to overwrite the existing entry if we already have a column
             named `name`.
         """
+        if term.ndim == 1:
+            raise UnsupportedPipelineColumn()
+
         columns = self.columns
         if name in columns:
             if overwrite:

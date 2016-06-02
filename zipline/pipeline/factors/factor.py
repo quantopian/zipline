@@ -6,25 +6,17 @@ from operator import attrgetter
 from numbers import Number
 
 from numpy import inf, where
+from scipy.stats import (
+    linregress,
+    pearsonr,
+    spearmanr,
+)
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
-from zipline.pipeline.mixins import (
-    CustomTermMixin,
-    LatestMixin,
-    PositiveWindowLengthMixin,
-    RestrictedDTypeMixin,
-    SingleInputMixin,
-)
-from zipline.pipeline.term import (
-    ComputableTerm,
-    NotSpecified,
-    NotSpecifiedType,
-    Term,
-)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -41,6 +33,20 @@ from zipline.pipeline.filters import (
     NumExprFilter,
     PercentileFilter,
     NullFilter,
+)
+from zipline.pipeline.mixins import (
+    CustomTermMixin,
+    LatestMixin,
+    PositiveWindowLengthMixin,
+    RestrictedDTypeMixin,
+    SingleInputMixin,
+)
+from zipline.pipeline.term import (
+    ComputableTerm,
+    NotSpecified,
+    NotSpecifiedType,
+    Slice,
+    Term,
 )
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
@@ -620,6 +626,120 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :class:`zipline.pipeline.factors.factor.Rank`
         """
         return Rank(self, method=method, ascending=ascending, mask=mask)
+
+    @expect_types(
+        target_slice=Slice,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
+    )
+    def rolling_pearsonr(self,
+                         target_slice,
+                         correlation_length,
+                         mask=NotSpecified):
+        """
+        Construct a new Factor that computes rolling pearson correlation
+        coefficients between the columns of `self` and the target slice.
+
+        Parameters
+        ----------
+        target_slice : zipline.pipeline.slice.Slice
+            The column of data with which to compute correlations against each
+            column of data produced by `self`.
+        correlation_length : int
+            Length of the lookback window over which to compute each
+            correlation coefficient.
+        mask : zipline.pipeline.Filter, optional
+            A Filter describing which assets should have their correlation with
+            the target slice computed each day.
+
+        Returns
+        -------
+        correlations : zipline.pipeline.factors.RollingPearson
+            A new Factor that will compute correlations between `target_slice`
+            and the columns of `self`.
+        """
+        return RollingPearson(
+            target_factor=self,
+            target_slice=target_slice,
+            correlation_length=correlation_length,
+            mask=mask,
+        )
+
+    @expect_types(
+        target_slice=Slice,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
+    )
+    def rolling_spearmanr(self,
+                          target_slice,
+                          correlation_length,
+                          mask=NotSpecified):
+        """
+        Construct a new Factor that computes rolling spearman correlation
+        coefficients between the columns of `self` and the target slice.
+
+        Parameters
+        ----------
+        target_slice : zipline.pipeline.slice.Slice
+            The column of data with which to compute correlations against each
+            column of data produced by `self`.
+        correlation_length : int
+            Length of the lookback window over which to compute each
+            correlation coefficient.
+        mask : zipline.pipeline.Filter, optional
+            A Filter describing which assets should have their correlation with
+            the target slice computed each day.
+
+        Returns
+        -------
+        correlations : zipline.pipeline.factors.RollingSpearman
+            A new Factor that will compute correlations between `target_slice`
+            and the columns of `self`.
+        """
+        return RollingSpearman(
+            target_factor=self,
+            target_slice=target_slice,
+            correlation_length=correlation_length,
+            mask=mask,
+        )
+
+    @expect_types(
+        target_slice=Slice,
+        regression_length=int,
+        mask=(Filter, NotSpecifiedType),
+    )
+    def rolling_linear_regression(self,
+                                  target_slice,
+                                  regression_length,
+                                  mask=NotSpecified):
+        """
+        Construct a new Factor that performs an ordinary least-squares
+        regression predicting the columns of `self` from `target_slice`.
+
+        Parameters
+        ----------
+        target_slice : zipline.pipeline.slice.Slice
+            The column of data to use as the predictor/independent variable in
+            each regression.
+        correlation_length : int
+            Length of the lookback window over which to compute each
+            regression.
+        mask : zipline.pipeline.Filter, optional
+            A Filter describing which assets should be regressed with the
+            target slice each day.
+
+        Returns
+        -------
+        regressions : zipline.pipeline.factors.RollingLinearRegression
+            A new Factor that will compute linear regressions of `target_slice`
+            against the columns of `self`.
+        """
+        return RollingLinearRegression(
+            target_factor=self,
+            target_slice=target_slice,
+            regression_length=regression_length,
+            mask=mask,
+        )
 
     @expect_types(bins=int, mask=(Filter, NotSpecifiedType))
     def quantiles(self, bins, mask=NotSpecified):
@@ -1273,3 +1393,157 @@ class Latest(LatestMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         out[:] = data[-1]
+
+
+class _RollingCorrelation(CustomFactor, SingleInputMixin):
+
+    def __new__(cls,
+                target_factor,
+                target_slice,
+                correlation_length,
+                mask=NotSpecified):
+        return super(_RollingCorrelation, cls).__new__(
+            cls,
+            inputs=[target_factor, target_slice],
+            window_length=correlation_length,
+            mask=mask,
+        )
+
+
+class RollingPearson(_RollingCorrelation):
+    """
+    A Factor that computes pearson correlation coefficients between a single
+    column of data and the columns of another Factor.
+
+    Parameters
+    ----------
+    target_factor : zipline.pipeline.factors.Factor
+        The factor for which to compute correlations of each of its columns
+        with `target_slice`.
+    target_slice : zipline.pipeline.slice.Slice
+        The column of data with which to compute correlations against each
+        column of data produced by `target_factor`.
+    correlation_length : int
+        Length of the lookback window over which to compute each
+        correlation coefficient.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing which assets (columns) of `target_factor` should
+        have their correlation with `target_slice` computed each day.
+
+    See Also
+    --------
+    :func:`scipy.stats.pearsonr`
+    :class:`Factor.rolling_pearsonr`
+    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
+
+    Notes
+    -----
+    Most users should call Factor.rolling_pearsonr rather than directly
+    construct an instance of this class.
+    """
+    def compute(self, today, assets, out, factor_data, slice_data):
+        slice_data_column = slice_data[:, 0]
+        for i in range(len(out)):
+            # pearsonr returns the R-value and the P-value.
+            out[i] = pearsonr(factor_data[:, i], slice_data_column)[0]
+
+
+class RollingSpearman(_RollingCorrelation):
+    """
+    A Factor that computes spearman rank correlation coefficients between a
+    single column of data and the columns of another Factor.
+
+    Parameters
+    ----------
+    target_factor : zipline.pipeline.factors.Factor
+        The factor for which to compute correlations of each of its columns
+        with `target_slice`.
+    target_slice : zipline.pipeline.slice.Slice
+        The column of data with which to compute correlations against each
+        column of data produced by `target_factor`.
+    correlation_length : int
+        Length of the lookback window over which to compute each
+        correlation coefficient.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing which assets (columns) of `target_factor` should
+        have their correlation with `target_slice` computed each day.
+
+    See Also
+    --------
+    :func:`scipy.stats.spearmanr`
+    :class:`Factor.rolling_spearmanr`
+    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
+
+    Notes
+    -----
+    Most users should call Factor.rolling_spearmanr rather than directly
+    construct an instance of this class.
+    """
+    def compute(self, today, assets, out, factor_data, slice_data):
+        slice_data_column = slice_data[:, 0]
+        for i in range(len(out)):
+            # spearmanr returns the R-value and the P-value.
+            out[i] = spearmanr(factor_data[:, i], slice_data_column)[0]
+
+
+class RollingLinearRegression(CustomFactor, SingleInputMixin):
+    """
+    A Factor that performs an ordinary least-squares regression predicting the
+    columns of another Factor from a single column of data.
+
+    Parameters
+    ----------
+    target_factor : zipline.pipeline.factors.Factor
+        The factor whose columns are the predicted/dependent variable of each
+        regression with `target_slice`.
+    target_slice : zipline.pipeline.slice.Slice
+        The column of data to use as the predictor/independent variable in
+        each regression with the columns of `target_factor`.
+    correlation_length : int
+        Length of the lookback window over which to compute each regression.
+    mask : zipline.pipeline.Filter, optional
+        A Filter describing which assets (columns) of `target_factor` should be
+        regressed against `target_slice` each day.
+
+    See Also
+    --------
+    :func:`scipy.stats.linregress`
+    :class:`Factor.rolling_linear_regression`
+    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
+
+    Notes
+    -----
+    Most users should call Factor.rolling_linear_regression rather than
+    directly construct an instance of this class.
+    """
+    outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
+
+    def __new__(cls,
+                target_factor,
+                target_slice,
+                regression_length,
+                mask=NotSpecified):
+        return super(RollingLinearRegression, cls).__new__(
+            cls,
+            inputs=[target_factor, target_slice],
+            window_length=regression_length,
+            mask=mask,
+        )
+
+    def compute(self, today, assets, out, factor_data, slice_data):
+        slice_data_column = slice_data[:, 0]
+
+        alpha = out.alpha
+        beta = out.beta
+        r_value = out.r_value
+        p_value = out.p_value
+        stderr = out.stderr
+        for i in range(len(out)):
+            regr_results = linregress(y=factor_data[:, i], x=slice_data_column)
+            # `linregress` returns its results in the following order:
+            # slope, intercept, r-value, p-value, stderr
+            alpha[i] = regr_results[1]
+            beta[i] = regr_results[0]
+            r_value[i] = regr_results[2]
+            p_value[i] = regr_results[3]
+            stderr[i] = regr_results[4]
