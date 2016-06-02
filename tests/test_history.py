@@ -158,7 +158,7 @@ class WithHistory(WithDataPortal):
         return pd.DataFrame([
             {
                 'effective_date': str_to_seconds('2015-01-06'),
-                'ratio': 0.5,
+                'ratio': 0.25,
                 'sid': cls.SPLIT_ASSET_SID,
             },
             {
@@ -173,7 +173,7 @@ class WithHistory(WithDataPortal):
         return pd.DataFrame([
             {
                 'effective_date': str_to_seconds('2015-01-06'),
-                'ratio': 0.5,
+                'ratio': 0.25,
                 'sid': cls.MERGER_ASSET_SID,
             },
             {
@@ -482,14 +482,15 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         # Start values are crafted so that the thousands place are equal when
         # adjustments are applied correctly.
-        # The splits and mergers are defined as 2:1 splits, so the prices
-        # approximate that adjustment by halving the thousands place each day.
+        # The splits and mergers are defined as 4:1 then 2:1 ratios, so the
+        # prices approximate that adjustment by quartering and then halving
+        # the thousands place.
         data[cls.MERGER_ASSET_SID] = data[cls.SPLIT_ASSET_SID] = pd.concat((
             create_minute_df_for_asset(
                 cls.env,
                 pd.Timestamp('2015-01-05', tz='UTC'),
                 pd.Timestamp('2015-01-05', tz='UTC'),
-                start_val=4000),
+                start_val=8000),
             create_minute_df_for_asset(
                 cls.env,
                 pd.Timestamp('2015-01-06', tz='UTC'),
@@ -499,6 +500,11 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 cls.env,
                 pd.Timestamp('2015-01-07', tz='UTC'),
                 pd.Timestamp('2015-01-07', tz='UTC'),
+                start_val=1000),
+            create_minute_df_for_asset(
+                cls.env,
+                pd.Timestamp('2015-01-08', tz='UTC'),
+                pd.Timestamp('2015-01-08', tz='UTC'),
                 start_val=1000)
         ))
         asset3 = cls.asset_finder.retrieve_asset(3)
@@ -545,6 +551,129 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         with self.assertRaises(HistoryInInitialize):
             test_algo.initialize()
+
+    def test_daily_splits_and_mergers(self):
+        # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
+        # on 1/6 and 1/7
+
+        jan5 = pd.Timestamp('2015-01-05', tz='UTC')
+
+        for asset in [self.SPLIT_ASSET, self.MERGER_ASSET]:
+            # before any of the adjustments, 1/4 and 1/5
+            window1 = self.data_portal.get_history_window(
+                [asset],
+                self.env.get_open_and_close(jan5)[1],
+                2,
+                '1d',
+                'close'
+            )[asset]
+
+            np.testing.assert_array_equal(np.array([np.nan, 8389]), window1)
+
+            # straddling the first event
+            window2 = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp('2015-01-06 14:35', tz='UTC'),
+                2,
+                '1d',
+                'close'
+            )[asset]
+
+            # Value from 1/5 should be quartered
+            np.testing.assert_array_equal(
+                [2097.25,
+                 # Split occurs. The value of the thousands place should
+                 # match.
+                 2004],
+                window2
+            )
+
+            # straddling both events!
+            window3 = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp('2015-01-07 14:35', tz='UTC'),
+                3,
+                '1d',
+                'close'
+            )[asset]
+
+            np.testing.assert_array_equal(
+                [1048.625, 1194.50, 1004.0],
+                window3
+            )
+
+            # after last event
+            window4 = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp('2015-01-08 14:40', tz='UTC'),
+                2,
+                '1d',
+                'close'
+            )[asset]
+
+            # should not be adjusted
+            np.testing.assert_array_equal([1389, 1009], window4)
+
+    def test_daily_dividends(self):
+        # self.DIVIDEND_ASSET had dividends on 1/6 and 1/7
+
+        jan5 = pd.Timestamp('2015-01-05', tz='UTC')
+        asset = self.DIVIDEND_ASSET
+
+        # before any of the dividends
+        window1 = self.data_portal.get_history_window(
+            [asset],
+            self.env.get_open_and_close(jan5)[1],
+            2,
+            '1d',
+            'close'
+        )[asset]
+
+        np.testing.assert_array_equal(np.array([nan, 391]), window1)
+
+        # straddling the first event
+        window2 = self.data_portal.get_history_window(
+            [asset],
+            pd.Timestamp('2015-01-06 14:35', tz='UTC'),
+            2,
+            '1d',
+            'close'
+        )[asset]
+
+        np.testing.assert_array_equal(
+            [383.18,  # 391 (last close) * 0.98 (first div)
+             # Dividend occurs prior.
+             396],
+            window2
+        )
+
+        # straddling both events!
+        window3 = self.data_portal.get_history_window(
+            [asset],
+            pd.Timestamp('2015-01-07 14:35', tz='UTC'),
+            3,
+            '1d',
+            'close'
+        )[asset]
+
+        np.testing.assert_array_equal(
+            [367.853,  # 391 (last close) * 0.98 * 0.96 (both)
+             749.76,  # 781 (last_close) * 0.96 (second div)
+             786],  # no adjustment
+            window3
+        )
+
+        # after last event
+        window4 = self.data_portal.get_history_window(
+            [asset],
+            pd.Timestamp('2015-01-08 14:40', tz='UTC'),
+            2,
+            '1d',
+            'close'
+        )[asset]
+
+        # should not be adjusted, should be 787 to 791
+        np.testing.assert_array_equal([1171, 1181], window4)
 
     def test_minute_before_assets_trading(self):
         # since asset2 and asset3 both started trading on 1/5/2015, let's do
@@ -728,7 +857,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             )[asset]
 
             np.testing.assert_array_equal(
-                np.array(range(4380, 4390)), window1)
+                np.array(range(8380, 8390)), window1)
 
             # straddling the first event
             window2 = self.data_portal.get_history_window(
@@ -741,11 +870,11 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
             # five minutes from 1/5 should be halved
             np.testing.assert_array_equal(
-                [2192.5,
-                 2193,
-                 2193.5,
-                 2194,
-                 2194.5,
+                [2096.25,
+                 2096.5,
+                 2096.75,
+                 2097,
+                 2097.25,
                  # Split occurs. The value of the thousands place should
                  # match.
                  2000,
@@ -765,9 +894,9 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 'close'
             )[asset]
 
-            # first five minutes should be 4385-4390, but quartered
+            # first five minutes should be 4385-4390, but eigthed
             np.testing.assert_array_equal(
-                [1096.25, 1096.5, 1096.75, 1097, 1097.25],
+                [1048.125, 1048.25, 1048.375, 1048.5, 1048.625],
                 window3[0:5]
             )
 
@@ -872,12 +1001,12 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         bar_data = BarData(self.data_portal, lambda: current_dt, 'minute')
 
         adj_expected = {
-            'open': np.arange(4381, 4391) / 2.0,
-            'high': np.arange(4382, 4392) / 2.0,
-            'low': np.arange(4379, 4389) / 2.0,
-            'close': np.arange(4380, 4390) / 2.0,
-            'volume': np.arange(4380, 4390) * 100 * 2.0,
-            'price': np.arange(4380, 4390) / 2.0,
+            'open': np.arange(8381, 8391) / 4.0,
+            'high': np.arange(8382, 8392) / 4.0,
+            'low': np.arange(8379, 8389) / 4.0,
+            'close': np.arange(8380, 8390) / 4.0,
+            'volume': np.arange(8380, 8390) * 100 * 4.0,
+            'price': np.arange(8380, 8390) / 4.0,
         }
 
         expected = {
@@ -1390,7 +1519,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             )[asset]
 
             # first value should be halved, second value unadjusted
-            np.testing.assert_array_equal([1, 3], window2)
+            np.testing.assert_array_equal([0.5, 3], window2)
 
             window2_volume = self.data_portal.get_history_window(
                 [asset],
@@ -1402,7 +1531,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
             if asset == self.SPLIT_ASSET:
                 # first value should be doubled, second value unadjusted
-                np.testing.assert_array_equal(window2_volume, [400, 300])
+                np.testing.assert_array_equal(window2_volume, [800, 300])
             elif asset == self.MERGER_ASSET:
                 np.testing.assert_array_equal(window2_volume, [200, 300])
 
@@ -1415,7 +1544,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 'close'
             )[asset]
 
-            np.testing.assert_array_equal([0.5, 1.5, 4], window3)
+            np.testing.assert_array_equal([0.25, 1.5, 4], window3)
 
             window3_volume = self.data_portal.get_history_window(
                 [asset],
@@ -1426,7 +1555,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             )[asset]
 
             if asset == self.SPLIT_ASSET:
-                np.testing.assert_array_equal(window3_volume, [800, 600, 400])
+                np.testing.assert_array_equal(window3_volume, [1600, 600, 400])
             elif asset == self.MERGER_ASSET:
                 np.testing.assert_array_equal(window3_volume, [200, 300, 400])
 

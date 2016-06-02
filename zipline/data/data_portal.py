@@ -1336,7 +1336,8 @@ class DataPortal(object):
             self, assets, field, minutes_for_window):
         return self._equity_minute_history_loader.history(assets,
                                                           minutes_for_window,
-                                                          field)
+                                                          field,
+                                                          False)
 
     def _apply_all_adjustments(self, data, asset, dts, field,
                                price_adj_factor=1.0):
@@ -1452,7 +1453,8 @@ class DataPortal(object):
         if bar_count != 0:
             data = self._equity_history_loader.history(assets,
                                                        days_in_window,
-                                                       field)
+                                                       field,
+                                                       extra_slot)
             if extra_slot:
                 return_array[:len(return_array) - 1, :] = data
             else:
