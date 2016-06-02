@@ -19,6 +19,7 @@ from zipline.pipeline.factors import (
     TrueRange,
     MovingAverageConvergenceDivergenceSignal,
     AnnualizedVolatility,
+    WilliamsR,
 )
 from zipline.testing import parameter_space
 from zipline.testing.fixtures import ZiplineTestCase
@@ -26,13 +27,109 @@ from zipline.testing.predicates import assert_equal
 from .base import BasePipelineTestCase
 
 
-class BollingerBandsTestCase(BasePipelineTestCase):
+class TestWilliamsR(ZiplineTestCase):
 
-    def closes(self, mask_last_sid):
-        data = self.arange_data(dtype=np.float64)
-        if mask_last_sid:
-            data[:, -1] = np.nan
-        return data
+    def test_willr(self):
+        r = WilliamsR()
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(3, dtype=np.int64)
+        out = np.empty(3, dtype=np.float64)
+
+        nan = np.nan
+
+        # The correct formula should be as follows:
+        # %R = -100 * ((Highest High - Close) / (Highest High - Lowest Low))
+
+        highs = np.array([[1.0, 2.0, 3.0],  # Should be ignored
+                          [nan, nan, nan],
+                          [10., nan, nan],  # Should be used.
+                          [nan, 11., nan],
+                          [nan, nan, 12.],
+                          [nan, nan, nan],
+                          [nan, nan, nan],
+                          [nan, nan, nan],
+                          [nan, nan, nan],
+                          [nan, nan, nan],
+                          [nan, nan, nan],
+                          [nan, nan, nan],
+                          [nan, nan, nan],
+                          [9.0, 10., 11.]])  # Should be ignored.
+        expected_highest_highs = np.array([10.0, 11.0, 12.0])
+
+        lows = np.array([[10., 11., 12.],  # Should be ignored
+                         [nan, nan, nan],
+                         [nan, nan, 4.0],  # Should be used.
+                         [nan, 3.0, nan],
+                         [2.0, nan, nan],
+                         [nan, nan, nan],
+                         [nan, nan, nan],
+                         [nan, nan, nan],
+                         [nan, nan, nan],
+                         [nan, nan, nan],
+                         [nan, nan, nan],
+                         [nan, nan, nan],
+                         [nan, nan, nan],
+                         [11., 12., 13.]])  # Should be ignored.
+        expected_lowest_lows = np.array([2.0, 3.0, 4.0])
+
+        closes = np.array([[10., 11., 12.],  # Should be ignored
+                           [nan, nan, nan],
+                           [nan, nan, 4.0],  # Should be ignored.
+                           [nan, 3.0, nan],
+                           [2.0, nan, nan],
+                           [nan, nan, nan],
+                           [nan, nan, nan],
+                           [nan, nan, nan],
+                           [nan, nan, nan],
+                           [nan, nan, nan],
+                           [nan, nan, nan],
+                           [nan, nan, nan],
+                           [nan, nan, nan],
+                           [5.0, 6.0, 7.0]])  # Should be used
+        expected_closes = np.array([5.0, 6.0, 7.0])
+
+        r.compute(today, assets, out, highs, lows, closes)
+
+        expected_result = -100 * (
+            (expected_highest_highs - expected_closes) /
+            (expected_highest_highs - expected_lowest_lows)
+        )
+
+        assert_equal(out, expected_result)
+
+        highs = np.full((14, 3), nan)
+        expected_highest_highs = np.array([nan, nan, nan])
+
+        lows = np.full((14, 3), nan)
+        expected_lowest_lows = np.array([nan, nan, nan])
+
+        closes = np.full((14, 3), nan)
+        expected_closes = np.array([nan, nan, nan])
+
+        r.compute(today, assets, out, highs, lows, closes)
+
+        expected_result = -100 * (
+            (expected_highest_highs - expected_closes) /
+            (expected_highest_highs - expected_lowest_lows)
+        )
+
+        assert_equal(out, expected_result)
+
+
+class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
+    @classmethod
+    def init_class_fixtures(cls):
+        super(BollingerBandsTestCase, cls).init_class_fixtures()
+        cls._closes = closes = (
+            np.arange(cls.ndays, dtype=float)[:, np.newaxis] +
+            np.arange(cls.nassets, dtype=float) * 100
+        )
+        cls._closes_masked = masked = closes.copy()
+        masked[:, -1] = np.nan
+
+    def closes(self, masked):
+        return self._closes_masked if masked else self._closes
 
     def expected_bbands(self, window_length, k, closes):
         """Compute the expected data (without adjustments) for the given
