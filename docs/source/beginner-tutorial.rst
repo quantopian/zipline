@@ -155,7 +155,7 @@ Thus, to execute our algorithm from above and save the results to
 
 .. code-block:: python
 
-    python -m zipline run -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o buyapple_out.pickle
+    zipline run -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 -o buyapple_out.pickle
 
 
 .. parsed-literal::
