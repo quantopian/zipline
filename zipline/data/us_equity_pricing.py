@@ -358,9 +358,7 @@ class BcolzDailyBarWriter(object):
         )
 
         full_table.attrs['first_trading_day'] = (
-            earliest_date // 1e6
-            if earliest_date is not None else
-            iNaT
+            earliest_date if earliest_date is not None else iNaT
         )
         full_table.attrs['first_row'] = first_row
         full_table.attrs['last_row'] = last_row
@@ -507,7 +505,7 @@ class BcolzDailyBarReader(DailyBarReader):
         try:
             return Timestamp(
                 self._table.attrs['first_trading_day'],
-                unit='ms',
+                unit='s',
                 tz='UTC'
             )
         except KeyError:

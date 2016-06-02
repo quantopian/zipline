@@ -186,6 +186,12 @@ class BcolzDailyBarTestCase(WithBcolzDailyBarReader, ZiplineTestCase):
             DatetimeIndex(result.attrs['calendar'], tz='UTC'),
         )
 
+    def test_read_first_trading_day(self):
+        self.assertEqual(
+            self.bcolz_daily_bar_reader.first_trading_day,
+            self.trading_days[0],
+        )
+
     def _check_read_results(self, columns, assets, start_date, end_date):
         results = self.bcolz_daily_bar_reader.load_raw_arrays(
             columns,
