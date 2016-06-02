@@ -7,7 +7,7 @@ from zipline.pipeline import TermGraph
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
-from zipline.pipeline.factors import BollingerBands
+from zipline.pipeline.factors import BollingerBands, WilliamsR
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -46,6 +46,24 @@ class WithTechnicalFactor(WithAssetFinder):
             self.assets,
             initial_workspace,
         )
+
+
+class TestWilliamsR(WithTechnicalFactor, ZiplineTestCase):
+
+    def test_willr_basic(self):
+        r = WilliamsR()
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(3, dtype=np.int64)
+        out = np.empty(3, dtype=np.float64)
+
+        highs = np.full((14, 3), 3)
+        closes = np.full((14, 3), 2)
+        lows = np.full((14, 3), 1)
+
+        r.compute(today, assets, out, highs, lows, closes)
+        assert_equal(out, np.full((3,), -50.0))
+
 
 
 class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):

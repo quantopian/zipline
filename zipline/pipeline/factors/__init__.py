@@ -29,6 +29,7 @@ from .technical import (
     SimpleMovingAverage,
     VWAP,
     WeightedAverageValue,
+    WilliamsR,
 )
 
 __all__ = [
@@ -58,4 +59,5 @@ __all__ = [
     'SimpleMovingAverage',
     'VWAP',
     'WeightedAverageValue',
+    'WilliamsR',
 ]

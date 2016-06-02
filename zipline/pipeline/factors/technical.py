@@ -15,6 +15,8 @@ from numpy import (
     inf,
     isnan,
     log,
+    nanmax,
+    nanmin,
     NINF,
     searchsorted,
     sqrt,
@@ -739,3 +741,32 @@ class BollingerBands(CustomFactor):
         out.middle = middle = nanmean(close, axis=0)
         out.upper = middle + difference
         out.lower = middle - difference
+
+
+class WilliamsR(CustomFactor):
+    """
+    Williams' %R Technical Indicator
+
+    **Default Inputs:**
+        [USEquityPricing.high, USEquityPricing.low, USEquityPricing.close]
+
+    **Default Window Length:** 14
+    """
+    inputs = (USEquityPricing.high, USEquityPricing.low, USEquityPricing.close)
+    window_length = 14
+
+    def compute(self, today, assets, out, highs, lows, closes):
+        highest_highs = nanmax(highs, axis=0)
+        lowest_lows = nanmin(lows, )
+        todays_closes = closes[-1]
+
+        evaluate(
+            '-100 * ((hh - tc) / (hh - ll))',
+            local_dict={
+                'hh': highest_highs,
+                'tc': todays_closes,
+                'll': lowest_lows,
+            },
+            global_dict={},
+            out=out,
+        )
