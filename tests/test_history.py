@@ -470,9 +470,9 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         asset2 = cls.asset_finder.retrieve_asset(2)
         data[asset2.sid] = create_minute_df_for_asset(
-            cls.env,
+            cls.trading_schedule,
             asset2.start_date,
-            cls.env.previous_trading_day(asset2.end_date),
+            cls.trading_schedule.previous_execution_day(asset2.end_date),
             start_val=2,
             minute_blacklist=[
                 pd.Timestamp('2015-01-08 14:31', tz='UTC'),
