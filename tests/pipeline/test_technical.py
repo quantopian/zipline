@@ -12,8 +12,12 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.pipeline.factors import (
     BollingerBands,
+<<<<<<< HEAD
     Aroon,
     FastStochasticOscillator
+=======
+    LinearWeightedMovingAverage
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
 )
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
@@ -147,6 +151,7 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         self.assertIs(upper, bbands.upper)
 
 
+<<<<<<< HEAD
 class AroonTestCase(ZiplineTestCase):
     window_length = 10
     nassets = 5
@@ -237,3 +242,20 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         )
 
         assert_equal(out, expected_out_k)
+=======
+class TestLinearWeightedMovingAverage(ZiplineTestCase):
+    def test_wma(self):
+        wma = LinearWeightedMovingAverage(
+            inputs=(USEquityPricing.close,),
+            window_length=10
+        )
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(5, dtype=np.int64)
+
+        data = np.ones((10, 5))
+        out = np.zeros(data.shape[1])
+
+        wma.compute(today, assets, out, data)
+        assert_equal(out, np.ones(5))
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
