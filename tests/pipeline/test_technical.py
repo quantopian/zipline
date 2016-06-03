@@ -7,7 +7,7 @@ from zipline.pipeline import TermGraph
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
-from zipline.pipeline.factors import BollingerBands
+from zipline.pipeline.factors import BollingerBands, TrueRange
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -138,3 +138,20 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         self.assertIs(lower, bbands.lower)
         self.assertIs(middle, bbands.middle)
         self.assertIs(upper, bbands.upper)
+
+
+class TestTrueRange(WithTechnicalFactor, ZiplineTestCase):
+
+    def test_tr_basic(self):
+        tr = TrueRange()
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(3, dtype=np.int64)
+        out = np.empty(3, dtype=np.float64)
+
+        highs = np.full((2, 3), 3)
+        lows = np.full((2, 3), 2)
+        closes = np.full((2, 3), 1)
+
+        tr.compute(today, assets, out, highs, lows, closes)
+        assert_equal(out, np.full((3,), 2))

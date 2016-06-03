@@ -9,6 +9,7 @@ from numpy import (
     average,
     clip,
     diff,
+    dstack,
     exp,
     fmax,
     full,
@@ -739,3 +740,29 @@ class BollingerBands(CustomFactor):
         out.middle = middle = nanmean(close, axis=0)
         out.upper = middle + difference
         out.lower = middle - difference
+
+
+class TrueRange(CustomFactor):
+    """
+    True Range
+
+    A technical indicator originally developed by J. Welles Wilder, Jr.
+    Indicates the true degree of daily price change in an underlying.
+    """
+
+    inputs = (USEquityPricing.high, USEquityPricing.low,
+              USEquityPricing.close, )
+    window_length = 2
+
+    def compute(self, today, assets, out, highs, lows, closes):
+        high_to_low = highs[1:] - lows[1:]
+        high_to_prev_close = abs(highs[1:] - closes[:-1])
+        low_to_prev_close = abs(lows[1:] - closes[:-1])
+        out[:] = nanmax(
+            dstack((
+                high_to_low,
+                high_to_prev_close,
+                low_to_prev_close,
+            )),
+            2
+        )
