@@ -754,9 +754,9 @@ class TrueRange(CustomFactor):
     window_length = 2
 
     def compute(self, today, assets, out, highs, lows, closes):
-        high_to_low = highs[:-1] - lows[:-1]
-        high_to_prev_close = abs(highs[:-1] - closes[1:])
-        low_to_prev_close = abs(lows[:-1] - closes[1:])
+        high_to_low = highs[1:] - lows[1:]
+        high_to_prev_close = abs(highs[1:] - closes[:-1])
+        low_to_prev_close = abs(lows[1:] - closes[:-1])
         out[:] = nanmax(
             dstack((
                 high_to_low,
