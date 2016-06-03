@@ -131,7 +131,7 @@ class MaxDrawdown(CustomFactor, SingleInputMixin):
     **Default Inputs:** None
 
     **Default Window Length:** None
-    """e
+    """
     ctx = ignore_nanwarnings()
 
     def compute(self, today, assets, out, data):
