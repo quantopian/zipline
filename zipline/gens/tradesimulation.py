@@ -142,9 +142,9 @@ class AlgorithmSimulator(object):
                 for new_order in new_orders:
                     perf_tracker.process_order(new_order)
 
-            self.algo.portfolio_needs_update = True
-            self.algo.account_needs_update = True
-            self.algo.performance_needs_update = True
+            algo.portfolio_needs_update = True
+            algo.account_needs_update = True
+            algo.performance_needs_update = True
 
         def once_a_day(midnight_dt, current_data=self.current_data,
                        data_portal=self.data_portal):
@@ -191,6 +191,10 @@ class AlgorithmSimulator(object):
                 benchmark_source.get_value(date)
 
         def on_exit():
+            # Remove references to algo, data portal, et al to break cycles
+            # and ensure deterministic cleanup of these objects when the
+            # simulation finishes.
+            self.algo = None
             self.benchmark_source = self.current_data = self.data_portal = None
 
         with ExitStack() as stack:
