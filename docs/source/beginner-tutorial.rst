@@ -99,6 +99,20 @@ To now test this algorithm on financial data, ``zipline`` provides three
 interfaces: A command-line interface, ``IPython Notebook`` magic, and
 :func:`~zipline.run_algorithm`.
 
+Ingesting Data
+^^^^^^^^^^^^^^
+If you haven't ingested the data, run:
+
+.. code-block:: bash
+
+   $ zipline ingest [-b <bundle>]
+
+where ``<bundle>`` is the name of the bundle to ingest, defaulting to
+:ref:`quantopian-quandl <quantopian-quandl-mirror>`.
+
+you can check out the :ref:`ingesting data <ingesting-data>` section for
+more detail.
+
 Command line interface
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -158,7 +172,7 @@ Thus, to execute our algorithm from above and save the results to
 
 .. code-block:: python
 
-    python -m zipline run -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o buyapple_out.pickle
+    zipline run -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 -o buyapple_out.pickle
 
 
 .. parsed-literal::

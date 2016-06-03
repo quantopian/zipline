@@ -37,6 +37,8 @@ bundle was ingested. We have run three different ingestions for
 so it just shows ``<no ingestions>`` instead. Finally, there is only one
 ingestion for ``quantopian-quandl``.
 
+.. _ingesting-data:
+
 Ingesting Data
 ~~~~~~~~~~~~~~
 
