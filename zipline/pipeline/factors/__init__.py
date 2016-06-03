@@ -14,6 +14,7 @@ from .events import (
     BusinessDaysUntilNextExDate,
 )
 from .technical import (
+    Aroon,
     AverageDollarVolume,
     BollingerBands,
     EWMA,
@@ -32,6 +33,7 @@ from .technical import (
 )
 
 __all__ = [
+    'Aroon',
     'AverageDollarVolume',
     'BollingerBands',
     'BusinessDaysSince13DFilingsDate',
