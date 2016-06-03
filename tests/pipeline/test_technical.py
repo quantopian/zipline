@@ -215,7 +215,7 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         highs = np.random.random_integers(4, 6, size=(50, nassets))*1.0
         lows = np.random.random_integers(1, 3, size=(50, nassets))*1.0
 
-        expected_out_k, expected_out_d = [], []
+        expected_out_k = []
         for i in range(nassets):
             e = talib.STOCHF(
                 high=highs[:, i],
