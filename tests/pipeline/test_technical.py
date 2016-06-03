@@ -14,6 +14,7 @@ from zipline.pipeline.factors import (
     BollingerBands,
     Aroon,
     FastStochasticOscillator
+    LinearWeightedMovingAverage
 )
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
@@ -237,3 +238,37 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         )
 
         assert_equal(out, expected_out_k)
+
+
+class TestLinearWeightedMovingAverage(ZiplineTestCase):
+    def test_wma1(self):
+        wma1 = LinearWeightedMovingAverage(
+            inputs=(USEquityPricing.close,),
+            window_length=10
+        )
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(5, dtype=np.int64)
+
+        data = np.ones((10, 5))
+        out = np.zeros(data.shape[1])
+
+        wma1.compute(today, assets, out, data)
+        assert_equal(out, np.ones(5))
+
+    def test_wma2(self):
+        wma2 = LinearWeightedMovingAverage(
+            inputs=(USEquityPricing.close,),
+            window_length=10
+        )
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(5, dtype=np.int64)
+
+        data = np.arange(50, dtype=float).reshape((10, 5))
+        out = np.zeros(data.shape[1])
+
+        wma2.compute(today, assets, out, data)
+        assert_equal(out, np.array([ 30.,  31.,  32.,  33.,  34.]))
+
+        
