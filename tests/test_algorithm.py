@@ -16,6 +16,7 @@ from collections import namedtuple
 import datetime
 from datetime import timedelta
 from textwrap import dedent
+import warnings
 from unittest import TestCase, skip
 from copy import deepcopy
 
@@ -1853,6 +1854,72 @@ def handle_data(context, data):
             env=self.env
         )
         algo.run(self.data_portal)
+
+    def test_schedule_function_time_rule_positionally_misplaced(self):
+        """
+        Test that when a user specifies a time rule for the date_rule argument,
+        but no rule in the time_rule argument
+        (e.g. schedule_function(func, <time_rule>)), we assume that means
+        assign a time rule but no date rule
+        """
+
+        sim_params = factory.create_simulation_parameters(
+            start=pd.Timestamp('2006-01-12', tz='UTC'),
+            end=pd.Timestamp('2006-01-13', tz='UTC'),
+            data_frequency='minute'
+        )
+
+        algocode = dedent("""
+        from zipline.api import time_rules, schedule_function
+
+        def do_at_open(context, data):
+            context.done_at_open.append(context.get_datetime())
+
+        def do_at_close(context, data):
+            context.done_at_close.append(context.get_datetime())
+
+        def initialize(context):
+            context.done_at_open = []
+            context.done_at_close = []
+            schedule_function(do_at_open, time_rules.market_open())
+            schedule_function(do_at_close, time_rules.market_close())
+
+        def handle_data(algo, data):
+            pass
+        """)
+
+        with warnings.catch_warnings(record=True) as w:
+            algo = TradingAlgorithm(
+                script=algocode,
+                sim_params=sim_params,
+                env=self.env
+            )
+            algo.run(self.data_portal)
+
+        self.assertEqual(len(w), 2)
+        for i, warning in enumerate(w):
+            self.assertIsInstance(warning.message, UserWarning)
+            self.assertEqual(
+                warning.message.args[0],
+                'Got a time rule for the second positional argument '
+                'date_rule. You should use keyword argument '
+                'time_rule= when calling schedule_function without '
+                'specifying a date_rule'
+            )
+            # The warnings come from line 13 and 14 in the algocode
+            self.assertEqual(warning.lineno, 13 + i)
+
+        self.assertEqual(
+            algo.done_at_open,
+            [pd.Timestamp('2006-01-12 14:31:00', tz='UTC'),
+             pd.Timestamp('2006-01-13 14:31:00', tz='UTC')]
+        )
+
+        self.assertEqual(
+            algo.done_at_close,
+            [pd.Timestamp('2006-01-12 20:59:00', tz='UTC'),
+             pd.Timestamp('2006-01-13 20:59:00', tz='UTC')]
+        )
 
 
 class TestCapitalChanges(WithLogger,

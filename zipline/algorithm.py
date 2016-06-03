@@ -100,6 +100,8 @@ from zipline.utils.events import (
     make_eventrule,
     date_rules,
     time_rules,
+    AfterOpen,
+    BeforeClose
 )
 from zipline.utils.factory import create_simulation_parameters
 from zipline.utils.math_utils import (
@@ -951,11 +953,21 @@ class TradingAlgorithm(object):
         :class:`zipline.api.date_rules`
         :class:`zipline.api.time_rules`
         """
+
+        # When the user calls schedule_function(func, <time_rule>), assume that
+        # the user meant to specify a time rule but no date rule, instead of
+        # a date rule and no time rule as the signature suggests
+        if isinstance(date_rule, (AfterOpen, BeforeClose)) and not time_rule:
+            warnings.warn('Got a time rule for the second positional argument '
+                          'date_rule. You should use keyword argument '
+                          'time_rule= when calling schedule_function without '
+                          'specifying a date_rule', stacklevel=3)
+
         date_rule = date_rule or date_rules.every_day()
-        time_rule = ((time_rule or time_rules.market_open())
+        time_rule = ((time_rule or time_rules.every_minute())
                      if self.sim_params.data_frequency == 'minute' else
                      # If we are in daily mode the time_rule is ignored.
-                     zipline.utils.events.Always())
+                     time_rules.every_minute())
 
         self.add_event(
             make_eventrule(date_rule, time_rule, half_days),
