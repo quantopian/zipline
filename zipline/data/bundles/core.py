@@ -408,7 +408,7 @@ def _make_bundle_core():
                 raise
             raise ValueError(
                 'no data for bundle {bundle!r} on or before {timestamp}\n'
-                'maybe you need to run: $ zipline ingest {bundle}'.format(
+                'maybe you need to run: $ zipline ingest -b {bundle}'.format(
                     bundle=bundle_name,
                     timestamp=timestamp,
                 ),
