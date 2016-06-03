@@ -5,7 +5,6 @@ Technical Analysis Factors
 from __future__ import division
 
 from numbers import Number
-import numpy as np
 from numpy import (
     abs,
     arange,
@@ -102,35 +101,6 @@ class SimpleMovingAverage(CustomFactor, SingleInputMixin):
         out[:] = nanmean(data, axis=0)
 
 
-class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
-    """
-    Weighted Average Value of an arbitrary column
-
-    **Default Inputs**: None
-
-    **Default Window Length**: None
-    """
-    # numpy's nan functions throw warnings when passed an array containing only
-    # nans, but they still returns the desired value (nan), so we ignore the
-    # warning.
-    ctx = ignore_nanwarnings()
-
-    def compute(self, today, assets, out, data):
-        num_days = data.shape[0]
-
-        # Initialize weights array
-        weights = np.arange(1, num_days + 1, dtype=float).reshape(10, 1)
-
-        # Compute normalizer
-        normalizer = (num_days * (num_days + 1)) / 2
-
-        # Weight the data
-        weighted_data = data * weights
-
-        # Compute weighted averages
-        out[:] = np.nansum(weighted_data, axis=0) / normalizer
-
-
 class WeightedAverageValue(CustomFactor):
     """
     Helper for VWAP-like computations.
@@ -161,7 +131,7 @@ class MaxDrawdown(CustomFactor, SingleInputMixin):
     **Default Inputs:** None
 
     **Default Window Length:** None
-    """
+    """e
     ctx = ignore_nanwarnings()
 
     def compute(self, today, assets, out, data):
@@ -551,3 +521,30 @@ class FastStochasticOscillator(CustomFactor):
             global_dict={},
             out=out,
         )
+
+
+class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
+    """
+    Weighted Average Value of an arbitrary column
+    **Default Inputs**: None
+    **Default Window Length**: None
+    """
+    # numpy's nan functions throw warnings when passed an array containing only
+    # nans, but they still returns the desired value (nan), so we ignore the
+    # warning.
+    ctx = ignore_nanwarnings()
+
+    def compute(self, today, assets, out, data):
+        num_days = data.shape[0]
+
+        # Initialize weights array
+        weights = np.arange(1, num_days + 1, dtype=float).reshape(num_days, 1)
+
+        # Compute normalizer
+        normalizer = (num_days * (num_days + 1)) / 2
+
+        # Weight the data
+        weighted_data = data * weights
+
+        # Compute weighted averages
+        out[:] = np.nansum(weighted_data, axis=0) / normalizer
