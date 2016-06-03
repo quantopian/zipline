@@ -23,6 +23,10 @@ from .technical import (
     ExponentialWeightedMovingStdDev,
 <<<<<<< HEAD
     FastStochasticOscillator,
+<<<<<<< HEAD
+=======
+    LinearWeightedMovingAverage,
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
 =======
     LinearWeightedMovingAverage,
 >>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
