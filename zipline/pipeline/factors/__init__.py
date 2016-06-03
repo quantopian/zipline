@@ -21,7 +21,11 @@ from .technical import (
     EWMSTD,
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
+<<<<<<< HEAD
     FastStochasticOscillator,
+=======
+    LinearWeightedMovingAverage,
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
     MaxDrawdown,
     Returns,
     RSI,
@@ -44,6 +48,7 @@ __all__ = [
     'Factor',
     'FastStochasticOscillator',
     'Latest',
+    'LinearWeightedMovingAverage',
     'MaxDrawdown',
     'RecarrayField',
     'Returns',
