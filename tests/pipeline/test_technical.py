@@ -216,11 +216,11 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         expected_out = []
         for i in range(nassets):
             e = talib.STOCHF(
-                    high=highs[:, i],
-                    low=lows[:, i],
-                    close=closes[:, i],
-                    fastk_period=window_length,
-                )[0]
+                high=highs[:, i],
+                low=lows[:, i],
+                close=closes[:, i],
+                fastk_period=window_length,
+            )[0]
 
             expected_out.append(e[-1])
         expected_out = np.array(expected_out)
