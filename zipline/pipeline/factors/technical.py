@@ -5,6 +5,7 @@ Technical Analysis Factors
 from __future__ import division
 
 from numbers import Number
+import numpy as np
 from numpy import (
     abs,
     arange,
@@ -99,6 +100,34 @@ class SimpleMovingAverage(CustomFactor, SingleInputMixin):
 
     def compute(self, today, assets, out, data):
         out[:] = nanmean(data, axis=0)
+
+
+class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
+    """
+    Weighted Average Value of an arbitrary column
+
+    **Default Inputs**: None
+
+    **Default Window Length**: None
+    """
+    # numpy's nan functions throw warnings when passed an array containing only
+    # nans, but they still returns the desired value (nan), so we ignore the
+    # warning.
+    ctx = ignore_nanwarnings()
+
+    def compute(self, today, assets, out, data):
+        num_days = data.shape[0]
+
+        # Initialize weights array
+        weights = np.arange(1, num_days + 1, dtype=float)
+
+        # Compute normalizer
+        normalizer = (num_days * (num_days + 1)) / 2
+
+        for i in range(data.shape[1]):
+            weighted_col = data[:, i] * weights
+            out[i] = nansum(weighted_col)
+            out[i] = out[i] / normalizer
 
 
 class WeightedAverageValue(CustomFactor):
