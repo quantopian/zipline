@@ -802,42 +802,27 @@ class FastStochasticOscillator(CustomFactor):
 
     **Default Window Length:** 14
 
-    **Default D_period:** 3
-
-    Parameters
-    ----------
-    window_length : int > 0
-        Length of the lookback window over which to compute the stochastic
-        oscillator. Commonly called the K-period.
-    D_period : int
-        Period over which the K% is averaged (smoothed) over in units of days.
-
     Returns
     -------
-    out.K: %K oscillator
-    out.D: %D oscillator, which is %K averaged over the last D_period days
+    out: %K oscillator
     """
-    params = ('D_period', )
     inputs = (USEquityPricing.close, USEquityPricing.low, USEquityPricing.high)
+    window_safe = True
     window_length = 14
-    outputs = 'K', 'D'
 
-    def compute(self, today, assets, out, closes, lows, highs, D_period=3):
+    def compute(self, today, assets, out, closes, lows, highs):
 
         highest_highs = nanmax(highs, axis=0)
         lowest_lows = nanmin(lows, axis=0)
+        today_closes = closes[-1]
 
-        full = empty(closes.shape, dtype=float64)
         evaluate(
             '((tc - ll) / (hh - ll)) * 100',
             local_dict={
-                'tc': closes,
+                'tc': today_closes,
                 'll': lowest_lows,
                 'hh': highest_highs,
             },
             global_dict={},
-            out=full,
+            out=out,
         )
-
-        out.K = full[-1]
-        out.D = nansum(full[-D_period:], axis=0) / (1.0*D_period)
