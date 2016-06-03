@@ -1357,6 +1357,7 @@ class TestAlgoScript(WithLogger,
                      ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-31', tz='utc')
+    DATA_PORTAL_USE_MINUTE_DATA = False
     BCOLZ_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
 
     ARG_TYPE_TEST_CASES = (

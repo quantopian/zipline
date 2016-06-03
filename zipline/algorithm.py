@@ -637,7 +637,7 @@ class TradingAlgorithm(object):
                     )
                 )
                 equity_daily_reader = PanelDailyBarReader(
-                    self.trading_environment.trading_days,
+                    self.trading_schedule.all_execution_days,
                     copy_panel,
                 )
                 self.data_portal = DataPortal(

@@ -487,17 +487,17 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # the thousands place.
         data[cls.MERGER_ASSET_SID] = data[cls.SPLIT_ASSET_SID] = pd.concat((
             create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 pd.Timestamp('2015-01-05', tz='UTC'),
                 pd.Timestamp('2015-01-05', tz='UTC'),
                 start_val=8000),
             create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 pd.Timestamp('2015-01-06', tz='UTC'),
                 pd.Timestamp('2015-01-06', tz='UTC'),
                 start_val=2000),
             create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 pd.Timestamp('2015-01-07', tz='UTC'),
                 pd.Timestamp('2015-01-07', tz='UTC'),
                 start_val=1000),
