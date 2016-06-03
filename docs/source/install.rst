@@ -52,7 +52,7 @@ dependencies:
 
 .. code-block:: bash
 
-   $ sudo dnf install atlas-devel gcc-c++ gcc-gfortran libgfortran python-devel redhat-rep-config
+   $ sudo dnf install atlas-devel gcc-c++ gcc-gfortran libgfortran python-devel libpng-devel freetype-devel
 
 On `Arch Linux`_, you can acquire the additional dependencies via ``pacman``:
 
