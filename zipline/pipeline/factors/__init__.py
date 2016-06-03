@@ -21,6 +21,7 @@ from .technical import (
     EWMSTD,
     ExponentialWeightedMovingAverage,
     ExponentialWeightedMovingStdDev,
+    FastStochasticOscillator,
     MaxDrawdown,
     Returns,
     RollingLinearRegressionOfReturns,
@@ -28,7 +29,6 @@ from .technical import (
     RollingSpearmanOfReturns,
     RSI,
     SimpleMovingAverage,
-    FastStochasticOscillator,
     VWAP,
     WeightedAverageValue,
 )
@@ -50,6 +50,7 @@ __all__ = [
     'ExponentialWeightedMovingAverage',
     'ExponentialWeightedMovingStdDev',
     'Factor',
+    'FastStochasticOscillator',
     'Latest',
     'MaxDrawdown',
     'RecarrayField',
@@ -59,7 +60,6 @@ __all__ = [
     'RollingSpearmanOfReturns',
     'RSI',
     'SimpleMovingAverage',
-    'FastStochasticOscillator',
     'VWAP',
     'WeightedAverageValue',
 ]
