@@ -28,6 +28,7 @@ from .technical import (
     RollingSpearmanOfReturns,
     RSI,
     SimpleMovingAverage,
+    FastStochasticOscillator,
     VWAP,
     WeightedAverageValue,
 )
@@ -58,6 +59,7 @@ __all__ = [
     'RollingSpearmanOfReturns',
     'RSI',
     'SimpleMovingAverage',
+    'FastStochasticOscillator',
     'VWAP',
     'WeightedAverageValue',
 ]

@@ -10,7 +10,11 @@ from zipline.pipeline import TermGraph
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
+<<<<<<< HEAD
 from zipline.pipeline.factors import BollingerBands, Aroon
+=======
+from zipline.pipeline.factors import BollingerBands, FastStochasticOscillator
+>>>>>>> ENH: fast stochastic oscillator added
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -172,5 +176,60 @@ class AroonTestCase(ZiplineTestCase):
                           buf=np.empty(shape=shape, dtype=self.dtype))
 
         aroon.compute(today, assets, out, lows, highs)
+
+        assert_equal(out, expected_out)
+
+
+class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
+    """
+    Test the Fast Stochastic Oscillator
+    """
+
+    def test_fso_expected_basic(self):
+        """
+        Simple test of expected output from fast stochastic oscillator
+        """
+        fso = FastStochasticOscillator()
+
+        today = pd.Timestamp('2015')
+        assets = np.arange(3, dtype=np.float)
+        out = np.empty(3, dtype=np.float)
+
+        highs = np.full((50, 3), 3)
+        lows = np.full((50, 3), 2)
+        closes = np.full((50, 3), 4)
+
+        fso.compute(today, assets, out, closes, lows, highs)
+        assert_equal(out, np.full((3,), 200))
+
+    def test_fso_expected_with_talib(self):
+        """
+        Test the output that is returned from the fast stochastic oscillator
+        is the same as that from the ta-lib STOCHF function.
+        """
+        window_length = 14
+        nassets = 3
+        closes = np.random.random_integers(1, 6, size=(50, nassets))*1.0
+        highs = np.random.random_integers(4, 6, size=(50, nassets))*1.0
+        lows = np.random.random_integers(1, 3, size=(50, nassets))*1.0
+
+        expected_out = []
+        for i in range(nassets):
+            e = talib.STOCHF(
+                    high=highs[:, i],
+                    low=lows[:, i],
+                    close=closes[:, i],
+                    fastk_period=window_length,
+                )[0]
+
+            expected_out.append(e[-1])
+        expected_out = np.array(expected_out)
+
+        today = pd.Timestamp('2015')
+        out = np.empty(3, dtype=np.float)
+        assets = np.arange(3, dtype=np.float)
+
+        fso = FastStochasticOscillator()
+        fso.compute(today, assets, out, closes, lows, highs)
 
         assert_equal(out, expected_out)

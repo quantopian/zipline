@@ -38,6 +38,7 @@ from zipline.utils.math_utils import (
     nanmean,
     nanstd,
     nansum,
+    nanmin,
 )
 from .factor import CustomFactor
 
@@ -781,4 +782,40 @@ class Aroon(CustomFactor):
                 'wl': wl,
             },
             out=out.down,
+        )
+
+
+class FastStochasticOscillator(CustomFactor):
+    """
+    Fast Stochastic Oscillator Indicator [%K, Momentum Indicator]
+    https://wiki.timetotrade.eu/Stochastic
+
+    This stochastic is considered volatile, and varies a lot when used in
+    market analysis. It is recommended to use the slow stochastic oscillator
+    or a moving average of the %K [%D].
+
+    **Default Inputs:** :data: `zipline.pipeline.data.USEquityPricing.close`
+                        :data: `zipline.pipeline.data.USEquityPricing.low`
+                        :data: `zipline.pipeline.data.USEquityPricing.high`
+
+    **Default Window Length:** 14
+    """
+    inputs = (USEquityPricing.close, USEquityPricing.low, USEquityPricing.high)
+    window_length = 14
+
+    def compute(self, today, assets, out, closes, lows, highs):
+
+        highest_highs = nanmax(highs, axis=0)
+        lowest_lows = nanmin(lows, axis=0)
+        todays_close = closes[-1]
+
+        evaluate(
+            '((tc - ll) / (hh - ll)) * 100',
+            local_dict={
+                'tc': todays_close,
+                'll': lowest_lows,
+                'hh': highest_highs,
+            },
+            global_dict={},
+            out=out,
         )
