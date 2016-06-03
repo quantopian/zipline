@@ -750,7 +750,8 @@ class TrueRange(CustomFactor):
     Indicates the true degree of daily price change in an underlying.
     """
 
-    inputs = (USEquityPricing.high, USEquityPricing.low, USEquityPricing.close, )
+    inputs = (USEquityPricing.high, USEquityPricing.low,
+              USEquityPricing.close, )
     window_length = 2
 
     def compute(self, today, assets, out, highs, lows, closes):
