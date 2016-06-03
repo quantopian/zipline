@@ -211,7 +211,7 @@ def run(ctx,
     if start is None:
         ctx.fail("must specify a start date with '-s' / '--start'")
     if end is None:
-        ctx.fail("must specify an end date with '-s' / '--end'")
+        ctx.fail("must specify an end date with '-e' / '--end'")
 
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
