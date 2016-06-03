@@ -98,7 +98,7 @@ interfaces: A command-line interface, ``IPython Notebook`` magic, and
 
 Ingesting Data
 ^^^^^^^^^^^^^^
-If you haven't ingest the data, run:
+If you haven't ingested the data, run:
 
 .. code-block:: bash
 
@@ -108,7 +108,7 @@ where ``<bundle>`` is the name of the bundle to ingest, defaulting to
 :ref:`quantopian-quandl <quantopian-quandl-mirror>`.
 
 you can check out the :ref:`ingesting data <ingesting-data>` section for
-more detail
+more detail.
 
 Command line interface
 ^^^^^^^^^^^^^^^^^^^^^^
