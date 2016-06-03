@@ -189,18 +189,23 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         """
         Simple test of expected output from fast stochastic oscillator
         """
-        fso = FastStochasticOscillator()
+        fso = FastStochasticOscillator(D_period=5)
 
         today = pd.Timestamp('2015')
         assets = np.arange(3, dtype=np.float)
-        out = np.empty(3, dtype=np.float)
+        out = pd.DataFrame()
 
         highs = np.full((50, 3), 3)
         lows = np.full((50, 3), 2)
         closes = np.full((50, 3), 4)
 
         fso.compute(today, assets, out, closes, lows, highs)
-        assert_equal(out, np.full((3,), 200))
+
+        # Expected %K
+        assert_equal(out.K, np.full((3,), 200))
+
+        # Expected %D
+        assert_equal(out.D, np.full((3,), 200))
 
     def test_fso_expected_with_talib(self):
         """
@@ -208,28 +213,33 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         is the same as that from the ta-lib STOCHF function.
         """
         window_length = 14
-        nassets = 3
+        fast_dperiod = 5
+        nassets = 6
         closes = np.random.random_integers(1, 6, size=(50, nassets))*1.0
         highs = np.random.random_integers(4, 6, size=(50, nassets))*1.0
         lows = np.random.random_integers(1, 3, size=(50, nassets))*1.0
 
-        expected_out = []
+        expected_out_k, expected_out_d = [], []
         for i in range(nassets):
             e = talib.STOCHF(
                 high=highs[:, i],
                 low=lows[:, i],
                 close=closes[:, i],
                 fastk_period=window_length,
-            )[0]
+                fastd_period=fast_dperiod
+            )
 
-            expected_out.append(e[-1])
-        expected_out = np.array(expected_out)
+            expected_out_k.append(e[0][-1])
+            expected_out_d.append(e[1][-1])
+        expected_out_k = np.array(expected_out_k)
+        expected_out_d = np.array(expected_out_d)
 
         today = pd.Timestamp('2015')
-        out = np.empty(3, dtype=np.float)
+        out = pd.DataFrame()
         assets = np.arange(3, dtype=np.float)
 
-        fso = FastStochasticOscillator()
-        fso.compute(today, assets, out, closes, lows, highs)
+        fso = FastStochasticOscillator(D_period=fast_dperiod)
+        fso.compute(today, assets, out, closes, lows, highs, D_period=fast_dperiod)
 
-        assert_equal(out, expected_out)
+        assert_equal(out.K, expected_out_k)
+        assert_equal(out.D, expected_out_d)
