@@ -5,6 +5,7 @@ Technical Analysis Factors
 from __future__ import division
 
 from numbers import Number
+import numpy as np
 from numpy import (
     abs,
     arange,
@@ -106,7 +107,9 @@ class SimpleMovingAverage(CustomFactor, SingleInputMixin):
 class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
     """
     Weighted Average Value of an arbitrary column
+
     **Default Inputs**: None
+
     **Default Window Length**: None
     """
     # numpy's nan functions throw warnings when passed an array containing only
@@ -118,7 +121,7 @@ class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
         num_days = data.shape[0]
 
         # Initialize weights array
-        weights = np.arange(1, num_days + 1, dtype=float).reshape(10, 1)
+        weights = np.arange(1, num_days + 1, dtype=float).reshape(num_days, 1)
 
         # Compute normalizer
         normalizer = (num_days * (num_days + 1)) / 2
