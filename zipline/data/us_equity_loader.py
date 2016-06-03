@@ -189,11 +189,11 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
             'splits', sid)
         for s in splits:
             dt = s[0]
-            if field == 'volume':
-                ratio = 1.0 / s[1]
-            else:
-                ratio = s[1]
             if start < dt <= end:
+                if field == 'volume':
+                    ratio = 1.0 / s[1]
+                else:
+                    ratio = s[1]
                 end_loc = dts.searchsorted(dt)
                 adj_loc = end_loc
                 if is_perspective_after:
