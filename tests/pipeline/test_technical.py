@@ -239,7 +239,9 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         assets = np.arange(3, dtype=np.float)
 
         fso = FastStochasticOscillator(D_period=fast_dperiod)
-        fso.compute(today, assets, out, closes, lows, highs, D_period=fast_dperiod)
+        fso.compute(
+            today, assets, out, closes, lows, highs, D_period=fast_dperiod
+        )
 
         assert_equal(out.K, expected_out_k)
         assert_equal(out.D, expected_out_d)
