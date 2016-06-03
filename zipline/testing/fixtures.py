@@ -663,9 +663,9 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
             # source from minute logic.
             'volume': 'last'
         }
-        mm = cls.env.market_minutes
-        m_opens = cls.env.open_and_closes.market_open
-        m_closes = cls.env.open_and_closes.market_close
+        mm = cls.trading_schedule.all_execution_minutes
+        m_opens = cls.trading_schedule.schedule.market_open
+        m_closes = cls.trading_schedule.schedule.market_close
 
         for asset in assets:
             first_minute = m_opens.loc[asset.start_date]
