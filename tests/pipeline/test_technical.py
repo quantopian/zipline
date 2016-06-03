@@ -244,7 +244,7 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
             window_length=10
         )
 
-        today = pd.Timestamp('2014')
+        today = pd.Timestamp('2015')
         assets = np.arange(5, dtype=np.int64)
 
         data = np.ones((10, 5))
@@ -259,7 +259,7 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
             window_length=10
         )
 
-        today = pd.Timestamp('2014')
+        today = pd.Timestamp('2015')
         assets = np.arange(5, dtype=np.int64)
 
         data = np.arange(50, dtype=float).reshape((10, 5))
