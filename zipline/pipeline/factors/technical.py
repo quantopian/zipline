@@ -166,7 +166,8 @@ class RateOfChangePercentage(CustomFactor):
     """
     Rate of change Percentage
     ROC measures the percentage change in price from one period to the next.
-    The ROC calculation compares the current price with the price `n` periods ago.
+    The ROC calculation compares the current price with the price `n`
+    periods ago.
     Formula for calculation: ((price - prevPrice) / prevPrice) * 100
     price - the current price
     prevPrice - the price n days ago, equals window length

@@ -10,7 +10,8 @@ from zipline.pipeline import TermGraph
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
-from zipline.pipeline.factors import BollingerBands, Aroon, RateOfChangePercentage
+from zipline.pipeline.factors import BollingerBands, Aroon, \
+    RateOfChangePercentage
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
