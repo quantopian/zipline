@@ -2,6 +2,8 @@
 Technical Analysis Factors
 --------------------------
 """
+from __future__ import division
+
 from numbers import Number
 from numpy import (
     abs,
@@ -31,6 +33,7 @@ from zipline.utils.numpy_utils import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
     nanargmax,
+    nanargmin,
     nanmax,
     nanmean,
     nanstd,
@@ -739,3 +742,43 @@ class BollingerBands(CustomFactor):
         out.middle = middle = nanmean(close, axis=0)
         out.upper = middle + difference
         out.lower = middle - difference
+
+
+class Aroon(CustomFactor):
+    """
+    Aroon technical indicator.
+    https://www.fidelity.com/learning-center/trading-investing/technical
+    -analysis/technical-indicator-guide/aroon-indicator
+
+    **Defaults Inputs:** USEquityPricing.low, USEquityPricing.high
+
+    Parameters
+    ----------
+    window_length : int > 0
+        Length of the lookback window over which to compute the Aroon
+        indicator.
+    """
+
+    inputs = (USEquityPricing.low, USEquityPricing.high)
+    outputs = ('down', 'up')
+
+    def compute(self, today, assets, out, lows, highs):
+        wl = self.window_length
+        high_date_index = nanargmax(highs, axis=0)
+        low_date_index = nanargmin(lows, axis=0)
+        evaluate(
+            '(100 * high_date_index) / (wl - 1)',
+            local_dict={
+                'high_date_index': high_date_index,
+                'wl': wl,
+            },
+            out=out.up,
+        )
+        evaluate(
+            '(100 * low_date_index) / (wl - 1)',
+            local_dict={
+                'low_date_index': low_date_index,
+                'wl': wl,
+            },
+            out=out.down,
+        )

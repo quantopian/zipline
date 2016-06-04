@@ -1,3 +1,6 @@
+from __future__ import division
+
+from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
 import talib
@@ -7,7 +10,7 @@ from zipline.pipeline import TermGraph
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
-from zipline.pipeline.factors import BollingerBands
+from zipline.pipeline.factors import BollingerBands, Aroon
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
 from zipline.testing.predicates import assert_equal
@@ -138,3 +141,36 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         self.assertIs(lower, bbands.lower)
         self.assertIs(middle, bbands.middle)
         self.assertIs(upper, bbands.upper)
+
+
+class AroonTestCase(ZiplineTestCase):
+    window_length = 10
+    nassets = 5
+    dtype = [('down', 'f8'), ('up', 'f8')]
+
+    @parameterized.expand([
+        (np.arange(window_length),
+         np.arange(window_length) + 1,
+         np.recarray(shape=(nassets,), dtype=dtype,
+                     buf=np.array([0, 100] * nassets, dtype='f8'))),
+        (np.arange(window_length, 0, -1),
+         np.arange(window_length, 0, -1) - 1,
+         np.recarray(shape=(nassets,), dtype=dtype,
+                     buf=np.array([100, 0] * nassets, dtype='f8'))),
+        (np.array([10, 10, 10, 1, 10, 10, 10, 10, 10, 10]),
+         np.array([1, 1, 1, 1, 1, 10, 1, 1, 1, 1]),
+         np.recarray(shape=(nassets,), dtype=dtype,
+                     buf=np.array([100 * 3 / 9, 100 * 5 / 9] * nassets,
+                                  dtype='f8'))),
+    ])
+    def test_aroon_basic(self, lows, highs, expected_out):
+        aroon = Aroon(window_length=self.window_length)
+        today = pd.Timestamp('2014', tz='utc')
+        assets = pd.Index(np.arange(self.nassets, dtype=np.int64))
+        shape = (self.nassets,)
+        out = np.recarray(shape=shape, dtype=self.dtype,
+                          buf=np.empty(shape=shape, dtype=self.dtype))
+
+        aroon.compute(today, assets, out, lows, highs)
+
+        assert_equal(out, expected_out)
