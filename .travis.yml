@@ -4,6 +4,7 @@ fast_finish: true
 python:
   - 2.7
   - 3.4
+  - 3.5
 env:
   global:
     # ANACONDA_TOKEN with api:write
@@ -70,4 +71,3 @@ after_success:
 branches:
   only:
     - master
-    - lazy-mainline
