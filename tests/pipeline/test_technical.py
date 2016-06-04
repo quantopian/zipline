@@ -15,6 +15,7 @@ from zipline.pipeline.factors import (
     Aroon,
     FastStochasticOscillator,
     IchimokuKinkoHyo,
+    RateOfChangePercentage,
 )
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
@@ -354,3 +355,19 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
             str(e.exception),
             '%s must be <= the window_length: 53 > 52' % arg,
         )
+
+
+class TestRateOfChangePercentage(ZiplineTestCase):
+    def test_rate_of_change_per(self):
+        rocp = RateOfChangePercentage(
+            inputs=(USEquityPricing.close,),
+            window_length=10
+        )
+        today = pd.Timestamp('2014')
+        assets = np.arange(5, dtype=np.int64)
+
+        data = np.ones((10, 5))
+        data[0, :] = np.full((1, 5), 2.0)
+        out = np.zeros(data.shape[1])
+        rocp.compute(today, assets, out, data)
+        assert_equal(out, np.full((5,), -50.0))
