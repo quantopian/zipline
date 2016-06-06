@@ -3,7 +3,10 @@ from unittest import TestCase
 from pandas import (
     Timestamp,
     date_range,
+    DatetimeIndex
 )
+
+import numpy as np
 
 from zipline.utils.calendars import (
     get_calendar,
@@ -56,3 +59,51 @@ class TestExchangeTradingSchedule(TestCase):
                 "Mismatch between schedule: %s and calendar: %s at time %s"
                 % (cal_open, sched_exec, dt)
             )
+
+    def test_execution_minute_window_forward(self):
+        dt = Timestamp("11/23/2016 15:00", tz='EST').tz_convert("UTC")
+
+        # 61 minutes left on 11/23, closed 11/24, only 210 minutes on 11/25
+        minutes = self.nyse_exchange_schedule.execution_minute_window(dt, 300)
+
+        np.testing.assert_array_equal(
+            minutes[0:61],
+            DatetimeIndex(
+                start=Timestamp("2016-11-23 20:00", tz='UTC'),
+                end=Timestamp("2016-11-23 21:00", tz='UTC'),
+                freq="min"
+            )
+        )
+
+        np.testing.assert_array_equal(
+            minutes[61:271],
+            DatetimeIndex(
+                start=Timestamp("2016-11-25 14:31", tz='UTC'),
+                end=Timestamp("2016-11-25 18:00", tz='UTC'),
+                freq="min"
+            )
+        )
+
+        np.testing.assert_array_equal(
+            minutes[271:],
+            DatetimeIndex(
+                start=Timestamp("2016-11-28 14:31", tz='UTC'),
+                end=Timestamp("2016-11-28 14:59", tz='UTC'),
+                freq="min"
+            )
+        )
+
+    def test_execution_minute_window_backward(self):
+        end_dt = Timestamp("2016-11-28 14:59", tz='UTC')
+        start_dt = Timestamp("2016-11-23 20:00", tz='UTC')
+
+        from_end_minutes = \
+            self.nyse_exchange_schedule.execution_minute_window(end_dt, -300)
+
+        from_start_minutes = \
+            self.nyse_exchange_schedule.execution_minute_window(start_dt, 300)
+
+        np.testing.assert_array_equal(
+            from_end_minutes,
+            from_start_minutes
+        )
