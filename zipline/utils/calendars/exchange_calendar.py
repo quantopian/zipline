@@ -19,6 +19,7 @@ from abc import (
 )
 
 import pandas as pd
+import numpy as np
 from pandas import (
     DataFrame,
     date_range,
@@ -44,7 +45,6 @@ from .calendar_helpers import (
     days_in_range,
     minutes_for_days_in_range,
     add_scheduled_days,
-    all_scheduled_minutes,
     next_scheduled_minute,
     previous_scheduled_minute,
     minute_window,
@@ -55,6 +55,8 @@ end_base = pd.Timestamp('today', tz='UTC')
 # Give an aggressive buffer for logic that needs to use the next trading
 # day or minute.
 end_default = end_base + pd.Timedelta(days=365)
+
+NANOS_IN_MINUTE = 60000000000
 
 
 def days_at_time(days, t, tz, day_offset=0):
@@ -158,16 +160,18 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
         _all_days = date_range(start, end, freq=self.day, tz='UTC')
 
         # `DatetimeIndex`s of standard opens/closes for each day.
-        _opens = days_at_time(_all_days, self.open_time, tz, open_offset)
-        _closes = days_at_time(_all_days, self.close_time, tz, close_offset)
+        self._opens = days_at_time(_all_days, self.open_time, tz, open_offset)
+        self._closes = days_at_time(
+            _all_days, self.close_time, tz, close_offset
+        )
 
         # `DatetimeIndex`s of nonstandard opens/closes
         _special_opens = self._special_opens(start, end)
         _special_closes = self._special_closes(start, end)
 
         # Overwrite the special opens and closes on top of the standard ones.
-        _overwrite_special_dates(_all_days, _opens, _special_opens)
-        _overwrite_special_dates(_all_days, _closes, _special_closes)
+        _overwrite_special_dates(_all_days, self._opens, _special_opens)
+        _overwrite_special_dates(_all_days, self._closes, _special_closes)
 
         # In pandas 0.16.1 _opens and _closes will lose their timezone
         # information. This looks like it has been resolved in 0.17.1.
@@ -176,8 +180,8 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
             index=_all_days,
             columns=['market_open', 'market_close'],
             data={
-                'market_open': _opens,
-                'market_close': _closes,
+                'market_open': self._opens,
+                'market_close': self._closes,
             },
             dtype='datetime64[ns]',
         )
@@ -417,8 +421,36 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
     @property
     @remember_last
     def all_trading_minutes(self):
-        return all_scheduled_minutes(self.all_trading_days,
-                                     self.trading_minutes_for_days_in_range)
+        opens_in_ns = \
+            self._opens.values.astype('datetime64[ns]').astype(np.int64)
+
+        closes_in_ns = \
+            self._closes.values.astype('datetime64[ns]').astype(np.int64)
+
+        deltas = closes_in_ns - opens_in_ns
+
+        # + 1 because we want 390 days per standard day, not 389
+        daily_sizes = (deltas / NANOS_IN_MINUTE) + 1
+        num_minutes = np.sum(daily_sizes).astype(np.int64)
+
+        # One allocation for the entire thing. This assumes that each day
+        # represents a contiguous block of minutes, which might not always
+        # be the case in the future.
+        all_minutes = np.empty(num_minutes, dtype='datetime64[ns]')
+
+        idx = 0
+        for day_idx, size in enumerate(daily_sizes):
+            # lots of small allocations, but it's fast enough for now.
+            all_minutes[idx:(idx + size)] = \
+                np.arange(
+                    opens_in_ns[day_idx],
+                    closes_in_ns[day_idx] + NANOS_IN_MINUTE,
+                    NANOS_IN_MINUTE
+                )
+
+            idx += size
+
+        return DatetimeIndex(all_minutes).tz_localize("UTC")
 
     @abstractmethod
     def open_and_close(self, date):
