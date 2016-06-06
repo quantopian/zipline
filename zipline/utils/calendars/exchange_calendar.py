@@ -47,7 +47,6 @@ from .calendar_helpers import (
     add_scheduled_days,
     next_scheduled_minute,
     previous_scheduled_minute,
-    minute_window,
 )
 
 start_default = pd.Timestamp('1990-01-01', tz='UTC')
@@ -284,15 +283,6 @@ class ExchangeCalendar(with_metaclass(ABCMeta)):
             is_scheduled_day_hook=self.is_open_on_day,
             open_and_close_hook=self.open_and_close,
             previous_open_and_close_hook=self.previous_open_and_close,
-        )
-
-    def trading_minute_window(self, start, count, step=1):
-        return minute_window(
-            start, count, step,
-            schedule=self.schedule,
-            is_scheduled_minute_hook=self.is_open_on_minute,
-            session_date_hook=self.session_date,
-            minutes_for_date_hook=self.trading_minutes_for_day,
         )
 
     def _special_dates(self, calendars, ad_hoc_dates, start_date, end_date):

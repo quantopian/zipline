@@ -33,8 +33,7 @@ from .calendar_helpers import (
     add_scheduled_days,
     all_scheduled_minutes,
     next_scheduled_minute,
-    previous_scheduled_minute,
-    minute_window,
+    previous_scheduled_minute
 )
 
 
@@ -137,14 +136,14 @@ class TradingSchedule(with_metaclass(ABCMeta)):
             previous_open_and_close_hook=self.previous_start_and_end,
         )
 
-    def execution_minute_window(self, start, count, step=1):
-        return minute_window(
-            start, count, step,
-            schedule=self.schedule,
-            is_scheduled_minute_hook=self.is_executing_on_minute,
-            session_date_hook=self.session_date,
-            minutes_for_date_hook=self.execution_minutes_for_day,
-        )
+    def execution_minute_window(self, start, count):
+        start_idx = self.all_execution_minutes.get_loc(start)
+        end_idx = start_idx + count
+
+        if start_idx > end_idx:
+            return self.all_execution_minutes[(end_idx + 1):(start_idx + 1)]
+        else:
+            return self.all_execution_minutes[start_idx:end_idx]
 
     @abstractproperty
     def day(self):
