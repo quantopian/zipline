@@ -556,25 +556,27 @@ class DataPortal(object):
             self.MINUTE_PRICE_ADJUSTMENT_FACTOR = \
                 self._equity_minute_reader._ohlc_inverse
 
-        self.set_first_trading_day(first_trading_day)
-
-    def set_first_trading_day(self, first_trading_day):
         self._first_trading_day = first_trading_day
 
         # Get the first trading minute
-        if self._first_trading_day is not None:
-            self._first_trading_minute, _ = \
-                self.trading_schedule.start_and_end(self._first_trading_day)
+        self._first_trading_minute, _ = (
+            self.trading_schedule.start_and_end(self._first_trading_day)
+            if self._first_trading_day is not None else (None, None)
+        )
 
-            # Store the locs of the first day and first minute
-            self._first_trading_day_loc = \
-                self.trading_schedule.all_execution_days.get_loc(
-                    self.trading_schedule.session_date(self._first_trading_day)
-                )
-            self._first_trading_minute_loc = \
-                self.trading_schedule.all_execution_minutes.get_loc(
-                    self._first_trading_minute
-                )
+        # Store the locs of the first day and first minute
+        self._first_trading_day_loc = (
+            self.trading_schedule.all_execution_days.get_loc(
+                self.trading_schedule.session_date(self._first_trading_day)
+            )
+            if self._first_trading_day is not None else None
+        )
+        self._first_trading_minute_loc = (
+            self.trading_schedule.all_execution_minutes.get_loc(
+                self._first_trading_minute
+            )
+            if self._first_trading_minute is not None else None
+        )
 
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')

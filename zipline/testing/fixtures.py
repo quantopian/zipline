@@ -1188,18 +1188,21 @@ class WithDataPortal(WithAdjustmentReader,
     DATA_PORTAL_USE_MINUTE_DATA = True
     DATA_PORTAL_USE_ADJUSTMENTS = True
 
+    DATA_PORTAL_FIRST_TRADING_DAY = None
+
     def make_data_portal(self):
-        if self.DATA_PORTAL_USE_MINUTE_DATA:
-            first_trading_day = self.bcolz_minute_bar_reader.first_trading_day
-        elif self.DATA_PORTAL_USE_DAILY_DATA:
-            first_trading_day = self.bcolz_daily_bar_reader.first_trading_day
-        else:
-            first_trading_day = None
+        if self.DATA_PORTAL_FIRST_TRADING_DAY is None:
+            if self.DATA_PORTAL_USE_MINUTE_DATA:
+                self.DATA_PORTAL_FIRST_TRADING_DAY = (
+                    self.bcolz_minute_bar_reader.first_trading_day)
+            elif self.DATA_PORTAL_USE_DAILY_DATA:
+                self.DATA_PORTAL_FIRST_TRADING_DAY = (
+                    self.bcolz_daily_bar_reader.first_trading_day)
 
         return DataPortal(
             self.env.asset_finder,
             self.trading_schedule,
-            first_trading_day=first_trading_day,
+            first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,
             equity_daily_reader=(
                 self.bcolz_daily_bar_reader
                 if self.DATA_PORTAL_USE_DAILY_DATA else
