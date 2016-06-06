@@ -27,7 +27,8 @@ from zipline.testing import (
 from zipline.testing.fixtures import (
     WithBcolzMinuteBarReader,
     WithDataPortal,
-    ZiplineTestCase
+    ZiplineTestCase,
+    alias,
 )
 
 
@@ -447,6 +448,7 @@ MINUTE_FIELD_INFO = {
 class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
     BCOLZ_DAILY_BAR_SOURCE_FROM_MINUTE = True
+    DATA_PORTAL_FIRST_TRADING_DAY = alias('TRADING_START_DT')
 
     @classmethod
     def make_minute_bar_data(cls):
@@ -1006,7 +1008,6 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-        self.data_portal.set_first_trading_day(self.TRADING_START_DT)
         first_day_minutes = self.trading_schedule.execution_minutes_for_day(
             self.TRADING_START_DT
         )
@@ -1514,8 +1515,6 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-
-        self.data_portal.set_first_trading_day(self.TRADING_START_DT)
         second_day = self.trading_schedule.next_execution_day(
             self.TRADING_START_DT
         )
