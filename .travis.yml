@@ -70,4 +70,4 @@ after_success:
 branches:
   only:
     - master
-    - lazy-mainline
+    - exchange-calendars-v2

@@ -1182,6 +1182,19 @@ class DataPortal(object):
 
             return daily_data
 
+    def _handle_history_out_of_bounds(self, bar_count):
+        suggested_start_day = (
+            self.trading_schedule.all_execution_minutes[
+                self._first_trading_minute_loc + bar_count
+            ] + self.trading_schedule.day
+        ).date()
+
+        raise HistoryWindowStartsBeforeData(
+            first_trading_day=self._first_trading_day.date(),
+            bar_count=bar_count,
+            suggested_start_day=suggested_start_day,
+        )
+
     def _get_history_minute_window(self, assets, end_dt, bar_count,
                                    field_to_use):
         """
@@ -1189,21 +1202,15 @@ class DataPortal(object):
         of minute frequency for the given sids.
         """
         # get all the minutes for this window
-        mm = self.trading_schedule.all_execution_minutes
-        end_loc = mm.get_loc(end_dt)
-        start_loc = end_loc - bar_count + 1
-        if start_loc < self._first_trading_minute_loc:
-            suggested_start_day = (
-                mm[
-                    self._first_trading_minute_loc + bar_count
-                ] + self.trading_schedule.day
-            ).date()
-            raise HistoryWindowStartsBeforeData(
-                first_trading_day=self._first_trading_day.date(),
-                bar_count=bar_count,
-                suggested_start_day=suggested_start_day,
+        try:
+            minutes_for_window = self.trading_schedule.execution_minute_window(
+                end_dt, -bar_count
             )
-        minutes_for_window = mm[start_loc:end_loc + 1]
+        except KeyError:
+            self._handle_history_out_of_bounds(bar_count)
+
+        if minutes_for_window[0] < self._first_trading_minute:
+            self._handle_history_out_of_bounds(bar_count)
 
         asset_minute_data = self._get_minute_window_for_assets(
             assets,
