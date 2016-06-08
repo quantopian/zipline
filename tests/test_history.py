@@ -504,7 +504,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 pd.Timestamp('2015-01-07', tz='UTC'),
                 start_val=1000),
             create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 pd.Timestamp('2015-01-08', tz='UTC'),
                 pd.Timestamp('2015-01-08', tz='UTC'),
                 start_val=1000)
@@ -564,7 +564,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             # before any of the adjustments, 1/4 and 1/5
             window1 = self.data_portal.get_history_window(
                 [asset],
-                self.env.get_open_and_close(jan5)[1],
+                self.trading_schedule.start_and_end(jan5)[1],
                 2,
                 '1d',
                 'close'
@@ -625,7 +625,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # before any of the dividends
         window1 = self.data_portal.get_history_window(
             [asset],
-            self.env.get_open_and_close(jan5)[1],
+            self.trading_schedule.start_and_end(jan5)[1],
             2,
             '1d',
             'close'
