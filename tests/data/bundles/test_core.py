@@ -16,7 +16,6 @@ from zipline.pipeline.loaders.synthetic import (
 from zipline.testing import (
     subtest,
     str_to_seconds,
-    tmp_trading_env,
 )
 from zipline.testing.fixtures import WithInstanceTmpDir, ZiplineTestCase
 from zipline.testing.predicates import (
@@ -110,13 +109,13 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         assert_true(called[0])
 
     def test_ingest(self):
-        env = self.enter_instance_context(tmp_trading_env())
-
         start = pd.Timestamp('2014-01-06', tz='utc')
         end = pd.Timestamp('2014-01-10', tz='utc')
         trading_days = get_calendar('NYSE').all_trading_days
         calendar = trading_days[trading_days.slice_indexer(start, end)]
-        minutes = env.minutes_for_days_in_range(calendar[0], calendar[-1])
+        minutes = get_calendar('NYSE').trading_minutes_for_days_in_range(
+            calendar[0], calendar[-1]
+        )
 
         sids = tuple(range(3))
         equities = make_simple_equity_info(
@@ -142,10 +141,14 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
             },
         ])
 
-        @self.register('bundle',
-                       calendar=calendar,
-                       opens=env.opens_in_range(calendar[0], calendar[-1]),
-                       closes=env.closes_in_range(calendar[0], calendar[-1]))
+        schedule = get_calendar('NYSE').schedule
+
+        @self.register(
+            'bundle',
+            calendar=calendar,
+            opens=schedule.market_open[calendar[0]:calendar[-1]],
+            closes=schedule.market_close[calendar[0]: calendar[-1]],
+        )
         def bundle_ingest(environ,
                           asset_db_writer,
                           minute_bar_writer,
