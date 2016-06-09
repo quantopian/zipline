@@ -55,6 +55,6 @@ def main(env, do_upload):
 if __name__ == '__main__':
     env = os.environ.copy()
     main(env,
-         do_upload=(env.get('ANACONDA_TOKEN') and
-                    env.get('APPVEYOR_REPO_BRANCH') == 'master') and
-                    'APPVEYOR_PULL_REQUEST_NUMBER' not in env)
+         do_upload=((env.get('ANACONDA_TOKEN')
+                     and env.get('APPVEYOR_REPO_BRANCH') == 'master')
+                    and 'APPVEYOR_PULL_REQUEST_NUMBER' not in env))

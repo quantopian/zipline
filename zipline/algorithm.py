@@ -53,8 +53,12 @@ from zipline.errors import (
     UnsupportedDatetimeFormat,
     UnsupportedOrderParameters,
     UnsupportedSlippageModel,
-    CannotOrderDelistedAsset, UnsupportedCancelPolicy, SetCancelPolicyPostInit,
-    OrderInBeforeTradingStart)
+    CannotOrderDelistedAsset,
+    UnsupportedCancelPolicy,
+    SetCancelPolicyPostInit,
+    OrderInBeforeTradingStart,
+    ScheduleFunctionWithoutCalendar,
+)
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
 from zipline.finance.commission import PerShare, CommissionModel
@@ -94,6 +98,10 @@ from zipline.utils.api_support import (
 
 from zipline.utils.input_validation import ensure_upper_case, error_keywords
 from zipline.utils.cache import CachedObject, Expired
+from zipline.utils.calendars import (
+    default_nyse_schedule,
+    ExchangeTradingSchedule,
+)
 import zipline.utils.events
 from zipline.utils.events import (
     EventManager,
@@ -273,6 +281,12 @@ class TradingAlgorithm(object):
                 futures=kwargs.pop('futures_metadata', None),
             )
 
+        # If a schedule has been provided, pop it. Otherwise, use NYSE.
+        self.trading_schedule = kwargs.pop(
+            'trading_schedule',
+            default_nyse_schedule,
+        )
+
         # set the capital base
         self.capital_base = kwargs.pop('capital_base', DEFAULT_CAPITAL_BASE)
         self.sim_params = kwargs.pop('sim_params', None)
@@ -281,10 +295,12 @@ class TradingAlgorithm(object):
                 capital_base=self.capital_base,
                 start=kwargs.pop('start', None),
                 end=kwargs.pop('end', None),
-                env=self.trading_environment,
+                trading_schedule=self.trading_schedule,
             )
         else:
-            self.sim_params.update_internal_from_env(self.trading_environment)
+            self.sim_params.update_internal_from_trading_schedule(
+                self.trading_schedule
+            )
 
         self.perf_tracker = None
         # Pull in the environment's new AssetFinder for quick reference
@@ -411,7 +427,7 @@ class TradingAlgorithm(object):
         if get_loader is not None:
             self.engine = SimplePipelineEngine(
                 get_loader,
-                self.trading_environment.trading_days,
+                self.trading_schedule.all_execution_days,
                 self.asset_finder,
             )
         else:
@@ -484,8 +500,7 @@ class TradingAlgorithm(object):
         If the clock property is not set, then create one based on frequency.
         """
         if self.sim_params.data_frequency == 'minute':
-            env = self.trading_environment
-            trading_o_and_c = env.open_and_closes.ix[
+            trading_o_and_c = self.trading_schedule.schedule.ix[
                 self.sim_params.trading_days]
             market_opens = trading_o_and_c['market_open'].values.astype(
                 'datetime64[ns]').astype(np.int64)
@@ -506,10 +521,11 @@ class TradingAlgorithm(object):
 
     def _create_benchmark_source(self):
         return BenchmarkSource(
-            self.benchmark_sid,
-            self.trading_environment,
-            self.sim_params.trading_days,
-            self.data_portal,
+            benchmark_sid=self.benchmark_sid,
+            env=self.trading_environment,
+            trading_schedule=self.trading_schedule,
+            trading_days=self.sim_params.trading_days,
+            data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
         )
 
@@ -522,6 +538,7 @@ class TradingAlgorithm(object):
             # None so that it will be overwritten here.
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
+                trading_schedule=self.trading_schedule,
                 env=self.trading_environment,
             )
 
@@ -600,8 +617,8 @@ class TradingAlgorithm(object):
                     self.sim_params.period_end = data.major_axis[-1]
                     # Changing period_start and period_close might require
                     # updating of first_open and last_close.
-                    self.sim_params.update_internal_from_env(
-                        env=self.trading_environment
+                    self.sim_params.update_internal_from_trading_schedule(
+                        trading_schedule=self.trading_schedule
                     )
 
                 copy_panel = data.rename(
@@ -615,16 +632,17 @@ class TradingAlgorithm(object):
                     copy_panel.items, copy_panel.major_axis[0],
                 )
                 self._assets_from_source = (
-                    self.trading_environment.asset_finder.retrieve_all(
+                    self.asset_finder.retrieve_all(
                         copy_panel.items
                     )
                 )
                 equity_daily_reader = PanelDailyBarReader(
-                    self.trading_environment.trading_days,
+                    self.trading_schedule.all_execution_days,
                     copy_panel,
                 )
                 self.data_portal = DataPortal(
-                    self.trading_environment,
+                    self.asset_finder,
+                    self.trading_schedule,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
@@ -735,7 +753,7 @@ class TradingAlgorithm(object):
             fake_sids = range(first_sid, first_sid + len(new_symbols))
             frame_to_write = make_simple_equity_info(
                 sids=fake_sids,
-                start_date=self.sim_params.period_start,
+                start_date=as_of_date,
                 end_date=self.sim_params.period_end,
                 symbols=new_symbols,
             )
@@ -895,7 +913,8 @@ class TradingAlgorithm(object):
             url,
             pre_func,
             post_func,
-            self.trading_environment,
+            self.asset_finder,
+            self.trading_schedule.day,
             self.sim_params.period_start,
             self.sim_params.period_end,
             date_column,
@@ -969,8 +988,18 @@ class TradingAlgorithm(object):
                      # If we are in daily mode the time_rule is ignored.
                      time_rules.every_minute())
 
+        # Check the type of the algorithm's schedule before pulling calendar
+        # Note that the ExchangeTradingSchedule is currently the only
+        # TradingSchedule class, so this is unlikely to be hit
+        # TODO The calendar should be a required arg for schedule_function
+        if not isinstance(self.trading_schedule, ExchangeTradingSchedule):
+            raise ScheduleFunctionWithoutCalendar(
+                schedule=self.trading_schedule
+            )
+        cal = self.trading_schedule._exchange_calendar
+
         self.add_event(
-            make_eventrule(date_rule, time_rule, half_days),
+            make_eventrule(date_rule, time_rule, cal, half_days),
             func,
         )
 
@@ -1934,7 +1963,9 @@ class TradingAlgorithm(object):
             # If we are in before_trading_start, we need to get the window
             # as of the previous market minute
             adjusted_dt = \
-                self.data_portal.env.previous_market_minute(self.datetime)
+                self.data_portal.trading_schedule.previous_execution_minute(
+                    self.datetime
+                )
 
             window = self.data_portal.get_history_window(
                 assets,
@@ -2210,7 +2241,7 @@ class TradingAlgorithm(object):
         --------
         PipelineEngine.run_pipeline
         """
-        days = self.trading_environment.trading_days
+        days = self.trading_schedule.all_execution_days
 
         # Load data starting from the previous trading day...
         start_date_loc = days.get_loc(start_date)

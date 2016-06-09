@@ -30,11 +30,13 @@ from zipline.testing import (
 from zipline.testing.fixtures import (
     WithDataPortal,
     WithSimParams,
+    WithTradingSchedule,
     ZiplineTestCase,
 )
 
 
-class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
+class TestBenchmark(WithDataPortal, WithSimParams, WithTradingSchedule,
+                    ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-29', tz='utc')
 
@@ -85,7 +87,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
         days_to_use = self.sim_params.trading_days[1:]
 
         source = BenchmarkSource(
-            1, self.env, days_to_use, self.data_portal
+            1, self.env, self.trading_schedule, days_to_use, self.data_portal
         )
 
         # should be the equivalent of getting the price history, then doing
@@ -111,6 +113,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             BenchmarkSource(
                 3,
                 self.env,
+                self.trading_schedule,
                 self.sim_params.trading_days[1:],
                 self.data_portal
             )
@@ -125,6 +128,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             BenchmarkSource(
                 3,
                 self.env,
+                self.trading_schedule,
                 self.sim_params.trading_days[120:],
                 self.data_portal
             )
@@ -138,19 +142,19 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
     def test_asset_IPOed_same_day(self):
         # gotta get some minute data up in here.
         # add sid 4 for a couple of days
-        minutes = self.env.minutes_for_days_in_range(
+        minutes = self.trading_schedule.execution_minutes_for_days_in_range(
             self.sim_params.trading_days[0],
             self.sim_params.trading_days[5]
         )
 
         tmp_reader = tmp_bcolz_minute_bar_reader(
-            self.env,
-            self.env.trading_days,
+            self.trading_schedule,
+            self.trading_schedule.all_execution_days,
             create_minute_bar_data(minutes, [2]),
         )
         with tmp_reader as reader:
             data_portal = DataPortal(
-                self.env,
+                self.env.asset_finder, self.trading_schedule,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
                 equity_daily_reader=self.bcolz_daily_bar_reader,
@@ -160,6 +164,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             source = BenchmarkSource(
                 2,
                 self.env,
+                self.trading_schedule,
                 self.sim_params.trading_days,
                 data_portal
             )
@@ -188,7 +193,8 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
             BenchmarkSource(
-                4, self.env, self.sim_params.trading_days, self.data_portal
+                4, self.env, self.trading_schedule,
+                self.sim_params.trading_days, self.data_portal
             )
 
         self.assertEqual("4 cannot be used as the benchmark because it has a "

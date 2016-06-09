@@ -5,6 +5,9 @@ from itertools import product
 import operator as op
 
 import pandas as pd
+from distutils.version import StrictVersion
+
+pandas_version = StrictVersion(pd.__version__)
 
 
 def explode(df):
@@ -17,39 +20,28 @@ def explode(df):
 
 
 try:
-    # pandas 0.16 compat
-    _df_sort_values = pd.DataFrame.sort_values
-    _series_sort_values = pd.Series.sort_values
+    # This branch is hit in pandas 17
+    sort_values = pd.DataFrame.sort_values
 except AttributeError:
-    _df_sort_values = pd.DataFrame.sort
-    _series_sort_values = pd.Series.sort
+    # This branch is hit in pandas 16
+    sort_values = pd.DataFrame.sort
 
-
-def sort_values(ob, *args, **kwargs):
-    if isinstance(ob, pd.DataFrame):
-        return _df_sort_values(ob, *args, **kwargs)
-    elif isinstance(ob, pd.Series):
-        return _series_sort_values(ob, *args, **kwargs)
-    raise ValueError(
-        'sort_values expected a dataframe or series, not %s: %r' % (
-            type(ob).__name__, ob,
-        ),
-    )
+if pandas_version >= StrictVersion('0.17.1'):
+    july_5th_holiday_observance = lambda dtix: dtix[dtix.year != 2013]
+else:
+    july_5th_holiday_observance = lambda dt: None if dt.year == 2013 else dt
 
 
 def _time_to_micros(time):
     """Convert a time into microseconds since midnight.
-
     Parameters
     ----------
     time : datetime.time
         The time to convert.
-
     Returns
     -------
     us : int
         The number of microseconds since midnight.
-
     Notes
     -----
     This does not account for leap seconds or daylight savings.
@@ -67,7 +59,6 @@ _opmap = dict(zip(
 def mask_between_time(dts, start, end, include_start=True, include_end=True):
     """Return a mask of all of the datetimes in ``dts`` that are between
     ``start`` and ``end``.
-
     Parameters
     ----------
     dts : pd.DatetimeIndex
@@ -80,12 +71,10 @@ def mask_between_time(dts, start, end, include_start=True, include_end=True):
         Inclusive on ``start``.
     include_end : bool, optional
         Inclusive on ``end``.
-
     Returns
     -------
     mask : np.ndarray[bool]
         A bool array masking ``dts``.
-
     See Also
     --------
     :meth:`pandas.DatetimeIndex.indexer_between_time`
