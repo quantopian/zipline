@@ -105,18 +105,18 @@ class BenchmarkSource(object):
     def _initialize_precalculated_series(self, asset, trading_schedule,
                                          trading_days, data_portal):
         """
-        Internal method that precalculates the benchmark return series for
+        Internal method that pre-calculates the benchmark return series for
         use in the simulation.
 
         Parameters
         ----------
         asset:  Asset to use
 
-        env: TradingEnvironment
+        trading_schedule: TradingSchedule
 
         trading_days: pd.DateTimeIndex
 
-        trading_schedule: TradingSchedule
+        data_portal: DataPortal
 
         Notes
         -----
