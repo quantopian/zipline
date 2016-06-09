@@ -344,76 +344,6 @@ class TestStatelessRules(RuleTestCase):
             )
         )
 
-    @parameterized.expand([
-        # No more trading days starting from the new week
-        ('2016-01-08', '2016-01-11', '2016-01-04', None, 0, True),
-        # New week has a trading day, but no more after that day
-        ('2016-01-11', '2016-01-11', '2016-01-05', '2016-01-11', 1, True),
-        ('2016-01-11', '2016-01-11', '2016-01-07', '2016-01-11', 3, True),
-        # Has not had a previous trigger calculated yet
-        ('2016-01-11', '2016-01-11', None, '2016-01-11', 3, False),
-    ])
-    def test_NthTradingDayOfWeek_no_days_left(self, max_date, dt,
-                                              expected_trigger,
-                                              first_trading_day_of_week,
-                                              offset,
-                                              has_previous_trigger):
-        """
-        Test that when we try to calculate the first trading day of week but
-        there are no trading days left going forward,
-        we don't crash and instead don't update the trigger
-        """
-        max_date = pd.Timestamp(max_date, tz='UTC')
-        dt = pd.Timestamp(dt, tz='UTC')
-        env = TradingEnvironment(max_date=max_date)
-        rule = NthTradingDayOfWeek(offset)
-
-        if has_previous_trigger:
-            next_midnight_timestamp = pd.Timestamp(expected_trigger, tz='UTC')
-            next_date_start, next_date_end = \
-                env.get_open_and_close(next_midnight_timestamp)
-        else:
-            next_midnight_timestamp = next_date_start = next_date_end = None
-
-        rule.next_midnight_timestamp = next_midnight_timestamp
-        rule.next_date_start = next_date_start
-        rule.next_date_end = next_date_end
-
-        expected_first_trading_day_of_week = \
-            pd.Timestamp(first_trading_day_of_week, tz='UTC') \
-            if first_trading_day_of_week else None
-
-        self.assertEqual(rule.get_first_trading_day_of_week(dt, env),
-                         expected_first_trading_day_of_week)
-        self.assertEqual(rule.should_trigger(dt, env), False)
-        self.assertEqual(rule.next_date_end, next_date_end)
-        self.assertEqual(rule.next_date_start, next_date_start)
-        self.assertEqual(rule.next_midnight_timestamp, next_midnight_timestamp)
-
-    @parameterized.expand([
-        ('2016-01-04', '2016-01-04', 1), ('2016-01-04', '2016-01-04', 2),
-    ])
-    def test_NthTradingDayOfMonth_no_days_left(self, max_date, dt, offset):
-        max_date = pd.Timestamp(max_date, tz='UTC')
-        dt = pd.Timestamp(dt, tz='UTC')
-        env = TradingEnvironment(max_date=max_date)
-        rule = NthTradingDayOfMonth(offset)
-
-        self.assertEqual(rule.get_trigger_day_of_month(dt, env), None)
-
-    @parameterized.expand([
-        ('2016-01-29', '2016-01-29', 1), ('2016-01-29', '2016-01-29', 2),
-    ])
-    def test_NDaysBeforeLastTradingDayOfMonth_no_days_left(self, min_date, dt,
-                                                           offset):
-        min_date = pd.Timestamp(min_date, tz='UTC')
-        dt = pd.Timestamp(dt, tz='UTC')
-        env = TradingEnvironment(min_date=min_date)
-        rule = NDaysBeforeLastTradingDayOfMonth(offset, True)
-
-        self.assertEqual(rule.get_trigger_day_of_month(dt, env),
-                         None)
-
     @subtest(param_range(MAX_WEEK_RANGE), 'n')
     def test_NthTradingDayOfWeek(self, n):
         should_trigger = partial(NthTradingDayOfWeek(n).should_trigger,
@@ -568,8 +498,7 @@ class TestStatelessRules(RuleTestCase):
     @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfMonth(self, n):
         should_trigger = partial(
-            NDaysBeforeLastTradingDayOfMonth(n, True).should_trigger,
-            env=self.env
+            NDaysBeforeLastTradingDayOfMonth(n).should_trigger, env=self.env
         )
         for n_days_before, d in enumerate(reversed(self.sept_days)):
             for m in self.env.market_minutes_for_day(d):
