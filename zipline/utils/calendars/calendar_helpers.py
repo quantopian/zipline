@@ -73,7 +73,7 @@ def next_scheduled_day(date, last_trading_day, is_scheduled_day_hook):
         dt += delta
         if is_scheduled_day_hook(dt):
             return dt
-    return None
+    raise NoFurtherDataError(msg='Cannot find next day after %s' % date)
 
 
 def previous_scheduled_day(date, first_trading_day, is_scheduled_day_hook):
@@ -97,7 +97,7 @@ def previous_scheduled_day(date, first_trading_day, is_scheduled_day_hook):
         dt += delta
         if is_scheduled_day_hook(dt):
             return dt
-    return None
+    raise NoFurtherDataError(msg='Cannot find previous day before %s' % date)
 
 
 def next_open_and_close(date, open_and_close_hook,
