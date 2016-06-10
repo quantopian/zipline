@@ -1,5 +1,3 @@
-import abc
-
 from datashape import istabular
 
 from .core import (
@@ -7,6 +5,10 @@ from .core import (
     ffill_query_in_range,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
+from zipline.pipeline.loaders.events import (
+    EventsLoader,
+    required_event_fields,
+)
 from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
@@ -56,40 +58,36 @@ class BlazeEventsLoader(PipelineLoader):
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
     start the backtest with knowledge of all announcements.
     """
-    default_dataset = None
 
     @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,
                  expr,
+                 next_value_columns,
+                 previous_value_columns,
                  resources=None,
                  odo_kwargs=None,
                  data_query_time=None,
-                 data_query_tz=None,
-                 dataset=default_dataset):
-        if dataset is None:
-            dataset = self.default_dataset
+                 data_query_tz=None):
 
         dshape = expr.dshape
-
         if not istabular(dshape):
             raise ValueError(
                 'expression dshape must be tabular, got: %s' % dshape,
             )
 
-        expected_fields = self._expected_fields
+        required_cols = list(
+            required_event_fields(next_value_columns, previous_value_columns)
+        )
         self._expr = bind_expression_to_resources(
-            expr[list(expected_fields)],
+            expr[required_cols],
             resources,
         )
+        self._next_value_columns = next_value_columns
+        self._previous_value_columns = previous_value_columns
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
-        self._dataset = dataset
         check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
-
-    @abc.abstractproperty
-    def concrete_loader(self):
-        NotImplementedError('concrete_loader')
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         data_query_time = self._data_query_time
@@ -120,13 +118,14 @@ class BlazeEventsLoader(PipelineLoader):
                 inplace=True,
                 ts_field=TS_FIELD_NAME,
             )
-        gb = raw.groupby(SID_FIELD_NAME)
-        return self.concrete_loader(
-            dates,
-            self.prepare_data(raw, gb),
-            dataset=self._dataset,
-        ).load_adjusted_array(columns, dates, assets, mask)
 
-    def prepare_data(self, raw, gb):
-        return {sid: raw.loc[group].drop(SID_FIELD_NAME, axis=1) for sid, group
-                in gb.groups.items()}
+        return EventsLoader(
+            events=raw,
+            next_value_columns=self._next_value_columns,
+            previous_value_columns=self._previous_value_columns,
+        ).load_adjusted_array(
+            columns,
+            dates,
+            assets,
+            mask,
+        )

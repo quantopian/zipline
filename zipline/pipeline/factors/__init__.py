@@ -5,13 +5,8 @@ from .factor import (
     RecarrayField,
 )
 from .events import (
-    BusinessDaysSince13DFilingsDate,
-    BusinessDaysSinceBuybackAuth,
-    BusinessDaysSinceDividendAnnouncement,
-    BusinessDaysSincePreviousEarnings,
-    BusinessDaysSincePreviousExDate,
-    BusinessDaysUntilNextEarnings,
-    BusinessDaysUntilNextExDate,
+    BusinessDaysSincePreviousEvent,
+    BusinessDaysUntilNextEvent,
 )
 from .technical import (
     Aroon,
@@ -37,13 +32,8 @@ __all__ = [
     'Aroon',
     'AverageDollarVolume',
     'BollingerBands',
-    'BusinessDaysSince13DFilingsDate',
-    'BusinessDaysSinceBuybackAuth',
-    'BusinessDaysSinceDividendAnnouncement',
-    'BusinessDaysSincePreviousEarnings',
-    'BusinessDaysSincePreviousExDate',
-    'BusinessDaysUntilNextEarnings',
-    'BusinessDaysUntilNextExDate',
+    'BusinessDaysSincePreviousEvent',
+    'BusinessDaysUntilNextEvent',
     'CustomFactor',
     'EWMA',
     'EWMSTD',

@@ -23,7 +23,6 @@ from .core import (  # noqa
     empty_asset_finder,
     empty_assets_db,
     empty_trading_env,
-    gen_calendars,
     make_test_handler,
     make_trade_data_for_asset_info,
     parameter_space,
