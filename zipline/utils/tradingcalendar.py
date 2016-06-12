@@ -19,6 +19,10 @@ from datetime import datetime
 from dateutil import rrule
 from functools import partial
 
+# IMPORTANT: This module is deprecated and is only here for temporary backwards
+# compatibility.  Look at the `zipline.utils.calendars.trading_schedule`
+# module, as well as the calendar definitions in `zipline.utils.calendars`.
+
 start = pd.Timestamp('1990-01-01', tz='UTC')
 end_base = pd.Timestamp('today', tz='UTC')
 # Give an aggressive buffer for logic that needs to use the next trading

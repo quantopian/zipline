@@ -29,7 +29,11 @@ from zipline.utils.compat import mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
-from zipline.utils.tradingcalendar import trading_days, open_and_closes
+from zipline.utils.calendars import get_calendar
+
+nyse_cal = get_calendar('NYSE')
+trading_days = nyse_cal.all_trading_days
+open_and_closes = nyse_cal.schedule
 
 
 def asset_db_path(bundle_name, timestr, environ=None):

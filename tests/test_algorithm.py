@@ -97,6 +97,7 @@ from zipline.testing.fixtures import (
     WithSimParams,
     WithTradingEnvironment,
     WithTmpDir,
+    WithTradingSchedule,
     ZiplineTestCase,
 )
 from zipline.test_algorithms import (
@@ -166,7 +167,6 @@ from zipline.utils.control_flow import nullctx
 import zipline.utils.events
 from zipline.utils.events import date_rules, time_rules, Always
 import zipline.utils.factory as factory
-from zipline.utils.tradingcalendar import trading_day, trading_days
 
 # Because test cases appear to reuse some resources.
 
@@ -751,7 +751,7 @@ class TestTransformAlgorithm(WithLogger,
                     [100, 100, 100, 300],
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env
+                    cls.trading_schedule,
                 ) for sid in cls.sids
             },
             index=cls.sim_params.trading_days,
@@ -826,7 +826,7 @@ def before_trading_start(context, data):
         self.sim_params.data_frequency = 'daily'
 
         sim_params = factory.create_simulation_parameters(
-            num_days=4, env=self.env, data_frequency='daily')
+            num_days=4, data_frequency='daily')
 
         algo = TestRegisterTransformAlgorithm(
             sim_params=sim_params,
@@ -835,7 +835,7 @@ def before_trading_start(context, data):
         self.assertEqual(algo.sim_params.data_frequency, 'daily')
 
         sim_params = factory.create_simulation_parameters(
-            num_days=4, env=self.env, data_frequency='minute')
+            num_days=4, data_frequency='minute')
 
         algo = TestRegisterTransformAlgorithm(
             sim_params=sim_params,
@@ -953,14 +953,15 @@ def before_trading_start(context, data):
                 period_end=period_end,
                 capital_base=float("1.0e5"),
                 data_frequency='minute',
-                env=env
+                trading_schedule=self.trading_schedule,
             )
 
             data_portal = create_data_portal(
-                env,
+                env.asset_finder,
                 tempdir,
                 sim_params,
                 equities.index,
+                self.trading_schedule,
             )
             algo = algo_class(sim_params=sim_params, env=env)
             algo.run(data_portal)
@@ -1022,10 +1023,11 @@ class TestBeforeTradingStart(WithDataPortal,
 
     @classmethod
     def make_minute_bar_data(cls):
-        asset_minutes = cls.env.minutes_for_days_in_range(
-            cls.data_start,
-            cls.END_DATE,
-        )
+        asset_minutes = \
+            cls.trading_schedule.execution_minutes_for_days_in_range(
+                cls.data_start,
+                cls.END_DATE,
+            )
         minutes_count = len(asset_minutes)
         minutes_arr = np.arange(minutes_count) + 1
         split_data = pd.DataFrame(
@@ -1041,13 +1043,13 @@ class TestBeforeTradingStart(WithDataPortal,
         split_data.iloc[780:] = split_data.iloc[780:] / 2.0
         for sid in (1, 8554):
             yield sid, create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 cls.data_start,
                 cls.sim_params.period_end,
             )
 
         yield 2, create_minute_df_for_asset(
-            cls.env,
+            cls.trading_schedule,
             cls.data_start,
             cls.sim_params.period_end,
             50,
@@ -1068,7 +1070,7 @@ class TestBeforeTradingStart(WithDataPortal,
     def make_daily_bar_data(cls):
         for sid in cls.ASSET_FINDER_EQUITY_SIDS:
             yield sid, create_daily_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 cls.data_start,
                 cls.sim_params.period_end,
             )
@@ -1355,6 +1357,7 @@ class TestAlgoScript(WithLogger,
                      ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-31', tz='utc')
+    DATA_PORTAL_USE_MINUTE_DATA = False
     BCOLZ_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
 
     ARG_TYPE_TEST_CASES = (
@@ -1396,7 +1399,7 @@ class TestAlgoScript(WithLogger,
 
     @classmethod
     def make_daily_bar_data(cls):
-        days = len(cls.env.days_in_range(cls.START_DATE, cls.END_DATE))
+        days = len(cls.bcolz_daily_bar_days)
         return trades_by_sid_to_dfs(
             {
                 0: factory.create_trade_history(
@@ -1405,16 +1408,16 @@ class TestAlgoScript(WithLogger,
                     [100] * days,
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env),
+                    cls.trading_schedule),
                 3: factory.create_trade_history(
                     3,
                     [10.0] * days,
                     [100] * days,
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env)
+                    cls.trading_schedule)
             },
-            index=cls.sim_params.trading_days,
+            index=cls.bcolz_daily_bar_days,
         )
 
     def test_noop(self):
@@ -1551,9 +1554,10 @@ def handle_data(context, data):
                 env=self.env,
             )
             trades = factory.create_daily_trade_source(
-                [0], self.sim_params, self.env)
+                [0], self.sim_params, self.env, self.trading_schedule)
             data_portal = create_data_portal_from_trade_history(
-                self.env, tempdir, self.sim_params, {0: trades})
+                self.env.asset_finder, self.trading_schedule, tempdir,
+                self.sim_params, {0: trades})
             results = test_algo.run(data_portal)
 
             all_txns = [
@@ -1640,7 +1644,7 @@ def handle_data(context, data):
         params = SimulationParameters(
             period_start=pd.Timestamp("2007-01-03", tz='UTC'),
             period_end=pd.Timestamp("2007-01-05", tz='UTC'),
-            env=self.env
+            trading_schedule=self.trading_schedule,
         )
 
         # order method shouldn't blow up
@@ -1940,7 +1944,7 @@ class TestCapitalChanges(WithLogger,
 
     @classmethod
     def make_minute_bar_data(cls):
-        minutes = cls.env.minutes_for_days_in_range(
+        minutes = cls.trading_schedule.execution_minutes_for_days_in_range(
             pd.Timestamp('2006-01-03', tz='UTC'),
             pd.Timestamp('2006-01-09', tz='UTC')
         )
@@ -1952,14 +1956,14 @@ class TestCapitalChanges(WithLogger,
                     [10000] * len(minutes),
                     timedelta(minutes=1),
                     cls.sim_params,
-                    cls.env),
+                    cls.trading_schedule),
             },
             index=pd.DatetimeIndex(minutes),
         )
 
     @classmethod
     def make_daily_bar_data(cls):
-        days = cls.env.days_in_range(
+        days = cls.trading_schedule.execution_days_in_range(
             pd.Timestamp('2006-01-03', tz='UTC'),
             pd.Timestamp('2006-01-09', tz='UTC')
         )
@@ -1971,7 +1975,7 @@ class TestCapitalChanges(WithLogger,
                     [10000] * len(days),
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env),
+                    cls.trading_schedule),
             },
             index=pd.DatetimeIndex(days),
         )
@@ -2719,15 +2723,15 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             sim_params = factory.create_simulation_parameters(
                 start=start,
                 num_days=4,
-                env=env,
                 data_frequency='minute',
             )
 
             data_portal = create_data_portal(
-                env,
+                env.asset_finder,
                 tempdir,
                 sim_params,
-                [1]
+                [1],
+                self.trading_schedule,
             )
 
             def handle_data(algo, data):
@@ -2845,10 +2849,11 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 env=env,
             )
             data_portal = create_data_portal(
-                env,
+                env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0]
+                [0],
+                self.trading_schedule,
             )
             algo.run(data_portal)
 
@@ -2859,10 +2864,11 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
             data_portal = create_data_portal(
-                env,
+                env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0]
+                [0],
+                self.trading_schedule,
             )
             algo = SetAssetDateBoundsAlgorithm(
                 sim_params=self.sim_params,
@@ -2878,10 +2884,11 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
             data_portal = create_data_portal(
-                env,
+                env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0]
+                [0],
+                self.trading_schedule,
             )
             algo = SetAssetDateBoundsAlgorithm(
                 sim_params=self.sim_params,
@@ -2907,7 +2914,7 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
                     [100, 100, 100, 300],
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env,
+                    cls.trading_schedule,
                 ),
             },
             index=cls.sim_params.trading_days,
@@ -3054,7 +3061,7 @@ class TestFutureFlip(WithSimParams, WithDataPortal, ZiplineTestCase):
                     [1e9, 1e9, 1e9],
                     timedelta(days=1),
                     cls.sim_params,
-                    cls.env
+                    cls.trading_schedule,
                 ),
             },
             index=cls.sim_params.trading_days,
@@ -3064,7 +3071,7 @@ class TestFutureFlip(WithSimParams, WithDataPortal, ZiplineTestCase):
     def test_flip_algo(self):
         metadata = {1: {'symbol': 'TEST',
                         'start_date': self.sim_params.trading_days[0],
-                        'end_date': self.env.next_trading_day(
+                        'end_date': self.trading_schedule.next_execution_day(
                             self.sim_params.trading_days[-1]),
                         'multiplier': 5}}
 
@@ -3164,10 +3171,11 @@ class TestOrderCancelation(WithDataPortal,
 
     @classmethod
     def make_minute_bar_data(cls):
-        asset_minutes = cls.env.minutes_for_days_in_range(
-            cls.sim_params.period_start,
-            cls.sim_params.period_end,
-        )
+        asset_minutes = \
+            cls.trading_schedule.execution_minutes_for_days_in_range(
+                cls.sim_params.period_start,
+                cls.sim_params.period_end,
+            )
 
         minutes_count = len(asset_minutes)
         minutes_arr = np.arange(1, 1 + minutes_count)
@@ -3206,7 +3214,7 @@ class TestOrderCancelation(WithDataPortal,
             sim_params=SimulationParameters(
                 period_start=self.sim_params.period_start,
                 period_end=self.sim_params.period_end,
-                env=self.env,
+                trading_schedule=self.trading_schedule,
                 data_frequency=data_frequency,
                 emission_rate='minute' if minute_emission else 'daily'
             )
@@ -3388,7 +3396,7 @@ class TestRemoveData(TestCase):
         self.assertEqual(algo.data_lengths, self.live_asset_counts)
 
 
-class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
+class TestEquityAutoClose(WithTmpDir, WithTradingSchedule, ZiplineTestCase):
     """
     Tests if delisted equities are properly removed from a portfolio holding
     positions in said equities.
@@ -3396,6 +3404,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(TestEquityAutoClose, cls).init_class_fixtures()
+        trading_days = cls.trading_schedule.all_execution_days
         start_date = pd.Timestamp('2015-01-05', tz='UTC')
         start_date_loc = trading_days.get_loc(start_date)
         test_duration = 7
@@ -3411,7 +3420,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
             num_assets=3,
             start_date=self.test_days[0],
             first_end=self.first_asset_expiration,
-            frequency=trading_day,
+            frequency=self.trading_schedule.day,
             periods_between_ends=2,
             auto_close_delta=auto_close_delta,
         )
@@ -3419,8 +3428,12 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         sids = asset_info.index
 
         env = self.enter_instance_context(tmp_trading_env(equities=asset_info))
-        market_opens = env.open_and_closes.market_open.loc[self.test_days]
-        market_closes = env.open_and_closes.market_close.loc[self.test_days]
+        market_opens = self.trading_schedule.schedule.market_open.loc[
+            self.test_days
+        ]
+        market_closes = self.trading_schedule.schedule.market_close.loc[
+            self.test_days
+        ]
 
         if frequency == 'daily':
             dates = self.test_days
@@ -3441,12 +3454,12 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
             )
             reader = BcolzDailyBarReader(path)
             data_portal = DataPortal(
-                env,
+                env.asset_finder, self.trading_schedule,
                 first_trading_day=reader.first_trading_day,
                 equity_daily_reader=reader,
             )
         elif frequency == 'minute':
-            dates = env.minutes_for_days_in_range(
+            dates = self.trading_schedule.execution_minutes_for_days_in_range(
                 self.test_days[0],
                 self.test_days[-1],
             )
@@ -3471,7 +3484,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
             )
             reader = BcolzMinuteBarReader(self.tmpdir.path)
             data_portal = DataPortal(
-                env,
+                env.asset_finder, self.trading_schedule,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
             )
@@ -3485,7 +3498,6 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
             end=self.test_days[-1],
             data_frequency=frequency,
             emission_rate=frequency,
-            env=env,
             capital_base=capital_base,
         )
 
@@ -3498,7 +3510,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         else:
             final_prices = {
                 asset.sid: trade_data_by_sid[asset.sid].loc[
-                    env.get_open_and_close(asset.end_date)[1]
+                    self.trading_schedule.start_and_end(asset.end_date)[1]
                 ].close
                 for asset in assets
             }
@@ -3570,7 +3582,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         Make sure that after an equity gets delisted, our portfolio holds the
         correct number of equities and correct amount of cash.
         """
-        auto_close_delta = trading_day * auto_close_lag
+        auto_close_delta = self.trading_schedule.day * auto_close_lag
         resources = self.make_data(auto_close_delta, 'daily', capital_base)
 
         assets = resources.assets
@@ -3730,7 +3742,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         canceled.  Unless an equity is auto closed, any open orders for that
         equity will persist indefinitely.
         """
-        auto_close_delta = trading_day
+        auto_close_delta = self.trading_schedule.day
         resources = self.make_data(auto_close_delta, 'daily')
         env = resources.env
         assets = resources.assets
@@ -3802,7 +3814,7 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         )
 
     def test_minutely_delisted_equities(self):
-        resources = self.make_data(trading_day, 'minute')
+        resources = self.make_data(self.trading_schedule.day, 'minute')
 
         env = resources.env
         assets = resources.assets
@@ -3852,6 +3864,9 @@ class TestEquityAutoClose(WithTmpDir, ZiplineTestCase):
         expected_cash.extend([after_second_auto_close] * (390 + 390))
         expected_position_counts.extend([1] * (390 + 390))
 
+        # Check list lengths first to avoid expensive comparison
+        self.assertEqual(len(algo.cash), len(expected_cash))
+        # TODO find more efficient way to compare these lists
         self.assertEqual(algo.cash, expected_cash)
         self.assertEqual(
             list(output['ending_cash']),
@@ -3987,7 +4002,7 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
             sim_params=SimulationParameters(
                 period_start=pd.Timestamp("2016-01-06", tz='UTC'),
                 period_end=pd.Timestamp("2016-01-07", tz='UTC'),
-                env=self.env,
+                trading_schedule=self.trading_schedule,
                 data_frequency="minute"
             )
         )

@@ -52,7 +52,7 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
 
 def date_gen(start,
              end,
-             env,
+             trading_schedule,
              delta=timedelta(minutes=1),
              repeats=None):
     """
@@ -73,13 +73,13 @@ def date_gen(start,
         """
         cur = cur + delta
 
-        if not (env.is_trading_day
+        if not (trading_schedule.is_executing_on_day
                 if daily_delta
-                else env.is_market_hours)(cur):
+                else trading_schedule.is_executing_on_minute)(cur):
             if daily_delta:
-                return env.next_trading_day(cur)
+                return trading_schedule.next_execution_day(cur)
             else:
-                return env.next_open_and_close(cur)[0]
+                return trading_schedule.next_start_and_end(cur)[0]
         else:
             return cur
 
@@ -109,11 +109,12 @@ class SpecificEquityTrades(object):
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
-    def __init__(self, env, *args, **kwargs):
+    def __init__(self, env, trading_schedule, *args, **kwargs):
         # We shouldn't get any positional arguments.
         assert len(args) == 0
 
         self.env = env
+        self.trading_schedule = trading_schedule
 
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
@@ -205,14 +206,14 @@ class SpecificEquityTrades(object):
                     end=self.end,
                     delta=self.delta,
                     repeats=len(self.sids),
-                    env=self.env,
+                    trading_schedule=self.trading_schedule,
                 )
             else:
                 date_generator = date_gen(
                     start=self.start,
                     end=self.end,
                     delta=self.delta,
-                    env=self.env,
+                    trading_schedule=self.trading_schedule,
                 )
 
             source_id = self.get_hash()
