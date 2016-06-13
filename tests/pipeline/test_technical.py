@@ -270,5 +270,3 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
 
         wma2.compute(today, assets, out, data)
         assert_equal(out, np.array([ 30.,  31.,  32.,  33.,  34.]))
-
-        
