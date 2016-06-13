@@ -145,7 +145,6 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         self.assertIs(upper, bbands.upper)
 
 
-<<<<<<< HEAD
 class AroonTestCase(ZiplineTestCase):
     window_length = 10
     nassets = 5
