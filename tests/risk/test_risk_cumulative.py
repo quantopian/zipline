@@ -13,31 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-
 import datetime
 import numpy as np
 import pytz
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
-from zipline.finance.trading import SimulationParameters, TradingEnvironment
+from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
 
+from zipline.finance.trading import SimulationParameters
 from . import answer_key
 ANSWER_KEY = answer_key.ANSWER_KEY
 
 
-class TestRisk(unittest.TestCase):
+class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
+    def init_instance_fixtures(self):
+        super(TestRisk, self).init_instance_fixtures()
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
-
-    def setUp(self):
         start_date = datetime.datetime(
             year=2006,
             month=1,
@@ -51,7 +44,7 @@ class TestRisk(unittest.TestCase):
         self.sim_params = SimulationParameters(
             period_start=start_date,
             period_end=end_date,
-            env=self.env,
+            trading_schedule=self.trading_schedule,
         )
 
         self.algo_returns_06 = factory.create_returns_from_list(
@@ -60,7 +53,9 @@ class TestRisk(unittest.TestCase):
         )
 
         self.cumulative_metrics_06 = risk.RiskMetricsCumulative(
-            self.sim_params, env=self.env
+            self.sim_params,
+            treasury_curves=self.env.treasury_curves,
+            trading_schedule=self.trading_schedule,
         )
 
         for dt, returns in answer_key.RETURNS_DATA.iterrows():

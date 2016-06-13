@@ -89,8 +89,8 @@ for_each_factor_dtype = parameterized.expand([
 
 class FactorTestCase(BasePipelineTestCase):
 
-    def setUp(self):
-        super(FactorTestCase, self).setUp()
+    def init_instance_fixtures(self):
+        super(FactorTestCase, self).init_instance_fixtures()
         self.f = F()
 
     def test_bad_input(self):

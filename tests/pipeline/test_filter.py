@@ -75,8 +75,8 @@ class Mask(Filter):
 
 class FilterTestCase(BasePipelineTestCase):
 
-    def setUp(self):
-        super(FilterTestCase, self).setUp()
+    def init_instance_fixtures(self):
+        super(FilterTestCase, self).init_instance_fixtures()
         self.f = SomeFactor()
         self.g = SomeOtherFactor()
 

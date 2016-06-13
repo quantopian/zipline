@@ -1,3 +1,4 @@
+import datetime
 from functools import partial
 import inspect
 
@@ -337,6 +338,46 @@ def assert_adjustment_equal(result, expected, path=(), **kwargs):
             path=path + ('.' + attr,),
             **kwargs
         )
+
+
+@assert_equal.register(
+    (datetime.datetime, np.datetime64),
+    (datetime.datetime, np.datetime64),
+)
+def assert_timestamp_and_datetime_equal(result,
+                                        expected,
+                                        path=(),
+                                        msg='',
+                                        allow_datetime_coercions=False,
+                                        compare_nat_equal=True,
+                                        **kwargs):
+    """
+    Branch for comparing python datetime (which includes pandas Timestamp) and
+    np.datetime64 as equal.
+
+    Returns raises unless ``allow_datetime_coercions`` is passed as True.
+    """
+    assert allow_datetime_coercions or type(result) == type(expected), (
+        "%sdatetime types (%s, %s) don't match and "
+        "allow_datetime_coercions was not set.\n%s" % (
+            _fmt_msg(msg),
+            type(result),
+            type(expected),
+            _fmt_path(path),
+        )
+    )
+
+    result = pd.Timestamp(result)
+    expected = pd.Timestamp(result)
+    if compare_nat_equal and pd.isnull(result) and pd.isnull(expected):
+        return
+
+    assert_equal.dispatch(object, object)(
+        result,
+        expected,
+        path=path,
+        **kwargs
+    )
 
 
 try:

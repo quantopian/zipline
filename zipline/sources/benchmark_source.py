@@ -23,8 +23,8 @@ from zipline.errors import (
 
 
 class BenchmarkSource(object):
-    def __init__(self, benchmark_sid, env, trading_days, data_portal,
-                 emission_rate="daily"):
+    def __init__(self, benchmark_sid, env, trading_schedule, trading_days,
+                 data_portal, emission_rate="daily"):
         self.benchmark_sid = benchmark_sid
         self.env = env
         self.trading_days = trading_days
@@ -42,7 +42,7 @@ class BenchmarkSource(object):
             self._precalculated_series = \
                 self._initialize_precalculated_series(
                     benchmark_asset,
-                    self.env,
+                    trading_schedule,
                     self.trading_days,
                     self.data_portal
                 )
@@ -55,7 +55,7 @@ class BenchmarkSource(object):
             if self.emission_rate == "minute":
                 # we need to take the env's benchmark returns, which are daily,
                 # and resample them to minute
-                minutes = env.minutes_for_days_in_range(
+                minutes = trading_schedule.execution_minutes_for_days_in_range(
                     start=trading_days[0],
                     end=trading_days[-1]
                 )
@@ -102,17 +102,17 @@ class BenchmarkSource(object):
                 end_dt=benchmark_asset.end_date
             )
 
-    def _initialize_precalculated_series(self, asset, env, trading_days,
-                                         data_portal):
+    def _initialize_precalculated_series(self, asset, trading_schedule,
+                                         trading_days, data_portal):
         """
-        Internal method that precalculates the benchmark return series for
+        Internal method that pre-calculates the benchmark return series for
         use in the simulation.
 
         Parameters
         ----------
         asset:  Asset to use
 
-        env: TradingEnvironment
+        trading_schedule: TradingSchedule
 
         trading_days: pd.DateTimeIndex
 
@@ -137,8 +137,9 @@ class BenchmarkSource(object):
         change from close to close.
         """
         if self.emission_rate == "minute":
-            minutes = env.minutes_for_days_in_range(self.trading_days[0],
-                                                    self.trading_days[-1])
+            minutes = trading_schedule.execution_minutes_for_days_in_range(
+                self.trading_days[0], self.trading_days[-1]
+            )
             benchmark_series = data_portal.get_history_window(
                 [asset],
                 minutes[-1],

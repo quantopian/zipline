@@ -41,11 +41,9 @@ choose_treasury = functools.partial(risk.choose_treasury,
 
 
 class RiskMetricsPeriod(object):
-    def __init__(self, start_date, end_date, returns, env,
-                 benchmark_returns=None, algorithm_leverages=None):
+    def __init__(self, start_date, end_date, returns, trading_schedule,
+                 treasury_curves, benchmark_returns, algorithm_leverages=None):
 
-        self.env = env
-        treasury_curves = env.treasury_curves
         if treasury_curves.index[-1] >= start_date:
             mask = ((treasury_curves.index >= start_date) &
                     (treasury_curves.index <= end_date))
@@ -58,16 +56,20 @@ class RiskMetricsPeriod(object):
 
         self.start_date = start_date
         self.end_date = end_date
+        self.trading_schedule = trading_schedule
 
-        if benchmark_returns is None:
-            br = env.benchmark_returns
-            benchmark_returns = br[(br.index >= returns.index[0]) &
-                                   (br.index <= returns.index[-1])]
-
+        trading_dates = trading_schedule.trading_dates(
+            start=self.start_date,
+            end=self.end_date,
+        )
         self.algorithm_returns = self.mask_returns_to_period(returns,
-                                                             env)
-        self.benchmark_returns = self.mask_returns_to_period(benchmark_returns,
-                                                             env)
+                                                             trading_dates)
+
+        # Benchmark needs to be masked to the same dates as the algo returns
+        self.benchmark_returns = self.mask_returns_to_period(
+            benchmark_returns,
+            self.algorithm_returns.index
+        )
         self.algorithm_leverages = algorithm_leverages
 
         self.calculate_metrics()
@@ -108,7 +110,7 @@ class RiskMetricsPeriod(object):
             self.treasury_curves,
             self.start_date,
             self.end_date,
-            self.env,
+            self.trading_schedule,
         )
         self.sharpe = self.calculate_sharpe()
         # The consumer currently expects a 0.0 value for sharpe in period,
@@ -187,15 +189,14 @@ class RiskMetricsPeriod(object):
 
         return '\n'.join(statements)
 
-    def mask_returns_to_period(self, daily_returns, env):
+    def mask_returns_to_period(self, daily_returns, trading_days):
         if isinstance(daily_returns, list):
             returns = pd.Series([x.returns for x in daily_returns],
                                 index=[x.date for x in daily_returns])
         else:  # otherwise we're receiving an index already
             returns = daily_returns
 
-        trade_days = env.trading_days
-        trade_day_mask = returns.index.normalize().isin(trade_days)
+        trade_day_mask = returns.index.normalize().isin(trading_days)
 
         mask = ((returns.index >= self.start_date) &
                 (returns.index <= self.end_date) & trade_day_mask)
