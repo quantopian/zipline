@@ -244,7 +244,7 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         assert_equal(out, expected_out_k)
 =======
 class TestLinearWeightedMovingAverage(ZiplineTestCase):
-    def test_wma(self):
+    def test_wma1(self):
         wma = LinearWeightedMovingAverage(
             inputs=(USEquityPricing.close,),
             window_length=10
@@ -258,4 +258,22 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
 
         wma.compute(today, assets, out, data)
         assert_equal(out, np.ones(5))
+<<<<<<< HEAD
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
+=======
+
+    def test_wma2(self):
+        wma = LinearWeightedMovingAverage(
+            inputs=(USEquityPricing.close,),
+            window_length=10
+        )
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(5, dtype=np.int64)
+
+        data = np.arange(50, dtype=float).reshape((10, 5))
+        out = np.zeros(data.shape[1])
+
+        wma.compute(today, assets, out, data)
+        assert_equal(out, np.array([ 30.,  31.,  32.,  33.,  34.]))
 >>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
