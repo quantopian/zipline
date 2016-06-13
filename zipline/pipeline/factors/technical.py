@@ -119,7 +119,11 @@ class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
         num_days = data.shape[0]
 
         # Initialize weights array
+<<<<<<< HEAD
         weights = np.arange(1, num_days + 1, dtype=float).reshape(num_days, 1)
+=======
+        weights = np.arange(1, num_days + 1, dtype=float).reshape(10, 1)
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
 
         # Compute normalizer
         normalizer = (num_days * (num_days + 1)) / 2
@@ -128,7 +132,11 @@ class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
         weighted_data = data * weights
 
         # Compute weighted averages
+<<<<<<< HEAD
         out[:] = np.nansum(weighted_data, axis=0) / normalizer
+=======
+        out = np.nansum(weighted_data, axis=0) / normalizer
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
 
 
 class WeightedAverageValue(CustomFactor):
