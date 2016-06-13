@@ -1,4 +1,5 @@
-"""Blaze integration with the Pipeline API.
+"""
+Blaze integration with the Pipeline API.
 
 For an overview of the blaze project, see blaze.pydata.org
 
@@ -80,6 +81,18 @@ actually -1 and that we learned on the fifth that the value on the third was
 actually 3. By pulling our data into these two tables and not silently updating
 our original table we can run our pipelines using the information we would
 have had on that day, and we can prevent lookahead bias in the pipelines.
+
+
+Another optional expression that may be provided is ``checkpoints``. The
+``checkpoints`` expression is used when doing a forward fill query to cap the
+lower date that must be searched. This expression has the same shape as the
+``baseline`` and ``deltas`` expressions but should be downsampled with novel
+deltas applied. For example, imagine we had one data point per asset per day
+for some dataset. We could dramatically speed up our queries by pre populating
+a downsampled version which has the most recently known value at the start of
+each month. Then, when we query, we only must look back at most one month
+before the start of the pipeline query to provide enough data to forward fill
+correctly.
 
 Conversion from Blaze to the Pipeline API
 -----------------------------------------
