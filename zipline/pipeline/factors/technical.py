@@ -125,7 +125,11 @@ class LinearWeightedMovingAverage(CustomFactor, SingleInputMixin):
         weighted_data = data * weights
 
         # Compute weighted averages
+<<<<<<< HEAD
         out[:] = np.nansum(weighted_data, axis=0) / normalizer
+=======
+        out = np.nansum(weighted_data, axis=0) / normalizer
+>>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
 
 
 class WeightedAverageValue(CustomFactor):
