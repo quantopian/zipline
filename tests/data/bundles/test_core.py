@@ -303,7 +303,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
                   output_dir):
                 _wrote_to.append(output_dir)
 
-        _wrote_to.clear()
+        _wrote_to[:] = []
         self.ingest('bundle', environ=self.environ)
         assert_equal(len(_wrote_to), 1, msg='ingest was called more than once')
         ingestions = self._list_bundle()

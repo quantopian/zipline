@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 import pandas as pd
 from six.moves.urllib.parse import urlparse, parse_qs
@@ -201,4 +203,5 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
                 adjustments,
                 expected,
                 msg=column,
+                decimal=4,
             )
