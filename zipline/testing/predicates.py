@@ -380,6 +380,12 @@ def assert_timestamp_and_datetime_equal(result,
     )
 
 
+def assert_isidentical(result, expected, msg=''):
+    assert result.isidentical(expected), (
+        '%s%s is not identical to %s' % (_fmt_msg(msg), result, expected)
+    )
+
+
 try:
     # pull the dshape cases in
     from datashape.util.testing import assert_dshape_equal

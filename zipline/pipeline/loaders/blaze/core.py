@@ -140,7 +140,6 @@ from __future__ import division, absolute_import
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
 from copy import copy
-import datetime
 from functools import partial
 from itertools import count
 import warnings
@@ -240,7 +239,7 @@ class ExprData(namedtuple('ExprData', 'expr deltas checkpoints odo_kwargs')):
         return super(ExprData, cls).__repr__(cls(
             str(self.expr),
             str(self.deltas),
-            str(self.checkpoint),
+            str(self.checkpoints),
             self.odo_kwargs,
         ))
 
@@ -257,7 +256,7 @@ class InvalidField(with_metaclass(ABCMeta)):
         The shape of the field.
     """
     @abstractproperty
-    def error_format(self):
+    def error_format(self):  # pragma: no cover
         raise NotImplementedError('error_format')
 
     def __init__(self, field, type_):
@@ -280,14 +279,6 @@ class NonPipelineField(InvalidField):
     error_format = (
         "field '{field}' was a non Pipeline API compatible type: '{type_}'"
     )
-
-
-class NotPipelineCompatible(TypeError):
-    """Exception used to indicate that a dshape is not Pipeline API
-    compatible.
-    """
-    def __str__(self):
-        return "'%s' is a non Pipeline API compatible type'" % self.args
 
 
 _new_names = ('BlazeDataSet_%d' % n for n in count())
@@ -369,7 +360,7 @@ def new_dataset(expr, deltas, missing_values):
 
     # unicode is a name error in py3 but the branch is only hit
     # when we are in python 2.
-    if PY2 and isinstance(name, unicode):  # noqa
+    if PY2 and isinstance(name, unicode):  # pragma: no cover # noqa
         name = name.encode('utf-8')
 
     return type(name, (DataSet,), columns)
@@ -674,8 +665,9 @@ def from_blaze(expr,
         )
 
     # Ensure that we have a data resource to execute the query against.
-    _check_resources('dataset_expr', dataset_expr, resources)
+    _check_resources('expr', dataset_expr, resources)
     _check_resources('deltas', deltas, resources)
+    _check_resources('checkpoints', checkpoints, resources)
 
     # Create or retrieve the Pipeline API dataset.
     if missing_values is None:
@@ -883,31 +875,6 @@ def adjustments_from_deltas_with_sids(dense_dates,
     return dict(adjustments)  # no subclasses of dict
 
 
-def _checkpoint_ts(lower_dt):
-    """Given a lower time bound for a query, get the date in the checkpoint
-    table to query for.
-
-    Parameters
-    ----------
-    lower_dt : datetime
-        The lower time bound for the query.
-
-    Returns
-    -------
-    checkpoint_ts : pd.Timestamp
-        The date in the checkpoint table to query for.
-    """
-    date = lower_dt.date()
-    return pd.Timestamp.combine(
-        date.replace(
-            day=1,
-            month=(date.month - 2) % 12 + 1,
-            year=date.year - 1 if date.month == 1 else date.year,
-        ),
-        datetime.time(0),
-    ).tz_localize('US/Eastern')
-
-
 class BlazeLoader(dict):
     """A PipelineLoader for datasets constructed with ``from_blaze``.
 
@@ -944,6 +911,12 @@ class BlazeLoader(dict):
         if column.dataset in self:
             return self
         raise KeyError(column)
+
+    def __repr__(self):
+        return '<%s: %s>' % (
+            type(self).__name__,
+            super(BlazeLoader, self).__repr__(),
+        )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         return dict(

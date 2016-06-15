@@ -21,7 +21,7 @@ from toolz.curried import operator as op
 
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.pipeline import Pipeline, CustomFactor
-from zipline.pipeline.data import DataSet, BoundColumn
+from zipline.pipeline.data import DataSet, BoundColumn, Column
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.loaders.blaze import (
     from_blaze,
@@ -29,16 +29,21 @@ from zipline.pipeline.loaders.blaze import (
     NoMetaDataWarning,
 )
 from zipline.pipeline.loaders.blaze.core import (
+    ExprData,
     NonPipelineField,
 )
-from zipline.testing import parameter_space
+from zipline.testing import (
+    ZiplineTestCase,
+    parameter_space,
+    tmp_asset_finder,
+)
 from zipline.testing.fixtures import WithAssetFinder
 from zipline.utils.numpy_utils import (
     float64_dtype,
     int64_dtype,
     repeat_last_axis,
 )
-from zipline.testing import tmp_asset_finder, ZiplineTestCase
+from zipline.testing.predicates import assert_equal, assert_isidentical
 
 nameof = op.attrgetter('name')
 dtypeof = op.attrgetter('dtype')
@@ -207,6 +212,108 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             )
         self.assertIn("'asof_date'", str(e.exception))
         self.assertIn(repr(str(expr.dshape.measure)), str(e.exception))
+
+    def test_missing_timestamp(self):
+        expr = bz.data(
+            self.df.loc[:, ['sid', 'value', 'asof_date']],
+            name='expr',
+            dshape="""
+            var * {
+                sid: ?int64,
+                value: float64,
+                asof_date: datetime,
+            }""",
+        )
+
+        loader = BlazeLoader()
+
+        from_blaze(
+            expr,
+            loader=loader,
+            no_deltas_rule='ignore',
+            no_checkpoints_rule='ignore',
+        )
+
+        self.assertEqual(len(loader), 1)
+        exprdata, = loader.values()
+
+        assert_isidentical(
+            exprdata.expr,
+            bz.transform(expr, timestamp=expr.asof_date),
+        )
+
+    def test_from_blaze_no_resources_dataset_expr(self):
+        expr = bz.symbol('expr', self.dshape)
+
+        with self.assertRaises(ValueError) as e:
+            from_blaze(
+                expr,
+                loader=self.garbage_loader,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
+                missing_values=self.missing_values,
+            )
+        assert_equal(
+            str(e.exception),
+            'no resources provided to compute expr',
+        )
+
+    @parameter_space(metadata={'deltas', 'checkpoints'})
+    def test_from_blaze_no_resources_metadata_expr(self, metadata):
+        expr = bz.data(self.df, name='expr', dshape=self.dshape)
+        metadata_expr = bz.symbol('metadata', self.dshape)
+
+        with self.assertRaises(ValueError) as e:
+            from_blaze(
+                expr,
+                loader=self.garbage_loader,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
+                missing_values=self.missing_values,
+                **{metadata: metadata_expr}
+            )
+        assert_equal(
+            str(e.exception),
+            'no resources provided to compute %s' % metadata,
+        )
+
+    def test_from_blaze_mixed_resources_dataset_expr(self):
+        expr = bz.data(self.df, name='expr', dshape=self.dshape)
+
+        with self.assertRaises(ValueError) as e:
+            from_blaze(
+                expr,
+                resources={expr: self.df},
+                loader=self.garbage_loader,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
+                missing_values=self.missing_values,
+            )
+        assert_equal(
+            str(e.exception),
+            'explicit and implicit resources provided to compute expr',
+        )
+
+    @parameter_space(metadata={'deltas', 'checkpoints'})
+    def test_from_blaze_mixed_resources_metadata_expr(self, metadata):
+        expr = bz.symbol('expr', self.dshape)
+        metadata_expr = bz.data(self.df, name=metadata, dshape=self.dshape)
+
+        with self.assertRaises(ValueError) as e:
+            from_blaze(
+                expr,
+                resources={metadata_expr: self.df},
+                loader=self.garbage_loader,
+                no_deltas_rule='ignore',
+                no_checkpoints_rule='ignore',
+                missing_values=self.missing_values,
+                **{metadata: metadata_expr}
+            )
+        assert_equal(
+            str(e.exception),
+            'explicit and implicit resources provided to compute %s' %
+            metadata,
+        )
 
     @parameter_space(deltas={True, False}, checkpoints={True, False})
     def test_auto_metadata(self, deltas, checkpoints):
@@ -1486,3 +1593,43 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
                 window_length=1,
                 compute_fn=op.itemgetter(-1),
             )
+
+
+class MiscTestCase(ZiplineTestCase):
+    def test_exprdata_repr(self):
+        strd = set()
+
+        class BadRepr(object):
+            """A class which cannot be repr'd.
+            """
+            def __init__(self, name):
+                self._name = name
+
+            def __repr__(self):  # pragma: no cover
+                raise AssertionError('ayy')
+
+            def __str__(self):
+                strd.add(self)
+                return self._name
+
+        assert_equal(
+            repr(ExprData(
+                expr=BadRepr('expr'),
+                deltas=BadRepr('deltas'),
+                checkpoints=BadRepr('checkpoints'),
+                odo_kwargs={'a': 'b'},
+            )),
+            "ExprData(expr='expr', deltas='deltas',"
+            " checkpoints='checkpoints', odo_kwargs={'a': 'b'})",
+        )
+
+    def test_blaze_loader_repr(self):
+        assert_equal(repr(BlazeLoader()), '<BlazeLoader: {}>')
+
+    def test_blaze_loader_lookup_failure(self):
+        class D(DataSet):
+            c = Column(dtype='float64')
+
+        with self.assertRaises(KeyError) as e:
+            BlazeLoader()(D.c)
+        assert_equal(str(e.exception), 'D.c::float64')
