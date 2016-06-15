@@ -145,7 +145,7 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
 
 class TestLinearWeightedMovingAverage(ZiplineTestCase):
     def test_wma1(self):
-        wma = LinearWeightedMovingAverage(
+        wma1 = LinearWeightedMovingAverage(
             inputs=(USEquityPricing.close,),
             window_length=10
         )
@@ -156,11 +156,11 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
         data = np.ones((10, 5))
         out = np.zeros(data.shape[1])
 
-        wma.compute(today, assets, out, data)
+        wma1.compute(today, assets, out, data)
         assert_equal(out, np.ones(5))
 
     def test_wma2(self):
-        wma = LinearWeightedMovingAverage(
+        wma2 = LinearWeightedMovingAverage(
             inputs=(USEquityPricing.close,),
             window_length=10
         )
@@ -171,5 +171,5 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
         data = np.arange(50, dtype=float).reshape((10, 5))
         out = np.zeros(data.shape[1])
 
-        wma.compute(today, assets, out, data)
+        wma2.compute(today, assets, out, data)
         assert_equal(out, np.array([ 30.,  31.,  32.,  33.,  34.]))
