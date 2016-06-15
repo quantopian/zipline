@@ -764,7 +764,7 @@ def adjustments_from_deltas_no_sids(dense_dates,
         The adjustments dictionary to feed to the adjusted array.
     """
     ad_series = deltas[AD_FIELD_NAME]
-    idx = 0, len(asset_idx) - 1
+    idx = 0, 0
     return {
         dense_dates.get_loc(kd): overwrite_from_dates(
             ad_series.loc[kd],
@@ -1038,19 +1038,10 @@ class BlazeLoader(dict):
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
         else:
-            # We use the column view to make an array per asset.
-            column_view = compose(
-                # We need to copy this because we need a concrete ndarray.
-                # The `repeat_last_axis` call will give us a fancy strided
-                # array which uses a buffer to represent `len(assets)` columns.
-                # The engine puts nans at the indicies for which we do not have
-                # sid information so that the nan-aware reductions still work.
-                # A future change to the engine would be to add first class
-                # support for macro econimic datasets.
-                copy,
-                partial(repeat_last_axis, count=len(assets)),
-            )
+            # If we do not have sids, use the column view to make a single
+            # column vector which is unassociated with any assets.
             adjustments_from_deltas = adjustments_from_deltas_no_sids
+            column_view = itemgetter(np.s_[:, np.newaxis])
 
         for column_idx, column in enumerate(columns):
             column_name = column.name
