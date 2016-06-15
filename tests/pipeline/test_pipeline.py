@@ -63,6 +63,9 @@ class PipelineTestCase(TestCase):
         with self.assertRaises(TypeError):
             Pipeline({}, SomeFactor())
 
+        with self.assertRaises(TypeError):
+            Pipeline({'open': USEquityPricing.open})
+
         Pipeline({}, SomeFactor() > 5)
 
     def test_add(self):
@@ -77,6 +80,9 @@ class PipelineTestCase(TestCase):
 
         with self.assertRaises(TypeError):
             p.add(f, 1)
+
+        with self.assertRaises(TypeError):
+            p.add(USEquityPricing.open, 'open')
 
     def test_overwrite(self):
         p = Pipeline()
