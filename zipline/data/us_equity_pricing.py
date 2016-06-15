@@ -15,7 +15,6 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import ENOENT
 from functools import partial
 from os import remove
-from os.path import exists
 import sqlite3
 import warnings
 
@@ -813,7 +812,7 @@ class SQLiteAdjustmentWriter(object):
         if isinstance(conn_or_path, sqlite3.Connection):
             self.conn = conn_or_path
         elif isinstance(conn_or_path, str):
-            if overwrite and exists(conn_or_path):
+            if overwrite:
                 try:
                     remove(conn_or_path)
                 except OSError as e:

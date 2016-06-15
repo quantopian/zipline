@@ -254,7 +254,10 @@ def gen_symbol_data(api_key,
         _update_splits(splits, asset_id, raw_data)
         _update_dividends(dividends, asset_id, raw_data)
 
-        raw_data = raw_data.reindex(calendar, copy=False).fillna(0.0)
+        raw_data = raw_data.reindex(
+            calendar.tz_localize(None),
+            copy=False,
+        ).fillna(0.0)
         yield asset_id, raw_data
 
         if should_sleep:

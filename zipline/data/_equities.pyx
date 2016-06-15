@@ -212,7 +212,7 @@ cpdef _read_bcolz_data(ctable_t table,
                         carray[first_row:last_row + 1]
                 else:
                     continue
-                    
+
         if column_name in {'open', 'high', 'low', 'close'}:
             where_nan = (outbuf == 0)
             outbuf_as_float = outbuf.astype(float64) * .001
