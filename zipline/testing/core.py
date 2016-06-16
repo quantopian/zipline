@@ -749,6 +749,8 @@ class tmp_assets_db(object):
 
     Parameters
     ----------
+    url : string
+        The URL for the database connection.
     **frames
         The frames to pass to the AssetDBWriter.
         By default this maps equities:
@@ -761,7 +763,11 @@ class tmp_assets_db(object):
     """
     _default_equities = sentinel('_default_equities')
 
-    def __init__(self, equities=_default_equities, **frames):
+    def __init__(self,
+                 url='sqlite:///:memory:',
+                 equities=_default_equities,
+                 **frames):
+        self._url = url
         self._eng = None
         if equities is self._default_equities:
             equities = make_simple_equity_info(
@@ -775,7 +781,7 @@ class tmp_assets_db(object):
         self._eng = None  # set in enter and exit
 
     def __enter__(self):
-        self._eng = eng = create_engine('sqlite://')
+        self._eng = eng = create_engine(self._url)
         AssetDBWriter(eng).write(**self._frames)
         return eng
 
@@ -800,6 +806,8 @@ class tmp_asset_finder(tmp_assets_db):
 
     Parameters
     ----------
+    url : string
+        The URL for the database connection.
     finder_cls : type, optional
         The type of asset finder to create from the assets db.
     **frames
@@ -809,9 +817,12 @@ class tmp_asset_finder(tmp_assets_db):
     --------
     tmp_assets_db
     """
-    def __init__(self, finder_cls=AssetFinder, **frames):
+    def __init__(self,
+                 url='sqlite:///:memory:',
+                 finder_cls=AssetFinder,
+                 **frames):
         self._finder_cls = finder_cls
-        super(tmp_asset_finder, self).__init__(**frames)
+        super(tmp_asset_finder, self).__init__(url=url, **frames)
 
     def __enter__(self):
         return self._finder_cls(super(tmp_asset_finder, self).__enter__())
