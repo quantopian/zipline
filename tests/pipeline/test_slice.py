@@ -15,7 +15,7 @@ from zipline.errors import (
     NonExistentAssetInTimeFrame,
     NonSliceableTerm,
     NonWindowSafeInput,
-    UnsupportedPipelineColumn,
+    UnsupportedPipelineOutput,
 )
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import USEquityPricing
@@ -71,20 +71,20 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
             cls.asset_finder,
         )
 
-    def test_slice(self):
+    @parameter_space(my_asset_column=[0, 1, 2], window_length_=[1, 2, 3])
+    def test_slice(self, my_asset_column, window_length_):
         """
         Test that slices can be created by indexing into a term, and that they
         have the correct shape when used as inputs.
         """
-        my_asset_column = 0
+        sids = self.sids
         my_asset = self.asset_finder.retrieve_asset(self.sids[my_asset_column])
-        my_asset_only = (AssetID().eq(my_asset.sid))
 
         returns = Returns(window_length=2)
         returns_slice = returns[my_asset]
 
         class UsesSlicedInput(CustomFactor):
-            window_length = 3
+            window_length = window_length_
             inputs = [returns, returns_slice]
 
             def compute(self, today, assets, out, returns, returns_slice):
@@ -92,18 +92,66 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
                 # one column) and that it has the same values as the original
                 # returns factor from which it is derived.
                 assert returns_slice.shape == (self.window_length, 1)
+                assert returns.shape == (self.window_length, len(sids))
                 check_arrays(returns_slice[:, 0], returns[:, my_asset_column])
-
-        columns = {
-            'uses_sliced_input': UsesSlicedInput(),
-            'uses_sliced_input_masked': UsesSlicedInput(mask=my_asset_only),
-        }
 
         # Assertions about the expected slice data are made in the `compute`
         # function of our custom factor above.
         self.engine.run_pipeline(
-            Pipeline(columns=columns), self.start_date, self.end_date,
+            Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
+            self.start_date,
+            self.end_date,
         )
+
+    @parameter_space(unmasked_column=[0, 1, 2], slice_column=[0, 1, 2])
+    def test_slice_with_masking(self, unmasked_column, slice_column):
+        """
+        Test that masking a factor that uses slices as inputs does not mask the
+        slice data.
+        """
+        sids = self.sids
+        asset_finder = self.asset_finder
+        engine = self.engine
+        start_date = self.start_date
+        end_date = self.end_date
+
+        # Create a filter that masks out all but a single asset.
+        unmasked_asset = asset_finder.retrieve_asset(sids[unmasked_column])
+        unmasked_asset_only = (AssetID().eq(unmasked_asset.sid))
+
+        # Asset used to create our slice. In the cases where this is different
+        # than `unmasked_asset`, our slice should still have non-missing data
+        # when used as an input to our custom factor. That is, it should not be
+        # masked out.
+        slice_asset = asset_finder.retrieve_asset(sids[slice_column])
+
+        returns = Returns(window_length=2)
+        returns_slice = returns[slice_asset]
+
+        returns_results = engine.run_pipeline(
+            Pipeline(columns={'returns': returns}), start_date, end_date,
+        )
+        returns_results = returns_results['returns'].unstack()
+
+        class UsesSlicedInput(CustomFactor):
+            window_length = 1
+            inputs = [returns, returns_slice]
+
+            def compute(self, today, assets, out, returns, returns_slice):
+                # Ensure that our mask correctly affects the `returns` input
+                # and does not affect the `returns_slice` input.
+                assert returns.shape == (1, 1)
+                assert returns_slice.shape == (1, 1)
+                assert returns[0, 0] == \
+                    returns_results.loc[today, unmasked_asset]
+                assert returns_slice[0, 0] == \
+                    returns_results.loc[today, slice_asset]
+
+        columns = {'masked': UsesSlicedInput(mask=unmasked_asset_only)}
+
+        # Assertions about the expected data are made in the `compute` function
+        # of our custom factor above.
+        engine.run_pipeline(Pipeline(columns=columns), start_date, end_date)
 
     def test_adding_slice_column(self):
         """
@@ -112,11 +160,11 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
         open_slice = OpenPrice()[my_asset]
 
-        with self.assertRaises(UnsupportedPipelineColumn):
+        with self.assertRaises(UnsupportedPipelineOutput):
             Pipeline(columns={'open_slice': open_slice})
 
         pipe = Pipeline(columns={})
-        with self.assertRaises(UnsupportedPipelineColumn):
+        with self.assertRaises(UnsupportedPipelineOutput):
             pipe.add(open_slice, 'open_slice')
 
     def test_loadable_term_slices(self):
@@ -179,21 +227,21 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
             )
 
         # Make sure that slices of custom factors are not window safe.
-        class MyFactor(CustomFactor):
+        class MyUnsafeFactor(CustomFactor):
             window_length = 1
             inputs = [USEquityPricing.close]
 
             def compute(self, today, assets, out, close):
                 out[:] = close
 
-        my_factor = MyFactor()
-        my_factor_slice = my_factor[my_asset]
+        my_unsafe_factor = MyUnsafeFactor()
+        my_unsafe_factor_slice = my_unsafe_factor[my_asset]
 
         class UsesSlicedInput(CustomFactor):
             window_length = 1
-            inputs = [my_factor_slice]
+            inputs = [my_unsafe_factor_slice]
 
-            def compute(self, today, assets, out, my_factor_slice):
+            def compute(self, today, assets, out, my_unsafe_factor_slice):
                 pass
 
         with self.assertRaises(NonWindowSafeInput):
@@ -203,21 +251,29 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
                 self.end_date,
             )
 
-        # Slices of Returns *are* window safe.
-        returns = Returns(window_length=2)
-        returns_slice = returns[my_asset]
+        # Create a window safe factor.
+        class MySafeFactor(CustomFactor):
+            window_length = 1
+            inputs = [USEquityPricing.close]
+            window_safe = True
+
+            def compute(self, today, assets, out, close):
+                pass
+
+        my_safe_factor = MySafeFactor()
+        my_safe_factor_slice = my_safe_factor[my_asset]
 
         # Make sure that correlations are not safe if either the factor *or*
         # the target slice are not window safe.
         with self.assertRaises(NonWindowSafeInput):
-            my_factor.rolling_pearsonr(
-                target_slice=returns_slice,
+            my_unsafe_factor.rolling_pearsonr(
+                target_slice=my_safe_factor_slice,
                 correlation_length=10,
             )
 
         with self.assertRaises(NonWindowSafeInput):
-            returns.rolling_pearsonr(
-                target_slice=my_factor_slice,
+            my_safe_factor.rolling_pearsonr(
+                target_slice=my_unsafe_factor_slice,
                 correlation_length=10,
             )
 
