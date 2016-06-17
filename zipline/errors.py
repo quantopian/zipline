@@ -668,7 +668,7 @@ class ScheduleFunctionWithoutCalendar(ZiplineError):
     )
 
 
-class UnsupportedPipelineColumn(ZiplineError):
+class UnsupportedPipelineOutput(ZiplineError):
     """
     Raised when a 1D term is added as a column to a pipeline.
     """

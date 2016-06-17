@@ -1,5 +1,5 @@
 
-from zipline.errors import UnsupportedPipelineColumn
+from zipline.errors import UnsupportedPipelineOutput
 from zipline.utils.input_validation import expect_types, optional
 
 from .term import Term, AssetExists
@@ -41,7 +41,7 @@ class Pipeline(object):
             columns = {}
         for term in columns.values():
             if term.ndim == 1:
-                raise UnsupportedPipelineColumn()
+                raise UnsupportedPipelineOutput()
         self._columns = columns
         self._screen = screen
 
@@ -78,7 +78,7 @@ class Pipeline(object):
             named `name`.
         """
         if term.ndim == 1:
-            raise UnsupportedPipelineColumn()
+            raise UnsupportedPipelineOutput()
 
         columns = self.columns
         if name in columns:
