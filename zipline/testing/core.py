@@ -12,6 +12,7 @@ import operator
 import os
 from os.path import abspath, dirname, join, realpath
 import shutil
+from sys import _getframe
 import tempfile
 
 from logbook import TestHandler
@@ -23,7 +24,7 @@ from six import itervalues, iteritems, with_metaclass
 from six.moves import filter, map
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
-from toolz import concat
+from toolz import concat, curry
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
@@ -860,6 +861,7 @@ class SubTestFailures(AssertionError):
         )
 
 
+@nottest
 def subtest(iterator, *_names):
     """
     Construct a subtest in a unittest.
@@ -1374,3 +1376,27 @@ def patch_read_csv(url_map, module=pd, strict=False):
 
     with patch.object(module, 'read_csv', patched_read_csv):
         yield
+
+
+@curry
+def ensure_doctest(f, name=None):
+    """Ensure that an object gets doctested. This is useful for instances
+    of objects like curry or partial which are not discovered by default.
+
+    Parameters
+    ----------
+    f : any
+        The thing to doctest.
+    name : str, optional
+        The name to use in the doctest function mapping. If this is None,
+        Then ``f.__name__`` will be used.
+
+    Returns
+    -------
+    f : any
+       ``f`` unchanged.
+    """
+    _getframe(2).f_globals.setdefault('__test__', {})[
+        f.__name__ if name is None else name
+    ] = f
+    return f
