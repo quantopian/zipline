@@ -10,7 +10,7 @@ from numpy import (
 from zipline.utils.control_flow import nullctx
 from zipline.errors import WindowLengthNotPositive, UnsupportedDataType
 
-from .term import NotSpecified
+from .sentinels import NotSpecified
 
 
 class PositiveWindowLengthMixin(object):

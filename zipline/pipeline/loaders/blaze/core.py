@@ -166,7 +166,7 @@ from zipline.pipeline.loaders.utils import (
     normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
 )
-from zipline.pipeline.term import NotSpecified
+from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
 from zipline.lib.adjustment import Float64Overwrite
 from zipline.utils.enum import enum

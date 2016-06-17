@@ -36,10 +36,9 @@ from zipline.pipeline.mixins import (
     RestrictedDTypeMixin,
     SingleInputMixin,
 )
+from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
 from zipline.pipeline.term import (
     ComputableTerm,
-    NotSpecified,
-    NotSpecifiedType,
     Slice,
     Term,
 )

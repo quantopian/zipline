@@ -72,7 +72,7 @@ from zipline.pipeline.loaders.synthetic import (
     make_bar_data,
     expected_bar_values_2d,
 )
-from zipline.pipeline.term import NotSpecified
+from zipline.pipeline.sentinels import NotSpecified
 from zipline.testing import (
     AssetID,
     AssetIDPlusDay,
@@ -416,7 +416,7 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         alternating_mask = (AssetIDPlusDay() % 2).eq(0)
         expected_alternating_mask_result = make_alternating_boolean_array(
-            shape=(num_dates, num_assets), first=False,
+            shape=(num_dates, num_assets), first_value=False,
         )
 
         masks = cascading_mask, alternating_mask
@@ -580,7 +580,7 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         alternating_mask = (AssetIDPlusDay() % 2).eq(0)
         expected_alternating_mask_result = make_alternating_boolean_array(
-            shape=(num_dates, num_assets), first=False,
+            shape=(num_dates, num_assets), first_value=False,
         )
 
         expected_no_mask_result = full(

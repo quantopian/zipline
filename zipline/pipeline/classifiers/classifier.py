@@ -10,7 +10,8 @@ from numpy import where, isnan, nan, zeros
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.quantiles import quantiles
 from zipline.pipeline.api_utils import restrict_to_dtype
-from zipline.pipeline.term import ComputableTerm, NotSpecified
+from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.term import ComputableTerm
 from zipline.utils.compat import unicode
 from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import (

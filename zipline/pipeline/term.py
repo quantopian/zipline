@@ -35,15 +35,9 @@ from zipline.utils.numpy_utils import (
     categorical_dtype,
     default_missing_value_for_dtype,
 )
-from zipline.utils.sentinel import sentinel
 
-
-NotSpecified = sentinel(
-    'NotSpecified',
-    'Singleton sentinel value used for Term defaults.',
-)
-
-NotSpecifiedType = type(NotSpecified)
+from .mixins import SingleInputMixin
+from .sentinels import NotSpecified
 
 
 class Term(with_metaclass(ABCMeta, object)):
@@ -525,7 +519,7 @@ class ComputableTerm(Term):
         )
 
 
-class Slice(ComputableTerm):
+class Slice(ComputableTerm, SingleInputMixin):
     """
     Term for extracting a single column of a another term's output.
 
@@ -547,7 +541,7 @@ class Slice(ComputableTerm):
             asset=asset,
             inputs=[term],
             window_length=0,
-            mask=term.mask[asset] if term.mask else AssetExists(),
+            mask=term.mask,
             dtype=term.dtype,
             missing_value=term.missing_value,
             window_safe=term.window_safe,
@@ -579,8 +573,7 @@ class Slice(ComputableTerm):
 
         # Return a 2D array with one column rather than a 1D array of the
         # column.
-        col = windows[0][:, asset_column]
-        return col[:, None]
+        return windows[0][:, [asset_column]]
 
 
 def validate_dtype(termname, dtype, missing_value):

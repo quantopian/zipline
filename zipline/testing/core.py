@@ -1158,7 +1158,7 @@ def create_empty_splits_mergers_frame():
     )
 
 
-def make_alternating_boolean_array(shape, first=True):
+def make_alternating_boolean_array(shape, first_value=True):
     """
     Create a 2D numpy array with the given shape containing alternating values
     of False, True, False, True,... along each row and each column.
@@ -1170,7 +1170,7 @@ def make_alternating_boolean_array(shape, first=True):
            [False,  True, False,  True],
            [ True, False,  True, False],
            [False,  True, False,  True]], dtype=bool)
-    >>> make_alternating_boolean_array((4,3), first=False)
+    >>> make_alternating_boolean_array((4,3), first_value=False)
     array([[False,  True, False],
            [ True, False,  True],
            [False,  True, False],
@@ -1182,16 +1182,16 @@ def make_alternating_boolean_array(shape, first=True):
         )
     alternating = np.empty(shape, dtype=np.bool)
     for row in alternating:
-        row[::2] = first
-        row[1::2] = not(first)
-        first = not(first)
+        row[::2] = first_value
+        row[1::2] = not(first_value)
+        first_value = not(first_value)
     return alternating
 
 
-def make_cascading_boolean_array(shape, first=True):
+def make_cascading_boolean_array(shape, first_value=True):
     """
     Create a numpy array with the given shape containing cascading boolean
-    values, with `first` being the top-left value.
+    values, with `first_value` being the top-left value.
 
     Examples
     --------
@@ -1213,11 +1213,11 @@ def make_cascading_boolean_array(shape, first=True):
         raise ValueError(
             'Shape must be 2-dimensional. Given shape was {}'.format(shape)
         )
-    cascading = np.full(shape, not(first), dtype=np.bool)
+    cascading = np.full(shape, not(first_value), dtype=np.bool)
     ending_col = shape[1] - 1
     for row in cascading:
         if ending_col > 0:
-            row[:ending_col] = first
+            row[:ending_col] = first_value
             ending_col -= 1
         else:
             break
@@ -1463,19 +1463,17 @@ class AssetID(CustomFactor):
     asset.
     """
     window_length = 1
-    # HACK: We currently decide whether to load or compute a Term based on the
-    # length of its inputs. This means we have to provide a dummy input.
-    inputs = [USEquityPricing.close]
+    inputs = ()
 
-    def compute(self, today, assets, out, close):
+    def compute(self, today, assets, out):
         out[:] = assets
 
 
 class AssetIDPlusDay(CustomFactor):
     window_length = 1
-    inputs = [USEquityPricing.close]
+    inputs = ()
 
-    def compute(self, today, assets, out, close):
+    def compute(self, today, assets, out):
         out[:] = assets + today.day
 
 

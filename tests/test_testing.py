@@ -60,7 +60,7 @@ class TestMakeBooleanArray(TestCase):
             ),
         )
         check_arrays(
-            make_alternating_boolean_array((3, 3), first=False),
+            make_alternating_boolean_array((3, 3), first_value=False),
             array(
                 [[False,  True, False],
                  [True,  False,  True],
@@ -90,7 +90,7 @@ class TestMakeBooleanArray(TestCase):
             ),
         )
         check_arrays(
-            make_cascading_boolean_array((3, 3), first=False),
+            make_cascading_boolean_array((3, 3), first_value=False),
             array(
                 [[False, False, True],
                  [False,  True, True],

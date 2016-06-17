@@ -28,7 +28,8 @@ from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.expression import NUMEXPR_MATH_FUNCS
 from zipline.pipeline.factors import RecarrayField
-from zipline.pipeline.term import AssetExists, NotSpecified, Slice
+from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.term import AssetExists, Slice
 from zipline.testing import parameter_space
 from zipline.testing.predicates import assert_equal, assert_raises
 from zipline.utils.numpy_utils import (

@@ -8,7 +8,8 @@ from scipy.stats import (
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
-from zipline.pipeline.term import AssetExists, NotSpecified
+from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.term import AssetExists
 from zipline.utils.input_validation import expect_dtypes
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
