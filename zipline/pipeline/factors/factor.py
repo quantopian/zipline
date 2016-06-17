@@ -651,9 +651,29 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
+        Example
+        -------
+        Suppose we want to create a factor that computes the correlation
+        between AAPL's 10-day returns and the 10-day returns of all other
+        assets, computing each correlation over 30 days. This can be achieved
+        by doing the following::
+
+            returns = Returns(window_length=10)
+            returns_slice = returns[Asset(24)]
+            aapl_correlations = returns.pearsonr(
+                target=returns_slice, correlation_length=30,
+            )
+
+        This is equivalent to doing::
+
+            aapl_correlations = RollingPearsonOfReturns(
+                target=Asset(24), returns_length=10, correlation_length=30,
+            )
+
         See Also
         --------
         :func:`scipy.stats.pearsonr`
+        :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
         :meth:`Factor.spearmanr`
         """
         from .statistical import RollingPearson
@@ -694,9 +714,29 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute correlations between `target` and
             the columns of `self`.
 
+        Example
+        -------
+        Suppose we want to create a factor that computes the correlation
+        between AAPL's 10-day returns and the 10-day returns of all other
+        assets, computing each correlation over 30 days. This can be achieved
+        by doing the following::
+
+            returns = Returns(window_length=10)
+            returns_slice = returns[Asset(24)]
+            aapl_correlations = returns.spearmanr(
+                target=returns_slice, correlation_length=30,
+            )
+
+        This is equivalent to doing::
+
+            aapl_correlations = RollingSpearmanOfReturns(
+                target=Asset(24), returns_length=10, correlation_length=30,
+            )
+
         See Also
         --------
         :func:`scipy.stats.spearmanr`
+        :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
         :meth:`Factor.pearsonr`
         """
         from .statistical import RollingSpearman
@@ -737,9 +777,28 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A new Factor that will compute linear regressions of `target`
             against the columns of `self`.
 
+        Example
+        -------
+        Suppose we want to create a factor that regresses AAPL's 10-day returns
+        against the 10-day returns of all other assets, computing each
+        regression over 30 days. This can be achieved by doing the following::
+
+            returns = Returns(window_length=10)
+            returns_slice = returns[Asset(24)]
+            aapl_regressions = returns.linear_regression(
+                target=returns_slice, regression_length=30,
+            )
+
+        This is equivalent to doing::
+
+            aapl_regressions = RollingLinearRegressionOfReturns(
+                target=Asset(24), returns_length=10, regression_length=30,
+            )
+
         See Also
         --------
         :func:`scipy.stats.linregress`
+        :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
         """
         from .statistical import RollingLinearRegression
         return RollingLinearRegression(

@@ -245,8 +245,8 @@ class RollingPearsonOfReturns(RollingPearson):
 
     See Also
     --------
-    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
-    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
+    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
+    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
     """
     def __new__(cls,
                 target,
@@ -295,8 +295,8 @@ class RollingSpearmanOfReturns(RollingSpearman):
 
     See Also
     --------
-    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
-    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`
+    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
+    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
     """
     def __new__(cls,
                 target,
@@ -412,8 +412,8 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
 
     See Also
     --------
-    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`
-    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`
+    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
+    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
     """
     def __new__(cls,
                 target,
