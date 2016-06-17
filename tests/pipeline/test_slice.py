@@ -1,9 +1,7 @@
 """
 Tests for slicing pipeline terms.
 """
-from numpy import arange
 from pandas import (
-    DataFrame,
     date_range,
     Int64Index,
     Timestamp,
@@ -19,7 +17,7 @@ from zipline.errors import (
 )
 from zipline.pipeline import CustomFactor, Pipeline
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.factors import (
     Returns,
     RollingLinearRegressionOfReturns,
@@ -27,18 +25,20 @@ from zipline.pipeline.factors import (
     RollingSpearmanOfReturns,
     SimpleMovingAverage,
 )
-from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.testing import (
     AssetID,
     check_arrays,
     OpenPrice,
     parameter_space,
 )
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.testing.fixtures import (
+    WithSeededRandomPipelineEngine,
+    ZiplineTestCase,
+)
 from zipline.utils.numpy_utils import datetime64ns_dtype
 
 
-class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
+class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
     START_DATE = Timestamp('2015-01-31', tz='UTC')
     END_DATE = Timestamp('2015-03-01', tz='UTC')
@@ -48,29 +48,14 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         super(SliceTestCase, cls).init_class_fixtures()
 
         day = cls.trading_schedule.day
-        sids = cls.sids
-
         cls.dates = dates = date_range(
             '2015-02-01', '2015-02-28', freq=day, tz='UTC',
         )
         cls.start_date = dates[14]
         cls.end_date = dates[18]
 
-        cls.raw_data = DataFrame(
-            data=arange(len(dates) * len(sids), dtype=float).reshape(
-                len(dates), len(sids),
-            ),
-            index=dates,
-            columns=cls.asset_finder.retrieve_all(sids),
-        )
-
-        close_loader = DataFrameLoader(USEquityPricing.close, cls.raw_data)
-
-        cls.engine = SimplePipelineEngine(
-            {USEquityPricing.close: close_loader}.__getitem__,
-            cls.dates,
-            cls.asset_finder,
-        )
+        # Random input for factors.
+        cls.col = TestingDataSet.float_col
 
     @parameter_space(my_asset_column=[0, 1, 2], window_length_=[1, 2, 3])
     def test_slice(self, my_asset_column, window_length_):
@@ -81,7 +66,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         sids = self.sids
         my_asset = self.asset_finder.retrieve_asset(self.sids[my_asset_column])
 
-        returns = Returns(window_length=2)
+        returns = Returns(window_length=2, inputs=[self.col])
         returns_slice = returns[my_asset]
 
         class UsesSlicedInput(CustomFactor):
@@ -98,7 +83,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         # Assertions about the expected slice data are made in the `compute`
         # function of our custom factor above.
-        self.engine.run_pipeline(
+        self.run_pipeline(
             Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
             self.start_date,
             self.end_date,
@@ -112,7 +97,6 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         """
         sids = self.sids
         asset_finder = self.asset_finder
-        engine = self.engine
         start_date = self.start_date
         end_date = self.end_date
 
@@ -126,10 +110,10 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         # masked out.
         slice_asset = asset_finder.retrieve_asset(sids[slice_column])
 
-        returns = Returns(window_length=2)
+        returns = Returns(window_length=2, inputs=[self.col])
         returns_slice = returns[slice_asset]
 
-        returns_results = engine.run_pipeline(
+        returns_results = self.run_pipeline(
             Pipeline(columns={'returns': returns}), start_date, end_date,
         )
         returns_results = returns_results['returns'].unstack()
@@ -152,7 +136,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         # Assertions about the expected data are made in the `compute` function
         # of our custom factor above.
-        engine.run_pipeline(Pipeline(columns=columns), start_date, end_date)
+        self.run_pipeline(Pipeline(columns=columns), start_date, end_date)
 
     def test_adding_slice_column(self):
         """
@@ -183,7 +167,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         proper exception.
         """
         my_asset = Asset(0)
-        returns = Returns(window_length=2)
+        returns = Returns(window_length=2, inputs=[self.col])
         returns_slice = returns[my_asset]
 
         class UsesSlicedInput(CustomFactor):
@@ -194,7 +178,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
                 pass
 
         with self.assertRaises(NonExistentAssetInTimeFrame):
-            self.engine.run_pipeline(
+            self.run_pipeline(
                 Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
                 self.start_date,
                 self.end_date,
@@ -205,12 +189,11 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         Test that slices correctly inherit the `window_safe` property of the
         term from which they are derived.
         """
+        col = self.col
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
         # SimpleMovingAverage is not window safe.
-        sma = SimpleMovingAverage(
-            inputs=[USEquityPricing.close], window_length=10,
-        )
+        sma = SimpleMovingAverage(inputs=[self.col], window_length=10)
         sma_slice = sma[my_asset]
 
         class UsesSlicedInput(CustomFactor):
@@ -221,7 +204,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
                 pass
 
         with self.assertRaises(NonWindowSafeInput):
-            self.engine.run_pipeline(
+            self.run_pipeline(
                 Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
                 self.start_date,
                 self.end_date,
@@ -230,7 +213,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         # Make sure that slices of custom factors are not window safe.
         class MyUnsafeFactor(CustomFactor):
             window_length = 1
-            inputs = [USEquityPricing.close]
+            inputs = [col]
 
             def compute(self, today, assets, out, close):
                 out[:] = close
@@ -246,7 +229,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
                 pass
 
         with self.assertRaises(NonWindowSafeInput):
-            self.engine.run_pipeline(
+            self.run_pipeline(
                 Pipeline(columns={'uses_sliced_input': UsesSlicedInput()}),
                 self.start_date,
                 self.end_date,
@@ -255,7 +238,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         # Create a window safe factor.
         class MySafeFactor(CustomFactor):
             window_length = 1
-            inputs = [USEquityPricing.close]
+            inputs = [col]
             window_safe = True
 
             def compute(self, today, assets, out, close):
@@ -287,7 +270,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         """
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
-        returns = Returns(window_length=returns_length)
+        returns = Returns(window_length=returns_length, inputs=[self.col])
         returns_slice = returns[my_asset]
 
         pearson = returns.pearsonr(
@@ -307,6 +290,14 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
             correlation_length=correlation_length,
         )
 
+        # These built-ins construct their own Returns factor to use as inputs,
+        # so the only way to set our own inputs is to do so after the fact.
+        # This should not be done in practice. It is necessary here because we
+        # want Returns to use our random data as an input, but by default it is
+        # using USEquityPricing.close.
+        expected_pearson.inputs = [returns, returns_slice]
+        expected_spearman.inputs = [returns, returns_slice]
+
         columns = {
             'pearson': pearson,
             'spearman': spearman,
@@ -314,7 +305,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
             'expected_spearman': expected_spearman,
         }
 
-        results = self.engine.run_pipeline(
+        results = self.run_pipeline(
             Pipeline(columns=columns), self.start_date, self.end_date,
         )
         pearson_results = results['pearson'].unstack()
@@ -366,7 +357,7 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         """
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
-        returns = Returns(window_length=returns_length)
+        returns = Returns(window_length=returns_length, inputs=[self.col])
         returns_slice = returns[my_asset]
 
         regression = returns.linear_regression(
@@ -378,12 +369,19 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
             regression_length=regression_length,
         )
 
+        # These built-ins construct their own Returns factor to use as inputs,
+        # so the only way to set our own inputs is to do so after the fact.
+        # This should not be done in practice. It is necessary here because we
+        # want Returns to use our random data as an input, but by default it is
+        # using USEquityPricing.close.
+        expected_regression.inputs = [returns, returns_slice]
+
         columns = {
             'regression': regression,
             'expected_regression': expected_regression,
         }
 
-        results = self.engine.run_pipeline(
+        results = self.run_pipeline(
             Pipeline(columns=columns), self.start_date, self.end_date,
         )
         regression_results = results['regression'].unstack()
