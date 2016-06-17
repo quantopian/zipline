@@ -119,7 +119,6 @@ The following code implements a simple dual moving average algorithm.
 .. code:: python
 
     from zipline.api import (
-        add_history,
         history,
         order_target,
         record,
@@ -128,10 +127,6 @@ The following code implements a simple dual moving average algorithm.
 
 
     def initialize(context):
-        # Register 2 histories that track daily prices,
-        # one with a 100 window and one with a 300 day window
-        add_history(100, '1d', 'price')
-        add_history(300, '1d', 'price')
         context.i = 0
 
 
