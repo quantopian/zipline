@@ -9,7 +9,6 @@ Zipline
 
 |Gitter|
 |version status|
-|downloads|
 |travis status|
 |appveyor status|
 |Coverage Status|
@@ -180,8 +179,6 @@ https://github.com/quantopian/zipline/wiki/Contribution-Requests
 .. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
    :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 .. |version status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
-   :target: https://pypi.python.org/pypi/zipline
-.. |downloads| image:: https://img.shields.io/pypi/dd/zipline.svg
    :target: https://pypi.python.org/pypi/zipline
 .. |travis status| image:: https://travis-ci.org/quantopian/zipline.png?branch=master
    :target: https://travis-ci.org/quantopian/zipline
