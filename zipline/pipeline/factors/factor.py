@@ -333,9 +333,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     Factors.  For example, constructing a Factor that computes the average of
     two other Factors is simply::
 
-        >>> f1 = SomeFactor(...)
-        >>> f2 = SomeOtherFactor(...)
-        >>> average = (f1 + f2) / 2.0
+        >>> f1 = SomeFactor(...)  # doctest: +SKIP
+        >>> f2 = SomeOtherFactor(...)  # doctest: +SKIP
+        >>> average = (f1 + f2) / 2.0  # doctest: +SKIP
 
     Factors can also be converted into :class:`zipline.pipeline.Filter` objects
     via comparison operators: (``<``, ``<=``, ``!=``, ``eq``, ``>``, ``>=``).
@@ -492,8 +492,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         to use the ``mask`` parameter to discard values at the extremes of the
         distribution::
 
-            >>> base = MyFactor(...)
-            >>> normalized = base.demean(mask=base.percentile_between(1, 99))
+            >>> base = MyFactor(...)  # doctest: +SKIP
+            >>> normalized = base.demean(
+            ...     mask=base.percentile_between(1, 99),
+            ... )  # doctest: +SKIP
 
         ``demean()`` is only supported on Factors of dtype float64.
 
@@ -553,8 +555,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         outliers, it is often useful to use the ``mask`` parameter to discard
         values at the extremes of the distribution::
 
-            >>> base = MyFactor(...)
-            >>> normalized = base.zscore(mask=base.percentile_between(1, 99))
+            >>> base = MyFactor(...)  # doctest: +SKIP
+            >>> normalized = base.zscore(
+            ...    mask=base.percentile_between(1, 99),
+            ... )  # doctest: +SKIP
 
         ``zscore()`` is only supported on Factors of dtype float64.
 
