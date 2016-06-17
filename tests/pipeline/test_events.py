@@ -4,8 +4,11 @@ Tests for setting up an EventsLoader and a BlazeEventsLoader.
 from itertools import product
 
 import blaze as bz
+import itertools
+from datetime import time
 import numpy as np
 import pandas as pd
+from pandas.util.testing import assert_series_equal
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
@@ -19,7 +22,7 @@ from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
 from zipline.pipeline.loaders.utils import (
     previous_event_indexer,
     next_event_indexer,
-)
+    normalize_timestamp_to_query_time)
 from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import (
     WithAssetFinder,
@@ -456,3 +459,34 @@ class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
             next_value_columns,
             previous_value_columns,
         )
+
+
+class EventLoaderUtilsTestCase(ZiplineTestCase):
+    dates = [pd.Timestamp('2013-01-04 3:00:00'), pd.Timestamp('2013-01-24'),
+             pd.Timestamp('2013-04-04'), pd.Timestamp('2013-04-21')]
+    combos = list(itertools.permutations(dates))
+
+    def test_normalize_to_query_time(self):
+        # Order matters in pandas 18.0.2. Prior to that, using tz_convert on
+        # a DatetimeIndex with DST/EST timestamps mixed resulted in some of
+        # them being an hour off (1 hour past midnight).
+        expected = pd.Series(
+            [pd.Timestamp('2013-01-04'),
+             pd.Timestamp('2013-01-24'),
+             pd.Timestamp('2013-04-04'),
+             pd.Timestamp('2013-04-21')]
+        ).reset_index(drop=True)
+        for combo in self.combos:
+            df = pd.DataFrame({"timestamp": combo})
+            tz = 'US/Eastern'
+            query_time = time(8, 45)
+            result = normalize_timestamp_to_query_time(df,
+                                                       query_time,
+                                                       tz,
+                                                       inplace=False,
+                                                       ts_field='timestamp')
+            result = result.sort("timestamp").reset_index(drop=True)
+            assert_series_equal(result['timestamp'], expected)
+
+
+

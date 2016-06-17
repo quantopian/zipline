@@ -241,7 +241,7 @@ def normalize_timestamp_to_query_time(df,
     # day and truncate to the date
     df.loc[to_roll_forward, ts_field] = (
         dtidx_local_time[to_roll_forward] + datetime.timedelta(days=1)
-    ).normalize().tz_localize(None).tz_localize('utc')  # cast back to utc
+    ).normalize().tz_convert('utc').normalize()  # set to UTC midnight
     df.loc[~to_roll_forward, ts_field] = dtidx[~to_roll_forward].normalize()
     return df
 
