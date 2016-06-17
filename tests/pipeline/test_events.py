@@ -1,11 +1,11 @@
 """
 Tests for setting up an EventsLoader and a BlazeEventsLoader.
 """
+from datetime import time
+import itertools
 from itertools import product
 
 import blaze as bz
-import itertools
-from datetime import time
 import numpy as np
 import pandas as pd
 from pandas.util.testing import assert_series_equal
