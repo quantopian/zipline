@@ -266,15 +266,13 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         # Make sure that correlations are not safe if either the factor *or*
         # the target slice are not window safe.
         with self.assertRaises(NonWindowSafeInput):
-            my_unsafe_factor.rolling_pearsonr(
-                target_slice=my_safe_factor_slice,
-                correlation_length=10,
+            my_unsafe_factor.pearsonr(
+                target=my_safe_factor_slice, correlation_length=10,
             )
 
         with self.assertRaises(NonWindowSafeInput):
-            my_safe_factor.rolling_pearsonr(
-                target_slice=my_unsafe_factor_slice,
-                correlation_length=10,
+            my_safe_factor.pearsonr(
+                target=my_unsafe_factor_slice, correlation_length=10,
             )
 
     @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
@@ -282,8 +280,8 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
                                         returns_length,
                                         correlation_length):
         """
-        Ensure that `Factor.rolling_pearsonr` and `Factor.rolling_spearmanr`
-        are consistent with the built-in factors `RollingPearsonOfReturns` and
+        Ensure that `Factor.pearsonr` and `Factor.spearmanr` are consistent
+        with the built-in factors `RollingPearsonOfReturns` and
         `RollingSpearmanOfReturns`.
         """
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
@@ -291,11 +289,11 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         returns = Returns(window_length=returns_length)
         returns_slice = returns[my_asset]
 
-        pearson = returns.rolling_pearsonr(
-            target_slice=returns_slice, correlation_length=correlation_length,
+        pearson = returns.pearsonr(
+            target=returns_slice, correlation_length=correlation_length,
         )
-        spearman = returns.rolling_spearmanr(
-            target_slice=returns_slice, correlation_length=correlation_length,
+        spearman = returns.spearmanr(
+            target=returns_slice, correlation_length=correlation_length,
         )
         expected_pearson = RollingPearsonOfReturns(
             target=my_asset,
@@ -329,16 +327,16 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
     @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
     def test_factor_regression_method(self, returns_length, regression_length):
         """
-        Ensure that `Factor.rolling_linear_regression` is consistent with the
-        built-in factor `RollingLinearRegressionOfReturns`.
+        Ensure that `Factor.linear_regression` is consistent with the built-in
+        factor `RollingLinearRegressionOfReturns`.
         """
         my_asset = self.asset_finder.retrieve_asset(self.sids[0])
 
         returns = Returns(window_length=returns_length)
         returns_slice = returns[my_asset]
 
-        regression = returns.rolling_linear_regression(
-            target_slice=returns_slice, regression_length=regression_length,
+        regression = returns.linear_regression(
+            target=returns_slice, regression_length=regression_length,
         )
         expected_regression = RollingLinearRegressionOfReturns(
             target=my_asset,
