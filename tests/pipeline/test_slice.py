@@ -35,6 +35,7 @@ from zipline.testing import (
     parameter_space,
 )
 from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.utils.numpy_utils import datetime64ns_dtype
 
 
 class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
@@ -324,6 +325,39 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         assert_frame_equal(pearson_results, expected_pearson_results)
         assert_frame_equal(spearman_results, expected_spearman_results)
 
+        # Make sure we cannot call the correlation methods on factors or slices
+        # of dtype `datetime64[ns]`.
+        class DateFactor(CustomFactor):
+            window_length = 1
+            inputs = []
+            dtype = datetime64ns_dtype
+            window_safe = True
+
+            def compute(self, today, assets, out):
+                pass
+
+        date_factor = DateFactor()
+        date_factor_slice = date_factor[my_asset]
+
+        with self.assertRaises(TypeError):
+            date_factor.pearsonr(
+                target=returns_slice, correlation_length=correlation_length,
+            )
+        with self.assertRaises(TypeError):
+            date_factor.spearmanr(
+                target=returns_slice, correlation_length=correlation_length,
+            )
+        with self.assertRaises(TypeError):
+            returns.pearsonr(
+                target=date_factor_slice,
+                correlation_length=correlation_length,
+            )
+        with self.assertRaises(TypeError):
+            returns.pearsonr(
+                target=date_factor_slice,
+                correlation_length=correlation_length,
+            )
+
     @parameter_space(returns_length=[2, 3], regression_length=[3, 4])
     def test_factor_regression_method(self, returns_length, regression_length):
         """
@@ -356,3 +390,26 @@ class SliceTestCase(WithTradingEnvironment, ZiplineTestCase):
         expected_regression_results = results['expected_regression'].unstack()
 
         assert_frame_equal(regression_results, expected_regression_results)
+
+        # Make sure we cannot call the linear regression method on factors or
+        # slices of dtype `datetime64[ns]`.
+        class DateFactor(CustomFactor):
+            window_length = 1
+            inputs = []
+            dtype = datetime64ns_dtype
+            window_safe = True
+
+            def compute(self, today, assets, out):
+                pass
+
+        date_factor = DateFactor()
+        date_factor_slice = date_factor[my_asset]
+
+        with self.assertRaises(TypeError):
+            date_factor.linear_regression(
+                target=returns_slice, regression_length=regression_length,
+            )
+        with self.assertRaises(TypeError):
+            returns.linear_regression(
+                target=date_factor_slice, regression_length=regression_length,
+            )

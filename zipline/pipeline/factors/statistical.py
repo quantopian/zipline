@@ -9,12 +9,18 @@ from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
 from zipline.pipeline.term import AssetExists, NotSpecified
+from zipline.utils.input_validation import expect_dtypes
+from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
 from .technical import Returns
 
 
+ALLOWED_DTYPES = (float64_dtype, int64_dtype)
+
+
 class _RollingCorrelation(CustomFactor, SingleInputMixin):
 
+    @expect_dtypes(target_factor=ALLOWED_DTYPES, target_slice=ALLOWED_DTYPES)
     def __new__(cls,
                 target_factor,
                 target_slice,
@@ -136,6 +142,7 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
     """
     outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
 
+    @expect_dtypes(target_factor=ALLOWED_DTYPES, target_slice=ALLOWED_DTYPES)
     def __new__(cls,
                 target_factor,
                 target_slice,
