@@ -170,24 +170,6 @@ def assert_single_position(test, zipline):
     return output, transaction_count
 
 
-class ExceptionSource(object):
-
-    def __init__(self):
-        pass
-
-    def get_hash(self):
-        return "ExceptionSource"
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        5 / 0
-
-    def __next__(self):
-        5 / 0
-
-
 @contextmanager
 def security_list_copy():
     old_dir = security_list.SECURITY_LISTS_DIR
