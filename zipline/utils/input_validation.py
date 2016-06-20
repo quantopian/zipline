@@ -209,18 +209,18 @@ def expect_dtypes(**named):
 
     Usage
     -----
-    >>> from numpy import dtype, arange
-    >>> @expect_dtypes(x=dtype(int))
+    >>> from numpy import dtype, arange, int8, float64
+    >>> @expect_dtypes(x=dtype(int8))
     ... def foo(x, y):
     ...    return x, y
     ...
-    >>> foo(arange(3), 'foo')
-    (array([0, 1, 2]), 'foo')
-    >>> foo(arange(3, dtype=float), 'foo')  # doctest: +NORMALIZE_WHITESPACE
-    ...                                     # doctest: +ELLIPSIS
+    >>> foo(arange(3, dtype=int8), 'foo')
+    (array([0, 1, 2], dtype=int8), 'foo')
+    >>> foo(arange(3, dtype=float64), 'foo')  # doctest: +NORMALIZE_WHITESPACE
+    ...                                       # doctest: +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: ...foo() expected a value with dtype 'int64' for argument 'x',
+    TypeError: ...foo() expected a value with dtype 'int8' for argument 'x',
     but got 'float64' instead.
     """
     for name, type_ in iteritems(named):
