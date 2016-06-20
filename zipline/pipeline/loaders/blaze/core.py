@@ -482,7 +482,27 @@ def _get_metadata(field, expr, metadata_expr, no_metadata_rule):
     return None
 
 
-def _ensure_timestamp_field(dataset_expr, deltas):
+def _ad_as_ts(expr):
+    """Duplicate the asof_date column as the timestamp column.
+
+    Parameters
+    ----------
+    expr : Expr or None
+        The expression to change the columns of.
+
+    Returns
+    -------
+    transformed : Expr or None
+        The transformed expression or None if ``expr`` is None.
+    """
+    return (
+        None
+        if expr is None else
+        bz.transform(expr, **{TS_FIELD_NAME: expr[AD_FIELD_NAME]})
+    )
+
+
+def _ensure_timestamp_field(dataset_expr, deltas, checkpoints):
     """Verify that the baseline and deltas expressions have a timestamp field.
 
     If there is not a ``TS_FIELD_NAME`` on either of the expressions, it will
@@ -495,6 +515,8 @@ def _ensure_timestamp_field(dataset_expr, deltas):
         The baseline expression.
     deltas : Expr or None
         The deltas expression if any was provided.
+    checkpoints : Expr or None
+        The checkpoints expression if any was provided.
 
     Returns
     -------
@@ -507,15 +529,12 @@ def _ensure_timestamp_field(dataset_expr, deltas):
             dataset_expr,
             **{TS_FIELD_NAME: dataset_expr[AD_FIELD_NAME]}
         )
-        if deltas is not None:
-            deltas = bz.transform(
-                deltas,
-                **{TS_FIELD_NAME: deltas[AD_FIELD_NAME]}
-            )
+        deltas = _ad_as_ts(deltas)
+        checkpoints = _ad_as_ts(checkpoints)
     else:
         _check_datetime_field(TS_FIELD_NAME, measure)
 
-    return dataset_expr, deltas
+    return dataset_expr, deltas, checkpoints
 
 
 @expect_element(
@@ -580,6 +599,22 @@ def from_blaze(expr,
         is passed, a ``BoundColumn`` on the dataset that would be constructed
         from passing the parent is returned.
     """
+    if 'auto' in {deltas, checkpoints}:
+        invalid_nodes = tuple(filter(is_invalid_deltas_node, expr._subterms()))
+        if invalid_nodes:
+            raise TypeError(
+                'expression with auto %s may only contain (%s) nodes,'
+                " found: %s" % (
+                    ' or '.join(
+                        ['deltas'] if deltas is not None else [] +
+                        ['checkpoints'] if checkpoints is not None else [],
+                    ),
+                    ', '.join(map(get__name__, valid_deltas_node_types)),
+                    ', '.join(
+                        set(map(compose(get__name__, type), invalid_nodes)),
+                    ),
+                ),
+            )
     deltas = _get_metadata(
         'deltas',
         expr,
@@ -592,22 +627,6 @@ def from_blaze(expr,
         checkpoints,
         no_checkpoints_rule,
     )
-    if 'auto' in {deltas, checkpoints}:
-        invalid_nodes = tuple(filter(is_invalid_deltas_node, expr._subterms()))
-        if invalid_nodes:
-            raise TypeError(
-                'expression with %s may only contain (%s) nodes,'
-                " found: %s" % (
-                    ' or '.join(
-                        ['deltas'] if deltas is not None else [] +
-                        ['checkpoints'] if checkpoints is not None else [],
-                    ),
-                    ', '.join(map(get__name__, valid_deltas_node_types)),
-                    ', '.join(
-                        set(map(compose(get__name__, type), invalid_nodes)),
-                    ),
-                ),
-            )
 
     # Check if this is a single column out of a dataset.
     if bz.ndim(expr) != 1:
@@ -653,12 +672,25 @@ def from_blaze(expr,
             ),
         )
     _check_datetime_field(AD_FIELD_NAME, measure)
-    dataset_expr, deltas = _ensure_timestamp_field(dataset_expr, deltas)
+    dataset_expr, deltas, checkpoints = _ensure_timestamp_field(
+        dataset_expr,
+        deltas,
+        checkpoints,
+    )
 
     if deltas is not None and (sorted(deltas.dshape.measure.fields) !=
                                sorted(measure.fields)):
         raise TypeError(
             'baseline measure != deltas measure:\n%s != %s' % (
+                measure,
+                deltas.dshape.measure,
+            ),
+        )
+    if (checkpoints is not None and
+        (sorted(checkpoints.dshape.measure.fields) !=
+         sorted(measure.fields))):
+        raise TypeError(
+            'baseline measure != checkpoints measure:\n%s != %s' % (
                 measure,
                 deltas.dshape.measure,
             ),

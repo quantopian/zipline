@@ -680,49 +680,71 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
         )
 
     def test_complex_expr(self):
-        expr = bz.data(self.df, dshape=self.dshape)
+        expr = bz.data(self.df, dshape=self.dshape, name='expr')
         # put an Add in the table
         expr_with_add = bz.transform(expr, value=expr.value + 1)
 
-        # Test that we can have complex expressions with no deltas
+        # test that we can have complex expressions with no metadata
         from_blaze(
             expr_with_add,
             deltas=None,
+            checkpoints=None,
             loader=self.garbage_loader,
             missing_values=self.missing_values,
             no_checkpoints_rule='ignore',
         )
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError) as e:
+            # test that we cannot create a single column from a non field
             from_blaze(
                 expr.value + 1,  # put an Add in the column
                 deltas=None,
+                checkpoints=None,
                 loader=self.garbage_loader,
                 missing_values=self.missing_values,
                 no_checkpoints_rule='ignore',
             )
+        assert_equal(
+            str(e.exception),
+            "expression 'expr.value + 1' was array-like but not a simple field"
+            " of some larger table",
+        )
 
         deltas = bz.data(
             pd.DataFrame(columns=self.df.columns),
             dshape=self.dshape,
+            name='deltas',
         )
-        with self.assertRaises(TypeError):
-            from_blaze(
-                expr_with_add,
-                deltas=deltas,
-                loader=self.garbage_loader,
-                missing_values=self.missing_values,
-                no_checkpoints_rule='ignore',
-            )
+        checkpoints = bz.data(
+            pd.DataFrame(columns=self.df.columns),
+            dshape=self.dshape,
+            name='checkpoints',
+        )
 
-        with self.assertRaises(TypeError):
+        # test that we can have complex expressions with explicit metadata
+        from_blaze(
+            expr_with_add,
+            deltas=deltas,
+            checkpoints=checkpoints,
+            loader=self.garbage_loader,
+            missing_values=self.missing_values,
+        )
+
+        with self.assertRaises(TypeError) as e:
+            # test that we cannot create a single column from a non field
+            # even with explicit metadata
             from_blaze(
                 expr.value + 1,
                 deltas=deltas,
+                checkpoints=checkpoints,
                 loader=self.garbage_loader,
                 missing_values=self.missing_values,
-                no_checkpoints_rule='ignore',
             )
+        assert_equal(
+            str(e.exception),
+            "expression 'expr.value + 1' was array-like but not a simple field"
+            " of some larger table",
+        )
 
     def _test_id(self, df, dshape, expected, finder, add):
         expr = bz.data(df, name='expr', dshape=dshape)
