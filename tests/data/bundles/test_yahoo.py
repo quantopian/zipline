@@ -169,7 +169,7 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
             'ZIPLINE_ROOT': zipline_root,
         }
 
-        self.ingest('bundle', environ=environ)
+        self.ingest('bundle', environ=environ, show_progress=False)
         bundle = self.load('bundle', environ=environ)
 
         sids = 0, 1, 2
