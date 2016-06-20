@@ -748,7 +748,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=Slice, regression_length=int, mask=(Filter, NotSpecifiedType),
+        target=ComputableTerm,
+        regression_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     def linear_regression(self, target, regression_length, mask=NotSpecified):
         """
