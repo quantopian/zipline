@@ -787,8 +787,12 @@ class DataPortal(object):
             return self._get_daily_data(asset, field, day_to_use)
         else:
             if isinstance(asset, Future):
-                return self._get_minute_spot_value_future(
-                    asset, field, dt)
+                if field == "price":
+                    return self._get_minute_spot_value_future(
+                        asset, "close", dt)
+                else:
+                    return self._get_minute_spot_value_future(
+                        asset, field, dt)
             else:
                 if field == "last_traded":
                     return self._equity_minute_reader.get_last_traded_dt(
