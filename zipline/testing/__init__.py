@@ -37,6 +37,8 @@ from .core import (  # noqa
     powerset,
     product_upper_triangle,
     read_compressed,
+    run_correlations,
+    run_regressions,
     seconds_to_timestamp,
     security_list_copy,
     str_to_seconds,

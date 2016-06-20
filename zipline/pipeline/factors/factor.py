@@ -37,11 +37,7 @@ from zipline.pipeline.mixins import (
     SingleInputMixin,
 )
 from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
-from zipline.pipeline.term import (
-    ComputableTerm,
-    Slice,
-    Term,
-)
+from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
@@ -626,7 +622,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return Rank(self, method=method, ascending=ascending, mask=mask)
 
     @expect_types(
-        target=Slice, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=ComputableTerm,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     def pearsonr(self, target, correlation_length, mask=NotSpecified):
         """
@@ -689,7 +687,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=Slice, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=ComputableTerm,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     def spearmanr(self, target, correlation_length, mask=NotSpecified):
         """
@@ -752,7 +752,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=Slice, regression_length=int, mask=(Filter, NotSpecifiedType),
+        target=ComputableTerm,
+        regression_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     def linear_regression(self, target, regression_length, mask=NotSpecified):
         """

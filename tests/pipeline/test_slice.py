@@ -1,12 +1,13 @@
 """
 Tests for slicing pipeline terms.
 """
-from numpy import where
+from numpy import full, where
 from pandas import Int64Index, Timestamp
 from pandas.util.testing import assert_frame_equal
 
 from zipline.assets import Asset
 from zipline.errors import (
+    IncompatibleTerms,
     NonExistentAssetInTimeFrame,
     NonSliceableTerm,
     NonWindowSafeInput,
@@ -22,18 +23,21 @@ from zipline.pipeline.factors import (
     RollingSpearmanOfReturns,
     SimpleMovingAverage,
 )
+from zipline.pipeline.sentinels import NotSpecified
 from zipline.testing import (
     AssetID,
     AssetIDPlusDay,
     check_arrays,
     OpenPrice,
     parameter_space,
+    run_correlations,
+    run_regressions,
 )
 from zipline.testing.fixtures import (
     WithSeededRandomPipelineEngine,
     ZiplineTestCase,
 )
-from zipline.utils.numpy_utils import datetime64ns_dtype
+from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
 
 
 class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
@@ -358,6 +362,25 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             # `compute` function of our custom factors above.
             self.run_pipeline(Pipeline(columns=columns), start_date, end_date)
 
+
+class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
+                                 ZiplineTestCase):
+    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
+    START_DATE = Timestamp('2015-01-31', tz='UTC')
+    END_DATE = Timestamp('2015-03-01', tz='UTC')
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(StatisticalMethodsTestCase, cls).init_class_fixtures()
+
+        cls.start_date_index = start_date_index = 14
+        cls.end_date_index = end_date_index = 18
+        cls.pipeline_start_date = cls.trading_days[start_date_index]
+        cls.pipeline_end_date = cls.trading_days[end_date_index]
+
+        # Random input for factors.
+        cls.col = TestingDataSet.float_col
+
     @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
     def test_factor_correlation_methods(self,
                                         returns_length,
@@ -514,3 +537,115 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             returns.linear_regression(
                 target=date_factor_slice, regression_length=regression_length,
             )
+
+    @parameter_space(correlation_length=[1, 2, 3, 4])
+    def test_factor_correlation_methods_two_factors(self, correlation_length):
+        """
+        Tests for `Factor.pearsonr` and `Factor.spearmanr` when passed another
+        2D factor instead of a Slice.
+        """
+        dates = self.trading_days
+        start_date_index = self.start_date_index
+        end_date_index = self.end_date_index
+        num_days = end_date_index - start_date_index + 1
+        assets = self.asset_finder.retrieve_all(self.sids)
+        num_assets = len(assets)
+
+        # Ensure that the correlation methods cannot be called with two 2D
+        # factors which have different masks.
+        returns_masked_1 = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(1),
+        )
+        returns_masked_2 = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(2),
+        )
+        with self.assertRaises(IncompatibleTerms):
+            returns_masked_1.pearsonr(
+                target=returns_masked_2, correlation_length=correlation_length,
+            )
+        with self.assertRaises(IncompatibleTerms):
+            returns_masked_1.spearmanr(
+                target=returns_masked_2, correlation_length=correlation_length,
+            )
+
+        returns_5 = Returns(window_length=5, inputs=[self.col])
+        returns_10 = Returns(window_length=10, inputs=[self.col])
+        target_terms = {'base_term': returns_5, 'target_term': returns_10}
+
+        pearson_factor = returns_5.pearsonr(
+            target=returns_10, correlation_length=correlation_length,
+        )
+        spearman_factor = returns_5.spearmanr(
+            target=returns_10, correlation_length=correlation_length,
+        )
+
+        mask = NotSpecified
+        expected_mask = full(
+            shape=(num_days, num_assets), fill_value=True, dtype=bool_dtype,
+        )
+
+        run_correlations(
+            pearson_factor=pearson_factor,
+            spearman_factor=spearman_factor,
+            correlation_length=correlation_length,
+            target_terms=target_terms,
+            run_pipeline=self.run_pipeline,
+            dates=dates,
+            start_date_index=start_date_index,
+            end_date_index=end_date_index,
+            mask=mask,
+            expected_mask=expected_mask,
+            assets=assets,
+        )
+
+    @parameter_space(regression_length=[1, 2, 3, 4])
+    def test_factor_regression_method_two_factors(self, regression_length):
+        """
+        Tests for `Factor.linear_regression` when passed another 2D factor
+        instead of a Slice.
+        """
+        dates = self.trading_days
+        start_date_index = self.start_date_index
+        end_date_index = self.end_date_index
+        num_days = end_date_index - start_date_index + 1
+        assets = self.asset_finder.retrieve_all(self.sids)
+        num_assets = len(assets)
+
+        # Ensure that the `linear_regression` method cannot be called with two
+        # 2D factors which have different masks.
+        returns_masked_1 = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(1),
+        )
+        returns_masked_2 = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(2),
+        )
+        with self.assertRaises(IncompatibleTerms):
+            returns_masked_1.linear_regression(
+                target=returns_masked_2, regression_length=regression_length,
+            )
+
+        returns_5 = Returns(window_length=5, inputs=[self.col])
+        returns_10 = Returns(window_length=10, inputs=[self.col])
+        target_terms = {'term_x': returns_10, 'term_y': returns_5}
+
+        regression_factor = returns_5.linear_regression(
+            target=returns_10, regression_length=regression_length,
+        )
+
+        mask = NotSpecified
+        expected_mask = full(
+            shape=(num_days, num_assets), fill_value=True, dtype=bool_dtype,
+        )
+
+        run_regressions(
+            regression_factor=regression_factor,
+            regression_length=regression_length,
+            target_terms=target_terms,
+            run_pipeline=self.run_pipeline,
+            dates=dates,
+            start_date_index=start_date_index,
+            end_date_index=end_date_index,
+            mask=mask,
+            expected_mask=expected_mask,
+            assets=assets,
+        )
