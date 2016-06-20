@@ -217,10 +217,11 @@ def expect_dtypes(**named):
     >>> foo(arange(3), 'foo')
     (array([0, 1, 2]), 'foo')
     >>> foo(arange(3, dtype=float), 'foo')  # doctest: +NORMALIZE_WHITESPACE
+    ...                                     # doctest: +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: zipline.utils.input_validation.foo() expected a value with
-    dtype 'int64' for argument 'x', but got 'float64' instead.
+    TypeError: ...foo() expected a value with dtype 'int64' for argument 'x',
+    but got 'float64' instead.
     """
     for name, type_ in iteritems(named):
         if not isinstance(type_, (dtype, tuple)):
@@ -279,11 +280,11 @@ def expect_kinds(**named):
     2
     >>> foo(int32(2))
     2
-    >>> foo(float32(2))  # doctest: +NORMALIZE_WHITESPACE
+    >>> foo(float32(2))  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: zipline.utils.input_validation.foo() expected a numpy object of
-    kind 'i' for argument 'x', but got 'f' instead.
+    TypeError: ...foo() expected a numpy object of kind 'i' for argument 'x',
+    but got 'f' instead.
     """
     for name, kind in iteritems(named):
         if not isinstance(kind, (str, tuple)):
@@ -339,11 +340,11 @@ def expect_types(*_pos, **named):
     ...
     >>> foo(2, '3')
     (2, '3')
-    >>> foo(2.0, '3')  # doctest: +NORMALIZE_WHITESPACE
+    >>> foo(2.0, '3')  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: zipline.utils.input_validation.foo() expected a value of type
-    int for argument 'x', but got float instead.
+    TypeError: ...foo() expected a value of type int for argument 'x',
+    but got float instead.
     """
     if _pos:
         raise TypeError("expect_types() only takes keyword arguments.")
@@ -466,11 +467,11 @@ def expect_element(*_pos, **named):
     'A'
     >>> foo('b')
     'B'
-    >>> foo('c')  # doctest: +NORMALIZE_WHITESPACE
+    >>> foo('c')  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    ValueError: zipline.utils.input_validation.foo() expected a value in
-    ('a', 'b') for argument 'x', but got 'c' instead.
+    ValueError: ...foo() expected a value in ('a', 'b') for argument 'x',
+    but got 'c' instead.
 
     Notes
     -----
@@ -510,10 +511,11 @@ def expect_dimensions(**dimensions):
     >>> foo(array([1, 1]), array([[1, 1], [2, 2]]))
     2
     >>> foo(array([1, 1]), array([1, 1]))  # doctest: +NORMALIZE_WHITESPACE
+    ...                                    # doctest: +ELLIPSIS
     Traceback (most recent call last):
        ...
-    ValueError: zipline.utils.input_validation.foo() expected a 2-D array for
-    argument 'y', but got a 1-D array instead.
+    ValueError: ...foo() expected a 2-D array for argument 'y',
+    but got a 1-D array instead.
     """
     def _expect_dimension(expected_ndim):
         def _check(func, argname, argvalue):
