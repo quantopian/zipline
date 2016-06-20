@@ -48,6 +48,10 @@ class BcolzMinuteWriterColumnMismatch(Exception):
     pass
 
 
+class BcolzTableDoesNotExist(Exception):
+    pass
+
+
 def _calc_minute_index(market_opens, minutes_per_day):
     minutes = np.zeros(len(market_opens) * minutes_per_day,
                        dtype='datetime64[ns]')
@@ -454,7 +458,7 @@ class BcolzMinuteBarWriter(object):
         for k, v in kwargs.items():
             table.attrs[k] = v
 
-    def write(self, data, show_progress=False):
+    def write(self, data, show_progress=False, overwrite=False):
         """Write a stream of minute data.
 
         Parameters
@@ -483,9 +487,9 @@ class BcolzMinuteBarWriter(object):
         write_sid = self.write_sid
         with ctx as it:
             for e in it:
-                write_sid(*e)
+                write_sid(*e, overwrite=overwrite)
 
-    def write_sid(self, sid, df):
+    def write_sid(self, sid, df, overwrite=False):
         """
         Write the OHLCV data for the given sid.
         If there is no bcolz ctable yet created for the sid, create it.
@@ -516,9 +520,12 @@ class BcolzMinuteBarWriter(object):
         dts = df.index.values
         # Call internal method, since DataFrame has already ensured matching
         # index and value lengths.
-        self._write_cols(sid, dts, cols)
+        if overwrite:
+            self._overwrite_cols(sid, dts, cols)
+        else:
+            self._write_cols(sid, dts, cols)
 
-    def write_cols(self, sid, dts, cols):
+    def write_cols(self, sid, dts, cols, overwrite=False):
         """
         Write the OHLCV data for the given sid.
         If there is no bcolz ctable yet created for the sid, create it.
@@ -546,7 +553,51 @@ class BcolzMinuteBarWriter(object):
                     len(dts),
                     " ".join("{0}={1}".format(name, len(cols[name]))
                              for name in self.COL_NAMES)))
-        self._write_cols(sid, dts, cols)
+        if overwrite:
+            self._overwrite_cols(sid, dts, cols)
+        else:
+            self._write_cols(sid, dts, cols)
+
+    def _overwrite_cols(self, sid, dts, cols):
+        """
+        Internal method for `write_cols` and `write`. Overwrite data for the
+        given sid and cols on the given dts
+
+        Parameters:
+        -----------
+        sid : int
+            The asset identifier for the data being overwritten.
+        dts : datetime64 array
+            The dts corresponding to values in cols.
+        cols : dict of str -> np.array
+            dict of market data with the following characteristics.
+            keys are ('open', 'high', 'low', 'close', 'volume')
+            open : float64
+            high : float64
+            low  : float64
+            close : float64
+            volume : float64|int64
+        """
+        sidpath = self.sidpath(sid)
+        if not os.path.exists(sidpath):
+            raise BcolzTableDoesNotExist('Could not find bcolz table for sid '
+                                         '%s while trying to overwrite data'
+                                         % sid)
+
+        table = bcolz.ctable(rootdir=sidpath, mode='a')
+        df = table.todataframe()
+
+        locs = [self._minute_index.get_loc(dt) for dt in dts]
+        df.update(pd.DataFrame(cols, index=locs))
+
+        new_table = ctable(
+            rootdir=table.rootdir,
+            columns=[df.open, df.high, df.low, df.close, df.volume],
+            names=['open', 'high', 'low', 'close', 'volume'],
+            expectedlen=self._expectedlen,
+            mode='w',
+        )
+        new_table.flush()
 
     def _write_cols(self, sid, dts, cols):
         """
