@@ -12,6 +12,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+
+
+if os.name == 'nt':
+    # we need to be able to write to our temp directoy on windows so we
+    # create a subdir in %TMP% that has write access and use that as %TMP%
+    def _():
+        import atexit
+        import tempfile
+
+        tempfile.tempdir = tempdir = tempfile.mkdtemp()
+
+        @atexit.register
+        def cleanup_tempdir():
+            import shutil
+            shutil.rmtree(tempdir)
+    _()
+    del _
 
 
 # This is *not* a place to dump arbitrary classes/modules for convenience,
