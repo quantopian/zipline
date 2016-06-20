@@ -224,7 +224,7 @@ cdef class BarData:
 
         if self._adjust_minutes:
             dt = \
-                self.data_portal.trading_schedule.previous_execution_minute(dt)
+                self.data_portal.trading_calendar.previous_minute(dt)
 
         return dt
 

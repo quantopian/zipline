@@ -1,5 +1,5 @@
 #
-# Copyright 2014 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,10 +20,9 @@ import datetime
 import pandas as pd
 import pytz
 
+from zipline.utils.memoize import lazyval
 from .context_tricks import nop_context
-from zipline.errors import NoFurtherDataError
 
-from zipline.utils.calendars import normalize_date
 
 __all__ = [
     'EventManager',
@@ -50,7 +49,7 @@ __all__ = [
 ]
 
 
-MAX_MONTH_RANGE = 26
+MAX_MONTH_RANGE = 23
 MAX_WEEK_RANGE = 5
 
 
@@ -320,7 +319,10 @@ class AfterOpen(StatelessRule):
 
     def calculate_dates(self, dt):
         # given a dt, find that day's open and period end (open + offset)
-        self._period_start, self._period_close = self.cal.open_and_close(dt)
+        self._period_start, self._period_close = \
+            self.cal.open_and_close_for_session(
+                self.cal.minute_to_session_label(dt, direction="none")
+            )
         self._period_end = self._period_start + self.offset - self._one_minute
 
     def should_trigger(self, dt):
@@ -358,13 +360,18 @@ class BeforeClose(StatelessRule):
         )
 
         self._period_start = None
+        self._period_close = None
         self._period_end = None
 
         self._one_minute = datetime.timedelta(minutes=1)
 
     def calculate_dates(self, dt):
         # given a dt, find that day's close and period start (close - offset)
-        self._period_end = self.cal.open_and_close(dt)[1]
+        self._period_end = \
+            self.cal.open_and_close_for_session(
+                self.cal.minute_to_session_label(dt)
+            )[1]
+
         self._period_start = self._period_end - self.offset
         self._period_close = self._period_end
 
@@ -378,10 +385,7 @@ class BeforeClose(StatelessRule):
         # that we will NOT correctly recognize a new date if we go backwards
         # in time(which should never happen in a simulation, or in live
         # trading)
-        if (
-            self._period_start is None or
-            self._period_close <= dt
-        ):
+        if self._period_start is None or self._period_close <= dt:
             self.calculate_dates(dt)
 
         return self._period_start == dt
@@ -392,59 +396,28 @@ class NotHalfDay(StatelessRule):
     A rule that only triggers when it is not a half day.
     """
     def should_trigger(self, dt):
-        return normalize_date(dt) not in self.cal.early_closes
+        return self.cal.minute_to_session_label(dt, direction="none") \
+            not in self.cal.early_closes
 
 
 class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
     def __init__(self, n, invert):
         if not 0 <= n < MAX_WEEK_RANGE:
             raise _out_of_range_error(MAX_WEEK_RANGE)
-        self.next_date_start = None
-        self.next_date_end = None
-        self.next_midnight_timestamp = None
-        self.td_delta = -n if invert else n
 
-    @abstractmethod
-    def date_func(self, dt, cal):
-        raise NotImplementedError
+        self.td_delta = (-n - 1) if invert else n
 
-    def calculate_start_and_end(self, dt):
-        while True:
-            next_trading_day = self.cal.add_trading_days(
-                self.td_delta,
-                self.date_func(dt, self.cal),
-            )
-
-            # If after applying the offset to the start/end day of the week, we
-            # get day in a different week, skip this week and go on to the next
-            if next_trading_day.isocalendar()[1] == dt.isocalendar()[1]:
-                break
-            else:
-                dt += datetime.timedelta(days=7)
-
-        next_open, next_close = self.cal.open_and_close(next_trading_day)
-        self.next_date_start = next_open
-        self.next_date_end = next_close
-        self.next_midnight_timestamp = next_trading_day
+    @lazyval
+    def execution_periods(self):
+        # calculate the list of periods that match the given criteria
+        return self.cal.schedule.groupby(
+            pd.Grouper(freq="W")
+        ).nth(self.td_delta).index
 
     def should_trigger(self, dt):
-        if self.next_date_start is None:
-            # First time this method has been called. Calculate the midnight,
-            # open, and close for the first trigger, which occurs on the week
-            # of the simulation start
-            self.calculate_start_and_end(dt)
-
-        # If we've passed the trigger, calculate the next one
-        if dt > self.next_date_end:
-            self.calculate_start_and_end(self.next_date_end +
-                                         datetime.timedelta(days=7))
-
-        # if the given dt is within the next matching day, return true.
-        if self.next_date_start <= dt <= self.next_date_end or \
-                dt == self.next_midnight_timestamp:
-            return True
-
-        return False
+        # is this market minute's period in the list of execution periods?
+        return self.cal.minute_to_session_label(dt, direction="none") in \
+            self.execution_periods
 
 
 class NthTradingDayOfWeek(TradingDayOfWeekRule):
@@ -455,25 +428,6 @@ class NthTradingDayOfWeek(TradingDayOfWeekRule):
     def __init__(self, n):
         super(NthTradingDayOfWeek, self).__init__(n, invert=False)
 
-    @staticmethod
-    def get_first_trading_day_of_week(dt, cal):
-        prev = None
-        # Traverse backward until we hit a week border, then jump back to the
-        # previous trading day.
-        try:
-            while not prev or dt.weekday() < prev.weekday():
-                prev = dt
-                dt = cal.previous_trading_day(dt)
-        except NoFurtherDataError:
-            prev = dt
-
-        if cal.is_open_on_day(prev):
-            return prev
-        else:
-            return cal.next_trading_day(prev)
-
-    date_func = get_first_trading_day_of_week
-
 
 class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
     """
@@ -482,51 +436,27 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
     def __init__(self, n):
         super(NDaysBeforeLastTradingDayOfWeek, self).__init__(n, invert=True)
 
-    @staticmethod
-    def get_last_trading_day_of_week(dt, cal):
-        prev = None
-        # Traverse forward until we hit a week border, then jump back to the
-        # previous trading day.
-        try:
-            while not prev or dt.weekday() > prev.weekday():
-                prev = dt
-                dt = cal.next_trading_day(dt)
-        except NoFurtherDataError:
-            prev = dt
-
-        if cal.is_open_on_day(prev):
-            return prev
-        else:
-            return cal.previous_trading_day(prev)
-
-    date_func = get_last_trading_day_of_week
-
 
 class TradingDayOfMonthRule(six.with_metaclass(ABCMeta, StatelessRule)):
     def __init__(self, n, invert):
         if not 0 <= n < MAX_MONTH_RANGE:
             raise _out_of_range_error(MAX_MONTH_RANGE)
-        self.month = None
-        self.date = None
-        self.td_delta = -n if invert else n
+        if invert:
+            self.td_delta = -n - 1
+        else:
+            self.td_delta = n
 
     def should_trigger(self, dt):
-        return self.get_trigger_day_of_month(dt) == normalize_date(dt)
+        # is this market minute's period in the list of execution periods?
+        return self.cal.minute_to_session_label(dt, direction="none") in \
+            self.execution_periods
 
-    @abstractmethod
-    def date_func(self, dt):
-        raise NotImplementedError
-
-    def get_trigger_day_of_month(self, dt):
-        if self.month == dt.month:
-            # We already computed the day for this month.
-            return self.date
-
-        self.date = self.date_func(dt)
-        if self.td_delta:
-            self.date = self.cal.add_trading_days(self.td_delta, self.date)
-
-        return self.date
+    @lazyval
+    def execution_periods(self):
+        # calculate the list of periods that match the given criteria
+        return self.cal.schedule.groupby(
+            pd.Grouper(freq="M")
+        ).nth(self.td_delta).index
 
 
 class NthTradingDayOfMonth(TradingDayOfMonthRule):
@@ -537,16 +467,6 @@ class NthTradingDayOfMonth(TradingDayOfMonthRule):
     def __init__(self, n):
         super(NthTradingDayOfMonth, self).__init__(n, invert=False)
 
-    def get_first_trading_day_of_month(self, dt):
-        self.month = dt.month
-
-        dt = dt.replace(day=1)
-        first_day = (normalize_date(dt) if self.cal.is_open_on_day(dt)
-                     else self.cal.next_trading_day(dt))
-        return first_day
-
-    date_func = get_first_trading_day_of_month
-
 
 class NDaysBeforeLastTradingDayOfMonth(TradingDayOfMonthRule):
     """
@@ -554,25 +474,6 @@ class NDaysBeforeLastTradingDayOfMonth(TradingDayOfMonthRule):
     """
     def __init__(self, n):
         super(NDaysBeforeLastTradingDayOfMonth, self).__init__(n, invert=True)
-
-    def get_last_trading_day_of_month(self, dt):
-        self.month = dt.month
-
-        if dt.month == 12:
-            # Roll the year forward and start in January.
-            year = dt.year + 1
-            month = 1
-        else:
-            # Increment the month in the same year.
-            year = dt.year
-            month = dt.month + 1
-
-        last_day = self.cal.previous_trading_day(
-            dt.replace(year=year, month=month, day=1)
-        )
-        return last_day
-
-    date_func = get_last_trading_day_of_month
 
 
 # Stateful rules

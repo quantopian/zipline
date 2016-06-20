@@ -60,17 +60,13 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
-from zipline.utils.calendars import default_nyse_schedule
-
+from zipline.utils.calendars import get_calendar
 
 TEST_RESOURCE_PATH = join(
     dirname(dirname(realpath(__file__))),  # zipline_repo/tests
     'resources',
     'pipeline_inputs',
 )
-
-
-trading_day = default_nyse_schedule.day
 
 
 def rolling_vwap(df, length):
@@ -90,7 +86,8 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
     sids = 1, 2, 3
     START_DATE = pd.Timestamp('2014-01-01', tz='utc')
     END_DATE = pd.Timestamp('2014-02-01', tz='utc')
-    dates = date_range(START_DATE, END_DATE, freq=trading_day, tz='utc')
+    dates = date_range(START_DATE, END_DATE, freq=get_calendar("NYSE").day,
+                       tz='utc')
 
     @classmethod
     def make_equity_info(cls):
@@ -145,9 +142,11 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
         cls.last_asset_end = max(cls.equity_info.end_date)
         cls.assets = cls.asset_finder.retrieve_all(cls.sids)
 
+        cls.trading_day = cls.trading_calendar.day
+
         # Add a split for 'A' on its second date.
         cls.split_asset = cls.assets[0]
-        cls.split_date = cls.split_asset.start_date + trading_day
+        cls.split_date = cls.split_asset.start_date + cls.trading_day
         cls.split_ratio = 0.5
         cls.adjustments = DataFrame.from_records([
             {
@@ -199,8 +198,8 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=late_attach,
             data_frequency='daily',
             get_pipeline_loader=lambda column: self.pipeline_loader,
-            start=self.first_asset_start - trading_day,
-            end=self.last_asset_end + trading_day,
+            start=self.first_asset_start - self.trading_day,
+            end=self.last_asset_end + self.trading_day,
             env=self.env,
         )
 
@@ -216,8 +215,8 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             handle_data=barf,
             data_frequency='daily',
             get_pipeline_loader=lambda column: self.pipeline_loader,
-            start=self.first_asset_start - trading_day,
-            end=self.last_asset_end + trading_day,
+            start=self.first_asset_start - self.trading_day,
+            end=self.last_asset_end + self.trading_day,
             env=self.env,
         )
 
@@ -245,8 +244,8 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             before_trading_start=before_trading_start,
             data_frequency='daily',
             get_pipeline_loader=lambda column: self.pipeline_loader,
-            start=self.first_asset_start - trading_day,
-            end=self.last_asset_end + trading_day,
+            start=self.first_asset_start - self.trading_day,
+            end=self.last_asset_end + self.trading_day,
             env=self.env,
         )
 
@@ -273,8 +272,8 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             before_trading_start=before_trading_start,
             data_frequency='daily',
             get_pipeline_loader=lambda column: self.pipeline_loader,
-            start=self.first_asset_start - trading_day,
-            end=self.last_asset_end + trading_day,
+            start=self.first_asset_start - self.trading_day,
+            end=self.last_asset_end + self.trading_day,
             env=self.env,
         )
 
@@ -308,7 +307,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
             for asset in self.assets:
                 # Assets should appear iff they exist today and yesterday.
                 exists_today = self.exists(date, asset)
-                existed_yesterday = self.exists(date - trading_day, asset)
+                existed_yesterday = self.exists(date - self.trading_day, asset)
                 if exists_today and existed_yesterday:
                     latest = results.loc[asset, 'close']
                     self.assertEqual(latest, self.expected_close(date, asset))
@@ -437,7 +436,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
                         raw_vwap[:split_loc - 1],
                         adj_vwap[split_loc - 1:]
                     ]
-                ).shift(1, trading_day)
+                ).shift(1, self.trading_calendar.day)
 
         # Make sure all the expected vwaps have the same dates.
         vwap_dates = vwaps[1][self.AAPL].index
@@ -449,11 +448,13 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         # Spot check expectations near the AAPL split.
         # length 1 vwap for the morning before the split should be the close
         # price of the previous day.
-        before_split = vwaps[1][AAPL].loc[split_date - trading_day]
+        before_split = vwaps[1][AAPL].loc[split_date -
+                                          self.trading_calendar.day]
         assert_almost_equal(before_split, 647.3499, decimal=2)
         assert_almost_equal(
             before_split,
-            raw[AAPL].loc[split_date - (2 * trading_day), 'close'],
+            raw[AAPL].loc[split_date - (2 * self.trading_calendar.day),
+                          'close'],
             decimal=2,
         )
 
@@ -463,13 +464,15 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         assert_almost_equal(on_split, 645.5700 / split_ratio, decimal=2)
         assert_almost_equal(
             on_split,
-            raw[AAPL].loc[split_date - trading_day, 'close'] / split_ratio,
+            raw[AAPL].loc[split_date -
+                          self.trading_calendar.day, 'close'] / split_ratio,
             decimal=2,
         )
 
         # length 1 vwap on the day after the split should be the as-traded
         # close on the split day.
-        after_split = vwaps[1][AAPL].loc[split_date + trading_day]
+        after_split = vwaps[1][AAPL].loc[split_date +
+                                         self.trading_calendar.day]
         assert_almost_equal(after_split, 93.69999, decimal=2)
         assert_almost_equal(
             after_split,
@@ -601,7 +604,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
         # For ensuring we call before_trading_start.
         count = [0]
 
-        current_day = default_nyse_schedule.next_execution_day(
+        current_day = self.trading_calendar.next_session_label(
             self.pipeline_loader.raw_price_loader.last_available_dt,
         )
 

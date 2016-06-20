@@ -467,9 +467,10 @@ class DataPortal(object):
 
     Parameters
     ----------
-    env : TradingEnvironment
-        The trading environment for the simulation. This includes the trading
-        calendar and benchmark data.
+    asset_finder : zipline.assets.assets.AssetFinder
+        The AssetFinder instance used to resolve assets.
+    trading_calendar: zipline.utils.calendar.exchange_calendar.TradingCalendar
+        The calendar instance used to provide minute->session information.
     first_trading_day : pd.Timestamp
         The first trading day for the simulation.
     equity_daily_reader : BcolzDailyBarReader, optional
@@ -496,7 +497,7 @@ class DataPortal(object):
     """
     def __init__(self,
                  asset_finder,
-                 trading_schedule,
+                 trading_calendar,
                  first_trading_day,
                  equity_daily_reader=None,
                  equity_minute_reader=None,
@@ -504,7 +505,7 @@ class DataPortal(object):
                  future_minute_reader=None,
                  adjustment_reader=None):
 
-        self.trading_schedule = trading_schedule
+        self.trading_calendar = trading_calendar
         self.asset_finder = asset_finder
 
         self.views = {}
@@ -536,7 +537,7 @@ class DataPortal(object):
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
             self._equity_history_loader = USEquityDailyHistoryLoader(
-                self.trading_schedule,
+                self.trading_calendar,
                 self._equity_daily_reader,
                 self._adjustment_reader
             )
@@ -546,10 +547,10 @@ class DataPortal(object):
 
         if self._equity_minute_reader is not None:
             self._equity_daily_aggregator = DailyHistoryAggregator(
-                self.trading_schedule.schedule.market_open,
+                self.trading_calendar.schedule.market_open,
                 self._equity_minute_reader)
             self._equity_minute_history_loader = USEquityMinuteHistoryLoader(
-                self.trading_schedule,
+                self.trading_calendar,
                 self._equity_minute_reader,
                 self._adjustment_reader
             )
@@ -560,19 +561,19 @@ class DataPortal(object):
 
         # Get the first trading minute
         self._first_trading_minute, _ = (
-            self.trading_schedule.start_and_end(self._first_trading_day)
+            self.trading_calendar.open_and_close_for_session(
+                self._first_trading_day
+            )
             if self._first_trading_day is not None else (None, None)
         )
 
         # Store the locs of the first day and first minute
         self._first_trading_day_loc = (
-            self.trading_schedule.all_execution_days.get_loc(
-                self.trading_schedule.session_date(self._first_trading_day)
-            )
+            self.trading_calendar.all_sessions.get_loc(self._first_trading_day)
             if self._first_trading_day is not None else None
         )
         self._first_trading_minute_loc = (
-            self.trading_schedule.all_execution_minutes.get_loc(
+            self.trading_calendar.all_minutes.get_loc(
                 self._first_trading_minute
             )
             if self._first_trading_minute is not None else None
@@ -612,9 +613,9 @@ class DataPortal(object):
         # asset -> df.  In other words,
         # self.augmented_sources_map['days_to_cover']['AAPL'] gives us the df
         # holding that data.
-        source_date_index = self.trading_schedule.execution_days_in_range(
-            start=sim_params.period_start,
-            end=sim_params.period_end
+        source_date_index = self.trading_calendar.sessions_in_range(
+            sim_params.start_session,
+            sim_params.end_session
         )
 
         # Break the source_df up into one dataframe per sid.  This lets
@@ -1031,13 +1032,13 @@ class DataPortal(object):
                                 spot_value=value
                             )
                     else:
-                        found_dt -= self.trading_schedule.day
+                        found_dt -= self.trading_calendar.day
                 except NoDataOnDate:
                     return np.nan
 
     @remember_last
     def _get_days_for_window(self, end_date, bar_count):
-        tds = self.trading_schedule.all_execution_days
+        tds = self.trading_calendar.all_sessions
         end_loc = tds.get_loc(end_date)
         start_loc = end_loc - bar_count + 1
         if start_loc < self._first_trading_day_loc:
@@ -1096,7 +1097,7 @@ class DataPortal(object):
 
         # get all the minutes for the days NOT including today
         for day in days_for_window[:-1]:
-            minutes = self.trading_schedule.execution_minutes_for_day(day)
+            minutes = self.sessions_in_range.minutes_for_session(day)
 
             values_for_day = np.zeros(len(minutes), dtype=np.float64)
 
@@ -1111,7 +1112,7 @@ class DataPortal(object):
 
         # get the minutes for today
         last_day_minutes = pd.date_range(
-            start=self.trading_schedule.start_and_end(end_dt)[0],
+            start=self.trading_calendar.open_and_close_for_session(end_dt)[0],
             end=end_dt,
             freq="T"
         )
@@ -1190,9 +1191,9 @@ class DataPortal(object):
 
     def _handle_history_out_of_bounds(self, bar_count):
         suggested_start_day = (
-            self.trading_schedule.all_execution_minutes[
+            self.trading_calendar.all_minutes[
                 self._first_trading_minute_loc + bar_count
-            ] + self.trading_schedule.day
+            ] + self.trading_calendar.day
         ).date()
 
         raise HistoryWindowStartsBeforeData(
@@ -1209,7 +1210,7 @@ class DataPortal(object):
         """
         # get all the minutes for this window
         try:
-            minutes_for_window = self.trading_schedule.execution_minute_window(
+            minutes_for_window = self.trading_calendar.minutes_window(
                 end_dt, -bar_count
             )
         except KeyError:
@@ -1728,21 +1729,29 @@ class DataPortal(object):
         # we get all the minutes for the last (bars - 1) days, then add
         # all the minutes so far today.  the +2 is to account for ignoring
         # today, and the previous day, in doing the math.
-        previous_day = \
-            self.trading_schedule.previous_execution_day(ending_minute)
-        days = self.trading_schedule.execution_days_in_range(
-            self.trading_schedule.add_execution_days(-days_count + 2,
-                                                     previous_day),
-            previous_day,
+        session_for_minute = self.trading_calendar.minute_to_session_label(
+            ending_minute
+        )
+        previous_session = self.trading_calendar.previous_session_label(
+            session_for_minute
+        )
+
+        sessions = self.trading_calendar.sessions_in_range(
+            self.trading_calendar.sessions_window(previous_session,
+                                                  -days_count + 2)[0],
+            previous_session,
         )
 
         minutes_count = sum(
-            210 if day in self.trading_schedule.early_ends
-            else 390 for day in days
+            len(self.trading_calendar.minutes_for_session(session))
+            for session in sessions
         )
 
         # add the minutes for today
-        today_open = self.trading_schedule.start_and_end(ending_minute)[0]
+        today_open = self.trading_calendar.open_and_close_for_session(
+            session_for_minute
+        )[0]
+
         minutes_count += \
             ((ending_minute - today_open).total_seconds() // 60) + 1
 

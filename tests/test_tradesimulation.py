@@ -53,13 +53,13 @@ class TestTradeSimulation(TestCase):
                           self.fake_minutely_benchmark):
             algo = NoopAlgorithm(sim_params=params)
             algo.run(FakeDataPortal())
-            self.assertEqual(algo.perf_tracker.day_count, 1.0)
+            self.assertEqual(len(algo.perf_tracker.sim_params.sessions), 1)
 
-    @parameterized.expand([('%s_%s_%s' % (num_days, freq, emission_rate),
-                            num_days, freq, emission_rate)
+    @parameterized.expand([('%s_%s_%s' % (num_sessions, freq, emission_rate),
+                            num_sessions, freq, emission_rate)
                            for freq in FREQUENCIES
                            for emission_rate in FREQUENCIES
-                           for num_days in range(1, 4)
+                           for num_sessions in range(1, 4)
                            if FREQUENCIES[emission_rate] <= FREQUENCIES[freq]])
     def test_before_trading_start(self, test_name, num_days, freq,
                                   emission_rate):
@@ -75,9 +75,10 @@ class TestTradeSimulation(TestCase):
             algo = BeforeTradingAlgorithm(sim_params=params)
             algo.run(FakeDataPortal())
 
-            self.assertEqual(algo.perf_tracker.day_count, num_days)
+            self.assertEqual(len(algo.perf_tracker.sim_params.sessions),
+                             num_days)
 
-            self.assertTrue(params.trading_days.equals(
+            self.assertTrue(params.sessions.equals(
                 pd.DatetimeIndex(algo.before_trading_at)),
                 "Expected %s but was %s."
-                % (params.trading_days, algo.before_trading_at))
+                % (params.sessions, algo.before_trading_at))

@@ -131,7 +131,7 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     @classmethod
     def make_equity_daily_bar_data(cls):
-        num_days = len(cls.sim_params.trading_days)
+        num_days = len(cls.sim_params.sessions)
 
         return trades_by_sid_to_dfs(
             {
@@ -141,10 +141,10 @@ class CommissionAlgorithmTests(WithDataPortal, WithSimParams, ZiplineTestCase):
                     [100.0] * num_days,
                     timedelta(days=1),
                     cls.sim_params,
-                    trading_schedule=cls.trading_schedule,
+                    trading_calendar=cls.trading_calendar,
                 ),
             },
-            index=cls.sim_params.trading_days,
+            index=cls.sim_params.sessions,
         )
 
     def get_results(self, algo_code):

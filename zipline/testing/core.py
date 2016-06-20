@@ -49,7 +49,7 @@ from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.sentinel import sentinel
-from zipline.utils.calendars import default_nyse_schedule
+from zipline.utils.calendars import get_calendar
 import numpy as np
 from numpy import float64
 
@@ -410,10 +410,19 @@ class ExplodingObject(object):
         raise UnexpectedAttributeAccess(name)
 
 
-def write_minute_data(trading_schedule, tempdir, minutes, sids):
+def write_minute_data(trading_calendar, tempdir, minutes, sids):
+    first_session = trading_calendar.minute_to_session_label(
+        minutes[0], direction="none"
+    )
+    last_session = trading_calendar.minute_to_session_label(
+        minutes[-1], direction="none"
+    )
+
+    sessions = trading_calendar.sessions_in_range(first_session, last_session)
+
     write_bcolz_minute_data(
-        trading_schedule,
-        trading_schedule.execution_days_in_range(minutes[0], minutes[-1]),
+        trading_calendar,
+        sessions,
         tempdir.path,
         create_minute_bar_data(minutes, sids),
     )
@@ -435,8 +444,8 @@ def create_minute_bar_data(minutes, sids):
         )
 
 
-def create_daily_bar_data(trading_days, sids):
-    length = len(trading_days)
+def create_daily_bar_data(sessions, sids):
+    length = len(sessions)
     for sid_idx, sid in enumerate(sids):
         yield sid, pd.DataFrame(
             {
@@ -445,56 +454,57 @@ def create_daily_bar_data(trading_days, sids):
                 "low": (np.array(range(8, 8 + length)) + sid_idx),
                 "close": (np.array(range(10, 10 + length)) + sid_idx),
                 "volume": np.array(range(100, 100 + length)) + sid_idx,
-                "day": [day.value for day in trading_days]
+                "day": [session.value for session in sessions]
             },
-            index=trading_days,
+            index=sessions,
         )
 
 
-def write_daily_data(tempdir, sim_params, sids):
+def write_daily_data(tempdir, sim_params, sids, trading_calendar):
     path = os.path.join(tempdir.path, "testdaily.bcolz")
-    BcolzDailyBarWriter(path, sim_params.trading_days).write(
-        create_daily_bar_data(sim_params.trading_days, sids),
+    BcolzDailyBarWriter(path, sim_params.sessions, trading_calendar).write(
+        create_daily_bar_data(sim_params.sessions, sids),
     )
 
     return path
 
 
 def create_data_portal(asset_finder, tempdir, sim_params, sids,
-                       trading_schedule, adjustment_reader=None):
+                       trading_calendar, adjustment_reader=None):
     if sim_params.data_frequency == "daily":
-        daily_path = write_daily_data(tempdir, sim_params, sids)
+        daily_path = write_daily_data(tempdir, sim_params, sids,
+                                      trading_calendar)
 
         equity_daily_reader = BcolzDailyBarReader(daily_path)
 
         return DataPortal(
-            asset_finder, trading_schedule,
+            asset_finder, trading_calendar,
             first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
             adjustment_reader=adjustment_reader
         )
     else:
-        minutes = trading_schedule.execution_minutes_for_days_in_range(
+        minutes = trading_calendar.minutes_in_range(
             sim_params.first_open,
             sim_params.last_close
         )
 
-        minute_path = write_minute_data(trading_schedule, tempdir, minutes,
+        minute_path = write_minute_data(trading_calendar, tempdir, minutes,
                                         sids)
 
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
 
         return DataPortal(
-            asset_finder, trading_schedule,
+            asset_finder, trading_calendar,
             first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
             adjustment_reader=adjustment_reader
         )
 
 
-def write_bcolz_minute_data(trading_schedule, days, path, data):
-    market_opens = trading_schedule.schedule.loc[days].market_open
-    market_closes = trading_schedule.schedule.loc[days].market_close
+def write_bcolz_minute_data(trading_calendar, days, path, data):
+    market_opens = trading_calendar.schedule.loc[days].market_open
+    market_closes = trading_calendar.schedule.loc[days].market_close
 
     BcolzMinuteBarWriter(
         days[0],
@@ -505,14 +515,14 @@ def write_bcolz_minute_data(trading_schedule, days, path, data):
     ).write(data)
 
 
-def create_minute_df_for_asset(trading_schedule,
+def create_minute_df_for_asset(trading_calendar,
                                start_dt,
                                end_dt,
                                interval=1,
                                start_val=1,
                                minute_blacklist=None):
 
-    asset_minutes = trading_schedule.execution_minutes_for_days_in_range(
+    asset_minutes = trading_calendar.minutes_for_sessions_in_range(
         start_dt, end_dt
     )
     minutes_count = len(asset_minutes)
@@ -542,9 +552,9 @@ def create_minute_df_for_asset(trading_schedule,
     return df
 
 
-def create_daily_df_for_asset(trading_schedule, start_day, end_day,
+def create_daily_df_for_asset(trading_calendar, start_day, end_day,
                               interval=1):
-    days = trading_schedule.execution_days_in_range(start_day, end_day)
+    days = trading_calendar.minutes_in_range(start_day, end_day)
     days_count = len(days)
     days_arr = np.arange(days_count) + 2
 
@@ -598,23 +608,23 @@ def trades_by_sid_to_dfs(trades_by_sid, index):
         )
 
 
-def create_data_portal_from_trade_history(asset_finder, trading_schedule,
+def create_data_portal_from_trade_history(asset_finder, trading_calendar,
                                           tempdir, sim_params, trades_by_sid):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
-        BcolzDailyBarWriter(path, sim_params.trading_days).write(
-            trades_by_sid_to_dfs(trades_by_sid, sim_params.trading_days),
+        BcolzDailyBarWriter(path, sim_params.sessions, trading_calendar).write(
+            trades_by_sid_to_dfs(trades_by_sid, sim_params.sessions),
         )
 
         equity_daily_reader = BcolzDailyBarReader(path)
 
         return DataPortal(
-            asset_finder, trading_schedule,
+            asset_finder, trading_calendar,
             first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
         )
     else:
-        minutes = trading_schedule.execution_minutes_for_days_in_range(
+        minutes = trading_calendar.minutes_in_range(
             sim_params.first_open,
             sim_params.last_close
         )
@@ -649,11 +659,8 @@ def create_data_portal_from_trade_history(asset_finder, trading_schedule,
             }).set_index("dt")
 
         write_bcolz_minute_data(
-            trading_schedule,
-            trading_schedule.execution_days_in_range(
-                sim_params.first_open,
-                sim_params.last_close
-            ),
+            trading_calendar,
+            sim_params.sessions,
             tempdir.path,
             assets
         )
@@ -661,21 +668,23 @@ def create_data_portal_from_trade_history(asset_finder, trading_schedule,
         equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
         return DataPortal(
-            asset_finder, trading_schedule,
+            asset_finder, trading_calendar,
             first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
         )
 
 
 class FakeDataPortal(DataPortal):
-
-    def __init__(self, env=None,  trading_schedule=default_nyse_schedule,
+    def __init__(self, env=None, trading_calendar=None,
                  first_trading_day=None):
         if env is None:
             env = TradingEnvironment()
 
+        if trading_calendar is None:
+            trading_calendar = get_calendar("NYSE")
+
         super(FakeDataPortal, self).__init__(env.asset_finder,
-                                             trading_schedule,
+                                             trading_calendar,
                                              first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
@@ -688,8 +697,8 @@ class FakeDataPortal(DataPortal):
                            ffill=True):
         if frequency == "1d":
             end_idx = \
-                self.trading_schedule.all_execution_days.searchsorted(end_dt)
-            days = self.trading_schedule.all_execution_days[
+                self.trading_calendar.all_sessions.searchsorted(end_dt)
+            days = self.trading_calendar.all_sessions[
                 (end_idx - bar_count + 1):(end_idx + 1)
             ]
 
@@ -707,8 +716,8 @@ class FetcherDataPortal(DataPortal):
     Mock dataportal that returns fake data for history and non-fetcher
     spot value.
     """
-    def __init__(self, asset_finder, trading_schedule, first_trading_day=None):
-        super(FetcherDataPortal, self).__init__(asset_finder, trading_schedule,
+    def __init__(self, asset_finder, trading_calendar, first_trading_day=None):
+        super(FetcherDataPortal, self).__init__(asset_finder, trading_calendar,
                                                 first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
@@ -1023,7 +1032,7 @@ def gen_calendars(start, stop, critical_dates):
         yield (all_dates.drop(to_drop),)
 
     # Also test with the trading calendar.
-    trading_days = default_nyse_schedule.all_execution_days
+    trading_days = get_calendar("NYSE").all_days
     yield (trading_days[trading_days.slice_indexer(start, stop)],)
 
 

@@ -32,7 +32,7 @@ from zipline.utils.preprocess import preprocess
 from zipline.utils.calendars import get_calendar
 
 nyse_cal = get_calendar('NYSE')
-trading_days = nyse_cal.all_trading_days
+trading_days = nyse_cal.all_sessions
 open_and_closes = nyse_cal.schedule
 
 

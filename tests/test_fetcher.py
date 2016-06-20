@@ -109,7 +109,7 @@ class FetcherTestCase(WithResponses,
         )
 
         results = test_algo.run(FetcherDataPortal(self.env,
-                                                  self.trading_schedule))
+                                                  self.trading_calendar))
 
         return results
 
@@ -143,7 +143,7 @@ def handle_data(context, data):
         # the minutely emission packets here.  TradingAlgorithm.run() only
         # returns daily packets.
         test_algo.data_portal = FetcherDataPortal(self.env,
-                                                  self.trading_schedule)
+                                                  self.trading_calendar)
         gen = test_algo.get_generator()
         perf_packets = list(gen)
 

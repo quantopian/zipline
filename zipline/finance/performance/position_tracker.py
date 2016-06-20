@@ -384,7 +384,7 @@ class PositionTracker(object):
                 last_sale_price = data_portal.get_adjusted_value(
                     asset,
                     'price',
-                    data_portal.trading_schedule.previous_execution_minute(dt),
+                    data_portal.trading_calendar.previous_minute(dt),
                     dt,
                     self.data_frequency
                 )

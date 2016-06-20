@@ -24,22 +24,21 @@ from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders.frame import (
     DataFrameLoader,
 )
-from zipline.utils.calendars import default_nyse_schedule
-
-
-trading_day = default_nyse_schedule.day
+from zipline.utils.calendars import get_calendar
 
 
 class DataFrameLoaderTestCase(TestCase):
 
     def setUp(self):
+        self.trading_day = get_calendar("NYSE").day
+
         self.nsids = 5
         self.ndates = 20
 
         self.sids = Int64Index(range(self.nsids))
         self.dates = DatetimeIndex(
             start='2014-01-02',
-            freq=trading_day,
+            freq=self.trading_day,
             periods=self.ndates,
         )
 
@@ -161,17 +160,17 @@ class DataFrameLoaderTestCase(TestCase):
             },
             {  # Date Before Known Data
                 'sid': 2,
-                'start_date': self.dates[0] - (2 * trading_day),
-                'end_date': self.dates[0] - trading_day,
-                'apply_date': self.dates[0] - trading_day,
+                'start_date': self.dates[0] - (2 * self.trading_day),
+                'end_date': self.dates[0] - self.trading_day,
+                'apply_date': self.dates[0] - self.trading_day,
                 'value': -9999.0,
                 'kind': OVERWRITE,
             },
             {  # Date After Known Data
                 'sid': 2,
-                'start_date': self.dates[-1] + trading_day,
-                'end_date': self.dates[-1] + (2 * trading_day),
-                'apply_date': self.dates[-1] + (3 * trading_day),
+                'start_date': self.dates[-1] + self.trading_day,
+                'end_date': self.dates[-1] + (2 * self.trading_day),
+                'apply_date': self.dates[-1] + (3 * self.trading_day),
                 'value': -9999.0,
                 'kind': OVERWRITE,
             },

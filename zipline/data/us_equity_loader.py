@@ -75,6 +75,8 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
 
     Parameters
     ----------
+    trading_calendar: TradingCalendar
+        Contains the grouping logic needed to assign minutes to periods.
     reader : DailyBarReader, MinuteBarReader
         Reader for pricing bars.
     adjustment_reader : SQLiteAdjustmentReader
@@ -82,9 +84,9 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
     """
     FIELDS = ('open', 'high', 'low', 'close', 'volume')
 
-    def __init__(self, trading_schedule, reader, adjustment_reader,
+    def __init__(self, trading_calendar, reader, adjustment_reader,
                  sid_cache_size=1000):
-        self.trading_schedule = trading_schedule
+        self.trading_calendar = trading_calendar
         self._reader = reader
         self._adjustments_reader = adjustment_reader
         self._window_blocks = {
@@ -404,7 +406,7 @@ class USEquityMinuteHistoryLoader(USEquityHistoryLoader):
 
     @lazyval
     def _calendar(self):
-        mm = self.trading_schedule.all_execution_minutes
+        mm = self.trading_calendar.all_minutes
         return mm[mm.slice_indexer(start=self._reader.first_trading_day,
                                    end=self._reader.last_available_dt)]
 

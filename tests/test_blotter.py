@@ -58,7 +58,7 @@ class BlotterTestCase(WithLogger,
                 'close': [50, 50],
                 'volume': [100, 400],
             },
-            index=cls.sim_params.trading_days,
+            index=cls.sim_params.sessions,
         )
         yield 25, pd.DataFrame(
             {
@@ -68,7 +68,7 @@ class BlotterTestCase(WithLogger,
                 'close': [50, 50],
                 'volume': [100, 400],
             },
-            index=cls.sim_params.trading_days,
+            index=cls.sim_params.sessions,
         )
 
     @parameterized.expand([(MarketOrder(), None, None),
@@ -218,10 +218,10 @@ class BlotterTestCase(WithLogger,
         blotter.slippage_func = FixedSlippage()
         filled_id = blotter.order(asset_24, 100, MarketOrder())
         filled_order = None
-        blotter.current_dt = self.sim_params.trading_days[-1]
+        blotter.current_dt = self.sim_params.sessions[-1]
         bar_data = BarData(
             self.data_portal,
-            lambda: self.sim_params.trading_days[-1],
+            lambda: self.sim_params.sessions[-1],
             self.sim_params.data_frequency,
         )
         txns, _, closed_orders = blotter.get_transactions(bar_data)
@@ -270,8 +270,8 @@ class BlotterTestCase(WithLogger,
         self.assertEqual(cancelled_order.id, held_order.id)
         self.assertEqual(cancelled_order.status, ORDER_STATUS.CANCELLED)
 
-        for data in ([100, self.sim_params.trading_days[0]],
-                     [400, self.sim_params.trading_days[1]]):
+        for data in ([100, self.sim_params.sessions[0]],
+                     [400, self.sim_params.sessions[1]]):
             # Verify that incoming fills will change the order status.
             trade_amt = data[0]
             dt = data[1]
