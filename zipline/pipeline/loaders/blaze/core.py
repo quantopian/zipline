@@ -465,7 +465,7 @@ def _get_metadata(field, expr, metadata_expr, no_metadata_rule):
     Returns
     -------
     metadata : Expr or None
-        The the deltas or metadata table to use.
+        The deltas or metadata table to use.
     """
     if isinstance(metadata_expr, bz.Expr) or metadata_expr is None:
         return metadata_expr
