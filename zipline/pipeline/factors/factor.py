@@ -622,7 +622,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return Rank(self, method=method, ascending=ascending, mask=mask)
 
     @expect_types(
-        target=Slice, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=ComputableTerm,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     def pearsonr(self, target, correlation_length, mask=NotSpecified):
         """
@@ -685,7 +687,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=Slice, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=ComputableTerm,
+        correlation_length=int,
+        mask=(Filter, NotSpecifiedType),
     )
     def spearmanr(self, target, correlation_length, mask=NotSpecified):
         """
