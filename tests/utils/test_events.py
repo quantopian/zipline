@@ -277,9 +277,14 @@ class TestStatelessRules(RuleTestCase):
 
         cls.nyse_cal = get_calendar('NYSE')
 
+        # First day of 09/2014 is closed whereas that for 10/2014 is open
         cls.sept_days = cls.nyse_cal.trading_days_in_range(
             pd.Timestamp('2014-09-01'),
             pd.Timestamp('2014-09-30'),
+        )
+        cls.oct_days = cls.nyse_cal.trading_days_in_range(
+            pd.Timestamp('2014-10-01'),
+            pd.Timestamp('2014-10-31'),
         )
 
         cls.sept_week = cls.nyse_cal.trading_minutes_for_days_in_range(
@@ -490,12 +495,13 @@ class TestStatelessRules(RuleTestCase):
         rule = NthTradingDayOfMonth(n)
         rule.cal = cal
         should_trigger = rule.should_trigger
-        for n_tdays, d in enumerate(self.sept_days):
-            for m in self.nyse_cal.trading_minutes_for_day(d):
-                if should_trigger(m):
-                    self.assertEqual(n_tdays, n)
-                else:
-                    self.assertNotEqual(n_tdays, n)
+        for days_list in (self.sept_days, self.oct_days):
+            for n_tdays, d in enumerate(days_list):
+                for m in self.nyse_cal.trading_minutes_for_day(d):
+                    if should_trigger(m):
+                        self.assertEqual(n_tdays, n)
+                    else:
+                        self.assertNotEqual(n_tdays, n)
 
     @subtest(param_range(MAX_MONTH_RANGE), 'n')
     def test_NDaysBeforeLastTradingDayOfMonth(self, n):
