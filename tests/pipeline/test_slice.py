@@ -1,15 +1,23 @@
 """
 Tests for slicing pipeline terms.
 """
+from numpy import full_like, nan
 from pandas import (
+    DataFrame,
     date_range,
     Int64Index,
     Timestamp,
 )
 from pandas.util.testing import assert_frame_equal
+from scipy.stats import (
+    linregress,
+    pearsonr,
+    spearmanr,
+)
 
 from zipline.assets import Asset
 from zipline.errors import (
+    IncompatibleTerms,
     NonExistentAssetInTimeFrame,
     NonSliceableTerm,
     NonWindowSafeInput,
@@ -48,9 +56,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         super(SliceTestCase, cls).init_class_fixtures()
 
         day = cls.trading_schedule.day
-        cls.dates = dates = date_range(
-            '2015-02-01', '2015-02-28', freq=day, tz='UTC',
-        )
+        dates = date_range('2015-02-01', '2015-02-28', freq=day, tz='UTC')
         cls.start_date = dates[14]
         cls.end_date = dates[18]
 
@@ -259,6 +265,29 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
                 target=my_unsafe_factor_slice, correlation_length=10,
             )
 
+
+class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
+                                 ZiplineTestCase):
+    sids = ASSET_FINDER_EQUITY_SIDS = Int64Index([1, 2, 3])
+    START_DATE = Timestamp('2015-01-31', tz='UTC')
+    END_DATE = Timestamp('2015-03-01', tz='UTC')
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(StatisticalMethodsTestCase, cls).init_class_fixtures()
+
+        day = cls.trading_schedule.day
+        cls.dates = dates = date_range(
+            '2015-02-01', '2015-02-28', freq=day, tz='UTC',
+        )
+        cls.start_date_index = start_date_index = 14
+        cls.end_date_index = end_date_index = 18
+        cls.start_date = dates[start_date_index]
+        cls.end_date = dates[end_date_index]
+
+        # Random input for factors.
+        cls.col = TestingDataSet.float_col
+
     @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
     def test_factor_correlation_methods(self,
                                         returns_length,
@@ -411,3 +440,193 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
             returns.linear_regression(
                 target=date_factor_slice, regression_length=regression_length,
             )
+
+    @parameter_space(correlation_length=[1, 2, 3, 4])
+    def test_factor_correlation_methods_two_factors(self, correlation_length):
+        """
+        Tests for `Factor.pearsonr` and `Factor.spearmanr` when passed another
+        2D factor instead of a Slice.
+        """
+        dates = self.dates
+        start_date_index = self.start_date_index
+        end_date_index = self.end_date_index
+        num_days = end_date_index - start_date_index + 1
+        assets = self.asset_finder.retrieve_all(self.sids)
+
+        returns_5 = Returns(window_length=5, inputs=[self.col])
+        returns_10 = Returns(window_length=10, inputs=[self.col])
+
+        # Ensure that the correlation methods cannot be called with two 2D
+        # factors which have different masks.
+        returns_5_masked = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(1),
+        )
+        returns_10_masked = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(2),
+        )
+        with self.assertRaises(IncompatibleTerms):
+            returns_5_masked.pearsonr(
+                target=returns_10_masked,
+                correlation_length=correlation_length,
+            )
+        with self.assertRaises(IncompatibleTerms):
+            returns_5_masked.spearmanr(
+                target=returns_10_masked,
+                correlation_length=correlation_length,
+            )
+
+        pearson_factor = returns_5.pearsonr(
+            target=returns_10, correlation_length=correlation_length,
+        )
+        spearman_factor = returns_5.spearmanr(
+            target=returns_10, correlation_length=correlation_length,
+        )
+
+        pipeline = Pipeline(
+            columns={'pearson': pearson_factor, 'spearman': spearman_factor},
+        )
+        results = self.run_pipeline(pipeline, self.start_date, self.end_date)
+        pearson_results = results['pearson'].unstack()
+        spearman_results = results['spearman'].unstack()
+
+        # Run a separate pipeline that calculates returns starting
+        # (correlation_length - 1) days prior to our start date. This is
+        # because we need (correlation_length - 1) extra days of returns to
+        # compute our expected correlations.
+        columns = {'returns_5': returns_5, 'returns_10': returns_10}
+        results = self.run_pipeline(
+            Pipeline(columns=columns),
+            dates[start_date_index - (correlation_length - 1)],
+            dates[end_date_index],
+        )
+        returns_5_results = results['returns_5'].unstack()
+        returns_10_results = results['returns_10'].unstack()
+
+        expected_pearson_results = full_like(pearson_results, nan)
+        expected_spearman_results = full_like(spearman_results, nan)
+        for day in range(num_days):
+            todays_returns_5 = returns_5_results.iloc[
+                day:day + correlation_length
+            ]
+            todays_returns_10 = returns_10_results.iloc[
+                day:day + correlation_length
+            ]
+            for asset, asset_returns_5 in todays_returns_5.iteritems():
+                asset_column = int(asset) - 1
+                asset_returns_10 = todays_returns_10[asset]
+                expected_pearson_results[day, asset_column] = pearsonr(
+                    asset_returns_5, asset_returns_10,
+                )[0]
+                expected_spearman_results[day, asset_column] = spearmanr(
+                    asset_returns_5, asset_returns_10,
+                )[0]
+
+        assert_frame_equal(
+            pearson_results,
+            DataFrame(
+                data=expected_pearson_results,
+                index=dates[start_date_index:end_date_index + 1],
+                columns=assets,
+            ),
+        )
+        assert_frame_equal(
+            spearman_results,
+            DataFrame(
+                data=expected_spearman_results,
+                index=dates[start_date_index:end_date_index + 1],
+                columns=assets,
+            ),
+        )
+
+    def test_factor_regression_method_two_factors(self):
+        """
+        Tests for `Factor.linear_regression` when passed another 2D factor
+        instead of a Slice.
+        """
+        regression_length = 4
+        dates = self.dates
+        start_date_index = self.start_date_index
+        end_date_index = self.end_date_index
+        num_days = end_date_index - start_date_index + 1
+        assets = self.asset_finder.retrieve_all(self.sids)
+
+        # The order of these is meant to align with the output of `linregress`.
+        outputs = ['beta', 'alpha', 'r_value', 'p_value', 'stderr']
+
+        returns_5 = Returns(window_length=5, inputs=[self.col])
+        returns_10 = Returns(window_length=10, inputs=[self.col])
+
+        # Ensure that the `linear_regression` method cannot be called with two
+        # 2D factors which have different masks.
+        returns_5_masked = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(1),
+        )
+        returns_10_masked = Returns(
+            window_length=5, inputs=[self.col], mask=AssetID().eq(2),
+        )
+        with self.assertRaises(IncompatibleTerms):
+            returns_5_masked.linear_regression(
+                target=returns_10_masked,
+                regression_length=regression_length,
+            )
+
+        regression_factor = returns_5.linear_regression(
+            target=returns_10, regression_length=regression_length,
+        )
+        pipeline = Pipeline(
+            columns={
+                output: getattr(regression_factor, output)
+                for output in outputs
+            },
+        )
+        results = self.run_pipeline(pipeline, self.start_date, self.end_date)
+
+        output_results = {}
+        expected_output_results = {}
+        for output in outputs:
+            output_results[output] = results[output].unstack()
+            expected_output_results[output] = full_like(
+                output_results[output], nan,
+            )
+
+        # Run a separate pipeline that calculates returns starting
+        # (regression_length - 1) days prior to our start date. This is because
+        # we need (regression_length - 1) extra days of returns to compute our
+        # expected regressions.
+        columns = {'returns_5': returns_5, 'returns_10': returns_10}
+        results = self.run_pipeline(
+            Pipeline(columns=columns),
+            dates[start_date_index - (regression_length - 1)],
+            dates[end_date_index],
+        )
+        returns_5_results = results['returns_5'].unstack()
+        returns_10_results = results['returns_10'].unstack()
+
+        # On each day, calculate the expected regression results for Y ~ X
+        # where Y is the asset we are interested in and X is each other asset
+        # Each regression is calculated over `regression_length` days of data.
+        for day in range(num_days):
+            todays_returns_5 = returns_5_results.iloc[
+                day:day + regression_length
+            ]
+            todays_returns_10 = returns_10_results.iloc[
+                day:day + regression_length
+            ]
+            for asset, asset_returns_5 in todays_returns_5.iteritems():
+                asset_column = int(asset) - 1
+                asset_returns_10 = todays_returns_10[asset]
+                expected_regression_results = linregress(
+                    y=asset_returns_5, x=asset_returns_10,
+                )
+                for i, output in enumerate(outputs):
+                    expected_output_results[output][day, asset_column] = \
+                        expected_regression_results[i]
+
+        for output in outputs:
+            output_result = output_results[output]
+            expected_output_result = DataFrame(
+                data=expected_output_results[output],
+                index=dates[start_date_index:end_date_index + 1],
+                columns=assets,
+            )
+            assert_frame_equal(output_result, expected_output_result)

@@ -5,6 +5,7 @@ from scipy.stats import (
     spearmanr,
 )
 
+from zipline.errors import IncompatibleTerms
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
@@ -27,6 +28,9 @@ class _RollingCorrelation(CustomFactor, SingleInputMixin):
                 target_slice,
                 correlation_length,
                 mask=NotSpecified):
+        if target_slice.ndim == 2 and \
+                target_factor.mask is not target_slice.mask:
+            raise IncompatibleTerms(term_1=target_factor, term_2=target_slice)
         return super(_RollingCorrelation, cls).__new__(
             cls,
             inputs=[target_factor, target_slice],
@@ -66,11 +70,15 @@ class RollingPearson(_RollingCorrelation):
     Most users should call Factor.pearsonr rather than directly construct an
     instance of this class.
     """
-    def compute(self, today, assets, out, factor_data, slice_data):
-        slice_data_column = slice_data[:, 0]
-        for i in range(len(out)):
-            # pearsonr returns the R-value and the P-value.
-            out[i] = pearsonr(factor_data[:, i], slice_data_column)[0]
+    def compute(self, today, assets, out, factor_data, other_data):
+        if other_data.shape[1] > 1:
+            # Both inputs are 2D, so compute sid-by-sid.
+            for i in range(len(out)):
+                out[i] = pearsonr(factor_data[:, i], other_data[:, i])[0]
+        else:
+            # Second input is a slice, so always compute with its only column.
+            for i in range(len(out)):
+                out[i] = pearsonr(factor_data[:, i], other_data[:, 0])[0]
 
 
 class RollingSpearman(_RollingCorrelation):
@@ -104,11 +112,15 @@ class RollingSpearman(_RollingCorrelation):
     Most users should call Factor.spearmanr rather than directly construct an
     instance of this class.
     """
-    def compute(self, today, assets, out, factor_data, slice_data):
-        slice_data_column = slice_data[:, 0]
-        for i in range(len(out)):
-            # spearmanr returns the R-value and the P-value.
-            out[i] = spearmanr(factor_data[:, i], slice_data_column)[0]
+    def compute(self, today, assets, out, factor_data, other_data):
+        if other_data.shape[1] > 1:
+            # Both inputs are 2D, so compute sid-by-sid.
+            for i in range(len(out)):
+                out[i] = spearmanr(factor_data[:, i], other_data[:, i])[0]
+        else:
+            # Second input is a slice, so always compute with its only column.
+            for i in range(len(out)):
+                out[i] = spearmanr(factor_data[:, i], other_data[:, 0])[0]
 
 
 class RollingLinearRegression(CustomFactor, SingleInputMixin):
@@ -149,6 +161,9 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
                 target_slice,
                 regression_length,
                 mask=NotSpecified):
+        if target_slice.ndim == 2 and \
+                target_factor.mask is not target_slice.mask:
+            raise IncompatibleTerms(term_1=target_factor, term_2=target_slice)
         return super(RollingLinearRegression, cls).__new__(
             cls,
             inputs=[target_factor, target_slice],
@@ -156,16 +171,15 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
             mask=mask,
         )
 
-    def compute(self, today, assets, out, factor_data, slice_data):
-        slice_data_column = slice_data[:, 0]
-
+    def compute(self, today, assets, out, factor_data, other_data):
         alpha = out.alpha
         beta = out.beta
         r_value = out.r_value
         p_value = out.p_value
         stderr = out.stderr
-        for i in range(len(out)):
-            regr_results = linregress(y=factor_data[:, i], x=slice_data_column)
+
+        def regress(y, x):
+            regr_results = linregress(y=y, x=x)
             # `linregress` returns its results in the following order:
             # slope, intercept, r-value, p-value, stderr
             alpha[i] = regr_results[1]
@@ -173,6 +187,15 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
             r_value[i] = regr_results[2]
             p_value[i] = regr_results[3]
             stderr[i] = regr_results[4]
+
+        if other_data.shape[1] > 1:
+            # Both inputs are 2D, so compute sid-by-sid.
+            for i in range(len(out)):
+                regress(y=factor_data[:, i], x=other_data[:, i])
+        else:
+            # Second input is a slice, so always compute with its only column.
+            for i in range(len(out)):
+                regress(y=factor_data[:, i], x=other_data[:, 0])
 
 
 class RollingPearsonOfReturns(RollingPearson):
