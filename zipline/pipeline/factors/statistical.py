@@ -5,6 +5,7 @@ from scipy.stats import (
     spearmanr,
 )
 
+from zipline.errors import IncompatibleTerms
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
@@ -27,6 +28,9 @@ class _RollingCorrelation(CustomFactor, SingleInputMixin):
                 target_slice,
                 correlation_length,
                 mask=NotSpecified):
+        if target_slice.ndim == 2 and \
+                target_factor.mask is not target_slice.mask:
+            raise IncompatibleTerms(term_1=target_factor, term_2=target_slice)
         return super(_RollingCorrelation, cls).__new__(
             cls,
             inputs=[target_factor, target_slice],
@@ -157,6 +161,9 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
                 target_slice,
                 regression_length,
                 mask=NotSpecified):
+        if target_slice.ndim == 2 and \
+                target_factor.mask is not target_slice.mask:
+            raise IncompatibleTerms(term_1=target_factor, term_2=target_slice)
         return super(RollingLinearRegression, cls).__new__(
             cls,
             inputs=[target_factor, target_slice],

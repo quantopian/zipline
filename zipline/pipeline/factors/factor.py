@@ -37,11 +37,7 @@ from zipline.pipeline.mixins import (
     SingleInputMixin,
 )
 from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
-from zipline.pipeline.term import (
-    ComputableTerm,
-    Slice,
-    Term,
-)
+from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
