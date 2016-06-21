@@ -465,9 +465,9 @@ def _get_metadata(field, expr, metadata_expr, no_metadata_rule):
     Returns
     -------
     metadata : Expr or None
-        The deltas table to use.
+        The the deltas or metadata table to use.
     """
-    if isinstance(metadata_expr, bz.Expr) or metadata_expr != 'auto':
+    if isinstance(metadata_expr, bz.Expr) or metadata_expr is None:
         return metadata_expr
 
     try:
@@ -692,7 +692,7 @@ def from_blaze(expr,
         raise TypeError(
             'baseline measure != checkpoints measure:\n%s != %s' % (
                 measure,
-                deltas.dshape.measure,
+                checkpoints.dshape.measure,
             ),
         )
 
@@ -755,6 +755,7 @@ def overwrite_novel_deltas(baseline, deltas, dates):
     cat = pd.concat(
         (baseline, novel_deltas),
         ignore_index=True,
+        copy=False,
     )
     sort_values(cat, TS_FIELD_NAME, inplace=True)
     return cat, non_novel_deltas
@@ -1013,7 +1014,7 @@ class BlazeLoader(dict):
             checkpoints_ts = odo(ts[ts <= lower_dt].max(), pd.Timestamp)
             if pd.isnull(checkpoints_ts):
                 materialized_checkpoints = pd.DataFrame(columns=colnames)
-                lower = lower_dt
+                lower = None
             else:
                 materialized_checkpoints = odo(
                     checkpoints[ts == checkpoints_ts][colnames],
@@ -1027,10 +1028,14 @@ class BlazeLoader(dict):
 
         materialized_expr = collect_expr(expr, lower)
         if materialized_checkpoints is not None:
-            materialized_expr = pd.concat((
-                materialized_checkpoints,
-                materialized_expr,
-            ))
+            materialized_expr = pd.concat(
+                (
+                    materialized_checkpoints,
+                    materialized_expr,
+                ),
+                ignore_index=True,
+                copy=False,
+            )
         materialized_deltas = (
             collect_expr(deltas, lower)
             if deltas is not None else
