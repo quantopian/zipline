@@ -503,5 +503,3 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
             result = result.sort("timestamp").reset_index(drop=True)
             assert_series_equal(result['timestamp'], expected)
 
-
-
