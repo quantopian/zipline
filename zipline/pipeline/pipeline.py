@@ -1,6 +1,6 @@
 from zipline.utils.input_validation import expect_types, optional
 
-from .term import Term, AssetExists
+from .term import AssetExists, ComputableTerm, Term
 from .filters import Filter
 from .graph import TermGraph
 
@@ -37,6 +37,14 @@ class Pipeline(object):
 
         if columns is None:
             columns = {}
+        for column_name, term in columns.items():
+            if not isinstance(term, ComputableTerm):
+                raise TypeError(
+                    "Column {column_name!r} contains an invalid pipeline term "
+                    "({term}). Did you mean to append '.latest'?".format(
+                        column_name=column_name, term=term,
+                    )
+                )
         self._columns = columns
         self._screen = screen
 
@@ -78,6 +86,12 @@ class Pipeline(object):
                 self.remove(name)
             else:
                 raise KeyError("Column '{}' already exists.".format(name))
+
+        if not isinstance(term, ComputableTerm):
+            raise TypeError(
+                "{term} is not a valid pipeline column. Did you mean to "
+                "append '.latest'?".format(term=term)
+            )
 
         self._columns[name] = term
 
