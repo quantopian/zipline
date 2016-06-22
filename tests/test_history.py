@@ -27,7 +27,8 @@ from zipline.testing import (
 from zipline.testing.fixtures import (
     WithBcolzMinuteBarReader,
     WithDataPortal,
-    ZiplineTestCase
+    ZiplineTestCase,
+    alias,
 )
 
 
@@ -78,7 +79,7 @@ class WithHistory(WithDataPortal):
     @classmethod
     def init_class_fixtures(cls):
         super(WithHistory, cls).init_class_fixtures()
-        cls.trading_days = cls.env.days_in_range(
+        cls.trading_days = cls.trading_schedule.execution_days_in_range(
             start=cls.TRADING_START_DT,
             end=cls.TRADING_END_DT
         )
@@ -158,7 +159,7 @@ class WithHistory(WithDataPortal):
         return pd.DataFrame([
             {
                 'effective_date': str_to_seconds('2015-01-06'),
-                'ratio': 0.5,
+                'ratio': 0.25,
                 'sid': cls.SPLIT_ASSET_SID,
             },
             {
@@ -173,7 +174,7 @@ class WithHistory(WithDataPortal):
         return pd.DataFrame([
             {
                 'effective_date': str_to_seconds('2015-01-06'),
-                'ratio': 0.5,
+                'ratio': 0.25,
                 'sid': cls.MERGER_ASSET_SID,
             },
             {
@@ -447,6 +448,7 @@ MINUTE_FIELD_INFO = {
 class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
     BCOLZ_DAILY_BAR_SOURCE_FROM_MINUTE = True
+    DATA_PORTAL_FIRST_TRADING_DAY = alias('TRADING_START_DT')
 
     @classmethod
     def make_minute_bar_data(cls):
@@ -455,14 +457,14 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         for sid in sids:
             asset = cls.asset_finder.retrieve_asset(sid)
             data[sid] = create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 asset.start_date,
                 asset.end_date,
                 start_val=2,
             )
 
         data[1] = create_minute_df_for_asset(
-            cls.env,
+            cls.trading_schedule,
             pd.Timestamp('2014-01-03', tz='utc'),
             pd.Timestamp('2016-01-30', tz='utc'),
             start_val=2,
@@ -470,9 +472,9 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         asset2 = cls.asset_finder.retrieve_asset(2)
         data[asset2.sid] = create_minute_df_for_asset(
-            cls.env,
+            cls.trading_schedule,
             asset2.start_date,
-            cls.env.previous_trading_day(asset2.end_date),
+            cls.trading_schedule.previous_execution_day(asset2.end_date),
             start_val=2,
             minute_blacklist=[
                 pd.Timestamp('2015-01-08 14:31', tz='UTC'),
@@ -482,28 +484,34 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         # Start values are crafted so that the thousands place are equal when
         # adjustments are applied correctly.
-        # The splits and mergers are defined as 2:1 splits, so the prices
-        # approximate that adjustment by halving the thousands place each day.
+        # The splits and mergers are defined as 4:1 then 2:1 ratios, so the
+        # prices approximate that adjustment by quartering and then halving
+        # the thousands place.
         data[cls.MERGER_ASSET_SID] = data[cls.SPLIT_ASSET_SID] = pd.concat((
             create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 pd.Timestamp('2015-01-05', tz='UTC'),
                 pd.Timestamp('2015-01-05', tz='UTC'),
-                start_val=4000),
+                start_val=8000),
             create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 pd.Timestamp('2015-01-06', tz='UTC'),
                 pd.Timestamp('2015-01-06', tz='UTC'),
                 start_val=2000),
             create_minute_df_for_asset(
-                cls.env,
+                cls.trading_schedule,
                 pd.Timestamp('2015-01-07', tz='UTC'),
                 pd.Timestamp('2015-01-07', tz='UTC'),
+                start_val=1000),
+            create_minute_df_for_asset(
+                cls.trading_schedule,
+                pd.Timestamp('2015-01-08', tz='UTC'),
+                pd.Timestamp('2015-01-08', tz='UTC'),
                 start_val=1000)
         ))
         asset3 = cls.asset_finder.retrieve_asset(3)
         data[3] = create_minute_df_for_asset(
-            cls.env,
+            cls.trading_schedule,
             asset3.start_date,
             asset3.end_date,
             start_val=2,
@@ -533,7 +541,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             capital_base=float('1.0e5'),
             data_frequency='minute',
             emission_rate='daily',
-            env=self.env,
+            trading_schedule=self.trading_schedule,
         )
 
         test_algo = TradingAlgorithm(
@@ -546,11 +554,136 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         with self.assertRaises(HistoryInInitialize):
             test_algo.initialize()
 
+    def test_daily_splits_and_mergers(self):
+        # self.SPLIT_ASSET and self.MERGER_ASSET had splits/mergers
+        # on 1/6 and 1/7
+
+        jan5 = pd.Timestamp('2015-01-05', tz='UTC')
+
+        for asset in [self.SPLIT_ASSET, self.MERGER_ASSET]:
+            # before any of the adjustments, 1/4 and 1/5
+            window1 = self.data_portal.get_history_window(
+                [asset],
+                self.trading_schedule.start_and_end(jan5)[1],
+                2,
+                '1d',
+                'close'
+            )[asset]
+
+            np.testing.assert_array_equal(np.array([np.nan, 8389]), window1)
+
+            # straddling the first event
+            window2 = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp('2015-01-06 14:35', tz='UTC'),
+                2,
+                '1d',
+                'close'
+            )[asset]
+
+            # Value from 1/5 should be quartered
+            np.testing.assert_array_equal(
+                [2097.25,
+                 # Split occurs. The value of the thousands place should
+                 # match.
+                 2004],
+                window2
+            )
+
+            # straddling both events!
+            window3 = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp('2015-01-07 14:35', tz='UTC'),
+                3,
+                '1d',
+                'close'
+            )[asset]
+
+            np.testing.assert_array_equal(
+                [1048.625, 1194.50, 1004.0],
+                window3
+            )
+
+            # after last event
+            window4 = self.data_portal.get_history_window(
+                [asset],
+                pd.Timestamp('2015-01-08 14:40', tz='UTC'),
+                2,
+                '1d',
+                'close'
+            )[asset]
+
+            # should not be adjusted
+            np.testing.assert_array_equal([1389, 1009], window4)
+
+    def test_daily_dividends(self):
+        # self.DIVIDEND_ASSET had dividends on 1/6 and 1/7
+
+        jan5 = pd.Timestamp('2015-01-05', tz='UTC')
+        asset = self.DIVIDEND_ASSET
+
+        # before any of the dividends
+        window1 = self.data_portal.get_history_window(
+            [asset],
+            self.trading_schedule.start_and_end(jan5)[1],
+            2,
+            '1d',
+            'close'
+        )[asset]
+
+        np.testing.assert_array_equal(np.array([nan, 391]), window1)
+
+        # straddling the first event
+        window2 = self.data_portal.get_history_window(
+            [asset],
+            pd.Timestamp('2015-01-06 14:35', tz='UTC'),
+            2,
+            '1d',
+            'close'
+        )[asset]
+
+        np.testing.assert_array_equal(
+            [383.18,  # 391 (last close) * 0.98 (first div)
+             # Dividend occurs prior.
+             396],
+            window2
+        )
+
+        # straddling both events!
+        window3 = self.data_portal.get_history_window(
+            [asset],
+            pd.Timestamp('2015-01-07 14:35', tz='UTC'),
+            3,
+            '1d',
+            'close'
+        )[asset]
+
+        np.testing.assert_array_equal(
+            [367.853,  # 391 (last close) * 0.98 * 0.96 (both)
+             749.76,  # 781 (last_close) * 0.96 (second div)
+             786],  # no adjustment
+            window3
+        )
+
+        # after last event
+        window4 = self.data_portal.get_history_window(
+            [asset],
+            pd.Timestamp('2015-01-08 14:40', tz='UTC'),
+            2,
+            '1d',
+            'close'
+        )[asset]
+
+        # should not be adjusted, should be 787 to 791
+        np.testing.assert_array_equal([1171, 1181], window4)
+
     def test_minute_before_assets_trading(self):
         # since asset2 and asset3 both started trading on 1/5/2015, let's do
         # some history windows that are completely before that
-        minutes = self.env.market_minutes_for_day(
-            self.env.previous_trading_day(pd.Timestamp('2015-01-05', tz='UTC'))
+        minutes = self.trading_schedule.execution_minutes_for_day(
+            self.trading_schedule.previous_execution_day(pd.Timestamp(
+                '2015-01-05', tz='UTC'
+            ))
         )[0:60]
 
         for idx, minute in enumerate(minutes):
@@ -597,7 +730,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # 10 minutes
         asset = self.env.asset_finder.retrieve_asset(sid)
 
-        minutes = self.env.market_minutes_for_day(
+        minutes = self.trading_schedule.execution_minutes_for_day(
             pd.Timestamp('2015-01-05', tz='UTC')
         )[0:60]
 
@@ -608,7 +741,9 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
     def test_minute_midnight(self):
         midnight = pd.Timestamp('2015-01-06', tz='UTC')
-        last_minute = self.env.previous_open_and_close(midnight)[1]
+        last_minute = self.trading_schedule.start_and_end(
+            self.trading_schedule.previous_execution_day(midnight)
+        )[1]
 
         midnight_bar_data = \
             BarData(self.data_portal, lambda: midnight, 'minute')
@@ -626,7 +761,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_minute_after_asset_stopped(self):
         # SHORT_ASSET's last day was 2015-01-06
         # get some history windows that straddle the end
-        minutes = self.env.market_minutes_for_day(
+        minutes = self.trading_schedule.execution_minutes_for_day(
             pd.Timestamp('2015-01-07', tz='UTC')
         )[0:60]
 
@@ -721,14 +856,14 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             # before any of the adjustments, last 10 minutes of jan 5
             window1 = self.data_portal.get_history_window(
                 [asset],
-                self.env.get_open_and_close(jan5)[1],
+                self.trading_schedule.start_and_end(jan5)[1],
                 10,
                 '1m',
                 'close'
             )[asset]
 
             np.testing.assert_array_equal(
-                np.array(range(4380, 4390)), window1)
+                np.array(range(8380, 8390)), window1)
 
             # straddling the first event
             window2 = self.data_portal.get_history_window(
@@ -741,11 +876,11 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
             # five minutes from 1/5 should be halved
             np.testing.assert_array_equal(
-                [2192.5,
-                 2193,
-                 2193.5,
-                 2194,
-                 2194.5,
+                [2096.25,
+                 2096.5,
+                 2096.75,
+                 2097,
+                 2097.25,
                  # Split occurs. The value of the thousands place should
                  # match.
                  2000,
@@ -765,9 +900,9 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 'close'
             )[asset]
 
-            # first five minutes should be 4385-4390, but quartered
+            # first five minutes should be 4385-4390, but eigthed
             np.testing.assert_array_equal(
-                [1096.25, 1096.5, 1096.75, 1097, 1097.25],
+                [1048.125, 1048.25, 1048.375, 1048.5, 1048.625],
                 window3[0:5]
             )
 
@@ -872,12 +1007,12 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         bar_data = BarData(self.data_portal, lambda: current_dt, 'minute')
 
         adj_expected = {
-            'open': np.arange(4381, 4391) / 2.0,
-            'high': np.arange(4382, 4392) / 2.0,
-            'low': np.arange(4379, 4389) / 2.0,
-            'close': np.arange(4380, 4390) / 2.0,
-            'volume': np.arange(4380, 4390) * 100 * 2.0,
-            'price': np.arange(4380, 4390) / 2.0,
+            'open': np.arange(8381, 8391) / 4.0,
+            'high': np.arange(8382, 8392) / 4.0,
+            'low': np.arange(8379, 8389) / 4.0,
+            'close': np.arange(8380, 8390) / 4.0,
+            'volume': np.arange(8380, 8390) * 100 * 4.0,
+            'price': np.arange(8380, 8390) / 4.0,
         }
 
         expected = {
@@ -970,20 +1105,21 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
     def test_minute_different_lifetimes(self):
         # at trading start, only asset1 existed
-        day = self.env.next_trading_day(self.TRADING_START_DT)
+        day = self.trading_schedule.next_execution_day(self.TRADING_START_DT)
 
-        asset1_minutes = self.env.minutes_for_days_in_range(
-            start=self.ASSET1.start_date,
-            end=self.ASSET1.end_date
-        )
+        asset1_minutes = \
+            self.trading_schedule.execution_minutes_for_days_in_range(
+                start=self.ASSET1.start_date,
+                end=self.ASSET1.end_date
+            )
 
         asset1_idx = asset1_minutes.searchsorted(
-            self.env.get_open_and_close(day)[0]
+            self.trading_schedule.start_and_end(day)[0]
         )
 
         window = self.data_portal.get_history_window(
             [self.ASSET1, self.ASSET2],
-            self.env.get_open_and_close(day)[0],
+            self.trading_schedule.start_and_end(day)[0],
             100,
             '1m',
             'close'
@@ -1001,7 +1137,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-        first_day_minutes = self.env.market_minutes_for_day(
+        first_day_minutes = self.trading_schedule.execution_minutes_for_day(
             self.TRADING_START_DT
         )
         exp_msg = (
@@ -1021,7 +1157,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         # January 2015 has both daily and minute data for ASSET2
         day = pd.Timestamp('2015-01-07', tz='UTC')
-        minutes = self.env.market_minutes_for_day(day)
+        minutes = self.trading_schedule.execution_minutes_for_day(day)
 
         # minute data, baseline:
         # Jan 5: 2 to 391
@@ -1085,7 +1221,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         # January 2015 has both daily and minute data for ASSET2
         day = pd.Timestamp('2015-01-08', tz='UTC')
-        minutes = self.env.market_minutes_for_day(day)
+        minutes = self.trading_schedule.execution_minutes_for_day(day)
 
         # minute data, baseline:
         # Jan 5: 2 to 391
@@ -1204,7 +1340,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     @classmethod
     def create_df_for_asset(cls, start_day, end_day, interval=1,
                             force_zeroes=False):
-        days = cls.env.days_in_range(start_day, end_day)
+        days = cls.trading_schedule.execution_days_in_range(start_day,
+                                                            end_day)
         days_count = len(days)
 
         # default to 2 because the low array subtracts 1, and we don't
@@ -1233,7 +1370,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_daily_before_assets_trading(self):
         # asset2 and asset3 both started trading in 2015
 
-        days = self.env.days_in_range(
+        days = self.trading_schedule.execution_days_in_range(
             start=pd.Timestamp('2014-12-15', tz='UTC'),
             end=pd.Timestamp('2014-12-18', tz='UTC'),
         )
@@ -1271,9 +1408,9 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         # get the first 30 days of 2015
         jan5 = pd.Timestamp('2015-01-04')
 
-        days = self.env.days_in_range(
+        days = self.trading_schedule.execution_days_in_range(
             start=jan5,
-            end=self.env.add_trading_days(30, jan5)
+            end=self.trading_schedule.add_execution_days(30, jan5)
         )
 
         for idx, day in enumerate(days):
@@ -1316,7 +1453,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_daily_after_asset_stopped(self):
         # SHORT_ASSET trades on 1/5, 1/6, that's it.
 
-        days = self.env.days_in_range(
+        days = self.trading_schedule.execution_days_in_range(
             start=pd.Timestamp('2015-01-07', tz='UTC'),
             end=pd.Timestamp('2015-01-08', tz='UTC')
         )
@@ -1390,7 +1527,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             )[asset]
 
             # first value should be halved, second value unadjusted
-            np.testing.assert_array_equal([1, 3], window2)
+            np.testing.assert_array_equal([0.5, 3], window2)
 
             window2_volume = self.data_portal.get_history_window(
                 [asset],
@@ -1402,7 +1539,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
             if asset == self.SPLIT_ASSET:
                 # first value should be doubled, second value unadjusted
-                np.testing.assert_array_equal(window2_volume, [400, 300])
+                np.testing.assert_array_equal(window2_volume, [800, 300])
             elif asset == self.MERGER_ASSET:
                 np.testing.assert_array_equal(window2_volume, [200, 300])
 
@@ -1415,7 +1552,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 'close'
             )[asset]
 
-            np.testing.assert_array_equal([0.5, 1.5, 4], window3)
+            np.testing.assert_array_equal([0.25, 1.5, 4], window3)
 
             window3_volume = self.data_portal.get_history_window(
                 [asset],
@@ -1426,7 +1563,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             )[asset]
 
             if asset == self.SPLIT_ASSET:
-                np.testing.assert_array_equal(window3_volume, [800, 600, 400])
+                np.testing.assert_array_equal(window3_volume, [1600, 600, 400])
             elif asset == self.MERGER_ASSET:
                 np.testing.assert_array_equal(window3_volume, [200, 300, 400])
 
@@ -1507,8 +1644,9 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_history_window_before_first_trading_day(self):
         # trading_start is 2/3/2014
         # get a history window that starts before that, and ends after that
-
-        second_day = self.env.next_trading_day(self.TRADING_START_DT)
+        second_day = self.trading_schedule.next_execution_day(
+            self.TRADING_START_DT
+        )
 
         exp_msg = (
             'History window extends before 2014-01-03. To use this history '
@@ -1534,8 +1672,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
             )[self.ASSET1]
 
         # Use a minute to force minute mode.
-        first_minute = self.env.open_and_closes.market_open[
-            self.TRADING_START_DT]
+        first_minute = \
+            self.trading_schedule.schedule.market_open[self.TRADING_START_DT]
 
         with self.assertRaisesRegexp(HistoryWindowStartsBeforeData, exp_msg):
             self.data_portal.get_history_window(
@@ -1665,7 +1803,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinuteBarReader,
         # Set up a fresh data portal for each test, since order of calling
         # needs to be tested.
         self.equity_daily_aggregator = DailyHistoryAggregator(
-            self.env.open_and_closes.market_open,
+            self.trading_schedule.schedule.market_open,
             self.bcolz_minute_bar_reader,
         )
 

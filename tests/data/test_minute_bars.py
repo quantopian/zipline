@@ -15,8 +15,6 @@
 from datetime import timedelta
 import os
 
-from unittest import TestCase
-
 from numpy import (
     arange,
     array,
@@ -36,7 +34,6 @@ from pandas import (
     NaT,
     date_range,
 )
-from testfixtures import TempDirectory
 
 from zipline.data.minute_bars import (
     BcolzMinuteBarWriter,
@@ -45,8 +42,12 @@ from zipline.data.minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     BcolzMinuteWriterColumnMismatch
 )
-from zipline.finance.trading import TradingEnvironment
 
+from zipline.testing.fixtures import (
+    WithInstanceTmpDir,
+    WithTradingSchedule,
+    ZiplineTestCase,
+)
 
 # Calendar is set to cover several half days, to check a case where half
 # days would be read out of order in cases of windows which spanned over
@@ -55,27 +56,24 @@ TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
-class BcolzMinuteBarTestCase(TestCase):
+class BcolzMinuteBarTestCase(WithTradingSchedule, WithInstanceTmpDir,
+                             ZiplineTestCase):
 
     @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
-        all_market_opens = cls.env.open_and_closes.market_open
-        all_market_closes = cls.env.open_and_closes.market_close
-        indexer = all_market_opens.index.slice_indexer(
-            start=TEST_CALENDAR_START,
-            end=TEST_CALENDAR_STOP
+    def init_class_fixtures(cls):
+        super(BcolzMinuteBarTestCase, cls).init_class_fixtures()
+        trading_days = cls.trading_schedule.trading_sessions(
+            TEST_CALENDAR_START, TEST_CALENDAR_STOP
         )
-        cls.market_opens = all_market_opens[indexer]
-        cls.market_closes = all_market_closes[indexer]
+        cls.market_opens = trading_days.market_open
+        cls.market_closes = trading_days.market_close
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
 
-    def setUp(self):
+    def init_instance_fixtures(self):
+        super(BcolzMinuteBarTestCase, self).init_instance_fixtures()
 
-        self.dir_ = TempDirectory()
-        self.dir_.create()
-        self.dest = self.dir_.getpath('minute_bars')
+        self.dest = self.instance_tmpdir.getpath('minute_bars')
         os.makedirs(self.dest)
         self.writer = BcolzMinuteBarWriter(
             TEST_CALENDAR_START,
@@ -85,9 +83,6 @@ class BcolzMinuteBarTestCase(TestCase):
             US_EQUITIES_MINUTES_PER_DAY,
         )
         self.reader = BcolzMinuteBarReader(self.dest)
-
-    def tearDown(self):
-        self.dir_.cleanup()
 
     def test_write_one_ohlcv(self):
         minute = self.market_opens[self.test_calendar_start]
@@ -802,10 +797,13 @@ class BcolzMinuteBarTestCase(TestCase):
 
         data = {sids[0]: data_1, sids[1]: data_2}
 
-        start_minute_loc = self.env.market_minutes.get_loc(minutes[0])
-        minute_locs = [self.env.market_minutes.get_loc(minute) -
-                       start_minute_loc
-                       for minute in minutes]
+        start_minute_loc = \
+            self.trading_schedule.all_execution_minutes.get_loc(minutes[0])
+        minute_locs = [
+            self.trading_schedule.all_execution_minutes.get_loc(minute)
+            - start_minute_loc
+            for minute in minutes
+        ]
 
         for i, col in enumerate(columns):
             for j, sid in enumerate(sids):
@@ -824,7 +822,9 @@ class BcolzMinuteBarTestCase(TestCase):
             'close': arange(1, 781),
             'volume': arange(1, 781)
         }
-        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
+        dts = array(self.trading_schedule.execution_minutes_for_days_in_range(
+            start_day, end_day
+        ))
         self.writer.write_cols(sid, dts, cols)
 
         self.assertEqual(
@@ -866,7 +866,9 @@ class BcolzMinuteBarTestCase(TestCase):
             'close': arange(1, 601),
             'volume': arange(1, 601)
         }
-        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
+        dts = array(self.trading_schedule.execution_minutes_for_days_in_range(
+            start_day, end_day
+        ))
         self.writer.write_cols(sid, dts, cols)
 
         self.assertEqual(

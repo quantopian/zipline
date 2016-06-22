@@ -629,26 +629,18 @@ data for you. The first argument is the number of bars you want to
 collect, the second argument is the unit (either ``'1d'`` for ``'1m'``
 but note that you need to have minute-level data for using ``1m``). For
 a more detailed description ``history()``'s features, see the
-`Quantopian docs <https://www.quantopian.com/help#ide-history>`__. While
-you can directly use the ``history()`` function on Quantopian, in
-``zipline`` you have to register each history container you want to use
-with ``add_history()`` and pass it the same arguments as the history
-function below. Lets look at the strategy which should make this clear:
+`Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
+Let's look at the strategy which should make this clear:
 
 .. code-block:: python
 
    %%zipline --start 2000-1-1 --end 2014-1-1 -o perf_dma
 
 
-   from zipline.api import order_target, record, symbol, history, add_history
+   from zipline.api import order_target, record, symbol, history
    import numpy as np
 
    def initialize(context):
-       # Register 2 histories that track daily prices,
-       # one with a 100 window and one with a 300 day window
-       add_history(100, '1d', 'price')
-       add_history(300, '1d', 'price')
-
        context.i = 0
 
 

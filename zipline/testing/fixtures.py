@@ -1,14 +1,10 @@
-from abc import ABCMeta, abstractproperty
 import sqlite3
 from unittest import TestCase
 
 from contextlib2 import ExitStack
 from logbook import NullHandler, Logger
-from nose_parameterized import parameterized
-from pandas.util.testing import assert_series_equal
 from six import with_metaclass
 from toolz import flip
-import numpy as np
 import pandas as pd
 import responses
 
@@ -33,19 +29,15 @@ from ..data.minute_bars import (
 )
 
 from ..finance.trading import TradingEnvironment
-from ..utils import tradingcalendar, factory
+from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
-from ..utils.metautils import with_metaclasses
-from .core import tmp_asset_finder, make_simple_equity_info, gen_calendars
-from zipline.pipeline import Pipeline, SimplePipelineEngine
+from .core import tmp_asset_finder, make_simple_equity_info
+from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
-from zipline.utils.numpy_utils import make_datetime64D
-from zipline.utils.numpy_utils import NaTD
-from zipline.pipeline.common import TS_FIELD_NAME
-from zipline.pipeline.loaders.utils import (
-    get_values_for_date_ranges,
-    zip_with_dates
+from zipline.utils.calendars import (
+    get_calendar,
+    ExchangeTradingSchedule,
 )
 
 
@@ -312,6 +304,9 @@ class WithAssetFinder(WithDefaultDateBounds):
         A class method which constructs the dataframe of root symbols
         information to write to the class's assets db. By default this is
         empty.
+    make_asset_finder_db_url() -> string
+        A class method which returns the URL at which to create the SQLAlchemy
+        engine. By default provides a URL for an in-memory database.
     make_asset_finder() -> pd.DataFrame
         A class method which constructs the actual asset finder object to use
         for the class. If this method is overridden then the ``make_*_info``
@@ -350,8 +345,13 @@ class WithAssetFinder(WithDefaultDateBounds):
         )
 
     @classmethod
+    def make_asset_finder_db_url(cls):
+        return 'sqlite:///:memory:'
+
+    @classmethod
     def make_asset_finder(cls):
         return cls.enter_class_context(tmp_asset_finder(
+            url=cls.make_asset_finder_db_url(),
             equities=cls.make_equity_info(),
             futures=cls.make_futures_info(),
             exchanges=cls.make_exchanges_info(),
@@ -364,7 +364,41 @@ class WithAssetFinder(WithDefaultDateBounds):
         cls.asset_finder = cls.make_asset_finder()
 
 
-class WithTradingEnvironment(WithAssetFinder):
+class WithTradingSchedule(object):
+    """
+    ZiplineTestCase mixing providing cls.trading_schedule as a class-level
+    fixture.
+
+    After ``init_class_fixtures`` has been called, `cls.trading_schedule` is
+    populated with a trading schedule.
+
+    Attributes
+    ----------
+    TRADING_SCHEDULE_CALENDAR : ExchangeCalendar
+        The ExchangeCalendar to be wrapped in an ExchangeTradingSchedule.
+
+    Methods
+    -------
+    make_trading_schedule() -> TradingSchedule
+        A class method that constructs the trading schedule for the class.
+
+    See Also
+    --------
+    :class:`zipline.utils.calendars.trading_schedule.TradingSchedule`
+    """
+    TRADING_SCHEDULE_CALENDAR = get_calendar('NYSE')
+
+    @classmethod
+    def make_trading_schedule(cls):
+        return ExchangeTradingSchedule(cls.TRADING_SCHEDULE_CALENDAR)
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithTradingSchedule, cls).init_class_fixtures()
+        cls.trading_schedule = cls.make_trading_schedule()
+
+
+class WithTradingEnvironment(WithAssetFinder, WithTradingSchedule):
     """
     ZiplineTestCase mixin providing cls.env as a class-level fixture.
 
@@ -397,9 +431,6 @@ class WithTradingEnvironment(WithAssetFinder):
     --------
     :class:`zipline.finance.trading.TradingEnvironment`
     """
-    TRADING_ENV_MIN_DATE = None
-    TRADING_ENV_MAX_DATE = None
-    TRADING_ENV_TRADING_CALENDAR = tradingcalendar
 
     @classmethod
     def make_load_function(cls):
@@ -410,9 +441,7 @@ class WithTradingEnvironment(WithAssetFinder):
         return TradingEnvironment(
             load=cls.make_load_function(),
             asset_db_path=cls.asset_finder.engine,
-            min_date=cls.TRADING_ENV_MIN_DATE,
-            max_date=cls.TRADING_ENV_MAX_DATE,
-            env_trading_calendar=cls.TRADING_ENV_TRADING_CALENDAR,
+            trading_schedule=cls.trading_schedule,
         )
 
     @classmethod
@@ -467,7 +496,7 @@ class WithSimParams(WithTradingEnvironment):
             capital_base=cls.SIM_PARAMS_CAPITAL_BASE,
             data_frequency=cls.SIM_PARAMS_DATA_FREQUENCY,
             emission_rate=cls.SIM_PARAMS_EMISSION_RATE,
-            env=cls.env,
+            trading_schedule=cls.trading_schedule,
         )
 
     @classmethod
@@ -476,7 +505,7 @@ class WithSimParams(WithTradingEnvironment):
         cls.sim_params = cls.make_simparams()
 
 
-class WithNYSETradingDays(object):
+class WithNYSETradingDays(WithTradingSchedule):
     """
     ZiplineTestCase mixin providing cls.trading_days as a class-level fixture.
 
@@ -501,7 +530,7 @@ class WithNYSETradingDays(object):
     def init_class_fixtures(cls):
         super(WithNYSETradingDays, cls).init_class_fixtures()
 
-        all_days = tradingcalendar.trading_days
+        all_days = cls.trading_schedule.all_execution_days
         start_loc = all_days.get_loc(cls.DATA_MIN_DAY, 'bfill')
         end_loc = all_days.get_loc(cls.DATA_MAX_DAY, 'ffill')
 
@@ -597,6 +626,10 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
         ``BcolzDailyBarReader`` will read from. By default this creates
         some simple sythetic data with
         :func:`~zipline.testing.create_daily_bar_data`
+    make_bcolz_daily_bar_rootdir_path() -> string
+        A class method that returns the path for the rootdir of the daily
+        bars ctable. By default this is a subdirectory BCOLZ_DAILY_BAR_PATH in
+        the shared temp directory.
 
     See Also
     --------
@@ -630,9 +663,9 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
             # source from minute logic.
             'volume': 'last'
         }
-        mm = cls.env.market_minutes
-        m_opens = cls.env.open_and_closes.market_open
-        m_closes = cls.env.open_and_closes.market_close
+        mm = cls.trading_schedule.all_execution_minutes
+        m_opens = cls.trading_schedule.schedule.market_open
+        m_closes = cls.trading_schedule.schedule.market_close
 
         for asset in assets:
             first_minute = m_opens.loc[asset.start_date]
@@ -673,19 +706,21 @@ class WithBcolzDailyBarReader(WithTradingEnvironment, WithTmpDir):
             )
 
     @classmethod
+    def make_bcolz_daily_bar_rootdir_path(cls):
+        return cls.tmpdir.makedir(cls.BCOLZ_DAILY_BAR_PATH)
+
+    @classmethod
     def init_class_fixtures(cls):
         super(WithBcolzDailyBarReader, cls).init_class_fixtures()
-        cls.bcolz_daily_bar_path = p = cls.tmpdir.makedir(
-            cls.BCOLZ_DAILY_BAR_PATH,
-        )
+        cls.bcolz_daily_bar_path = p = cls.make_bcolz_daily_bar_rootdir_path()
         if cls.BCOLZ_DAILY_BAR_USE_FULL_CALENDAR:
-            days = cls.env.trading_days
+            days = cls.trading_schedule.all_execution_days
         else:
-            days = cls.env.days_in_range(
-                cls.env.trading_days[
-                    cls.env.get_index(cls.BCOLZ_DAILY_BAR_START_DATE) -
-                    cls.BCOLZ_DAILY_BAR_LOOKBACK_DAYS
-                ],
+            days = cls.trading_schedule.execution_days_in_range(
+                cls.trading_schedule.add_execution_days(
+                    -1 * cls.BCOLZ_DAILY_BAR_LOOKBACK_DAYS,
+                    cls.BCOLZ_DAILY_BAR_START_DATE,
+                ),
                 cls.BCOLZ_DAILY_BAR_END_DATE,
             )
         cls.bcolz_daily_bar_days = days
@@ -745,6 +780,10 @@ class WithBcolzMinuteBarReader(WithTradingEnvironment, WithTmpDir):
         ``BcolzMinuteBarReader`` will read from. By default this creates
         some simple sythetic data with
         :func:`~zipline.testing.create_minute_bar_data`
+    make_bcolz_minute_bar_rootdir_path() -> string
+        A class method that returns the path for the directory that contains
+        the minute bar ctables. By default this is a subdirectory
+        BCOLZ_MINUTE_BAR_PATH in the shared temp directory.
 
     See Also
     --------
@@ -761,7 +800,7 @@ class WithBcolzMinuteBarReader(WithTradingEnvironment, WithTmpDir):
     @classmethod
     def make_minute_bar_data(cls):
         return create_minute_bar_data(
-            cls.env.minutes_for_days_in_range(
+            cls.trading_schedule.execution_minutes_for_days_in_range(
                 cls.bcolz_minute_bar_days[0],
                 cls.bcolz_minute_bar_days[-1],
             ),
@@ -769,27 +808,30 @@ class WithBcolzMinuteBarReader(WithTradingEnvironment, WithTmpDir):
         )
 
     @classmethod
+    def make_bcolz_minute_bar_rootdir_path(cls):
+        return cls.tmpdir.makedir(cls.BCOLZ_MINUTE_BAR_PATH)
+
+    @classmethod
     def init_class_fixtures(cls):
         super(WithBcolzMinuteBarReader, cls).init_class_fixtures()
-        cls.bcolz_minute_bar_path = p = cls.tmpdir.makedir(
-            cls.BCOLZ_MINUTE_BAR_PATH,
-        )
+        cls.bcolz_minute_bar_path = p = \
+            cls.make_bcolz_minute_bar_rootdir_path()
         if cls.BCOLZ_MINUTE_BAR_USE_FULL_CALENDAR:
-            days = cls.env.trading_days
+            days = cls.trading_schedule.all_execution_days
         else:
-            days = cls.env.days_in_range(
-                cls.env.trading_days[
-                    cls.env.get_index(cls.BCOLZ_MINUTE_BAR_START_DATE) -
-                    cls.BCOLZ_MINUTE_BAR_LOOKBACK_DAYS
-                ],
+            days = cls.trading_schedule.execution_days_in_range(
+                cls.trading_schedule.add_execution_days(
+                    -1 * cls.BCOLZ_MINUTE_BAR_LOOKBACK_DAYS,
+                    cls.BCOLZ_MINUTE_BAR_START_DATE,
+                ),
                 cls.BCOLZ_MINUTE_BAR_END_DATE,
             )
         cls.bcolz_minute_bar_days = days
         writer = BcolzMinuteBarWriter(
             days[0],
             p,
-            cls.env.open_and_closes.market_open.loc[days],
-            cls.env.open_and_closes.market_close.loc[days],
+            cls.trading_schedule.schedule.market_open.loc[days],
+            cls.trading_schedule.schedule.market_close.loc[days],
             US_EQUITIES_MINUTES_PER_DAY
         )
         writer.write(cls.make_minute_bar_data())
@@ -824,6 +866,10 @@ class WithAdjustmentReader(WithBcolzDailyBarReader):
     make_stock_dividends_data() -> pd.DataFrame
         A class method that returns a dataframe of stock dividends data to
         write to the class's adjustment db. By default this is empty.
+    make_adjustment_db_conn_str() -> string
+        A class method that returns the sqlite3 connection string for the
+        database in to which the adjustments will be written. By default this
+        is an in-memory database.
     make_adjustment_writer_daily_bar_reader() -> pd.DataFrame
         A class method that returns the daily bar reader to use for the class's
         adjustment writer. By default this is the class's actual
@@ -863,9 +909,13 @@ class WithAdjustmentReader(WithBcolzDailyBarReader):
         return cls.bcolz_daily_bar_reader
 
     @classmethod
+    def make_adjustment_db_conn_str(cls):
+        return ':memory:'
+
+    @classmethod
     def init_class_fixtures(cls):
         super(WithAdjustmentReader, cls).init_class_fixtures()
-        conn = sqlite3.connect(':memory:')
+        conn = sqlite3.connect(cls.make_adjustment_db_conn_str())
         cls.make_adjustment_writer(conn).write(
             splits=cls.make_splits_data(),
             mergers=cls.make_mergers_data(),
@@ -873,182 +923,6 @@ class WithAdjustmentReader(WithBcolzDailyBarReader):
             stock_dividends=cls.make_stock_dividends_data(),
         )
         cls.adjustment_reader = SQLiteAdjustmentReader(conn)
-
-
-class WithPipelineEventDataLoader(
-        with_metaclasses((type(ZiplineTestCase), ABCMeta), WithAssetFinder)):
-    """
-    ZiplineTestCase mixin providing common test methods/behaviors for event
-    data loaders.
-
-    Attributes
-    ----------
-    loader_type : PipelineLoader
-        The type of loader to use. This must be overridden by subclasses.
-
-    Methods
-    -------
-    get_sids() -> iterable[int]
-        Class method which returns the sids that need to be available to the
-        tests.
-    get_dataset() -> dict[int -> pd.DataFrmae]
-        Class method which returns a mapping from sid to data for that sid.
-        By default this is empty for every sid.
-    pipeline_event_loader_args(dates: pd.DatetimeIndex) -> tuple[any]
-        The arguments to pass to the ``loader_type`` to construct the pipeline
-        loader for this test.
-    """
-    @classmethod
-    def get_sids(cls):
-        return range(0, 5)
-
-    @classmethod
-    def get_dataset(cls):
-        return {sid: pd.DataFrame() for sid in cls.get_sids()}
-
-    @abstractproperty
-    def loader_type(self):
-        raise NotImplementedError('loader_type')
-
-    @classmethod
-    def make_equity_info(cls):
-        return make_simple_equity_info(
-            cls.get_sids(),
-            start_date=pd.Timestamp('2013-01-01', tz='UTC'),
-            end_date=pd.Timestamp('2015-01-01', tz='UTC'),
-        )
-
-    def pipeline_event_loader_args(self, dates):
-        """Construct the base  object to pass to the loader.
-
-        Parameters
-        ----------
-        dates : pd.DatetimeIndex
-            The dates we can serve.
-
-        Returns
-        -------
-        args : tuple[any]
-            The arguments to forward to the loader positionally.
-        """
-        return dates, self.get_dataset()
-
-    def pipeline_event_setup_engine(self, dates):
-        """
-        Make a Pipeline Enigne object based on the given dates.
-        """
-        loader = self.loader_type(*self.pipeline_event_loader_args(dates))
-        return SimplePipelineEngine(lambda _: loader, dates, self.asset_finder)
-
-    def get_sids_to_frames(self,
-                           zip_date_index_with_vals,
-                           vals,
-                           date_intervals,
-                           dates,
-                           dtype_name,
-                           missing_dtype):
-        """
-        Construct a DataFrame that maps sid to the expected values for the
-        given dates.
-
-        Parameters
-        ----------
-        zip_date_index_with_vals: callable
-            A function that returns a series of `vals` repeated based on the
-            number of days in the date interval for each val, indexed by the
-            dates in `dates`.
-        vals: iterable
-            An iterable with values that correspond to each interval in
-            `date_intervals`.
-        date_intervals: list
-            A list of date intervals for each sid that correspond to values in
-            `vals`.
-        dates: DatetimeIndex
-            The dates which will serve as the index for each Series for each
-            sid in the DataFrame.
-        dtype_name: str
-            The name of the dtype of the values in `vals`.
-        missing_dtype: str
-            The name of the value that should be used as the missing value
-            for the dtype of `vals` - e.g., 'NaN' for floats.
-        """
-        frame = pd.DataFrame({sid: get_values_for_date_ranges(
-            zip_date_index_with_vals,
-            vals[sid],
-            pd.DatetimeIndex(list(zip(*date_intervals[sid]))[0]),
-            pd.DatetimeIndex(list(zip(*date_intervals[sid]))[1]),
-            dates
-        ).astype(dtype_name) for sid in self.get_sids()[:-1]})
-        frame[self.get_sids()[-1]] = zip_date_index_with_vals(
-            dates, [missing_dtype] * len(dates)
-        ).astype(dtype_name)
-        return frame
-
-    @staticmethod
-    def _compute_busday_offsets(announcement_dates):
-        """
-        Compute expected business day offsets from a DataFrame of announcement
-        dates.
-        """
-        # Column-vector of dates on which factor `compute` will be called.
-        raw_call_dates = announcement_dates.index.values.astype(
-            'datetime64[D]'
-        )[:, None]
-
-        # 2D array of dates containining expected nexg announcement.
-        raw_announce_dates = (
-            announcement_dates.values.astype('datetime64[D]')
-        )
-
-        # Set NaTs to 0 temporarily because busday_count doesn't support NaT.
-        # We fill these entries with NaNs later.
-        whereNaT = raw_announce_dates == NaTD
-        raw_announce_dates[whereNaT] = make_datetime64D(0)
-
-        # The abs call here makes it so that we can use this function to
-        # compute offsets for both next and previous earnings (previous
-        # earnings offsets come back negative).
-        expected = abs(np.busday_count(
-            raw_call_dates,
-            raw_announce_dates
-        ).astype(float))
-
-        expected[whereNaT] = np.nan
-        return pd.DataFrame(
-            data=expected,
-            columns=announcement_dates.columns,
-            index=announcement_dates.index,
-        )
-
-    @parameterized.expand(gen_calendars(
-        '2014-01-01',
-        '2014-01-31',
-        critical_dates=pd.to_datetime([
-            '2014-01-05',
-            '2014-01-10',
-            '2014-01-15',
-            '2014-01-20',
-        ], utc=True),
-    ))
-    def test_compute(self, dates):
-        engine = self.pipeline_event_setup_engine(dates)
-        cols = self.setup(dates)
-
-        pipe = Pipeline(
-            columns=self.pipeline_columns
-        )
-
-        result = engine.run_pipeline(
-            pipe,
-            start_date=dates[0],
-            end_date=dates[-1],
-        )
-
-        for sid in self.get_sids():
-            for col_name in cols.keys():
-                assert_series_equal(result[col_name].unstack(1)[sid],
-                                    cols[col_name][sid],
-                                    check_names=False)
 
 
 class WithSeededRandomPipelineEngine(WithNYSETradingDays, WithAssetFinder):
@@ -1155,17 +1029,21 @@ class WithDataPortal(WithAdjustmentReader,
     DATA_PORTAL_USE_MINUTE_DATA = True
     DATA_PORTAL_USE_ADJUSTMENTS = True
 
+    DATA_PORTAL_FIRST_TRADING_DAY = None
+
     def make_data_portal(self):
-        if self.DATA_PORTAL_USE_MINUTE_DATA:
-            first_trading_day = self.bcolz_minute_bar_reader.first_trading_day
-        elif self.DATA_PORTAL_USE_DAILY_DATA:
-            first_trading_day = self.bcolz_daily_bar_reader.first_trading_day
-        else:
-            first_trading_day = None
+        if self.DATA_PORTAL_FIRST_TRADING_DAY is None:
+            if self.DATA_PORTAL_USE_MINUTE_DATA:
+                self.DATA_PORTAL_FIRST_TRADING_DAY = (
+                    self.bcolz_minute_bar_reader.first_trading_day)
+            elif self.DATA_PORTAL_USE_DAILY_DATA:
+                self.DATA_PORTAL_FIRST_TRADING_DAY = (
+                    self.bcolz_daily_bar_reader.first_trading_day)
 
         return DataPortal(
-            self.env,
-            first_trading_day=first_trading_day,
+            self.env.asset_finder,
+            self.trading_schedule,
+            first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,
             equity_daily_reader=(
                 self.bcolz_daily_bar_reader
                 if self.DATA_PORTAL_USE_DAILY_DATA else
@@ -1201,128 +1079,4 @@ class WithResponses(object):
         super(WithResponses, self).init_instance_fixtures()
         self.responses = self.enter_instance_context(
             responses.RequestsMock(),
-        )
-
-
-class WithNextAndPreviousEventDataLoader(WithPipelineEventDataLoader):
-    """
-    ZiplineTestCase mixin extending common functionality for event data
-    loader tests that have both next and previous events.
-
-    `base_cases` should be used as the template to test cases that combine
-    knowledge date (timestamp) and some 'other_date' in various ways.
-    `next_date_intervals` gives the date intervals for the next event based
-    on the dates given in `base_cases`.
-    `next_dates` gives the next date from `other_date` which is known about at
-    each interval.
-    `prev_date_intervals` gives the date intervals for each sid for the
-    previous event based on the dates given in `base_cases`.
-    `prev_dates` gives the previous date from `other_date` which is known
-    about at each interval.
-    `get_expected_previous_event_dates` is a convenience function that fills
-    a DataFrame with the previously known dates for each sid for the given
-    dates.
-    `get_expected_next_event_dates` is a convenience function that fills
-    a DataFrame with the next known dates for each sid for the given
-    dates.
-    """
-    base_cases = [
-        # K1--K2--A1--A2.
-        pd.DataFrame({
-            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-            'other_date': pd.to_datetime(['2014-01-15', '2014-01-20']),
-        }),
-        # K1--K2--A2--A1.
-        pd.DataFrame({
-            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-10']),
-            'other_date': pd.to_datetime(['2014-01-20', '2014-01-15']),
-        }),
-        # K1--A1--K2--A2.
-        pd.DataFrame({
-            TS_FIELD_NAME: pd.to_datetime(['2014-01-05', '2014-01-15']),
-            'other_date': pd.to_datetime(['2014-01-10', '2014-01-20']),
-        }),
-        # K1 == K2.
-        pd.DataFrame({
-            TS_FIELD_NAME: pd.to_datetime(['2014-01-05'] * 2),
-            'other_date': pd.to_datetime(['2014-01-10', '2014-01-15']),
-        }),
-        pd.DataFrame(
-            columns=['other_date',
-                     TS_FIELD_NAME],
-            dtype='datetime64[ns]'
-        ),
-    ]
-
-    next_date_intervals = [
-        [['2014-01-01', '2014-01-04'],
-         ['2014-01-05', '2014-01-15'],
-         ['2014-01-16', '2014-01-20'],
-         ['2014-01-21', '2014-01-31']],
-        [['2014-01-01', '2014-01-04'],
-         ['2014-01-05', '2014-01-09'],
-         ['2014-01-10', '2014-01-15'],
-         ['2014-01-16', '2014-01-20'],
-         ['2014-01-21', '2014-01-31']],
-        [['2014-01-01', '2014-01-04'],
-         ['2014-01-05', '2014-01-10'],
-         ['2014-01-11', '2014-01-14'],
-         ['2014-01-15', '2014-01-20'],
-         ['2014-01-21', '2014-01-31']],
-        [['2014-01-01', '2014-01-04'],
-         ['2014-01-05', '2014-01-10'],
-         ['2014-01-11', '2014-01-15'],
-         ['2014-01-16', '2014-01-31']]
-    ]
-
-    next_dates = [
-        ['NaT', '2014-01-15', '2014-01-20', 'NaT'],
-        ['NaT', '2014-01-20', '2014-01-15', '2014-01-20', 'NaT'],
-        ['NaT', '2014-01-10', 'NaT', '2014-01-20', 'NaT'],
-        ['NaT', '2014-01-10', '2014-01-15', 'NaT'],
-        ['NaT']
-    ]
-
-    prev_date_intervals = [
-        [['2014-01-01', '2014-01-14'],
-         ['2014-01-15', '2014-01-19'],
-         ['2014-01-20', '2014-01-31']],
-        [['2014-01-01', '2014-01-14'],
-         ['2014-01-15', '2014-01-19'],
-         ['2014-01-20', '2014-01-31']],
-        [['2014-01-01', '2014-01-09'],
-         ['2014-01-10', '2014-01-19'],
-         ['2014-01-20', '2014-01-31']],
-        [['2014-01-01', '2014-01-09'],
-         ['2014-01-10', '2014-01-14'],
-         ['2014-01-15', '2014-01-31']]
-    ]
-
-    prev_dates = [
-        ['NaT', '2014-01-15', '2014-01-20'],
-        ['NaT', '2014-01-15', '2014-01-20'],
-        ['NaT', '2014-01-10', '2014-01-20'],
-        ['NaT', '2014-01-10', '2014-01-15'],
-        ['NaT']
-    ]
-
-    def get_expected_previous_event_dates(self, dates, dtype_name,
-                                          missing_dtype):
-        return self.get_sids_to_frames(
-            zip_with_dates,
-            self.prev_dates,
-            self.prev_date_intervals,
-            dates,
-            dtype_name,
-            missing_dtype
-        )
-
-    def get_expected_next_event_dates(self, dates, dtype_name, missing_dtype):
-        return self.get_sids_to_frames(
-            zip_with_dates,
-            self.next_dates,
-            self.next_date_intervals,
-            dates,
-            dtype_name,
-            missing_dtype
         )

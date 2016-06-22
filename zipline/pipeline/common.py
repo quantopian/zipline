@@ -9,5 +9,7 @@ DAYS_TO_NEXT = 'days_to_next'
 NEXT_ANNOUNCEMENT = 'next_announcement'
 PREVIOUS_AMOUNT = 'previous_amount'
 PREVIOUS_ANNOUNCEMENT = 'previous_announcement'
+
+EVENT_DATE_FIELD_NAME = 'event_date'
 SID_FIELD_NAME = 'sid'
 TS_FIELD_NAME = 'timestamp'

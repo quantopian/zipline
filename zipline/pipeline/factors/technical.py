@@ -2,6 +2,8 @@
 Technical Analysis Factors
 --------------------------
 """
+from __future__ import division
+
 from numbers import Number
 from numpy import (
     abs,
@@ -31,10 +33,12 @@ from zipline.utils.numpy_utils import ignore_nanwarnings
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import (
     nanargmax,
+    nanargmin,
     nanmax,
     nanmean,
     nanstd,
     nansum,
+    nanmin,
 )
 from .factor import CustomFactor
 
@@ -739,3 +743,84 @@ class BollingerBands(CustomFactor):
         out.middle = middle = nanmean(close, axis=0)
         out.upper = middle + difference
         out.lower = middle - difference
+
+
+class Aroon(CustomFactor):
+    """
+    Aroon technical indicator.
+    https://www.fidelity.com/learning-center/trading-investing/technical
+    -analysis/technical-indicator-guide/aroon-indicator
+
+    **Defaults Inputs:** USEquityPricing.low, USEquityPricing.high
+
+    Parameters
+    ----------
+    window_length : int > 0
+        Length of the lookback window over which to compute the Aroon
+        indicator.
+    """
+
+    inputs = (USEquityPricing.low, USEquityPricing.high)
+    outputs = ('down', 'up')
+
+    def compute(self, today, assets, out, lows, highs):
+        wl = self.window_length
+        high_date_index = nanargmax(highs, axis=0)
+        low_date_index = nanargmin(lows, axis=0)
+        evaluate(
+            '(100 * high_date_index) / (wl - 1)',
+            local_dict={
+                'high_date_index': high_date_index,
+                'wl': wl,
+            },
+            out=out.up,
+        )
+        evaluate(
+            '(100 * low_date_index) / (wl - 1)',
+            local_dict={
+                'low_date_index': low_date_index,
+                'wl': wl,
+            },
+            out=out.down,
+        )
+
+
+class FastStochasticOscillator(CustomFactor):
+    """
+    Fast Stochastic Oscillator Indicator [%K, Momentum Indicator]
+    https://wiki.timetotrade.eu/Stochastic
+
+    This stochastic is considered volatile, and varies a lot when used in
+    market analysis. It is recommended to use the slow stochastic oscillator
+    or a moving average of the %K [%D].
+
+    **Default Inputs:** :data: `zipline.pipeline.data.USEquityPricing.close`
+                        :data: `zipline.pipeline.data.USEquityPricing.low`
+                        :data: `zipline.pipeline.data.USEquityPricing.high`
+
+    **Default Window Length:** 14
+
+    Returns
+    -------
+    out: %K oscillator
+    """
+    inputs = (USEquityPricing.close, USEquityPricing.low, USEquityPricing.high)
+    window_safe = True
+    window_length = 14
+
+    def compute(self, today, assets, out, closes, lows, highs):
+
+        highest_highs = nanmax(highs, axis=0)
+        lowest_lows = nanmin(lows, axis=0)
+        today_closes = closes[-1]
+
+        evaluate(
+            '((tc - ll) / (hh - ll)) * 100',
+            local_dict={
+                'tc': today_closes,
+                'll': lowest_lows,
+                'hh': highest_highs,
+            },
+            global_dict={},
+            out=out,
+        )

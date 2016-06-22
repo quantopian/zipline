@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from zipline.testing import test_resource_path, write_compressed
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.calendars import get_calendar
 
 
 def zipfile_path(symbol, ext):
@@ -26,6 +26,8 @@ def pricing_for_sid(sid):
 
     def column(name):
         return np.arange(252) + 1 + sid * 10000 + modifier[name] * 1000
+
+    trading_days = get_calendar('NYSE').all_trading_days
 
     return pd.DataFrame(
         data={
