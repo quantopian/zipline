@@ -632,7 +632,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         else:
             def rank(row):
-                return rankdata(row, method=method)
+                return rankdata(row if ascending else -row, method=method)
 
             return GroupedRowTransform(
                 transform=rank,
