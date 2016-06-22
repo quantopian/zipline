@@ -539,7 +539,7 @@ class NthTradingDayOfMonth(TradingDayOfMonthRule):
         self.month = dt.month
 
         dt = dt.replace(day=1)
-        first_day = (dt if self.cal.is_open_on_day(dt)
+        first_day = (normalize_date(dt) if self.cal.is_open_on_day(dt)
                      else self.cal.next_trading_day(dt))
         return first_day
 
