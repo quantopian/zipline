@@ -210,7 +210,7 @@ def alias(attr_name):
     >>> class C(object):
     ...     attr = 1
     ...
-    >>> class D(object):
+    >>> class D(C):
     ...     attr_alias = alias('attr')
     ...
     >>> D.attr

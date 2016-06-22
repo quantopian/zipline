@@ -24,14 +24,15 @@ def compose_types(a, *cs):
 
     .. code-block:: python
 
-       class M(type):
-           def __new__(mcls, name, bases, dict_):
-               dict_['ayy'] = 'lmao'
-               return super().__new__(mcls, name, bases, dict_)
+       >>> class M(type):
+       ...     def __new__(mcls, name, bases, dict_):
+       ...         dict_['ayy'] = 'lmao'
+       ...         return super(M, mcls).__new__(mcls, name, bases, dict_)
 
 
-       class C(metaclass=M):
-           pass
+       >>> from six import with_metaclass
+       >>> class C(with_metaclass(M, object)):
+       ...     pass
 
 
     We now want to create a sublclass of ``C`` that is also an abstract class.
@@ -43,10 +44,11 @@ def compose_types(a, *cs):
 
     .. code-block:: python
 
-       class D(C, metaclass=compose_types(M, ABCMeta)):
-           @abstractmethod
-           def f(self):
-               raise NotImplementedError('f')
+       >>> from abc import ABCMeta, abstractmethod
+       >>> class D(with_metaclass(compose_types(M, ABCMeta), C)):
+       ...     @abstractmethod
+       ...     def f(self):
+       ...         raise NotImplementedError('f')
 
 
     We can see that this class has both metaclasses applied to it:
@@ -54,8 +56,10 @@ def compose_types(a, *cs):
     .. code-block:: python
 
        >>> D.ayy
-       lmao
+       'lmao'
        >>> D()
+       Traceback (most recent call last):
+          ...
        TypeError: Can't instantiate abstract class D with abstract methods f
 
 

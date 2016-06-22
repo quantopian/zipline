@@ -41,6 +41,7 @@ class CachedObject(namedtuple("_CachedObject", "value expires")):
     >>> obj.unwrap(expires)
     1
     >>> obj.unwrap(expires + Timedelta('1 minute'))
+    ... # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     Expired: 2014-01-01 00:00:00+00:00

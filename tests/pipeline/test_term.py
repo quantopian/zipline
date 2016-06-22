@@ -125,7 +125,7 @@ def to_dict(l):
 
     Example
     -------
-    >>> to_dict([2, 3, 4])
+    >>> to_dict([2, 3, 4])  # doctest: +SKIP
     {'0': 2, '1': 3, '2': 4}
     """
     return dict(zip(map(str, range(len(l))), l))

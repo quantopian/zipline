@@ -3046,7 +3046,7 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
 #                 format(i, actual_position, expected_positions[i]))
 
 
-class TestFutureFlip(WithSimParams, WithDataPortal, ZiplineTestCase):
+class TestFutureFlip(WithDataPortal, WithSimParams, ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-09', tz='utc')
     END_DATE = pd.Timestamp('2006-01-10', tz='utc')
     sid, = ASSET_FINDER_EQUITY_SIDS = (1,)
@@ -3057,8 +3057,8 @@ class TestFutureFlip(WithSimParams, WithDataPortal, ZiplineTestCase):
             {
                 cls.sid: factory.create_trade_history(
                     cls.sid,
-                    [1, 2, 4],
-                    [1e9, 1e9, 1e9],
+                    [1, 2],
+                    [1e9, 1e9],
                     timedelta(days=1),
                     cls.sim_params,
                     cls.trading_schedule,
@@ -3067,7 +3067,7 @@ class TestFutureFlip(WithSimParams, WithDataPortal, ZiplineTestCase):
             index=cls.sim_params.trading_days,
         )
 
-    @skip
+    @skip('broken in zipline 1.0.0')
     def test_flip_algo(self):
         metadata = {1: {'symbol': 'TEST',
                         'start_date': self.sim_params.trading_days[0],

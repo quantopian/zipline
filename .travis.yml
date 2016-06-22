@@ -43,7 +43,7 @@ before_script:
   - pip freeze | sort
 script:
   - flake8 zipline tests
-  - nosetests --with-coverage tests/
+  - nosetests --with-coverage
   # deactive env to get access to anaconda command
   - source deactivate
   - if [[ "$TRAVIS_SECURE_ENV_VARS" = "true" && "$TRAVIS_BRANCH" = "master" && "$TRAVIS_PULL_REQUEST" = "false" ]]; then DO_UPLOAD="true"; else DO_UPLOAD="false"; fi

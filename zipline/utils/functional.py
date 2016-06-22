@@ -220,14 +220,16 @@ def unzip(seq, elem_len=None):
     >>> seq = [('a', 1), ('b', 2), ('c', 3, 'extra')]
     >>> cs, ns = unzip(seq)
     Traceback (most recent call last):
-      ...
+       ...
     ValueError: element at index 2 was length 3, expected 2
+
     # allows an explicit element length instead of infering
     >>> seq = [('a', 1, 'extra'), ('b', 2), ('c', 3)]
     >>> cs, ns = unzip(seq, 2)
     Traceback (most recent call last):
       ...
     ValueError: element at index 0 was length 3, expected 2
+
     # handles empty sequences when a length is given
     >>> cs, ns = unzip([], elem_len=2)
     >>> cs == ns == ()

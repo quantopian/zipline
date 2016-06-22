@@ -302,7 +302,8 @@ class AfterOpen(StatelessRule):
     A rule that triggers for some offset after the market opens.
     Example that triggers after 30 minutes of the market opening:
 
-    >>> AfterOpen(minutes=30)
+    >>> AfterOpen(minutes=30)  # doctest: +ELLIPSIS
+    <zipline.utils.events.AfterOpen object at ...>
     """
     def __init__(self, offset=None, **kwargs):
         self.offset = _build_offset(
@@ -346,7 +347,8 @@ class BeforeClose(StatelessRule):
     A rule that triggers for some offset time before the market closes.
     Example that triggers for the last 30 minutes every day:
 
-    >>> BeforeClose(minutes=30)
+    >>> BeforeClose(minutes=30)  # doctest: +ELLIPSIS
+    <zipline.utils.events.BeforeClose object at ...>
     """
     def __init__(self, offset=None, **kwargs):
         self.offset = _build_offset(

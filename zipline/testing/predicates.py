@@ -39,10 +39,45 @@ from six import iteritems, viewkeys, PY2
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
 
+from zipline.testing.core import ensure_doctest
 from zipline.dispatch import dispatch
 from zipline.lib.adjustment import Adjustment
-from zipline.utils.functional import dzip_exact
+from zipline.utils.functional import dzip_exact, instance
 from zipline.utils.math_utils import tolerant_equals
+
+
+@instance
+@ensure_doctest
+class wildcard(object):
+    """An object that compares equal to any other object.
+
+    This is useful when using :func:`~zipline.testing.predicates.assert_equal`
+    with a large recursive structure and some fields to be ignored.
+
+    Examples
+    --------
+    >>> wildcard == 5
+    True
+    >>> wildcard == 'ayy'
+    True
+
+    # reflected
+    >>> 5 == wildcard
+    True
+    >>> 'ayy' == wildcard
+    True
+    """
+    @staticmethod
+    def __eq__(other):
+        return True
+
+    @staticmethod
+    def __ne__(other):
+        return False
+
+    def __repr__(self):
+        return '<%s>' % type(self).__name__
+    __str__ = __repr__
 
 
 def keywords(func):
