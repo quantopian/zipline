@@ -501,4 +501,5 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
                                                        inplace=False,
                                                        ts_field='timestamp')
             result = result.sort("timestamp").reset_index(drop=True)
-            assert_series_equal(result['timestamp'], expected)
+            assert_series_equal(result['timestamp'], expected,
+                                check_names=False)
