@@ -9,7 +9,7 @@ import blaze as bz
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_series_equal
+from pandas.util.testing import assert_array_equal
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
@@ -463,12 +463,14 @@ class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
 
 
 class EventLoaderUtilsTestCase(ZiplineTestCase):
-    dates = [pd.Timestamp('2013-01-04 3:00:00'),
-             pd.Timestamp('2013-01-24'),
-             pd.Timestamp('2013-01-31 20:00:00'),
-             pd.Timestamp('2013-04-04'),
-             pd.Timestamp('2013-04-21')]
-    combos = list(itertools.permutations(dates))
+    dates = pd.to_datetime([
+        '2013-01-04 3:00:00',
+        '2013-01-24',
+        '2013-01-31 20:00:00',
+        '2013-04-04',
+        '2013-04-21',
+    ])
+    combos = list(map(np.array, itertools.permutations(np.arange(len(dates)))))
 
     expected_us = pd.Series(
         [pd.Timestamp('2013-01-04'),
@@ -476,7 +478,7 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
          pd.Timestamp('2013-02-01'),
          pd.Timestamp('2013-04-04'),
          pd.Timestamp('2013-04-21')]
-    )
+    ).values
 
     # Russia's TZ offset is +3
     expected_russia = pd.Series(
@@ -485,7 +487,7 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
          pd.Timestamp('2013-01-31'),
          pd.Timestamp('2013-04-04'),
          pd.Timestamp('2013-04-21')]
-    )
+    ).values
 
     # Test with timezones on either side of the meridian
     @parameterized.expand([(expected_us, 'US/Eastern', time(8, 45)),
@@ -494,13 +496,17 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
         # Order matters in pandas 0.18.2. Prior to that, using tz_convert on
         # a DatetimeIndex with DST/EST timestamps mixed resulted in some of
         # them being an hour off (1 hour past midnight).
-        for combo in self.combos:
-            df = pd.DataFrame({"timestamp": combo})
+        dates = self.dates
+        for scrambler in self.combos:
+            df = pd.DataFrame({"timestamp": dates[scrambler]})
             result = normalize_timestamp_to_query_time(df,
                                                        query_time,
                                                        tz,
                                                        inplace=False,
                                                        ts_field='timestamp')
-            result = result.sort("timestamp").reset_index(drop=True)
-            assert_series_equal(result['timestamp'], expected,
-                                check_names=False)
+
+            timestamps = result['timestamp'].values
+            assert_array_equal(
+                timestamps,
+                expected[scrambler]
+            )
