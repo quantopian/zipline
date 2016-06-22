@@ -476,21 +476,22 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
          pd.Timestamp('2013-02-01'),
          pd.Timestamp('2013-04-04'),
          pd.Timestamp('2013-04-21')]
-    ).reset_index(drop=True)
+    )
 
+    # Russia's TZ offset is +3
     expected_russia = pd.Series(
         [pd.Timestamp('2013-01-04'),
          pd.Timestamp('2013-01-24'),
          pd.Timestamp('2013-01-31'),
          pd.Timestamp('2013-04-04'),
          pd.Timestamp('2013-04-21')]
-    ).reset_index(drop=True)
+    )
 
     # Test with timezones on either side of the meridian
     @parameterized.expand([(expected_us, 'US/Eastern', time(8, 45)),
                            (expected_russia, 'Europe/Moscow', time(16, 45))])
     def test_normalize_to_query_time(self, expected, tz, query_time):
-        # Order matters in pandas 18.0.2. Prior to that, using tz_convert on
+        # Order matters in pandas 0.18.2. Prior to that, using tz_convert on
         # a DatetimeIndex with DST/EST timestamps mixed resulted in some of
         # them being an hour off (1 hour past midnight).
         for combo in self.combos:

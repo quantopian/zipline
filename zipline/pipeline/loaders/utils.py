@@ -239,7 +239,7 @@ def normalize_timestamp_to_query_time(df,
     )
     # For all of the times that are greater than our query time add 1
     # day and truncate to the date.
-    # We normalize twice here because of a bug in pandas 16.0.1 that causes
+    # We normalize twice here because of a bug in pandas 0.16.1 that causes
     # tz_localize() to shift some timestamps by an hour if they are not grouped
     # together by DST/EST.
     df.loc[to_roll_forward, ts_field] = (
