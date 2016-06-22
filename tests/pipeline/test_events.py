@@ -9,7 +9,6 @@ import blaze as bz
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_series_equal
 
 from zipline.pipeline import Pipeline, SimplePipelineEngine
 from zipline.pipeline.common import (
@@ -21,10 +20,11 @@ from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.loaders.events import EventsLoader
 from zipline.pipeline.loaders.blaze.events import BlazeEventsLoader
 from zipline.pipeline.loaders.utils import (
-    previous_event_indexer,
     next_event_indexer,
-    normalize_timestamp_to_query_time)
-from zipline.testing import ZiplineTestCase
+    normalize_timestamp_to_query_time,
+    previous_event_indexer,
+)
+from zipline.testing import check_arrays, ZiplineTestCase
 from zipline.testing.fixtures import (
     WithAssetFinder,
     WithNYSETradingDays,
@@ -463,44 +463,67 @@ class BlazeEventsLoaderTestCase(EventsLoaderTestCase):
 
 
 class EventLoaderUtilsTestCase(ZiplineTestCase):
-    dates = [pd.Timestamp('2013-01-04 3:00:00'),
-             pd.Timestamp('2013-01-24'),
-             pd.Timestamp('2013-01-31 20:00:00'),
-             pd.Timestamp('2013-04-04'),
-             pd.Timestamp('2013-04-21')]
-    combos = list(itertools.permutations(dates))
+    # These cases test the following:
+    # 1. Shuffling timestamps in DST/EST produces the correct normalized
+    # timestamps
+    # 2. Timestamps at query time boundaries are normalized correctly
+    boundary_dates = [pd.Timestamp('2013-01-04 8:44:59'),
+                      pd.Timestamp('2013-01-04 8:45:00'),
+                      pd.Timestamp('2013-01-04 8:46:00')]
+    us_boundary_dates = [date.tz_localize('US/Eastern') for date in
+                         boundary_dates]
+    moscow_boundary_dates = [date.tz_localize('Europe/Moscow') for date in
+                             boundary_dates]
+    mixed_tz_dates = [pd.Timestamp('2013-01-24'),
+                      pd.Timestamp('2013-01-31 20:00:00'),
+                      pd.Timestamp('2013-04-04'),
+                      pd.Timestamp('2013-04-21')]
+    us_dates = pd.to_datetime(us_boundary_dates + mixed_tz_dates,
+                              utc=True).tz_localize(None)
+    moscow_dates = pd.to_datetime(moscow_boundary_dates + mixed_tz_dates,
+                                  utc=True).tz_localize(None)
+
+    combos = list(map(np.array, itertools.permutations(np.arange(len(
+        boundary_dates + mixed_tz_dates)))))
 
     expected_us = pd.Series(
         [pd.Timestamp('2013-01-04'),
+         pd.Timestamp('2013-01-05'),
+         pd.Timestamp('2013-01-05'),
          pd.Timestamp('2013-01-24'),
          pd.Timestamp('2013-02-01'),
          pd.Timestamp('2013-04-04'),
          pd.Timestamp('2013-04-21')]
-    )
+    ).values
 
-    # Russia's TZ offset is +3
+    # Russia's TZ offset is +4
     expected_russia = pd.Series(
         [pd.Timestamp('2013-01-04'),
+         pd.Timestamp('2013-01-05'),
+         pd.Timestamp('2013-01-05'),
          pd.Timestamp('2013-01-24'),
          pd.Timestamp('2013-01-31'),
          pd.Timestamp('2013-04-04'),
          pd.Timestamp('2013-04-21')]
-    )
+    ).values
 
     # Test with timezones on either side of the meridian
-    @parameterized.expand([(expected_us, 'US/Eastern', time(8, 45)),
-                           (expected_russia, 'Europe/Moscow', time(16, 45))])
-    def test_normalize_to_query_time(self, expected, tz, query_time):
+    @parameterized.expand([(expected_us, 'US/Eastern', us_dates),
+                           (expected_russia, 'Europe/Moscow', moscow_dates)])
+    def test_normalize_to_query_time(self, expected, tz, dates):
         # Order matters in pandas 0.18.2. Prior to that, using tz_convert on
         # a DatetimeIndex with DST/EST timestamps mixed resulted in some of
         # them being an hour off (1 hour past midnight).
-        for combo in self.combos:
-            df = pd.DataFrame({"timestamp": combo})
+        for scrambler in self.combos:
+            df = pd.DataFrame({"timestamp": dates[scrambler]})
             result = normalize_timestamp_to_query_time(df,
-                                                       query_time,
+                                                       time(8, 45),
                                                        tz,
                                                        inplace=False,
                                                        ts_field='timestamp')
-            result = result.sort("timestamp").reset_index(drop=True)
-            assert_series_equal(result['timestamp'], expected,
-                                check_names=False)
+
+            timestamps = result['timestamp'].values
+            check_arrays(
+                timestamps,
+                expected[scrambler]
+            )
