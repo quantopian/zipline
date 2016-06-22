@@ -1,0 +1,27 @@
+package:
+  name: qrisk
+  version: "0.1.4"
+
+source:
+  fn: qrisk-0.1.4.tar.gz
+  url: https://files.pythonhosted.org/packages/49/c9/81924d56e8173c4e92d60f5e59143dd345a0bf015508f85683ed9c2efd27/qrisk-0.1.4.tar.gz
+  md5: 24a76bcb960e82ade86bf115e87c5f53
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - numpy x.x
+    - pandas >=0.16.1
+    - scipy >=0.15.1
+
+  run:
+    - python
+    - numpy x.x
+    - pandas >=0.16.1
+    - scipy >=0.15.1
+
+about:
+  home: https://github.com/quantopian/qrisk
+  license: Apache Software License
+  summary: 'qrisk is a Python library with performance and risk statistics\ncommonly used in quantitative finance'

@@ -59,10 +59,7 @@ Risk Report
 """
 
 import logbook
-import math
 import numpy as np
-
-import zipline.utils.math_utils as zp_math
 
 log = logbook.Logger('Risk')
 
@@ -81,110 +78,6 @@ def check_entry(key, value):
         return np.isnan(value) or np.isinf(value)
     else:
         return False
-
-
-############################
-# Risk Metric Calculations #
-############################
-
-
-def sharpe_ratio(algorithm_volatility, algorithm_return, treasury_return):
-    """
-    http://en.wikipedia.org/wiki/Sharpe_ratio
-
-    Args:
-        algorithm_volatility (float): Algorithm volatility.
-        algorithm_return (float): Algorithm return percentage.
-        treasury_return (float): Treasury return percentage.
-
-    Returns:
-        float. The Sharpe ratio.
-    """
-    if zp_math.tolerant_equals(algorithm_volatility, 0):
-        return np.nan
-
-    return (algorithm_return - treasury_return) / algorithm_volatility
-
-
-def downside_risk(algorithm_returns, mean_returns, normalization_factor):
-    rets = algorithm_returns.round(8)
-    mar = mean_returns.round(8)
-    mask = rets < mar
-    downside_diff = rets[mask] - mar[mask]
-    if len(downside_diff) <= 1:
-        return 0.0
-    return np.std(downside_diff, ddof=1) * math.sqrt(normalization_factor)
-
-
-def sortino_ratio(algorithm_period_return, treasury_period_return, mar):
-    """
-    http://en.wikipedia.org/wiki/Sortino_ratio
-
-    Args:
-        algorithm_returns (np.array-like):
-            Returns from algorithm lifetime.
-        algorithm_period_return (float):
-            Algorithm return percentage from latest period.
-        mar (float): Minimum acceptable return.
-
-    Returns:
-        float. The Sortino ratio.
-    """
-    if zp_math.tolerant_equals(mar, 0):
-        return 0.0
-
-    return (algorithm_period_return - treasury_period_return) / mar
-
-
-def information_ratio(algorithm_returns, benchmark_returns):
-    """
-    http://en.wikipedia.org/wiki/Information_ratio
-
-    Args:
-        algorithm_returns (np.array-like):
-            All returns during algorithm lifetime.
-        benchmark_returns (np.array-like):
-            All benchmark returns during algo lifetime.
-
-    Returns:
-        float. Information ratio.
-    """
-    relative_returns = algorithm_returns - benchmark_returns
-
-    relative_deviation = relative_returns.std(ddof=1)
-
-    if zp_math.tolerant_equals(relative_deviation, 0) or \
-       np.isnan(relative_deviation):
-        return 0.0
-
-    return np.mean(relative_returns) / relative_deviation
-
-
-def alpha(algorithm_period_return, treasury_period_return,
-          benchmark_period_returns, beta):
-    """
-    http://en.wikipedia.org/wiki/Alpha_(investment)
-
-    Args:
-        algorithm_period_return (float):
-            Return percentage from algorithm period.
-        treasury_period_return (float):
-            Return percentage for treasury period.
-        benchmark_period_return (float):
-            Return percentage for benchmark period.
-        beta (float):
-            beta value for the same period as all other values
-
-    Returns:
-        float. The alpha of the algorithm.
-    """
-    return algorithm_period_return - \
-        (treasury_period_return + beta *
-         (benchmark_period_returns - treasury_period_return))
-
-###########################
-# End Risk Metric Section #
-###########################
 
 
 def get_treasury_rate(treasury_curves, treasury_duration, day):

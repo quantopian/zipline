@@ -113,7 +113,7 @@ class RiskReport(object):
             - 6_month
             - 12_month
 
-        The return value of this funciton is a dictionary keyed by the above
+        The return value of this function is a dictionary keyed by the above
         list of durations. The value of each entry is a list of RiskMetric
         dicts of the same duration as denoted by the top_level key.
 

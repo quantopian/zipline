@@ -18,21 +18,20 @@ import calendar
 import pandas as pd
 import numpy as np
 import pytz
-
-from itertools import chain
-from six import itervalues
+import pandas as pd
 
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
 from zipline.finance.trading import SimulationParameters
 from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
-from . import answer_key
-from . answer_key import AnswerKey
 
-ANSWER_KEY = AnswerKey()
+RETURNS_BASE = 0.01
+RETURNS = [RETURNS_BASE] * 251
 
-RETURNS = ANSWER_KEY.RETURNS
+BENCHMARK_BASE = 0.005
+BENCHMARK = [BENCHMARK_BASE] * 251
+DECIMAL_PLACES = 8
 
 
 class TestRisk(WithTradingEnvironment, ZiplineTestCase):
@@ -52,409 +51,315 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             end_session=end_session,
             trading_calendar=self.trading_calendar,
         )
-
-        self.algo_returns_06 = factory.create_returns_from_list(
+        self.algo_returns = factory.create_returns_from_list(
             RETURNS,
             self.sim_params
         )
-
-        self.benchmark_returns_06 = \
-            answer_key.RETURNS_DATA['Benchmark Returns']
-
-        self.metrics_06 = risk.RiskReport(
-            self.algo_returns_06,
-            self.sim_params,
-            benchmark_returns=self.benchmark_returns_06,
-            trading_calendar=self.trading_calendar,
-            treasury_curves=self.env.treasury_curves,
+        self.benchmark_returns = factory.create_returns_from_list(
+            BENCHMARK,
+            self.sim_params
         )
-
-        self.sim_params08 = SimulationParameters(
-            start_session=pd.Timestamp("2008-01-01", tz='UTC'),
-            end_session=pd.Timestamp("2008-12-31", tz='UTC'),
-            trading_calendar=self.trading_calendar,
+        self.metrics = risk.RiskReport(
+            self.algo_returns,
+            self.sim_params,
+            benchmark_returns=self.benchmark_returns,
+            trading_schedule=self.trading_schedule,
+            treasury_curves=self.env.treasury_curves,
         )
 
     def test_factory(self):
         returns = [0.1] * 100
         r_objects = factory.create_returns_from_list(returns, self.sim_params)
-        self.assertTrue(r_objects.index[-1] <=
-                        datetime.datetime(
-                            year=2006, month=12, day=31, tzinfo=pytz.utc))
+        self.assertTrue(r_objects.index[-1] <= self.end_date)
+        self.assertTrue(r_objects.index[0] >= self.start_date)
+        self.assertTrue(r_objects.sample().values[0] == 0.1)
 
     def test_drawdown(self):
-        returns = factory.create_returns_from_list(
-            [1.0, -0.5, 0.8, .17, 1.0, -0.1, -0.45], self.sim_params)
-        # 200, 100, 180, 210.6, 421.2, 379.8, 208.494
-        metrics = risk.RiskMetricsPeriod(
-            returns.index[0],
-            returns.index[-1],
-            returns,
-            trading_calendar=self.trading_calendar,
-            benchmark_returns=self.env.benchmark_returns,
-            treasury_curves=self.env.treasury_curves,
-            )
-        self.assertEqual(metrics.max_drawdown, 0.505)
+        np.testing.assert_equal(
+            all(x.max_drawdown == 0 for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(x.max_drawdown == 0 for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(x.max_drawdown == 0 for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(x.max_drawdown == 0 for x in self.metrics.year_periods),
+            True)
 
     def test_benchmark_returns_06(self):
+        np.testing.assert_almost_equal(
+            [x.benchmark_period_returns
+             for x in self.metrics.month_periods],
+            [(1 + BENCHMARK_BASE) ** len(x.benchmark_returns) - 1
+             for x in self.metrics.month_periods],
+            DECIMAL_PLACES)
+        np.testing.assert_almost_equal(
+            [x.benchmark_period_returns
+             for x in self.metrics.three_month_periods],
+            [(1 + BENCHMARK_BASE) ** len(x.benchmark_returns) - 1
+             for x in self.metrics.three_month_periods],
+            DECIMAL_PLACES)
+        np.testing.assert_almost_equal(
+            [x.benchmark_period_returns
+             for x in self.metrics.six_month_periods],
+            [(1 + BENCHMARK_BASE) ** len(x.benchmark_returns) - 1
+             for x in self.metrics.six_month_periods],
+            DECIMAL_PLACES)
+        np.testing.assert_almost_equal(
+            [x.benchmark_period_returns
+             for x in self.metrics.year_periods],
+            [(1 + BENCHMARK_BASE) ** len(x.benchmark_returns) - 1
+             for x in self.metrics.year_periods],
+            DECIMAL_PLACES)
 
-        np.testing.assert_almost_equal(
-            [x.benchmark_period_returns
-             for x in self.metrics_06.month_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['Monthly'])
-        np.testing.assert_almost_equal(
-            [x.benchmark_period_returns
-             for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['3-Month'])
-        np.testing.assert_almost_equal(
-            [x.benchmark_period_returns
-             for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['6-month'])
-        np.testing.assert_almost_equal(
-            [x.benchmark_period_returns
-             for x in self.metrics_06.year_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_RETURNS['year'])
-
-    def test_trading_days_06(self):
-        returns = factory.create_returns_from_range(self.sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params,
-                                  trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
-                                  benchmark_returns=self.env.benchmark_returns)
-        self.assertEqual([x.num_trading_days for x in metrics.year_periods],
+    def test_trading_days(self):
+        self.assertEqual([x.num_trading_days
+                          for x in self.metrics.year_periods],
                          [251])
-        self.assertEqual([x.num_trading_days for x in metrics.month_periods],
+        self.assertEqual([x.num_trading_days
+                          for x in self.metrics.month_periods],
                          [20, 19, 23, 19, 22, 22, 20, 23, 20, 22, 21, 20])
 
-    def test_benchmark_volatility_06(self):
+    def test_benchmark_volatility(self):
+        # Volatility is calculated by a qrisk function so testing
+        # of period volatility will be limited to determine if the value is
+        # numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.benchmark_volatility, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.benchmark_volatility, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.benchmark_volatility, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.benchmark_volatility, float)
+                for x in self.metrics.year_periods),
+            True)
 
-        np.testing.assert_almost_equal(
-            [x.benchmark_volatility
-             for x in self.metrics_06.month_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['Monthly'])
-        np.testing.assert_almost_equal(
-            [x.benchmark_volatility
-             for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['3-Month'])
-        np.testing.assert_almost_equal(
-            [x.benchmark_volatility
-             for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['6-month'])
-        np.testing.assert_almost_equal(
-            [x.benchmark_volatility
-             for x in self.metrics_06.year_periods],
-            ANSWER_KEY.BENCHMARK_PERIOD_VOLATILITY['year'])
-
-    def test_algorithm_returns_06(self):
+    def test_algorithm_returns(self):
         np.testing.assert_almost_equal(
             [x.algorithm_period_returns
-             for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_RETURNS['Monthly'])
+             for x in self.metrics.month_periods],
+            [(1 + RETURNS_BASE) ** len(x.algorithm_returns) - 1
+             for x in self.metrics.month_periods],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.algorithm_period_returns
-             for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_RETURNS['3-Month'])
+             for x in self.metrics.three_month_periods],
+            [(1 + RETURNS_BASE) ** len(x.algorithm_returns) - 1
+             for x in self.metrics.three_month_periods],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.algorithm_period_returns
-             for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_RETURNS['6-month'])
+             for x in self.metrics.six_month_periods],
+            [(1 + RETURNS_BASE) ** len(x.algorithm_returns) - 1
+             for x in self.metrics.six_month_periods],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.algorithm_period_returns
-             for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_RETURNS['year'])
+             for x in self.metrics.year_periods],
+            [(1 + RETURNS_BASE) ** len(x.algorithm_returns) - 1
+             for x in self.metrics.year_periods],
+            DECIMAL_PLACES)
 
-    def test_algorithm_volatility_06(self):
-        np.testing.assert_almost_equal(
-            [x.algorithm_volatility
-             for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_VOLATILITY['Monthly'])
-        np.testing.assert_almost_equal(
-            [x.algorithm_volatility
-             for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_VOLATILITY['3-Month'])
-        np.testing.assert_almost_equal(
-            [x.algorithm_volatility
-             for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_VOLATILITY['6-month'])
-        np.testing.assert_almost_equal(
-            [x.algorithm_volatility
-             for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_VOLATILITY['year'])
+    def test_algorithm_volatility(self):
+        # Volatility is calculated by a qrisk function so testing
+        # of period volatility will be limited to determine if the value is
+        # numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.algorithm_volatility, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.algorithm_volatility, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.algorithm_volatility, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.algorithm_volatility, float)
+                for x in self.metrics.year_periods),
+            True)
 
-    def test_algorithm_sharpe_06(self):
-        np.testing.assert_almost_equal(
-            [x.sharpe for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SHARPE['Monthly'])
-        np.testing.assert_almost_equal(
-            [x.sharpe for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SHARPE['3-Month'])
-        np.testing.assert_almost_equal(
-            [x.sharpe for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SHARPE['6-month'])
-        np.testing.assert_almost_equal(
-            [x.sharpe for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SHARPE['year'])
+    def test_algorithm_sharpe(self):
+        # The sharpe ratio is calculated by a qrisk function so testing
+        # of period sharpe ratios will be limited to determine if the value is
+        # numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.sharpe, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.sharpe, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.sharpe, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.sharpe, float)
+                for x in self.metrics.year_periods),
+            True)
 
-    def test_algorithm_downside_risk_06(self):
-        np.testing.assert_almost_equal(
-            [x.downside_risk for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_DOWNSIDE_RISK['Monthly'],
-            decimal=4)
-        np.testing.assert_almost_equal(
-            [x.downside_risk for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_DOWNSIDE_RISK['3-Month'],
-            decimal=4)
-        np.testing.assert_almost_equal(
-            [x.downside_risk for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_DOWNSIDE_RISK['6-month'],
-            decimal=4)
-        np.testing.assert_almost_equal(
-            [x.downside_risk for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_DOWNSIDE_RISK['year'],
-            decimal=4)
+    def test_algorithm_downside_risk(self):
+        # Downside risk is calculated by a qrisk function so testing
+        # of period downside risk will be limited to determine if the value is
+        # numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.downside_risk, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.downside_risk, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.downside_risk, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.downside_risk, float)
+                for x in self.metrics.year_periods),
+            True)
 
-    def test_algorithm_sortino_06(self):
-        np.testing.assert_almost_equal(
-            [x.sortino for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SORTINO['Monthly'],
-            decimal=3)
+    def test_algorithm_sortino(self):
+        # The sortino ratio is calculated by a qrisk function so testing
+        # of period sortino ratios will be limited to determine if the value is
+        # numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.sortino, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.sortino, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.sortino, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.sortino, float)
+                for x in self.metrics.year_periods),
+            True)
 
-        np.testing.assert_almost_equal(
-            [x.sortino for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SORTINO['3-Month'],
-            decimal=3)
+    def test_algorithm_information(self):
+        # The information ratio is calculated by a qrisk function so testing
+        # of period information ratio will be limited to determine if the value
+        # is numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.information, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.information, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.information, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.information, float)
+                for x in self.metrics.year_periods),
+            True)
 
-        np.testing.assert_almost_equal(
-            [x.sortino for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SORTINO['6-month'],
-            decimal=3)
+    def test_algorithm_beta(self):
+        # Beta is calculated by a qrisk function so testing
+        # of period beta will be limited to determine if the value is
+        # numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.beta, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.beta, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.beta, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.beta, float)
+                for x in self.metrics.year_periods),
+            True)
 
-        np.testing.assert_almost_equal(
-            [x.sortino for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_SORTINO['year'],
-            decimal=3)
+    def test_algorithm_alpha(self):
+        # Alpha is calculated by a qrisk function so testing
+        # of period alpha will be limited to determine if the value is
+        # numerical. This tests for its existence and format.
+        np.testing.assert_equal(
+            all(isinstance(x.alpha, float)
+                for x in self.metrics.month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.alpha, float)
+                for x in self.metrics.three_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.alpha, float)
+                for x in self.metrics.six_month_periods),
+            True)
+        np.testing.assert_equal(
+            all(isinstance(x.alpha, float)
+                for x in self.metrics.year_periods),
+            True)
 
-    def test_algorithm_information_06(self):
-        self.assertEqual([round(x.information, 3)
-                          for x in self.metrics_06.month_periods],
-                         [0.131,
-                          -0.11,
-                          -0.067,
-                          0.136,
-                          0.301,
-                          -0.387,
-                          0.107,
-                          -0.032,
-                          -0.058,
-                          0.069,
-                          0.095,
-                          -0.123])
-        self.assertEqual([round(x.information, 3)
-                          for x in self.metrics_06.three_month_periods],
-                         [-0.013,
-                          -0.009,
-                          0.111,
-                          -0.014,
-                          -0.017,
-                          -0.108,
-                          0.011,
-                          -0.004,
-                          0.032,
-                          0.011])
-        self.assertEqual([round(x.information, 3)
-                          for x in self.metrics_06.six_month_periods],
-                         [-0.013,
-                          -0.014,
-                          -0.003,
-                          -0.002,
-                          -0.011,
-                          -0.041,
-                          0.011])
-        self.assertEqual([round(x.information, 3)
-                          for x in self.metrics_06.year_periods],
-                         [-0.001])
-
-    def test_algorithm_beta_06(self):
+    def test_algorithm_covariance(self):
         np.testing.assert_almost_equal(
-            [x.beta for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BETA['Monthly'])
-        np.testing.assert_almost_equal(
-            [x.beta for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BETA['3-Month'])
-        np.testing.assert_almost_equal(
-            [x.beta for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BETA['6-month'])
-        np.testing.assert_almost_equal(
-            [x.beta for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BETA['year'])
-
-    def test_algorithm_alpha_06(self):
-        np.testing.assert_almost_equal(
-            [x.alpha for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_ALPHA['Monthly'])
-        np.testing.assert_almost_equal(
-            [x.alpha for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_ALPHA['3-Month'])
-        np.testing.assert_almost_equal(
-            [x.alpha for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_ALPHA['6-month'])
-        np.testing.assert_almost_equal(
-            [x.alpha for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_ALPHA['year'])
-
-    # FIXME: Covariance is not matching excel precisely enough to run the test.
-    # Month 4 seems to be the problem. Variance is disabled
-    # just to avoid distraction - it is much closer than covariance
-    # and can probably pass with 6 significant digits instead of 7.
-    # re-enable variance, alpha, and beta tests once this is resolved
-    def test_algorithm_covariance_06(self):
-        np.testing.assert_almost_equal(
-            [x.algorithm_covariance for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_COVARIANCE['Monthly'])
+            [x.algorithm_covariance for x in self.metrics.month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.algorithm_covariance
-             for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_COVARIANCE['3-Month'])
+             for x in self.metrics.three_month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.algorithm_covariance
-             for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_COVARIANCE['6-month'])
+             for x in self.metrics.six_month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.algorithm_covariance
-             for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_COVARIANCE['year'])
+             for x in self.metrics.year_periods],
+            [0.0],
+            DECIMAL_PLACES)
 
-    def test_benchmark_variance_06(self):
+    def test_benchmark_variance(self):
         np.testing.assert_almost_equal(
             [x.benchmark_variance
-             for x in self.metrics_06.month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['Monthly'])
+             for x in self.metrics.month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.benchmark_variance
-             for x in self.metrics_06.three_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['3-Month'])
+             for x in self.metrics.three_month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.benchmark_variance
-             for x in self.metrics_06.six_month_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['6-month'])
+             for x in self.metrics.six_month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            DECIMAL_PLACES)
         np.testing.assert_almost_equal(
             [x.benchmark_variance
-             for x in self.metrics_06.year_periods],
-            ANSWER_KEY.ALGORITHM_PERIOD_BENCHMARK_VARIANCE['year'])
+             for x in self.metrics.year_periods],
+            [0.0],
+            DECIMAL_PLACES)
 
-    def test_benchmark_returns_08(self):
-        returns = factory.create_returns_from_range(self.sim_params08)
-        metrics = risk.RiskReport(returns, self.sim_params08,
-                                  trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
-                                  benchmark_returns=self.env.benchmark_returns)
-
-        self.assertEqual([round(x.benchmark_period_returns, 3)
-                          for x in metrics.month_periods],
-                         [-0.061,
-                          -0.035,
-                          -0.006,
-                          0.048,
-                          0.011,
-                          -0.086,
-                          -0.01,
-                          0.012,
-                          -0.091,
-                          -0.169,
-                          -0.075,
-                          0.008])
-
-        self.assertEqual([round(x.benchmark_period_returns, 3)
-                          for x in metrics.three_month_periods],
-                         [-0.099,
-                          0.005,
-                          0.052,
-                          -0.032,
-                          -0.085,
-                          -0.084,
-                          -0.089,
-                          -0.236,
-                          -0.301,
-                          -0.226])
-
-        self.assertEqual([round(x.benchmark_period_returns, 3)
-                          for x in metrics.six_month_periods],
-                         [-0.128,
-                          -0.081,
-                          -0.036,
-                          -0.118,
-                          -0.301,
-                          -0.36,
-                          -0.294])
-
-        self.assertEqual([round(x.benchmark_period_returns, 3)
-                          for x in metrics.year_periods],
-                         [-0.385])
-
-    def test_trading_days_08(self):
-        returns = factory.create_returns_from_range(self.sim_params08)
-        metrics = risk.RiskReport(returns, self.sim_params08,
-                                  trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
-                                  benchmark_returns=self.env.benchmark_returns)
-        self.assertEqual([x.num_trading_days for x in metrics.year_periods],
-                         [253])
-
-        self.assertEqual([x.num_trading_days for x in metrics.month_periods],
-                         [21, 20, 20, 22, 21, 21, 22, 21, 21, 23, 19, 22])
-
-    def test_benchmark_volatility_08(self):
-        returns = factory.create_returns_from_range(self.sim_params08)
-        metrics = risk.RiskReport(returns, self.sim_params08,
-                                  trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
-                                  benchmark_returns=self.env.benchmark_returns)
-
-        self.assertEqual([round(x.benchmark_volatility, 3)
-                          for x in metrics.month_periods],
-                         [0.07,
-                          0.058,
-                          0.082,
-                          0.054,
-                          0.041,
-                          0.057,
-                          0.068,
-                          0.06,
-                          0.157,
-                          0.244,
-                          0.195,
-                          0.145])
-
-        self.assertEqual([round(x.benchmark_volatility, 3)
-                          for x in metrics.three_month_periods],
-                         [0.12,
-                          0.113,
-                          0.105,
-                          0.09,
-                          0.098,
-                          0.107,
-                          0.179,
-                          0.293,
-                          0.344,
-                          0.34])
-
-        self.assertEqual([round(x.benchmark_volatility, 3)
-                          for x in metrics.six_month_periods],
-                         [0.15,
-                          0.149,
-                          0.15,
-                          0.2,
-                          0.308,
-                          0.36,
-                          0.383])
-        # TODO: ugly, but I can't get the rounded float to match.
-        # maybe we need a different test that checks the
-        # difference between the numbers
-        self.assertEqual([round(x.benchmark_volatility, 3)
-                          for x in metrics.year_periods],
-                         [0.411])
-
-    def test_treasury_returns_06(self):
+    def test_treasury_returns(self):
         returns = factory.create_returns_from_range(self.sim_params)
         metrics = risk.RiskReport(returns, self.sim_params,
                                   trading_calendar=self.trading_calendar,
@@ -502,37 +407,13 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                          [0.0500])
 
     def test_benchmarkrange(self):
-        start_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2008-01-01", tz='UTC')
-        )
-
-        end_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("2010-01-01", tz='UTC'), direction="previous"
-        )
-
-        sim_params = SimulationParameters(
-            start_session=start_session,
-            end_session=end_session,
-            trading_calendar=self.trading_calendar,
-        )
-
-        returns = factory.create_returns_from_range(sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params,
-                                  trading_calendar=self.trading_calendar,
-                                  treasury_curves=self.env.treasury_curves,
-                                  benchmark_returns=self.env.benchmark_returns)
-
-        self.check_metrics(metrics, 24, start_session)
-        # self.check_year_range(
-        #     datetime.datetime(
-        #         year=2008, month=1, day=1, tzinfo=pytz.utc),
-        #     2)
+        self.check_year_range(
+            pd.Timestamp('2008-01-01', tz=pytz.utc),
+            2)
 
     def test_partial_month(self):
 
-        start_session = self.trading_calendar.minute_to_session_label(
-            pd.Timestamp("1991-01-01", tz='UTC')
-        )
+        start = pd.Timestamp('1991-01-01', tz=pytz.utc)
 
         # 1992 and 1996 were leap years
         total_days = 365 * 5 + 2
@@ -623,20 +504,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                                              end=col[-1]._end_session,
                                              actual=len(col))
             )
-            self.assert_month(start_date.month, col[-1]._end_session.month)
-            self.assert_last_day(col[-1]._end_session)
 
-    def test_sparse_benchmark(self):
-        benchmark_returns = self.benchmark_returns_06.copy()
-        # Set every other day to nan.
-        benchmark_returns.iloc[::2] = np.nan
-
-        report = risk.RiskReport(
-            self.algo_returns_06,
-            self.sim_params,
-            benchmark_returns=benchmark_returns,
-            trading_calendar=self.trading_calendar,
-            treasury_curves=self.env.treasury_curves,
-        )
-        for risk_period in chain.from_iterable(itervalues(report.to_dict())):
-            self.assertIsNone(risk_period['beta'])
+            self.assert_month(start_date.month, col[-1].end_date.month)
+            self.assert_last_day(col[-1].end_date)

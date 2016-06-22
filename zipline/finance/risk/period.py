@@ -16,7 +16,6 @@
 import functools
 
 import logbook
-import math
 import numpy as np
 import numpy.linalg as la
 
@@ -25,13 +24,17 @@ from six import iteritems
 import pandas as pd
 
 from . import risk
-from . risk import (
+from . risk import check_entry
+
+from qrisk import (
     alpha,
-    check_entry,
+    annual_volatility,
+    beta,
     downside_risk,
     information_ratio,
+    max_drawdown,
     sharpe_ratio,
-    sortino_ratio,
+    sortino_ratio
 )
 
 log = logbook.Logger('Risk Period')
@@ -101,17 +104,19 @@ class RiskMetricsPeriod(object):
         self.mean_algorithm_returns = \
             self.algorithm_returns.cumsum() / self.trading_day_counts
 
-        self.benchmark_volatility = self.calculate_volatility(
-            self.benchmark_returns)
-        self.algorithm_volatility = self.calculate_volatility(
-            self.algorithm_returns)
+        self.benchmark_volatility = annual_volatility(self.benchmark_returns)
+        self.algorithm_volatility = annual_volatility(self.algorithm_returns)
+
         self.treasury_period_return = choose_treasury(
             self.treasury_curves,
             self._start_session,
             self._end_session,
             self.trading_calendar,
         )
-        self.sharpe = self.calculate_sharpe()
+        self.sharpe = sharpe_ratio(
+            self.algorithm_returns,
+            self.benchmark_returns
+        )
         # The consumer currently expects a 0.0 value for sharpe in period,
         # this differs from cumulative which was np.nan.
         # When factoring out the sharpe_ratio, the different return types
@@ -121,14 +126,32 @@ class RiskMetricsPeriod(object):
         # In the meantime, convert nan values to 0.0
         if pd.isnull(self.sharpe):
             self.sharpe = 0.0
-        self.sortino = self.calculate_sortino()
-        self.information = self.calculate_information()
-        self.beta, self.algorithm_covariance, self.benchmark_variance, \
-            self.condition_number, self.eigen_values = self.calculate_beta()
-        self.alpha = self.calculate_alpha()
+        self.downside_risk = downside_risk(
+            self.algorithm_returns,
+            self.benchmark_returns
+        )
+        self.sortino = sortino_ratio(
+            self.algorithm_returns,
+            self.benchmark_returns
+        )
+        self.information = information_ratio(
+            self.algorithm_returns,
+            self.benchmark_returns
+        )
+        self.algorithm_covariance, self.benchmark_variance, \
+            self.condition_number, self.eigen_values \
+            = self.calculate_covariance()
+        self.beta = beta(
+            self.algorithm_returns,
+            self.benchmark_returns
+        )
+        self.alpha = alpha(
+            self.algorithm_returns,
+            self.benchmark_returns
+        )
         self.excess_return = self.algorithm_period_returns - \
             self.treasury_period_return
-        self.max_drawdown = self.calculate_max_drawdown()
+        self.max_drawdown = max_drawdown(self.algorithm_returns)
         self.max_leverage = self.calculate_max_leverage()
 
     def to_dict(self):
@@ -207,38 +230,7 @@ class RiskMetricsPeriod(object):
         period_returns = (1. + returns).prod() - 1
         return period_returns
 
-    def calculate_volatility(self, daily_returns):
-        return np.std(daily_returns, ddof=1) * math.sqrt(self.num_trading_days)
-
-    def calculate_sharpe(self):
-        """
-        http://en.wikipedia.org/wiki/Sharpe_ratio
-        """
-        return sharpe_ratio(self.algorithm_volatility,
-                            self.algorithm_period_returns,
-                            self.treasury_period_return)
-
-    def calculate_sortino(self):
-        """
-        http://en.wikipedia.org/wiki/Sortino_ratio
-        """
-        mar = downside_risk(self.algorithm_returns,
-                            self.mean_algorithm_returns,
-                            self.num_trading_days)
-        # Hold on to downside risk for debugging purposes.
-        self.downside_risk = mar
-        return sortino_ratio(self.algorithm_period_returns,
-                             self.treasury_period_return,
-                             mar)
-
-    def calculate_information(self):
-        """
-        http://en.wikipedia.org/wiki/Information_ratio
-        """
-        return information_ratio(self.algorithm_returns,
-                                 self.benchmark_returns)
-
-    def calculate_beta(self):
+    def calculate_covariance(self):
         """
 
         .. math::
@@ -250,7 +242,7 @@ class RiskMetricsPeriod(object):
         # it doesn't make much sense to calculate beta for less than two days,
         # so return nan.
         if len(self.algorithm_returns) < 2:
-            return np.nan, np.nan, np.nan, np.nan, []
+            return np.nan, np.nan, np.nan, []
 
         returns_matrix = np.vstack([self.algorithm_returns,
                                     self.benchmark_returns])
@@ -259,60 +251,19 @@ class RiskMetricsPeriod(object):
         # If there are missing benchmark values, then we can't calculate the
         # beta.
         if not np.isfinite(C).all():
-            return np.nan, np.nan, np.nan, np.nan, []
+            return np.nan, np.nan, np.nan, []
 
         eigen_values = la.eigvals(C)
         condition_number = max(eigen_values) / min(eigen_values)
         algorithm_covariance = C[0][1]
         benchmark_variance = C[1][1]
-        beta = algorithm_covariance / benchmark_variance
 
         return (
-            beta,
             algorithm_covariance,
             benchmark_variance,
             condition_number,
             eigen_values
         )
-
-    def calculate_alpha(self):
-        """
-        http://en.wikipedia.org/wiki/Alpha_(investment)
-        """
-        return alpha(self.algorithm_period_returns,
-                     self.treasury_period_return,
-                     self.benchmark_period_returns,
-                     self.beta)
-
-    def calculate_max_drawdown(self):
-        compounded_returns = []
-        cur_return = 0.0
-        for r in self.algorithm_returns:
-            try:
-                cur_return += math.log(1.0 + r)
-            # this is a guard for a single day returning -100%, if returns are
-            # greater than -1.0 it will throw an error because you cannot take
-            # the log of a negative number
-            except ValueError:
-                log.debug("{cur} return, zeroing the returns".format(
-                    cur=cur_return))
-                cur_return = 0.0
-            compounded_returns.append(cur_return)
-
-        cur_max = None
-        max_drawdown = None
-        for cur in compounded_returns:
-            if cur_max is None or cur > cur_max:
-                cur_max = cur
-
-            drawdown = (cur - cur_max)
-            if max_drawdown is None or drawdown < max_drawdown:
-                max_drawdown = drawdown
-
-        if max_drawdown is None:
-            return 0.0
-
-        return 1.0 - math.exp(max_drawdown)
 
     def calculate_max_leverage(self):
         if self.algorithm_leverages is None:
