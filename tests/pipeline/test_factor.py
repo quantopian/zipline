@@ -417,7 +417,7 @@ class FactorTestCase(BasePipelineTestCase):
             for method in terms:
                 check_arrays(results[method], expected_grouped_ranks[method])
 
-        # Not specifying the value of the ascending param should default to True
+        # Not specifying the value of ascending param should default to True
         check({
             meth: f.rank(method=meth, groupby=c)
             for meth in expected_grouped_ranks
@@ -534,12 +534,10 @@ class FactorTestCase(BasePipelineTestCase):
         check({'ordinal': f.rank(groupby=c, ascending=False)})
         check({'ordinal': f.rank(groupby=str_c, ascending=False)})
 
-
         # TODO finish this
         # @for_each_factor_dtype
         # def test_grouped_rank_after_mask(self, name, factor_dtype):
         #     pass
-
 
     @parameterized.expand([
         # Test cases computed by doing:
