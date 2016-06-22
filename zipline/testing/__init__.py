@@ -1,6 +1,5 @@
 from .core import (  # noqa
     EPOCH,
-    ExceptionSource,
     ExplodingObject,
     FakeDataPortal,
     FetcherDataPortal,

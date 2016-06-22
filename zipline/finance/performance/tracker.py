@@ -66,7 +66,7 @@ import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 from zipline.finance.performance.period import PerformancePeriod
-
+from zipline.errors import NoFurtherDataError
 import zipline.finance.risk as risk
 
 from . position_tracker import PositionTracker
@@ -391,9 +391,12 @@ class PerformanceTracker(object):
 
         # Get the next trading day and, if it is past the bounds of this
         # simulation, return the daily perf packet
-        next_trading_day = self.trading_schedule.next_execution_day(
-            completed_date
-        )
+        try:
+            next_trading_day = self.trading_schedule.next_execution_day(
+                completed_date
+            )
+        except NoFurtherDataError:
+            next_trading_day = None
 
         # Take a snapshot of our current performance to return to the
         # browser.
