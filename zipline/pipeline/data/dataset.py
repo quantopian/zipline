@@ -123,6 +123,7 @@ class BoundColumn(LoadableTerm):
             missing_value=missing_value,
             dataset=dataset,
             name=name,
+            ndim=dataset.ndim,
         )
 
     def _init(self, dataset, name, *args, **kwargs):
@@ -176,6 +177,7 @@ class BoundColumn(LoadableTerm):
             inputs=(self,),
             dtype=dtype,
             missing_value=self.missing_value,
+            ndim=self.ndim,
         )
 
     def __repr__(self):
@@ -227,3 +229,4 @@ class DataSetMeta(type):
 
 class DataSet(with_metaclass(DataSetMeta, object)):
     domain = None
+    ndim = 2
