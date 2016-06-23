@@ -361,7 +361,10 @@ class SimplePipelineEngine(object):
                     assets,
                     mask,
                 )
-                assert(workspace[term].shape == mask.shape)
+                if term.ndim == 2:
+                    assert workspace[term].shape == mask.shape
+                else:
+                    assert workspace[term].shape == (mask.shape[0], 1)
 
         out = {}
         graph_extra_rows = graph.extra_rows

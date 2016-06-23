@@ -4,12 +4,12 @@ filter.py
 from itertools import chain
 from operator import attrgetter
 
-
 from numpy import (
     float64,
     nan,
     nanpercentile,
 )
+
 from zipline.errors import (
     BadPercentileBounds,
     NonExistentAssetInTimeFrame,
@@ -17,6 +17,12 @@ from zipline.errors import (
 )
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import is_missing
+from zipline.pipeline.expression import (
+    BadBinaryOperator,
+    FILTER_BINOPS,
+    method_name_for_op,
+    NumericalExpression,
+)
 from zipline.pipeline.mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -25,12 +31,6 @@ from zipline.pipeline.mixins import (
     SingleInputMixin,
 )
 from zipline.pipeline.term import ComputableTerm, Term
-from zipline.pipeline.expression import (
-    BadBinaryOperator,
-    FILTER_BINOPS,
-    method_name_for_op,
-    NumericalExpression,
-)
 from zipline.utils.input_validation import expect_types
 from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
 
