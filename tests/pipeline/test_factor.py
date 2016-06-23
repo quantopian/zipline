@@ -357,7 +357,6 @@ class FactorTestCase(BasePipelineTestCase):
                                  [0, 1, 0, 1, 0],
                                  [1, 0, 1, 0, 1],
                                  [0, 1, 0, 1, 0]], dtype=int64_dtype)
-        
         string_classifier_data = LabelArray(
             classifier_data.astype(str).astype(object),
             missing_value=None,
