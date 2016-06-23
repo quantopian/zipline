@@ -131,19 +131,28 @@ class BcolzMinuteBarMetadata(object):
                                            unit='m',
                                            utc=True)
             ohlc_ratio = raw_data['ohlc_ratio']
-            return cls(first_trading_day,
-                       market_opens,
-                       market_closes,
-                       ohlc_ratio)
+            minutes_per_day = raw_data['minutes_per_day']
+            return cls(
+                first_trading_day,
+                market_opens,
+                market_closes,
+                ohlc_ratio,
+                minutes_per_day,
+            )
 
-    def __init__(self, first_trading_day,
-                 market_opens,
-                 market_closes,
-                 ohlc_ratio):
+    def __init__(
+        self,
+        first_trading_day,
+        market_opens,
+        market_closes,
+        ohlc_ratio,
+        minutes_per_day,
+    ):
         self.first_trading_day = first_trading_day
         self.market_opens = market_opens
         self.market_closes = market_closes
         self.ohlc_ratio = ohlc_ratio
+        self.minutes_per_day = minutes_per_day
 
     def write(self, rootdir):
         """
@@ -169,6 +178,7 @@ class BcolzMinuteBarMetadata(object):
             astype('datetime64[m]').
             astype(np.int64).tolist(),
             'ohlc_ratio': self.ohlc_ratio,
+            'minutes_per_day': self.minutes_per_day
         }
         with open(self.metadata_path(rootdir), 'w+') as fp:
             json.dump(metadata, fp)
@@ -300,6 +310,7 @@ class BcolzMinuteBarWriter(object):
             self._market_opens,
             self._market_closes,
             self._ohlc_ratio,
+            self._minutes_per_day,
         )
         metadata.write(self._rootdir)
 
@@ -669,6 +680,8 @@ class BcolzMinuteBarReader(object):
 
         self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
 
+        self._minutes_per_day = metadata.minutes_per_day
+
         self._carrays = {
             field: LRUCache(maxsize=sid_cache_size)
             for field in self.FIELDS
@@ -704,7 +717,7 @@ class BcolzMinuteBarReader(object):
         market_closes = self._market_closes.values.astype('datetime64[m]')
         minutes_per_day = (market_closes - market_opens).astype(np.int64)
         early_indices = np.where(
-            minutes_per_day != US_EQUITIES_MINUTES_PER_DAY - 1)[0]
+            minutes_per_day != self._minutes_per_day - 1)[0]
         early_opens = self._market_opens[early_indices]
         early_closes = self._market_closes[early_indices]
         minutes = [(market_open, early_close)
@@ -736,7 +749,7 @@ class BcolzMinuteBarReader(object):
             end_pos = (
                 self._find_position_of_minute(market_open)
                 +
-                US_EQUITIES_MINUTES_PER_DAY
+                self._minutes_per_day
                 -
                 1
             )
@@ -855,14 +868,14 @@ class BcolzMinuteBarReader(object):
             dt_minutes,
             start_date_minutes,
             volumes,
-            US_EQUITIES_MINUTES_PER_DAY
+            self._minutes_per_day,
         )
 
     def _pos_to_minute(self, pos):
         minute_epoch = minute_value(
             self._market_open_values,
             pos,
-            US_EQUITIES_MINUTES_PER_DAY
+            self._minutes_per_day
         )
 
         return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
@@ -890,7 +903,7 @@ class BcolzMinuteBarReader(object):
             self._market_open_values,
             self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
-            US_EQUITIES_MINUTES_PER_DAY,
+            self._minutes_per_day,
         )
 
     def load_raw_arrays(self, fields, start_dt, end_dt, sids):
