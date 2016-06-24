@@ -50,7 +50,7 @@ def downgrade(engine, desired_version):
 
     # Execute the downgrades in order
     for downgrade_key in downgrade_keys:
-        _downgrade_methods[downgrade_key](op, version_info_table)
+        _downgrade_methods[downgrade_key](op, engine, version_info_table)
 
     # Re-enable foreign keys
     _pragma_foreign_keys(conn, True)
@@ -96,10 +96,10 @@ def downgrades(src):
 
         @do(op.setitem(_downgrade_methods, destination))
         @wraps(f)
-        def wrapper(op, version_info_table):
+        def wrapper(op, engine, version_info_table):
             version_info_table.delete().execute()  # clear the version
             f(op)
-            write_version_info(version_info_table, destination)
+            write_version_info(engine, version_info_table, destination)
 
         return wrapper
     return _
@@ -193,6 +193,75 @@ def _downgrade_v3(op):
         where equities.first_traded is not null
         """,
     )
+    op.drop_table('equities')
+    op.rename_table('_new_equities', 'equities')
+    # we need to make sure the indicies have the proper names after the rename
+    op.create_index(
+        'ix_equities_company_symbol',
+        'equities',
+        ['company_symbol'],
+    )
+    op.create_index(
+        'ix_equities_fuzzy_symbol',
+        'equities',
+        ['fuzzy_symbol'],
+    )
+
+
+@downgrades(4)
+def _downgrade_v4(op):
+    op.create_table(
+        '_new_equities',
+        sa.Column(
+            'sid',
+            sa.Integer,
+            unique=True,
+            nullable=False,
+            primary_key=True,
+        ),
+        sa.Column('symbol', sa.Text),
+        sa.Column('company_symbol', sa.Text, index=True),
+        sa.Column('share_class_symbol', sa.Text),
+        sa.Column('fuzzy_symbol', sa.Text, index=True),
+        sa.Column('asset_name', sa.Text),
+        sa.Column('start_date', sa.Integer, default=0, nullable=False),
+        sa.Column('end_date', sa.Integer, nullable=False),
+        sa.Column('first_traded', sa.Integer),
+        sa.Column('auto_close_date', sa.Integer),
+        sa.Column('exchange', sa.Text),
+    )
+
+    op.execute(
+        """
+        insert into _new_equities
+        select
+            equities.sid as sid,
+            sym.symbol as symbol,
+            sym.company_symbol as company_symbol,
+            sym.share_class_symbol as share_class_symbol,
+            sym.company_symbol || sym.share_class_symbol as fuzzy_symbol,
+            equities.asset_name as asset_name,
+            equities.start_date as start_date,
+            equities.end_date as end_date,
+            equities.first_traded as first_traded,
+            equities.auto_close_date as auto_close_date,
+            equities.exchange as exchange
+        from
+            equities
+        inner join
+            (select
+                 *
+             from
+                 equity_symbol_mappings
+             group by
+                 equity_symbol_mappings.sid
+             order by
+                 equity_symbol_mappings.end_date desc) sym
+        on
+            equities.sid == sym.sid
+        """,
+    )
+    op.drop_table('equity_symbol_mappings')
     op.drop_table('equities')
     op.rename_table('_new_equities', 'equities')
     # we need to make sure the indicies have the proper names after the rename

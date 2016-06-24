@@ -39,7 +39,6 @@ from zipline.assets import (
     Future,
     AssetDBWriter,
     AssetFinder,
-    AssetFinderCachedEquities,
 )
 from zipline.assets.synthetic import (
     make_commodity_future_info,
@@ -341,7 +340,6 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
         self.assertIn("tick_size=0.01", reprd)
         self.assertIn("multiplier=500", reprd)
 
-    @raises(AssertionError)
     def test_reduce(self):
         assert_equal(
             pickle.loads(pickle.dumps(self.future)).to_dict(),
@@ -519,27 +517,7 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                 self.assertEqual(result.symbol, 'EXISTING')
                 self.assertEqual(result.sid, i)
 
-    def test_lookup_symbol_from_multiple_valid(self):
-        # This test asserts that we resolve conflicts in accordance with the
-        # following rules when we have multiple assets holding the same symbol
-        # at the same time:
-
-        # If multiple SIDs exist for symbol S at time T, return the candidate
-        # SID whose start_date is highest. (200 cases)
-
-        # If multiple SIDs exist for symbol S at time T, the best candidate
-        # SIDs share the highest start_date, return the SID with the highest
-        # end_date. (34 cases)
-
-        # It is the opinion of the author (ssanderson) that we should consider
-        # this malformed input and fail here.  But this is the current indended
-        # behavior of the code, and I accidentally broke it while refactoring.
-        # These will serve as regression tests until the time comes that we
-        # decide to enforce this as an error.
-
-        # See https://github.com/quantopian/zipline/issues/837 for more
-        # details.
-
+    def test_fail_to_write_overlapping_data(self):
         df = pd.DataFrame.from_records(
             [
                 {
@@ -568,22 +546,16 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
             ]
         )
 
-        self.write_assets(equities=df)
+        with self.assertRaises(ValueError) as e:
+            self.write_assets(equities=df)
 
-        def check(expected_sid, date):
-            result = self.asset_finder.lookup_symbol(
-                'MULTIPLE', date,
-            )
-            self.assertEqual(result.symbol, 'MULTIPLE')
-            self.assertEqual(result.sid, expected_sid)
-
-        # Sids 1 and 2 are eligible here.  We should get asset 2 because it
-        # has the later end_date.
-        check(2, pd.Timestamp('2010-12-31'))
-
-        # Sids 1, 2, and 3 are eligible here.  We should get sid 3 because
-        # it has a later start_date
-        check(3, pd.Timestamp('2011-01-01'))
+        self.assertEqual(
+            str(e.exception),
+            "Ambigious ownership of 'MULTIPLE', multiple companies held this"
+            " ticker over the following ranges:\n"
+            "[('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00')]",
+        )
 
     def test_lookup_generic(self):
         """
@@ -1000,14 +972,6 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
             )
 
 
-class AssetFinderCachedEquitiesTestCase(AssetFinderTestCase):
-    asset_finder_type = AssetFinderCachedEquities
-
-    def write_assets(self, **kwargs):
-        super(AssetFinderCachedEquitiesTestCase, self).write_assets(**kwargs)
-        self.asset_finder.rehash_equities()
-
-
 class TestFutureChain(WithAssetFinder, ZiplineTestCase):
     @classmethod
     def make_futures_info(cls):
@@ -1259,15 +1223,23 @@ class TestAssetDBVersioning(ZiplineTestCase):
         version_table = self.metadata.tables['version_info']
 
         # This should not raise an error
-        check_version_info(version_table, ASSET_DB_VERSION)
+        check_version_info(self.engine, version_table, ASSET_DB_VERSION)
 
         # This should fail because the version is too low
         with self.assertRaises(AssetDBVersionError):
-            check_version_info(version_table, ASSET_DB_VERSION - 1)
+            check_version_info(
+                self.engine,
+                version_table,
+                ASSET_DB_VERSION - 1,
+            )
 
         # This should fail because the version is too high
         with self.assertRaises(AssetDBVersionError):
-            check_version_info(version_table, ASSET_DB_VERSION + 1)
+            check_version_info(
+                self.engine,
+                version_table,
+                ASSET_DB_VERSION + 1,
+            )
 
     def test_write_version(self):
         version_table = self.metadata.tables['version_info']
@@ -1279,24 +1251,24 @@ class TestAssetDBVersioning(ZiplineTestCase):
         # This should fail because the table has no version info and is,
         # therefore, consdered v0
         with self.assertRaises(AssetDBVersionError):
-            check_version_info(version_table, -2)
+            check_version_info(self.engine, version_table, -2)
 
         # This should not raise an error because the version has been written
-        write_version_info(version_table, -2)
-        check_version_info(version_table, -2)
+        write_version_info(self.engine, version_table, -2)
+        check_version_info(self.engine, version_table, -2)
 
         # Assert that the version is in the table and correct
         self.assertEqual(sa.select((version_table.c.version,)).scalar(), -2)
 
         # Assert that trying to overwrite the version fails
         with self.assertRaises(sa.exc.IntegrityError):
-            write_version_info(version_table, -3)
+            write_version_info(self.engine, version_table, -3)
 
     def test_finder_checks_version(self):
         version_table = self.metadata.tables['version_info']
         version_table.delete().execute()
-        write_version_info(version_table, -2)
-        check_version_info(version_table, -2)
+        write_version_info(self.engine, version_table, -2)
+        check_version_info(self.engine, version_table, -2)
 
         # Assert that trying to build a finder with a bad db raises an error
         with self.assertRaises(AssetDBVersionError):
@@ -1304,8 +1276,8 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
         # Change the version number of the db to the correct version
         version_table.delete().execute()
-        write_version_info(version_table, ASSET_DB_VERSION)
-        check_version_info(version_table, ASSET_DB_VERSION)
+        write_version_info(self.engine, version_table, ASSET_DB_VERSION)
+        check_version_info(self.engine, version_table, ASSET_DB_VERSION)
 
         # Now that the versions match, this Finder should succeed
         AssetFinder(engine=self.engine)
@@ -1319,7 +1291,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
         metadata = sa.MetaData(conn)
         metadata.reflect(bind=self.engine)
         version_table = metadata.tables['version_info']
-        check_version_info(version_table, 0)
+        check_version_info(self.engine, version_table, 0)
 
         # Check some of the v1-to-v0 downgrades
         self.assertTrue('futures_contracts' in metadata.tables)

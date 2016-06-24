@@ -13,16 +13,18 @@
 # limitations under the License.
 
 from abc import ABCMeta
+from collections import namedtuple
 from numbers import Integral
-from operator import itemgetter
+from operator import itemgetter, attrgetter
 
 from logbook import Logger
 import numpy as np
 import pandas as pd
 from pandas import isnull
-from six import with_metaclass, string_types, viewkeys
-from six.moves import map as imap
+from six import with_metaclass, string_types, viewkeys, iteritems
 import sqlalchemy as sa
+from toolz import merge, compose, valmap, sliding_window, concatv
+from toolz.curried import operator as op
 
 from zipline.errors import (
     EquitiesNotFound,
@@ -33,18 +35,20 @@ from zipline.errors import (
     SidsNotFound,
     SymbolNotFound,
 )
-from zipline.assets import (
+from . import (
     Asset, Equity, Future,
 )
-from zipline.assets.asset_writer import (
+from .asset_writer import (
     check_version_info,
     split_delimited_symbol,
     asset_db_table_names,
+    symbol_columns,
 )
-from zipline.assets.asset_db_schema import (
+from .asset_db_schema import (
     ASSET_DB_VERSION
 )
 from zipline.utils.control_flow import invert
+from zipline.utils.memoize import lazyval
 from zipline.utils.sqlite_utils import group_into_chunks
 
 log = Logger('assets.py')
@@ -68,11 +72,52 @@ _asset_timestamp_fields = frozenset({
 })
 
 
+_future_kwarg_names = frozenset({
+    'sid',
+    'symbol',
+    'root_symbol',
+    'asset_name',
+    'start_date',
+    'end_date',
+    'notice_date',
+    'expiration_date',
+    'auto_close_date',
+    'first_traded',
+    'exchange',
+    'tick_size',
+    'multiplier',
+})
+
+_equity_kwarg_names = frozenset({
+    'sid',
+    'symbol',
+    'asset_name',
+    'start_date',
+    'end_date',
+    'first_traded',
+    'auto_close_date',
+    'exchange',
+})
+
+
+SymbolOwnership = namedtuple('SymbolOwnership', 'start end sid symbol')
+
+
+def _filter_kwargs(names):
+    def _filter(row):
+        return {k: v for k, v in row.items() if k in names}
+    return _filter
+
+
+_filter_future_kwargs = _filter_kwargs(_future_kwarg_names)
+_filter_equity_kwargs = _filter_kwargs(_equity_kwarg_names)
+
+
 def _convert_asset_timestamp_fields(dict_):
     """
     Takes in a dict of Asset init args and converts dates to pd.Timestamps
     """
-    for key in (_asset_timestamp_fields & viewkeys(dict_)):
+    for key in _asset_timestamp_fields & viewkeys(dict_):
         value = pd.Timestamp(dict_[key], tz='UTC')
         dict_[key] = None if isnull(value) else value
     return dict_
@@ -101,17 +146,18 @@ class AssetFinder(object):
     PERSISTENT_TOKEN = "<AssetFinder>"
 
     def __init__(self, engine):
-        if isinstance(engine, string_types):
-            engine = sa.create_engine('sqlite:///' + engine)
-
-        self.engine = engine
+        self.engine = engine = (
+            sa.create_engine('sqlite:///' + engine)
+            if isinstance(engine, string_types) else
+            engine
+        )
         metadata = sa.MetaData(bind=engine)
         metadata.reflect(only=asset_db_table_names)
         for table_name in asset_db_table_names:
             setattr(self, table_name, metadata.tables[table_name])
 
         # Check the version info of the db for compatibility
-        check_version_info(self.version_info, ASSET_DB_VERSION)
+        check_version_info(engine, self.version_info, ASSET_DB_VERSION)
 
         # Cache for lookup of assets by sid, the objects in the asset lookup
         # may be shared with the results from equity and future lookup caches.
@@ -137,6 +183,72 @@ class AssetFinder(object):
         # should be calling this.
         for cache in self._caches:
             cache.clear()
+
+    def reload_symbol_maps(self):
+        """Clear the in memory symbol lookup maps.
+
+        This will make any changes to the underlying db available to the
+        symbol maps.
+        """
+        # clear the lazyval caches, the next access will requery
+        del type(self).symbol_ownership_map[self]
+        del type(self).fuzzy_symbol_ownership_map[self]
+
+    @lazyval
+    def symbol_ownership_map(self):
+        rows = sa.select(self.equity_symbol_mappings.c).execute().fetchall()
+
+        mappings = {}
+        for row in rows:
+            mappings.setdefault(
+                (row.company_symbol, row.share_class_symbol),
+                [],
+            ).append(
+                SymbolOwnership(
+                    pd.Timestamp(row.start_date, unit='ns', tz='utc'),
+                    pd.Timestamp(row.end_date, unit='ns', tz='utc'),
+                    row.sid,
+                    row.symbol,
+                ),
+            )
+
+        return valmap(
+            lambda v: tuple(
+                SymbolOwnership(
+                    a.start,
+                    b.start,
+                    a.sid,
+                    a.symbol,
+                ) for a, b in sliding_window(
+                    2,
+                    concatv(
+                        sorted(v),
+                        # concat with a fake ownership object to make the last
+                        # end date be max timestamp
+                        [SymbolOwnership(
+                            pd.Timestamp.max.tz_localize('utc'),
+                            None,
+                            None,
+                            None,
+                        )],
+                    ),
+                )
+            ),
+            mappings,
+            factory=lambda: mappings,
+        )
+
+    @lazyval
+    def fuzzy_symbol_ownership_map(self):
+        fuzzy_mappings = {}
+        for (cs, scs), owners in iteritems(self.symbol_ownership_map):
+            fuzzy_owners = fuzzy_mappings.setdefault(
+                cs + scs,
+                [],
+            )
+            fuzzy_owners.extend(owners)
+            fuzzy_owners.sort()
+        return fuzzy_mappings
 
     def lookup_asset_types(self, sids):
         """
@@ -326,6 +438,50 @@ class AssetFinder(object):
     def _select_asset_by_symbol(asset_tbl, symbol):
         return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
 
+    def _lookup_most_recent_symbols(self, sids):
+        symbol_cols = self.equity_symbol_mappings.c
+
+        symbols = {
+            row.sid: {c: row[c] for c in symbol_columns}
+            for row in self.engine.execute(
+                sa.select(
+                    (symbol_cols.sid,) +
+                    tuple(map(op.getitem(symbol_cols), symbol_columns)),
+                ).where(
+                    symbol_cols.sid.in_(sids),
+                ).order_by(
+                    symbol_cols.end_date.desc(),
+                ).group_by(
+                    symbol_cols.sid,
+                )
+            ).fetchall()
+        }
+
+        if len(symbols) != len(sids):
+            raise EquitiesNotFound(
+                sids=set(sids) - set(symbols),
+                plural=True,
+            )
+        return symbols
+
+    def _retrieve_asset_dicts(self, sids, asset_tbl, querying_equities):
+        if not sids:
+            return
+
+        if querying_equities:
+            def mkdict(row,
+                       symbols=self._lookup_most_recent_symbols(sids)):
+                return merge(row, symbols[row['sid']])
+        else:
+            mkdict = dict
+
+        for assets in group_into_chunks(sids):
+            # Load misses from the db.
+            query = self._select_assets_by_sid(asset_tbl, assets)
+
+            for row in query.execute().fetchall():
+                yield _convert_asset_timestamp_fields(mkdict(row))
+
     def _retrieve_assets(self, sids, asset_tbl, asset_type):
         """
         Internal function for loading assets from a table.
@@ -354,14 +510,18 @@ class AssetFinder(object):
         cache = self._asset_cache
         hits = {}
 
-        for assets in group_into_chunks(sids):
-            # Load misses from the db.
-            query = self._select_assets_by_sid(asset_tbl, assets)
+        querying_equities = issubclass(asset_type, Equity)
+        filter_kwargs = (
+            _filter_equity_kwargs
+            if querying_equities else
+            _filter_future_kwargs
+        )
 
-            for row in imap(dict, query.execute().fetchall()):
-                asset = asset_type(**_convert_asset_timestamp_fields(row))
-                sid = asset.sid
-                hits[sid] = cache[sid] = asset
+        rows = self._retrieve_asset_dicts(sids, asset_tbl, querying_equities)
+        for row in rows:
+            sid = row['sid']
+            asset = asset_type(**filter_kwargs(row))
+            hits[sid] = cache[sid] = asset
 
         # If we get here, it means something in our code thought that a
         # particular sid was an equity/future and called this function with a
@@ -369,91 +529,120 @@ class AssetFinder(object):
         # an error in our code, not a user-input error.
         misses = tuple(set(sids) - viewkeys(hits))
         if misses:
-            if asset_type == Equity:
+            if querying_equities:
                 raise EquitiesNotFound(sids=misses)
             else:
                 raise FutureContractsNotFound(sids=misses)
         return hits
 
-    def _get_fuzzy_candidates(self, fuzzy_symbol):
-        candidates = sa.select(
-            (self.equities.c.sid,)
-        ).where(self.equities.c.fuzzy_symbol == fuzzy_symbol).order_by(
-            self.equities.c.start_date.desc(),
-            self.equities.c.end_date.desc()
-        ).execute().fetchall()
-        return candidates
-
-    def _get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
-        candidates = sa.select(
-            (self.equities.c.sid,)
-        ).where(
-            sa.and_(
-                self.equities.c.fuzzy_symbol == fuzzy_symbol,
-                self.equities.c.start_date <= ad_value,
-                self.equities.c.end_date >= ad_value
-            )
-        ).order_by(
-            self.equities.c.start_date.desc(),
-            self.equities.c.end_date.desc(),
-        ).execute().fetchall()
-        return candidates
-
-    def _get_split_candidates_in_range(self,
-                                       company_symbol,
-                                       share_class_symbol,
-                                       ad_value):
-        candidates = sa.select(
-            (self.equities.c.sid,)
-        ).where(
-            sa.and_(
-                self.equities.c.company_symbol == company_symbol,
-                self.equities.c.share_class_symbol == share_class_symbol,
-                self.equities.c.start_date <= ad_value,
-                self.equities.c.end_date >= ad_value
-            )
-        ).order_by(
-            self.equities.c.start_date.desc(),
-            self.equities.c.end_date.desc(),
-        ).execute().fetchall()
-        return candidates
-
-    def _get_split_candidates(self, company_symbol, share_class_symbol):
-        candidates = sa.select(
-            (self.equities.c.sid,)
-        ).where(
-            sa.and_(
-                self.equities.c.company_symbol == company_symbol,
-                self.equities.c.share_class_symbol == share_class_symbol
-            )
-        ).order_by(
-            self.equities.c.start_date.desc(),
-            self.equities.c.end_date.desc(),
-        ).execute().fetchall()
-        return candidates
-
-    def _resolve_no_matching_candidates(self,
-                                        company_symbol,
-                                        share_class_symbol,
-                                        ad_value):
-        candidates = sa.select((self.equities.c.sid,)).where(
-            sa.and_(
-                self.equities.c.company_symbol == company_symbol,
-                self.equities.c.share_class_symbol ==
+    def _lookup_symbol_strict(self, symbol, as_of_date):
+        # split the symbol into the components, if there are no
+        # company/share class parts then share_class_symbol will be empty
+        company_symbol, share_class_symbol = split_delimited_symbol(symbol)
+        try:
+            owners = self.symbol_ownership_map[
+                company_symbol,
                 share_class_symbol,
-                self.equities.c.start_date <= ad_value),
-        ).order_by(
-            self.equities.c.end_date.desc(),
-        ).execute().fetchall()
-        return candidates
+            ]
+            if not owners:
+                # we have an entry but it is empty
+                raise KeyError('goto error')
+        except KeyError:
+            # no one has ever held this symbol
+            raise SymbolNotFound(symbol=symbol)
 
-    def _get_best_candidate(self, candidates):
-        return self._retrieve_equity(candidates[0]['sid'])
+        if not as_of_date:
+            if len(owners) > 1:
 
-    def _get_equities_from_candidates(self, candidates):
-        sids = map(itemgetter('sid'), candidates)
-        results = self.retrieve_equities(sids)
-        return [results[sid] for sid in sids]
+                # more than one equity has held this ticker, this is ambiguous
+                # without the date
+                raise MultipleSymbolsFound(
+                    symbol=symbol,
+                    options=set(map(
+                        compose(self.retrieve_asset, attrgetter('sid')),
+                        owners,
+                    )),
+                )
+
+            # exactly one company has ever held this symbol, we may resolve
+            # without the date
+            return self.retrieve_asset(owners[0].sid)
+
+        for start, end, sid, _ in owners:
+            if start <= as_of_date < end:
+                # find the company that owned it on the given asof date
+                return self.retrieve_asset(sid)
+
+        # no company held the ticker on the given asof date
+        raise SymbolNotFound(symbol=symbol)
+
+    def _lookup_symbol_fuzzy(self, symbol, as_of_date):
+        symbol = symbol.upper()
+        company_symbol, share_class_symbol = split_delimited_symbol(symbol)
+        try:
+            owners = self.fuzzy_symbol_ownership_map[
+                company_symbol + share_class_symbol
+            ]
+            if not owners:
+                # we have an entry but it is empty
+                raise KeyError('goto error')
+        except KeyError:
+            # no one has ever held a symbol matching the fuzzy symbol
+            raise SymbolNotFound(symbol=symbol)
+
+        if not as_of_date:
+            if not owners:
+                # no one held the fuzzy symbol ever
+                raise SymbolNotFound(symbol=symbol)
+
+            if len(owners) == 1:
+                # only one valid match
+                return self.retrieve_asset(owners[0].sid)
+
+            options = []
+            for _, _, sid, sym in owners:
+                if sym == symbol:
+                    # there are multiple options, look for exact matches
+                    options.append(self.retrieve_asset(sid))
+
+            if len(options) == 1:
+                # there was only one exact match
+                return options[0]
+
+            # there are more than one exact match for this fuzzy symbol
+            raise MultipleSymbolsFound(
+                symbol=symbol,
+                options=set(options),
+            )
+
+        options = []
+        for start, end, sid, sym in owners:
+            if start <= as_of_date < end:
+                # see which fuzzy symbols were owned on the asof date.
+                options.append((sid, sym))
+
+        if not options:
+            # no one owned the fuzzy symbol on the date requested
+            SymbolNotFound(symbol=symbol)
+
+        if len(options) == 1:
+            # there was only one owner, return it
+            return self.retrieve_asset(options[0][0])
+
+        for sid, sym in options:
+            if sym == symbol:
+                # look for an exact match on the asof date
+                return self.retrieve_asset(sid)
+
+        # multiple companies held tickers matching the fuzzy ticker but
+        # there are no exact matches
+        raise MultipleSymbolsFound(
+            symbol=symbol,
+            options=set(map(
+                compose(self.retrieve_asset, itemgetter(0)),
+                options,
+            )),
+        )
 
     def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
         """
@@ -464,68 +653,9 @@ class AssetFinder(object):
 
         If no Equity was active at as_of_date raises SymbolNotFound.
         """
-        company_symbol, share_class_symbol, fuzzy_symbol = \
-            split_delimited_symbol(symbol)
-        if as_of_date:
-            # Format inputs
-            as_of_date = pd.Timestamp(as_of_date).normalize()
-            ad_value = as_of_date.value
-
-            if fuzzy:
-                # Search for a single exact match on the fuzzy column
-                candidates = self._get_fuzzy_candidates_in_range(fuzzy_symbol,
-                                                                 ad_value)
-
-                # If exactly one SID exists for fuzzy_symbol, return that sid
-                if len(candidates) == 1:
-                    return self._get_best_candidate(candidates)
-
-            # Search for exact matches of the split-up company_symbol and
-            # share_class_symbol
-            candidates = self._get_split_candidates_in_range(
-                company_symbol,
-                share_class_symbol,
-                ad_value
-            )
-
-            # If exactly one SID exists for symbol, return that symbol
-            # If multiple SIDs exist for symbol, return latest start_date with
-            # end_date as a tie-breaker
-            if candidates:
-                return self._get_best_candidate(candidates)
-
-            # If no SID exists for symbol, return SID with the
-            # highest-but-not-over end_date
-            elif not candidates:
-                candidates = self._resolve_no_matching_candidates(
-                    company_symbol,
-                    share_class_symbol,
-                    ad_value
-                )
-                if candidates:
-                    return self._get_best_candidate(candidates)
-
-            raise SymbolNotFound(symbol=symbol)
-
-        else:
-            # If this is a fuzzy look-up, check if there is exactly one match
-            # for the fuzzy symbol
-            if fuzzy:
-                candidates = self._get_fuzzy_candidates(fuzzy_symbol)
-                if len(candidates) == 1:
-                    return self._get_best_candidate(candidates)
-
-            candidates = self._get_split_candidates(company_symbol,
-                                                    share_class_symbol)
-            if len(candidates) == 1:
-                return self._get_best_candidate(candidates)
-            elif not candidates:
-                raise SymbolNotFound(symbol=symbol)
-            else:
-                raise MultipleSymbolsFound(
-                    symbol=symbol,
-                    options=self._get_equities_from_candidates(candidates)
-                )
+        if fuzzy:
+            return self._lookup_symbol_fuzzy(symbol, as_of_date)
+        return self._lookup_symbol_strict(symbol, as_of_date)
 
     def lookup_future_symbol(self, symbol):
         """ Return the Future object for a given symbol.
@@ -944,100 +1074,6 @@ for _type in string_types:
 
 class NotAssetConvertible(ValueError):
     pass
-
-
-class AssetFinderCachedEquities(AssetFinder):
-    """
-    An extension to AssetFinder that preloads all equities from equities table
-    into memory and does lookups from there.
-
-    To have any changes in the underlying assets db reflected by this asset
-    finder one must manually call the ``rehash_equities`` method.
-    """
-
-    def __init__(self, engine):
-        super(AssetFinderCachedEquities, self).__init__(engine)
-        self._fuzzy_symbol_cache = {}
-        self._company_share_class_cache = {}
-
-        self.rehash_equities()
-
-    def rehash_equities(self):
-        """Reload the underlying assets db into the in memory cache.
-        """
-        for equity in sa.select(self.equities.c).execute().fetchall():
-            company_symbol = equity['company_symbol']
-            share_class_symbol = equity['share_class_symbol']
-            fuzzy_symbol = equity['fuzzy_symbol']
-            asset = self._convert_row_to_equity(equity)
-            self._company_share_class_cache.setdefault(
-                (company_symbol, share_class_symbol),
-                []
-            ).append(asset)
-            self._fuzzy_symbol_cache.setdefault(
-                fuzzy_symbol,
-                [],
-            ).append(asset)
-
-    def _convert_row_to_equity(self, row):
-        """
-        Converts a SQLAlchemy equity row to an Equity object.
-        """
-        return Equity(**_convert_asset_timestamp_fields(dict(row)))
-
-    def _get_fuzzy_candidates(self, fuzzy_symbol):
-        return self._fuzzy_symbol_cache.get(fuzzy_symbol, ())
-
-    def _get_fuzzy_candidates_in_range(self, fuzzy_symbol, ad_value):
-        return only_active_assets(
-            ad_value,
-            self._get_fuzzy_candidates(fuzzy_symbol),
-        )
-
-    def _get_split_candidates(self, company_symbol, share_class_symbol):
-        return self._company_share_class_cache.get(
-            (company_symbol, share_class_symbol),
-            (),
-        )
-
-    def _get_split_candidates_in_range(self,
-                                       company_symbol,
-                                       share_class_symbol,
-                                       ad_value):
-        return sorted(
-            only_active_assets(
-                ad_value,
-                self._get_split_candidates(company_symbol, share_class_symbol),
-            ),
-            key=lambda x: (x.start_date, x.end_date),
-            reverse=True,
-        )
-
-    def _resolve_no_matching_candidates(self,
-                                        company_symbol,
-                                        share_class_symbol,
-                                        ad_value):
-        equities = self._get_split_candidates(
-            company_symbol,
-            share_class_symbol
-        )
-        partial_candidates = []
-        for equity in equities:
-            if equity.start_date.value <= ad_value:
-                partial_candidates.append(equity)
-        if partial_candidates:
-            partial_candidates = sorted(
-                partial_candidates,
-                key=lambda x: x.end_date,
-                reverse=True
-            )
-        return partial_candidates
-
-    def _get_best_candidate(self, candidates):
-        return candidates[0]
-
-    def _get_equities_from_candidates(self, candidates):
-        return candidates
 
 
 def was_active(reference_date_value, asset):
