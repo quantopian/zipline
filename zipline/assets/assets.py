@@ -548,13 +548,12 @@ class AssetFinder(object):
                 # we have an entry but it is empty
                 raise KeyError('goto error')
         except KeyError:
-            # no one has ever held this symbol
+            # no equity has ever held this symbol
             raise SymbolNotFound(symbol=symbol)
 
         if not as_of_date:
             if len(owners) > 1:
-
-                # more than one equity has held this ticker, this is ambiguous
+                # more than one equity has held this ticker, this is ambigious
                 # without the date
                 raise MultipleSymbolsFound(
                     symbol=symbol,
@@ -564,16 +563,16 @@ class AssetFinder(object):
                     )),
                 )
 
-            # exactly one company has ever held this symbol, we may resolve
+            # exactly one equity has ever held this symbol, we may resolve
             # without the date
             return self.retrieve_asset(owners[0].sid)
 
         for start, end, sid, _ in owners:
             if start <= as_of_date < end:
-                # find the company that owned it on the given asof date
+                # find the equity that owned it on the given asof date
                 return self.retrieve_asset(sid)
 
-        # no company held the ticker on the given asof date
+        # no equity held the ticker on the given asof date
         raise SymbolNotFound(symbol=symbol)
 
     def _lookup_symbol_fuzzy(self, symbol, as_of_date):
@@ -587,12 +586,12 @@ class AssetFinder(object):
                 # we have an entry but it is empty
                 raise KeyError('goto error')
         except KeyError:
-            # no one has ever held a symbol matching the fuzzy symbol
+            # no equity has ever held a symbol matching the fuzzy symbol
             raise SymbolNotFound(symbol=symbol)
 
         if not as_of_date:
             if not owners:
-                # no one held the fuzzy symbol ever
+                # no equity held the fuzzy symbol ever
                 raise SymbolNotFound(symbol=symbol)
 
             if len(owners) == 1:
@@ -622,7 +621,7 @@ class AssetFinder(object):
                 options.append((sid, sym))
 
         if not options:
-            # no one owned the fuzzy symbol on the date requested
+            # no equity owned the fuzzy symbol on the date requested
             SymbolNotFound(symbol=symbol)
 
         if len(options) == 1:
@@ -634,7 +633,7 @@ class AssetFinder(object):
                 # look for an exact match on the asof date
                 return self.retrieve_asset(sid)
 
-        # multiple companies held tickers matching the fuzzy ticker but
+        # multiple equities held tickers matching the fuzzy ticker but
         # there are no exact matches
         raise MultipleSymbolsFound(
             symbol=symbol,
@@ -645,20 +644,45 @@ class AssetFinder(object):
         )
 
     def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
-        """
-        Return matching Equity of name symbol in database.
+        """Lookup an equity by symbol.
 
-        If multiple Equities are found and as_of_date is not set,
-        raises MultipleSymbolsFound.
+        Parameters
+        ----------
+        symbol : str
+            The ticker symbol to resolve.
+        as_of_date : datetime or None
+            Look up the last owner of this symbol as of this datetime.
+            If ``as_of_date`` is None, then this can only resolve the equity
+            if exactly one equity has ever owned the ticker.
+        fuzzy : bool, optional
+            Should fuzzy symbol matching be used? Fuzzy symbol matching
+            attempts to resolve differences in representations for
+            shareclasses. For example, some people may represent the ``A``
+            shareclass of ``BRK`` as ``BRK.A``, where others could write
+            ``BRK_A``.
 
-        If no Equity was active at as_of_date raises SymbolNotFound.
+        Returns
+        -------
+        equity : Equity
+            The equity that held ``symbol`` on the given ``as_of_date``, or the
+            only equity to hold ``symbol`` if ``as_of_date`` is None.
+
+        Raises
+        ------
+        SymbolNotFound
+            Raised when no equity has ever held the given symbol.
+        MultipleSymbolsFound
+            Raised when no ``as_of_date`` is given and more than one equity
+            has held ``symbol``. This is also raised when ``fuzzy=True`` and
+            there are multiple candidates for the given ``symbol`` on the
+            ``as_of_date``.
         """
         if fuzzy:
             return self._lookup_symbol_fuzzy(symbol, as_of_date)
         return self._lookup_symbol_strict(symbol, as_of_date)
 
     def lookup_future_symbol(self, symbol):
-        """ Return the Future object for a given symbol.
+        """Lookup a future contract by symbol.
 
         Parameters
         ----------
@@ -667,8 +691,8 @@ class AssetFinder(object):
 
         Returns
         -------
-        Future
-            A Future object.
+        future : Future
+            The future contract referenced by ``symbol``.
 
         Raises
         ------
