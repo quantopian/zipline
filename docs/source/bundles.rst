@@ -128,7 +128,7 @@ API key we may run:
 
 .. code-block:: bash
 
-   $ QUANDL_API_KEY=<api-key> zipline ingest quandl
+   $ QUANDL_API_KEY=<api-key> zipline ingest -b quandl
 
 though we may still run ``ingest`` as an anonymous quandl user (with no API
 key). We may also set the ``QUANDL_DOWNLOAD_ATTEMPTS`` environment variable to
