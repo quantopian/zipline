@@ -622,7 +622,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return Rank(self, method=method, ascending=ascending, mask=mask)
 
     @expect_types(
-        target=ComputableTerm,
+        target=(Factor, Slice),
         correlation_length=int,
         mask=(Filter, NotSpecifiedType),
     )
@@ -687,7 +687,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=ComputableTerm,
+        target=(Factor, Slice),
         correlation_length=int,
         mask=(Filter, NotSpecifiedType),
     )
@@ -752,7 +752,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         )
 
     @expect_types(
-        target=ComputableTerm,
+        target=(Factor, Slice),
         regression_length=int,
         mask=(Filter, NotSpecifiedType),
     )
