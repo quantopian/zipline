@@ -17,7 +17,7 @@ import datetime
 from datetime import timedelta
 from textwrap import dedent
 import warnings
-from unittest import TestCase, skip
+from unittest import skip
 from copy import deepcopy
 
 import logbook
@@ -74,8 +74,7 @@ from zipline.api import (
 from zipline.finance.commission import PerShare
 from zipline.finance.execution import LimitOrder
 from zipline.finance.order import ORDER_STATUS
-from zipline.finance.trading import TradingEnvironment, SimulationParameters
-from zipline.sources import DataPanelSource
+from zipline.finance.trading import SimulationParameters
 from zipline.testing import (
     FakeDataPortal,
     create_daily_df_for_asset,
@@ -3325,75 +3324,6 @@ class TestOrderCancelation(WithDataPortal,
                                           list(map(len, results.transactions)))
 
             self.assertFalse(log_catcher.has_warnings)
-
-
-@skip("fix in Q2")
-class TestRemoveData(TestCase):
-    """
-    tests if futures data is removed after max(expiration_date, end_date)
-    """
-    def setUp(self):
-        self.env = env = TradingEnvironment()
-        start_date = pd.Timestamp('2015-01-02', tz='UTC')
-        start_ix = env.trading_days.get_loc(start_date)
-        days = env.trading_days
-
-        metadata = {
-            0: {
-                'symbol': 'X',
-                'start_date': env.trading_days[start_ix + 2],
-                'expiration_date': env.trading_days[start_ix + 5],
-                'end_date': env.trading_days[start_ix + 6],
-            },
-            1: {
-                'symbol': 'Y',
-                'start_date': env.trading_days[start_ix + 4],
-                'expiration_date': env.trading_days[start_ix + 7],
-                'end_date': env.trading_days[start_ix + 8],
-            }
-        }
-
-        env.write_data(futures_data=metadata)
-        assetX, assetY = env.asset_finder.retrieve_all([0, 1])
-
-        index_x = days[days.slice_indexer(assetX.start_date, assetX.end_date)]
-        data_x = pd.DataFrame([[1, 100], [2, 100], [3, 100], [4, 100],
-                               [5, 100]],
-                              index=index_x, columns=['price', 'volume'])
-
-        index_y = days[days.slice_indexer(assetY.start_date, assetY.end_date)]
-        data_y = pd.DataFrame([[6, 100], [7, 100], [8, 100], [9, 100],
-                               [10, 100]],
-                              index=index_y, columns=['price', 'volume'])
-
-        self.trade_data = pd.Panel({0: data_x, 1: data_y})
-        self.live_asset_counts = []
-        assets = env.asset_finder.retrieve_all([0, 1])
-        for day in self.trade_data.major_axis:
-            count = 0
-            for asset in assets:
-                # We shouldn't see assets on their expiration dates.
-                if asset.start_date <= day <= asset.end_date:
-                    count += 1
-            self.live_asset_counts.append(count)
-
-    def test_remove_data(self):
-        source = DataPanelSource(self.trade_data)
-
-        def initialize(context):
-            context.data_lengths = []
-
-        def handle_data(context, data):
-            context.data_lengths.append(len(data))
-
-        algo = TradingAlgorithm(
-            initialize=initialize,
-            handle_data=handle_data,
-            env=self.env,
-        )
-
-        algo.run(source)
-        self.assertEqual(algo.data_lengths, self.live_asset_counts)
 
 
 class TestEquityAutoClose(WithTmpDir, WithTradingSchedule, ZiplineTestCase):
