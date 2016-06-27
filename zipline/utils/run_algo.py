@@ -21,6 +21,7 @@ from zipline.finance.trading import TradingEnvironment
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.loaders import USEquityPricingLoader
 from zipline.utils.calendars import get_calendar
+from zipline.utils.factory import create_simulation_parameters
 import zipline.utils.paths as pth
 
 
@@ -150,14 +151,21 @@ def _run(handle_data,
             raise ValueError(
                 "No PipelineLoader registered for column %s." % column
             )
+    else:
+        env = None
+        choose_loader = None
 
     perf = TradingAlgorithm(
         namespace=namespace,
         capital_base=capital_base,
-        start=start,
-        end=end,
         env=env,
         get_pipeline_loader=choose_loader,
+        sim_params=create_simulation_parameters(
+            start=start,
+            end=end,
+            capital_base=capital_base,
+            data_frequency=data_frequency,
+        ),
         **{
             'initialize': initialize,
             'handle_data': handle_data,
@@ -314,8 +322,8 @@ def run_algorithm(start,
     load_extensions(default_extension, extensions, strict_extensions, environ)
 
     non_none_data = valfilter(bool, {
-        'data': data,
-        'bundle': bundle,
+        'data': data is not None,
+        'bundle': bundle is not None,
     })
     if not non_none_data:
         # if neither data nor bundle are passed use 'quantopian-quandl'
