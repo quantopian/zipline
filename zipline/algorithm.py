@@ -639,7 +639,9 @@ class TradingAlgorithm(object):
                 # Assume data is daily if timestamp times are
                 # standardized, otherwise assume minute bars.
                 times = copy_panel.major_axis.time
-                if np.all(times == times[0]):
+                if (np.all(times == times[0]) or
+                    (self.sim_params.data_frequency == 'daily'
+                     and not overwrite_sim_params)):
                     equity_daily_reader = PanelDailyBarReader(
                         self.trading_calendar.all_sessions,
                         copy_panel,
