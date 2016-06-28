@@ -56,7 +56,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithAdjustmentReader,
-    WithBcolzDailyBarReaderFromCSVs,
+    WithBcolzEquityDailyBarReaderFromCSVs,
     WithDataPortal,
     ZiplineTestCase,
 )
@@ -120,7 +120,7 @@ class ClosesOnly(WithDataPortal, ZiplineTestCase):
         return ret
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         cls.closes = DataFrame(
             {sid: arange(1, len(cls.dates) + 1) * sid for sid in cls.sids},
             index=cls.dates,
@@ -340,7 +340,7 @@ class MockDailyBarSpotReader(object):
         return 100.0
 
 
-class PipelineAlgorithmTestCase(WithBcolzDailyBarReaderFromCSVs,
+class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
                                 WithAdjustmentReader,
                                 ZiplineTestCase):
     AAPL = 1
@@ -352,7 +352,7 @@ class PipelineAlgorithmTestCase(WithBcolzDailyBarReaderFromCSVs,
     END_DATE = Timestamp('2015')
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         resources = {
             cls.AAPL: join(TEST_RESOURCE_PATH, 'AAPL.csv'),
             cls.MSFT: join(TEST_RESOURCE_PATH, 'MSFT.csv'),
@@ -398,7 +398,7 @@ class PipelineAlgorithmTestCase(WithBcolzDailyBarReaderFromCSVs,
     def init_class_fixtures(cls):
         super(PipelineAlgorithmTestCase, cls).init_class_fixtures()
         cls.pipeline_loader = USEquityPricingLoader(
-            cls.bcolz_daily_bar_reader,
+            cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
         cls.dates = cls.raw_data[cls.AAPL].index.tz_localize('UTC')

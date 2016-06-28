@@ -25,7 +25,7 @@ from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
-    tmp_bcolz_minute_bar_reader,
+    tmp_bcolz_equity_minute_bar_reader,
 )
 from zipline.testing.fixtures import (
     WithDataPortal,
@@ -65,7 +65,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingSchedule,
         )
 
     @classmethod
-    def make_adjustment_writer_daily_bar_reader(cls):
+    def make_adjustment_writer_equity_daily_bar_reader(cls):
         return MockDailyBarReader()
 
     @classmethod
@@ -147,7 +147,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingSchedule,
             self.sim_params.trading_days[5]
         )
 
-        tmp_reader = tmp_bcolz_minute_bar_reader(
+        tmp_reader = tmp_bcolz_equity_minute_bar_reader(
             self.trading_schedule,
             self.trading_schedule.all_execution_days,
             create_minute_bar_data(minutes, [2]),
@@ -157,7 +157,7 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingSchedule,
                 self.env.asset_finder, self.trading_schedule,
                 first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
-                equity_daily_reader=self.bcolz_daily_bar_reader,
+                equity_daily_reader=self.bcolz_equity_daily_bar_reader,
                 adjustment_reader=self.adjustment_reader,
             )
 
