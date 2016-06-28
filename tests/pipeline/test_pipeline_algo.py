@@ -350,7 +350,6 @@ class PipelineAlgorithmTestCase(WithBcolzDailyBarReaderFromCSVs,
     ASSET_FINDER_EQUITY_SYMBOLS = 'AAPL', 'MSFT', 'BRK_A'
     START_DATE = Timestamp('2014')
     END_DATE = Timestamp('2015')
-    BCOLZ_DAILY_BAR_USE_FULL_CALENDAR = True
 
     @classmethod
     def make_daily_bar_data(cls):
@@ -583,6 +582,54 @@ class PipelineAlgorithmTestCase(WithBcolzDailyBarReaderFromCSVs,
             get_pipeline_loader=lambda column: self.pipeline_loader,
             start=self.dates[0],
             end=self.dates[-1],
+            env=self.env,
+        )
+
+        algo.run(
+            FakeDataPortal(),
+            overwrite_sim_params=False,
+        )
+
+        self.assertTrue(count[0] > 0)
+
+    def test_pipeline_beyond_daily_bars(self):
+        """
+        Ensure that we can run an algo with pipeline beyond the max date
+        of the daily bars.
+        """
+
+        # For ensuring we call before_trading_start.
+        count = [0]
+
+        current_day = default_nyse_schedule.next_execution_day(
+            self.pipeline_loader.raw_price_loader.last_available_dt,
+        )
+
+        def initialize(context):
+            pipeline = attach_pipeline(Pipeline(), 'test')
+
+            vwap = VWAP(window_length=10)
+            pipeline.add(vwap, 'vwap')
+
+            # Nothing should have prices less than 0.
+            pipeline.set_screen(vwap < 0)
+
+        def handle_data(context, data):
+            pass
+
+        def before_trading_start(context, data):
+            context.results = pipeline_output('test')
+            self.assertTrue(context.results.empty)
+            count[0] += 1
+
+        algo = TradingAlgorithm(
+            initialize=initialize,
+            handle_data=handle_data,
+            before_trading_start=before_trading_start,
+            data_frequency='daily',
+            get_pipeline_loader=lambda column: self.pipeline_loader,
+            start=self.dates[0],
+            end=current_day,
             env=self.env,
         )
 
