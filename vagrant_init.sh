@@ -10,6 +10,7 @@
 # from the root of the zipline github checkout.
 # This will put the zipline code in the
 # /vagrant folder in the system.
+set -e
 
 VAGRANT_LOG="/home/vagrant/vagrant.log"
 
