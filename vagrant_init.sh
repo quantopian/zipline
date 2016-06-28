@@ -49,4 +49,4 @@ pip install -r /vagrant/etc/requirements_dev.txt -r /vagrant/etc/requirements_bl
 echo "Installing zipline package itself..." | tee -a "$VAGRANT_LOG"
 find /vagrant/ -type f -name '*.c' -exec rm {} +
 pip install -e /vagrant[all] 2>&1 | tee -a "$VAGRANT_LOG"
-echo "Finished!" | tee -a "$VAGRANT_LOG"
+echo "Finished!  zipline repo is in '/vagrant'." | tee -a "$VAGRANT_LOG"
