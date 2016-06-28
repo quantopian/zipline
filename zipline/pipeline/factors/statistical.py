@@ -1,10 +1,12 @@
 
+from numpy import broadcast_arrays
 from scipy.stats import (
     linregress,
     pearsonr,
     spearmanr,
 )
 
+from zipline.errors import IncompatibleTerms
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
@@ -21,15 +23,17 @@ ALLOWED_DTYPES = (float64_dtype, int64_dtype)
 
 class _RollingCorrelation(CustomFactor, SingleInputMixin):
 
-    @expect_dtypes(target_factor=ALLOWED_DTYPES, target_slice=ALLOWED_DTYPES)
+    @expect_dtypes(base_factor=ALLOWED_DTYPES, target=ALLOWED_DTYPES)
     def __new__(cls,
-                target_factor,
-                target_slice,
+                base_factor,
+                target,
                 correlation_length,
                 mask=NotSpecified):
+        if target.ndim == 2 and base_factor.mask is not target.mask:
+            raise IncompatibleTerms(term_1=base_factor, term_2=target)
         return super(_RollingCorrelation, cls).__new__(
             cls,
-            inputs=[target_factor, target_slice],
+            inputs=[base_factor, target],
             window_length=correlation_length,
             mask=mask,
         )
@@ -37,23 +41,26 @@ class _RollingCorrelation(CustomFactor, SingleInputMixin):
 
 class RollingPearson(_RollingCorrelation):
     """
-    A Factor that computes pearson correlation coefficients between a single
-    column of data and the columns of another Factor.
+    A Factor that computes pearson correlation coefficients between the columns
+    of a given Factor and either the columns of another Factor/BoundColumn or a
+    slice/single column of data.
 
     Parameters
     ----------
-    target_factor : zipline.pipeline.factors.Factor
+    base_factor : zipline.pipeline.factors.Factor
         The factor for which to compute correlations of each of its columns
-        with `target_slice`.
-    target_slice : zipline.pipeline.slice.Slice
-        The column of data with which to compute correlations against each
-        column of data produced by `target_factor`.
+        with `target`.
+    target : zipline.pipeline.Term with a numeric dtype
+        The term with which to compute correlations against each column of data
+        produced by `base_factor`. This term may be a Factor, a BoundColumn or
+        a Slice. If `target` is two-dimensional, correlations are computed
+        asset-wise.
     correlation_length : int
-        Length of the lookback window over which to compute each
-        correlation coefficient.
+        Length of the lookback window over which to compute each correlation
+        coefficient.
     mask : zipline.pipeline.Filter, optional
-        A Filter describing which assets (columns) of `target_factor` should
-        have their correlation with `target_slice` computed each day.
+        A Filter describing which assets (columns) of `base_factor` should have
+        their correlation with `target` computed each day.
 
     See Also
     --------
@@ -66,32 +73,38 @@ class RollingPearson(_RollingCorrelation):
     Most users should call Factor.pearsonr rather than directly construct an
     instance of this class.
     """
-    def compute(self, today, assets, out, factor_data, slice_data):
-        slice_data_column = slice_data[:, 0]
+    def compute(self, today, assets, out, base_data, target_data):
+        # If `target_data` is a Slice or single column of data, broadcast it
+        # out to the same shape as `base_data`, then compute column-wise. This
+        # is efficient because each column of the broadcasted array only refers
+        # to a single memory location.
+        target_data = broadcast_arrays(target_data, base_data)[0]
         for i in range(len(out)):
-            # pearsonr returns the R-value and the P-value.
-            out[i] = pearsonr(factor_data[:, i], slice_data_column)[0]
+            out[i] = pearsonr(base_data[:, i], target_data[:, i])[0]
 
 
 class RollingSpearman(_RollingCorrelation):
     """
-    A Factor that computes spearman rank correlation coefficients between a
-    single column of data and the columns of another Factor.
+    A Factor that computes spearman rank correlation coefficients between the
+    columns of a given Factor and either the columns of another
+    Factor/BoundColumn or a slice/single column of data.
 
     Parameters
     ----------
-    target_factor : zipline.pipeline.factors.Factor
+    base_factor : zipline.pipeline.factors.Factor
         The factor for which to compute correlations of each of its columns
-        with `target_slice`.
-    target_slice : zipline.pipeline.slice.Slice
-        The column of data with which to compute correlations against each
-        column of data produced by `target_factor`.
+        with `target`.
+    target : zipline.pipeline.Term with a numeric dtype
+        The term with which to compute correlations against each column of data
+        produced by `base_factor`. This term may be a Factor, a BoundColumn or
+        a Slice. If `target` is two-dimensional, correlations are computed
+        asset-wise.
     correlation_length : int
-        Length of the lookback window over which to compute each
-        correlation coefficient.
+        Length of the lookback window over which to compute each correlation
+        coefficient.
     mask : zipline.pipeline.Filter, optional
-        A Filter describing which assets (columns) of `target_factor` should
-        have their correlation with `target_slice` computed each day.
+        A Filter describing which assets (columns) of `base_factor` should have
+        their correlation with `target` computed each day.
 
     See Also
     --------
@@ -104,31 +117,41 @@ class RollingSpearman(_RollingCorrelation):
     Most users should call Factor.spearmanr rather than directly construct an
     instance of this class.
     """
-    def compute(self, today, assets, out, factor_data, slice_data):
-        slice_data_column = slice_data[:, 0]
+    def compute(self, today, assets, out, base_data, target_data):
+        # If `target_data` is a Slice or single column of data, broadcast it
+        # out to the same shape as `base_data`, then compute column-wise. This
+        # is efficient because each column of the broadcasted array only refers
+        # to a single memory location.
+        target_data = broadcast_arrays(target_data, base_data)[0]
         for i in range(len(out)):
-            # spearmanr returns the R-value and the P-value.
-            out[i] = spearmanr(factor_data[:, i], slice_data_column)[0]
+            out[i] = spearmanr(base_data[:, i], target_data[:, i])[0]
 
 
 class RollingLinearRegression(CustomFactor, SingleInputMixin):
     """
     A Factor that performs an ordinary least-squares regression predicting the
-    columns of another Factor from a single column of data.
+    columns of a given Factor from either the columns of another
+    Factor/BoundColumn or a slice/single column of data.
 
     Parameters
     ----------
-    target_factor : zipline.pipeline.factors.Factor
+    dependent : zipline.pipeline.factors.Factor
         The factor whose columns are the predicted/dependent variable of each
-        regression with `target_slice`.
-    target_slice : zipline.pipeline.slice.Slice
-        The column of data to use as the predictor/independent variable in
-        each regression with the columns of `target_factor`.
-    correlation_length : int
+        regression with `independent`.
+    independent : zipline.pipeline.slice.Slice or zipline.pipeline.Factor
+        The factor/slice whose columns are the predictor/independent variable
+        of each regression with `dependent`. If `independent` is a Factor,
+        regressions are computed asset-wise.
+    independent : zipline.pipeline.Term with a numeric dtype
+        The term to use as the predictor/independent variable in each
+        regression with `dependent`. This term may be a Factor, a BoundColumn
+        or a Slice. If `independent` is two-dimensional, regressions are
+        computed asset-wise.
+    regression_length : int
         Length of the lookback window over which to compute each regression.
     mask : zipline.pipeline.Filter, optional
-        A Filter describing which assets (columns) of `target_factor` should be
-        regressed against `target_slice` each day.
+        A Filter describing which assets (columns) of `dependent` should be
+        regressed against `independent` each day.
 
     See Also
     --------
@@ -143,29 +166,30 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
     """
     outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
 
-    @expect_dtypes(target_factor=ALLOWED_DTYPES, target_slice=ALLOWED_DTYPES)
+    @expect_dtypes(dependent=ALLOWED_DTYPES, independent=ALLOWED_DTYPES)
     def __new__(cls,
-                target_factor,
-                target_slice,
+                dependent,
+                independent,
                 regression_length,
                 mask=NotSpecified):
+        if independent.ndim == 2 and dependent.mask is not independent.mask:
+            raise IncompatibleTerms(term_1=dependent, term_2=independent)
         return super(RollingLinearRegression, cls).__new__(
             cls,
-            inputs=[target_factor, target_slice],
+            inputs=[dependent, independent],
             window_length=regression_length,
             mask=mask,
         )
 
-    def compute(self, today, assets, out, factor_data, slice_data):
-        slice_data_column = slice_data[:, 0]
-
+    def compute(self, today, assets, out, dependent, independent):
         alpha = out.alpha
         beta = out.beta
         r_value = out.r_value
         p_value = out.p_value
         stderr = out.stderr
-        for i in range(len(out)):
-            regr_results = linregress(y=factor_data[:, i], x=slice_data_column)
+
+        def regress(y, x):
+            regr_results = linregress(y=y, x=x)
             # `linregress` returns its results in the following order:
             # slope, intercept, r-value, p-value, stderr
             alpha[i] = regr_results[1]
@@ -173,6 +197,14 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
             r_value[i] = regr_results[2]
             p_value[i] = regr_results[3]
             stderr[i] = regr_results[4]
+
+        # If `independent` is a Slice or single column of data, broadcast it
+        # out to the same shape as `dependent`, then compute column-wise. This
+        # is efficient because each column of the broadcasted array only refers
+        # to a single memory location.
+        independent = broadcast_arrays(independent, dependent)[0]
+        for i in range(len(out)):
+            regress(y=dependent[:, i], x=independent[:, i])
 
 
 class RollingPearsonOfReturns(RollingPearson):
@@ -261,8 +293,8 @@ class RollingPearsonOfReturns(RollingPearson):
         )
         return super(RollingPearsonOfReturns, cls).__new__(
             cls,
-            target_factor=returns,
-            target_slice=returns[target],
+            base_factor=returns,
+            target=returns[target],
             correlation_length=correlation_length,
             mask=mask,
         )
@@ -311,8 +343,8 @@ class RollingSpearmanOfReturns(RollingSpearman):
         )
         return super(RollingSpearmanOfReturns, cls).__new__(
             cls,
-            target_factor=returns,
-            target_slice=returns[target],
+            base_factor=returns,
+            target=returns[target],
             correlation_length=correlation_length,
             mask=mask,
         )
@@ -428,8 +460,8 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
         )
         return super(RollingLinearRegressionOfReturns, cls).__new__(
             cls,
-            target_factor=returns,
-            target_slice=returns[target],
+            dependent=returns,
+            independent=returns[target],
             regression_length=regression_length,
             mask=mask,
         )
