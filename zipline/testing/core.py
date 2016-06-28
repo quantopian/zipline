@@ -1,3 +1,4 @@
+
 from abc import ABCMeta, abstractmethod, abstractproperty
 from contextlib import contextmanager
 from functools import wraps
@@ -18,8 +19,12 @@ import tempfile
 from logbook import TestHandler
 from mock import patch
 from nose.tools import nottest
+import numpy as np
+from numpy import float64
 from numpy.testing import assert_allclose, assert_array_equal
 import pandas as pd
+from pandas.util.testing import assert_frame_equal
+from scipy.stats import linregress, pearsonr, spearmanr
 from six import itervalues, iteritems, with_metaclass
 from six.moves import filter, map
 from sqlalchemy import create_engine
@@ -42,16 +47,16 @@ from zipline.data.us_equity_pricing import (
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
+from zipline.pipeline import Pipeline
 from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
+from zipline.pipeline.sentinels import NotSpecified
 from zipline.utils import security_list
 from zipline.utils.input_validation import expect_dimensions
 from zipline.utils.sentinel import sentinel
 from zipline.utils.calendars import default_nyse_schedule
-import numpy as np
-from numpy import float64
 
 
 EPOCH = pd.Timestamp(0, tz='UTC')
@@ -1468,6 +1473,188 @@ def ensure_doctest(f, name=None):
         f.__name__ if name is None else name
     ] = f
     return f
+
+
+def run_correlations(pearson_factor,
+                     spearman_factor,
+                     correlation_length,
+                     target_terms,
+                     run_pipeline,
+                     dates,
+                     start_date_index,
+                     end_date_index,
+                     mask,
+                     expected_mask,
+                     assets,
+                     my_asset=None):
+    """
+    Helper function for shared testing of `Factor.pearsonr`, `Factor.spearmanr`
+    and the built-in factors `RollingPearsonOfReturns` and
+    `RollingSpearmanOfReturns`.
+    """
+    # Number of days over which to run our pipeline.
+    num_days = end_date_index - start_date_index + 1
+
+    pipeline = Pipeline(
+        columns={
+            'pearson_factor': pearson_factor,
+            'spearman_factor': spearman_factor,
+        },
+    )
+    if mask is not NotSpecified:
+        pipeline.add(mask, 'mask')
+
+    results = run_pipeline(
+        pipeline, dates[start_date_index], dates[end_date_index],
+    )
+    pearson_results = results['pearson_factor'].unstack()
+    spearman_results = results['spearman_factor'].unstack()
+    if mask is not NotSpecified:
+        mask_results = results['mask'].unstack()
+        check_arrays(mask_results.values, expected_mask)
+
+    # Run a separate pipeline that computes our input terms' results starting
+    # (correlation_length - 1) days prior to our start date. This is because we
+    # need (correlation_length - 1) extra days of lookback to compute our
+    # expected correlations. The 'base term' is always a 2D factor, which will
+    # have its columns correlated with the columns of the 'target term', which
+    # may either be a Slice or a full 2D factor.
+    assert sorted(target_terms.keys()) == ['base_term', 'target_term']
+    results = run_pipeline(
+        Pipeline(columns=target_terms),
+        dates[start_date_index - (correlation_length - 1)],
+        dates[end_date_index],
+    )
+    base_results = results['base_term'].unstack()
+    target_results = results['target_term'].unstack()
+
+    # On each day, calculate the expected correlation coefficients between the
+    # base term's columns and the target term's column(s). Each correlation is
+    # calculated over `correlation_length` days.
+    expected_pearson_results = np.full_like(pearson_results, np.nan)
+    expected_spearman_results = np.full_like(spearman_results, np.nan)
+    for day in range(num_days):
+        todays_base_results = base_results.iloc[day:day + correlation_length]
+        todays_target_results = target_results.iloc[
+            day:day + correlation_length
+        ]
+        for asset, asset_base_results in todays_base_results.iteritems():
+            asset_column = int(asset) - 1
+            # The independent variable can either be a Slice corresponding to a
+            # single asset, or it can be a full 2D factor.
+            if my_asset:
+                asset_target_results = todays_target_results[my_asset]
+            else:
+                asset_target_results = todays_target_results[asset]
+            expected_pearson_results[day, asset_column] = pearsonr(
+                asset_base_results, asset_target_results,
+            )[0]
+            expected_spearman_results[day, asset_column] = spearmanr(
+                asset_base_results, asset_target_results,
+            )[0]
+
+    expected_pearson_results = pd.DataFrame(
+        data=np.where(expected_mask, expected_pearson_results, np.nan),
+        index=dates[start_date_index:end_date_index + 1],
+        columns=assets,
+    )
+    assert_frame_equal(pearson_results, expected_pearson_results)
+
+    expected_spearman_results = pd.DataFrame(
+        data=np.where(expected_mask, expected_spearman_results, np.nan),
+        index=dates[start_date_index:end_date_index + 1],
+        columns=assets,
+    )
+    assert_frame_equal(spearman_results, expected_spearman_results)
+
+
+def run_regressions(regression_factor,
+                    regression_length,
+                    target_terms,
+                    run_pipeline,
+                    dates,
+                    start_date_index,
+                    end_date_index,
+                    mask,
+                    expected_mask,
+                    assets,
+                    my_asset=None):
+    """
+    Helper function for shared testing of `Factor.linear_regression` and the
+    built-in factor `RollingLinearRegressionOfReturns`.
+    """
+    # The order of these is meant to align with the output of `linregress`.
+    outputs = ['beta', 'alpha', 'r_value', 'p_value', 'stderr']
+
+    # Number of days over which to run our pipeline.
+    num_days = end_date_index - start_date_index + 1
+
+    pipeline = Pipeline(
+        columns={
+            output: getattr(regression_factor, output)
+            for output in outputs
+        },
+    )
+    if mask is not NotSpecified:
+        pipeline.add(mask, 'mask')
+
+    results = run_pipeline(
+        pipeline, dates[start_date_index], dates[end_date_index],
+    )
+    if mask is not NotSpecified:
+        mask_results = results['mask'].unstack()
+        check_arrays(mask_results.values, expected_mask)
+
+    output_results = {}
+    expected_output_results = {}
+    for output in outputs:
+        output_results[output] = results[output].unstack()
+        expected_output_results[output] = np.full_like(
+            output_results[output], np.nan,
+        )
+
+    # Run a separate pipeline that computes our input terms' results starting
+    # (regression_length - 1) days prior to our start date. This is because we
+    # need (regression_length - 1) extra days of returns to compute our
+    # expected regressions. Here, 'term_x' and 'term_y' are the independent and
+    # dependent variables, respectively, for each regression.
+    assert sorted(target_terms.keys()) == ['term_x', 'term_y']
+    results = run_pipeline(
+        Pipeline(columns=target_terms),
+        dates[start_date_index - (regression_length - 1)],
+        dates[end_date_index],
+    )
+    term_x_results = results['term_x'].unstack()
+    term_y_results = results['term_y'].unstack()
+
+    # On each day, calculate the expected regression results. Each regression
+    # is calculated over `regression_length` days of data.
+    for day in range(num_days):
+        todays_term_x = term_x_results.iloc[day:day + regression_length]
+        todays_term_y = term_y_results.iloc[day:day + regression_length]
+        for asset, asset_term_y in todays_term_y.iteritems():
+            asset_column = int(asset) - 1
+            # The independent variable can either be a Slice corresponding to a
+            # single asset, or it can be a full 2D factor.
+            if my_asset:
+                asset_term_x = todays_term_x[my_asset]
+            else:
+                asset_term_x = todays_term_x[asset]
+            expected_regression_results = linregress(
+                y=asset_term_y, x=asset_term_x,
+            )
+            for i, output in enumerate(outputs):
+                expected_output_results[output][day, asset_column] = \
+                    expected_regression_results[i]
+
+    for output in outputs:
+        output_result = output_results[output]
+        expected_output_result = pd.DataFrame(
+            np.where(expected_mask, expected_output_results[output], np.nan),
+            index=dates[start_date_index:end_date_index + 1],
+            columns=assets,
+        )
+        assert_frame_equal(output_result, expected_output_result)
 
 
 ####################################

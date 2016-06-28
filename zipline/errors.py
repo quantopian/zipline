@@ -685,3 +685,14 @@ class NonSliceableTerm(ZiplineError):
     of `zipline.pipeline.term.LoadableTerm`.
     """
     msg = "Taking slices of {term} is not currently supported."
+
+
+class IncompatibleTerms(ZiplineError):
+    """
+    Raised when trying to compute correlations/regressions between two 2D
+    factors with different masks.
+    """
+    msg = (
+        "{term_1} and {term_2} must have the same mask in order to compute "
+        "correlations and regressions asset-wise."
+    )
