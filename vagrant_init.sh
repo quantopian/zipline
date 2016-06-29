@@ -47,6 +47,7 @@ echo "Installing zipline python dependencies..." | tee -a "$VAGRANT_LOG"
 echo "Installing zipline extra python dependencies..." | tee -a "$VAGRANT_LOG"
 pip install -r /vagrant/etc/requirements_dev.txt -r /vagrant/etc/requirements_blaze.txt 2>&1 | tee -a "$VAGRANT_LOG"
 echo "Installing zipline package itself..." | tee -a "$VAGRANT_LOG"
+# Clean out any cython assets. The pip install re-builds them.
 find /vagrant/ -type f -name '*.c' -exec rm {} +
 pip install -e /vagrant[all] 2>&1 | tee -a "$VAGRANT_LOG"
 echo "Finished!  zipline repo is in '/vagrant'." | tee -a "$VAGRANT_LOG"
