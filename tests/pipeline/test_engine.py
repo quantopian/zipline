@@ -1221,6 +1221,9 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
 
+        # The following two use USEquityPricing.open and .volume as inputs.
+        # The former uses self.raw_data_with_nans, and the latter uses
+        # .raw_data * 2.  Thus we multiply instead of squaring as above.
         expected_1_nan = (self.raw_data_with_nans[5:]
                           * self.raw_data[5:] * 2).fillna(0)
         assert_frame_equal(results['dv1_nan'].unstack(), expected_1_nan)
