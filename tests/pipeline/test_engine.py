@@ -1056,7 +1056,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             index=dates,
             columns=cls.asset_finder.retrieve_all(sids),
         )
-        cls.raw_data_with_nans = cls.raw_data.where(cls.raw_data % 3 != 0)
+        cls.raw_data_with_nans = cls.raw_data.where((cls.raw_data % 2) != 0)
 
         open_loader = DataFrameLoader(
             USEquityPricing.open,
