@@ -620,6 +620,14 @@ class TradingAlgorithm(object):
                         normalize_date(data.major_axis[-1])
                     )
 
+                    # Assume data is daily if timestamp times are
+                    # standardized, otherwise assume minute bars.
+                    times = data.major_axis.time
+                    if np.all(times == times[0]):
+                        self.sim_params.data_frequency = 'daily'
+                    else:
+                        self.sim_params.data_frequency = 'minute'
+
                 copy_panel = data.rename(
                     # These were the old names for the close/open columns.  We
                     # need to make a copy anyway, so swap these for backwards
@@ -636,12 +644,7 @@ class TradingAlgorithm(object):
                     )
                 )
 
-                # Assume data is daily if timestamp times are
-                # standardized, otherwise assume minute bars.
-                times = copy_panel.major_axis.time
-                if (np.all(times == times[0]) or
-                    (self.sim_params.data_frequency == 'daily'
-                     and not overwrite_sim_params)):
+                if self.sim_params.data_frequency == 'daily':
                     equity_daily_reader = PanelDailyBarReader(
                         self.trading_calendar.all_sessions,
                         copy_panel,
@@ -653,9 +656,7 @@ class TradingAlgorithm(object):
                             .first_trading_day,
                         equity_daily_reader=equity_daily_reader,
                     )
-                else:
-                    if overwrite_sim_params:
-                        self.sim_params.data_frequency = 'minute'
+                elif self.sim_params.data_frequency == 'minute':
                     equity_minute_reader = PanelMinuteBarReader(
                         self.trading_calendar.all_minutes,
                         copy_panel,
