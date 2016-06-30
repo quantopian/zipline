@@ -156,7 +156,7 @@ class AverageDollarVolume(CustomFactor):
     inputs = [USEquityPricing.close, USEquityPricing.volume]
 
     def compute(self, today, assets, out, close, volume):
-        out[:] = nanmean(close * volume, axis=0)
+        out[:] = nansum(close * volume, axis=0) / len(close)
 
 
 class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):

@@ -15,7 +15,10 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
-None
+- Changes :class:`~zipline.pipeline.factors.AverageDollarVolume` built-in
+  factor to treat missing close or volume values as 0. Previously, NaNs were
+  simply discarded before averaging, giving the remaining values too much
+  weight (:issue:`1309`).
 
 Documentation
 ~~~~~~~~~~~~~

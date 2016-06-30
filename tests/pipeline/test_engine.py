@@ -1056,7 +1056,12 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
             index=dates,
             columns=cls.asset_finder.retrieve_all(sids),
         )
+        cls.raw_data_with_nans = cls.raw_data.where((cls.raw_data % 2) != 0)
 
+        open_loader = DataFrameLoader(
+            USEquityPricing.open,
+            cls.raw_data_with_nans,
+        )
         close_loader = DataFrameLoader(USEquityPricing.close, cls.raw_data)
         volume_loader = DataFrameLoader(
             USEquityPricing.volume,
@@ -1065,6 +1070,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         cls.engine = SimplePipelineEngine(
             {
+                USEquityPricing.open: open_loader,
                 USEquityPricing.close: close_loader,
                 USEquityPricing.volume: volume_loader,
             }.__getitem__,
@@ -1195,6 +1201,14 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
                 columns={
                     'dv1': AverageDollarVolume(window_length=1),
                     'dv5': AverageDollarVolume(window_length=5),
+                    'dv1_nan': AverageDollarVolume(
+                        window_length=1,
+                        inputs=[USEquityPricing.open, USEquityPricing.volume],
+                    ),
+                    'dv5_nan': AverageDollarVolume(
+                        window_length=5,
+                        inputs=[USEquityPricing.open, USEquityPricing.volume],
+                    ),
                 }
             ),
             self.dates[5],
@@ -1206,6 +1220,18 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
+
+        # The following two use USEquityPricing.open and .volume as inputs.
+        # The former uses self.raw_data_with_nans, and the latter uses
+        # .raw_data * 2.  Thus we multiply instead of squaring as above.
+        expected_1_nan = (self.raw_data_with_nans[5:]
+                          * self.raw_data[5:] * 2).fillna(0)
+        assert_frame_equal(results['dv1_nan'].unstack(), expected_1_nan)
+
+        expected_5_nan = rolling_mean((self.raw_data_with_nans
+                                       * self.raw_data * 2).fillna(0),
+                                      window=5)[5:]
+        assert_frame_equal(results['dv5_nan'].unstack(), expected_5_nan)
 
     @parameter_space(returns_length=[2, 3], correlation_length=[3, 4])
     def test_correlation_factors(self, returns_length, correlation_length):
