@@ -33,7 +33,10 @@ import numpy as np
 import pandas as pd
 import pytz
 
-from zipline import TradingAlgorithm
+from zipline import (
+    run_algorithm,
+    TradingAlgorithm,
+)
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future
 from zipline.assets.synthetic import (
@@ -161,6 +164,7 @@ from zipline.test_algorithms import (
     no_handle_data,
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
+from zipline.utils.calendars import get_calendar
 from zipline.utils.context_tricks import CallbackManager
 from zipline.utils.control_flow import nullctx
 import zipline.utils.events
@@ -4110,3 +4114,66 @@ class AlgoInputValidationTestCase(ZiplineTestCase):
                     script=script,
                     **{method: lambda *args, **kwargs: None}
                 )
+
+
+class TestPanelData(ZiplineTestCase):
+
+    @parameterized.expand([
+        ('daily',
+         pd.Timestamp('2015-12-23', tz='UTC'),
+         pd.Timestamp('2016-01-05', tz='UTC'),),
+        ('minute',
+         pd.Timestamp('2015-12-23', tz='UTC'),
+         pd.Timestamp('2015-12-24', tz='UTC'),),
+    ])
+    def test_panel_data(self, data_frequency, start_dt, end_dt):
+        if data_frequency == 'daily':
+            history_freq = '1d'
+            df = create_daily_df_for_asset(get_calendar('NYSE'),
+                                           start_dt, end_dt)
+        elif data_frequency == 'minute':
+            history_freq = '1m'
+            df = create_minute_df_for_asset(get_calendar('NYSE'),
+                                            start_dt, end_dt)
+
+        panel = pd.Panel({1: df})
+
+        price_record = pd.DataFrame(columns=['current', 'previous'])
+
+        def initialize(algo):
+            algo.first_bar = True
+
+        def handle_data(algo, data):
+            price_record.loc[algo.get_datetime(), 'current'] = (
+                data.current(algo.sid(1), 'price')
+            )
+            if algo.first_bar:
+                algo.first_bar = False
+            else:
+                price_record.loc[algo.get_datetime(), 'previous'] = (
+                    data.history(algo.sid(1), 'price', 2, history_freq)[0]
+                )
+
+        trading_algo = TradingAlgorithm(initialize=initialize,
+                                        handle_data=handle_data)
+        trading_algo.run(data=panel)
+        np.testing.assert_array_equal(
+            np.array(price_record.transpose(), dtype='float64'),
+            np.array([df['close'], df['close'].shift(1)], dtype='float64')
+        )
+
+        price_record.drop(price_record.index)
+
+        run_algorithm(
+            start=start_dt,
+            end=end_dt,
+            capital_base=1,
+            initialize=initialize,
+            handle_data=handle_data,
+            data_frequency=data_frequency,
+            data=panel
+        )
+        np.testing.assert_array_equal(
+            np.array(price_record.transpose(), dtype='float64'),
+            np.array([df['close'], df['close'].shift(1)], dtype='float64')
+        )
