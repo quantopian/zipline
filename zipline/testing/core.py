@@ -1319,7 +1319,8 @@ class tmp_dir(TempDirectory, object):
 
 
 class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
-    """A helper for tmp_bcolz_minute_bar_reader and tmp_bcolz_daily_bar_reader.
+    """A helper for tmp_bcolz_equity_minute_bar_reader and
+    tmp_bcolz_equity_daily_bar_reader.
 
     Parameters
     ----------
@@ -1363,7 +1364,7 @@ class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
             raise
 
 
-class tmp_bcolz_minute_bar_reader(_TmpBarReader):
+class tmp_bcolz_equity_minute_bar_reader(_TmpBarReader):
     """A temporary BcolzMinuteBarReader object.
 
     Parameters
@@ -1380,13 +1381,13 @@ class tmp_bcolz_minute_bar_reader(_TmpBarReader):
 
     See Also
     --------
-    tmp_bcolz_daily_bar_reader
+    tmp_bcolz_equity_daily_bar_reader
     """
     _reader_cls = BcolzMinuteBarReader
     _write = staticmethod(write_bcolz_minute_data)
 
 
-class tmp_bcolz_daily_bar_reader(_TmpBarReader):
+class tmp_bcolz_equity_daily_bar_reader(_TmpBarReader):
     """A temporary BcolzDailyBarReader object.
 
     Parameters
@@ -1403,7 +1404,7 @@ class tmp_bcolz_daily_bar_reader(_TmpBarReader):
 
     See Also
     --------
-    tmp_bcolz_daily_bar_reader
+    tmp_bcolz_equity_daily_bar_reader
     """
     _reader_cls = BcolzDailyBarReader
 

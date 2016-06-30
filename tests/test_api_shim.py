@@ -121,7 +121,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_minute_df_for_asset(
                 cls.trading_schedule,
@@ -130,7 +130,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
             )
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_daily_df_for_asset(
                 cls.trading_schedule,
@@ -149,7 +149,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         ])
 
     @classmethod
-    def make_adjustment_writer_daily_bar_reader(cls):
+    def make_adjustment_writer_equity_daily_bar_reader(cls):
         return MockDailyBarReader()
 
     @classmethod

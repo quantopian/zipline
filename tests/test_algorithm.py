@@ -741,7 +741,7 @@ class TestTransformAlgorithm(WithLogger,
         return pd.DataFrame.from_dict({3: {'multiplier': 10}}, 'index')
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         return trades_by_sid_to_dfs(
             {
                 sid: factory.create_trade_history(
@@ -1010,7 +1010,7 @@ class TestBeforeTradingStart(WithDataPortal,
     END_DATE = pd.Timestamp('2016-01-07', tz='utc')
     SIM_PARAMS_CAPITAL_BASE = 10000
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
-    BCOLZ_DAILY_BAR_LOOKBACK_DAYS = BCOLZ_MINUTE_BAR_LOOKBACK_DAYS = 1
+    EQUITY_DAILY_BAR_LOOKBACK_DAYS = EQUITY_MINUTE_BAR_LOOKBACK_DAYS = 1
 
     data_start = ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp(
         '2016-01-05',
@@ -1021,7 +1021,7 @@ class TestBeforeTradingStart(WithDataPortal,
     ASSET_FINDER_EQUITY_SIDS = 1, 2, SPLIT_ASSET_SID
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         asset_minutes = \
             cls.trading_schedule.execution_minutes_for_days_in_range(
                 cls.data_start,
@@ -1066,7 +1066,7 @@ class TestBeforeTradingStart(WithDataPortal,
         ])
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         for sid in cls.ASSET_FINDER_EQUITY_SIDS:
             yield sid, create_daily_df_for_asset(
                 cls.trading_schedule,
@@ -1357,7 +1357,7 @@ class TestAlgoScript(WithLogger,
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-31', tz='utc')
     DATA_PORTAL_USE_MINUTE_DATA = False
-    BCOLZ_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
+    EQUITY_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
 
     ARG_TYPE_TEST_CASES = (
         ('history__assets', (bad_type_history_assets, 'Asset, str', True)),
@@ -1397,8 +1397,8 @@ class TestAlgoScript(WithLogger,
         return data
 
     @classmethod
-    def make_daily_bar_data(cls):
-        days = len(cls.bcolz_daily_bar_days)
+    def make_equity_daily_bar_data(cls):
+        days = len(cls.equity_daily_bar_days)
         return trades_by_sid_to_dfs(
             {
                 0: factory.create_trade_history(
@@ -1416,7 +1416,7 @@ class TestAlgoScript(WithLogger,
                     cls.sim_params,
                     cls.trading_schedule)
             },
-            index=cls.bcolz_daily_bar_days,
+            index=cls.equity_daily_bar_days,
         )
 
     def test_noop(self):
@@ -1942,7 +1942,7 @@ class TestCapitalChanges(WithLogger,
         return data
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         minutes = cls.trading_schedule.execution_minutes_for_days_in_range(
             pd.Timestamp('2006-01-03', tz='UTC'),
             pd.Timestamp('2006-01-09', tz='UTC')
@@ -1961,7 +1961,7 @@ class TestCapitalChanges(WithLogger,
         )
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         days = cls.trading_schedule.execution_days_in_range(
             pd.Timestamp('2006-01-03', tz='UTC'),
             pd.Timestamp('2006-01-09', tz='UTC')
@@ -2904,7 +2904,7 @@ class TestAccountControls(WithDataPortal, WithSimParams, ZiplineTestCase):
     sidint, = ASSET_FINDER_EQUITY_SIDS = (133,)
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         return trades_by_sid_to_dfs(
             {
                 cls.sidint: factory.create_trade_history(
@@ -3051,7 +3051,7 @@ class TestFutureFlip(WithDataPortal, WithSimParams, ZiplineTestCase):
     sid, = ASSET_FINDER_EQUITY_SIDS = (1,)
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         return trades_by_sid_to_dfs(
             {
                 cls.sid: factory.create_trade_history(
@@ -3169,7 +3169,7 @@ class TestOrderCancelation(WithDataPortal,
     )
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         asset_minutes = \
             cls.trading_schedule.execution_minutes_for_days_in_range(
                 cls.sim_params.period_start,
@@ -3192,7 +3192,7 @@ class TestOrderCancelation(WithDataPortal,
         )
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         yield 1, pd.DataFrame(
             {
                 'open': np.full(3, 1),

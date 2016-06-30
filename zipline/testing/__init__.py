@@ -45,7 +45,7 @@ from .core import (  # noqa
     test_resource_path,
     tmp_asset_finder,
     tmp_assets_db,
-    tmp_bcolz_minute_bar_reader,
+    tmp_bcolz_equity_minute_bar_reader,
     tmp_dir,
     tmp_trading_env,
     to_series,

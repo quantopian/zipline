@@ -893,10 +893,10 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         return ret
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         return make_bar_data(
             cls.equity_info,
-            cls.bcolz_daily_bar_days,
+            cls.equity_daily_bar_days,
         )
 
     @classmethod
@@ -905,7 +905,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         cls.all_asset_ids = cls.asset_finder.sids
         cls.last_asset_end = cls.equity_info['end_date'].max()
         cls.pipeline_loader = USEquityPricingLoader(
-            cls.bcolz_daily_bar_reader,
+            cls.bcolz_equity_daily_bar_reader,
             cls.adjustment_reader,
         )
 

@@ -176,7 +176,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
 
         columns = 'open', 'high', 'low', 'close', 'volume'
 
-        actual = bundle.minute_bar_reader.load_raw_arrays(
+        actual = bundle.equity_minute_bar_reader.load_raw_arrays(
             columns,
             minutes[0],
             minutes[-1],
@@ -190,7 +190,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
                 msg=colname,
             )
 
-        actual = bundle.daily_bar_reader.load_raw_arrays(
+        actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             columns,
             calendar[0],
             calendar[-1],
