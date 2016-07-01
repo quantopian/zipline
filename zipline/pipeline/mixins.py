@@ -94,6 +94,7 @@ class CustomTermMixin(object):
                 mask=NotSpecified,
                 dtype=NotSpecified,
                 missing_value=NotSpecified,
+                ndim=NotSpecified,
                 **kwargs):
 
         unexpected_keys = set(kwargs) - set(cls.params)
@@ -114,6 +115,7 @@ class CustomTermMixin(object):
             mask=mask,
             dtype=dtype,
             missing_value=missing_value,
+            ndim=ndim,
             **kwargs
         )
 

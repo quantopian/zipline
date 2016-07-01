@@ -139,7 +139,6 @@ from __future__ import division, absolute_import
 
 from abc import ABCMeta, abstractproperty
 from collections import namedtuple, defaultdict
-from copy import copy
 from functools import partial
 from itertools import count
 import warnings
@@ -187,10 +186,7 @@ from zipline.utils.input_validation import (
     ensure_timezone,
     optionally,
 )
-from zipline.utils.numpy_utils import (
-    categorical_dtype,
-    repeat_last_axis,
-)
+from zipline.utils.numpy_utils import bool_dtype, categorical_dtype
 from zipline.utils.pandas_utils import sort_values
 from zipline.utils.preprocess import preprocess
 
@@ -337,7 +333,7 @@ def new_dataset(expr, deltas, missing_values):
     the same type.
     """
     missing_values = dict(missing_values)
-    columns = {}
+    class_dict = {'ndim': 2 if SID_FIELD_NAME in expr.fields else 1}
     for name, type_ in expr.dshape.measure.fields:
         # Don't generate a column for sid or timestamp, since they're
         # implicitly the labels if the arrays that will be passed to pipeline
@@ -352,7 +348,7 @@ def new_dataset(expr, deltas, missing_values):
             )
         else:
             col = NonPipelineField(name, type_)
-        columns[name] = col
+        class_dict[name] = col
 
     name = expr._name
     if name is None:
@@ -363,7 +359,7 @@ def new_dataset(expr, deltas, missing_values):
     if PY2 and isinstance(name, unicode):  # pragma: no cover # noqa
         name = name.encode('utf-8')
 
-    return type(name, (DataSet,), columns)
+    return type(name, (DataSet,), class_dict)
 
 
 def _check_resources(name, expr, resources):
@@ -850,7 +846,7 @@ def adjustments_from_deltas_no_sids(dense_dates,
         The adjustments dictionary to feed to the adjusted array.
     """
     ad_series = deltas[AD_FIELD_NAME]
-    idx = 0, len(asset_idx) - 1
+    idx = 0, 0
     return {
         dense_dates.get_loc(kd): overwrite_from_dates(
             ad_series.loc[kd],
@@ -966,7 +962,7 @@ class BlazeLoader(dict):
             raise AssertionError('all columns must come from the same dataset')
 
         expr, deltas, checkpoints, odo_kwargs = self[dataset]
-        have_sids = SID_FIELD_NAME in expr.fields
+        have_sids = (dataset.ndim == 2)
         asset_idx = pd.Series(index=assets, data=np.arange(len(assets)))
         assets = list(map(int, assets))  # coerce from numpy.int64
         added_query_fields = [AD_FIELD_NAME, TS_FIELD_NAME] + (
@@ -1142,19 +1138,14 @@ class BlazeLoader(dict):
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
         else:
-            # We use the column view to make an array per asset.
-            column_view = compose(
-                # We need to copy this because we need a concrete ndarray.
-                # The `repeat_last_axis` call will give us a fancy strided
-                # array which uses a buffer to represent `len(assets)` columns.
-                # The engine puts nans at the indicies for which we do not have
-                # sid information so that the nan-aware reductions still work.
-                # A future change to the engine would be to add first class
-                # support for macro econimic datasets.
-                copy,
-                partial(repeat_last_axis, count=len(assets)),
-            )
+            # If we do not have sids, use the column view to make a single
+            # column vector which is unassociated with any assets.
+            column_view = op.itemgetter(np.s_[:, np.newaxis])
+
             adjustments_from_deltas = adjustments_from_deltas_no_sids
+            mask = np.full(
+                shape=(len(mask), 1), fill_value=True, dtype=bool_dtype,
+            )
 
         for column_idx, column in enumerate(columns):
             column_name = column.name
