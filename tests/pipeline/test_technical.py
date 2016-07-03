@@ -9,16 +9,7 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.term import AssetExists
 from zipline.pipeline.factors import (
     BollingerBands,
-<<<<<<< HEAD
-<<<<<<< HEAD
-    Aroon,
-    FastStochasticOscillator
-=======
     LinearWeightedMovingAverage
->>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
-=======
-    LinearWeightedMovingAverage
->>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
 )
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
@@ -152,53 +143,12 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         self.assertIs(upper, bbands.upper)
 
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-class AroonTestCase(ZiplineTestCase):
-    window_length = 10
-    nassets = 5
-    dtype = [('down', 'f8'), ('up', 'f8')]
-
-    @parameterized.expand([
-        (np.arange(window_length),
-         np.arange(window_length) + 1,
-         np.recarray(shape=(nassets,), dtype=dtype,
-                     buf=np.array([0, 100] * nassets, dtype='f8'))),
-        (np.arange(window_length, 0, -1),
-         np.arange(window_length, 0, -1) - 1,
-         np.recarray(shape=(nassets,), dtype=dtype,
-                     buf=np.array([100, 0] * nassets, dtype='f8'))),
-        (np.array([10, 10, 10, 1, 10, 10, 10, 10, 10, 10]),
-         np.array([1, 1, 1, 1, 1, 10, 1, 1, 1, 1]),
-         np.recarray(shape=(nassets,), dtype=dtype,
-                     buf=np.array([100 * 3 / 9, 100 * 5 / 9] * nassets,
-                                  dtype='f8'))),
-    ])
-    def test_aroon_basic(self, lows, highs, expected_out):
-        aroon = Aroon(window_length=self.window_length)
-        today = pd.Timestamp('2014', tz='utc')
-        assets = pd.Index(np.arange(self.nassets, dtype=np.int64))
-        shape = (self.nassets,)
-        out = np.recarray(shape=shape, dtype=self.dtype,
-                          buf=np.empty(shape=shape, dtype=self.dtype))
-
-        aroon.compute(today, assets, out, lows, highs)
-
-        assert_equal(out, expected_out)
-
-
-class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
-    """
-    Test the Fast Stochastic Oscillator
-    """
-=======
 class TestLinearWeightedMovingAverage(ZiplineTestCase):
     def test_wma1(self):
         wma1 = LinearWeightedMovingAverage(
             inputs=(USEquityPricing.close,),
             window_length=10
         )
->>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
 
         today = pd.Timestamp('2014')
         assets = np.arange(5, dtype=np.int64)
@@ -221,44 +171,5 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
         data = np.arange(50, dtype=float).reshape((10, 5))
         out = np.zeros(data.shape[1])
 
-<<<<<<< HEAD
-        assert_equal(out, expected_out_k)
-=======
-class TestLinearWeightedMovingAverage(ZiplineTestCase):
-    def test_wma1(self):
-        wma1 = LinearWeightedMovingAverage(
-            inputs=(USEquityPricing.close,),
-            window_length=10
-        )
-
-        today = pd.Timestamp('2014')
-        assets = np.arange(5, dtype=np.int64)
-
-        data = np.ones((10, 5))
-        out = np.zeros(data.shape[1])
-
-        wma1.compute(today, assets, out, data)
-        assert_equal(out, np.ones(5))
-<<<<<<< HEAD
->>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
-=======
-
-    def test_wma2(self):
-        wma2 = LinearWeightedMovingAverage(
-            inputs=(USEquityPricing.close,),
-            window_length=10
-        )
-
-        today = pd.Timestamp('2014')
-        assets = np.arange(5, dtype=np.int64)
-
-        data = np.arange(50, dtype=float).reshape((10, 5))
-        out = np.zeros(data.shape[1])
-
         wma2.compute(today, assets, out, data)
         assert_equal(out, np.array([ 30.,  31.,  32.,  33.,  34.]))
->>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
-=======
-        wma2.compute(today, assets, out, data)
-        assert_equal(out, np.array([ 30.,  31.,  32.,  33.,  34.]))
->>>>>>> ENH: Adds LinearWeightedMovingAverage Factor
