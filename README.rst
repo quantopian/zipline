@@ -9,7 +9,6 @@ Zipline
 
 |Gitter|
 |version status|
-|downloads|
 |travis status|
 |appveyor status|
 |Coverage Status|
@@ -119,7 +118,6 @@ The following code implements a simple dual moving average algorithm.
 .. code:: python
 
     from zipline.api import (
-        add_history,
         history,
         order_target,
         record,
@@ -128,10 +126,6 @@ The following code implements a simple dual moving average algorithm.
 
 
     def initialize(context):
-        # Register 2 histories that track daily prices,
-        # one with a 100 window and one with a 300 day window
-        add_history(100, '1d', 'price')
-        add_history(300, '1d', 'price')
         context.i = 0
 
 
@@ -185,8 +179,6 @@ https://github.com/quantopian/zipline/wiki/Contribution-Requests
 .. |Gitter| image:: https://badges.gitter.im/Join%20Chat.svg
    :target: https://gitter.im/quantopian/zipline?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 .. |version status| image:: https://img.shields.io/pypi/pyversions/zipline.svg
-   :target: https://pypi.python.org/pypi/zipline
-.. |downloads| image:: https://img.shields.io/pypi/dd/zipline.svg
    :target: https://pypi.python.org/pypi/zipline
 .. |travis status| image:: https://travis-ci.org/quantopian/zipline.png?branch=master
    :target: https://travis-ci.org/quantopian/zipline

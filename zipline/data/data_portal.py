@@ -486,7 +486,7 @@ class DataPortal(object):
         daily data backtests or daily history calls in a minute backetest.
         If a daily bar reader is not provided but a minute bar reader is,
         the minutes will be rolled up to serve the daily requests.
-    future_minute_reader : BcolzMinuteBarReader, optional
+    future_minute_reader : BcolzFutureMinuteBarReader, optional
         The minute bar reader for futures. This will be used to service
         minute data backtests or minute history calls. This can be used
         to serve daily calls if no daily bar reader is provided.
@@ -787,8 +787,12 @@ class DataPortal(object):
             return self._get_daily_data(asset, field, day_to_use)
         else:
             if isinstance(asset, Future):
-                return self._get_minute_spot_value_future(
-                    asset, field, dt)
+                if field == "price":
+                    return self._get_minute_spot_value_future(
+                        asset, "close", dt)
+                else:
+                    return self._get_minute_spot_value_future(
+                        asset, field, dt)
             else:
                 if field == "last_traded":
                     return self._equity_minute_reader.get_last_traded_dt(

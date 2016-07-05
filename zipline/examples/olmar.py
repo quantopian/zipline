@@ -122,7 +122,7 @@ def simplex_projection(v, b=1):
 
     :Example:
     >>> proj = simplex_projection([.4 ,.3, -.4, .5])
-    >>> print(proj)
+    >>> proj  # doctest: +NORMALIZE_WHITESPACE
     array([ 0.33333333, 0.23333333, 0. , 0.43333333])
     >>> print(proj.sum())
     1.0

@@ -17,6 +17,8 @@ from zipline.utils.cli import maybe_show_progress
 
 log = Logger(__name__)
 seconds_per_call = (pd.Timedelta('10 minutes') / 2000).total_seconds()
+# Invalid symbols that quandl has had in its metadata:
+excluded_symbols = frozenset({'TEST123456789'})
 
 
 def _fetch_raw_metadata(api_key, cache, retries, environ):
@@ -116,6 +118,8 @@ def fetch_symbol_metadata_frame(api_key,
             'oldest_available_date': 'start_date',
             'newest_available_date': 'end_date',
         }).sort('symbol')
+
+    data = data[~data.symbol.isin(excluded_symbols)]
     # cut out all the other stuff in the name column
     # we need to escape the paren because it is actually splitting on a regex
     data.asset_name = data.asset_name.str.split(r' \(', 1).str.get(0)

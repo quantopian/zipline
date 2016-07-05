@@ -49,7 +49,7 @@ class BlotterTestCase(WithLogger,
     ASSET_FINDER_EQUITY_SIDS = 24, 25
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         yield 24, pd.DataFrame(
             {
                 'open': [50, 50],

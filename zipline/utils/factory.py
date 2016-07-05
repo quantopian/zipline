@@ -155,17 +155,6 @@ def create_txn(sid, price, amount, datetime):
     return txn
 
 
-def create_commission(sid, value, datetime):
-    txn = Event({
-        'dt': datetime,
-        'type': DATASOURCE_TYPE.COMMISSION,
-        'cost': value,
-        'sid': sid,
-        'source_id': 'MockCommissionSource'
-    })
-    return txn
-
-
 def create_txn_history(sid, priceList, amtList, interval, sim_params,
                        trading_schedule):
     txns = []
@@ -200,24 +189,6 @@ def create_daily_trade_source(sids, sim_params, env, trading_schedule,
     return create_trade_source(
         sids,
         timedelta(days=1),
-        sim_params,
-        env=env,
-        trading_schedule=trading_schedule,
-        concurrent=concurrent,
-    )
-
-
-def create_minutely_trade_source(sids, sim_params, env, trading_schedule,
-                                 concurrent=False):
-    """
-    creates trade_count trades for each sid in sids list.
-    first trade will be on sim_params.period_start, and every minute
-    thereafter for each sid. Thus, two sids should result in two trades per
-    minute.
-    """
-    return create_trade_source(
-        sids,
-        timedelta(minutes=1),
         sim_params,
         env=env,
         trading_schedule=trading_schedule,
