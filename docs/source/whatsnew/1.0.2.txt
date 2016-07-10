@@ -1,0 +1,29 @@
+Release 1.0.2
+-------------
+
+:Release: 1.0.2
+:Date: TBD
+
+Enhancements
+~~~~~~~~~~~~
+
+- Adds forward fill checkpoint tables for the blaze core loader. This allow the
+  loader to more efficiently forward fill the data by capping the lower date it
+  must search for when querying data. The checkpoints should have novel deltas
+  applied (:issue:`1276`).
+
+- Updated VagrantFile to include all dev requirements and use a newer image
+  (:issue:`1310`).
+
+Bug Fixes
+~~~~~~~~~
+
+- Changes :class:`~zipline.pipeline.factors.AverageDollarVolume` built-in
+  factor to treat missing close or volume values as 0. Previously, NaNs were
+  simply discarded before averaging, giving the remaining values too much
+  weight (:issue:`1309`).
+
+Documentation
+~~~~~~~~~~~~~
+
+None

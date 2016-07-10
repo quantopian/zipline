@@ -277,14 +277,14 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         return DIVIDENDS
 
     @classmethod
-    def make_adjustment_writer_daily_bar_reader(cls):
+    def make_adjustment_writer_equity_daily_bar_reader(cls):
         return MockDailyBarReader()
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         return make_bar_data(
             EQUITY_INFO,
-            cls.bcolz_daily_bar_days,
+            cls.equity_daily_bar_days,
         )
 
     @classmethod
@@ -306,13 +306,13 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
                 self.assertLessEqual(eff_date, asset_end)
 
     def calendar_days_between(self, start_date, end_date, shift=0):
-        slice_ = self.bcolz_daily_bar_days.slice_indexer(start_date, end_date)
+        slice_ = self.equity_daily_bar_days.slice_indexer(start_date, end_date)
         start = slice_.start + shift
         stop = slice_.stop + shift
         if start < 0:
             raise KeyError(start_date, shift)
 
-        return self.bcolz_daily_bar_days[start:stop]
+        return self.equity_daily_bar_days[start:stop]
 
     def expected_adjustments(self, start_date, end_date):
         price_adjustments = {}
@@ -417,7 +417,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         self.assertEqual(adjustments, [{}, {}])
 
         pricing_loader = USEquityPricingLoader(
-            self.bcolz_daily_bar_reader,
+            self.bcolz_equity_daily_bar_reader,
             adjustment_reader,
         )
 
@@ -494,7 +494,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader,
         )
 
         pricing_loader = USEquityPricingLoader(
-            self.bcolz_daily_bar_reader,
+            self.bcolz_equity_daily_bar_reader,
             self.adjustment_reader,
         )
 

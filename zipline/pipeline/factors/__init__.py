@@ -8,6 +8,11 @@ from .events import (
     BusinessDaysSincePreviousEvent,
     BusinessDaysUntilNextEvent,
 )
+from .statistical import (
+    RollingLinearRegressionOfReturns,
+    RollingPearsonOfReturns,
+    RollingSpearmanOfReturns,
+)
 from .technical import (
     Aroon,
     AverageDollarVolume,
@@ -19,9 +24,6 @@ from .technical import (
     FastStochasticOscillator,
     MaxDrawdown,
     Returns,
-    RollingLinearRegressionOfReturns,
-    RollingPearsonOfReturns,
-    RollingSpearmanOfReturns,
     RSI,
     SimpleMovingAverage,
     VWAP,

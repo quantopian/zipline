@@ -103,7 +103,7 @@ class TestMinuteBarData(WithBarDataChecks,
     HILARIOUSLY_ILLIQUID_ASSET_SID = 5
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         # asset1 has trades every minute
         # asset2 has trades every 10 minutes
         # split_asset trades every minute
@@ -111,22 +111,22 @@ class TestMinuteBarData(WithBarDataChecks,
         for sid in (1, cls.SPLIT_ASSET_SID):
             yield sid, create_minute_df_for_asset(
                 cls.trading_schedule,
-                cls.bcolz_minute_bar_days[0],
-                cls.bcolz_minute_bar_days[-1],
+                cls.equity_minute_bar_days[0],
+                cls.equity_minute_bar_days[-1],
             )
 
         for sid in (2, cls.ILLIQUID_SPLIT_ASSET_SID):
             yield sid, create_minute_df_for_asset(
                 cls.trading_schedule,
-                cls.bcolz_minute_bar_days[0],
-                cls.bcolz_minute_bar_days[-1],
+                cls.equity_minute_bar_days[0],
+                cls.equity_minute_bar_days[-1],
                 10,
             )
 
         yield cls.HILARIOUSLY_ILLIQUID_ASSET_SID, create_minute_df_for_asset(
             cls.trading_schedule,
-            cls.bcolz_minute_bar_days[0],
-            cls.bcolz_minute_bar_days[-1],
+            cls.equity_minute_bar_days[0],
+            cls.equity_minute_bar_days[-1],
             50,
         )
 
@@ -167,7 +167,7 @@ class TestMinuteBarData(WithBarDataChecks,
         # grab minutes that include the day before the asset start
         minutes = self.trading_schedule.execution_minutes_for_day(
             self.trading_schedule.previous_execution_day(
-                self.bcolz_minute_bar_days[0]
+                self.equity_minute_bar_days[0]
             )
         )
 
@@ -195,7 +195,7 @@ class TestMinuteBarData(WithBarDataChecks,
 
     def test_regular_minute(self):
         minutes = self.trading_schedule.execution_minutes_for_day(
-            self.bcolz_minute_bar_days[0]
+            self.equity_minute_bar_days[0]
         )
 
         for idx, minute in enumerate(minutes):
@@ -287,7 +287,7 @@ class TestMinuteBarData(WithBarDataChecks,
 
     def test_minute_of_last_day(self):
         minutes = self.trading_schedule.execution_minutes_for_day(
-            self.bcolz_daily_bar_days[-1],
+            self.equity_daily_bar_days[-1],
         )
 
         # this is the last day the assets exist
@@ -300,12 +300,12 @@ class TestMinuteBarData(WithBarDataChecks,
     def test_minute_after_assets_stopped(self):
         minutes = self.trading_schedule.execution_minutes_for_day(
             self.trading_schedule.next_execution_day(
-                self.bcolz_minute_bar_days[-1]
+                self.equity_minute_bar_days[-1]
             )
         )
 
         last_trading_minute = self.trading_schedule.execution_minutes_for_day(
-            self.bcolz_minute_bar_days[-1]
+            self.equity_minute_bar_days[-1]
         )[-1]
 
         # this entire day is after both assets have stopped trading
@@ -347,8 +347,8 @@ class TestMinuteBarData(WithBarDataChecks,
 
         # ... but that's it's not applied when using spot value
         minutes = self.trading_schedule.execution_minutes_for_days_in_range(
-            start=self.bcolz_minute_bar_days[0],
-            end=self.bcolz_minute_bar_days[1]
+            start=self.equity_minute_bar_days[0],
+            end=self.equity_minute_bar_days[1]
         )
 
         for idx, minute in enumerate(minutes):
@@ -362,10 +362,10 @@ class TestMinuteBarData(WithBarDataChecks,
         # on cls.days[1], the first 9 minutes of ILLIQUID_SPLIT_ASSET are
         # missing. let's get them.
         day0_minutes = self.trading_schedule.execution_minutes_for_day(
-            self.bcolz_minute_bar_days[0]
+            self.equity_minute_bar_days[0]
         )
         day1_minutes = self.trading_schedule.execution_minutes_for_day(
-            self.bcolz_minute_bar_days[1]
+            self.equity_minute_bar_days[1]
         )
 
         for idx, minute in enumerate(day0_minutes[-10:-1]):
@@ -396,7 +396,7 @@ class TestMinuteBarData(WithBarDataChecks,
     def test_spot_price_at_midnight(self):
         # make sure that if we try to get a minute price at a non-market
         # minute, we use the previous market close's timestamp
-        day = self.bcolz_minute_bar_days[1]
+        day = self.equity_minute_bar_days[1]
 
         eight_fortyfive_am_eastern = \
             pd.Timestamp("{0}-{1}-{2} 8:45".format(
@@ -439,7 +439,7 @@ class TestMinuteBarData(WithBarDataChecks,
         # make sure that if we use `can_trade` at midnight, we don't pretend
         # we're in the previous day's last minute
         the_day_after = self.trading_schedule.next_execution_day(
-            self.bcolz_minute_bar_days[-1]
+            self.equity_minute_bar_days[-1]
         )
 
         bar_data = BarData(self.data_portal, lambda: the_day_after, "minute")
@@ -453,7 +453,7 @@ class TestMinuteBarData(WithBarDataChecks,
         # but make sure it works when the assets are alive
         bar_data2 = BarData(
             self.data_portal,
-            lambda: self.bcolz_minute_bar_days[1],
+            lambda: self.equity_minute_bar_days[1],
             "minute",
         )
         for asset in [self.ASSET1, self.HILARIOUSLY_ILLIQUID_ASSET]:
@@ -465,7 +465,7 @@ class TestMinuteBarData(WithBarDataChecks,
     def test_is_stale_at_midnight(self):
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_minute_bar_days[1],
+            lambda: self.equity_minute_bar_days[1],
             "minute",
         )
 
@@ -487,7 +487,7 @@ class TestMinuteBarData(WithBarDataChecks,
         )
 
         # Current day is 1/06/16
-        day = self.bcolz_daily_bar_days[1]
+        day = self.equity_daily_bar_days[1]
         eight_fortyfive_am_eastern = \
             pd.Timestamp("{0}-{1}-{2} 8:45".format(
                 day.year, day.month, day.day),
@@ -602,16 +602,16 @@ class TestDailyBarData(WithBarDataChecks,
         )
 
     @classmethod
-    def make_adjustment_writer_daily_bar_reader(cls):
+    def make_adjustment_writer_equity_daily_bar_reader(cls):
         return MockDailyBarReader()
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_daily_df_for_asset(
                 cls.trading_schedule,
-                cls.bcolz_daily_bar_days[0],
-                cls.bcolz_daily_bar_days[-1],
+                cls.equity_daily_bar_days[0],
+                cls.equity_daily_bar_days[-1],
                 interval=2 - sid % 2
             )
 
@@ -642,9 +642,9 @@ class TestDailyBarData(WithBarDataChecks,
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
 
     def test_day_before_assets_trading(self):
-        # use the day before self.bcolz_daily_bar_days[0]
+        # use the day before self.equity_daily_bar_days[0]
         day = self.trading_schedule.previous_execution_day(
-            self.bcolz_daily_bar_days[0]
+            self.equity_daily_bar_days[0]
         )
 
         bar_data = BarData(self.data_portal, lambda: day, "daily")
@@ -668,10 +668,10 @@ class TestDailyBarData(WithBarDataChecks,
                     self.assertTrue(asset_value is pd.NaT)
 
     def test_semi_active_day(self):
-        # on self.bcolz_daily_bar_days[0], only asset1 has data
+        # on self.equity_daily_bar_days[0], only asset1 has data
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_daily_bar_days[0],
+            lambda: self.equity_daily_bar_days[0],
             "daily",
         )
         self.check_internal_consistency(bar_data)
@@ -691,7 +691,7 @@ class TestDailyBarData(WithBarDataChecks,
         self.assertEqual(2, bar_data.current(self.ASSET1, "close"))
         self.assertEqual(200, bar_data.current(self.ASSET1, "volume"))
         self.assertEqual(2, bar_data.current(self.ASSET1, "price"))
-        self.assertEqual(self.bcolz_daily_bar_days[0],
+        self.assertEqual(self.equity_daily_bar_days[0],
                          bar_data.current(self.ASSET1, "last_traded"))
 
         for field in OHLCP:
@@ -706,12 +706,12 @@ class TestDailyBarData(WithBarDataChecks,
     def test_fully_active_day(self):
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_daily_bar_days[1],
+            lambda: self.equity_daily_bar_days[1],
             "daily",
         )
         self.check_internal_consistency(bar_data)
 
-        # on self.bcolz_daily_bar_days[1], both assets have data
+        # on self.equity_daily_bar_days[1], both assets have data
         for asset in self.ASSETS:
             self.assertTrue(bar_data.can_trade(asset))
             self.assertFalse(bar_data.is_stale(asset))
@@ -723,14 +723,14 @@ class TestDailyBarData(WithBarDataChecks,
             self.assertEqual(300, bar_data.current(asset, "volume"))
             self.assertEqual(3, bar_data.current(asset, "price"))
             self.assertEqual(
-                self.bcolz_daily_bar_days[1],
+                self.equity_daily_bar_days[1],
                 bar_data.current(asset, "last_traded")
             )
 
     def test_last_active_day(self):
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_daily_bar_days[-1],
+            lambda: self.equity_daily_bar_days[-1],
             "daily",
         )
         self.check_internal_consistency(bar_data)
@@ -749,7 +749,7 @@ class TestDailyBarData(WithBarDataChecks,
     def test_after_assets_dead(self):
         # both assets end on self.day[-1], so let's try the next day
         next_day = self.trading_schedule.next_execution_day(
-            self.bcolz_daily_bar_days[-1]
+            self.equity_daily_bar_days[-1]
         )
 
         bar_data = BarData(self.data_portal, lambda: next_day, "daily")
@@ -767,9 +767,10 @@ class TestDailyBarData(WithBarDataChecks,
             last_traded_dt = bar_data.current(asset, "last_traded")
 
             if asset == self.ASSET1:
-                self.assertEqual(self.bcolz_daily_bar_days[-2], last_traded_dt)
+                self.assertEqual(self.equity_daily_bar_days[-2],
+                                 last_traded_dt)
             else:
-                self.assertEqual(self.bcolz_daily_bar_days[1], last_traded_dt)
+                self.assertEqual(self.equity_daily_bar_days[1], last_traded_dt)
 
     @parameterized.expand([
         ("split", 2, 3, 3, 1.5),
@@ -805,7 +806,7 @@ class TestDailyBarData(WithBarDataChecks,
         # ... but that's it's not applied when using spot value
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_daily_bar_days[0],
+            lambda: self.equity_daily_bar_days[0],
             "daily",
         )
         self.assertEqual(
@@ -814,7 +815,7 @@ class TestDailyBarData(WithBarDataChecks,
         )
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_daily_bar_days[1],
+            lambda: self.equity_daily_bar_days[1],
             "daily",
         )
         self.assertEqual(
@@ -826,7 +827,7 @@ class TestDailyBarData(WithBarDataChecks,
         # ILLIQUID_ASSET has no data on days 0 and 2, and a split on day 2
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_daily_bar_days[1],
+            lambda: self.equity_daily_bar_days[1],
             "daily",
         )
         self.assertEqual(
@@ -835,7 +836,7 @@ class TestDailyBarData(WithBarDataChecks,
 
         bar_data = BarData(
             self.data_portal,
-            lambda: self.bcolz_daily_bar_days[2],
+            lambda: self.equity_daily_bar_days[2],
             "daily",
         )
 

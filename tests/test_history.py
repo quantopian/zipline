@@ -25,7 +25,7 @@ from zipline.testing import (
     MockDailyBarReader,
 )
 from zipline.testing.fixtures import (
-    WithBcolzMinuteBarReader,
+    WithBcolzEquityMinuteBarReader,
     WithDataPortal,
     ZiplineTestCase,
     alias,
@@ -223,7 +223,7 @@ class WithHistory(WithDataPortal):
         )
 
     @classmethod
-    def make_adjustment_writer_daily_bar_reader(cls):
+    def make_adjustment_writer_equity_daily_bar_reader(cls):
         return MockDailyBarReader()
 
     def verify_regular_dt(self, idx, dt, mode, fields=None, assets=None):
@@ -447,11 +447,11 @@ MINUTE_FIELD_INFO = {
 
 class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
-    BCOLZ_DAILY_BAR_SOURCE_FROM_MINUTE = True
+    EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
     DATA_PORTAL_FIRST_TRADING_DAY = alias('TRADING_START_DT')
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         data = {}
         sids = {2, 5, cls.SHORT_ASSET_SID, cls.HALF_DAY_TEST_ASSET_SID}
         for sid in sids:
@@ -1314,7 +1314,7 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
 class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         yield 1, cls.create_df_for_asset(
             cls.START_DATE,
             pd.Timestamp('2016-01-30', tz='UTC')
@@ -1715,7 +1715,7 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                                        window_2[self.ASSET2].values)
 
 
-class MinuteToDailyAggregationTestCase(WithBcolzMinuteBarReader,
+class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
                                        ZiplineTestCase):
 
     #    March 2016
@@ -1740,7 +1740,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinuteBarReader,
                             tz='US/Eastern').tz_convert('UTC')
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         # sid data is created so that at least one high is lower than a
         # previous high, and the inverse for low
         yield 1, pd.DataFrame(
@@ -1804,7 +1804,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzMinuteBarReader,
         # needs to be tested.
         self.equity_daily_aggregator = DailyHistoryAggregator(
             self.trading_schedule.schedule.market_open,
-            self.bcolz_minute_bar_reader,
+            self.bcolz_equity_minute_bar_reader,
         )
 
     @parameterized.expand([

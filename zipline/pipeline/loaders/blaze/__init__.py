@@ -1,6 +1,6 @@
 from .core import (
     BlazeLoader,
-    NoDeltasWarning,
+    NoMetaDataWarning,
     from_blaze,
     global_loader,
 )
@@ -9,5 +9,5 @@ __all__ = (
     'BlazeLoader',
     'from_blaze',
     'global_loader',
-    'NoDeltasWarning',
+    'NoMetaDataWarning',
 )

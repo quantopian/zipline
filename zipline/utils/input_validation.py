@@ -209,17 +209,19 @@ def expect_dtypes(**named):
 
     Usage
     -----
-    >>> from numpy import dtype, arange
-    >>> @expect_dtypes(x=dtype(int))
+    >>> from numpy import dtype, arange, int8, float64
+    >>> @expect_dtypes(x=dtype(int8))
     ... def foo(x, y):
     ...    return x, y
     ...
-    >>> foo(arange(3), 'foo')
-    (array([0, 1, 2]), 'foo')
-    >>> foo(arange(3, dtype=float), 'foo')
+    >>> foo(arange(3, dtype=int8), 'foo')
+    (array([0, 1, 2], dtype=int8), 'foo')
+    >>> foo(arange(3, dtype=float64), 'foo')  # doctest: +NORMALIZE_WHITESPACE
+    ...                                       # doctest: +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected an argument with dtype 'int64' for argument 'x', but got dtype 'float64' instead.  # noqa
+    TypeError: ...foo() expected a value with dtype 'int8' for argument 'x',
+    but got 'float64' instead.
     """
     for name, type_ in iteritems(named):
         if not isinstance(type_, (dtype, tuple)):
@@ -278,10 +280,11 @@ def expect_kinds(**named):
     2
     >>> foo(int32(2))
     2
-    >>> foo(float32(2))
+    >>> foo(float32(2))  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
-       ...n
-    TypeError: foo() expected a numpy object of kind 'i' for argument 'x', but got 'f' instead.  # noqa
+       ...
+    TypeError: ...foo() expected a numpy object of kind 'i' for argument 'x',
+    but got 'f' instead.
     """
     for name, kind in iteritems(named):
         if not isinstance(kind, (str, tuple)):
@@ -337,10 +340,11 @@ def expect_types(*_pos, **named):
     ...
     >>> foo(2, '3')
     (2, '3')
-    >>> foo(2.0, '3')
+    >>> foo(2.0, '3')  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected an argument of type 'int' for argument 'x', but got float instead.  # noqa
+    TypeError: ...foo() expected a value of type int for argument 'x',
+    but got float instead.
     """
     if _pos:
         raise TypeError("expect_types() only takes keyword arguments.")
@@ -463,10 +467,11 @@ def expect_element(*_pos, **named):
     'A'
     >>> foo('b')
     'B'
-    >>> foo('c')
+    >>> foo('c')  # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Traceback (most recent call last):
        ...
-    ValueError: foo() expected a value in ('a', 'b') for argument 'x', but got 'c' instead.  # noqa
+    ValueError: ...foo() expected a value in ('a', 'b') for argument 'x',
+    but got 'c' instead.
 
     Notes
     -----
@@ -505,10 +510,12 @@ def expect_dimensions(**dimensions):
     ...
     >>> foo(array([1, 1]), array([[1, 1], [2, 2]]))
     2
-    >>> foo(array([1, 1], array([1, 1])))
+    >>> foo(array([1, 1]), array([1, 1]))  # doctest: +NORMALIZE_WHITESPACE
+    ...                                    # doctest: +ELLIPSIS
     Traceback (most recent call last):
        ...
-    TypeError: foo() expected a 2-D array for argument 'y', but got a 1-D array instead.  # noqa
+    ValueError: ...foo() expected a 2-D array for argument 'y',
+    but got a 1-D array instead.
     """
     def _expect_dimension(expected_ndim):
         def _check(func, argname, argvalue):

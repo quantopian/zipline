@@ -5,11 +5,20 @@ from abc import ABCMeta, abstractproperty
 from bisect import insort
 from weakref import WeakValueDictionary
 
-from numpy import array, dtype as dtype_class, ndarray
+from numpy import (
+    array,
+    dtype as dtype_class,
+    ndarray,
+    searchsorted,
+)
 from six import with_metaclass
+
+from zipline.assets import Asset
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
+    NonExistentAssetInTimeFrame,
+    NonSliceableTerm,
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
@@ -26,15 +35,9 @@ from zipline.utils.numpy_utils import (
     categorical_dtype,
     default_missing_value_for_dtype,
 )
-from zipline.utils.sentinel import sentinel
 
-
-NotSpecified = sentinel(
-    'NotSpecified',
-    'Singleton sentinel value used for Term defaults.',
-)
-
-NotSpecifiedType = type(NotSpecified)
+from .mixins import SingleInputMixin
+from .sentinels import NotSpecified
 
 
 class Term(with_metaclass(ABCMeta, object)):
@@ -53,6 +56,9 @@ class Term(with_metaclass(ABCMeta, object)):
     # Determines if a term is safe to be used as a windowed input.
     window_safe = False
 
+    # The dimensions of the term's output (1D or 2D).
+    ndim = 2
+
     _term_cache = WeakValueDictionary()
 
     def __new__(cls,
@@ -60,6 +66,7 @@ class Term(with_metaclass(ABCMeta, object)):
                 dtype=dtype,
                 missing_value=missing_value,
                 window_safe=NotSpecified,
+                ndim=NotSpecified,
                 # params is explicitly not allowed to be passed to an instance.
                 *args,
                 **kwargs):
@@ -81,6 +88,8 @@ class Term(with_metaclass(ABCMeta, object)):
             dtype = cls.dtype
         if missing_value is NotSpecified:
             missing_value = cls.missing_value
+        if ndim is NotSpecified:
+            ndim = cls.ndim
         if window_safe is NotSpecified:
             window_safe = cls.window_safe
 
@@ -96,6 +105,7 @@ class Term(with_metaclass(ABCMeta, object)):
             dtype=dtype,
             missing_value=missing_value,
             window_safe=window_safe,
+            ndim=ndim,
             params=params,
             *args, **kwargs
         )
@@ -109,6 +119,7 @@ class Term(with_metaclass(ABCMeta, object)):
                     dtype=dtype,
                     missing_value=missing_value,
                     window_safe=window_safe,
+                    ndim=ndim,
                     params=params,
                     *args, **kwargs
                 )
@@ -179,12 +190,19 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         pass
 
+    @expect_types(key=Asset)
+    def __getitem__(self, key):
+        if isinstance(self, LoadableTerm):
+            raise NonSliceableTerm(term=self)
+        return Slice(self, key)
+
     @classmethod
     def _static_identity(cls,
                          domain,
                          dtype,
                          missing_value,
                          window_safe,
+                         ndim,
                          params):
         """
         Return the identity of the Term that would be constructed from the
@@ -197,9 +215,9 @@ class Term(with_metaclass(ABCMeta, object)):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, domain, dtype, missing_value, window_safe, params)
+        return (cls, domain, dtype, missing_value, window_safe, ndim, params)
 
-    def _init(self, domain, dtype, missing_value, window_safe, params):
+    def _init(self, domain, dtype, missing_value, window_safe, ndim, params):
         """
         Parameters
         ----------
@@ -214,6 +232,7 @@ class Term(with_metaclass(ABCMeta, object)):
         self.dtype = dtype
         self.missing_value = missing_value
         self.window_safe = window_safe
+        self.ndim = ndim
 
         for name, value in params:
             if hasattr(self, name):
@@ -498,6 +517,63 @@ class ComputableTerm(Term):
             inputs=self.inputs,
             window_length=self.window_length,
         )
+
+
+class Slice(ComputableTerm, SingleInputMixin):
+    """
+    Term for extracting a single column of a another term's output.
+
+    Parameters
+    ----------
+    term : zipline.pipeline.term.Term
+        The term from which to extract a column of data.
+    asset : zipline.assets.Asset
+        The asset corresponding to the column of `term` to be extracted.
+
+    Notes
+    -----
+    Users should rarely construct instances of `Slice` directly. Instead, they
+    should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
+    """
+    def __new__(cls, term, asset):
+        return super(Slice, cls).__new__(
+            cls,
+            asset=asset,
+            inputs=[term],
+            window_length=0,
+            mask=term.mask,
+            dtype=term.dtype,
+            missing_value=term.missing_value,
+            window_safe=term.window_safe,
+            ndim=1,
+        )
+
+    def __repr__(self):
+        return "{type}({parent_term}, column={asset})".format(
+            type=type(self).__name__,
+            parent_term=type(self.inputs[0]).__name__,
+            asset=self._asset,
+        )
+
+    def _init(self, asset, *args, **kwargs):
+        self._asset = asset
+        return super(Slice, self)._init(*args, **kwargs)
+
+    @classmethod
+    def _static_identity(cls, asset, *args, **kwargs):
+        return (super(Slice, cls)._static_identity(*args, **kwargs), asset)
+
+    def _compute(self, windows, dates, assets, mask):
+        asset = self._asset
+        asset_column = searchsorted(assets.values, asset.sid)
+        if assets[asset_column] != asset.sid:
+            raise NonExistentAssetInTimeFrame(
+                asset=asset, start_date=dates[0], end_date=dates[-1],
+            )
+
+        # Return a 2D array with one column rather than a 1D array of the
+        # column.
+        return windows[0][:, [asset_column]]
 
 
 def validate_dtype(termname, dtype, missing_value):

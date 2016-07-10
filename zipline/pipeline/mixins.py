@@ -1,12 +1,16 @@
 """
 Mixins classes for use with Filters and Factors.
 """
-from numpy import full, recarray
+from numpy import (
+    array,
+    full,
+    recarray,
+)
 
 from zipline.utils.control_flow import nullctx
 from zipline.errors import WindowLengthNotPositive, UnsupportedDataType
 
-from .term import NotSpecified
+from .sentinels import NotSpecified
 
 
 class PositiveWindowLengthMixin(object):
@@ -90,6 +94,7 @@ class CustomTermMixin(object):
                 mask=NotSpecified,
                 dtype=NotSpecified,
                 missing_value=NotSpecified,
+                ndim=NotSpecified,
                 **kwargs):
 
         unexpected_keys = set(kwargs) - set(cls.params)
@@ -110,6 +115,7 @@ class CustomTermMixin(object):
             mask=mask,
             dtype=dtype,
             missing_value=missing_value,
+            ndim=ndim,
             **kwargs
         )
 
@@ -148,29 +154,44 @@ class CustomTermMixin(object):
             out = full(shape, missing_value, dtype=self.dtype)
         return out
 
+    def _format_inputs(self, windows, column_mask):
+        inputs = []
+        for input_ in windows:
+            window = next(input_)
+            if window.shape[1] == 1:
+                # Do not mask single-column inputs.
+                inputs.append(window)
+            else:
+                inputs.append(window[:, column_mask])
+        return inputs
+
     def _compute(self, windows, dates, assets, mask):
         """
         Call the user's `compute` function on each window with a pre-built
         output array.
         """
+        format_inputs = self._format_inputs
         compute = self.compute
         params = self.params
-        out = self._allocate_output(windows, mask.shape)
+        ndim = self.ndim
+
+        shape = (len(mask), 1) if ndim == 1 else mask.shape
+        out = self._allocate_output(windows, shape)
 
         with self.ctx:
             for idx, date in enumerate(dates):
-                col_mask = mask[idx]
-                masked_out = out[idx][col_mask]
-                masked_assets = assets[col_mask]
+                # Never apply a mask to 1D outputs.
+                out_mask = array([True]) if ndim == 1 else mask[idx]
 
-                compute(
-                    date,
-                    masked_assets,
-                    masked_out,
-                    *(next(w)[:, col_mask] for w in windows),
-                    **params
-                )
-                out[idx][col_mask] = masked_out
+                # Mask our inputs as usual.
+                inputs_mask = mask[idx]
+
+                masked_assets = assets[inputs_mask]
+                out_row = out[idx][out_mask]
+                inputs = format_inputs(windows, inputs_mask)
+
+                compute(date, masked_assets, out_row, *inputs, **params)
+                out[idx][out_mask] = out_row
         return out
 
     def short_repr(self):

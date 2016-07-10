@@ -1,6 +1,8 @@
+
+from zipline.errors import UnsupportedPipelineOutput
 from zipline.utils.input_validation import expect_types, optional
 
-from .term import Term, AssetExists
+from .term import AssetExists, ComputableTerm, Term
 from .filters import Filter
 from .graph import TermGraph
 
@@ -34,9 +36,20 @@ class Pipeline(object):
         screen=optional(Filter),
     )
     def __init__(self, columns=None, screen=None):
-
         if columns is None:
             columns = {}
+
+        validate_column = self.validate_column
+        for column_name, term in columns.items():
+            validate_column(column_name, term)
+            if not isinstance(term, ComputableTerm):
+                raise TypeError(
+                    "Column {column_name!r} contains an invalid pipeline term "
+                    "({term}). Did you mean to append '.latest'?".format(
+                        column_name=column_name, term=term,
+                    )
+                )
+
         self._columns = columns
         self._screen = screen
 
@@ -72,12 +85,20 @@ class Pipeline(object):
             Whether to overwrite the existing entry if we already have a column
             named `name`.
         """
+        self.validate_column(name, term)
+
         columns = self.columns
         if name in columns:
             if overwrite:
                 self.remove(name)
             else:
                 raise KeyError("Column '{}' already exists.".format(name))
+
+        if not isinstance(term, ComputableTerm):
+            raise TypeError(
+                "{term} is not a valid pipeline column. Did you mean to "
+                "append '.latest'?".format(term=term)
+            )
 
         self._columns[name] = term
 
@@ -164,3 +185,8 @@ class Pipeline(object):
             return g.jpeg
         else:
             raise ValueError("Unknown graph format %r." % format)
+
+    @staticmethod
+    def validate_column(column_name, term):
+        if term.ndim == 1:
+            raise UnsupportedPipelineOutput(column_name=column_name, term=term)

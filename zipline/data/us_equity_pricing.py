@@ -793,7 +793,7 @@ class SQLiteAdjustmentWriter(object):
     ----------
     conn_or_path : str or sqlite3.Connection
         A handle to the target sqlite database.
-    daily_bar_reader : BcolzDailyBarReader
+    equity_daily_bar_reader : BcolzDailyBarReader
         Daily bar reader to use for dividend writes.
     overwrite : bool, optional, default=False
         If True and conn_or_path is a string, remove any existing files at the
@@ -806,7 +806,7 @@ class SQLiteAdjustmentWriter(object):
 
     def __init__(self,
                  conn_or_path,
-                 daily_bar_reader,
+                 equity_daily_bar_reader,
                  calendar,
                  overwrite=False):
         if isinstance(conn_or_path, sqlite3.Connection):
@@ -823,7 +823,7 @@ class SQLiteAdjustmentWriter(object):
         else:
             raise TypeError("Unknown connection type %s" % type(conn_or_path))
 
-        self._daily_bar_reader = daily_bar_reader
+        self._equity_daily_bar_reader = equity_daily_bar_reader
         self._calendar = calendar
 
     def _write(self, tablename, expected_dtypes, frame):
@@ -929,7 +929,7 @@ class SQLiteAdjustmentWriter(object):
 
         ratios = full(len(amounts), nan)
 
-        daily_bar_reader = self._daily_bar_reader
+        equity_daily_bar_reader = self._equity_daily_bar_reader
 
         effective_dates = full(len(amounts), -1, dtype=int64)
         calendar = self._calendar
@@ -939,7 +939,7 @@ class SQLiteAdjustmentWriter(object):
             day_loc = calendar.get_loc(ex_date, method='bfill')
             prev_close_date = calendar[day_loc - 1]
             try:
-                prev_close = daily_bar_reader.spot_price(
+                prev_close = equity_daily_bar_reader.spot_price(
                     sid, prev_close_date, 'close')
                 if prev_close != 0.0:
                     ratio = 1.0 - amount / prev_close

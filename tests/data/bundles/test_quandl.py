@@ -216,7 +216,7 @@ class QuandlBundleTestCase(ZiplineTestCase):
             assert_equal(equity.end_date, self.asset_end, msg=equity)
 
         cal = self.calendar
-        actual = bundle.daily_bar_reader.load_raw_arrays(
+        actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
             cal[cal.get_loc(self.asset_start, 'bfill')],
             cal[cal.get_loc(self.asset_end, 'ffill')],

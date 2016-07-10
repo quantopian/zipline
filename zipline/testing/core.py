@@ -12,6 +12,7 @@ import operator
 import os
 from os.path import abspath, dirname, join, realpath
 import shutil
+from sys import _getframe
 import tempfile
 
 from logbook import TestHandler
@@ -23,7 +24,7 @@ from six import itervalues, iteritems, with_metaclass
 from six.moves import filter, map
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
-from toolz import concat
+from toolz import concat, curry
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
@@ -41,7 +42,9 @@ from zipline.data.us_equity_pricing import (
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
+from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.input_validation import expect_dimensions
@@ -860,6 +863,7 @@ class SubTestFailures(AssertionError):
         )
 
 
+@nottest
 def subtest(iterator, *_names):
     """
     Construct a subtest in a unittest.
@@ -1149,6 +1153,72 @@ def create_empty_splits_mergers_frame():
     )
 
 
+def make_alternating_boolean_array(shape, first_value=True):
+    """
+    Create a 2D numpy array with the given shape containing alternating values
+    of False, True, False, True,... along each row and each column.
+
+    Examples
+    --------
+    >>> make_alternating_boolean_array((4,4))
+    array([[ True, False,  True, False],
+           [False,  True, False,  True],
+           [ True, False,  True, False],
+           [False,  True, False,  True]], dtype=bool)
+    >>> make_alternating_boolean_array((4,3), first_value=False)
+    array([[False,  True, False],
+           [ True, False,  True],
+           [False,  True, False],
+           [ True, False,  True]], dtype=bool)
+    """
+    if len(shape) != 2:
+        raise ValueError(
+            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+        )
+    alternating = np.empty(shape, dtype=np.bool)
+    for row in alternating:
+        row[::2] = first_value
+        row[1::2] = not(first_value)
+        first_value = not(first_value)
+    return alternating
+
+
+def make_cascading_boolean_array(shape, first_value=True):
+    """
+    Create a numpy array with the given shape containing cascading boolean
+    values, with `first_value` being the top-left value.
+
+    Examples
+    --------
+    >>> make_cascading_boolean_array((4,4))
+    array([[ True,  True,  True, False],
+           [ True,  True, False, False],
+           [ True, False, False, False],
+           [False, False, False, False]], dtype=bool)
+    >>> make_cascading_boolean_array((4,2))
+    array([[ True, False],
+           [False, False],
+           [False, False],
+           [False, False]], dtype=bool)
+    >>> make_cascading_boolean_array((2,4))
+    array([[ True,  True,  True, False],
+           [ True,  True, False, False]], dtype=bool)
+    """
+    if len(shape) != 2:
+        raise ValueError(
+            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+        )
+    cascading = np.full(shape, not(first_value), dtype=np.bool)
+    ending_col = shape[1] - 1
+    for row in cascading:
+        if ending_col > 0:
+            row[:ending_col] = first_value
+            ending_col -= 1
+        else:
+            break
+    return cascading
+
+
 @expect_dimensions(array=2)
 def permute_rows(seed, array):
     """
@@ -1249,7 +1319,8 @@ class tmp_dir(TempDirectory, object):
 
 
 class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
-    """A helper for tmp_bcolz_minute_bar_reader and tmp_bcolz_daily_bar_reader.
+    """A helper for tmp_bcolz_equity_minute_bar_reader and
+    tmp_bcolz_equity_daily_bar_reader.
 
     Parameters
     ----------
@@ -1293,7 +1364,7 @@ class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
             raise
 
 
-class tmp_bcolz_minute_bar_reader(_TmpBarReader):
+class tmp_bcolz_equity_minute_bar_reader(_TmpBarReader):
     """A temporary BcolzMinuteBarReader object.
 
     Parameters
@@ -1310,13 +1381,13 @@ class tmp_bcolz_minute_bar_reader(_TmpBarReader):
 
     See Also
     --------
-    tmp_bcolz_daily_bar_reader
+    tmp_bcolz_equity_daily_bar_reader
     """
     _reader_cls = BcolzMinuteBarReader
     _write = staticmethod(write_bcolz_minute_data)
 
 
-class tmp_bcolz_daily_bar_reader(_TmpBarReader):
+class tmp_bcolz_equity_daily_bar_reader(_TmpBarReader):
     """A temporary BcolzDailyBarReader object.
 
     Parameters
@@ -1333,7 +1404,7 @@ class tmp_bcolz_daily_bar_reader(_TmpBarReader):
 
     See Also
     --------
-    tmp_bcolz_daily_bar_reader
+    tmp_bcolz_equity_daily_bar_reader
     """
     _reader_cls = BcolzDailyBarReader
 
@@ -1374,3 +1445,61 @@ def patch_read_csv(url_map, module=pd, strict=False):
 
     with patch.object(module, 'read_csv', patched_read_csv):
         yield
+
+
+@curry
+def ensure_doctest(f, name=None):
+    """Ensure that an object gets doctested. This is useful for instances
+    of objects like curry or partial which are not discovered by default.
+
+    Parameters
+    ----------
+    f : any
+        The thing to doctest.
+    name : str, optional
+        The name to use in the doctest function mapping. If this is None,
+        Then ``f.__name__`` will be used.
+
+    Returns
+    -------
+    f : any
+       ``f`` unchanged.
+    """
+    _getframe(2).f_globals.setdefault('__test__', {})[
+        f.__name__ if name is None else name
+    ] = f
+    return f
+
+
+####################################
+# Shared factors for pipeline tests.
+####################################
+
+class AssetID(CustomFactor):
+    """
+    CustomFactor that returns the AssetID of each asset.
+
+    Useful for providing a Factor that produces a different value for each
+    asset.
+    """
+    window_length = 1
+    inputs = ()
+
+    def compute(self, today, assets, out):
+        out[:] = assets
+
+
+class AssetIDPlusDay(CustomFactor):
+    window_length = 1
+    inputs = ()
+
+    def compute(self, today, assets, out):
+        out[:] = assets + today.day
+
+
+class OpenPrice(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.open]
+
+    def compute(self, today, assets, out, open):
+        out[:] = open
