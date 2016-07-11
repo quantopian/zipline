@@ -612,6 +612,10 @@ class TradingAlgorithm(object):
                 data = data.swapaxes(0, 2)
 
             if isinstance(data, pd.Panel):
+                # Guard against tz-naive index.
+                if data.major_axis.tz is None:
+                    data.major_axis = data.major_axis.tz_localize('UTC')
+
                 # For compatibility with existing examples allow start/end
                 # to be inferred.
                 if overwrite_sim_params:
