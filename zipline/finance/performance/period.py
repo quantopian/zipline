@@ -550,8 +550,8 @@ class PerformancePeriod(object):
             getattr(self, 'day_trades_remaining', float('inf'))
         account.leverage = getattr(self, 'leverage',
                                    period_stats.gross_leverage)
-        account.net_leverage = period_stats.net_leverage
-
+        account.net_leverage = getattr(self, 'net_leverage',
+                                       period_stats.net_leverage)
         account.net_liquidation = getattr(self, 'net_liquidation',
                                           period_stats.net_liquidation)
         return account
