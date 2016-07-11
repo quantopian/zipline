@@ -194,6 +194,9 @@ class TestMiscellaneousAPI(WithLogger,
                            WithSimParams,
                            WithDataPortal,
                            ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2006-01-03', tz='UTC')
+    END_DATE = pd.Timestamp('2006-01-04', tz='UTC')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
     sids = 1, 2
 
@@ -322,7 +325,7 @@ def handle_data(context, data):
             'arena': 'backtest',
             'data_frequency': 'minute',
             'start': pd.Timestamp('2006-01-03 14:31:00+0000', tz='utc'),
-            'end': pd.Timestamp('2006-12-29 21:00:00+0000', tz='utc'),
+            'end': pd.Timestamp('2006-01-04 21:00:00+0000', tz='utc'),
             'capital_base': 100000.0,
             'platform': 'zipline'
         }
@@ -471,14 +474,14 @@ def handle_data(context, data):
         )
         algo.run(self.data_portal)
 
-        self.assertEqual(len(expected_data), 97530)
+        self.assertEqual(len(expected_data), 780)
         self.assertEqual(collected_data_pre, expected_data)
         self.assertEqual(collected_data_post, expected_data)
 
         self.assertEqual(
             len(function_stack),
-            97530 * 5,
-            'Incorrect number of functions called: %s != 780' %
+            3900,
+            'Incorrect number of functions called: %s != 3900' %
             len(function_stack),
         )
         expected_functions = [pre, handle_data, f, g, post] * 97530
