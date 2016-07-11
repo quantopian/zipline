@@ -152,9 +152,8 @@ class AlgorithmSimulator(object):
             if midnight_dt in algo.capital_changes:
                 # process any capital changes that came overnight
                 change = algo.capital_changes[midnight_dt]
-                log.info('Processing capital change of %s at %s' %
-                         (change, midnight_dt))
-                perf_tracker.process_capital_changes(change, is_interday=True)
+                perf_tracker.process_capital_changes(change, dt,
+                                                     is_interday=True)
 
             # Get the positions before updating the date so that prices are
             # fetched for trading close instead of midnight
@@ -221,10 +220,9 @@ class AlgorithmSimulator(object):
                     # process any capital changes that came between the last
                     # and current minutes
                     change = algo.capital_changes[dt]
-                    log.info('Processing capital change of %s at %s' %
-                             (change, dt))
                     algo.perf_tracker.process_capital_changes(
                         change,
+                        dt,
                         is_interday=False
                     )
             else:

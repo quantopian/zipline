@@ -408,7 +408,7 @@ class TradingAlgorithm(object):
 
         self.benchmark_sid = kwargs.pop('benchmark_sid', None)
 
-        # A dictionary of capital change values keyed by timestamp
+        # A dictionary of capital changes keyed by timestamp
         self.capital_changes = kwargs.pop('capital_changes', {})
 
     def init_engine(self, get_loader):
