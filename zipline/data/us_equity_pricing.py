@@ -210,8 +210,15 @@ class BcolzDailyBarWriter(object):
     def __init__(self, filename, calendar, start_session, end_session):
         self._filename = filename
 
-        assert calendar.is_session(start_session), "Start session is invalid!"
-        assert calendar.is_session(end_session), "End session is invalid!"
+        if start_session != end_session:
+            if not calendar.is_session(start_session):
+                raise ValueError(
+                    "Start session %s is invalid!" % start_session
+                )
+            if not calendar.is_session(end_session):
+                raise ValueError(
+                    "End session %s is invalid!" % end_session
+                )
 
         self._start_session = start_session
         self._end_session = end_session
@@ -1081,6 +1088,12 @@ class SQLiteAdjustmentWriter(object):
         # Second from the dividend payouts, calculate ratios.
         dividend_ratios = self.calc_dividend_ratios(dividends)
         self.write_frame('dividends', dividend_ratios)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.close()
 
     def write(self,
               splits=None,
