@@ -41,6 +41,7 @@ class CachedObject(namedtuple("_CachedObject", "value expires")):
     >>> obj.unwrap(expires)
     1
     >>> obj.unwrap(expires + Timedelta('1 minute'))
+    # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     Expired: 2014-01-01 00:00:00+00:00
@@ -291,7 +292,7 @@ class working_file(object):
         name = self._tmpfile.name
         self._tmpfile.close()
         copyfile(self.name, self._final_path)
-        os.remove(name)
+
 
     def __getattr__(self, attr):
         return getattr(self._tmpfile, attr)
