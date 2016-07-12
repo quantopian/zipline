@@ -95,13 +95,13 @@ class AlgorithmSimulator(object):
         Main generator work loop.
         """
         algo = self.algo
+        emission_rate = algo.perf_tracker.emission_rate
 
         def every_bar(dt_to_use, current_data=self.current_data,
                       handle_data=algo.event_manager.handle_data):
             # called every tick (minute or day).
 
-            if dt_to_use in algo.capital_changes:
-                process_minute_capital_changes(dt_to_use)
+            calculate_minute_capital_changes(dt_to_use)
 
             self.simulation_dt = dt_to_use
             algo.on_dt_changed(dt_to_use)
@@ -149,11 +149,9 @@ class AlgorithmSimulator(object):
 
             perf_tracker = algo.perf_tracker
 
-            if midnight_dt in algo.capital_changes:
-                # process any capital changes that came overnight
-                change = algo.capital_changes[midnight_dt]
-                perf_tracker.process_capital_changes(change, dt,
-                                                     is_interday=True)
+            # process any capital changes that came overnight
+            algo.calculate_capital_changes(
+                midnight_dt, emission_rate=emission_rate, is_interday=True)
 
             # Get the positions before updating the date so that prices are
             # fetched for trading close instead of midnight
@@ -203,33 +201,16 @@ class AlgorithmSimulator(object):
                 def execute_order_cancellation_policy():
                     algo.blotter.execute_cancel_policy(DAY_END)
 
-                def process_minute_capital_changes(dt):
-                    # If we are running daily emission, prices won't
-                    # necessarily be synced at the end of every minute, and we
-                    # need the up-to-date prices for capital change
-                    # calculations. We want to sync the prices as of the
-                    # last market minute, and this is okay from a data portal
-                    # perspective as we have technically not "advanced" to the
-                    # current dt yet.
-                    algo.perf_tracker.position_tracker.sync_last_sale_prices(
-                        self.algo.trading_calendar.previous_minute(dt),
-                        False,
-                        self.data_portal
-                    )
-
+                def calculate_minute_capital_changes(dt):
                     # process any capital changes that came between the last
                     # and current minutes
-                    change = algo.capital_changes[dt]
-                    algo.perf_tracker.process_capital_changes(
-                        change,
-                        dt,
-                        is_interday=False
-                    )
+                    algo.calculate_capital_changes(
+                        dt, emission_rate=emission_rate, is_interday=False)
             else:
                 def execute_order_cancellation_policy():
                     pass
 
-                def process_minute_capital_changes(dt):
+                def calculate_minute_capital_changes(dt):
                     pass
 
             for dt, action in self.clock:
@@ -239,7 +220,7 @@ class AlgorithmSimulator(object):
                     once_a_day(dt)
                 elif action == DAY_END:
                     # End of the day.
-                    if algo.perf_tracker.emission_rate == 'daily':
+                    if emission_rate == 'daily':
                         handle_benchmark(normalize_date(dt))
                     execute_order_cancellation_policy()
 

@@ -242,8 +242,6 @@ class PerformancePeriod(object):
                 del self._payout_last_sale_prices[asset]
 
     def subdivide_period(self, capital_change):
-        self.calculate_performance()
-
         # Apply the capital change to the ending cash
         self.ending_cash += capital_change
 
