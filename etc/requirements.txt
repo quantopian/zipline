@@ -8,13 +8,13 @@ Logbook==0.12.5
 
 # Scientific Libraries
 
-pytz==2015.4
-numpy==1.9.2
+pytz==2016.4
+numpy==1.11.1
 
 # scipy and pandas are required for statsmodels,
 # statsmodels in turn is required for some pandas packages
 scipy==0.15.1
-pandas==0.16.1
+pandas==0.18.1
 pandas-datareader==0.2.1
 # Needed for parts of pandas.stats
 patsy==0.4.0
@@ -38,6 +38,7 @@ contextlib2==0.4.0
 
 # networkx requires decorator
 decorator==4.0.0
+
 # Graph algorithms used by zipline.pipeline
 networkx==1.9.1
 
