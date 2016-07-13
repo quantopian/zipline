@@ -159,11 +159,11 @@ from six import with_metaclass, PY2, itervalues, iteritems
 from toolz import (
     complement,
     compose,
-    concat,
     flip,
     groupby,
     identity,
     memoize,
+    merge,
 )
 import toolz.curried.operator as op
 
@@ -188,6 +188,7 @@ from zipline.utils.input_validation import (
 )
 from zipline.utils.numpy_utils import bool_dtype, categorical_dtype
 from zipline.utils.pandas_utils import sort_values
+from zipline.utils.pool import SequentialPool
 from zipline.utils.preprocess import preprocess
 
 
@@ -915,18 +916,39 @@ class BlazeLoader(dict):
         object.
     data_query_time : time, optional
         The time to use for the data query cutoff.
-    data_query_tz : tzinfo or str
+    data_query_tz : tzinfo or str, optional
         The timezeone to use for the data query cutoff.
+    pool : Pool, optional
+        The pool to use to run blaze queries concurrently. This object must
+        support ``imap_unordered``, ``apply`` and ``apply_async`` methods.
+
+    Attributes
+    ----------
+    pool : Pool
+        The pool to use to run blaze queries concurrently. This object must
+        support ``imap_unordered``, ``apply`` and ``apply_async`` methods.
+        It is possible to change the pool after the loader has been
+        constructed. This allows us to set a new pool for the ``global_loader``
+        like: ``global_loader.pool = multiprocessing.Pool(4)``.
+
+    See Also
+    --------
+    :class:`zipline.utils.pool.SequentialPool`
+    :class:`multiprocessing.Pool`
     """
     @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,
                  dsmap=None,
                  data_query_time=None,
-                 data_query_tz=None):
+                 data_query_tz=None,
+                 pool=SequentialPool()):
         self.update(dsmap or {})
         check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
+
+        # explicitly public
+        self.pool = pool
 
     @classmethod
     @memoize(cache=WeakKeyDictionary())
@@ -948,11 +970,11 @@ class BlazeLoader(dict):
         )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        return dict(
-            concat(map(
+        return merge(
+            self.pool.imap_unordered(
                 partial(self._load_dataset, dates, assets, mask),
-                itervalues(groupby(getdataset, columns))
-            ))
+                itervalues(groupby(getdataset, columns)),
+            ),
         )
 
     def _load_dataset(self, dates, assets, mask, columns):
@@ -1022,21 +1044,22 @@ class BlazeLoader(dict):
             materialized_checkpoints = pd.DataFrame(columns=colnames)
             lower = None
 
-        materialized_expr = collect_expr(expr, lower)
+        materialized_expr = self.pool.apply_async(collect_expr, (expr, lower))
+        materialized_deltas = (
+            self.pool.apply(collect_expr, (deltas, lower))
+            if deltas is not None else
+            pd.DataFrame(columns=colnames)
+        )
+
         if materialized_checkpoints is not None:
             materialized_expr = pd.concat(
                 (
                     materialized_checkpoints,
-                    materialized_expr,
+                    materialized_expr.get(),
                 ),
                 ignore_index=True,
                 copy=False,
             )
-        materialized_deltas = (
-            collect_expr(deltas, lower)
-            if deltas is not None else
-            pd.DataFrame(columns=colnames)
-        )
 
         # It's not guaranteed that assets returned by the engine will contain
         # all sids from the deltas table; filter out such mismatches here.
@@ -1147,23 +1170,24 @@ class BlazeLoader(dict):
                 shape=(len(mask), 1), fill_value=True, dtype=bool_dtype,
             )
 
-        for column_idx, column in enumerate(columns):
-            column_name = column.name
-            yield column, AdjustedArray(
+        return {
+            column: AdjustedArray(
                 column_view(
-                    dense_output[column_name].values.astype(column.dtype),
+                    dense_output[column.name].values.astype(column.dtype),
                 ),
                 mask,
                 adjustments_from_deltas(
                     dates,
                     sparse_output[TS_FIELD_NAME].values,
                     column_idx,
-                    column_name,
+                    column.name,
                     asset_idx,
                     sparse_deltas,
                 ),
                 column.missing_value,
             )
+            for column_idx, column in enumerate(columns)
+        }
 
 global_loader = BlazeLoader.global_instance()
 
