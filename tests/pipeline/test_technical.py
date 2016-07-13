@@ -161,9 +161,9 @@ class TestFastStochasticOscillator(ZiplineTestCase):
         assets = np.arange(3, dtype=np.float64)
         out = np.empty(shape=(3,), dtype=np.float64)
 
-        highs = np.full((50, 3), 3)
-        lows = np.full((50, 3), 2)
-        closes = np.full((50, 3), 4)
+        highs = np.full((50, 3), 3, dtype=np.float64)
+        lows = np.full((50, 3), 2, dtype=np.float64)
+        closes = np.full((50, 3), 4, dtype=np.float64)
 
         fso.compute(today, assets, out, closes, lows, highs)
 
