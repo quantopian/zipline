@@ -1804,6 +1804,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         self.equity_daily_aggregator = DailyHistoryAggregator(
             self.trading_calendar.schedule.market_open,
             self.bcolz_equity_minute_bar_reader,
+            self.trading_calendar
         )
 
     @parameterized.expand([

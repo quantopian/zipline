@@ -14,7 +14,6 @@
 # limitations under the License.
 
 from pandas import Timestamp, Timedelta
-from pandas.tseries.tools import normalize_date
 
 
 class FutureChain(object):
@@ -55,7 +54,7 @@ class FutureChain(object):
         a future chain could not be found.
     """
     def __init__(self, asset_finder, get_datetime, root_symbol,
-                 as_of_date=None):
+                 trading_calendar, as_of_date=None):
         self.root_symbol = root_symbol
 
         # Reference to the algo's AssetFinder for contract lookups
@@ -63,10 +62,14 @@ class FutureChain(object):
         # Reference to the algo's get_datetime to know the current dt
         self._algorithm_get_datetime = get_datetime
 
+        self._trading_calendar = trading_calendar
+
         # If an as_of_date is provided, self._as_of_date uses that
         # value, otherwise None. This attribute backs the as_of_date property.
         if as_of_date:
-            self._as_of_date = normalize_date(as_of_date)
+            self._as_of_date = self._trading_calendar.minute_to_session_label(
+                Timestamp(as_of_date, tz='UTC')
+            )
         else:
             self._as_of_date = None
 
@@ -97,8 +100,8 @@ class FutureChain(object):
         pandas.Timestamp
             The normalized datetime of FutureChain's TradingAlgorithm.
         """
-        return normalize_date(
-            Timestamp(self._algorithm_get_datetime(), tz='UTC')
+        return self._trading_calendar.minute_to_session_label(
+            self._algorithm_get_datetime()
         )
 
     @property
@@ -163,6 +166,7 @@ class FutureChain(object):
             get_datetime=self._algorithm_get_datetime,
             root_symbol=self.root_symbol,
             as_of_date=Timestamp(dt, tz='UTC'),
+            trading_calendar=self._trading_calendar
         )
 
     def offset(self, time_delta):
@@ -179,7 +183,17 @@ class FutureChain(object):
         FutureChain
 
         """
-        return self.as_of(self.as_of_date + Timedelta(time_delta))
+        num_days = Timedelta(time_delta).days
+        window = self._trading_calendar.sessions_window(
+            self.as_of_date, num_days
+        )
+
+        if num_days > 0:
+            new_session = window[-1]
+        else:
+            new_session = window[0]
+
+        return self.as_of(new_session)
 
 
 # http://www.cmegroup.com/product-codes-listing/month-codes.html

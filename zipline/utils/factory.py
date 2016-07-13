@@ -108,38 +108,6 @@ def create_trade_history(sid, prices, amounts, interval, sim_params,
     return trades
 
 
-def create_dividend(sid, payment, declared_date, ex_date, pay_date):
-    div = Event({
-        'sid': sid,
-        'gross_amount': payment,
-        'net_amount': payment,
-        'payment_sid': None,
-        'ratio': None,
-        'declared_date': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
-        'type': DATASOURCE_TYPE.DIVIDEND,
-        'source_id': 'MockDividendSource'
-    })
-    return div
-
-
-def create_stock_dividend(sid, payment_sid, ratio, declared_date,
-                          ex_date, pay_date):
-    return Event({
-        'sid': sid,
-        'payment_sid': payment_sid,
-        'ratio': ratio,
-        'net_amount': None,
-        'gross_amount': None,
-        'dt': pd.tslib.normalize_date(declared_date),
-        'ex_date': pd.tslib.normalize_date(ex_date),
-        'pay_date': pd.tslib.normalize_date(pay_date),
-        'type': DATASOURCE_TYPE.DIVIDEND,
-        'source_id': 'MockDividendSource'
-    })
-
-
 def create_split(sid, ratio, date):
     return Event({
         'sid': sid,

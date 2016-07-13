@@ -20,7 +20,6 @@ import logbook
 import pytz
 import pandas as pd
 from contextlib2 import ExitStack
-from pandas.tseries.tools import normalize_date
 import numpy as np
 
 from itertools import chain, repeat
@@ -1173,7 +1172,8 @@ class TradingAlgorithm(object):
             asset_finder=self.asset_finder,
             get_datetime=self.get_datetime,
             root_symbol=root_symbol,
-            as_of_date=as_of_date
+            as_of_date=as_of_date,
+            trading_calendar=self.trading_calendar
         )
 
     def _calculate_order_value_amount(self, asset, value):
@@ -1184,14 +1184,14 @@ class TradingAlgorithm(object):
         # Make sure the asset exists, and that there is a last price for it.
         # FIXME: we should use BarData's can_trade logic here, but I haven't
         # yet found a good way to do that.
-        normalized_date = normalize_date(self.datetime)
+        session_label = self.current_session_label
 
-        if normalized_date < asset.start_date:
+        if session_label < asset.start_date:
             raise CannotOrderDelistedAsset(
                 msg="Cannot order {0}, as it started trading on"
                     " {1}.".format(asset.symbol, asset.start_date)
             )
-        elif normalized_date > asset.end_date:
+        elif session_label > asset.end_date:
             raise CannotOrderDelistedAsset(
                 msg="Cannot order {0}, as it stopped trading on"
                     " {1}.".format(asset.symbol, asset.end_date)
@@ -1231,9 +1231,8 @@ class TradingAlgorithm(object):
             )
 
         if asset.auto_close_date:
-            day = normalize_date(self.get_datetime())
-
-            if asset.end_date < day < asset.auto_close_date:
+            if asset.end_date < self.current_session_label \
+                    < asset.auto_close_date:
                 # we are between the asset's end date and auto close date,
                 # so warn the user that they can't place an order for this
                 # asset, and return None.
@@ -1500,6 +1499,12 @@ class TradingAlgorithm(object):
             dt = dt.astimezone(tz)
 
         return dt  # datetime.datetime objects are immutable.
+
+    @property
+    def current_session_label(self):
+        return self.trading_calendar.minute_to_session_label(
+            self.get_datetime()
+        )
 
     def update_dividends(self, dividend_frame):
         """
@@ -2192,18 +2197,18 @@ class TradingAlgorithm(object):
         """
         Internal implementation of `pipeline_output`.
         """
-        today = normalize_date(self.get_datetime())
+        current_session_label = self.current_session_label
         try:
-            data = self._pipeline_cache.unwrap(today)
+            data = self._pipeline_cache.unwrap(current_session_label)
         except Expired:
             data, valid_until = self._run_pipeline(
-                pipeline, today, next(chunks),
+                pipeline, current_session_label, next(chunks),
             )
             self._pipeline_cache = CachedObject(data, valid_until)
 
         # Now that we have a cached result, try to return the data for today.
         try:
-            return data.loc[today]
+            return data.loc[current_session_label]
         except KeyError:
             # This happens if no assets passed the pipeline screen on a given
             # day.

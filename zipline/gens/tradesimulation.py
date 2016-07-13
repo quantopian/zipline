@@ -14,7 +14,6 @@
 # limitations under the License.
 from contextlib2 import ExitStack
 from logbook import Logger, Processor
-from pandas.tslib import normalize_date
 from zipline.protocol import BarData
 from zipline.utils.api_support import ZiplineAPI
 from six import viewkeys
@@ -242,7 +241,12 @@ class AlgorithmSimulator(object):
                 elif action == DAY_END:
                     # End of the day.
                     if algo.perf_tracker.emission_rate == 'daily':
-                        handle_benchmark(normalize_date(dt))
+                        handle_benchmark(
+                            self.algo.trading_calendar.minute_to_session_label(
+                                dt
+                            )
+                        )
+
                     execute_order_cancellation_policy()
 
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)

@@ -1008,7 +1008,7 @@ class AssetFinderCachedEquitiesTestCase(AssetFinderTestCase):
         self.asset_finder.rehash_equities()
 
 
-class TestFutureChain(WithAssetFinder, ZiplineTestCase):
+class TestFutureChain(WithAssetFinder, WithTradingCalendar, ZiplineTestCase):
     @classmethod
     def make_futures_info(cls):
         return pd.DataFrame.from_records([
@@ -1042,56 +1042,65 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
             }
         ])
 
+    def create_future_chain(self, date_str_func, root_symbol, as_of_date=None):
+        return FutureChain(
+            self.asset_finder,
+            lambda: pd.Timestamp(date_str_func(), tz='UTC'),
+            root_symbol,
+            self.trading_calendar,
+            as_of_date
+        )
+
     def test_len(self):
         """ Test the __len__ method of FutureChain.
         """
         # Sids 0, 1, & 2 have started, 3 has not yet started, but all are in
         # the chain
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-01', 'CL')
         self.assertEqual(len(cl), 4)
 
         # Sid 0 is still valid on its notice date.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-20', 'CL')
         self.assertEqual(len(cl), 4)
 
         # Sid 0 is now invalid, leaving Sids 1 & 2 valid (and 3 not started).
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-21', 'CL')
         self.assertEqual(len(cl), 3)
 
         # Sid 3 has started, so 1, 2, & 3 are now valid.
-        cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
+        cl = self.create_future_chain(lambda: '2006-02-01', 'CL')
         self.assertEqual(len(cl), 3)
 
         # All contracts are no longer valid.
-        cl = FutureChain(self.asset_finder, lambda: '2006-09-21', 'CL')
+        cl = self.create_future_chain(lambda: '2006-09-21', 'CL')
         self.assertEqual(len(cl), 0)
 
     def test_getitem(self):
         """ Test the __getitem__ method of FutureChain.
         """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-01', 'CL')
         self.assertEqual(cl[0], 0)
         self.assertEqual(cl[1], 1)
         self.assertEqual(cl[2], 2)
 
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-20', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-20', 'CL')
         self.assertEqual(cl[0], 0)
 
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-21', 'CL')
         self.assertEqual(cl[0], 1)
 
-        cl = FutureChain(self.asset_finder, lambda: '2006-02-01', 'CL')
+        cl = self.create_future_chain(lambda: '2006-02-01', 'CL')
         self.assertEqual(cl[-1], 3)
 
     def test_iter(self):
         """ Test the __iter__ method of FutureChain.
         """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-01', 'CL')
         for i, contract in enumerate(cl):
             self.assertEqual(contract, i)
 
         # First contract is now invalid, so sids will be offset by one
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-21', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-21', 'CL')
         for i, contract in enumerate(cl):
             self.assertEqual(contract, i + 1)
 
@@ -1100,23 +1109,25 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
         as expected.
         """
         # Make sure this successfully gets the chain for CL.
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-01', 'CL')
         self.assertEqual(cl.root_symbol, 'CL')
 
         # These root symbols don't exist, so RootSymbolNotFound should
         # be raised immediately.
         with self.assertRaises(RootSymbolNotFound):
-            FutureChain(self.asset_finder, lambda: '2005-12-01', 'CLZ')
+            self.create_future_chain(lambda: '2005-12-01', 'CLZ')
 
         with self.assertRaises(RootSymbolNotFound):
-            FutureChain(self.asset_finder, lambda: '2005-12-01', '')
+            self.create_future_chain(lambda: '2005-12-01', '')
 
     def test_repr(self):
         """ Test the __repr__ method of FutureChain.
         """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
-        cl_feb = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL',
-                             as_of_date=pd.Timestamp('2006-02-01', tz='UTC'))
+        cl = self.create_future_chain(lambda: '2005-12-01', 'CL')
+        cl_feb = self.create_future_chain(
+            lambda: '2005-12-01', 'CL',
+            as_of_date=pd.Timestamp('2006-02-01', tz='UTC')
+        )
 
         # The default chain should not include the as of date.
         self.assertEqual(repr(cl), "FutureChain(root_symbol='CL')")
@@ -1131,7 +1142,7 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
     def test_as_of(self):
         """ Test the as_of method of FutureChain.
         """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-01', 'CL')
 
         # Test that the as_of_date is set correctly to the future
         feb = pd.Timestamp('2006-02-01', tz='UTC')
@@ -1177,29 +1188,27 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
         self.assertEqual(cl[0], cl.as_of(pd.Timestamp('2005-12-01'))[0])
 
     def test_offset(self):
-        """ Test the offset method of FutureChain.
-        """
-        cl = FutureChain(self.asset_finder, lambda: '2005-12-01', 'CL')
+        cl = self.create_future_chain(lambda: '2005-12-01', 'CL')
 
         # Test that an offset forward sets as_of_date as expected
         self.assertEqual(
             cl.offset('3 days').as_of_date,
-            cl.as_of_date + pd.Timedelta(days=3)
+            self.trading_calendar.sessions_window(cl.as_of_date, 3)[-1]
         )
 
         # Test that an offset backward sets as_of_date as expected, with
         # time delta given as str, datetime.timedelta, and pd.Timedelta.
         self.assertEqual(
             cl.offset('-1000 days').as_of_date,
-            cl.as_of_date + pd.Timedelta(days=-1000)
+            self.trading_calendar.sessions_window(cl.as_of_date, -1000)[0]
         )
         self.assertEqual(
             cl.offset(timedelta(days=-1000)).as_of_date,
-            cl.as_of_date + pd.Timedelta(days=-1000)
+            self.trading_calendar.sessions_window(cl.as_of_date, -1000)[0]
         )
         self.assertEqual(
             cl.offset(pd.Timedelta('-1000 days')).as_of_date,
-            cl.as_of_date + pd.Timedelta(days=-1000)
+            self.trading_calendar.sessions_window(cl.as_of_date, -1000)[0]
         )
 
         # An offset of zero should give the original chain.

@@ -62,7 +62,6 @@ from __future__ import division
 import logbook
 
 import pandas as pd
-from pandas.tseries.tools import normalize_date
 
 from zipline.finance.performance.period import PerformancePeriod
 from zipline.errors import NoFurtherDataError
@@ -337,14 +336,14 @@ class PerformanceTracker(object):
         """
         self.position_tracker.sync_last_sale_prices(dt, False, data_portal)
         self.update_performance()
-        todays_date = normalize_date(dt)
+        todays_session = self.trading_calendar.minute_to_session_label(dt)
         account = self.get_account(False)
 
-        bench_returns = self.all_benchmark_returns.loc[todays_date:dt]
+        bench_returns = self.all_benchmark_returns.loc[todays_session:dt]
         # cumulative returns
         bench_since_open = (1. + bench_returns).prod() - 1
 
-        self.cumulative_risk_metrics.update(todays_date,
+        self.cumulative_risk_metrics.update(todays_session,
                                             self.todays_performance.returns,
                                             bench_since_open,
                                             account.leverage)

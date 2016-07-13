@@ -21,7 +21,6 @@ import numpy as np
 import zipline.utils.math_utils as zp_math
 
 import pandas as pd
-from pandas.tseries.tools import normalize_date
 
 from six import iteritems
 
@@ -102,10 +101,9 @@ class RiskMetricsCumulative(object):
         # on the first day.
         self.day_before_start = self.start_session - self.sessions.freq
 
-        last_day = normalize_date(sim_params.end_session)
-        if last_day not in self.sessions:
+        if sim_params.end_session not in self.sessions:
             last_day = pd.tseries.index.DatetimeIndex(
-                [last_day]
+                [sim_params.end_session]
             )
             self.sessions = self.sessions.append(last_day)
 

@@ -20,7 +20,6 @@ from abc import (
 
 from cachetools import LRUCache
 from numpy import around, hstack
-from pandas.tslib import normalize_date
 
 from six import with_metaclass
 
@@ -86,7 +85,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
 
     def __init__(self, trading_calendar, reader, adjustment_reader,
                  sid_cache_size=1000):
-        self.trading_calendar = trading_calendar
+        self._trading_calendar = trading_calendar
         self._reader = reader
         self._adjustments_reader = adjustment_reader
         self._window_blocks = {
@@ -142,15 +141,15 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         out : The adjustments as a dict of loc -> Float64Multiply
         """
         sid = int(asset)
-        start = normalize_date(dts[0])
-        end = normalize_date(dts[-1])
+        start_session = self._trading_calendar.minute_to_session_label(dts[0])
+        end_session = self._trading_calendar.minute_to_session_label(dts[-1])
         adjs = {}
         if field != 'volume':
             mergers = self._adjustments_reader.get_adjustments_for_sid(
                 'mergers', sid)
             for m in mergers:
                 dt = m[0]
-                if start < dt <= end:
+                if start_session < dt <= end_session:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
                     if is_perspective_after:
@@ -171,7 +170,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
                 'dividends', sid)
             for d in divs:
                 dt = d[0]
-                if start < dt <= end:
+                if start_session < dt <= end_session:
                     end_loc = dts.searchsorted(dt)
                     adj_loc = end_loc
                     if is_perspective_after:
@@ -192,7 +191,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
             'splits', sid)
         for s in splits:
             dt = s[0]
-            if start < dt <= end:
+            if start_session < dt <= end_session:
                 if field == 'volume':
                     ratio = 1.0 / s[1]
                 else:
@@ -406,7 +405,7 @@ class USEquityMinuteHistoryLoader(USEquityHistoryLoader):
 
     @lazyval
     def _calendar(self):
-        mm = self.trading_calendar.all_minutes
+        mm = self._trading_calendar.all_minutes
         return mm[mm.slice_indexer(start=self._reader.first_trading_day,
                                    end=self._reader.last_available_dt)]
 

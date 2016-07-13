@@ -144,6 +144,8 @@ class SimulationParameters(object):
         # chop off any minutes or hours on the given start and end dates,
         # as we only support session labels here (and we represent session
         # labels as midnight UTC).
+
+        # intentionally using normalize_date here.
         self._start_session = normalize_date(start_session)
         self._end_session = normalize_date(end_session)
         self._capital_base = capital_base

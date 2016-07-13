@@ -653,13 +653,13 @@ def handle_data(context, data):
         self.assertEqual(cl.as_of_date, algo.datetime)
 
         # Check the fields are set correctly if an as_of_date is supplied
-        as_of_date = pd.Timestamp('1952-08-11', tz='UTC')
+        as_of_date = pd.Timestamp('1992-08-11', tz='UTC')
 
         cl = algo.future_chain('CL', as_of_date=as_of_date)
         self.assertEqual(cl.root_symbol, 'CL')
         self.assertEqual(cl.as_of_date, as_of_date)
 
-        cl = algo.future_chain('CL', as_of_date='1952-08-11')
+        cl = algo.future_chain('CL', as_of_date='1992-08-11')
         self.assertEqual(cl.root_symbol, 'CL')
         self.assertEqual(cl.as_of_date, as_of_date)
 

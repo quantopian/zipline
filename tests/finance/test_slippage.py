@@ -23,7 +23,6 @@ import pytz
 from nose_parameterized import parameterized
 
 import pandas as pd
-from pandas.tslib import normalize_date
 
 from zipline.finance.slippage import VolumeShareSlippage
 
@@ -88,8 +87,10 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
             )),
         )
         days = pd.date_range(
-            start=normalize_date(self.minutes[0]),
-            end=normalize_date(self.minutes[-1])
+            start=self.trading_calendar.minute_to_session_label(
+                self.minutes[0]
+            ),
+            end=self.trading_calendar.minute_to_session_label(self.minutes[-1])
         )
         with tmp_bcolz_equity_minute_bar_reader(self.trading_calendar, days, assets) \
                 as reader:
@@ -478,8 +479,10 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
             )),
         )
         days = pd.date_range(
-            start=normalize_date(self.minutes[0]),
-            end=normalize_date(self.minutes[-1])
+            start=self.trading_calendar.minute_to_session_label(
+                self.minutes[0]
+            ),
+            end=self.trading_calendar.minute_to_session_label(self.minutes[-1])
         )
         with tmp_bcolz_equity_minute_bar_reader(self.trading_calendar, days, assets) \
                 as reader:
