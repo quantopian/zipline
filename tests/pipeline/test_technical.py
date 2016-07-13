@@ -1,6 +1,7 @@
 from __future__ import division
 
 from nose_parameterized import parameterized
+from six.moves import range
 import numpy as np
 import pandas as pd
 import talib
@@ -358,16 +359,24 @@ class IchimokuKinkoHyoTestCase(ZiplineTestCase):
 
 
 class TestRateOfChangePercentage(ZiplineTestCase):
-    def test_rate_of_change_per(self):
+    @parameterized.expand([
+        ('constant', [2.] * 10, 0.0),
+        ('step', [2.] + [1.] * 9, -50.0),
+        ('linear', [2. + x for x in range(10)], 450.0),
+        ('quadratic', [2. + x**2 for x in range(10)], 4050.0),
+    ])
+    def test_rate_of_change_percentage(self, test_name, data, expected):
+        window_length = len(data)
+
         rocp = RateOfChangePercentage(
             inputs=(USEquityPricing.close,),
-            window_length=10
+            window_length=window_length,
         )
         today = pd.Timestamp('2014')
         assets = np.arange(5, dtype=np.int64)
+        # broadcast data across assets
+        data = np.array(data)[:, np.newaxis] * np.ones(len(assets))
 
-        data = np.ones((10, 5))
-        data[0, :] = np.full((1, 5), 2.0)
-        out = np.zeros(data.shape[1])
+        out = np.zeros(len(assets))
         rocp.compute(today, assets, out, data)
-        assert_equal(out, np.full((5,), -50.0))
+        assert_equal(out, np.full((len(assets),), expected))
