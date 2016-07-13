@@ -1,6 +1,8 @@
+from contextlib import contextmanager
 import datetime
 from functools import partial
 import inspect
+import re
 
 from nose.tools import (  # noqa
     assert_almost_equal,
@@ -203,6 +205,47 @@ def assert_is_subclass(subcls, cls, msg=''):
             msg,
         )
     )
+
+
+def assert_regex(result, expected, msg=''):
+    """Assert that ``expected`` matches the result.
+
+    Parameters
+    ----------
+    result : str
+        The string to search.
+    expected : str or compiled regex
+        The pattern to search for in ``result``.
+    msg : str, optional
+        An extra assertion message to print if this fails.
+    """
+    assert re.search(expected, result), (
+        '%s%r not found in %r' % (_fmt_msg(msg), expected, result)
+    )
+
+
+@contextmanager
+def assert_raises_regex(exc, pattern, msg=''):
+    """Assert that some exception is raised in a context and that the message
+    matches some pattern.
+
+    Parameters
+    ----------
+    exc : type or tuple[type]
+        The exception type or types to expect.
+    pattern : str or compiled regex
+        The pattern to search for in the str of the raised exception.
+    msg : str, optional
+        An extra assertion message to print if this fails.
+    """
+    try:
+        yield
+    except exc as e:
+        assert re.search(pattern, str(e)), (
+            '%s%r not found in %r' % (_fmt_msg(msg), pattern, str(e))
+        )
+    else:
+        raise AssertionError('%s%s was not raised' % (_fmt_msg(msg), exc))
 
 
 @dispatch(object, object)

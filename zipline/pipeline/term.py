@@ -3,6 +3,7 @@ Base class for Filters, Factors and Classifiers
 """
 from abc import ABCMeta, abstractproperty
 from bisect import insort
+from collections import Mapping
 from weakref import WeakValueDictionary
 
 from numpy import (
@@ -146,10 +147,16 @@ class Term(with_metaclass(ABCMeta, object)):
         TypeError
             Raised if any parameter values are not passed or not hashable.
         """
+        params = cls.params
+        if not isinstance(params, Mapping):
+            params = {k: NotSpecified for k in params}
         param_values = []
-        for key in cls.params:
+        for key, default_value in params.items():
             try:
-                value = kwargs.pop(key)
+                value = kwargs.pop(key, default_value)
+                if value is NotSpecified:
+                    raise KeyError(key)
+
                 # Check here that the value is hashable so that we fail here
                 # instead of trying to hash the param values tuple later.
                 hash(value)
@@ -171,8 +178,8 @@ class Term(with_metaclass(ABCMeta, object)):
                     )
                 )
 
-            param_values.append(value)
-        return tuple(zip(cls.params, param_values))
+            param_values.append((key, value))
+        return tuple(param_values)
 
     def __init__(self, *args, **kwargs):
         """
