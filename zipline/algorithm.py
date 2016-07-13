@@ -37,8 +37,7 @@ from six import (
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
-from zipline.data.us_equity_pricing import PanelDailyBarReader
-from zipline.data.minute_bars import PanelMinuteBarReader
+from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     HistoryInInitialize,
@@ -649,29 +648,19 @@ class TradingAlgorithm(object):
                 )
 
                 if self.sim_params.data_frequency == 'daily':
-                    equity_daily_reader = PanelDailyBarReader(
-                        self.trading_calendar.all_sessions,
-                        copy_panel,
-                    )
-                    self.data_portal = DataPortal(
-                        self.asset_finder,
-                        self.trading_calendar,
-                        first_trading_day=equity_daily_reader
-                            .first_trading_day,
-                        equity_daily_reader=equity_daily_reader,
-                    )
+                    equity_reader_arg = 'equity_daily_reader'
+                    calendar = self.trading_calendar.all_sessions
                 elif self.sim_params.data_frequency == 'minute':
-                    equity_minute_reader = PanelMinuteBarReader(
-                        self.trading_calendar.all_minutes,
-                        copy_panel,
-                    )
-                    self.data_portal = DataPortal(
-                        self.asset_finder,
-                        self.trading_calendar,
-                        first_trading_day=equity_minute_reader
-                            .first_trading_day,
-                        equity_minute_reader=equity_minute_reader,
-                    )
+                    equity_reader_arg = 'equity_minute_reader'
+                    calendar = self.trading_calendar.all_minutes
+                equity_reader = PanelBarReader(calendar, copy_panel)
+
+                self.data_portal = DataPortal(
+                    self.asset_finder,
+                    self.trading_calendar,
+                    first_trading_day=equity_reader.first_trading_day,
+                    **{equity_reader_arg: equity_reader}
+                )
 
         # Force a reset of the performance tracker, in case
         # this is a repeat run of the algorithm.

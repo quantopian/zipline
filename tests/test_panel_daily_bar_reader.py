@@ -18,7 +18,7 @@ from itertools import permutations, product
 import numpy as np
 import pandas as pd
 
-from zipline.data.us_equity_pricing import PanelDailyBarReader
+from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.testing import ExplodingObject
 from zipline.testing.fixtures import (
     WithAssetFinder,
@@ -55,7 +55,7 @@ class TestPanelDailyBarReader(WithAssetFinder,
             minor_axis=minor_axis,
         )
 
-        cls.reader = PanelDailyBarReader(days, cls.panel)
+        cls.reader = PanelBarReader(days, cls.panel)
 
     def test_spot_price(self):
         panel = self.panel
@@ -83,7 +83,7 @@ class TestPanelDailyBarReader(WithAssetFinder,
         for axis_order in permutations((0, 1, 2)):
             transposed = panel.transpose(*axis_order)
             with self.assertRaises(ValueError) as e:
-                PanelDailyBarReader(unused, transposed)
+                PanelBarReader(unused, transposed)
 
             expected = (
                 "Duplicate entries in Panel.{name}: ['a', 'b'].".format(

@@ -35,15 +35,15 @@ from numpy import (
     issubdtype,
     nan,
     uint32,
-    zeros,
 )
 from pandas import (
     DataFrame,
     read_csv,
     Timestamp,
     NaT,
-    isnull,
-    DatetimeIndex)
+    DatetimeIndex
+)
+from pandas.core.datetools import normalize_date
 from pandas.tslib import iNaT
 from six import (
     iteritems,
@@ -746,7 +746,7 @@ class BcolzDailyBarReader(DailyBarReader):
             return price
 
 
-class PanelDailyBarReader(DailyBarReader):
+class PanelBarReader(DailyBarReader):
     """
     Reader for data passed as Panel.
 
@@ -777,7 +777,7 @@ class PanelDailyBarReader(DailyBarReader):
             # Fake volume if it does not exist.
             panel.loc[:, :, 'volume'] = int(1e9)
 
-        self.first_trading_day = panel.major_axis[0]
+        self.first_trading_day = normalize_date(panel.major_axis[0])
         self._calendar = calendar
 
         self.panel = panel
@@ -788,28 +788,28 @@ class PanelDailyBarReader(DailyBarReader):
 
     @property
     def last_available_dt(self):
-        return self._calendar[-1]
+        # Returns the last Panel index that is on the calendar.
+        # The slice end is converted from dt to date string so that
+        # dts on the last day of the calendar get included.
+        return self.panel.major_axis[
+            self.panel.major_axis.slice_indexer(
+                end=self._calendar[-1].strftime('%Y-%m-%d')
+            )
+        ][-1]
 
     @property
     def trading_calendar(self):
         return None
 
-    def load_raw_arrays(self, columns, start_date, end_date, assets):
-        columns = list(columns)
+    def load_raw_arrays(self, columns, start_dt, end_dt, assets):
         cal = self._calendar
-        index = cal[cal.slice_indexer(start_date, end_date)]
-        shape = (len(index), len(assets))
-        results = []
-        for col in columns:
-            outbuf = zeros(shape=shape)
-            for i, asset in enumerate(assets):
-                data = self.panel.loc[asset, start_date:end_date, col]
-                data = data.reindex_axis(index).values
-                outbuf[:, i] = data
-            results.append(outbuf)
-        return results
+        return self.panel.loc[
+            list(assets),
+            start_dt:end_dt,
+            list(columns)
+        ].reindex(major_axis=cal[cal.slice_indexer(start_dt, end_dt)]).values.T
 
-    def spot_price(self, sid, day, colname):
+    def spot_price(self, sid, dt, colname):
         """
         Parameters
         ----------
@@ -829,7 +829,9 @@ class PanelDailyBarReader(DailyBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        return self.panel.loc[sid, day, colname]
+        return self.panel.loc[sid, dt, colname]
+
+    get_value = spot_price
 
     def get_last_traded_dt(self, sid, dt):
         """
@@ -845,12 +847,9 @@ class PanelDailyBarReader(DailyBarReader):
         pd.Timestamp : The last know dt for the asset and dt;
                        NaT if no trade is found before the given dt.
         """
-        while dt in self.panel.major_axis:
-            freq = self.panel.major_axis.freq
-            if not isnull(self.panel.loc[sid, dt, 'close']):
-                return dt
-            dt -= freq
-        else:
+        try:
+            return self.panel.loc[sid, :dt, 'close'].last_valid_index()
+        except IndexError:
             return NaT
 
 
