@@ -601,14 +601,7 @@ class RateOfChangePercentage(CustomFactor):
     Formula for calculation: ((price - prevPrice) / prevPrice) * 100
     price - the current price
     prevPrice - the price n days ago, equals window length
-
-    **Default Inputs**: [USEquityPricing.close]
-    **Default Window Length**: 10
-
     """
-    inputs = (USEquityPricing.close,)
-    window_length = 10
-
     def compute(self, today, assets, out, close):
         today_close = close[-1]
         prev_close = close[0]
