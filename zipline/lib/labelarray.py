@@ -475,9 +475,6 @@ class LabelArray(ndarray):
     )
 
     def __repr__(self):
-        # This happens if you call a ufunc on a LabelArray that changes the
-        # dtype.  This is generally an indicator that the array has been used
-        # incorrectly, and it means we're no longer valid for anything.
         repr_lines = repr(self.as_string_array()).splitlines()
         repr_lines[0] = repr_lines[0].replace('array(', 'LabelArray(', 1)
         repr_lines[-1] = repr_lines[-1].rsplit(',', 1)[0] + ')'
