@@ -35,7 +35,7 @@ from zipline.assets.asset_db_schema import (
     version_info,
 )
 
-from zipline.utils.range import from_tuple, intersecting_ranges, range
+from zipline.utils.range import from_tuple, intersecting_ranges
 
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple(
