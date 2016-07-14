@@ -280,13 +280,14 @@ class BcolzMinuteBarWriter(object):
                  minutes_per_day,
                  ohlc_ratio=OHLC_RATIO,
                  expectedlen=DEFAULT_EXPECTEDLEN):
+
         self._rootdir = rootdir
         self._first_trading_day = first_trading_day
         self._market_opens = market_opens[
             market_opens.index.slice_indexer(start=self._first_trading_day)]
         self._market_closes = market_closes[
             market_closes.index.slice_indexer(start=self._first_trading_day)]
-        self._trading_days = market_opens.index
+        self._trading_days = self._market_opens.index
         self._minutes_per_day = minutes_per_day
         self._expectedlen = expectedlen
         self._ohlc_ratio = ohlc_ratio

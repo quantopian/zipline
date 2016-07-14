@@ -228,8 +228,8 @@ def select_treasury_duration(start_date, end_date):
     return treasury_duration
 
 
-def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
-                    trading_schedule, compound=True):
+def choose_treasury(select_treasury, treasury_curves, start_session,
+                    end_session, trading_calendar, compound=True):
     """
     Find the latest known interest rate for a given duration within a date
     range.
@@ -237,48 +237,47 @@ def choose_treasury(select_treasury, treasury_curves, start_date, end_date,
     If we find one but it's more than a trading day ago from the date we're
     looking for, then we log a warning
     """
-    treasury_duration = select_treasury(start_date, end_date)
-    end_day = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    treasury_duration = select_treasury(start_session, end_session)
     search_day = None
 
-    if end_day in treasury_curves.index:
+    if end_session in treasury_curves.index:
         rate = get_treasury_rate(treasury_curves,
                                  treasury_duration,
-                                 end_day)
+                                 end_session)
         if rate is not None:
-            search_day = end_day
+            search_day = end_session
 
     if not search_day:
         # in case end date is not a trading day or there is no treasury
         # data, search for the previous day with an interest rate.
         search_days = treasury_curves.index
 
-        # Find rightmost value less than or equal to end_day
-        i = search_days.searchsorted(end_day)
+        # Find rightmost value less than or equal to end_session
+        i = search_days.searchsorted(end_session)
         for prev_day in search_days[i - 1::-1]:
             rate = get_treasury_rate(treasury_curves,
                                      treasury_duration,
                                      prev_day)
             if rate is not None:
                 search_day = prev_day
-                search_dist = trading_schedule.execution_day_distance(
-                    end_date, prev_day
+                search_dist = trading_calendar.session_distance(
+                    end_session, prev_day
                 )
                 break
 
         if search_day:
             if (search_dist is None or search_dist > 1) and \
-                    search_days[0] <= end_day <= search_days[-1]:
+                    search_days[0] <= end_session <= search_days[-1]:
                 message = "No rate within 1 trading day of end date = \
 {dt} and term = {term}. Using {search_day}. Check that date doesn't exceed \
 treasury history range."
-                message = message.format(dt=end_date,
+                message = message.format(dt=end_session,
                                          term=treasury_duration,
                                          search_day=search_day)
                 log.warn(message)
 
     if search_day:
-        td = end_date - start_date
+        td = end_session - start_session
         if compound:
             return rate * (td.days + 1) / 365
         else:
@@ -287,7 +286,7 @@ treasury history range."
     message = "No rate for end date = {dt} and term = {term}. Check \
 that date doesn't exceed treasury history range."
     message = message.format(
-        dt=end_date,
+        dt=end_session,
         term=treasury_duration
     )
     raise Exception(message)

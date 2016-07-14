@@ -82,7 +82,7 @@ from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
-    WithTradingSchedule,
+    WithTradingCalendar,
 )
 
 
@@ -396,7 +396,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
             TestFuture.asset_finder.lookup_future_symbol('XXX99')
 
 
-class AssetFinderTestCase(WithTradingSchedule, ZiplineTestCase):
+class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
     asset_finder_type = AssetFinder
 
     def write_assets(self, **kwargs):
@@ -776,7 +776,7 @@ class AssetFinderTestCase(WithTradingSchedule, ZiplineTestCase):
 
     def test_compute_lifetimes(self):
         num_assets = 4
-        trading_day = self.trading_schedule.day
+        trading_day = self.trading_calendar.day
         first_start = pd.Timestamp('2015-04-01', tz='UTC')
 
         frame = make_rotating_equity_info(

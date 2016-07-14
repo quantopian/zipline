@@ -18,7 +18,7 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
     columns = 'open', 'high', 'low', 'close', 'volume'
     asset_start = pd.Timestamp('2014-01-02', tz='utc')
     asset_end = pd.Timestamp('2014-12-31', tz='utc')
-    trading_days = get_calendar('NYSE').all_trading_days
+    trading_days = get_calendar('NYSE').all_sessions
     calendar = trading_days[
         (trading_days >= asset_start) &
         (trading_days <= asset_end)

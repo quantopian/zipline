@@ -27,7 +27,7 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         super(TestDataPortal, self).init_instance_fixtures()
 
         self.data_portal = DataPortal(self.env.asset_finder,
-                                      self.trading_schedule,
+                                      self.trading_calendar,
                                       first_trading_day=None)
 
     def test_bar_count_for_simple_transforms(self):
@@ -42,7 +42,7 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # half an hour into july 9, getting a 4-"day" window should get us
         # all the minutes of 7/6, 7/7, 7/8, and 31 minutes of 7/9
 
-        july_9_dt = self.trading_schedule.start_and_end(
+        july_9_dt = self.trading_calendar.open_and_close_for_session(
             pd.Timestamp("2015-07-09", tz='UTC')
         )[0] + Timedelta("30 minutes")
 
@@ -65,7 +65,7 @@ class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
         # half an hour into nov 30, getting a 4-"day" window should get us
         # all the minutes of 11/24, 11/25, 11/27 (half day!), and 31 minutes
         # of 11/30
-        nov_30_dt = self.trading_schedule.start_and_end(
+        nov_30_dt = self.trading_calendar.open_and_close_for_session(
             pd.Timestamp("2015-11-30", tz='UTC')
         )[0] + Timedelta("30 minutes")
 

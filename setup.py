@@ -96,7 +96,11 @@ ext_modules = [
     Extension(
         'zipline.data._minute_bar_internal',
         ['zipline/data/_minute_bar_internal.pyx']
-    )
+    ),
+    Extension(
+        'zipline.utils.calendars._calendar_helpers',
+        ['zipline/utils/calendars/_calendar_helpers.pyx']
+    ),
 ]
 
 

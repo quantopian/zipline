@@ -41,12 +41,12 @@ choose_treasury = functools.partial(risk.choose_treasury,
 
 
 class RiskMetricsPeriod(object):
-    def __init__(self, start_date, end_date, returns, trading_schedule,
+    def __init__(self, start_session, end_session, returns, trading_calendar,
                  treasury_curves, benchmark_returns, algorithm_leverages=None):
 
-        if treasury_curves.index[-1] >= start_date:
-            mask = ((treasury_curves.index >= start_date) &
-                    (treasury_curves.index <= end_date))
+        if treasury_curves.index[-1] >= start_session:
+            mask = ((treasury_curves.index >= start_session) &
+                    (treasury_curves.index <= end_session))
 
             self.treasury_curves = treasury_curves[mask]
         else:
@@ -54,16 +54,16 @@ class RiskMetricsPeriod(object):
             # so we'll use the last available treasury curve
             self.treasury_curves = treasury_curves[-1:]
 
-        self.start_date = start_date
-        self.end_date = end_date
-        self.trading_schedule = trading_schedule
+        self._start_session = start_session
+        self._end_session = end_session
+        self.trading_calendar = trading_calendar
 
-        trading_dates = trading_schedule.trading_dates(
-            start=self.start_date,
-            end=self.end_date,
+        trading_sessions = trading_calendar.sessions_in_range(
+            self._start_session,
+            self._end_session,
         )
         self.algorithm_returns = self.mask_returns_to_period(returns,
-                                                             trading_dates)
+                                                             trading_sessions)
 
         # Benchmark needs to be masked to the same dates as the algo returns
         self.benchmark_returns = self.mask_returns_to_period(
@@ -75,7 +75,6 @@ class RiskMetricsPeriod(object):
         self.calculate_metrics()
 
     def calculate_metrics(self):
-
         self.benchmark_period_returns = \
             self.calculate_period_returns(self.benchmark_returns)
 
@@ -90,8 +89,8 @@ class RiskMetricsPeriod(object):
             message = message.format(
                 bm_count=len(self.benchmark_returns),
                 algo_count=len(self.algorithm_returns),
-                start=self.start_date,
-                end=self.end_date
+                start=self._start_session,
+                end=self._end_session
             )
             raise Exception(message)
 
@@ -108,9 +107,9 @@ class RiskMetricsPeriod(object):
             self.algorithm_returns)
         self.treasury_period_return = choose_treasury(
             self.treasury_curves,
-            self.start_date,
-            self.end_date,
-            self.trading_schedule,
+            self._start_session,
+            self._end_session,
+            self.trading_calendar,
         )
         self.sharpe = self.calculate_sharpe()
         # The consumer currently expects a 0.0 value for sharpe in period,
@@ -137,7 +136,7 @@ class RiskMetricsPeriod(object):
         Creates a dictionary representing the state of the risk report.
         Returns a dict object of the form:
         """
-        period_label = self.end_date.strftime("%Y-%m")
+        period_label = self._end_session.strftime("%Y-%m")
         rval = {
             'trading_days': self.num_trading_days,
             'benchmark_volatility': self.benchmark_volatility,
@@ -198,8 +197,8 @@ class RiskMetricsPeriod(object):
 
         trade_day_mask = returns.index.normalize().isin(trading_days)
 
-        mask = ((returns.index >= self.start_date) &
-                (returns.index <= self.end_date) & trade_day_mask)
+        mask = ((returns.index >= self._start_session) &
+                (returns.index <= self._end_session) & trade_day_mask)
 
         returns = returns[mask]
         return returns

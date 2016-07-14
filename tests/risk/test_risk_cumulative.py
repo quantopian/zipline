@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
 import numpy as np
-import pytz
+import pandas as pd
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
@@ -31,20 +30,13 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
     def init_instance_fixtures(self):
         super(TestRisk, self).init_instance_fixtures()
 
-        start_date = datetime.datetime(
-            year=2006,
-            month=1,
-            day=1,
-            hour=0,
-            minute=0,
-            tzinfo=pytz.utc)
-        end_date = datetime.datetime(
-            year=2006, month=12, day=29, tzinfo=pytz.utc)
+        start_session = pd.Timestamp("2006-01-01", tz='UTC')
+        end_session = pd.Timestamp("2006-12-29", tz='UTC')
 
         self.sim_params = SimulationParameters(
-            period_start=start_date,
-            period_end=end_date,
-            trading_schedule=self.trading_schedule,
+            start_session=start_session,
+            end_session=end_session,
+            trading_calendar=self.trading_calendar,
         )
 
         self.algo_returns_06 = factory.create_returns_from_list(
@@ -55,7 +47,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         self.cumulative_metrics_06 = risk.RiskMetricsCumulative(
             self.sim_params,
             treasury_curves=self.env.treasury_curves,
-            trading_schedule=self.trading_schedule,
+            trading_calendar=self.trading_calendar,
         )
 
         for dt, returns in answer_key.RETURNS_DATA.iterrows():

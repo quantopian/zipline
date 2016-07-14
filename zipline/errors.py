@@ -642,7 +642,7 @@ class InvalidCalendarName(ZiplineError):
     Raised when a calendar with an invalid name is requested.
     """
     msg = (
-        "The requested ExchangeCalendar, {calendar_name}, does not exist."
+        "The requested TradingCalendar, {calendar_name}, does not exist."
     )
 
 

@@ -56,8 +56,7 @@ from zipline.errors import (
     CannotOrderDelistedAsset,
     UnsupportedCancelPolicy,
     SetCancelPolicyPostInit,
-    OrderInBeforeTradingStart,
-    ScheduleFunctionWithoutCalendar,
+    OrderInBeforeTradingStart
 )
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.blotter import Blotter
@@ -98,10 +97,8 @@ from zipline.utils.api_support import (
 
 from zipline.utils.input_validation import ensure_upper_case, error_keywords
 from zipline.utils.cache import CachedObject, Expired
-from zipline.utils.calendars import (
-    default_nyse_schedule,
-    ExchangeTradingSchedule,
-)
+from zipline.utils.calendars import get_calendar
+
 import zipline.utils.events
 from zipline.utils.events import (
     EventManager,
@@ -282,9 +279,9 @@ class TradingAlgorithm(object):
             )
 
         # If a schedule has been provided, pop it. Otherwise, use NYSE.
-        self.trading_schedule = kwargs.pop(
-            'trading_schedule',
-            default_nyse_schedule,
+        self.trading_calendar = kwargs.pop(
+            'trading_calendar',
+            get_calendar("NYSE")
         )
 
         # set the capital base
@@ -295,11 +292,7 @@ class TradingAlgorithm(object):
                 capital_base=self.capital_base,
                 start=kwargs.pop('start', None),
                 end=kwargs.pop('end', None),
-                trading_schedule=self.trading_schedule,
-            )
-        else:
-            self.sim_params.update_internal_from_trading_schedule(
-                self.trading_schedule
+                trading_calendar=self.trading_calendar,
             )
 
         self.perf_tracker = None
@@ -427,7 +420,7 @@ class TradingAlgorithm(object):
         if get_loader is not None:
             self.engine = SimplePipelineEngine(
                 get_loader,
-                self.trading_schedule.all_execution_days,
+                self.trading_calendar.all_sessions,
                 self.asset_finder,
             )
         else:
@@ -500,8 +493,8 @@ class TradingAlgorithm(object):
         If the clock property is not set, then create one based on frequency.
         """
         if self.sim_params.data_frequency == 'minute':
-            trading_o_and_c = self.trading_schedule.schedule.ix[
-                self.sim_params.trading_days]
+            trading_o_and_c = self.trading_calendar.schedule.ix[
+                self.sim_params.sessions]
             market_opens = trading_o_and_c['market_open'].values.astype(
                 'datetime64[ns]').astype(np.int64)
             market_closes = trading_o_and_c['market_close'].values.astype(
@@ -510,21 +503,21 @@ class TradingAlgorithm(object):
             minutely_emission = self.sim_params.emission_rate == "minute"
 
             clock = MinuteSimulationClock(
-                self.sim_params.trading_days,
+                self.sim_params.sessions,
                 market_opens,
                 market_closes,
                 minutely_emission
             )
             return clock
         else:
-            return DailySimulationClock(self.sim_params.trading_days)
+            return DailySimulationClock(self.sim_params.sessions)
 
     def _create_benchmark_source(self):
         return BenchmarkSource(
             benchmark_sid=self.benchmark_sid,
             env=self.trading_environment,
-            trading_schedule=self.trading_schedule,
-            trading_days=self.sim_params.trading_days,
+            trading_calendar=self.trading_calendar,
+            sessions=self.sim_params.sessions,
             data_portal=self.data_portal,
             emission_rate=self.sim_params.emission_rate,
         )
@@ -538,12 +531,12 @@ class TradingAlgorithm(object):
             # None so that it will be overwritten here.
             self.perf_tracker = PerformanceTracker(
                 sim_params=self.sim_params,
-                trading_schedule=self.trading_schedule,
+                trading_calendar=self.trading_calendar,
                 env=self.trading_environment,
             )
 
             # Set the dt initially to the period start by forcing it to change.
-            self.on_dt_changed(self.sim_params.period_start)
+            self.on_dt_changed(self.sim_params.start_session)
 
         if not self.initialized:
             self.initialize(*self.initialize_args, **self.initialize_kwargs)
@@ -613,12 +606,9 @@ class TradingAlgorithm(object):
                 # For compatibility with existing examples allow start/end
                 # to be inferred.
                 if overwrite_sim_params:
-                    self.sim_params.period_start = data.major_axis[0]
-                    self.sim_params.period_end = data.major_axis[-1]
-                    # Changing period_start and period_close might require
-                    # updating of first_open and last_close.
-                    self.sim_params.update_internal_from_trading_schedule(
-                        trading_schedule=self.trading_schedule
+                    self.sim_params = self.sim_params.create_new(
+                        data.major_axis[0],
+                        data.major_axis[1]
                     )
 
                 copy_panel = data.rename(
@@ -637,12 +627,12 @@ class TradingAlgorithm(object):
                     )
                 )
                 equity_daily_reader = PanelDailyBarReader(
-                    self.trading_schedule.all_execution_days,
+                    self.trading_calendar.all_sessions,
                     copy_panel,
                 )
                 self.data_portal = DataPortal(
                     self.asset_finder,
-                    self.trading_schedule,
+                    self.trading_calendar,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
@@ -743,8 +733,8 @@ class TradingAlgorithm(object):
         elif new_sids:
             frame_to_write = make_simple_equity_info(
                 new_sids,
-                start_date=self.sim_params.period_start,
-                end_date=self.sim_params.period_end,
+                start_date=self.sim_params.start_session,
+                end_date=self.sim_params.end_session,
                 symbols=map(str, new_sids),
             )
         elif new_symbols:
@@ -754,7 +744,7 @@ class TradingAlgorithm(object):
             frame_to_write = make_simple_equity_info(
                 sids=fake_sids,
                 start_date=as_of_date,
-                end_date=self.sim_params.period_end,
+                end_date=self.sim_params.end_session,
                 symbols=new_symbols,
             )
         else:
@@ -914,9 +904,9 @@ class TradingAlgorithm(object):
             pre_func,
             post_func,
             self.asset_finder,
-            self.trading_schedule.day,
-            self.sim_params.period_start,
-            self.sim_params.period_end,
+            self.trading_calendar.day,
+            self.sim_params.start_session,
+            self.sim_params.end_session,
             date_column,
             date_format,
             timezone,
@@ -992,11 +982,7 @@ class TradingAlgorithm(object):
         # Note that the ExchangeTradingSchedule is currently the only
         # TradingSchedule class, so this is unlikely to be hit
         # TODO The calendar should be a required arg for schedule_function
-        if not isinstance(self.trading_schedule, ExchangeTradingSchedule):
-            raise ScheduleFunctionWithoutCalendar(
-                schedule=self.trading_schedule
-            )
-        cal = self.trading_schedule._exchange_calendar
+        cal = self.trading_calendar
 
         self.add_event(
             make_eventrule(date_rule, time_rule, cal, half_days),
@@ -1074,9 +1060,9 @@ class TradingAlgorithm(object):
         :func:`zipline.api.set_symbol_lookup_date`
         """
         # If the user has not set the symbol lookup date,
-        # use the period_end as the date for sybmol->sid resolution.
+        # use the end_session as the date for sybmol->sid resolution.
         _lookup_date = self._symbol_lookup_date if self._symbol_lookup_date is not None \
-            else self.sim_params.period_end
+            else self.sim_params.end_session
 
         return self.asset_finder.lookup_symbol(
             symbol_str,
@@ -1963,7 +1949,7 @@ class TradingAlgorithm(object):
             # If we are in before_trading_start, we need to get the window
             # as of the previous market minute
             adjusted_dt = \
-                self.data_portal.trading_schedule.previous_execution_minute(
+                self.trading_calendar.previous_minute(
                     self.datetime
                 )
 
@@ -2223,7 +2209,7 @@ class TradingAlgorithm(object):
             # day.
             return pd.DataFrame(index=[], columns=data.columns)
 
-    def _run_pipeline(self, pipeline, start_date, chunksize):
+    def _run_pipeline(self, pipeline, start_session, chunksize):
         """
         Compute `pipeline`, providing values for at least `start_date`.
 
@@ -2241,19 +2227,25 @@ class TradingAlgorithm(object):
         --------
         PipelineEngine.run_pipeline
         """
-        days = self.trading_schedule.all_execution_days
+        sessions = self.trading_calendar.all_sessions
 
         # Load data starting from the previous trading day...
-        start_date_loc = days.get_loc(start_date)
+        start_date_loc = sessions.get_loc(start_session)
 
         # ...continuing until either the day before the simulation end, or
         # until chunksize days of data have been loaded.
-        sim_end = self.sim_params.last_close.normalize()
-        end_loc = min(start_date_loc + chunksize, days.get_loc(sim_end))
-        end_date = days[end_loc]
+        sim_end_session = self.sim_params.end_session
+
+        end_loc = min(
+            start_date_loc + chunksize,
+            sessions.get_loc(sim_end_session)
+        )
+
+        end_session = sessions[end_loc]
 
         return \
-            self.engine.run_pipeline(pipeline, start_date, end_date), end_date
+            self.engine.run_pipeline(pipeline, start_session, end_session), \
+            end_session
 
     ##################
     # End Pipeline API

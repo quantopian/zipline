@@ -198,7 +198,7 @@ class FinanceTestCase(WithLogger,
                     data_frequency="minute"
                 )
 
-                minutes = self.trading_schedule.execution_minute_window(
+                minutes = self.trading_calendar.minutes_window(
                     sim_params.first_open,
                     int((trade_interval.total_seconds() / 60) * trade_count)
                     + 100)
@@ -216,9 +216,15 @@ class FinanceTestCase(WithLogger,
                 }
 
                 write_bcolz_minute_data(
-                    self.trading_schedule,
-                    self.trading_schedule.execution_days_in_range(minutes[0],
-                                                                  minutes[-1]),
+                    self.trading_calendar,
+                    self.trading_calendar.sessions_in_range(
+                        self.trading_calendar.minute_to_session_label(
+                            minutes[0]
+                        ),
+                        self.trading_calendar.minute_to_session_label(
+                            minutes[-1]
+                        )
+                    ),
                     tempdir.path,
                     iteritems(assets),
                 )
@@ -226,7 +232,7 @@ class FinanceTestCase(WithLogger,
                 equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
                 data_portal = DataPortal(
-                    env.asset_finder, self.trading_schedule,
+                    env.asset_finder, self.trading_calendar,
                     first_trading_day=equity_minute_reader.first_trading_day,
                     equity_minute_reader=equity_minute_reader,
                 )
@@ -235,7 +241,7 @@ class FinanceTestCase(WithLogger,
                     data_frequency="daily"
                 )
 
-                days = sim_params.trading_days
+                days = sim_params.sessions
 
                 assets = {
                     1: pd.DataFrame({
@@ -249,12 +255,14 @@ class FinanceTestCase(WithLogger,
                 }
 
                 path = os.path.join(tempdir.path, "testdata.bcolz")
-                BcolzDailyBarWriter(path, days).write(assets.items())
+                BcolzDailyBarWriter(path, days, self.trading_calendar).write(
+                    assets.items()
+                )
 
                 equity_daily_reader = BcolzDailyBarReader(path)
 
                 data_portal = DataPortal(
-                    env.asset_finder, self.trading_schedule,
+                    env.asset_finder, self.trading_calendar,
                     first_trading_day=equity_daily_reader.first_trading_day,
                     equity_daily_reader=equity_daily_reader,
                 )
@@ -275,7 +283,7 @@ class FinanceTestCase(WithLogger,
             else:
                 alternator = 1
 
-            tracker = PerformanceTracker(sim_params, self.trading_schedule,
+            tracker = PerformanceTracker(sim_params, self.trading_calendar,
                                          self.env)
 
             # replicate what tradesim does by going through every minute or day
@@ -391,10 +399,10 @@ class TradingEnvironmentTestCase(WithLogger,
     """
     def test_simulation_parameters(self):
         sp = SimulationParameters(
-            period_start=datetime(2008, 1, 1, tzinfo=pytz.utc),
-            period_end=datetime(2008, 12, 31, tzinfo=pytz.utc),
+            start_session=pd.Timestamp("2008-01-01", tz='UTC'),
+            end_session=pd.Timestamp("2008-12-31", tz='UTC'),
             capital_base=100000,
-            trading_schedule=self.trading_schedule,
+            trading_calendar=self.trading_calendar,
         )
 
         self.assertTrue(sp.last_close.month == 12)
@@ -412,10 +420,10 @@ class TradingEnvironmentTestCase(WithLogger,
         #  27 28 29 30 31
 
         params = SimulationParameters(
-            period_start=datetime(2007, 12, 31, tzinfo=pytz.utc),
-            period_end=datetime(2008, 1, 7, tzinfo=pytz.utc),
+            start_session=pd.Timestamp("2007-12-31", tz='UTC'),
+            end_session=pd.Timestamp("2008-01-07", tz='UTC'),
             capital_base=100000,
-            trading_schedule=self.trading_schedule,
+            trading_calendar=self.trading_calendar,
         )
 
         expected_trading_days = (
@@ -431,6 +439,9 @@ class TradingEnvironmentTestCase(WithLogger,
         )
 
         num_expected_trading_days = 5
-        self.assertEquals(num_expected_trading_days, params.days_in_period)
+        self.assertEquals(
+            num_expected_trading_days,
+            len(params.sessions)
+        )
         np.testing.assert_array_equal(expected_trading_days,
-                                      params.trading_days.tolist())
+                                      params.sessions.tolist())

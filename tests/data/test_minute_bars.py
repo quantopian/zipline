@@ -45,7 +45,7 @@ from zipline.data.minute_bars import (
 
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
-    WithTradingSchedule,
+    WithTradingCalendar,
     ZiplineTestCase,
 )
 
@@ -56,17 +56,20 @@ TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
-class BcolzMinuteBarTestCase(WithTradingSchedule, WithInstanceTmpDir,
+class BcolzMinuteBarTestCase(WithTradingCalendar, WithInstanceTmpDir,
                              ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
         super(BcolzMinuteBarTestCase, cls).init_class_fixtures()
-        trading_days = cls.trading_schedule.trading_sessions(
-            TEST_CALENDAR_START, TEST_CALENDAR_STOP
-        )
-        cls.market_opens = trading_days.market_open
-        cls.market_closes = trading_days.market_close
+
+        cal = cls.trading_calendar.schedule.loc[
+            TEST_CALENDAR_START:TEST_CALENDAR_STOP
+        ]
+
+        cls.market_opens = cal.market_open
+        cls.market_closes = cal.market_close
+
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
 
@@ -798,9 +801,9 @@ class BcolzMinuteBarTestCase(WithTradingSchedule, WithInstanceTmpDir,
         data = {sids[0]: data_1, sids[1]: data_2}
 
         start_minute_loc = \
-            self.trading_schedule.all_execution_minutes.get_loc(minutes[0])
+            self.trading_calendar.all_minutes.get_loc(minutes[0])
         minute_locs = [
-            self.trading_schedule.all_execution_minutes.get_loc(minute)
+            self.trading_calendar.all_minutes.get_loc(minute)
             - start_minute_loc
             for minute in minutes
         ]
@@ -822,9 +825,11 @@ class BcolzMinuteBarTestCase(WithTradingSchedule, WithInstanceTmpDir,
             'close': arange(1, 781),
             'volume': arange(1, 781)
         }
-        dts = array(self.trading_schedule.execution_minutes_for_days_in_range(
-            start_day, end_day
+        dts = array(self.trading_calendar.minutes_for_sessions_in_range(
+            self.trading_calendar.minute_to_session_label(start_day),
+            self.trading_calendar.minute_to_session_label(end_day)
         ))
+
         self.writer.write_cols(sid, dts, cols)
 
         self.assertEqual(
@@ -866,9 +871,13 @@ class BcolzMinuteBarTestCase(WithTradingSchedule, WithInstanceTmpDir,
             'close': arange(1, 601),
             'volume': arange(1, 601)
         }
-        dts = array(self.trading_schedule.execution_minutes_for_days_in_range(
-            start_day, end_day
-        ))
+        dts = array(
+            self.trading_calendar.minutes_for_sessions_in_range(
+                self.trading_calendar.minute_to_session_label(start_day),
+                self.trading_calendar.minute_to_session_label(end_day)
+            )
+        )
+
         self.writer.write_cols(sid, dts, cols)
 
         self.assertEqual(

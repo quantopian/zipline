@@ -14,7 +14,7 @@ from zipline.testing import (
 )
 from zipline.testing.fixtures import (
     WithLogger,
-    WithTradingSchedule,
+    WithTradingCalendar,
     ZiplineTestCase,
 )
 from zipline.utils import factory
@@ -67,7 +67,7 @@ class IterateRLAlgo(TradingAlgorithm):
                 self.found = True
 
 
-class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
+class SecurityListTestCase(WithLogger, WithTradingCalendar, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):
@@ -75,7 +75,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
         # this is ugly, but we need to create two different
         # TradingEnvironment/DataPortal pairs
 
-        start = list(LEVERAGED_ETFS.keys())[0]
+        cls.start = pd.Timestamp(list(LEVERAGED_ETFS.keys())[0])
         end = pd.Timestamp('2015-02-17', tz='utc')
         cls.extra_knowledge_date = pd.Timestamp('2015-01-27', tz='utc')
         cls.trading_day_before_first_kd = pd.Timestamp('2015-01-23', tz='utc')
@@ -83,15 +83,16 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
 
         cls.env = cls.enter_class_context(tmp_trading_env(
             equities=pd.DataFrame.from_records([{
-                'start_date': start,
+                'start_date': cls.start,
                 'end_date': end,
                 'symbol': symbol
             } for symbol in symbols]),
         ))
+
         cls.sim_params = factory.create_simulation_parameters(
-            start=start,
+            start=cls.start,
             num_days=4,
-            trading_schedule=cls.trading_schedule
+            trading_calendar=cls.trading_calendar
         )
 
         cls.sim_params2 = sp2 = factory.create_simulation_parameters(
@@ -100,8 +101,8 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
 
         cls.env2 = cls.enter_class_context(tmp_trading_env(
             equities=pd.DataFrame.from_records([{
-                'start_date': sp2.period_start,
-                'end_date': sp2.period_end,
+                'start_date': sp2.start_session,
+                'end_date': sp2.end_session,
                 'symbol': symbol
             } for symbol in symbols]),
         ))
@@ -114,7 +115,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
             tempdir=cls.tempdir,
             sim_params=cls.sim_params,
             sids=range(0, 5),
-            trading_schedule=cls.trading_schedule,
+            trading_calendar=cls.trading_calendar,
         )
 
         cls.data_portal2 = create_data_portal(
@@ -122,7 +123,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
             tempdir=cls.tempdir2,
             sim_params=cls.sim_params2,
             sids=range(0, 5),
-            trading_schedule=cls.trading_schedule,
+            trading_calendar=cls.trading_calendar,
         )
 
     def test_iterate_over_restricted_list(self):
@@ -136,7 +137,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
         # set the knowledge date to the first day of the
         # leveraged etf knowledge date.
         def get_datetime():
-            return list(LEVERAGED_ETFS.keys())[0]
+            return self.start
 
         rl = SecurityListSet(get_datetime, self.env.asset_finder)
         # assert that a sample from the leveraged list are in restricted
@@ -217,15 +218,16 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
 
     def test_algo_with_rl_violation_after_knowledge_date(self):
         sim_params = factory.create_simulation_parameters(
-            start=list(
-                LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=5)
+            start=self.start + timedelta(days=7),
+            num_days=5
+        )
 
         data_portal = create_data_portal(
             self.env.asset_finder,
             self.tempdir,
             sim_params=sim_params,
             sids=range(0, 5),
-            trading_schedule=self.trading_schedule,
+            trading_calendar=self.trading_calendar,
         )
 
         algo = RestrictedAlgoWithoutCheck(symbol='BZQ',
@@ -243,8 +245,9 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
         set is still disallowed.
         """
         sim_params = factory.create_simulation_parameters(
-            start=list(
-                LEVERAGED_ETFS.keys())[0] + timedelta(days=7), num_days=4)
+            start=self.start + timedelta(days=7),
+            num_days=4
+        )
 
         with security_list_copy():
             add_security_data(['AAPL'], [])
@@ -262,8 +265,8 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
         )
         equities = pd.DataFrame.from_records([{
             'symbol': 'BZQ',
-            'start_date': sim_params.period_start,
-            'end_date': sim_params.period_end,
+            'start_date': sim_params.start_session,
+            'end_date': sim_params.end_session,
         }])
         with TempDirectory() as new_tempdir, \
                 security_list_copy(), \
@@ -277,7 +280,7 @@ class SecurityListTestCase(WithLogger, WithTradingSchedule, ZiplineTestCase):
                 new_tempdir,
                 sim_params,
                 range(0, 5),
-                trading_schedule=self.trading_schedule,
+                trading_calendar=self.trading_calendar,
             )
 
             algo = RestrictedAlgoWithoutCheck(

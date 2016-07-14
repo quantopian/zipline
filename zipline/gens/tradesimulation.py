@@ -51,7 +51,6 @@ class AlgorithmSimulator(object):
         # Algo Setup
         # ==============
         self.algo = algo
-        self.algo_start = normalize_date(self.sim_params.first_open)
 
         # ==============
         # Snapshot Setup
@@ -64,7 +63,6 @@ class AlgorithmSimulator(object):
         # We don't have a datetime for the current snapshot until we
         # receive a message.
         self.simulation_dt = None
-        self.previous_dt = self.algo_start
 
         self.clock = clock
 
@@ -215,9 +213,7 @@ class AlgorithmSimulator(object):
                     # perspective as we have technically not "advanced" to the
                     # current dt yet.
                     algo.perf_tracker.position_tracker.sync_last_sale_prices(
-                        self.algo.trading_schedule.previous_execution_minute(
-                            dt
-                        ),
+                        self.algo.trading_calendar.previous_minute(dt),
                         False,
                         self.data_portal
                     )

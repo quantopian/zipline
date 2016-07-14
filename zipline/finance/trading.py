@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,14 +14,15 @@
 # limitations under the License.
 
 import logbook
-import datetime
-
+import pandas as pd
+from pandas.tslib import normalize_date
 from six import string_types
 from sqlalchemy import create_engine
 
 from zipline.assets import AssetDBWriter, AssetFinder
 from zipline.data.loader import load_market_data
-from zipline.utils.calendars import default_nyse_schedule
+from zipline.utils.calendars import get_calendar
+from zipline.utils.memoize import remember_last
 
 log = logbook.Logger('Trading')
 
@@ -78,7 +79,7 @@ class TradingEnvironment(object):
         load=None,
         bm_symbol='^GSPC',
         exchange_tz="US/Eastern",
-        trading_schedule=default_nyse_schedule,
+        trading_calendar=None,
         asset_db_path=':memory:'
     ):
 
@@ -86,9 +87,12 @@ class TradingEnvironment(object):
         if not load:
             load = load_market_data
 
+        if not trading_calendar:
+            trading_calendar = get_calendar("NYSE")
+
         self.benchmark_returns, self.treasury_curves = load(
-            trading_schedule.day,
-            trading_schedule.schedule.index,
+            trading_calendar.day,
+            trading_calendar.schedule.index,
             self.bm_symbol,
         )
 
@@ -118,86 +122,134 @@ class TradingEnvironment(object):
 
 
 class SimulationParameters(object):
-    def __init__(self, period_start, period_end,
+    def __init__(self, start_session, end_session,
+                 trading_calendar,
                  capital_base=10e3,
                  emission_rate='daily',
                  data_frequency='daily',
-                 trading_schedule=None,
                  arena='backtest'):
 
-        self.period_start = period_start
-        self.period_end = period_end
-        self.capital_base = capital_base
+        assert type(start_session) == pd.Timestamp
+        assert type(end_session) == pd.Timestamp
 
-        self.emission_rate = emission_rate
-        self.data_frequency = data_frequency
-
-        # copied to algorithm's environment for runtime access
-        self.arena = arena
-
-        if trading_schedule is not None:
-            self.update_internal_from_trading_schedule(
-                trading_schedule=trading_schedule
-            )
-
-    def update_internal_from_trading_schedule(self, trading_schedule):
-
-        assert self.period_start <= self.period_end, \
+        assert trading_calendar is not None, \
+            "Must pass in trading calendar!"
+        assert start_session <= end_session, \
             "Period start falls after period end."
-
-        assert self.period_start <= trading_schedule.last_execution_day, \
+        assert start_session <= trading_calendar.last_trading_session, \
             "Period start falls after the last known trading day."
-        assert self.period_end >= trading_schedule.first_execution_day, \
+        assert end_session >= trading_calendar.first_trading_session, \
             "Period end falls before the first known trading day."
 
-        self.first_open = self._calculate_first_open(trading_schedule)
-        self.last_close = self._calculate_last_close(trading_schedule)
+        # chop off any minutes or hours on the given start and end dates,
+        # as we only support session labels here (and we represent session
+        # labels as midnight UTC).
+        self._start_session = normalize_date(start_session)
+        self._end_session = normalize_date(end_session)
+        self._capital_base = capital_base
 
-        # Take the length of an inclusive slice of trading dates
-        self.trading_days = trading_schedule.trading_dates(
-            self.first_open, self.last_close
+        self._emission_rate = emission_rate
+        self._data_frequency = data_frequency
+
+        # copied to algorithm's environment for runtime access
+        self._arena = arena
+
+        self._trading_calendar = trading_calendar
+
+        if not trading_calendar.is_session(self._start_session):
+            # if the start date is not a valid session in this calendar,
+            # push it forward to the first valid session
+            self._start_session = trading_calendar.minute_to_session_label(
+                self._start_session
+            )
+
+        if not trading_calendar.is_session(self._end_session):
+            # if the end date is not a valid session in this calendar,
+            # pull it backward to the last valid session before the given
+            # end date.
+            self._end_session = trading_calendar.minute_to_session_label(
+                self._end_session, direction="previous"
+            )
+
+        self._first_open = trading_calendar.open_and_close_for_session(
+            self._start_session
+        )[0]
+        self._last_close = trading_calendar.open_and_close_for_session(
+            self._end_session
+        )[1]
+
+    @property
+    def capital_base(self):
+        return self._capital_base
+
+    @property
+    def emission_rate(self):
+        return self._emission_rate
+
+    @property
+    def data_frequency(self):
+        return self._data_frequency
+
+    @data_frequency.setter
+    def data_frequency(self, val):
+        self._data_frequency = val
+
+    @property
+    def arena(self):
+        return self._arena
+
+    @arena.setter
+    def arena(self, val):
+        self._arena = val
+
+    @property
+    def start_session(self):
+        return self._start_session
+
+    @property
+    def end_session(self):
+        return self._end_session
+
+    @property
+    def first_open(self):
+        return self._first_open
+
+    @property
+    def last_close(self):
+        return self._last_close
+
+    @property
+    @remember_last
+    def sessions(self):
+        return self._trading_calendar.sessions_in_range(
+            self.start_session,
+            self.end_session
         )
-        self.days_in_period = len(self.trading_days)
 
-    def _calculate_first_open(self, trading_schedule):
-        """
-        Finds the first trading day on or after self.period_start.
-        """
-        first_open = self.period_start
-        one_day = datetime.timedelta(days=1)
-
-        while not trading_schedule.is_executing_on_day(first_open):
-            first_open = first_open + one_day
-
-        mkt_open, _ = trading_schedule.start_and_end(first_open)
-        return mkt_open
-
-    def _calculate_last_close(self, trading_schedule):
-        """
-        Finds the last trading day on or before self.period_end
-        """
-        last_close = self.period_end
-        one_day = datetime.timedelta(days=1)
-
-        while not trading_schedule.is_executing_on_day(last_close):
-            last_close = last_close - one_day
-
-        _, mkt_close = trading_schedule.start_and_end(last_close)
-        return mkt_close
+    def create_new(self, start_session, end_session):
+        return SimulationParameters(
+            start_session,
+            end_session,
+            self._trading_calendar,
+            capital_base=self.capital_base,
+            emission_rate=self.emission_rate,
+            data_frequency=self.data_frequency,
+            arena=self.arena
+        )
 
     def __repr__(self):
         return """
 {class_name}(
-    period_start={period_start},
-    period_end={period_end},
+    start_session={start_session},
+    end_session={end_session},
     capital_base={capital_base},
     data_frequency={data_frequency},
     emission_rate={emission_rate},
     first_open={first_open},
     last_close={last_close})\
 """.format(class_name=self.__class__.__name__,
-           period_start=self.period_start,
-           period_end=self.period_end,
+           start_session=self.start_session,
+           end_session=self.end_session,
            capital_base=self.capital_base,
            data_frequency=self.data_frequency,
            emission_rate=self.emission_rate,

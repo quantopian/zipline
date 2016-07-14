@@ -782,7 +782,7 @@ class FrameInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         cls.dates = date_range(
             cls.start,
             cls.end,
-            freq=cls.trading_schedule.day,
+            freq=cls.trading_calendar.day,
             tz='UTC',
         )
         cls.assets = cls.asset_finder.retrieve_all(cls.asset_ids)
@@ -886,7 +886,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         cls.equity_info = ret = make_rotating_equity_info(
             num_assets=6,
             first_start=cls.first_asset_start,
-            frequency=cls.trading_schedule.day,
+            frequency=cls.trading_calendar.day,
             periods_between_starts=4,
             asset_lifetime=8,
         )
@@ -941,15 +941,15 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
     def test_SMA(self):
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.trading_schedule.all_execution_days,
+            self.trading_calendar.all_sessions,
             self.asset_finder,
         )
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.trading_schedule.day,
+            self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
-            freq=self.trading_schedule.day,
+            freq=self.trading_calendar.day,
         )
         dates_to_test = dates[window_length:]
 
@@ -969,7 +969,7 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # **previous** day's data.
         expected_raw = rolling_mean(
             expected_bar_values_2d(
-                dates - self.trading_schedule.day,
+                dates - self.trading_calendar.day,
                 self.equity_info,
                 'close',
             ),
@@ -995,15 +995,15 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # valuable.
         engine = SimplePipelineEngine(
             lambda column: self.pipeline_loader,
-            self.trading_schedule.all_execution_days,
+            self.trading_calendar.all_sessions,
             self.asset_finder,
         )
         window_length = 5
         asset_ids = self.all_asset_ids
         dates = date_range(
-            self.first_asset_start + self.trading_schedule.day,
+            self.first_asset_start + self.trading_calendar.day,
             self.last_asset_end,
-            freq=self.trading_schedule.day,
+            freq=self.trading_calendar.day,
         )
         dates_to_test = dates[window_length:]
 
@@ -1039,7 +1039,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(ParameterizedFactorTestCase, cls).init_class_fixtures()
-        day = cls.trading_schedule.day
+        day = cls.trading_calendar.day
 
         cls.dates = dates = date_range(
             '2015-02-01',

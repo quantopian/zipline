@@ -22,7 +22,7 @@ from zipline.data.us_equity_pricing import (
 )
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.errors import NoFurtherDataError
-from zipline.utils.calendars import default_nyse_schedule
+from zipline.utils.calendars import get_calendar
 
 from .base import PipelineLoader
 
@@ -40,7 +40,7 @@ class USEquityPricingLoader(PipelineLoader):
         self.raw_price_loader = raw_price_loader
         self.adjustments_loader = adjustments_loader
 
-        self._calendar = default_nyse_schedule.all_execution_days
+        self._calendar = get_calendar("NYSE").all_sessions
 
     @classmethod
     def from_files(cls, pricing_path, adjustments_path):

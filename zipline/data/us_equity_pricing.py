@@ -189,7 +189,7 @@ class BcolzDailyBarWriter(object):
     ----------
     filename : str
         The location at which we should write our output.
-    calendar : pandas.DatetimeIndex
+    sessions : pandas.DatetimeIndex
         Calendar to use to compute asset calendar offsets.
 
     See Also
@@ -204,8 +204,9 @@ class BcolzDailyBarWriter(object):
         'volume': float64,
     }
 
-    def __init__(self, filename, calendar):
+    def __init__(self, filename, sessions, calendar):
         self._filename = filename
+        self._sessions = sessions
         self._calendar = calendar
 
     @property
@@ -299,7 +300,7 @@ class BcolzDailyBarWriter(object):
         }
 
         earliest_date = None
-        calendar = self._calendar
+        sessions = self._sessions
 
         if assets is not None:
             @apply
@@ -342,8 +343,10 @@ class BcolzDailyBarWriter(object):
             # in the stored data and the first date of **this** asset. This
             # offset used for output alignment by the reader.
             asset_first_day = table['day'][0]
-            calendar_offset[asset_key] = calendar.get_loc(
-                Timestamp(asset_first_day, unit='s', tz='UTC'),
+            calendar_offset[asset_key] = sessions.get_loc(
+                self._calendar.minute_to_session_label(
+                    Timestamp(asset_first_day, unit='s', tz='UTC')
+                )
             )
 
         # This writes the table to disk.
@@ -363,7 +366,7 @@ class BcolzDailyBarWriter(object):
         full_table.attrs['first_row'] = first_row
         full_table.attrs['last_row'] = last_row
         full_table.attrs['calendar_offset'] = calendar_offset
-        full_table.attrs['calendar'] = calendar.asi8.tolist()
+        full_table.attrs['calendar'] = sessions.asi8.tolist()
         full_table.flush()
         return full_table
 
