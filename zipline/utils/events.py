@@ -412,7 +412,7 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
         # calculate the list of periods that match the given criteria
         return self.cal.schedule.groupby(
             pd.Grouper(freq="W")
-        ).nth(self.td_delta).index
+        ).nth(int(self.td_delta)).index
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
@@ -456,7 +456,7 @@ class TradingDayOfMonthRule(six.with_metaclass(ABCMeta, StatelessRule)):
         # calculate the list of periods that match the given criteria
         return self.cal.schedule.groupby(
             pd.Grouper(freq="M")
-        ).nth(self.td_delta).index
+        ).nth(int(self.td_delta)).index
 
 
 class NthTradingDayOfMonth(TradingDayOfMonthRule):
