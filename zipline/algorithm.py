@@ -1342,11 +1342,14 @@ class TradingAlgorithm(object):
                 )
 
         for control in self.trading_controls:
-            control.validate(asset,
-                             amount,
-                             self.updated_portfolio(),
-                             self.get_datetime(),
-                             self.trading_client.current_data)
+            control.validate(
+                asset,
+                amount,
+                self.updated_portfolio(),
+                self.get_datetime(),
+                self.trading_client.current_data,
+                self.trading_calendar
+            )
 
     @staticmethod
     def __convert_order_params_for_blotter(limit_price, stop_price, style):

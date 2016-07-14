@@ -43,7 +43,8 @@ class TradingControl(with_metaclass(abc.ABCMeta)):
                  amount,
                  portfolio,
                  algo_datetime,
-                 algo_current_data):
+                 algo_current_data,
+                 trading_calendar):
         """
         Before any order is executed by TradingAlgorithm, this method should be
         called *exactly once* on each registered TradingControl object.
@@ -98,11 +99,12 @@ class MaxOrderCount(TradingControl):
                  amount,
                  _portfolio,
                  algo_datetime,
-                 _algo_current_data):
+                 _algo_current_data,
+                 trading_calendar):
         """
         Fail if we've already placed self.max_count orders today.
         """
-        algo_date = algo_datetime.date()
+        algo_date = trading_calendar.minute_to_session_label(algo_datetime)
 
         # Reset order count if it's a new day.
         if self.current_date and self.current_date != algo_date:
@@ -133,7 +135,8 @@ class RestrictedListOrder(TradingControl):
                  amount,
                  _portfolio,
                  _algo_datetime,
-                 _algo_current_data):
+                 _algo_current_data,
+                 _trading_calendar):
         """
         Fail if the asset is in the restricted_list.
         """
@@ -176,7 +179,8 @@ class MaxOrderSize(TradingControl):
                  amount,
                  portfolio,
                  _algo_datetime,
-                 algo_current_data):
+                 algo_current_data,
+                 _trading_calendar):
         """
         Fail if the magnitude of the given order exceeds either self.max_shares
         or self.max_notional.
@@ -232,7 +236,8 @@ class MaxPositionSize(TradingControl):
                  amount,
                  portfolio,
                  algo_datetime,
-                 algo_current_data):
+                 algo_current_data,
+                 _trading_calendar):
         """
         Fail if the given order would cause the magnitude of our position to be
         greater in shares than self.max_shares or greater in dollar value than
@@ -270,7 +275,8 @@ class LongOnly(TradingControl):
                  amount,
                  portfolio,
                  _algo_datetime,
-                 _algo_current_data):
+                 _algo_current_data,
+                 _trading_calendar):
         """
         Fail if we would hold negative shares of asset after completing this
         order.
@@ -290,7 +296,8 @@ class AssetDateBounds(TradingControl):
                  amount,
                  portfolio,
                  algo_datetime,
-                 algo_current_data):
+                 algo_current_data,
+                 trading_calendar):
         """
         Fail if the algo has passed this Asset's end_date, or before the
         Asset's start date.
@@ -299,22 +306,22 @@ class AssetDateBounds(TradingControl):
         if amount == 0:
             return
 
-        normalized_algo_dt = pd.Timestamp(algo_datetime).normalize()
+        algo_session = trading_calendar.minute_to_session_label(
+            pd.Timestamp(algo_datetime)
+        )
 
         # Fail if the algo is before this Asset's start_date
         if asset.start_date:
-            normalized_start = pd.Timestamp(asset.start_date).normalize()
-            if normalized_algo_dt < normalized_start:
+            if algo_session < asset.start_date:
                 metadata = {
-                    'asset_start_date': normalized_start
+                    'asset_start_date': asset.start_date
                 }
                 self.fail(asset, amount, algo_datetime, metadata=metadata)
         # Fail if the algo has passed this Asset's end_date
         if asset.end_date:
-            normalized_end = pd.Timestamp(asset.end_date).normalize()
-            if normalized_algo_dt > normalized_end:
+            if algo_session > asset.end_date:
                 metadata = {
-                    'asset_end_date': normalized_end
+                    'asset_end_date': asset.end_date
                 }
                 self.fail(asset, amount, algo_datetime, metadata=metadata)
 
