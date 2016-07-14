@@ -608,7 +608,7 @@ class TradingAlgorithm(object):
                 if overwrite_sim_params:
                     self.sim_params = self.sim_params.create_new(
                         data.major_axis[0],
-                        data.major_axis[1]
+                        data.major_axis[-1]
                     )
 
                 copy_panel = data.rename(

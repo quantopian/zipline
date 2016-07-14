@@ -554,7 +554,7 @@ def create_minute_df_for_asset(trading_calendar,
 
 def create_daily_df_for_asset(trading_calendar, start_day, end_day,
                               interval=1):
-    days = trading_calendar.minutes_in_range(start_day, end_day)
+    days = trading_calendar.sessions_in_range(start_day, end_day)
     days_count = len(days)
     days_arr = np.arange(days_count) + 2
 
