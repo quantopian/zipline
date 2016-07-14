@@ -483,8 +483,13 @@ class EventLoaderUtilsTestCase(ZiplineTestCase):
     moscow_dates = pd.to_datetime(moscow_boundary_dates + mixed_tz_dates,
                                   utc=True).tz_localize(None)
 
-    combos = list(map(np.array, itertools.permutations(np.arange(len(
-        boundary_dates + mixed_tz_dates)))))
+    all_combos = list(map(np.array, itertools.permutations(np.arange(len(
+        boundary_dates + mixed_tz_dates)
+    ))))
+    # len(permutations(7)) is about 5000, which makes this take too long.
+    # Sampling down to 50-ish permutations still gives is good coverage of the
+    # different interleavings.
+    combos = all_combos[::100]
 
     expected_us = pd.Series(
         [pd.Timestamp('2013-01-04'),
