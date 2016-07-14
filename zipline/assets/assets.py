@@ -96,10 +96,6 @@ class AssetFinder(object):
     --------
     :class:`zipline.assets.AssetDBWriter`
     """
-    # Token used as a substitute for pickling objects that contain a
-    # reference to an AssetFinder.
-    PERSISTENT_TOKEN = "<AssetFinder>"
-
     def __init__(self, engine):
         if isinstance(engine, string_types):
             engine = sa.create_engine('sqlite:///' + engine)
