@@ -12,7 +12,7 @@ if PY2:
 
         The arguments are the same as ``range``.
         """
-        __slots__ = 'start', 'stop', 'step', '_xrange',
+        __slots__ = 'start', 'stop', 'step'
 
         def __init__(self, stop, *args):
             if len(args) > 2:
@@ -21,21 +21,24 @@ if PY2:
                 )
 
             if not args:
-                self.start = start = 0
+                self.start = 0
                 self.stop = stop
-                self.step = step = 1
+                self.step = 1
             else:
-                self.start = start = stop
-                self.stop = stop = args[0]
+                self.start = stop
+                self.stop = args[0]
                 try:
-                    self.step = step = args[1]
+                    self.step = args[1]
                 except IndexError:
-                    self.step = step = 1
-
-            self._xrange = xrange(start, stop, step)
+                    self.step = 1
 
         def __iter__(self):
-            return iter(self._xrange)
+            n = self.start
+            stop = self.stop
+            step = self.step
+            while n < stop:
+                yield n
+                n += step
 
         _ops = (
             (op.gt, op.ge),
@@ -53,6 +56,14 @@ if PY2:
             )
 
         del _ops
+
+        def __repr__(self):
+            return '%s(%s, %s%s)' % (
+                type(self).__name__,
+                self.start,
+                self.stop,
+                (', ' + str(self.step)) if self.step != 1 else '',
+            )
 else:
     range = range
 
@@ -265,7 +276,7 @@ def intersecting_ranges(ranges):
     >>> list(intersecting_ranges(ranges))
     []
 
-    >>> ranges = [range(0, 1), range(0, 1)]
+    >>> ranges = [range(0, 1), range(1, 2)]
     >>> list(intersecting_ranges(ranges))
     [range(0, 1), range(1, 2)]
     """
