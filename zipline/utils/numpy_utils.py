@@ -1,6 +1,7 @@
 """
 Utilities for working with numpy arrays.
 """
+from collections import OrderedDict
 from datetime import datetime
 from warnings import (
     catch_warnings,
@@ -60,12 +61,12 @@ _FILLVALUE_DEFAULTS = {
     object_dtype: None,
 }
 
-INT_DTYPES_BY_SIZE_BYTES = {
-    1: dtype('int8'),
-    2: dtype('int16'),
-    4: dtype('int32'),
-    8: dtype('int64'),
-}
+INT_DTYPES_BY_SIZE_BYTES = OrderedDict([
+    (1, dtype('int8')),
+    (2, dtype('int16')),
+    (4, dtype('int32')),
+    (8, dtype('int64')),
+])
 
 
 def int_dtype_with_size_in_bytes(size):
