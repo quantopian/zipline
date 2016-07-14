@@ -231,8 +231,9 @@ class LabelArray(ndarray):
            In this case, obj will be None.  We treat this as an error case and
            fail.
 
-        2. Someone (most likely our own __new__) calls
-           other_array.view(type=LabelArray).
+        2. Someone (most likely our own __new__) does::
+
+           >>> other_array.view(type=LabelArray)  # doctest: +SKIP
 
            In this case, `self` will be the new LabelArray instance, and
            ``obj` will be the array on which ``view`` is being called.
