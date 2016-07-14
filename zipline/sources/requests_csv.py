@@ -224,7 +224,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
                 date_str_series.values,
                 format=format_str,
                 utc=True,
-                coerce=True,
+                errors='coerce',
             )
         else:
             parsed = pd.to_datetime(
@@ -301,7 +301,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             df['sid'] = self.symbol
         elif self.finder:
 
-            df.sort(self.symbol_column)
+            df.sort_values(by=self.symbol_column, inplace=True)
 
             # Pop the 'sid' column off of the DataFrame, just in case the user
             # has assigned it, and throw a warning
