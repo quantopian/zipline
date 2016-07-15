@@ -3485,11 +3485,11 @@ class TestOrderCancelation(WithDataPortal,
     def make_equity_daily_bar_data(cls):
         yield 1, pd.DataFrame(
             {
-                'open': np.full(3, 1),
-                'high': np.full(3, 1),
-                'low': np.full(3, 1),
-                'close': np.full(3, 1),
-                'volume': np.full(3, 1),
+                'open': np.full(3, 1, dtype=np.float64),
+                'high': np.full(3, 1, dtype=np.float64),
+                'low': np.full(3, 1, dtype=np.float64),
+                'close': np.full(3, 1, dtype=np.float64),
+                'volume': np.full(3, 1, dtype=np.float64),
             },
             index=cls.sim_params.sessions,
         )
