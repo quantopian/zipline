@@ -1,6 +1,5 @@
 from datetime import time
 from pandas.tseries.holiday import(
-    AbstractHolidayCalendar,
     Holiday,
     DateOffset,
     MO,
@@ -14,7 +13,7 @@ from .trading_calendar import (
     TradingCalendar,
     MONDAY,
     TUESDAY,
-)
+    HolidayCalendar)
 
 # New Year's Day
 LSENewYearsDay = Holiday(
@@ -73,26 +72,6 @@ WeekendBoxingDay = Holiday(
 )
 
 
-class LSEHolidayCalendar(AbstractHolidayCalendar):
-    """
-    Non-trading days for the LSE.
-
-    See NYSEExchangeCalendar for full description.
-    """
-    rules = [
-        LSENewYearsDay,
-        GoodFriday,
-        EasterMonday,
-        MayBank,
-        SpringBank,
-        SummerBank,
-        Christmas,
-        WeekendChristmas,
-        BoxingDay,
-        WeekendBoxingDay,
-    ]
-
-
 class LSEExchangeCalendar(TradingCalendar):
     """
     Exchange calendar for the London Stock Exchange
@@ -113,18 +92,33 @@ class LSEExchangeCalendar(TradingCalendar):
     - Dec. 28th (if Boxing Day is on a weekend)
     """
 
-    name = 'LSE'
-    tz = timezone('Europe/London')
-    open_time = time(8, 1)
-    close_time = time(16, 30)
-    open_offset = 0
-    close_offset = 0
+    @property
+    def name(self):
+        return "LSE"
 
-    holidays_calendar = LSEHolidayCalendar()
-    special_opens_calendars = ()
-    special_closes_calendars = ()
+    @property
+    def tz(self):
+        return timezone('Europe/London')
 
-    holidays_adhoc = ()
+    @property
+    def open_time(self):
+        return time(8, 1)
 
-    special_opens_adhoc = ()
-    special_closes_adhoc = ()
+    @property
+    def close_time(self):
+        return time(16, 30)
+
+    @property
+    def regular_holidays(self):
+        return HolidayCalendar([
+            LSENewYearsDay,
+            GoodFriday,
+            EasterMonday,
+            MayBank,
+            SpringBank,
+            SummerBank,
+            Christmas,
+            WeekendChristmas,
+            BoxingDay,
+            WeekendBoxingDay
+        ])
