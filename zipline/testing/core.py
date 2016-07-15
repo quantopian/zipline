@@ -462,7 +462,9 @@ def create_daily_bar_data(sessions, sids):
 
 def write_daily_data(tempdir, sim_params, sids, trading_calendar):
     path = os.path.join(tempdir.path, "testdaily.bcolz")
-    BcolzDailyBarWriter(path, sim_params.sessions, trading_calendar).write(
+    BcolzDailyBarWriter(path, trading_calendar,
+                        sim_params.start_session,
+                        sim_params.end_session).write(
         create_daily_bar_data(sim_params.sessions, sids),
     )
 
@@ -612,7 +614,12 @@ def create_data_portal_from_trade_history(asset_finder, trading_calendar,
                                           tempdir, sim_params, trades_by_sid):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
-        BcolzDailyBarWriter(path, sim_params.sessions, trading_calendar).write(
+        writer = BcolzDailyBarWriter(
+            path, trading_calendar,
+            sim_params.start_session,
+            sim_params.end_session
+        )
+        writer.write(
             trades_by_sid_to_dfs(trades_by_sid, sim_params.sessions),
         )
 

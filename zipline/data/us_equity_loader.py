@@ -387,7 +387,7 @@ class USEquityDailyHistoryLoader(USEquityHistoryLoader):
 
     @property
     def _calendar(self):
-        return self._reader._calendar
+        return self._reader._sessions
 
     def _array(self, dts, assets, field):
         return self._reader.load_raw_arrays(

@@ -746,7 +746,7 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
         days = cls.equity_daily_bar_days
 
         cls.bcolz_daily_bar_ctable = t = getattr(
-            BcolzDailyBarWriter(p, days, cls.trading_calendar),
+            BcolzDailyBarWriter(p, cls.trading_calendar, days[0], days[-1]),
             cls._write_method_name,
         )(cls.make_equity_daily_bar_data())
 

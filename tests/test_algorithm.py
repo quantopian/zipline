@@ -3424,9 +3424,10 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendar, ZiplineTestCase):
                 frequency=frequency
             )
             path = self.tmpdir.getpath("testdaily.bcolz")
-            BcolzDailyBarWriter(path, dates, self.trading_calendar).write(
-                iteritems(trade_data_by_sid),
+            writer = BcolzDailyBarWriter(
+                path, self.trading_calendar, dates[0], dates[-1]
             )
+            writer.write(iteritems(trade_data_by_sid))
             reader = BcolzDailyBarReader(path)
             data_portal = DataPortal(
                 env.asset_finder, self.trading_calendar,
