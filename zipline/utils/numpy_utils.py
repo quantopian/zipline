@@ -18,6 +18,7 @@ from numpy import (
     flatnonzero,
     hstack,
     nan,
+    timedelta64,
     vectorize,
     where
 )

@@ -146,3 +146,17 @@ def nearest_unequal_elements(dts, dt):
     upper_value = dts[upper_ix] if upper_ix < len(dts) else None
 
     return lower_value, upper_value
+
+
+def timedelta_to_integral_seconds(delta):
+    """
+    Convert a pd.Timedelta to a number of seconds as an int.
+    """
+    return int(delta.total_seconds())
+
+
+def timedelta_to_integral_minutes(delta):
+    """
+    Convert a pd.Timedelta to a number of minutes as an int.
+    """
+    return timedelta_to_integral_seconds(delta) // 60

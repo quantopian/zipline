@@ -819,8 +819,9 @@ class TradingAlgorithm(object):
             else:
                 self.risk_report = perf
 
-        daily_dts = [np.datetime64(perf['period_close'], utc=True)
-                     for perf in daily_perfs]
+        daily_dts = pd.DatetimeIndex(
+            [p['period_close'] for p in daily_perfs], tz='UTC'
+        )
         daily_stats = pd.DataFrame(daily_perfs, index=daily_dts)
 
         return daily_stats
