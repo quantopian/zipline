@@ -255,7 +255,8 @@ class FinanceTestCase(WithLogger,
                 }
 
                 path = os.path.join(tempdir.path, "testdata.bcolz")
-                BcolzDailyBarWriter(path, days, self.trading_calendar).write(
+                BcolzDailyBarWriter(path, self.trading_calendar, days[0],
+                                    days[-1]).write(
                     assets.items()
                 )
 

@@ -40,7 +40,10 @@ class USEquityPricingLoader(PipelineLoader):
         self.raw_price_loader = raw_price_loader
         self.adjustments_loader = adjustments_loader
 
-        self._calendar = get_calendar("NYSE").all_sessions
+        cal = self.raw_price_loader.trading_calendar or \
+            get_calendar("NYSE")
+
+        self._all_sessions = cal.all_sessions
 
     @classmethod
     def from_files(cls, pricing_path, adjustments_path):
@@ -67,7 +70,7 @@ class USEquityPricingLoader(PipelineLoader):
         # known on day N is the data from day (N - 1), so we shift all query
         # dates back by a day.
         start_date, end_date = _shift_dates(
-            self._calendar, dates[0], dates[-1], shift=1,
+            self._all_sessions, dates[0], dates[-1], shift=1,
         )
         colnames = [c.name for c in columns]
         raw_arrays = self.raw_price_loader.load_raw_arrays(

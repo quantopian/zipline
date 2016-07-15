@@ -24,7 +24,6 @@ from numpy.testing import (
 )
 from pandas import (
     DataFrame,
-    DatetimeIndex,
     Timestamp,
 )
 from pandas.util.testing import assert_index_equal
@@ -46,6 +45,7 @@ from zipline.testing.fixtures import (
     WithBcolzEquityDailyBarReader,
     ZiplineTestCase,
 )
+from zipline.utils.calendars import get_calendar
 
 TEST_CALENDAR_START = Timestamp('2015-06-01', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-06-30', tz='UTC')
@@ -180,9 +180,14 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
             result.attrs['calendar_offset'],
             expected_calendar_offset,
         )
+        cal = get_calendar(result.attrs['calendar_name'])
+        first_session = Timestamp(result.attrs['start_session_ns'], tz='UTC')
+        end_session = Timestamp(result.attrs['end_session_ns'], tz='UTC')
+        sessions = cal.sessions_in_range(first_session, end_session)
+
         assert_index_equal(
             self.sessions,
-            DatetimeIndex(result.attrs['calendar'], tz='UTC'),
+            sessions
         )
 
     def test_read_first_trading_day(self):
