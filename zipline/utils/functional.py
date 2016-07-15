@@ -333,22 +333,6 @@ with_name = set_attribute('__name__')
 with_doc = set_attribute('__doc__')
 
 
-def let(a):
-    """Box a value to be bound in a for binding.
-
-    Examples
-    --------
-    .. code-block:: python
-
-       [f(y, y) for x in xs for y in let(g(x)) if p(y)]
-
-    Here, ``y`` is available in both the predicate and the expression
-    of the comprehension. We can see that this allows us to cache the work
-    of computing ``g(x)`` even within the expression.
-    """
-    return a,
-
-
 def foldr(f, seq, default=_no_default):
     """Fold a function over a sequence with right associativity.
 
