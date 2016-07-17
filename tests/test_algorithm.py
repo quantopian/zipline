@@ -125,6 +125,7 @@ from zipline.test_algorithms import (
     api_algo,
     api_get_environment_algo,
     api_symbol_algo,
+    api_no_symbol_algo,
     call_all_order_methods,
     call_order_in_init,
     handle_data_api,
@@ -1479,6 +1480,13 @@ class TestAlgoScript(WithLogger,
         algo = TradingAlgorithm(script=api_symbol_algo,
                                 env=self.env,
                                 sim_params=self.sim_params)
+        algo.run(self.data_portal)
+
+    def test_api_no_symbol(self):
+        algo = TradingAlgorithm(script=api_no_symbol_algo,
+                                env=self.env,
+                                sim_params=self.sim_params)
+
         algo.run(self.data_portal)
 
     def test_fixed_slippage(self):

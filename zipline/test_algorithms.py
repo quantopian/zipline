@@ -838,6 +838,17 @@ def handle_data(context, data):
     order(symbol('TEST'), 1)
 """
 
+api_no_symbol_algo = """
+from zipline.api import (order,
+                         symbol)
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    order(symbol(None), 1)
+"""
+
 call_order_in_init = """
 from zipline.api import (sid, order)
 
