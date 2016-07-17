@@ -605,7 +605,9 @@ class TradingAlgorithm(object):
             if isinstance(data, pd.Panel):
                 # For compatibility with existing examples allow start/end
                 # to be inferred.
+                print('Test1')
                 if overwrite_sim_params:
+                    print('Test')
                     self.sim_params = self.sim_params.create_new(
                         data.major_axis[0],
                         data.major_axis[-1]
@@ -1061,8 +1063,10 @@ class TradingAlgorithm(object):
         """
         # If the user has not set the symbol lookup date,
         # use the end_session as the date for sybmol->sid resolution.
-        _lookup_date = self._symbol_lookup_date if self._symbol_lookup_date is not None \
-            else self.sim_params.end_session
+        if self._symbol_lookup_date is not None:
+            _lookup_date = self._symbol_lookup_date
+        else:
+            _lookup_date = self.sim_params.end_session
 
         return self.asset_finder.lookup_symbol(
             symbol_str,
