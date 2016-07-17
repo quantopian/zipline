@@ -6,6 +6,7 @@ from toolz import curry
 
 from zipline.utils.sentinel import sentinel
 
+
 @curry
 def apply(f, *args, **kwargs):
     """Apply a function to arguments.
