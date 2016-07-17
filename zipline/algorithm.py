@@ -1060,9 +1060,11 @@ class TradingAlgorithm(object):
         :func:`zipline.api.set_symbol_lookup_date`
         """
         # If the user has not set the symbol lookup date,
-        # use the end_session as the date for sybmol->sid resolution.
-        _lookup_date = self._symbol_lookup_date if self._symbol_lookup_date is not None \
-            else self.sim_params.end_session
+        # use the end_session as the date for symbol->sid resolution.
+        if self._symbol_lookup_date is not None:
+            _lookup_date = self._symbol_lookup_date
+        else:
+            _lookup_date = self.sim_params.end_session
 
         return self.asset_finder.lookup_symbol(
             symbol_str,
