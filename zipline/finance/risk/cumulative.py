@@ -27,7 +27,7 @@ from . risk import (
     choose_treasury
 )
 
-from qrisk import (
+from empyrical import (
     alpha,
     annual_volatility,
     beta,

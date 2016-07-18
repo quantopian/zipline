@@ -64,4 +64,4 @@ intervaltree==2.1.0
 cachetools==1.1.5
 
 # For financial risk calculations
-qrisk==0.1.4
+empyrical>=0.1.9

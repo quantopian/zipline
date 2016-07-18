@@ -16,8 +16,6 @@
 import functools
 
 import logbook
-import numpy as np
-import numpy.linalg as la
 
 from six import iteritems
 
@@ -26,10 +24,11 @@ import pandas as pd
 from . import risk
 from . risk import check_entry
 
-from qrisk import (
+from empyrical import (
     alpha,
     annual_volatility,
     beta,
+    cum_returns,
     downside_risk,
     information_ratio,
     max_drawdown,
@@ -46,7 +45,6 @@ choose_treasury = functools.partial(risk.choose_treasury,
 class RiskMetricsPeriod(object):
     def __init__(self, start_session, end_session, returns, trading_calendar,
                  treasury_curves, benchmark_returns, algorithm_leverages=None):
-
         if treasury_curves.index[-1] >= start_session:
             mask = ((treasury_curves.index >= start_session) &
                     (treasury_curves.index <= end_session))
@@ -79,10 +77,10 @@ class RiskMetricsPeriod(object):
 
     def calculate_metrics(self):
         self.benchmark_period_returns = \
-            self.calculate_period_returns(self.benchmark_returns)
+            cum_returns(self.benchmark_returns).iloc[-1]
 
         self.algorithm_period_returns = \
-            self.calculate_period_returns(self.algorithm_returns)
+            cum_returns(self.algorithm_returns).iloc[-1]
 
         if not self.algorithm_returns.index.equals(
             self.benchmark_returns.index
@@ -115,7 +113,6 @@ class RiskMetricsPeriod(object):
         )
         self.sharpe = sharpe_ratio(
             self.algorithm_returns,
-            self.benchmark_returns
         )
         # The consumer currently expects a 0.0 value for sharpe in period,
         # this differs from cumulative which was np.nan.
@@ -138,9 +135,6 @@ class RiskMetricsPeriod(object):
             self.algorithm_returns,
             self.benchmark_returns
         )
-        self.algorithm_covariance, self.benchmark_variance, \
-            self.condition_number, self.eigen_values \
-            = self.calculate_covariance()
         self.beta = beta(
             self.algorithm_returns,
             self.benchmark_returns
@@ -193,16 +187,12 @@ class RiskMetricsPeriod(object):
             "sharpe",
             "sortino",
             "information",
-            "algorithm_covariance",
-            "benchmark_variance",
             "beta",
             "alpha",
             "max_drawdown",
             "max_leverage",
             "algorithm_returns",
             "benchmark_returns",
-            "condition_number",
-            "eigen_values"
         ]
 
         for metric in metrics:
@@ -225,45 +215,6 @@ class RiskMetricsPeriod(object):
 
         returns = returns[mask]
         return returns
-
-    def calculate_period_returns(self, returns):
-        period_returns = (1. + returns).prod() - 1
-        return period_returns
-
-    def calculate_covariance(self):
-        """
-
-        .. math::
-
-            \\beta_a = \\frac{\mathrm{Cov}(r_a,r_p)}{\mathrm{Var}(r_p)}
-
-        http://en.wikipedia.org/wiki/Beta_(finance)
-        """
-        # it doesn't make much sense to calculate beta for less than two days,
-        # so return nan.
-        if len(self.algorithm_returns) < 2:
-            return np.nan, np.nan, np.nan, []
-
-        returns_matrix = np.vstack([self.algorithm_returns,
-                                    self.benchmark_returns])
-        C = np.cov(returns_matrix, ddof=1)
-
-        # If there are missing benchmark values, then we can't calculate the
-        # beta.
-        if not np.isfinite(C).all():
-            return np.nan, np.nan, np.nan, []
-
-        eigen_values = la.eigvals(C)
-        condition_number = max(eigen_values) / min(eigen_values)
-        algorithm_covariance = C[0][1]
-        benchmark_variance = C[1][1]
-
-        return (
-            algorithm_covariance,
-            benchmark_variance,
-            condition_number,
-            eigen_values
-        )
 
     def calculate_max_leverage(self):
         if self.algorithm_leverages is None:

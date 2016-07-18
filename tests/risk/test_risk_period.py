@@ -17,14 +17,14 @@ import datetime
 import calendar
 import pandas as pd
 import numpy as np
-import pytz
-import pandas as pd
 
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
 from zipline.finance.trading import SimulationParameters
 from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+
+from zipline.finance.risk.period import RiskMetricsPeriod
 
 RETURNS_BASE = 0.01
 RETURNS = [RETURNS_BASE] * 251
@@ -38,17 +38,14 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
     def init_instance_fixtures(self):
         super(TestRisk, self).init_instance_fixtures()
-
-        start_session = pd.Timestamp("2006-01-01", tz='UTC')
-
-        end_session = self.trading_calendar.minute_to_session_label(
+        self.start_session = pd.Timestamp("2006-01-01", tz='UTC')
+        self.end_session = self.trading_calendar.minute_to_session_label(
             pd.Timestamp("2006-12-31", tz='UTC'),
             direction="previous"
         )
-
         self.sim_params = SimulationParameters(
-            start_session=start_session,
-            end_session=end_session,
+            start_session=self.start_session,
+            end_session=self.end_session,
             trading_calendar=self.trading_calendar,
         )
         self.algo_returns = factory.create_returns_from_list(
@@ -63,16 +60,15 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             self.algo_returns,
             self.sim_params,
             benchmark_returns=self.benchmark_returns,
-            trading_schedule=self.trading_schedule,
+            trading_calendar=self.trading_calendar,
             treasury_curves=self.env.treasury_curves,
         )
 
     def test_factory(self):
         returns = [0.1] * 100
         r_objects = factory.create_returns_from_list(returns, self.sim_params)
-        self.assertTrue(r_objects.index[-1] <= self.end_date)
-        self.assertTrue(r_objects.index[0] >= self.start_date)
-        self.assertTrue(r_objects.sample().values[0] == 0.1)
+        self.assertTrue(r_objects.index[-1] <=
+                        pd.Timestamp('2006-12-31', tz='UTC'))
 
     def test_drawdown(self):
         np.testing.assert_equal(
@@ -123,7 +119,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                          [20, 19, 23, 19, 22, 22, 20, 23, 20, 22, 21, 20])
 
     def test_benchmark_volatility(self):
-        # Volatility is calculated by a qrisk function so testing
+        # Volatility is calculated by a empyrical function so testing
         # of period volatility will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         np.testing.assert_equal(
@@ -170,7 +166,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             DECIMAL_PLACES)
 
     def test_algorithm_volatility(self):
-        # Volatility is calculated by a qrisk function so testing
+        # Volatility is calculated by a empyrical function so testing
         # of period volatility will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         np.testing.assert_equal(
@@ -191,7 +187,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_algorithm_sharpe(self):
-        # The sharpe ratio is calculated by a qrisk function so testing
+        # The sharpe ratio is calculated by a empyrical function so testing
         # of period sharpe ratios will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         np.testing.assert_equal(
@@ -212,7 +208,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_algorithm_downside_risk(self):
-        # Downside risk is calculated by a qrisk function so testing
+        # Downside risk is calculated by a empyrical function so testing
         # of period downside risk will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         np.testing.assert_equal(
@@ -233,7 +229,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_algorithm_sortino(self):
-        # The sortino ratio is calculated by a qrisk function so testing
+        # The sortino ratio is calculated by a empyrical function so testing
         # of period sortino ratios will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         np.testing.assert_equal(
@@ -254,9 +250,9 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_algorithm_information(self):
-        # The information ratio is calculated by a qrisk function so testing
-        # of period information ratio will be limited to determine if the value
-        # is numerical. This tests for its existence and format.
+        # The information ratio is calculated by a empyrical function
+        # testing of period information ratio will be limited to determine
+        # if the value is numerical. This tests for its existence and format.
         np.testing.assert_equal(
             all(isinstance(x.information, float)
                 for x in self.metrics.month_periods),
@@ -275,7 +271,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_algorithm_beta(self):
-        # Beta is calculated by a qrisk function so testing
+        # Beta is calculated by a empyrical function so testing
         # of period beta will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         np.testing.assert_equal(
@@ -296,7 +292,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             True)
 
     def test_algorithm_alpha(self):
-        # Alpha is calculated by a qrisk function so testing
+        # Alpha is calculated by a empyrical function so testing
         # of period alpha will be limited to determine if the value is
         # numerical. This tests for its existence and format.
         np.testing.assert_equal(
@@ -315,49 +311,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             all(isinstance(x.alpha, float)
                 for x in self.metrics.year_periods),
             True)
-
-    def test_algorithm_covariance(self):
-        np.testing.assert_almost_equal(
-            [x.algorithm_covariance for x in self.metrics.month_periods],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            DECIMAL_PLACES)
-        np.testing.assert_almost_equal(
-            [x.algorithm_covariance
-             for x in self.metrics.three_month_periods],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            DECIMAL_PLACES)
-        np.testing.assert_almost_equal(
-            [x.algorithm_covariance
-             for x in self.metrics.six_month_periods],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            DECIMAL_PLACES)
-        np.testing.assert_almost_equal(
-            [x.algorithm_covariance
-             for x in self.metrics.year_periods],
-            [0.0],
-            DECIMAL_PLACES)
-
-    def test_benchmark_variance(self):
-        np.testing.assert_almost_equal(
-            [x.benchmark_variance
-             for x in self.metrics.month_periods],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            DECIMAL_PLACES)
-        np.testing.assert_almost_equal(
-            [x.benchmark_variance
-             for x in self.metrics.three_month_periods],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            DECIMAL_PLACES)
-        np.testing.assert_almost_equal(
-            [x.benchmark_variance
-             for x in self.metrics.six_month_periods],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            DECIMAL_PLACES)
-        np.testing.assert_almost_equal(
-            [x.benchmark_variance
-             for x in self.metrics.year_periods],
-            [0.0],
-            DECIMAL_PLACES)
 
     def test_treasury_returns(self):
         returns = factory.create_returns_from_range(self.sim_params)
@@ -407,13 +360,33 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                          [0.0500])
 
     def test_benchmarkrange(self):
-        self.check_year_range(
-            pd.Timestamp('2008-01-01', tz=pytz.utc),
-            2)
+        start_session = self.trading_calendar.minute_to_session_label(
+            pd.Timestamp("2008-01-01", tz='UTC')
+        )
+
+        end_session = self.trading_calendar.minute_to_session_label(
+            pd.Timestamp("2010-01-01", tz='UTC'), direction="previous"
+        )
+
+        sim_params = SimulationParameters(
+            start_session=start_session,
+            end_session=end_session,
+            trading_calendar=self.trading_calendar,
+        )
+
+        returns = factory.create_returns_from_range(sim_params)
+        metrics = risk.RiskReport(returns, self.sim_params,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
+
+        self.check_metrics(metrics, 24, start_session)
 
     def test_partial_month(self):
 
-        start = pd.Timestamp('1991-01-01', tz=pytz.utc)
+        start_session = self.trading_calendar.minute_to_session_label(
+            pd.Timestamp("1991-01-01", tz='UTC')
+        )
 
         # 1992 and 1996 were leap years
         total_days = 365 * 5 + 2
@@ -504,6 +477,108 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
                                              end=col[-1]._end_session,
                                              actual=len(col))
             )
+            self.assert_month(start_date.month, col[-1]._end_session.month)
+            self.assert_last_day(col[-1]._end_session)
 
-            self.assert_month(start_date.month, col[-1].end_date.month)
-            self.assert_last_day(col[-1].end_date)
+    def test_algorithm_leverages(self):
+        # Max leverage for an algorithm with 'None' as leverage is 0.
+        np.testing.assert_equal(
+            [x.max_leverage for x in self.metrics.month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        np.testing.assert_equal(
+            [x.max_leverage for x in self.metrics.three_month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        np.testing.assert_equal(
+            [x.max_leverage for x in self.metrics.six_month_periods],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        np.testing.assert_equal(
+            [x.max_leverage for x in self.metrics.year_periods],
+            [0.0])
+
+    def test_returns_beyond_treasury(self):
+        # The last treasury value is used when return dates go beyond
+        # treasury curve data
+        treasury_curves = self.env.treasury_curves
+        treasury = treasury_curves[treasury_curves.index < self.start_session]
+
+        test_period = RiskMetricsPeriod(
+            start_session=self.start_session,
+            end_session=self.end_session,
+            returns=self.algo_returns,
+            benchmark_returns=self.benchmark_returns,
+            trading_calendar=self.trading_calendar,
+            treasury_curves=treasury,
+            algorithm_leverages=[.01, .02, .03]
+        )
+        assert test_period.treasury_curves.equals(treasury[-1:])
+        # This return period has a list instead of None for algorithm_leverages
+        # Confirm that max_leverage is set to the max of those values
+        assert test_period.max_leverage == .03
+
+    def test_index_mismatch_exception(self):
+        # An exception is raised when returns and benchmark returns
+        # have indexes that do not match
+        bench_params = SimulationParameters(
+            start_session=pd.Timestamp("2006-02-01", tz='UTC'),
+            end_session=pd.Timestamp("2006-02-28", tz='UTC'),
+            trading_calendar=self.trading_calendar,
+        )
+        benchmark = factory.create_returns_from_list(
+            [BENCHMARK_BASE]*19,
+            bench_params
+        )
+        with np.testing.assert_raises(Exception):
+            RiskMetricsPeriod(
+                start_session=self.start_session,
+                end_session=self.end_session,
+                returns=self.algo_returns,
+                benchmark_returns=benchmark,
+                trading_calendar=self.trading_calendar,
+                treasury_curves=self.env.treasury_curves,
+            )
+
+    def test_sharpe_value_when_null(self):
+        # Sharpe is displayed as '0.0' instead of np.nan
+        null_returns = factory.create_returns_from_list(
+            [0.0]*251,
+            self.sim_params
+        )
+        test_period = RiskMetricsPeriod(
+            start_session=self.start_session,
+            end_session=self.end_session,
+            returns=null_returns,
+            benchmark_returns=self.benchmark_returns,
+            trading_calendar=self.trading_calendar,
+            treasury_curves=self.env.treasury_curves,
+        )
+        assert test_period.sharpe == 0.0
+
+    def test_representation(self):
+        test_period = RiskMetricsPeriod(
+            start_session=self.start_session,
+            end_session=self.end_session,
+            returns=self.algo_returns,
+            benchmark_returns=self.benchmark_returns,
+            trading_calendar=self.trading_calendar,
+            treasury_curves=self.env.treasury_curves,
+        )
+        metrics = [
+            "algorithm_period_returns",
+            "benchmark_period_returns",
+            "excess_return",
+            "num_trading_days",
+            "benchmark_volatility",
+            "algorithm_volatility",
+            "sharpe",
+            "sortino",
+            "information",
+            "beta",
+            "alpha",
+            "max_drawdown",
+            "max_leverage",
+            "algorithm_returns",
+            "benchmark_returns",
+        ]
+        representation = test_period.__repr__()
+
+        assert all([metric in representation for metric in metrics])

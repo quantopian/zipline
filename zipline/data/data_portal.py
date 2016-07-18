@@ -1191,9 +1191,9 @@ class DataPortal(object):
 
         if data_frequency == "minute":
             freq_str = "1m"
-            calculated_bar_count = self._get_minute_count_for_transform(
+            calculated_bar_count = int(self._get_minute_count_for_transform(
                 dt, bars
-            )
+            ))
         else:
             freq_str = "1d"
             calculated_bar_count = bars
