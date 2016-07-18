@@ -17,6 +17,7 @@ from collections import namedtuple
 import six
 
 import datetime
+import numpy as np
 import pandas as pd
 import pytz
 
@@ -407,17 +408,21 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
         self.td_delta = (-n - 1) if invert else n
 
-    @lazyval
-    def execution_periods(self):
-        # calculate the list of periods that match the given criteria
-        return self.cal.schedule.groupby(
-            pd.Grouper(freq="W")
-        ).nth(int(self.td_delta)).index
-
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        return self.cal.minute_to_session_label(dt) in \
-            self.execution_periods
+        val = self.cal.minute_to_session_label(dt, direction="none").value
+        return val in self.execution_period_values
+
+    @lazyval
+    def execution_period_values(self):
+        # calculate the list of periods that match the given criteria
+        sessions = self.cal.all_sessions
+        return set(
+            pd.Series(data=sessions)
+            .groupby([sessions.year, sessions.weekofyear])
+            .nth(self.td_delta)
+            .astype(np.int64)
+        )
 
 
 class NthTradingDayOfWeek(TradingDayOfWeekRule):
@@ -448,15 +453,19 @@ class TradingDayOfMonthRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        return self.cal.minute_to_session_label(dt) in \
-            self.execution_periods
+        value = self.cal.minute_to_session_label(dt, direction="none").value
+        return value in self.execution_period_values
 
     @lazyval
-    def execution_periods(self):
+    def execution_period_values(self):
         # calculate the list of periods that match the given criteria
-        return self.cal.schedule.groupby(
-            pd.Grouper(freq="M")
-        ).nth(int(self.td_delta)).index
+        sessions = self.cal.all_sessions
+        return set(
+            pd.Series(data=sessions)
+            .groupby([sessions.year, sessions.month])
+            .nth(self.td_delta)
+            .astype(np.int64)
+        )
 
 
 class NthTradingDayOfMonth(TradingDayOfMonthRule):
