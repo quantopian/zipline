@@ -784,6 +784,7 @@ class BlazeToPipelineTestCase(WithAssetFinder, ZiplineTestCase):
             expr,
             loader=loader,
             no_deltas_rule='ignore',
+            no_checkpoints_rule='ignore',
             missing_values=self.missing_values,
         )
 
