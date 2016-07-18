@@ -590,7 +590,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                 'high': full(9, nan),
                 'low': full(9, nan),
                 'close': full(9, nan),
-                'volume': full(9, 0),
+                'volume': full(9, 0.0),
             },
             index=[minutes])
         self.writer.write_sid(sid, data)
