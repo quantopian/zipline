@@ -22,13 +22,12 @@ from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.testing import ExplodingObject
 from zipline.testing.fixtures import (
     WithAssetFinder,
-    WithNYSETradingDays,
     ZiplineTestCase,
 )
+from zipline.utils.calendars import get_calendar
 
 
 class TestPanelDailyBarReader(WithAssetFinder,
-                              WithNYSETradingDays,
                               ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
@@ -39,10 +38,13 @@ class TestPanelDailyBarReader(WithAssetFinder,
         super(TestPanelDailyBarReader, cls).init_class_fixtures()
 
         finder = cls.asset_finder
-        days = cls.trading_days
+        trading_calendar = get_calendar('NYSE')
 
         items = finder.retrieve_all(finder.sids)
-        major_axis = days
+        major_axis = trading_calendar.sessions_in_range(
+            cls.START_DATE,
+            cls.END_DATE
+        )
         minor_axis = ['open', 'high', 'low', 'close', 'volume']
 
         shape = tuple(map(len, [items, major_axis, minor_axis]))
@@ -55,7 +57,7 @@ class TestPanelDailyBarReader(WithAssetFinder,
             minor_axis=minor_axis,
         )
 
-        cls.reader = PanelBarReader(days, cls.panel)
+        cls.reader = PanelBarReader(trading_calendar, cls.panel, 'daily')
 
     def test_spot_price(self):
         panel = self.panel
@@ -83,7 +85,7 @@ class TestPanelDailyBarReader(WithAssetFinder,
         for axis_order in permutations((0, 1, 2)):
             transposed = panel.transpose(*axis_order)
             with self.assertRaises(ValueError) as e:
-                PanelBarReader(unused, transposed)
+                PanelBarReader(unused, transposed, 'daily')
 
             expected = (
                 "Duplicate entries in Panel.{name}: ['a', 'b'].".format(

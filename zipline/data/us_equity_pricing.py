@@ -43,7 +43,6 @@ from pandas import (
     NaT,
     DatetimeIndex
 )
-from pandas.core.datetools import normalize_date
 from pandas.tslib import iNaT
 from six import (
     iteritems,
@@ -770,15 +769,34 @@ class PanelBarReader(DailyBarReader):
         The first trading day in the dataset.
     """
     @preprocess(panel=call(verify_indices_all_unique))
-    def __init__(self, calendar, panel):
+    @expect_element(data_frequency={'daily', 'minute'})
+    def __init__(self, trading_calendar, panel, data_frequency):
 
         panel = panel.copy()
         if 'volume' not in panel.minor_axis:
             # Fake volume if it does not exist.
             panel.loc[:, :, 'volume'] = int(1e9)
 
-        self.first_trading_day = normalize_date(panel.major_axis[0])
-        self._calendar = calendar
+        self.trading_calendar = trading_calendar
+        self.first_trading_day = trading_calendar.minute_to_session_label(
+            panel.major_axis[0]
+        )
+        last_trading_day = trading_calendar.minute_to_session_label(
+            panel.major_axis[-1]
+        )
+
+        self._sessions = trading_calendar.sessions_in_range(
+            self.first_trading_day,
+            last_trading_day
+        )
+
+        if data_frequency == 'daily':
+            self._calendar = self._sessions
+        elif data_frequency == 'minute':
+            self._calendar = trading_calendar.minutes_for_sessions_in_range(
+                self.first_trading_day,
+                last_trading_day
+            )
 
         self.panel = panel
 
@@ -788,18 +806,9 @@ class PanelBarReader(DailyBarReader):
 
     @property
     def last_available_dt(self):
-        # Returns the last Panel index that is on the calendar.
-        # The slice end is converted from dt to date string so that
-        # dts on the last day of the calendar get included.
-        return self.panel.major_axis[
-            self.panel.major_axis.slice_indexer(
-                end=self._calendar[-1].strftime('%Y-%m-%d')
-            )
-        ][-1]
+        return self._calendar[-1]
 
-    @property
-    def trading_calendar(self):
-        return None
+    trading_calendar = None
 
     def load_raw_arrays(self, columns, start_dt, end_dt, assets):
         cal = self._calendar

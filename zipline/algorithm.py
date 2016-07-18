@@ -619,8 +619,12 @@ class TradingAlgorithm(object):
                 # to be inferred.
                 if overwrite_sim_params:
                     self.sim_params = self.sim_params.create_new(
-                        normalize_date(data.major_axis[0]),
-                        normalize_date(data.major_axis[-1])
+                        self.trading_calendar.minute_to_session_label(
+                            data.major_axis[0]
+                        ),
+                        self.trading_calendar.minute_to_session_label(
+                            data.major_axis[-1]
+                        ),
                     )
 
                     # Assume data is daily if timestamp times are
@@ -649,11 +653,13 @@ class TradingAlgorithm(object):
 
                 if self.sim_params.data_frequency == 'daily':
                     equity_reader_arg = 'equity_daily_reader'
-                    calendar = self.trading_calendar.all_sessions
                 elif self.sim_params.data_frequency == 'minute':
                     equity_reader_arg = 'equity_minute_reader'
-                    calendar = self.trading_calendar.all_minutes
-                equity_reader = PanelBarReader(calendar, copy_panel)
+                equity_reader = PanelBarReader(
+                    self.trading_calendar,
+                    copy_panel,
+                    self.sim_params.data_frequency,
+                )
 
                 self.data_portal = DataPortal(
                     self.asset_finder,
