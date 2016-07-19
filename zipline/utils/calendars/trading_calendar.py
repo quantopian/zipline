@@ -21,7 +21,6 @@ from pandas import (
     DataFrame,
     date_range,
     DatetimeIndex,
-    Timedelta,
     DateOffset
 )
 from pandas.tseries.offsets import CustomBusinessDay
