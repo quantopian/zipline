@@ -58,6 +58,17 @@ cdef class Asset:
 
     cdef readonly object exchange
 
+    _kwargnames = frozenset({
+        'sid',
+        'symbol',
+        'asset_name',
+        'start_date',
+        'end_date',
+        'first_traded',
+        'auto_close_date',
+        'exchange',
+    })
+
     def __init__(self,
                  int sid, # sid is required
                  object symbol="",
@@ -261,6 +272,22 @@ cdef class Future(Asset):
     cdef readonly object expiration_date
     cdef readonly object tick_size
     cdef readonly float multiplier
+
+    _kwargnames = frozenset({
+        'sid',
+        'symbol',
+        'root_symbol',
+        'asset_name',
+        'start_date',
+        'end_date',
+        'notice_date',
+        'expiration_date',
+        'auto_close_date',
+        'first_traded',
+        'exchange',
+        'tick_size',
+        'multiplier',
+    })
 
     def __init__(self,
                  int sid, # sid is required

@@ -23,7 +23,7 @@ import pandas as pd
 from pandas import isnull
 from six import with_metaclass, string_types, viewkeys, iteritems
 import sqlalchemy as sa
-from toolz import merge, compose, valmap, sliding_window, concatv
+from toolz import merge, compose, valmap, sliding_window, concatv, curry
 from toolz.curried import operator as op
 
 from zipline.errors import (
@@ -71,46 +71,31 @@ _asset_timestamp_fields = frozenset({
     'auto_close_date',
 })
 
-
-_future_kwarg_names = frozenset({
-    'sid',
-    'symbol',
-    'root_symbol',
-    'asset_name',
-    'start_date',
-    'end_date',
-    'notice_date',
-    'expiration_date',
-    'auto_close_date',
-    'first_traded',
-    'exchange',
-    'tick_size',
-    'multiplier',
-})
-
-_equity_kwarg_names = frozenset({
-    'sid',
-    'symbol',
-    'asset_name',
-    'start_date',
-    'end_date',
-    'first_traded',
-    'auto_close_date',
-    'exchange',
-})
-
-
 SymbolOwnership = namedtuple('SymbolOwnership', 'start end sid symbol')
 
 
-def _filter_kwargs(names):
-    def _filter(row):
-        return {k: v for k, v in row.items() if k in names}
-    return _filter
+@curry
+def _filter_kwargs(names, dict_):
+    """Filter out kwargs from a dictionary.
+
+    Parameters
+    ----------
+    names : set[str]
+        The names to select from ``dict_``.
+    dict_ : dict[str, any]
+        The dictionary to select from.
+
+    Returns
+    -------
+    kwargs : dict[str, any]
+        ``dict_`` where the keys intersect with ``names`` and the values are
+        not None.
+    """
+    return {k: v for k, v in dict_.items() if k in names and v is not None}
 
 
-_filter_future_kwargs = _filter_kwargs(_future_kwarg_names)
-_filter_equity_kwargs = _filter_kwargs(_equity_kwarg_names)
+_filter_future_kwargs = _filter_kwargs(Future._kwargnames)
+_filter_equity_kwargs = _filter_kwargs(Equity._kwargnames)
 
 
 def _convert_asset_timestamp_fields(dict_):
@@ -183,6 +168,7 @@ class AssetFinder(object):
         # should be calling this.
         for cache in self._caches:
             cache.clear()
+        self.reload_symbol_maps()
 
     def reload_symbol_maps(self):
         """Clear the in memory symbol lookup maps.
@@ -191,8 +177,14 @@ class AssetFinder(object):
         symbol maps.
         """
         # clear the lazyval caches, the next access will requery
-        del type(self).symbol_ownership_map[self]
-        del type(self).fuzzy_symbol_ownership_map[self]
+        try:
+            del type(self).symbol_ownership_map[self]
+        except KeyError:
+            pass
+        try:
+            del type(self).fuzzy_symbol_ownership_map[self]
+        except KeyError:
+            pass
 
     @lazyval
     def symbol_ownership_map(self):
