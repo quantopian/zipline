@@ -21,7 +21,7 @@ from pandas import (
     DataFrame,
     date_range,
     DatetimeIndex,
-    Timedelta
+    DateOffset
 )
 from pandas.tseries.offsets import CustomBusinessDay
 
@@ -677,11 +677,16 @@ def days_at_time(days, t, tz, day_offset=0):
     day_offset : int
         The number of days we want to offset @days by
     """
-    days = DatetimeIndex(days).tz_localize(None).tz_localize(tz)
-    days_offset = days + Timedelta(days=day_offset)
+
+    # Offset days without tz to avoid timezone issues.
+    days = DatetimeIndex(days).tz_localize(None)
+    days_offset = days + DateOffset(days=day_offset)
+
+    # Shift all days to the target time in the local timezone, then
+    # convert to UTC.
     return days_offset.shift(
-        1, freq=Timedelta(hours=t.hour, minutes=t.minute, seconds=t.second)
-    ).tz_convert('UTC')
+        1, freq=DateOffset(hour=t.hour, minute=t.minute, second=t.second)
+    ).tz_localize(tz).tz_convert('UTC')
 
 
 def holidays_at_time(calendar, start, end, time, tz):

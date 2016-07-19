@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import time
 from os.path import (
     abspath,
     dirname,
@@ -23,16 +24,19 @@ from collections import namedtuple
 
 import numpy as np
 import pandas as pd
+from nose_parameterized import parameterized
 from pandas import (
     read_csv,
     Timestamp,
 )
 from pandas.util.testing import assert_index_equal
+from pytz import timezone
 from zipline.errors import (
     CalendarNameCollision,
     InvalidCalendarName,
 )
 from zipline.utils.calendars.exchange_calendar_nyse import NYSEExchangeCalendar
+from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.calendars import(
     register_calendar,
     deregister_calendar,
@@ -79,6 +83,36 @@ class CalendarRegistrationTestCase(TestCase):
         # Ensure that the dummy overwrote the real calendar
         retr_cal = get_calendar('NYSE')
         self.assertNotEqual(real_nyse, retr_cal)
+
+
+class DaysAtTimeTestCase(TestCase):
+    @parameterized.expand([
+        # NYSE standard day
+        (
+            '2016-07-19', 0, time(9, 31), timezone('US/Eastern'),
+            '2016-07-19 9:31',
+        ),
+        # CME standard day
+        (
+            '2016-07-19', -1, time(17, 1), timezone('America/Chicago'),
+            '2016-07-18 17:01',
+        ),
+        # CME day after DST start
+        (
+            '2004-04-05', -1, time(17, 1), timezone('America/Chicago'),
+            '2004-04-04 17:01'
+        ),
+        # ICE day after DST start
+        (
+            '1990-04-02', -1, time(19, 1), timezone('America/Chicago'),
+            '1990-04-01 19:01',
+        ),
+    ])
+    def test_days_at_time(self, day, day_offset, time_offset, tz, expected):
+        days = pd.DatetimeIndex([pd.Timestamp(day, tz=tz)])
+        result = days_at_time(days, time_offset, tz, day_offset)[0]
+        expected = pd.Timestamp(expected, tz=tz).tz_convert('UTC')
+        self.assertEqual(result, expected)
 
 
 class ExchangeCalendarTestBase(object):
