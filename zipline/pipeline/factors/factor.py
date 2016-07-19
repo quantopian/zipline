@@ -37,11 +37,7 @@ from zipline.pipeline.mixins import (
     SingleInputMixin,
 )
 from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
-from zipline.pipeline.term import (
-    ComputableTerm,
-    Slice,
-    Term,
-)
+from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
@@ -626,7 +622,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         return Rank(self, method=method, ascending=ascending, mask=mask)
 
     @expect_types(
-        target=Slice, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
     )
     def pearsonr(self, target, correlation_length, mask=NotSpecified):
         """
@@ -639,9 +635,11 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Parameters
         ----------
-        target : zipline.pipeline.slice.Slice
-            The column of data with which to compute correlations against each
-            column of data produced by `self`.
+        target : zipline.pipeline.Term with a numeric dtype
+            The term with which to compute correlations against each column of
+            data produced by `self`.  This may be a Factor, a BoundColumn or a
+            Slice. If `target` is two-dimensional, correlations are computed
+            asset-wise.
         correlation_length : int
             Length of the lookback window over which to compute each
             correlation coefficient.
@@ -682,14 +680,14 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         from .statistical import RollingPearson
         return RollingPearson(
-            target_factor=self,
-            target_slice=target,
+            base_factor=self,
+            target=target,
             correlation_length=correlation_length,
             mask=mask,
         )
 
     @expect_types(
-        target=Slice, correlation_length=int, mask=(Filter, NotSpecifiedType),
+        target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
     )
     def spearmanr(self, target, correlation_length, mask=NotSpecified):
         """
@@ -702,9 +700,11 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Parameters
         ----------
-        target : zipline.pipeline.slice.Slice
-            The column of data with which to compute correlations against each
-            column of data produced by `self`.
+        target : zipline.pipeline.Term with a numeric dtype
+            The term with which to compute correlations against each column of
+            data produced by `self`.  This may be a Factor, a BoundColumn or a
+            Slice. If `target` is two-dimensional, correlations are computed
+            asset-wise.
         correlation_length : int
             Length of the lookback window over which to compute each
             correlation coefficient.
@@ -745,14 +745,14 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         from .statistical import RollingSpearman
         return RollingSpearman(
-            target_factor=self,
-            target_slice=target,
+            base_factor=self,
+            target=target,
             correlation_length=correlation_length,
             mask=mask,
         )
 
     @expect_types(
-        target=Slice, regression_length=int, mask=(Filter, NotSpecifiedType),
+        target=Term, regression_length=int, mask=(Filter, NotSpecifiedType),
     )
     def linear_regression(self, target, regression_length, mask=NotSpecified):
         """
@@ -765,9 +765,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
 
         Parameters
         ----------
-        target : zipline.pipeline.slice.Slice
-            The column of data to use as the predictor/independent variable in
-            each regression.
+        target : zipline.pipeline.Term with a numeric dtype
+            The term to use as the predictor/independent variable in each
+            regression.  This may be a Factor, a BoundColumn or a Slice. If
+            `target` is two-dimensional, correlations are computed asset-wise.
         correlation_length : int
             Length of the lookback window over which to compute each
             regression.
@@ -806,8 +807,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         from .statistical import RollingLinearRegression
         return RollingLinearRegression(
-            target_factor=self,
-            target_slice=target,
+            dependent=self,
+            independent=target,
             regression_length=regression_length,
             mask=mask,
         )

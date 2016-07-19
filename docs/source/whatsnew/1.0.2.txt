@@ -15,6 +15,9 @@ Enhancements
 - Updated VagrantFile to include all dev requirements and use a newer image
   (:issue:`1310`).
 
+- Allow correlations and regressions to be computed between two 2D factors by
+  doing computations asset-wise (:issue:`1307`).
+
 Bug Fixes
 ~~~~~~~~~
 
