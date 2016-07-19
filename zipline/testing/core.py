@@ -710,7 +710,7 @@ class FakeDataPortal(DataPortal):
             ]
 
             df = pd.DataFrame(
-                np.full((bar_count, len(assets)), 100),
+                np.full((bar_count, len(assets)), 100.0),
                 index=days,
                 columns=assets
             )
