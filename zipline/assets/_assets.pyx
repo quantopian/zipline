@@ -275,7 +275,7 @@ cdef class Future(Asset):
                  object first_traded=None,
                  object exchange="",
                  object tick_size="",
-                 float multiplier=1):
+                 float multiplier=1.0):
 
         super().__init__(
             sid,
