@@ -119,7 +119,7 @@ def fetch_symbol_metadata_frame(api_key,
             'name': 'asset_name',
             'oldest_available_date': 'start_date',
             'newest_available_date': 'end_date',
-        }).sort('symbol')
+        }).sort_values('symbol')
 
     data = data[~data.symbol.isin(excluded_symbols)]
     # cut out all the other stuff in the name column
