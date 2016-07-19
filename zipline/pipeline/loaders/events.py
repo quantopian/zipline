@@ -109,10 +109,12 @@ class EventsLoader(PipelineLoader):
         events = events[events[EVENT_DATE_FIELD_NAME].notnull()]
 
         # We always work with entries from ``events`` directly as numpy arrays,
-        # so we coerce from a frame here.
+        # so we coerce from a frame to a dict of arrays here.
         self.events = {
             name: np.asarray(series)
-            for name, series in events.sort(EVENT_DATE_FIELD_NAME).iteritems()
+            for name, series in (
+                events.sort_values(EVENT_DATE_FIELD_NAME).iteritems()
+            )
         }
 
         # Columns to load with self.load_next_events.

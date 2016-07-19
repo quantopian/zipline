@@ -153,7 +153,7 @@ class EventIndexerTestCase(ZiplineTestCase):
     @classmethod
     def init_class_fixtures(cls):
         super(EventIndexerTestCase, cls).init_class_fixtures()
-        cls.events = make_events(add_nulls=False).sort('event_date')
+        cls.events = make_events(add_nulls=False).sort_values('event_date')
         cls.events.reset_index(inplace=True)
 
     def test_previous_event_indexer(self):
