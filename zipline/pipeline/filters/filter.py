@@ -167,6 +167,10 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
     output of a Pipeline and for reducing memory consumption of Pipeline
     results.
     """
+
+    # make filters window safe
+    window_safe = True
+    
     ALLOWED_DTYPES = (bool_dtype,)  # Used by RestrictedDTypeMixin
     dtype = bool_dtype
 
