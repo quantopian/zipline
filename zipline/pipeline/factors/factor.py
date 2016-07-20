@@ -636,9 +636,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         Parameters
         ----------
         target : zipline.pipeline.Term with a numeric dtype
-            The term with which to compute correlations against each column of
-            data produced by `self`.  This may be a Factor, a BoundColumn or a
-            Slice. If `target` is two-dimensional, correlations are computed
+            The term used to compute correlations against each column of data
+            produced by `self`. This may be a Factor, a BoundColumn or a Slice.
+            If `target` is two-dimensional, correlations are computed
             asset-wise.
         correlation_length : int
             Length of the lookback window over which to compute each
@@ -661,7 +661,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         by doing the following::
 
             returns = Returns(window_length=10)
-            returns_slice = returns[Asset(24)]
+            returns_slice = returns[sid(24)]
             aapl_correlations = returns.pearsonr(
                 target=returns_slice, correlation_length=30,
             )
@@ -669,7 +669,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         This is equivalent to doing::
 
             aapl_correlations = RollingPearsonOfReturns(
-                target=Asset(24), returns_length=10, correlation_length=30,
+                target=sid(24), returns_length=10, correlation_length=30,
             )
 
         See Also
@@ -701,9 +701,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         Parameters
         ----------
         target : zipline.pipeline.Term with a numeric dtype
-            The term with which to compute correlations against each column of
-            data produced by `self`.  This may be a Factor, a BoundColumn or a
-            Slice. If `target` is two-dimensional, correlations are computed
+            The term used to compute correlations against each column of data
+            produced by `self`. This may be a Factor, a BoundColumn or a Slice.
+            If `target` is two-dimensional, correlations are computed
             asset-wise.
         correlation_length : int
             Length of the lookback window over which to compute each
@@ -726,7 +726,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         by doing the following::
 
             returns = Returns(window_length=10)
-            returns_slice = returns[Asset(24)]
+            returns_slice = returns[sid(24)]
             aapl_correlations = returns.spearmanr(
                 target=returns_slice, correlation_length=30,
             )
@@ -734,7 +734,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         This is equivalent to doing::
 
             aapl_correlations = RollingSpearmanOfReturns(
-                target=Asset(24), returns_length=10, correlation_length=30,
+                target=sid(24), returns_length=10, correlation_length=30,
             )
 
         See Also
@@ -767,7 +767,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         ----------
         target : zipline.pipeline.Term with a numeric dtype
             The term to use as the predictor/independent variable in each
-            regression.  This may be a Factor, a BoundColumn or a Slice. If
+            regression. This may be a Factor, a BoundColumn or a Slice. If
             `target` is two-dimensional, correlations are computed asset-wise.
         correlation_length : int
             Length of the lookback window over which to compute each
@@ -789,7 +789,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         regression over 30 days. This can be achieved by doing the following::
 
             returns = Returns(window_length=10)
-            returns_slice = returns[Asset(24)]
+            returns_slice = returns[sid(24)]
             aapl_regressions = returns.linear_regression(
                 target=returns_slice, regression_length=30,
             )
@@ -797,7 +797,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         This is equivalent to doing::
 
             aapl_regressions = RollingLinearRegressionOfReturns(
-                target=Asset(24), returns_length=10, regression_length=30,
+                target=sid(24), returns_length=10, regression_length=30,
             )
 
         See Also
