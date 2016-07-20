@@ -224,7 +224,7 @@ def make_future_info(first_sid,
             'exchange': "TEST",
             'exchange_full': 'TEST FULL',
         })
-    return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
+    return pd.DataFrame.from_records(contracts, index='sid')
 
 
 def make_commodity_future_info(first_sid,
