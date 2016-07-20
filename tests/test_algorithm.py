@@ -3476,7 +3476,7 @@ class TestOrderCancelation(WithDataPortal,
                 'high': minutes_arr + 2,
                 'low': minutes_arr - 1,
                 'close': minutes_arr,
-                'volume': np.full(minutes_count, 1),
+                'volume': np.full(minutes_count, 1.0),
             },
             index=asset_minutes,
         )
