@@ -34,6 +34,8 @@ from numpy cimport int64_t
 import warnings
 cimport numpy as np
 
+from zipline.utils.calendars import get_calendar
+
 
 # IMPORTANT NOTE: You must change this template if you change
 # Asset.__reduce__, or else we'll attempt to unpickle an old version of this
@@ -41,6 +43,16 @@ cimport numpy as np
 from pandas.tslib import normalize_date
 
 CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v6.cache'
+
+FUTURE_EXCHANGE_MAPPING = {
+    "CFE": "CFE",
+    "CBOT": "CME",
+    "CME": "CME",
+    "COMEX": "CME",
+    "NYMEX": "CME",
+    "ICEUS": "ICE",
+    "NYFE": "ICE"
+}
 
 cdef class Asset:
 
@@ -88,6 +100,8 @@ cdef class Asset:
         self.end_date = end_date
         self.first_traded = first_traded
         self.auto_close_date = auto_close_date
+
+
 
     def __int__(self):
         return self.sid
@@ -187,37 +201,58 @@ cdef class Asset:
         """
         return cls(**dict_)
 
-    def _is_alive(self, dt, bool normalized):
+    def _is_alive_for_session(self, session_label):
         """
         Returns whether the asset is alive at the given dt.
 
         Parameters
         ----------
-        dt: pd.Timestamp
-            The desired timestamp.
-
-        normalized: boolean
-            Whether the date has already been normalized.  If not, we need
-            to first normalize the date before doing the alive check.  If the
-            date is already normalized, this method runs up to 80% faster.
+        session_label: pd.Timestamp
+            The desired session label to check. (midnight UTC)
 
         Returns
         -------
         boolean: whether the asset is alive at the given dt.
         """
-        cdef int64_t dt_value
         cdef int64_t ref_start
         cdef int64_t ref_end
-
-        if not normalized:
-            dt_value = normalize_date(dt).value
-        else:
-            dt_value = dt.value
 
         ref_start = self.start_date.value
         ref_end = self.end_date.value
 
-        return ref_start <= dt_value <= ref_end
+        return ref_start <= session_label.value <= ref_end
+
+    def _asset_exchange_open(self, dt_minute):
+        """
+        Parameters
+        ----------
+        dt_minute: pd.Timestamp (UTC, tz-aware)
+            The minute to check.
+
+        Returns
+        -------
+        boolean: whether the asset's exchange is open at the given minute.
+        """
+        calendar = self._exchange_trading_calendar_for_asset()
+        return calendar.is_open_on_minute(dt_minute)
+
+    def _exchange_trading_calendar_for_asset(self):
+        """
+        Get the calendar for this asset's exchange.
+
+        Raises KeyError if the asset's exchange calendar cannot be found.
+
+        Returns
+        -------
+        The asset's exchange's trading calendar.
+        """
+        if isinstance(self, Equity):
+            # FIXME: probably too Quantopian-specific
+            return get_calendar("NYSE")
+        else:
+            asset_exchange_str = self.exchange
+            calendar_str = FUTURE_EXCHANGE_MAPPING[asset_exchange_str]
+            return get_calendar(calendar_str)
 
 
 cdef class Equity(Asset):

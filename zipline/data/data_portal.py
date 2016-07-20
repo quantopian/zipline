@@ -150,7 +150,9 @@ class DataPortal(object):
         if self._equity_minute_reader is not None:
             self._equity_daily_aggregator = DailyHistoryAggregator(
                 self.trading_calendar.schedule.market_open,
-                self._equity_minute_reader)
+                self._equity_minute_reader,
+                self.trading_calendar
+            )
             self._equity_minute_history_loader = USEquityMinuteHistoryLoader(
                 self.trading_calendar,
                 self._equity_minute_reader,

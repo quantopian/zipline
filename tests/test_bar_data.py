@@ -438,7 +438,7 @@ class TestMinuteBarData(WithBarDataChecks,
                     bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "volume")
                 )
 
-    def test_can_trade_at_midnight(self):
+    def test_can_trade_during_non_market_hours(self):
         # make sure that if we use `can_trade` at midnight, we don't pretend
         # we're in the previous day's last minute
         the_day_after = self.trading_calendar.next_session_label(
@@ -453,19 +453,39 @@ class TestMinuteBarData(WithBarDataChecks,
             with handle_non_market_minutes(bar_data):
                 self.assertFalse(bar_data.can_trade(asset))
 
-        # but make sure it works when the assets are alive
+        # NYSE is closed at midnight, so even if the asset is alive, can_trade
+        # should return False
         bar_data2 = BarData(
             self.data_portal,
             lambda: self.equity_minute_bar_days[1],
             "minute",
         )
         for asset in [self.ASSET1, self.HILARIOUSLY_ILLIQUID_ASSET]:
-            self.assertTrue(bar_data2.can_trade(asset))
+            self.assertFalse(bar_data2.can_trade(asset))
 
             with handle_non_market_minutes(bar_data2):
-                self.assertTrue(bar_data2.can_trade(asset))
+                self.assertFalse(bar_data2.can_trade(asset))
 
-    def test_is_stale_at_midnight(self):
+    def test_can_trade_exchange_closed(self):
+        session = self.equity_minute_bar_days[1]
+        session_open, session_close = \
+            self.trading_calendar.open_and_close_for_session(session)
+
+        one_minute = pd.Timedelta(minutes=1)
+
+        minutes_to_check = [
+            (session_open - one_minute, False),
+            (session_open, True),
+            (session_close - one_minute, True),
+            (session_close, True),
+            (session_close + one_minute, False)
+        ]
+
+        for info in minutes_to_check:
+            bar_data = BarData(self.data_portal, lambda: info[0], "minute")
+            self.assertEqual(info[1], bar_data.can_trade(self.ASSET1))
+
+    def test_is_stale_during_non_market_hours(self):
         bar_data = BarData(
             self.data_portal,
             lambda: self.equity_minute_bar_days[1],
@@ -644,13 +664,20 @@ class TestDailyBarData(WithBarDataChecks,
         )
         cls.ASSETS = [cls.ASSET1, cls.ASSET2]
 
+    def get_last_minute_of_session(self, session_label):
+        return self.trading_calendar.open_and_close_for_session(
+            session_label
+        )[1]
+
     def test_day_before_assets_trading(self):
         # use the day before self.bcolz_daily_bar_days[0]
-        day = self.trading_calendar.previous_session_label(
-            self.equity_daily_bar_days[0]
+        minute = self.get_last_minute_of_session(
+            self.trading_calendar.previous_session_label(
+                self.equity_daily_bar_days[0]
+            )
         )
 
-        bar_data = BarData(self.data_portal, lambda: day, "daily")
+        bar_data = BarData(self.data_portal, lambda: minute, "daily")
         self.check_internal_consistency(bar_data)
 
         self.assertFalse(bar_data.can_trade(self.ASSET1))
@@ -674,7 +701,9 @@ class TestDailyBarData(WithBarDataChecks,
         # on self.equity_daily_bar_days[0], only asset1 has data
         bar_data = BarData(
             self.data_portal,
-            lambda: self.equity_daily_bar_days[0],
+            lambda: self.get_last_minute_of_session(
+                self.equity_daily_bar_days[0]
+            ),
             "daily",
         )
         self.check_internal_consistency(bar_data)
@@ -709,7 +738,9 @@ class TestDailyBarData(WithBarDataChecks,
     def test_fully_active_day(self):
         bar_data = BarData(
             self.data_portal,
-            lambda: self.equity_daily_bar_days[1],
+            lambda: self.get_last_minute_of_session(
+                self.equity_daily_bar_days[1]
+            ),
             "daily",
         )
         self.check_internal_consistency(bar_data)
@@ -733,7 +764,9 @@ class TestDailyBarData(WithBarDataChecks,
     def test_last_active_day(self):
         bar_data = BarData(
             self.data_portal,
-            lambda: self.equity_daily_bar_days[-1],
+            lambda: self.get_last_minute_of_session(
+                self.equity_daily_bar_days[-1]
+            ),
             "daily",
         )
         self.check_internal_consistency(bar_data)
@@ -751,11 +784,13 @@ class TestDailyBarData(WithBarDataChecks,
 
     def test_after_assets_dead(self):
         # both assets end on self.day[-1], so let's try the next day
-        next_day = self.trading_calendar.next_session_label(
-            self.equity_daily_bar_days[-1]
+        minute = self.get_last_minute_of_session(
+            self.trading_calendar.next_session_label(
+                self.equity_daily_bar_days[-1]
+            )
         )
 
-        bar_data = BarData(self.data_portal, lambda: next_day, "daily")
+        bar_data = BarData(self.data_portal, lambda: minute, "daily")
         self.check_internal_consistency(bar_data)
 
         for asset in self.ASSETS:

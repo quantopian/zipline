@@ -15,8 +15,6 @@
 import numpy as np
 import pandas as pd
 
-from pandas.tslib import normalize_date
-
 
 class DailyHistoryAggregator(object):
     """
@@ -32,9 +30,10 @@ class DailyHistoryAggregator(object):
 
     """
 
-    def __init__(self, market_opens, minute_reader):
+    def __init__(self, market_opens, minute_reader, trading_calendar):
         self._market_opens = market_opens
         self._minute_reader = minute_reader
+        self._trading_calendar = trading_calendar
 
         # The caches are structured as (date, market_open, entries), where
         # entries is a dict of asset -> (last_visited_dt, value)
@@ -97,10 +96,10 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'open')
 
         opens = []
-        normalized_date = normalize_date(dt)
+        session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive(normalized_date, True):
+            if not asset._is_alive_for_session(session_label):
                 opens.append(np.NaN)
                 continue
 
@@ -166,10 +165,10 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'high')
 
         highs = []
-        normalized_date = normalize_date(dt)
+        session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive(normalized_date, True):
+            if not asset._is_alive_for_session(session_label):
                 highs.append(np.NaN)
                 continue
 
@@ -235,10 +234,10 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'low')
 
         lows = []
-        normalized_date = normalize_date(dt)
+        session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive(normalized_date, True):
+            if not asset._is_alive_for_session(session_label):
                 lows.append(np.NaN)
                 continue
 
@@ -305,10 +304,10 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'close')
 
         closes = []
-        normalized_dt = normalize_date(dt)
+        session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive(normalized_dt, True):
+            if not asset._is_alive_for_session(session_label):
                 closes.append(np.NaN)
                 continue
 
@@ -365,10 +364,10 @@ class DailyHistoryAggregator(object):
         market_open, prev_dt, dt_value, entries = self._prelude(dt, 'volume')
 
         volumes = []
-        normalized_date = normalize_date(dt)
+        session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive(normalized_date, True):
+            if not asset._is_alive_for_session(session_label):
                 volumes.append(0)
                 continue
 
