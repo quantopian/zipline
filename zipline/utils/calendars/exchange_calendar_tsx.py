@@ -1,20 +1,20 @@
 from datetime import time
 from pandas.tseries.holiday import(
-    AbstractHolidayCalendar,
     Holiday,
     DateOffset,
     MO,
     weekend_to_monday,
-    GoodFriday,
+    GoodFriday
 )
 from pytz import timezone
 
-from zipline.utils.calendars.trading_calendar import TradingCalendar
+from zipline.utils.calendars.trading_calendar import TradingCalendar, \
+    HolidayCalendar
 from zipline.utils.calendars.us_holidays import Christmas
 from zipline.utils.calendars.exchange_calendar_lse import (
     WeekendChristmas,
     BoxingDay,
-    WeekendBoxingDay,
+    WeekendBoxingDay
 )
 
 # New Year's Day
@@ -69,28 +69,6 @@ Thanksgiving = Holiday(
 )
 
 
-class TSXHolidayCalendar(AbstractHolidayCalendar):
-    """
-    Non-trading days for the TSX.
-
-    See NYSEExchangeCalendar for full description.
-    """
-    rules = [
-        TSXNewYearsDay,
-        FamilyDay,
-        GoodFriday,
-        VictoriaDay,
-        CanadaDay,
-        CivicHoliday,
-        LaborDay,
-        Thanksgiving,
-        Christmas,
-        WeekendChristmas,
-        BoxingDay,
-        WeekendBoxingDay,
-    ]
-
-
 class TSXExchangeCalendar(TradingCalendar):
     """
     Exchange calendar for the Toronto Stock Exchange
@@ -113,18 +91,35 @@ class TSXExchangeCalendar(TradingCalendar):
     - Dec. 28th (if Boxing Day is on a weekend)
     """
 
-    name = 'TSX'
-    tz = timezone('Canada/Atlantic')
-    open_time = time(9, 31)
-    close_time = time(16)
-    open_offset = 0
-    close_offset = 0
+    @property
+    def name(self):
+        return "TSX"
 
-    holidays_calendar = TSXHolidayCalendar()
-    special_opens_calendars = ()
-    special_closes_calendars = ()
+    @property
+    def tz(self):
+        return timezone('Canada/Atlantic')
 
-    holidays_adhoc = ()
+    @property
+    def open_time(self):
+        return time(9, 31)
 
-    special_opens_adhoc = ()
-    special_closes_adhoc = ()
+    @property
+    def close_time(self):
+        return time(16)
+
+    @property
+    def regular_holidays(self):
+        return HolidayCalendar([
+            TSXNewYearsDay,
+            FamilyDay,
+            GoodFriday,
+            VictoriaDay,
+            CanadaDay,
+            CivicHoliday,
+            LaborDay,
+            Thanksgiving,
+            Christmas,
+            WeekendChristmas,
+            BoxingDay,
+            WeekendBoxingDay
+        ])

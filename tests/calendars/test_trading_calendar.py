@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from datetime import time
 from os.path import (
     abspath,
@@ -25,24 +24,23 @@ from collections import namedtuple
 import numpy as np
 import pandas as pd
 from nose_parameterized import parameterized
-from pandas import (
-    read_csv,
-    Timestamp,
-)
+from pandas import read_csv
+from pandas.tslib import Timedelta
 from pandas.util.testing import assert_index_equal
 from pytz import timezone
+
 from zipline.errors import (
     CalendarNameCollision,
     InvalidCalendarName,
 )
-from zipline.utils.calendars.exchange_calendar_nyse import NYSEExchangeCalendar
-from zipline.utils.calendars.trading_calendar import days_at_time
+
 from zipline.utils.calendars import(
     register_calendar,
     deregister_calendar,
     get_calendar,
     clear_calendars,
 )
+from zipline.utils.calendars.trading_calendar import days_at_time
 
 
 class CalendarRegistrationTestCase(TestCase):
@@ -121,6 +119,10 @@ class ExchangeCalendarTestBase(object):
     answer_key_filename = None
     calendar_class = None
 
+    GAPS_BETWEEN_SESSIONS = True
+
+    MAX_SESSION_HOURS = 0
+
     @staticmethod
     def load_answer_key(filename):
         """
@@ -128,7 +130,7 @@ class ExchangeCalendarTestBase(object):
         """
         fullpath = join(
             dirname(abspath(__file__)),
-            'resources',
+            '../resources',
             'calendars',
             filename + '.csv',
         )
@@ -154,6 +156,13 @@ class ExchangeCalendarTestBase(object):
         cls.one_minute = pd.Timedelta(minutes=1)
         cls.one_hour = pd.Timedelta(hours=1)
 
+    def test_sanity_check_session_lengths(self):
+        # make sure that no session is longer than self.MAX_SESSION_HOURS hours
+        for session in self.calendar.all_sessions:
+            o, c = self.calendar.open_and_close_for_session(session)
+            delta = c - o
+            self.assertTrue((delta.seconds / 3600) <= self.MAX_SESSION_HOURS)
+
     def test_calculated_against_csv(self):
         assert_index_equal(self.calendar.schedule.index, self.answers.index)
 
@@ -165,18 +174,21 @@ class ExchangeCalendarTestBase(object):
             # The exchange should be classified as open on its first minute
             self.assertTrue(self.calendar.is_open_on_minute(market_minute_utc))
 
-            # Decrement minute by one, to minute where the market was not open
-            pre_market = market_minute_utc - one_minute
-            self.assertFalse(self.calendar.is_open_on_minute(pre_market))
+            if self.GAPS_BETWEEN_SESSIONS:
+                # Decrement minute by one, to minute where the market was not
+                # open
+                pre_market = market_minute_utc - one_minute
+                self.assertFalse(self.calendar.is_open_on_minute(pre_market))
 
         for market_minute in self.answers.market_close:
             close_minute_utc = market_minute
             # should be open on its last minute
             self.assertTrue(self.calendar.is_open_on_minute(close_minute_utc))
 
-            # increment minute by one minute, should be closed
-            post_market = close_minute_utc + one_minute
-            self.assertFalse(self.calendar.is_open_on_minute(post_market))
+            if self.GAPS_BETWEEN_SESSIONS:
+                # increment minute by one minute, should be closed
+                post_market = close_minute_utc + one_minute
+                self.assertFalse(self.calendar.is_open_on_minute(post_market))
 
     def _verify_minute(self, calendar, minute,
                        next_open_answer, prev_open_answer,
@@ -203,12 +215,12 @@ class ExchangeCalendarTestBase(object):
 
     def test_next_prev_open_close(self):
         # for each session, check:
-        # - the minute before the open
+        # - the minute before the open (if gaps exist between sessions)
         # - the first minute of the session
         # - the second minute of the session
         # - the minute before the close
         # - the last minute of the session
-        # - the first minute after the close
+        # - the first minute after the close (if gaps exist between sessions)
         answers_to_use = self.answers[1:-2]
 
         for idx, info in enumerate(answers_to_use.iterrows()):
@@ -227,10 +239,11 @@ class ExchangeCalendarTestBase(object):
             next_close = self.answers.iloc[idx + 2].market_close
 
             # minute before open
-            self._verify_minute(
-                self.calendar, minute_before_open, open_minute, previous_open,
-                close_minute, previous_close
-            )
+            if self.GAPS_BETWEEN_SESSIONS:
+                self._verify_minute(
+                    self.calendar, minute_before_open, open_minute,
+                    previous_open, close_minute, previous_close
+                )
 
             # open minute
             self._verify_minute(
@@ -257,10 +270,11 @@ class ExchangeCalendarTestBase(object):
             )
 
             # minute after the close
-            self._verify_minute(
-                self.calendar, close_minute + self.one_minute, next_open,
-                open_minute, next_close, close_minute
-            )
+            if self.GAPS_BETWEEN_SESSIONS:
+                self._verify_minute(
+                    self.calendar, close_minute + self.one_minute, next_open,
+                    open_minute, next_close, close_minute
+                )
 
     def test_next_prev_minute(self):
         all_minutes = self.calendar.all_minutes
@@ -278,19 +292,20 @@ class ExchangeCalendarTestBase(object):
             )
 
         # test a couple of non-market minutes
-        for open_minute in self.answers.market_open[1:]:
-            hour_before_open = open_minute - self.one_hour
-            self.assertEqual(
-                open_minute,
-                self.calendar.next_minute(hour_before_open)
-            )
+        if self.GAPS_BETWEEN_SESSIONS:
+            for open_minute in self.answers.market_open[1:]:
+                hour_before_open = open_minute - self.one_hour
+                self.assertEqual(
+                    open_minute,
+                    self.calendar.next_minute(hour_before_open)
+                )
 
-        for close_minute in self.answers.market_close[1:]:
-            hour_after_close = close_minute + self.one_hour
-            self.assertEqual(
-                close_minute,
-                self.calendar.previous_minute(hour_after_close)
-            )
+            for close_minute in self.answers.market_close[1:]:
+                hour_after_close = close_minute + self.one_hour
+                self.assertEqual(
+                    close_minute,
+                    self.calendar.previous_minute(hour_after_close)
+                )
 
     def test_minute_to_session_label(self):
         for idx, info in enumerate(self.answers[1:-2].iterrows()):
@@ -328,17 +343,28 @@ class ExchangeCalendarTestBase(object):
                                                       direction="previous"),
                 self.calendar.minute_to_session_label(close_minute,
                                                       direction="none"),
-                self.calendar.minute_to_session_label(minute_before_session),
-                self.calendar.minute_to_session_label(
-                    minute_before_session,
-                    direction="next"
-                ),
-                self.calendar.minute_to_session_label(
-                    minute_after_session,
-                    direction="previous"
-                ),
                 session_label
             ]
+
+            if self.GAPS_BETWEEN_SESSIONS:
+                minutes_that_resolve_to_this_session.append(
+                    self.calendar.minute_to_session_label(
+                        minute_before_session
+                    )
+                )
+                minutes_that_resolve_to_this_session.append(
+                    self.calendar.minute_to_session_label(
+                        minute_before_session,
+                        direction="next"
+                    )
+                )
+
+                minutes_that_resolve_to_this_session.append(
+                    self.calendar.minute_to_session_label(
+                        minute_after_session,
+                        direction="previous"
+                    )
+                )
 
             self.assertTrue(all(x == minutes_that_resolve_to_this_session[0]
                                 for x in minutes_that_resolve_to_this_session))
@@ -363,9 +389,12 @@ class ExchangeCalendarTestBase(object):
             with self.assertRaises(ValueError):
                 self.calendar.minute_to_session_label(open_minute, "asdf")
 
-            with self.assertRaises(ValueError):
-                self.calendar.minute_to_session_label(minute_before_session,
-                                                      direction="none")
+            if self.GAPS_BETWEEN_SESSIONS:
+                with self.assertRaises(ValueError):
+                    self.calendar.minute_to_session_label(
+                        minute_before_session,
+                        direction="none"
+                    )
 
     def test_next_prev_session(self):
         session_labels = self.answers.index[1:-2]
@@ -494,7 +523,11 @@ class ExchangeCalendarTestBase(object):
             minute_after_last_close
         )
 
-        np.testing.assert_array_equal(minutes1, minutes2)
+        if self.GAPS_BETWEEN_SESSIONS:
+            np.testing.assert_array_equal(minutes1, minutes2)
+        else:
+            # if no gaps, then minutes2 should have 2 extra minutes
+            np.testing.assert_array_equal(minutes1, minutes2[1:-1])
 
         # manually construct the minutes
         all_minutes = np.concatenate([
@@ -574,223 +607,34 @@ class ExchangeCalendarTestBase(object):
             self.assertEqual(open_answer, found_open)
             self.assertEqual(close_answer, found_close)
 
+    def test_daylight_savings(self):
+        # 2004 daylight savings switches:
+        # Sunday 2004-04-04 and Sunday 2004-10-31
 
-class NYSECalendarTestCase(ExchangeCalendarTestBase, TestCase):
+        # make sure there's no weirdness around calculating the next day's
+        # session's open time.
 
-    answer_key_filename = 'nyse'
-    calendar_class = NYSEExchangeCalendar
+        for date in ["2004-04-05", "2004-11-01"]:
+            next_day = pd.Timestamp(date, tz='UTC')
+            open_date = next_day + Timedelta(days=self.calendar.open_offset)
 
-    def test_2012(self):
-        # holidays we expect:
-        holidays_2012 = [
-            pd.Timestamp("2012-01-02", tz='UTC'),
-            pd.Timestamp("2012-01-16", tz='UTC'),
-            pd.Timestamp("2012-02-20", tz='UTC'),
-            pd.Timestamp("2012-04-06", tz='UTC'),
-            pd.Timestamp("2012-05-28", tz='UTC'),
-            pd.Timestamp("2012-07-04", tz='UTC'),
-            pd.Timestamp("2012-09-03", tz='UTC'),
-            pd.Timestamp("2012-11-22", tz='UTC'),
-            pd.Timestamp("2012-12-25", tz='UTC')
-        ]
+            the_open = self.calendar.schedule.loc[next_day].market_open
 
-        for session_label in holidays_2012:
-            self.assertNotIn(session_label, self.calendar.all_sessions)
+            localized_open = the_open.tz_localize("UTC").tz_convert(
+                self.calendar.tz
+            )
 
-        # early closes we expect:
-        early_closes_2012 = [
-            pd.Timestamp("2012-07-03", tz='UTC'),
-            pd.Timestamp("2012-11-23", tz='UTC'),
-            pd.Timestamp("2012-12-24", tz='UTC')
-        ]
+            self.assertEqual(
+                (open_date.year, open_date.month, open_date.day),
+                (localized_open.year, localized_open.month, localized_open.day)
+            )
 
-        for early_close_session_label in early_closes_2012:
-            self.assertIn(early_close_session_label,
-                          self.calendar.early_closes)
+            self.assertEqual(
+                self.calendar.open_time.hour,
+                localized_open.hour
+            )
 
-    def test_special_holidays(self):
-        # 9/11
-        # Sept 11, 12, 13, 14 2001
-        self.assertNotIn(pd.Period("9/11/2001"), self.calendar.all_sessions)
-        self.assertNotIn(pd.Period("9/12/2001"), self.calendar.all_sessions)
-        self.assertNotIn(pd.Period("9/13/2001"), self.calendar.all_sessions)
-        self.assertNotIn(pd.Period("9/14/2001"), self.calendar.all_sessions)
-
-        # Hurricane Sandy
-        # Oct 29, 30 2012
-        self.assertNotIn(pd.Period("10/29/2012"), self.calendar.all_sessions)
-        self.assertNotIn(pd.Period("10/30/2012"), self.calendar.all_sessions)
-
-        # various national days of mourning
-        # Gerald Ford - 1/2/2007
-        self.assertNotIn(pd.Period("1/2/2007"), self.calendar.all_sessions)
-
-        # Ronald Reagan - 6/11/2004
-        self.assertNotIn(pd.Period("6/11/2004"), self.calendar.all_sessions)
-
-        # Richard Nixon - 4/27/1994
-        self.assertNotIn(pd.Period("4/27/1994"), self.calendar.all_sessions)
-
-    def test_new_years(self):
-        """
-        Check whether the TradingCalendar contains certain dates.
-        """
-        #     January 2012
-        # Su Mo Tu We Th Fr Sa
-        #  1  2  3  4  5  6  7
-        #  8  9 10 11 12 13 14
-        # 15 16 17 18 19 20 21
-        # 22 23 24 25 26 27 28
-        # 29 30 31
-
-        start_session = pd.Timestamp("2012-01-02", tz='UTC')
-        end_session = pd.Timestamp("2013-12-31", tz='UTC')
-        sessions = self.calendar.sessions_in_range(start_session, end_session)
-
-        day_after_new_years_sunday = pd.Timestamp("2012-01-02",
-                                                  tz='UTC')
-        self.assertNotIn(day_after_new_years_sunday, sessions,
-                         """
- If NYE falls on a weekend, {0} the Monday after is a holiday.
- """.strip().format(day_after_new_years_sunday)
-        )
-
-        first_trading_day_after_new_years_sunday = pd.Timestamp("2012-01-03",
-                                                                tz='UTC')
-        self.assertIn(first_trading_day_after_new_years_sunday, sessions,
-                      """
- If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
- """.strip().format(first_trading_day_after_new_years_sunday)
-        )
-
-        #     January 2013
-        # Su Mo Tu We Th Fr Sa
-        #        1  2  3  4  5
-        #  6  7  8  9 10 11 12
-        # 13 14 15 16 17 18 19
-        # 20 21 22 23 24 25 26
-        # 27 28 29 30 31
-
-        new_years_day = pd.Timestamp("2013-01-01", tz='UTC')
-        self.assertNotIn(new_years_day, sessions,
-                         """
- If NYE falls during the week, e.g. {0}, it is a holiday.
- """.strip().format(new_years_day)
-        )
-
-        first_trading_day_after_new_years = pd.Timestamp("2013-01-02",
-                                                         tz='UTC')
-        self.assertIn(first_trading_day_after_new_years, sessions,
-                      """
- If the day after NYE falls during the week, {0} \
- is the first trading day.
- """.strip().format(first_trading_day_after_new_years)
-        )
-
-    def test_thanksgiving(self):
-        """
-        Check TradingCalendar Thanksgiving dates.
-        """
-        #     November 2005
-        # Su Mo Tu We Th Fr Sa
-        #        1  2  3  4  5
-        #  6  7  8  9 10 11 12
-        # 13 14 15 16 17 18 19
-        # 20 21 22 23 24 25 26
-        # 27 28 29 30
-
-        start_session_label = pd.Timestamp('2005-01-01', tz='UTC')
-        end_session_label = pd.Timestamp('2012-12-31', tz='UTC')
-        sessions = self.calendar.sessions_in_range(start_session_label,
-                                                   end_session_label)
-
-        thanksgiving_with_four_weeks = pd.Timestamp("2005-11-24", tz='UTC')
-
-        self.assertNotIn(thanksgiving_with_four_weeks, sessions,
-                         """
- If Nov has 4 Thursdays, {0} Thanksgiving is the last Thursday.
- """.strip().format(thanksgiving_with_four_weeks)
-        )
-
-        #     November 2006
-        # Su Mo Tu We Th Fr Sa
-        #           1  2  3  4
-        #  5  6  7  8  9 10 11
-        # 12 13 14 15 16 17 18
-        # 19 20 21 22 23 24 25
-        # 26 27 28 29 30
-        thanksgiving_with_five_weeks = pd.Timestamp("2006-11-23", tz='UTC')
-
-        self.assertNotIn(thanksgiving_with_five_weeks, sessions,
-                         """
- If Nov has 5 Thursdays, {0} Thanksgiving is not the last week.
- """.strip().format(thanksgiving_with_five_weeks)
-        )
-
-        first_trading_day_after_new_years_sunday = pd.Timestamp("2012-01-03",
-                                                                tz='UTC')
-
-        self.assertIn(first_trading_day_after_new_years_sunday, sessions,
-                      """
- If NYE falls on a weekend, {0} the Tuesday after is the first trading day.
- """.strip().format(first_trading_day_after_new_years_sunday)
-        )
-
-    def test_day_after_thanksgiving(self):
-        #    November 2012
-        # Su Mo Tu We Th Fr Sa
-        #              1  2  3
-        #  4  5  6  7  8  9 10
-        # 11 12 13 14 15 16 17
-        # 18 19 20 21 22 23 24
-        # 25 26 27 28 29 30
-        fourth_friday_open = Timestamp('11/23/2012 11:00AM', tz='EST')
-        fourth_friday = Timestamp('11/23/2012 3:00PM', tz='EST')
-        self.assertTrue(self.calendar.is_open_on_minute(fourth_friday_open))
-        self.assertFalse(self.calendar.is_open_on_minute(fourth_friday))
-
-        #    November 2013
-        # Su Mo Tu We Th Fr Sa
-        #                 1  2
-        #  3  4  5  6  7  8  9
-        # 10 11 12 13 14 15 16
-        # 17 18 19 20 21 22 23
-        # 24 25 26 27 28 29 30
-        fifth_friday_open = Timestamp('11/29/2013 11:00AM', tz='EST')
-        fifth_friday = Timestamp('11/29/2013 3:00PM', tz='EST')
-        self.assertTrue(self.calendar.is_open_on_minute(fifth_friday_open))
-        self.assertFalse(self.calendar.is_open_on_minute(fifth_friday))
-
-    def test_early_close_independence_day_thursday(self):
-        """
-        Until 2013, the market closed early the Friday after an
-        Independence Day on Thursday.  Since then, the early close is on
-        Wednesday.
-        """
-        #      July 2002
-        # Su Mo Tu We Th Fr Sa
-        #     1  2  3  4  5  6
-        #  7  8  9 10 11 12 13
-        # 14 15 16 17 18 19 20
-        # 21 22 23 24 25 26 27
-        # 28 29 30 31
-        wednesday_before = Timestamp('7/3/2002 3:00PM', tz='EST')
-        friday_after_open = Timestamp('7/5/2002 11:00AM', tz='EST')
-        friday_after = Timestamp('7/5/2002 3:00PM', tz='EST')
-        self.assertTrue(self.calendar.is_open_on_minute(wednesday_before))
-        self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
-        self.assertFalse(self.calendar.is_open_on_minute(friday_after))
-
-        #      July 2013
-        # Su Mo Tu We Th Fr Sa
-        #     1  2  3  4  5  6
-        #  7  8  9 10 11 12 13
-        # 14 15 16 17 18 19 20
-        # 21 22 23 24 25 26 27
-        # 28 29 30 31
-        wednesday_before = Timestamp('7/3/2013 3:00PM', tz='EST')
-        friday_after_open = Timestamp('7/5/2013 11:00AM', tz='EST')
-        friday_after = Timestamp('7/5/2013 3:00PM', tz='EST')
-        self.assertFalse(self.calendar.is_open_on_minute(wednesday_before))
-        self.assertTrue(self.calendar.is_open_on_minute(friday_after_open))
-        self.assertTrue(self.calendar.is_open_on_minute(friday_after))
+            self.assertEqual(
+                self.calendar.open_time.minute,
+                localized_open.minute
+            )

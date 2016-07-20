@@ -2,7 +2,8 @@ from zipline.errors import (
     InvalidCalendarName,
     CalendarNameCollision,
 )
-
+from zipline.utils.calendars.exchange_calendar_cfe import CFEExchangeCalendar
+from zipline.utils.calendars.exchange_calendar_ice import ICEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_nyse import NYSEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_cme import CMEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_bmf import BMFExchangeCalendar
@@ -37,6 +38,10 @@ def get_calendar(name):
             cal = LSEExchangeCalendar()
         elif name == 'TSX':
             cal = TSXExchangeCalendar()
+        elif name == "ICE":
+            cal = ICEExchangeCalendar()
+        elif name == "CFE":
+            cal = CFEExchangeCalendar()
         else:
             raise InvalidCalendarName(calendar_name=name)
 

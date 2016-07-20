@@ -10,8 +10,8 @@ from pytz import timezone
 
 from .trading_calendar import (
     TradingCalendar,
-    FRIDAY
-)
+    FRIDAY,
+    HolidayCalendar)
 
 # Universal Confraternization (new years day)
 ConfUniversal = Holiday(
@@ -196,23 +196,47 @@ class BMFExchangeCalendar(TradingCalendar):
     - New Year's Eve (December 31)
     """
 
-    name = "BMF"
-    tz = timezone('America/Sao_Paulo')
-    open_time = time(10, 1)
-    close_time = time(17)
+    @property
+    def name(self):
+        return "BMF"
 
-    # Does the market open or close on a different calendar day, compared to
-    # the calendar day assigned by the exchange to this session?
-    open_offset = 0
-    close_offset = 0
+    @property
+    def tz(self):
+        return timezone("America/Sao_Paolo")
 
-    holidays_calendar = BMFHolidayCalendar()
-    special_opens_calendars = [
-        (time(13, 1), BMFLateOpenCalendar()),
-    ]
-    special_closes_calendars = ()
+    @property
+    def open_time(self):
+        return time(10, 1)
 
-    holidays_adhoc = ()
+    @property
+    def close_time(self):
+        return time(16)
 
-    special_opens_adhoc = ()
-    special_closes_adhoc = ()
+    @property
+    def regular_holidays(self):
+        return HolidayCalendar([
+            ConfUniversal,
+            AniversarioSaoPaulo,
+            CarnavalSegunda,
+            CarnavalTerca,
+            SextaPaixao,
+            CorpusChristi,
+            Tiradentes,
+            DiaTrabalho,
+            Constitucionalista,
+            Independencia,
+            Aparecida,
+            Finados,
+            ProclamacaoRepublica,
+            ConscienciaNegra,
+            VesperaNatal,
+            Natal,
+            AnoNovo,
+            AnoNovoSabado,
+        ])
+
+    @property
+    def special_opens(self):
+        return [
+            (time(13, 1), HolidayCalendar([QuartaCinzas]))
+        ]
