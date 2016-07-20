@@ -578,10 +578,6 @@ class AssetFinder(object):
             raise SymbolNotFound(symbol=symbol)
 
         if not as_of_date:
-            if not owners:
-                # no equity held the fuzzy symbol ever
-                raise SymbolNotFound(symbol=symbol)
-
             if len(owners) == 1:
                 # only one valid match
                 return self.retrieve_asset(owners[0].sid)
