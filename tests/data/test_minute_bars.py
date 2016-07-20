@@ -633,7 +633,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                 view(float64),
                 'close': ((0b11111111111 << 52) + arange(31, 40, dtype=int64)).
                 view(float64),
-                'volume': full(9, 0),
+                'volume': full(9, 0.0),
             },
             index=[minutes])
         self.writer.write_sid(sid, data)
