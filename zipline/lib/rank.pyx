@@ -18,7 +18,7 @@ from numpy import apply_along_axis, float64, isnan, nan
 from scipy.stats import rankdata
 
 from zipline.utils.numpy_utils import (
-    is_float,
+    is_missing,
     float64_dtype,
     int64_dtype,
     datetime64ns_dtype,
@@ -26,15 +26,6 @@ from zipline.utils.numpy_utils import (
 
 
 import_array()
-
-
-cpdef is_missing(ndarray data, object missing_value):
-    """
-    Generic is_missing function that handles quirks with NaN.
-    """
-    if is_float(data) and isnan(missing_value):
-        return isnan(data)
-    return (data == missing_value)
 
 
 def rankdata_1d_descending(ndarray data, str method):

@@ -49,7 +49,7 @@ from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
-from zipline.utils.numpy_utils import as_column
+from zipline.utils.numpy_utils import as_column, isnat
 from zipline.utils.pandas_utils import timedelta_to_integral_seconds
 from zipline.utils.sentinel import sentinel
 
@@ -394,6 +394,18 @@ def check_arrays(x, y, err_msg='', verbose=True, check_dtypes=True):
         # ...then check the actual values as well.
         x = x.as_string_array()
         y = y.as_string_array()
+    elif x.dtype.kind in 'mM':
+        x_isnat = isnat(x)
+        y_isnat = isnat(y)
+        assert_array_equal(
+            x_isnat,
+            y_isnat,
+            err_msg="NaTs not equal",
+            verbose=verbose,
+        )
+        # Fill NaTs with zero for comparison.
+        x = np.where(x_isnat, np.zeros_like(x), x)
+        y = np.where(x_isnat, np.zeros_like(x), x)
 
     return assert_array_equal(x, y, err_msg=err_msg, verbose=verbose)
 
