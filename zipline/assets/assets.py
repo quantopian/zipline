@@ -440,7 +440,7 @@ class AssetFinder(object):
                     (symbol_cols.sid,) +
                     tuple(map(op.getitem(symbol_cols), symbol_columns)),
                 ).where(
-                    symbol_cols.sid.in_(sids),
+                    symbol_cols.sid.in_(map(int, sids)),
                 ).order_by(
                     symbol_cols.end_date.desc(),
                 ).group_by(
@@ -536,9 +536,7 @@ class AssetFinder(object):
                 company_symbol,
                 share_class_symbol,
             ]
-            if not owners:
-                # we have an entry but it is empty
-                raise KeyError('goto error')
+            assert owners, 'empty owners list for %r' % symbol
         except KeyError:
             # no equity has ever held this symbol
             raise SymbolNotFound(symbol=symbol)
@@ -574,9 +572,7 @@ class AssetFinder(object):
             owners = self.fuzzy_symbol_ownership_map[
                 company_symbol + share_class_symbol
             ]
-            if not owners:
-                # we have an entry but it is empty
-                raise KeyError('goto error')
+            assert owners, 'empty owners list for %r' % symbol
         except KeyError:
             # no equity has ever held a symbol matching the fuzzy symbol
             raise SymbolNotFound(symbol=symbol)
