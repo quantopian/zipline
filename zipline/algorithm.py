@@ -847,14 +847,16 @@ class TradingAlgorithm(object):
         self.perf_tracker.prepare_capital_change(is_interday)
 
         if capital_change['type'] == 'target':
-            capital_change_amount = capital_change['value'] - \
+            target = capital_change['value']
+            capital_change_amount = target - \
                 self.updated_portfolio().portfolio_value
             self.portfolio_needs_update = True
 
             log.info('Processing capital change to target %s at %s. Capital '
-                     'change delta is %s' % (capital_change['value'], dt,
+                     'change delta is %s' % (target, dt,
                                              capital_change_amount))
         elif capital_change['type'] == 'delta':
+            target = None
             capital_change_amount = capital_change['value']
             log.info('Processing capital change of delta %s at %s'
                      % (capital_change_amount, dt))
@@ -866,6 +868,14 @@ class TradingAlgorithm(object):
         self.capital_change_deltas.update({dt: capital_change_amount})
         self.perf_tracker.process_capital_change(capital_change_amount,
                                                  is_interday)
+
+        yield {
+            'capital_change':
+                {'date': dt,
+                 'type': 'cash',
+                 'target': target,
+                 'delta': capital_change_amount}
+        }
 
     @api_method
     def get_environment(self, field='platform'):

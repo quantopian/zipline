@@ -2085,6 +2085,16 @@ def order_stuff(context, data):
         cumulative_perf = \
             [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
         daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
+        capital_change_packets = \
+            [r['capital_change'] for r in results if 'capital_change' in r]
+
+        self.assertEqual(len(capital_change_packets), 1)
+        self.assertEqual(
+            capital_change_packets[0],
+            {'date': pd.Timestamp('2006-01-06', tz='UTC'),
+             'type': 'cash',
+             'target': 153000.0 if change_type == 'target' else None,
+             'delta': 50000.0})
 
         # 1/03: price = 10, place orders
         # 1/04: orders execute at price = 11, place orders
@@ -2235,6 +2245,17 @@ def order_stuff(context, data):
         cumulative_perf = \
             [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
         daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
+        capital_change_packets = \
+            [r['capital_change'] for r in results if 'capital_change' in r]
+
+        self.assertEqual(len(capital_change_packets), len(capital_changes))
+        expected = [
+            {'date': pd.Timestamp(val[0], tz='UTC'),
+             'type': 'cash',
+             'target': val[1] if change_type == 'target' else None,
+             'delta': 1000.0 if len(values) == 1 else 500.0}
+            for val in values]
+        self.assertEqual(capital_change_packets, expected)
 
         # 1/03: place orders at price = 100, execute at 101
         # 1/04: place orders at price = 490, execute at 491,
@@ -2392,6 +2413,17 @@ def order_stuff(context, data):
             [r['cumulative_perf'] for r in results if 'cumulative_perf' in r]
         minute_perf = [r['minute_perf'] for r in results if 'minute_perf' in r]
         daily_perf = [r['daily_perf'] for r in results if 'daily_perf' in r]
+        capital_change_packets = \
+            [r['capital_change'] for r in results if 'capital_change' in r]
+
+        self.assertEqual(len(capital_change_packets), len(capital_changes))
+        expected = [
+            {'date': pd.Timestamp(val[0], tz='UTC'),
+             'type': 'cash',
+             'target': val[1] if change_type == 'target' else None,
+             'delta': 1000.0 if len(values) == 1 else 500.0}
+            for val in values]
+        self.assertEqual(capital_change_packets, expected)
 
         # 1/03: place orders at price = 100, execute at 101
         # 1/04: place orders at price = 490, execute at 491,
