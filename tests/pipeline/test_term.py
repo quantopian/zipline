@@ -742,7 +742,7 @@ class SubDataSetTestCase(TestCase):
             window_length = 5
             inputs = [SomeDataSet.foo, SomeDataSet.bar]
             outputs = outputs_
-            missing_value = dtype_.type('123')
+            missing_value = None if dtype_ is categorical_dtype else -1
 
         expected_error = (
             "SomeClassifier does not support custom outputs, "

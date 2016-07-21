@@ -28,7 +28,6 @@ from zipline.errors import (
     WindowLengthNotSpecified,
 )
 from zipline.lib.adjusted_array import can_represent_dtype
-from zipline.lib.labelarray import LabelArray
 from zipline.utils.input_validation import expect_types
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
@@ -756,12 +755,10 @@ def _assert_valid_categorical_missing_value(value):
 
     Raises a TypeError if the value is cannot be used as the missing_value for
     a categorical_dtype Term.
+
+    Currently, only None is supported as a missing value.
     """
-    label_types = LabelArray.SUPPORTED_SCALAR_TYPES
-    if not isinstance(value, label_types):
+    if value is not None:
         raise TypeError(
-            "Categorical terms must have missing values of type "
-            "{types}.".format(
-                types=' or '.join([t.__name__ for t in label_types]),
-            )
+            "Categorical terms must have missing values of None."
         )
