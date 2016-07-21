@@ -55,6 +55,15 @@ class EventDataSet(DataSet):
     previous_string = Column(dtype=categorical_dtype, missing_value=None)
     next_string = Column(dtype=categorical_dtype, missing_value=None)
 
+    previous_string_custom_missing = Column(
+        dtype=categorical_dtype,
+        missing_value=u"<<NULL>>",
+    )
+    next_string_custom_missing = Column(
+        dtype=categorical_dtype,
+        missing_value=u"<<NULL>>",
+    )
+
 
 critical_dates = pd.to_datetime([
     '2014-01-05',
@@ -280,6 +289,7 @@ class EventsLoaderTestCase(WithAssetFinder,
             EventDataSet.next_float: 'float',
             EventDataSet.next_int: 'int',
             EventDataSet.next_string: 'string',
+            EventDataSet.next_string_custom_missing: 'string'
         }
         cls.previous_value_columns = {
             EventDataSet.previous_datetime: 'datetime',
@@ -287,6 +297,7 @@ class EventsLoaderTestCase(WithAssetFinder,
             EventDataSet.previous_float: 'float',
             EventDataSet.previous_int: 'int',
             EventDataSet.previous_string: 'string',
+            EventDataSet.previous_string_custom_missing: 'string'
         }
         cls.loader = cls.make_loader(
             events=cls.raw_events,
@@ -366,11 +377,6 @@ class EventsLoaderTestCase(WithAssetFinder,
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
                     self.assertEqual(computed_value, v1)
-                elif column.dtype == categorical_dtype:
-                    # XXX: The value in the output from pandas will be np.nan,
-                    #      but we currently only support None as the missing
-                    #      value for string columns.
-                    self.assertTrue(np.isnan(computed_value))
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.
@@ -408,11 +414,6 @@ class EventsLoaderTestCase(WithAssetFinder,
                     # If we've seen event 1 but not event 2, event 1 should
                     # win.
                     self.assertEqual(computed_value, v2)
-                elif column.dtype == categorical_dtype:
-                    # XXX: The value in the output from pandas will be np.nan,
-                    #      but we currently only support None as the missing
-                    #      value for string columns.
-                    self.assertTrue(np.isnan(computed_value))
                 else:
                     # If we haven't seen either event, then we should have
                     # column.missing_value.

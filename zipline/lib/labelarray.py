@@ -284,28 +284,11 @@ class LabelArray(ndarray):
         """
         if len(self.shape) > 1:
             raise ValueError("Can't convert a 2D array to a categorical.")
-
-        missing_code = self.reverse_categories[self.missing_value]
-        raw_codes = self.as_int_array()
-        # As of pandas 0.18, putting null values in pandas categoricals is
-        # deprecated. The preferred representation is to pass -1 as the code
-        # for missing values.
-        if missing_code == 0:
-            # This is just a performance optimization. It should produce the
-            # same results as below.
-            codes = raw_codes - 1
-            categories = self.categories[1:]
-        else:
-            # subtract 1 for anything greater than the missing code, and set
-            # the missing code to -1.
-            codes = raw_codes.copy()
-            codes[codes > missing_code] -= 1
-            codes[codes == missing_code] = -1
-            categories = self.categories[self.categories != self.missing_value]
-
         return pd.Categorical.from_codes(
-            codes,
-            categories,
+            self.as_int_array(),
+            # We need to make a copy because pandas >= 0.17 fails if this
+            # buffer isn't writeable.
+            self.categories.copy(),
             ordered=False,
             name=name,
         )

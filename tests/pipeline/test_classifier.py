@@ -51,7 +51,7 @@ class ClassifierTestCase(BasePipelineTestCase):
             mask=self.build_mask(self.ones_mask(shape=data.shape)),
         )
 
-    @parameter_space(mv=[None])
+    @parameter_space(mv=['0', None])
     def test_string_isnull(self, mv):
 
         class C(Classifier):
@@ -126,7 +126,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         class C(Classifier):
             dtype = categorical_dtype
-            missing_value = None
+            missing_value = ''
             inputs = ()
             window_length = 0
 
@@ -162,7 +162,7 @@ class ClassifierTestCase(BasePipelineTestCase):
     )
     def test_disallow_comparison_to_missing_value(self, missing, dtype_):
         if dtype_ == categorical_dtype:
-            missing = None
+            missing = str(missing)
 
         class C(Classifier):
             dtype = dtype_
@@ -224,7 +224,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         class C(Classifier):
             dtype = categorical_dtype
-            missing_value = None
+            missing_value = missing
             inputs = ()
             window_length = 0
 
@@ -245,7 +245,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         expected = (
             (data.as_int_array() != data.reverse_categories.get(compval, -1)) &
-            (data.as_int_array() != data.reverse_categories[missing])
+            (data.as_int_array() != data.reverse_categories[C.missing_value])
         )
 
         self.check_terms(
@@ -271,6 +271,7 @@ class ClassifierTestCase(BasePipelineTestCase):
                                            labelarray_dtype):
         if labelarray_dtype == bytes_dtype:
             compval = compval.encode('utf-8')
+            missing = missing.encode('utf-8')
 
             startswith_re = b'^' + compval + b'.*'
             endswith_re = b'.*' + compval + b'$'
@@ -282,7 +283,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         class C(Classifier):
             dtype = categorical_dtype
-            missing_value = None
+            missing_value = missing
             inputs = ()
             window_length = 0
 
@@ -337,7 +338,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         class C(Classifier):
             dtype = categorical_dtype
-            missing_value = None
+            missing_value = missing
             inputs = ()
             window_length = 0
 
@@ -417,7 +418,7 @@ class ClassifierTestCase(BasePipelineTestCase):
         Test that element_of raises a useful error if we attempt to pass it an
         array of choices that include the classifier's missing_value.
         """
-        missing = None
+        missing = "not in the array"
 
         class C(Classifier):
             dtype = categorical_dtype
@@ -432,7 +433,7 @@ class ClassifierTestCase(BasePipelineTestCase):
                 c.element_of(bad_elems)
             errmsg = str(e.exception)
             expected = (
-                "Found self.missing_value (None) in choices"
+                "Found self.missing_value ('not in the array') in choices"
                 " supplied to C.element_of().\n"
                 "Missing values have NaN semantics, so the requested"
                 " comparison would always produce False.\n"
@@ -446,7 +447,7 @@ class ClassifierTestCase(BasePipelineTestCase):
 
         class C(Classifier):
             dtype = dtype_
-            missing_value = None if dtype_ is categorical_dtype else -1
+            missing_value = dtype.type('1')
             inputs = ()
             window_length = 0
 
