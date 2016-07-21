@@ -18,7 +18,7 @@ from numpy import (
     ones,
     ones_like,
     putmask,
-    sum
+    nansum
 )
 from numpy.random import randn, seed as random_seed
 
@@ -380,11 +380,10 @@ class FilterTestCase(BasePipelineTestCase):
             initial_workspace={self.f: data},
         )
         check_arrays(results['isfinite'], isfinite(data))
-
+    
     def test_window_safe(self):
         """
-        Rationale : CustomFactors are *not all* window safe, while
-        CustomFilters are
+        This computation is now possible as filters are windowsafe
         """
         data = array([[True, False, False, True],
                       [False, True, False, True]], dtype=bool)
@@ -394,7 +393,7 @@ class FilterTestCase(BasePipelineTestCase):
             inputs = ()
 
         filter_results = self.run_graph(
-            TermGraph({'factor': sum(CustomFilterBool, axis=0)}),
+            TermGraph({'filter': nansum(CustomFilterBool, axis=0)}),
             initial_workspace={CustomFilterBool: data},
         )
-        check_arrays(filter_results['factor'], array([1, 1, 0, 2]))
+        check_arrays(filter_results['filter'], array([1, 1, 0, 2]))
