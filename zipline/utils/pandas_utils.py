@@ -1,8 +1,10 @@
 """
 Utilities for working with pandas objects.
 """
+from contextlib import contextmanager
 from itertools import product
 import operator as op
+import warnings
 
 import pandas as pd
 from distutils.version import StrictVersion
@@ -160,6 +162,19 @@ def timedelta_to_integral_minutes(delta):
     Convert a pd.Timedelta to a number of minutes as an int.
     """
     return timedelta_to_integral_seconds(delta) // 60
+
+
+@contextmanager
+def ignore_pandas_nan_categorical_warning():
+    with warnings.catch_warnings():
+        # Pandas >= 0.18 doesn't like null-ish values in catgories, but
+        # avoiding that requires a broader change to how missing values are
+        # handled in pipeline, so for now just silence the warning.
+        warnings.filterwarnings(
+            'ignore',
+            category=FutureWarning,
+        )
+        yield
 
 
 # Remove when we drop support for 0.17

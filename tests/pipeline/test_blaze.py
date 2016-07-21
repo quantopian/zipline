@@ -41,6 +41,7 @@ from zipline.testing import (
 from zipline.testing.fixtures import WithAssetFinder
 from zipline.testing.predicates import assert_equal, assert_isidentical
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
+from zipline.utils.pandas_utils import ignore_pandas_nan_categorical_warning
 
 
 nameof = op.attrgetter('name')
