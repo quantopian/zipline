@@ -319,6 +319,23 @@ def handle_data(context, data):
         algo.namespace['assert_equal'] = self.assertEqual
         algo.run(self.data_portal)
 
+    def test_datetime_bad_params(self):
+        algo_text = """
+from zipline.api import get_datetime
+from pytz import timezone
+
+def initialize(context):
+    pass
+
+def handle_data(context, data):
+    get_datetime(timezone)
+"""
+        with self.assertRaises(TypeError):
+            algo = TradingAlgorithm(script=algo_text,
+                                    sim_params=self.sim_params,
+                                    env=self.env)
+            algo.run(self.data_portal)
+
     def test_get_environment(self):
         expected_env = {
             'arena': 'backtest',
