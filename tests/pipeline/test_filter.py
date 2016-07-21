@@ -393,7 +393,7 @@ class FilterTestCase(BasePipelineTestCase):
             inputs = ()
 
         filter_results = self.run_graph(
-            TermGraph({'filter': nansum(CustomFilterBool, axis=0)}),
-            initial_workspace={CustomFilterBool: data},
+            TermGraph({'filter': CustomFilterBool()}),
+            initial_workspace={CustomFilterBool(): data},
         )
-        check_arrays(filter_results['filter'], array([1, 1, 0, 2]))
+        check_arrays(nansum(filter_results['filter'], axis=0), array([1, 1, 0, 2]))
