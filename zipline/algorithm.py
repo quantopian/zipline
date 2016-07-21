@@ -119,10 +119,7 @@ from zipline.utils.preprocess import preprocess
 import zipline.protocol
 from zipline.sources.requests_csv import PandasRequestsCSV
 
-from zipline.gens.sim_engine import (
-    MinuteSimulationClock,
-    DailySimulationClock,
-)
+from zipline.gens.sim_engine import MinuteSimulationClock
 from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
@@ -497,25 +494,31 @@ class TradingAlgorithm(object):
         """
         If the clock property is not set, then create one based on frequency.
         """
+        trading_o_and_c = self.trading_calendar.schedule.ix[
+            self.sim_params.sessions]
+        market_closes = trading_o_and_c['market_close'].values.astype(np.int64)
+
         if self.sim_params.data_frequency == 'minute':
-            trading_o_and_c = self.trading_calendar.schedule.ix[
-                self.sim_params.sessions]
             market_opens = trading_o_and_c['market_open'].values.astype(
-                'datetime64[ns]').astype(np.int64)
-            market_closes = trading_o_and_c['market_close'].values.astype(
-                'datetime64[ns]').astype(np.int64)
+                np.int64)
 
             minutely_emission = self.sim_params.emission_rate == "minute"
 
-            clock = MinuteSimulationClock(
+            return MinuteSimulationClock(
                 self.sim_params.sessions,
                 market_opens,
                 market_closes,
                 minutely_emission
             )
-            return clock
         else:
-            return DailySimulationClock(self.sim_params.sessions)
+            # in daily mode, we want to have one bar per session, timestamped
+            # as the last minute of the session.
+            return MinuteSimulationClock(
+                self.sim_params.sessions,
+                market_closes,
+                market_closes,
+                False
+            )
 
     def _create_benchmark_source(self):
         return BenchmarkSource(
