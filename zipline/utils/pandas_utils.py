@@ -160,3 +160,85 @@ def timedelta_to_integral_minutes(delta):
     Convert a pd.Timedelta to a number of minutes as an int.
     """
     return timedelta_to_integral_seconds(delta) // 60
+
+
+# Remove when we drop support for 0.17
+if pandas_version >= StrictVersion('0.18'):
+    def rolling_mean(arg,
+                     window,
+                     min_periods=None,
+                     freq=None,
+                     center=False,
+                     **kwargs):
+        return arg.rolling(
+            window,
+            min_periods=min_periods,
+            freq=freq,
+            center=center,
+            **kwargs
+        ).mean()
+
+    def rolling_apply(arg,
+                      window,
+                      func,
+                      min_periods=None,
+                      freq=None,
+                      center=False,
+                      **kwargs):
+        return arg.rolling(
+            window,
+            min_periods=min_periods,
+            freq=freq,
+            center=center,
+            **kwargs
+        ).apply(func)
+
+    def ewma(arg,
+             com=None,
+             span=None,
+             halflife=None,
+             alpha=None,
+             min_periods=0,
+             freq=None,
+             adjust=True,
+             how=None,
+             ignore_na=False):
+
+        return arg.ewm(
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            freq=freq,
+            adjust=adjust,
+            ignore_na=ignore_na,
+        ).mean()
+
+    def ewmstd(arg,
+               com=None,
+               span=None,
+               halflife=None,
+               alpha=None,
+               min_periods=0,
+               freq=None,
+               adjust=True,
+               how=None,
+               ignore_na=False):
+
+        return arg.ewm(
+            com=com,
+            span=span,
+            halflife=halflife,
+            alpha=alpha,
+            min_periods=min_periods,
+            freq=freq,
+            adjust=adjust,
+            ignore_na=ignore_na,
+        ).std()
+
+else:
+    rolling_mean = pd.rolling_mean
+    rolling_apply = pd.rolling_apply
+    ewma = pd.ewma
+    ewmstd = pd.ewmstd
