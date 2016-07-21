@@ -170,7 +170,7 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
 
     # make filters window safe
     window_safe = True
-    
+
     ALLOWED_DTYPES = (bool_dtype,)  # Used by RestrictedDTypeMixin
     dtype = bool_dtype
 
