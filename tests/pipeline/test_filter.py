@@ -19,7 +19,7 @@ from numpy import (
     ones,
     ones_like,
     putmask,
-    sum,
+    sum as np_sum
 )
 from numpy.random import randn, seed as random_seed
 
@@ -401,21 +401,16 @@ class FilterTestCase(BasePipelineTestCase):
 
             def compute(self, today, assets, out, filter_):
                 # sum for each column
-                out[:] = sum(filter_, axis=0)
+                out[:] = np_sum(filter_, axis=0)
 
         results = self.run_graph(
             TermGraph({'windowsafe': TestFactor()}),
             initial_workspace={InputFilter(): data},
         )
 
-        # number of securities in default_shape
-        securities = self.default_shape[1]
-
         # number of days in default_shape
         n = self.default_shape[0]
 
         # shape of output array
-        output_shape = ((n - k + 1), securities)
-
-        # assert that these two arrays are the same
+        output_shape = ((n - k + 1), self.default_shape[1])
         check_arrays(results['windowsafe'], full(output_shape, k))
