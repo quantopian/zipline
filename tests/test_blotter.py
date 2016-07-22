@@ -25,7 +25,7 @@ from zipline.finance.execution import (
     StopOrder,
 )
 
-from zipline.gens.sim_engine import DAY_END, BAR
+from zipline.gens.sim_engine import SESSION_END, BAR
 from zipline.finance.cancel_policy import EODCancel, NeverCancel
 from zipline.finance.slippage import (
     DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
@@ -143,7 +143,7 @@ class BlotterTestCase(WithLogger,
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
         self.assertEqual(blotter.new_orders[1].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(DAY_END)
+        blotter.execute_cancel_policy(SESSION_END)
         for order_id in order_ids:
             order = blotter.orders[order_id]
             self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
@@ -161,7 +161,7 @@ class BlotterTestCase(WithLogger,
         blotter.execute_cancel_policy(BAR)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(DAY_END)
+        blotter.execute_cancel_policy(SESSION_END)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
     def test_order_rejection(self):

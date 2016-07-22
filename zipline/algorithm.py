@@ -15,7 +15,7 @@
 from copy import copy
 import operator as op
 import warnings
-from datetime import tzinfo
+from datetime import tzinfo, time
 import logbook
 import pytz
 import pandas as pd
@@ -94,9 +94,9 @@ from zipline.utils.api_support import (
     require_not_initialized,
     ZiplineAPI,
     disallowed_in_before_trading_start)
-
 from zipline.utils.input_validation import ensure_upper_case, error_keywords, \
     expect_types, optional, coerce_string
+from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.cache import CachedObject, Expired
 from zipline.utils.calendars import get_calendar
 
@@ -497,28 +497,33 @@ class TradingAlgorithm(object):
         trading_o_and_c = self.trading_calendar.schedule.ix[
             self.sim_params.sessions]
         market_closes = trading_o_and_c['market_close'].values.astype(np.int64)
+        minutely_emission = False
 
         if self.sim_params.data_frequency == 'minute':
             market_opens = trading_o_and_c['market_open'].values.astype(
-                np.int64)
+                np.int64
+            )
 
             minutely_emission = self.sim_params.emission_rate == "minute"
-
-            return MinuteSimulationClock(
-                self.sim_params.sessions,
-                market_opens,
-                market_closes,
-                minutely_emission
-            )
         else:
             # in daily mode, we want to have one bar per session, timestamped
             # as the last minute of the session.
-            return MinuteSimulationClock(
-                self.sim_params.sessions,
-                market_closes,
-                market_closes,
-                False
-            )
+            market_opens = market_closes
+
+        # FIXME generalize these values
+        before_trading_start_minutes = days_at_time(
+            self.sim_params.sessions,
+            time(8, 45),
+            "US/Eastern"
+        )
+
+        return MinuteSimulationClock(
+            self.sim_params.sessions,
+            market_opens,
+            market_closes,
+            before_trading_start_minutes,
+            minute_emission=minutely_emission,
+        )
 
     def _create_benchmark_source(self):
         return BenchmarkSource(
@@ -1545,6 +1550,7 @@ class TradingAlgorithm(object):
                 self.datetime, self._in_before_trading_start, self.data_portal)
             self._account = \
                 self.perf_tracker.get_account(self.performance_needs_update)
+
             self.account_needs_update = False
             self.performance_needs_update = False
         return self._account

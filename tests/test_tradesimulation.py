@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from datetime import time
+
 import pandas as pd
 from mock import patch
 
@@ -23,6 +25,7 @@ from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.test_algorithms import NoopAlgorithm
 from zipline.utils import factory
 from zipline.testing.core import FakeDataPortal
+from zipline.utils.calendars.trading_calendar import days_at_time
 
 
 class BeforeTradingAlgorithm(TradingAlgorithm):
@@ -75,10 +78,18 @@ class TestTradeSimulation(TestCase):
             algo = BeforeTradingAlgorithm(sim_params=params)
             algo.run(FakeDataPortal())
 
-            self.assertEqual(len(algo.perf_tracker.sim_params.sessions),
-                             num_days)
+            self.assertEqual(
+                len(algo.perf_tracker.sim_params.sessions),
+                num_days
+            )
 
-            self.assertTrue(params.sessions.equals(
-                pd.DatetimeIndex(algo.before_trading_at)),
-                "Expected %s but was %s."
-                % (params.sessions, algo.before_trading_at))
+            bts_minutes = days_at_time(
+                params.sessions, time(8, 45), "US/Eastern"
+            )
+
+            self.assertTrue(
+                bts_minutes.equals(
+                    pd.DatetimeIndex(algo.before_trading_at)
+                ),
+                "Expected %s but was %s." % (params.sessions,
+                                             algo.before_trading_at))

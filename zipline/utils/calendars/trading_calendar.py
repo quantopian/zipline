@@ -757,6 +757,9 @@ def days_at_time(days, t, tz, day_offset=0):
     day_offset : int
         The number of days we want to offset @days by
     """
+    if len(days) == 0:
+        return days
+
     # Offset days without tz to avoid timezone issues.
     days = DatetimeIndex(days).tz_localize(None)
     days_offset = days + DateOffset(days=day_offset)
