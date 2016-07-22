@@ -19,7 +19,7 @@ from numpy import (
     ones,
     ones_like,
     putmask,
-    nansum,
+    sum,
 )
 from numpy.random import randn, seed as random_seed
 
@@ -401,7 +401,7 @@ class FilterTestCase(BasePipelineTestCase):
 
             def compute(self, today, assets, out, filter_):
                 # sum for each column
-                out[:] = nansum(filter_, axis=0)
+                out[:] = sum(filter_, axis=0)
 
         results = self.run_graph(
             TermGraph({'windowsafe': TestFactor()}),
