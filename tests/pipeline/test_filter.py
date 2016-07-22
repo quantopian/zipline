@@ -11,6 +11,7 @@ from numpy import (
     eye,
     float64,
     full_like,
+    full,
     inf,
     isfinite,
     nan,
@@ -18,12 +19,13 @@ from numpy import (
     ones,
     ones_like,
     putmask,
-    nansum
+    nansum,
 )
 from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, TermGraph
+from zipline.pipeline.factors import CustomFactor
 from zipline.testing import check_arrays
 from zipline.utils.numpy_utils import float64_dtype
 from .base import BasePipelineTestCase, with_default_shape
@@ -382,18 +384,35 @@ class FilterTestCase(BasePipelineTestCase):
         check_arrays(results['isfinite'], isfinite(data))
     
     def test_window_safe(self):
-        """
-        This computation is now possible as filters are windowsafe
-        """
-        data = array([[True, False, False, True],
-                      [False, True, False, True]], dtype=bool)
+        # all true data set of (days, securities)
+        data = full(self.default_shape, True, dtype=bool)
 
-        class CustomFilterBool(Filter):
-            window_length = 0
+        # rolling window length for TestFactor
+        k = 8
+
+        class InputFilter(Filter):
             inputs = ()
+            window_length = 0
 
-        filter_results = self.run_graph(
-            TermGraph({'filter': CustomFilterBool()}),
-            initial_workspace={CustomFilterBool(): data},
+        class TestFactor(CustomFactor):
+            dtype = float64_dtype
+            inputs = (InputFilter(), )
+            window_length = k
+
+            def compute(self, today, assets, out, filter_):
+                # sum for each column
+                out[:] = nansum(filter_, axis=0)
+
+        results = self.run_graph(
+            TermGraph({'windowsafe': TestFactor()}),
+            initial_workspace={InputFilter(): data},
         )
-        check_arrays(nansum(filter_results['filter'], axis=0), array([1, 1, 0, 2]))
+
+        # number of securities in default_shape
+        securities = self.default_shape[1]
+
+        # number of days in default_shape
+        n = self.default_shape[0]
+
+        # assert that these two arrays are the same
+        check_arrays(results['windowsafe'], full(shape=((n - k + 1), securities), fill_value=k))
