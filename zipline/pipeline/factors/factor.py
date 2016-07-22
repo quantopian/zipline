@@ -27,6 +27,7 @@ from zipline.pipeline.filters import (
     Filter,
     NumExprFilter,
     PercentileFilter,
+    NotNullFilter,
     NullFilter,
 )
 from zipline.pipeline.mixins import (
@@ -1013,7 +1014,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.
         Otherwise equivalent to ``(self != self.missing_value)``.
         """
-        return ~self.isnull()
+        return NotNullFilter(self)
 
     @if_not_float64_tell_caller_to_use_isnull
     def isnan(self):

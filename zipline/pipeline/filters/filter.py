@@ -250,6 +250,30 @@ class NullFilter(SingleInputMixin, Filter):
         return is_missing(arrays[0], self.inputs[0].missing_value)
 
 
+class NotNullFilter(SingleInputMixin, Filter):
+    """
+    A Filter indicating whether input values are **not** missing from an input.
+
+    Parameters
+    ----------
+    factor : zipline.pipeline.Term
+        The factor to compare against its missing_value.
+    """
+    window_length = 0
+
+    def __new__(cls, term):
+        return super(NotNullFilter, cls).__new__(
+            cls,
+            inputs=(term,),
+        )
+
+    def _compute(self, arrays, dates, assets, mask):
+        data = arrays[0]
+        if isinstance(data, LabelArray):
+            return ~data.is_missing()
+        return ~is_missing(arrays[0], self.inputs[0].missing_value)
+
+
 class PercentileFilter(SingleInputMixin, Filter):
     """
     A Filter representing assets falling between percentile bounds of a Factor.
