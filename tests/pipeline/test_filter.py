@@ -382,7 +382,7 @@ class FilterTestCase(BasePipelineTestCase):
             initial_workspace={self.f: data},
         )
         check_arrays(results['isfinite'], isfinite(data))
-    
+
     def test_window_safe(self):
         # all true data set of (days, securities)
         data = full(self.default_shape, True, dtype=bool)
@@ -414,5 +414,8 @@ class FilterTestCase(BasePipelineTestCase):
         # number of days in default_shape
         n = self.default_shape[0]
 
+        # shape of output array
+        output_shape = ((n - k + 1), securities)
+
         # assert that these two arrays are the same
-        check_arrays(results['windowsafe'], full(shape=((n - k + 1), securities), fill_value=k))
+        check_arrays(results['windowsafe'], full(output_shape, k))
