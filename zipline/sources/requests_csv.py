@@ -230,7 +230,7 @@ class PandasCSV(with_metaclass(ABCMeta, object)):
             parsed = pd.to_datetime(
                 date_str_series.values,
                 format=format_str,
-                coerce=True,
+                errors='coerce',
             ).tz_localize(tz_str).tz_convert('UTC')
 
         if data_frequency == 'daily':
