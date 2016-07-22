@@ -255,7 +255,7 @@ class RollingPearsonOfReturns(RollingPearson):
     achieve this by doing::
 
         rolling_correlations = RollingPearsonOfReturns(
-            target=Equity(8554),
+            target=sid(8554),
             returns_length=10,
             correlation_length=5,
         )
@@ -408,7 +408,7 @@ class RollingLinearRegressionOfReturns(RollingLinearRegression):
     coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::
 
         regression_factor = RollingRegressionOfReturns(
-            target=Equity(8554),
+            target=sid(8554),
             returns_length=10,
             regression_length=5,
         )
