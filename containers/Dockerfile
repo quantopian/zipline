@@ -11,21 +11,20 @@
 #
 #    https://127.0.0.1
 #
-# default password is jupyter.  to provide another, see:
+# Default password is jupyter. to provide another, see:
 #    http://jupyter-notebook.readthedocs.org/en/latest/public_server.html#preparing-a-hashed-password
 #
-# once generated, you can pass the new value via `docker run --env` the first time
-# you start the container.
+# Once generated, you can pass the new value via `docker run --env` the first time you start the container.
 #
 # You can also run an algo using the docker exec command.  For example:
 #
 #    docker exec -it zipline zipline run -f /projects/my_algo.py --start 2015-1-1 --end 2016-1-1 /projects/result.pickle
 #
+
 FROM python:3.5
 
-#
 # set up environment
-#
+
 ENV TINI_VERSION v0.10.0
 ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
 RUN chmod +x /tini
@@ -38,19 +37,15 @@ ENV PROJECT_DIR=/projects \
     PW_HASH="u'sha1:31cb67870a35:1a2321318481f00b0efdf3d1f71af523d3ffc505'" \
     CONFIG_PATH=/root/.jupyter/jupyter_notebook_config.py
 
-#
 # install TA-Lib and other prerequisites
-#
 
-RUN mkdir ${PROJECT_DIR} \
-    && apt-get -y update \
-    && apt-get -y install libfreetype6-dev libpng-dev libopenblas-dev liblapack-dev gfortran \
-    && curl -L https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz | tar xvz
+RUN mkdir ${PROJECT_DIR}
+RUN apt-get -y update
+RUN apt-get -y install libxft-dev libfreetype6-dev libpng-dev libopenblas-dev liblapack-dev gfortran
+RUN curl -L https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz | tar xvz
 
-#
 # build and install zipline from source.  install TA-Lib after to ensure
 # numpy is available.
-#
 
 WORKDIR /ta-lib
 
@@ -70,24 +65,20 @@ RUN pip install 'numpy>=1.11.1,<2.0.0' \
 #
 
 ADD ./etc/docker_cmd.sh /
+ADD ./etc/goodies.txt /opt/zipline/goodies.txt
 
-#
 # make port available. /zipline is made a volume
 # for developer testing.
-#
 EXPOSE ${NOTEBOOK_PORT}
 
-#
 # build and install the zipline package into the image
-#
 
 ADD . /zipline
 WORKDIR /zipline
 RUN pip install -e .
+RUN pip install -U -r /opt/zipline/goodies.txt
 
-#
 # start the jupyter server
-#
 
 WORKDIR ${PROJECT_DIR}
 CMD /docker_cmd.sh

@@ -168,6 +168,25 @@ and analyze from within python.
 
 You can find other examples in the zipline/examples directory.
 
+Quickstart With Docker
+======================
+
+After cloning the repo, try building and running the provided Dockerfiles.
+
+.. code:: bash
+
+    # first build the image
+    ./docker.sh build
+
+    # next run a container using the newly built image
+    ./docker.sh run
+
+
+Once the container is running, you should be able to navigate to where the container is
+hosted on port `8888` where you will see jupyter running. The projects folder is
+automatically set to the examples where you can start playing around.
+
+
 Contributions
 =============
 
