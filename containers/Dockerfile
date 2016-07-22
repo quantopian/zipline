@@ -37,10 +37,10 @@ ENV PROJECT_DIR=/projects \
 # install TA-Lib and other prerequisites
 #
 
-RUN mkdir ${PROJECT_DIR} \
-    && apt-get -y update \
-    && apt-get -y install libfreetype6-dev libpng-dev libopenblas-dev liblapack-dev gfortran \
-    && curl -L http://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz | tar xvz
+RUN mkdir ${PROJECT_DIR}
+RUN apt-get -y update
+RUN apt-get -y install libxft-dev libfreetype6-dev libpng-dev libopenblas-dev liblapack-dev gfortran
+RUN curl -L http://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz | tar xvz
 
 #
 # build and install zipline from source.  install TA-Lib after to ensure
@@ -64,6 +64,7 @@ RUN pip install numpy==1.9.2 \
 #
 
 ADD ./etc/docker_cmd.sh /
+ADD ./etc/goodies.txt /opt/zipline/goodies.txt
 
 #
 # make port available. /zipline is made a volume
@@ -78,6 +79,7 @@ EXPOSE ${NOTEBOOK_PORT}
 ADD . /zipline
 WORKDIR /zipline
 RUN pip install -e .
+RUN pip install -U -r /opt/zipline/goodies.txt
 
 #
 # start the jupyter server
