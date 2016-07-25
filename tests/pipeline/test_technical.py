@@ -18,6 +18,7 @@ from zipline.pipeline.factors import (
     IchimokuKinkoHyo,
     LinearWeightedMovingAverage,
     RateOfChangePercentage,
+    TrueRange,
 )
 from zipline.testing import ExplodingObject, parameter_space
 from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
@@ -413,3 +414,20 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
 
         wma2.compute(today, assets, out, data)
         assert_equal(out, np.array([30.,  31.,  32.,  33.,  34.]))
+
+
+class TestTrueRange(WithTechnicalFactor, ZiplineTestCase):
+
+    def test_tr_basic(self):
+        tr = TrueRange()
+
+        today = pd.Timestamp('2014')
+        assets = np.arange(3, dtype=np.int64)
+        out = np.empty(3, dtype=np.float64)
+
+        highs = np.full((2, 3), 3)
+        lows = np.full((2, 3), 2)
+        closes = np.full((2, 3), 1)
+
+        tr.compute(today, assets, out, highs, lows, closes)
+        assert_equal(out, np.full((3,), 2))
