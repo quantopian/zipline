@@ -7,7 +7,6 @@ from zipline.gens.sim_engine import (
     SESSION_START,
     BEFORE_TRADING_START_BAR,
     BAR,
-    MINUTE_END,
     SESSION_END
 )
 
@@ -149,13 +148,12 @@ class TestClock(TestCase):
             bts_session_times[2]
         )
 
-
     def test_bts_after_session(self):
         clock = MinuteSimulationClock(
             self.sessions,
             self.opens,
             self.closes,
-            days_at_time(self.sessions, time(19, 05), "US/Eastern"),
+            days_at_time(self.sessions, time(19, 5), "US/Eastern"),
             False
         )
 
