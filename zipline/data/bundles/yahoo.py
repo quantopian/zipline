@@ -119,7 +119,7 @@ def yahoo_equities(symbols, start=None, end=None):
                     yield sid, df
                     sid += 1
 
-        daily_bar_writer.write(_pricing_iter(), show_progress=True)
+        daily_bar_writer.write(_pricing_iter(), show_progress=show_progress)
 
         symbol_map = pd.Series(metadata.symbol.index, metadata.symbol)
         asset_db_writer.write(equities=metadata)

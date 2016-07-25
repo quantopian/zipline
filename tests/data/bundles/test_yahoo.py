@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy as np
 import pandas as pd
 from six.moves.urllib.parse import urlparse, parse_qs
@@ -5,7 +7,7 @@ from toolz import flip, identity
 from toolz.curried import merge_with, operator as op
 
 from zipline.data.bundles.core import _make_bundle_core
-from zipline.data.bundles import yahoo_equities, load
+from zipline.data.bundles import yahoo_equities
 from zipline.lib.adjustment import Float64Multiply
 from zipline.testing import test_resource_path, tmp_dir, read_compressed
 from zipline.testing.fixtures import WithResponses, ZiplineTestCase
@@ -30,7 +32,9 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
         (cls.bundles,
          cls.register,
          cls.unregister,
-         cls.ingest) = map(staticmethod, _make_bundle_core())
+         cls.ingest,
+         cls.load,
+         cls.clean) = map(staticmethod, _make_bundle_core())
 
     def _expected_data(self):
         sids = 0, 1, 2
@@ -165,8 +169,8 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
             'ZIPLINE_ROOT': zipline_root,
         }
 
-        self.ingest('bundle', environ=environ)
-        bundle = load('bundle', environ=environ)
+        self.ingest('bundle', environ=environ, show_progress=False)
+        bundle = self.load('bundle', environ=environ)
 
         sids = 0, 1, 2
         equities = bundle.asset_finder.retrieve_all(sids)
@@ -199,4 +203,5 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
                 adjustments,
                 expected,
                 msg=column,
+                decimal=4,
             )
