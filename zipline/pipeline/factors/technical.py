@@ -651,10 +651,17 @@ class TrueRange(CustomFactor):
 
     A technical indicator originally developed by J. Welles Wilder, Jr.
     Indicates the true degree of daily price change in an underlying.
-    """
 
-    inputs = (USEquityPricing.high, USEquityPricing.low,
-              USEquityPricing.close, )
+    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`
+                        :data:`zipline.pipeline.data.USEquityPricing.low`
+                        :data:`zipline.pipeline.data.USEquityPricing.close`
+    **Default Window Length:** 2
+    """
+    inputs = (
+        USEquityPricing.high,
+        USEquityPricing.low,
+        USEquityPricing.close,
+    )
     window_length = 2
 
     def compute(self, today, assets, out, highs, lows, closes):
