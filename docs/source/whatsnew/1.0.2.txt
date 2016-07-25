@@ -18,6 +18,9 @@ Enhancements
 - Allow correlations and regressions to be computed between two 2D factors by
   doing computations asset-wise (:issue:`1307`).
 
+- Filters have been made window_safe by default. Now they can be passed in as
+  arguments to other Filters, Factors and Classifiers (:issue:`1338`).
+
 Bug Fixes
 ~~~~~~~~~
 

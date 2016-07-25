@@ -11,6 +11,7 @@ from numpy import (
     eye,
     float64,
     full_like,
+    full,
     inf,
     isfinite,
     nan,
@@ -18,12 +19,14 @@ from numpy import (
     ones,
     ones_like,
     putmask,
+    sum as np_sum
 )
 from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, TermGraph
-from zipline.testing import check_arrays
+from zipline.pipeline.factors import CustomFactor
+from zipline.testing import check_arrays, parameter_space
 from zipline.utils.numpy_utils import float64_dtype
 from .base import BasePipelineTestCase, with_default_shape
 
@@ -379,3 +382,36 @@ class FilterTestCase(BasePipelineTestCase):
             initial_workspace={self.f: data},
         )
         check_arrays(results['isfinite'], isfinite(data))
+
+    @parameter_space(factor_len=[2, 3, 4])
+    def test_window_safe(self, factor_len):
+        # all true data set of (days, securities)
+        data = full(self.default_shape, True, dtype=bool)
+
+        class InputFilter(Filter):
+            inputs = ()
+            window_length = 0
+
+        class TestFactor(CustomFactor):
+            dtype = float64_dtype
+            inputs = (InputFilter(), )
+            window_length = factor_len
+
+            def compute(self, today, assets, out, filter_):
+                # sum for each column
+                out[:] = np_sum(filter_, axis=0)
+
+        results = self.run_graph(
+            TermGraph({'windowsafe': TestFactor()}),
+            initial_workspace={InputFilter(): data},
+        )
+
+        # number of days in default_shape
+        n = self.default_shape[0]
+
+        # shape of output array
+        output_shape = ((n - factor_len + 1), self.default_shape[1])
+        check_arrays(
+            results['windowsafe'],
+            full(output_shape, factor_len, dtype=float64)
+        )
