@@ -785,13 +785,13 @@ class PanelBarReader(DailyBarReader):
             panel.major_axis[-1]
         )
 
-        self._sessions = trading_calendar.sessions_in_range(
+        self.sessions = trading_calendar.sessions_in_range(
             self.first_trading_day,
             last_trading_day
         )
 
         if data_frequency == 'daily':
-            self._calendar = self._sessions
+            self._calendar = self.sessions
         elif data_frequency == 'minute':
             self._calendar = trading_calendar.minutes_for_sessions_in_range(
                 self.first_trading_day,
@@ -800,9 +800,7 @@ class PanelBarReader(DailyBarReader):
 
         self.panel = panel
 
-    @property
-    def sessions(self):
-        return self._calendar
+    sessions = None
 
     @property
     def last_available_dt(self):

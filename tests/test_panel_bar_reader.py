@@ -27,24 +27,20 @@ from zipline.testing.fixtures import (
 from zipline.utils.calendars import get_calendar
 
 
-class TestPanelDailyBarReader(WithAssetFinder,
-                              ZiplineTestCase):
-
-    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
-    END_DATE = pd.Timestamp('2006-02-01', tz='utc')
+class WithPanelBarReader(WithAssetFinder):
 
     @classmethod
     def init_class_fixtures(cls):
-        super(TestPanelDailyBarReader, cls).init_class_fixtures()
+        super(WithPanelBarReader, cls).init_class_fixtures()
 
         finder = cls.asset_finder
         trading_calendar = get_calendar('NYSE')
 
         items = finder.retrieve_all(finder.sids)
-        major_axis = trading_calendar.sessions_in_range(
-            cls.START_DATE,
-            cls.END_DATE
-        )
+        major_axis = (
+            trading_calendar.sessions_in_range if cls.FREQUENCY == 'daily'
+            else trading_calendar.minutes_for_sessions_in_range
+        )(cls.START_DATE, cls.END_DATE)
         minor_axis = ['open', 'high', 'low', 'close', 'volume']
 
         shape = tuple(map(len, [items, major_axis, minor_axis]))
@@ -57,7 +53,7 @@ class TestPanelDailyBarReader(WithAssetFinder,
             minor_axis=minor_axis,
         )
 
-        cls.reader = PanelBarReader(trading_calendar, cls.panel, 'daily')
+        cls.reader = PanelBarReader(trading_calendar, cls.panel, cls.FREQUENCY)
 
     def test_spot_price(self):
         panel = self.panel
@@ -97,6 +93,28 @@ class TestPanelDailyBarReader(WithAssetFinder,
     def test_sessions(self):
         sessions = self.reader.sessions
 
-        self.assertEqual(21, len(sessions))
+        self.assertEqual(self.NUM_SESSIONS, len(sessions))
         self.assertEqual(self.START_DATE, sessions[0])
         self.assertEqual(self.END_DATE, sessions[-1])
+
+
+class TestPanelDailyBarReader(WithPanelBarReader,
+                              ZiplineTestCase):
+
+    FREQUENCY = 'daily'
+
+    START_DATE = pd.Timestamp('2006-01-03', tz='utc')
+    END_DATE = pd.Timestamp('2006-02-01', tz='utc')
+
+    NUM_SESSIONS = 21
+
+
+class TestPanelMinuteBarReader(WithPanelBarReader,
+                               ZiplineTestCase):
+
+    FREQUENCY = 'minute'
+
+    START_DATE = pd.Timestamp('2015-12-23', tz='utc')
+    END_DATE = pd.Timestamp('2015-12-24', tz='utc')
+
+    NUM_SESSIONS = 2
