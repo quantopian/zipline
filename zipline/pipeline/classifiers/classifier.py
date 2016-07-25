@@ -20,7 +20,7 @@ from zipline.utils.numpy_utils import (
     vectorized_is_element,
 )
 
-from ..filters import ArrayPredicate, NullFilter, NumExprFilter
+from ..filters import ArrayPredicate, NotNullFilter, NullFilter, NumExprFilter
 from ..mixins import (
     CustomTermMixin,
     LatestMixin,
@@ -64,7 +64,7 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
         """
         A Filter producing True for values where this term has complete data.
         """
-        return ~self.isnull()
+        return NotNullFilter(self)
 
     # We explicitly don't support classifier to classifier comparisons, since
     # the stored values likely don't mean the same thing. This may be relaxed
