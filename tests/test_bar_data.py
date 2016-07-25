@@ -132,6 +132,30 @@ class TestMinuteBarData(WithBarDataChecks,
         )
 
     @classmethod
+    def make_futures_info(cls):
+        return pd.DataFrame.from_dict(
+            {
+                6: {
+                    'symbol': 'CLG06',
+                    'root_symbol': 'CL',
+                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                    'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
+                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
+                    'exchange': 'ICEUS',
+                },
+                7: {
+                    'symbol': 'CLK06',
+                    'root_symbol': 'CL',
+                    'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
+                    'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
+                    'expiration_date': pd.Timestamp('2006-04-20', tz='UTC'),
+                    'exchange': 'ICEUS',
+                },
+            },
+            orient='index',
+        )
+
+    @classmethod
     def make_splits_data(cls):
         return pd.DataFrame([
             {
@@ -467,23 +491,50 @@ class TestMinuteBarData(WithBarDataChecks,
                 self.assertFalse(bar_data2.can_trade(asset))
 
     def test_can_trade_exchange_closed(self):
-        session = self.equity_minute_bar_days[1]
-        session_open, session_close = \
-            self.trading_calendar.open_and_close_for_session(session)
+        nyse_asset = self.asset_finder.retrieve_asset(1)
+        ice_asset = self.asset_finder.retrieve_asset(6)
 
-        one_minute = pd.Timedelta(minutes=1)
+        # minutes we're going to check (to verify that that the same bardata
+        # can check multiple exchange calendars, all times Eastern):
+        # 2016-01-05:
+        # 20:00 (minute before ICE opens)
+        # 20:01 (first minute of ICE session)
+        # 20:02 (second minute of ICE session)
+        # 00:00 (Cinderella's ride becomes a pumpkin)
+        # 2016-01-06:
+        # 9:30 (minute before NYSE opens)
+        # 9:31 (first minute of NYSE session)
+        # 9:32 (second minute of NYSE session)
+        # 15:59 (second-to-last minute of NYSE session)
+        # 16:00 (last minute of NYSE session)
+        # 16:01 (minute after NYSE closed)
+        # 17:59 (second-to-last minute of ICE session)
+        # 18:00 (last minute of ICE session)
+        # 18:01 (minute after ICE closed)
 
+        # each row is dt, whether-nyse-is-open, whether-ice-is-open
         minutes_to_check = [
-            (session_open - one_minute, False),
-            (session_open, True),
-            (session_close - one_minute, True),
-            (session_close, True),
-            (session_close + one_minute, False)
+            (pd.Timestamp("2016-01-05 20:00", tz="US/Eastern"), False, False),
+            (pd.Timestamp("2016-01-05 20:01", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-05 20:02", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 00:00", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 9:30", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 9:31", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 9:32", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 15:59", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 16:00", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 16:01", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 17:59", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 18:00", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 18:01", tz="US/Eastern"), False, False),
         ]
 
         for info in minutes_to_check:
             bar_data = BarData(self.data_portal, lambda: info[0], "minute")
-            self.assertEqual(info[1], bar_data.can_trade(self.ASSET1))
+            series = bar_data.can_trade([nyse_asset, ice_asset])
+
+            self.assertEqual(info[1], series.loc[nyse_asset])
+            self.assertEqual(info[2], series.loc[ice_asset])
 
     def test_is_stale_during_non_market_hours(self):
         bar_data = BarData(

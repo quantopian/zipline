@@ -24,7 +24,7 @@ from six import iteritems, PY2
 from cpython cimport bool
 from collections import Iterable
 
-from zipline.assets import Asset
+from zipline.assets import Asset, Future
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
@@ -470,6 +470,10 @@ cdef class BarData:
         if not asset._asset_exchange_open(dt):
             # exchange isn't open
             return False
+
+        if isinstance(asset, Future):
+            # FIXME: this will get removed once we can get prices for futures
+            return True
 
         # is there a last price?
         return not np.isnan(
