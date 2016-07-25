@@ -242,8 +242,6 @@ class PerformancePeriod(object):
                 del self._payout_last_sale_prices[asset]
 
     def subdivide_period(self, capital_change):
-        self.calculate_performance()
-
         # Apply the capital change to the ending cash
         self.ending_cash += capital_change
 
@@ -550,8 +548,8 @@ class PerformancePeriod(object):
             getattr(self, 'day_trades_remaining', float('inf'))
         account.leverage = getattr(self, 'leverage',
                                    period_stats.gross_leverage)
-        account.net_leverage = period_stats.net_leverage
-
+        account.net_leverage = getattr(self, 'net_leverage',
+                                       period_stats.net_leverage)
         account.net_liquidation = getattr(self, 'net_liquidation',
                                           period_stats.net_liquidation)
         return account
