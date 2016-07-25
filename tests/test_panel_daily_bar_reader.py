@@ -91,3 +91,10 @@ class TestPanelDailyBarReader(WithAssetFinder,
                 )
             )
             self.assertEqual(str(e.exception), expected)
+
+    def test_sessions(self):
+        sessions = self.reader.sessions
+
+        self.assertEqual(21, len(sessions))
+        self.assertEqual(self.START_DATE, sessions[0])
+        self.assertEqual(self.END_DATE, sessions[-1])
