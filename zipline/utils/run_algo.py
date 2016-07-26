@@ -12,7 +12,7 @@ try:
     PYGMENTS = True
 except:
     PYGMENTS = False
-from toolz import valfilter, concatv
+from toolz import concatv
 
 from zipline.algorithm import TradingAlgorithm
 from zipline.data.bundles.core import load
@@ -150,6 +150,9 @@ def _run(handle_data,
             raise ValueError(
                 "No PipelineLoader registered for column %s." % column
             )
+    else:
+        env = TradingEnvironment()
+        choose_loader = None
 
     perf = TradingAlgorithm(
         namespace=namespace,
@@ -313,10 +316,12 @@ def run_algorithm(start,
     """
     load_extensions(default_extension, extensions, strict_extensions, environ)
 
-    non_none_data = valfilter(bool, {
-        'data': data,
-        'bundle': bundle,
-    })
+    non_none_data = {}
+    if data is not None:
+        non_none_data['data'] = data
+    if bundle is not None:
+        non_none_data['bundle'] = bundle
+
     if not non_none_data:
         # if neither data nor bundle are passed use 'quantopian-quandl'
         bundle = 'quantopian-quandl'
