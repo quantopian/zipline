@@ -36,7 +36,11 @@ from nose.tools import (  # noqa
 )
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import (
+    assert_frame_equal,
+    assert_panel_equal,
+    assert_series_equal,
+)
 from six import iteritems, viewkeys, PY2
 from toolz import dissoc, keyfilter
 import toolz.curried.operator as op
@@ -393,18 +397,49 @@ def assert_array_equal(result,
         raise AssertionError('\n'.join((str(e), _fmt_path(path))))
 
 
-@assert_equal.register(pd.DataFrame, pd.DataFrame)
-def assert_dataframe_equal(result, expected, path=(), msg='', **kwargs):
-    try:
-        assert_frame_equal(
-            result,
-            expected,
-            **filter_kwargs(assert_frame_equal, kwargs)
-        )
-    except AssertionError as e:
-        raise AssertionError(
-            _fmt_msg(msg) + '\n'.join((str(e), _fmt_path(path))),
-        )
+def _register_assert_ndframe_equal(type_, assert_eq):
+    """Register a new check for an ndframe object.
+
+    Parameters
+    ----------
+    type_ : type
+        The class to register an ``assert_equal`` dispatch for.
+    assert_eq : callable[type_, type_]
+        The function which checks that if the two ndframes are equal.
+
+    Returns
+    -------
+    assert_ndframe_equal : callable[type_, type_]
+        The wrapped function registered with ``assert_equal``.
+    """
+    @assert_equal.register(type_, type_)
+    def assert_ndframe_equal(result, expected, path=(), msg='', **kwargs):
+        try:
+            assert_eq(
+                result,
+                expected,
+                **filter_kwargs(assert_frame_equal, kwargs)
+            )
+        except AssertionError as e:
+            raise AssertionError(
+                _fmt_msg(msg) + '\n'.join((str(e), _fmt_path(path))),
+            )
+
+    return assert_ndframe_equal
+
+
+assert_frame_equal = _register_assert_ndframe_equal(
+    pd.DataFrame,
+    assert_frame_equal,
+)
+assert_panel_equal = _register_assert_ndframe_equal(
+    pd.Panel,
+    assert_panel_equal,
+)
+assert_series_equal = _register_assert_ndframe_equal(
+    pd.Series,
+    assert_series_equal,
+)
 
 
 @assert_equal.register(Adjustment, Adjustment)

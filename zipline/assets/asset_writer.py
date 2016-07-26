@@ -23,15 +23,39 @@ from toolz import first
 
 from zipline.errors import AssetDBVersionError
 from zipline.assets.asset_db_schema import (
-    generate_asset_db_metadata,
-    asset_db_table_names,
     ASSET_DB_VERSION,
+    asset_db_table_names,
+    asset_router,
+    equities as equities_table,
+    equity_symbol_mappings,
+    futures_contracts as futures_contracts_table,
+    futures_exchanges,
+    futures_root_symbols,
+    metadata,
+    version_info,
 )
 
+from zipline.utils.range import from_tuple, intersecting_ranges
+
 # Define a namedtuple for use with the load_data and _load_data methods
-AssetData = namedtuple('AssetData', 'equities futures exchanges root_symbols')
+AssetData = namedtuple(
+    'AssetData', (
+        'equities',
+        'equities_mappings',
+        'futures',
+        'exchanges',
+        'root_symbols',
+    ),
+)
 
 SQLITE_MAX_VARIABLE_NUMBER = 999
+
+symbol_columns = frozenset({
+    'symbol',
+    'company_symbol',
+    'share_class_symbol',
+})
+mapping_columns = symbol_columns | {'start_date', 'end_date'}
 
 # Default values for the equities DataFrame
 _equities_defaults = {
@@ -74,7 +98,7 @@ _root_symbols_defaults = {
 }
 
 # Fuzzy symbol delimiters that may break up a company symbol and share class
-_delimited_symbol_delimiter_regex = r'[./\-_]'
+_delimited_symbol_delimiters_regex = re.compile(r'[./\-_]')
 _delimited_symbol_default_triggers = frozenset({np.nan, None, ''})
 
 
@@ -91,16 +115,22 @@ def split_delimited_symbol(symbol):
 
     Returns
     -------
-    ( str, str , str )
-        A tuple of ( company_symbol, share_class_symbol, fuzzy_symbol)
+    company_symbol : str
+        The company part of the symbol.
+    share_class_symbol : str
+        The share class part of a symbol.
     """
     # return blank strings for any bad fuzzy symbols, like NaN or None
     if symbol in _delimited_symbol_default_triggers:
-        return ('', '', '')
+        return '', ''
 
-    split_list = re.split(pattern=_delimited_symbol_delimiter_regex,
-                          string=symbol,
-                          maxsplit=1)
+    symbol = symbol.upper()
+
+    split_list = re.split(
+        pattern=_delimited_symbol_delimiters_regex,
+        string=symbol,
+        maxsplit=1,
+    )
 
     # Break the list up in to its two components, the company symbol and the
     # share class symbol
@@ -110,12 +140,7 @@ def split_delimited_symbol(symbol):
     else:
         share_class_symbol = ''
 
-    # Strip all fuzzy characters from the symbol to get the fuzzy symbol
-    fuzzy_symbol = re.sub(pattern=_delimited_symbol_delimiter_regex,
-                          repl='',
-                          string=symbol)
-
-    return (company_symbol, share_class_symbol, fuzzy_symbol)
+    return company_symbol, share_class_symbol
 
 
 def _generate_output_dataframe(data_subset, defaults):
@@ -151,19 +176,70 @@ def _generate_output_dataframe(data_subset, defaults):
 
     # Get those columns which we need but
     # for which no data has been supplied.
-    need = desired_cols - cols
+    for col in desired_cols - cols:
+        # write the default value for any missing columns
+        data_subset[col] = defaults[col]
 
-    # Combine the users supplied data with our required columns.
-    output = pd.concat(
-        (data_subset, pd.DataFrame(
-            {k: defaults[k] for k in need},
-            data_subset.index,
-        )),
-        axis=1,
-        copy=False
+    return data_subset
+
+
+def _check_asset_group(group):
+    for colname in set(group.columns) - mapping_columns:
+        col = group[colname]
+        if len(col.unique()) != 1:
+            raise ValueError(
+                'All values must be the same for the %s column' % colname,
+            )
+
+    row = group.iloc[0]
+    row.start_date = group.start_date.min()
+    row.end_date = group.end_date.max()
+    row.drop(list(symbol_columns), inplace=True)
+    return row
+
+
+def _format_range(r):
+    return (
+        str(pd.Timestamp(r.start, unit='ns')),
+        str(pd.Timestamp(r.stop, unit='ns')),
     )
 
-    return output
+
+def _split_symbol_mappings(df):
+    """Split out the symbol: sid mappings from the raw data.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe with multiple rows for each symbol: sid pair.
+
+    Returns
+    -------
+    asset_info : pd.DataFrame
+        The asset info with one row per asset.
+    symbol_mappings : pd.DataFrame
+        The dataframe of just symbol: sid mappings. The index will be
+        the sid, then there will be three columns: symbol, start_date, and
+        end_date.
+    """
+    mappings = df[list(mapping_columns)]
+    for symbol in mappings.symbol.unique():
+        persymbol = mappings[mappings.symbol == symbol]
+        intersections = list(intersecting_ranges(
+            map(from_tuple, zip(persymbol.start_date, persymbol.end_date)),
+        ))
+        if intersections:
+            raise ValueError(
+                'Ambiguous ownership of %r, multiple companies held this'
+                ' ticker over the following ranges:\n%s' % (
+                    symbol,
+                    list(map(_format_range, intersections)),
+                ),
+            )
+    return (
+        df.groupby(level=0).apply(_check_asset_group),
+        df[list(mapping_columns)],
+    )
 
 
 def _dt_to_epoch_ns(dt_series):
@@ -187,12 +263,14 @@ def _dt_to_epoch_ns(dt_series):
     return index.view(np.int64)
 
 
-def check_version_info(version_table, expected_version):
+def check_version_info(conn, version_table, expected_version):
     """
     Checks for a version value in the version table.
 
     Parameters
     ----------
+    conn : sa.Connection
+        The connection to use to perform the check.
     version_table : sa.Table
         The version table of the asset database
     expected_version : int
@@ -205,7 +283,9 @@ def check_version_info(version_table, expected_version):
     """
 
     # Read the version out of the table
-    version_from_table = sa.select((version_table.c.version,)).scalar()
+    version_from_table = conn.execute(
+        sa.select((version_table.c.version,)),
+    ).scalar()
 
     # A db without a version is considered v0
     if version_from_table is None:
@@ -217,19 +297,21 @@ def check_version_info(version_table, expected_version):
                                   expected_version=expected_version)
 
 
-def write_version_info(version_table, version_value):
+def write_version_info(conn, version_table, version_value):
     """
     Inserts the version value in to the version table.
 
     Parameters
     ----------
+    conn : sa.Connection
+        The connection to use to execute the insert.
     version_table : sa.Table
         The version table of the asset database
     version_value : int
         The version to write in to the database
 
     """
-    sa.insert(version_table, values={'version': version_value}).execute()
+    conn.execute(sa.insert(version_table, values={'version': version_value}))
 
 
 class _empty(object):
@@ -266,9 +348,6 @@ class AssetDBWriter(object):
 
               symbol : str
                   The ticker symbol for this equity.
-              fuzzy_symbol : str, optional
-                  The fuzzy symbol for this equity. This is the symbol
-                  without any delimiting characters like '.' or '_'.
               asset_name : str
                   The full name for this asset.
               start_date : datetime
@@ -348,7 +427,7 @@ class AssetDBWriter(object):
         """
         with self.engine.begin() as txn:
             # Create SQL tables if they do not exist.
-            metadata = self.init_db(txn)
+            self.init_db(txn)
 
             # Get the data to add to SQL.
             data = self._load_data(
@@ -359,51 +438,74 @@ class AssetDBWriter(object):
             )
             # Write the data to SQL.
             self._write_df_to_table(
-                metadata.tables['futures_exchanges'],
+                futures_exchanges,
                 data.exchanges,
                 txn,
                 chunk_size,
             )
             self._write_df_to_table(
-                metadata.tables['futures_root_symbols'],
+                futures_root_symbols,
                 data.root_symbols,
                 txn,
                 chunk_size,
             )
-            asset_router = metadata.tables['asset_router']
             self._write_assets(
-                asset_router,
-                metadata.tables['futures_contracts'],
                 'future',
                 data.futures,
                 txn,
                 chunk_size,
             )
             self._write_assets(
-                asset_router,
-                metadata.tables['equities'],
                 'equity',
                 data.equities,
                 txn,
                 chunk_size,
+                mapping_data=data.equities_mappings,
             )
 
-    def _write_df_to_table(self, tbl, df, txn, chunk_size):
+    def _write_df_to_table(self, tbl, df, txn, chunk_size, idx_label=None):
         df.to_sql(
             tbl.name,
             txn.connection,
-            index_label=first(tbl.primary_key.columns).name,
+            index_label=(
+                idx_label
+                if idx_label is not None else
+                first(tbl.primary_key.columns).name
+            ),
             if_exists='append',
             chunksize=chunk_size,
         )
 
     def _write_assets(self,
-                      asset_router,
-                      tbl,
                       asset_type,
                       assets,
                       txn,
-                      chunk_size):
+                      chunk_size,
+                      mapping_data=None):
+        if asset_type == 'future':
+            tbl = futures_contracts_table
+            if mapping_data is not None:
+                raise TypeError('no mapping data expected for futures')
+
+        elif asset_type == 'equity':
+            tbl = equities_table
+            if mapping_data is None:
+                raise TypeError('mapping data required for equities')
+            # write the symbol mapping data.
+            self._write_df_to_table(
+                equity_symbol_mappings,
+                mapping_data,
+                txn,
+                chunk_size,
+                idx_label='sid',
+            )
+
+        else:
+            raise ValueError(
+                "asset_type must be in {'future', 'equity'}, got: %s" %
+                asset_type,
+            )
+
         self._write_df_to_table(tbl, assets, txn, chunk_size)
 
         pd.DataFrame({
@@ -456,17 +558,14 @@ class AssetDBWriter(object):
                 txn = stack.enter_context(self.engine.begin())
 
             tables_already_exist = self._all_tables_present(txn)
-            metadata = generate_asset_db_metadata(bind=txn)
 
             # Create the SQL tables if they do not already exist.
-            metadata.create_all(checkfirst=True)
+            metadata.create_all(txn, checkfirst=True)
 
-            version_info = metadata.tables['version_info']
             if tables_already_exist:
-                check_version_info(version_info, ASSET_DB_VERSION)
+                check_version_info(txn, version_info, ASSET_DB_VERSION)
             else:
-                write_version_info(version_info, ASSET_DB_VERSION)
-            return metadata
+                write_version_info(txn, version_info, ASSET_DB_VERSION)
 
     def _normalize_equities(self, equities):
         # HACK: If 'company_name' is provided, map it to asset_name
@@ -487,16 +586,13 @@ class AssetDBWriter(object):
         tuple_series = equities_output['symbol'].apply(split_delimited_symbol)
         split_symbols = pd.DataFrame(
             tuple_series.tolist(),
-            columns=['company_symbol', 'share_class_symbol', 'fuzzy_symbol'],
+            columns=['company_symbol', 'share_class_symbol'],
             index=tuple_series.index
         )
-        equities_output = equities_output.join(split_symbols)
+        equities_output = pd.concat((equities_output, split_symbols), axis=1)
 
         # Upper-case all symbol data
-        for col in ('symbol',
-                    'company_symbol',
-                    'share_class_symbol',
-                    'fuzzy_symbol'):
+        for col in symbol_columns:
             equities_output[col] = equities_output[col].str.upper()
 
         # Convert date columns to UNIX Epoch integers (nanoseconds)
@@ -506,7 +602,7 @@ class AssetDBWriter(object):
                     'auto_close_date'):
             equities_output[col] = _dt_to_epoch_ns(equities_output[col])
 
-        return equities_output
+        return _split_symbol_mappings(equities_output)
 
     def _normalize_futures(self, futures):
         futures_output = _generate_output_dataframe(
@@ -541,7 +637,7 @@ class AssetDBWriter(object):
             if id_col in df.columns:
                 df.set_index(id_col, inplace=True)
 
-        equities_output = self._normalize_equities(equities)
+        equities_output, equities_mappings = self._normalize_equities(equities)
         futures_output = self._normalize_futures(futures)
 
         exchanges_output = _generate_output_dataframe(
@@ -556,6 +652,7 @@ class AssetDBWriter(object):
 
         return AssetData(
             equities=equities_output,
+            equities_mappings=equities_mappings,
             futures=futures_output,
             exchanges=exchanges_output,
             root_symbols=root_symbols_output,
