@@ -695,12 +695,12 @@ class BcolzMinuteBarWriter(object):
 
         all_minutes = self._minute_index
         # Get the latest minute we wish to write to the ctable
-        last_minute_to_write = dts[-1]
+        last_minute_to_write = pd.Timestamp(dts[-1], tz='UTC')
 
         # In the event that we've already written some minutely data to the
         # ctable, guard against overwriting that data.
         if num_rec_mins > 0:
-            last_recorded_minute = np.datetime64(all_minutes[num_rec_mins - 1])
+            last_recorded_minute = all_minutes[num_rec_mins - 1]
             if last_minute_to_write <= last_recorded_minute:
                 raise BcolzMinuteOverlappingData(dedent("""
                 Data with last_date={0} already includes input start={1} for
