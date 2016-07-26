@@ -109,6 +109,7 @@ class BcolzMinuteBarMetadata(object):
          The factor by which the pricing data is multiplied so that the
          float data can be stored as an integer.
     """
+    FORMAT_VERSION = 1
 
     METADATA_FILENAME = 'metadata.json'
 
@@ -122,6 +123,13 @@ class BcolzMinuteBarMetadata(object):
         with open(path) as fp:
             raw_data = json.load(fp)
 
+            try:
+                version = raw_data['minutes_per_day']
+            except KeyError:
+                # Version was first written with version 1, assume 0,
+                # if version does not match.
+                version = 0
+
             first_trading_day = pd.Timestamp(
                 raw_data['first_trading_day'], tz='UTC')
             market_opens = pd.to_datetime(raw_data['market_opens'],
@@ -131,7 +139,13 @@ class BcolzMinuteBarMetadata(object):
                                            unit='m',
                                            utc=True)
             ohlc_ratio = raw_data['ohlc_ratio']
-            minutes_per_day = raw_data['minutes_per_day']
+
+            if version == 0:
+                # version 0 always assumed US equities.
+                minutes_per_day = US_EQUITIES_MINUTES_PER_DAY
+            else:
+                minutes_per_day = raw_data['minutes_per_day']
+
             return cls(
                 first_trading_day,
                 market_opens,
@@ -170,6 +184,7 @@ class BcolzMinuteBarMetadata(object):
              float data can be stored as an integer.
         """
         metadata = {
+            'version': self.FORMAT_VERSION,
             'first_trading_day': str(self.first_trading_day.date()),
             'market_opens': self.market_opens.values.
             astype('datetime64[m]').
