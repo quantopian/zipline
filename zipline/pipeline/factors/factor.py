@@ -5,11 +5,12 @@ from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
-from numpy import inf, where
+from numpy import empty_like, inf, nan, where
+from scipy.stats import rankdata
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
-from zipline.lib.rank import masked_rankdata_2d
+from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
 from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
 from zipline.pipeline.expression import (
@@ -313,7 +314,6 @@ float64_only = restrict_to_dtype(
     )
 )
 
-
 FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
@@ -500,16 +500,14 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
-        # This is a named function so that it has a __name__ for use in the
-        # graph repr of GroupedRowTransform.
-        def demean(row):
-            return row - nanmean(row)
-
         return GroupedRowTransform(
             transform=demean,
+            transform_args=(),
             factor=self,
-            mask=mask,
             groupby=groupby,
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            mask=mask,
         )
 
     @expect_types(
@@ -568,20 +566,21 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
-        # This is a named function so that it has a __name__ for use in the
-        # graph repr of GroupedRowTransform.
-        def zscore(row):
-            return (row - nanmean(row)) / nanstd(row)
-
         return GroupedRowTransform(
             transform=zscore,
+            transform_args=(),
             factor=self,
-            mask=mask,
             groupby=groupby,
-            window_safe=True,
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            mask=mask,
         )
 
-    def rank(self, method='ordinal', ascending=True, mask=NotSpecified):
+    def rank(self,
+             method='ordinal',
+             ascending=True,
+             mask=NotSpecified,
+             groupby=NotSpecified):
         """
         Construct a new Factor representing the sorted rank of each column
         within each row.
@@ -599,6 +598,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A Filter representing assets to consider when computing ranks.
             If mask is supplied, ranks are computed ignoring any asset/date
             pairs for which `mask` produces a value of False.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to perform ranking.
 
         Returns
         -------
@@ -620,7 +621,20 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :func:`scipy.stats.rankdata`
         :class:`zipline.pipeline.factors.factor.Rank`
         """
-        return Rank(self, method=method, ascending=ascending, mask=mask)
+
+        if groupby is NotSpecified:
+            return Rank(self, method=method, ascending=ascending, mask=mask)
+
+        return GroupedRowTransform(
+            transform=rankdata if ascending else rankdata_1d_descending,
+            transform_args=(method,),
+            factor=self,
+            groupby=groupby,
+            dtype=float64_dtype,
+            missing_value=nan,
+            mask=mask,
+            window_safe=True,
+        )
 
     @expect_types(
         target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
@@ -913,9 +927,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return self.quantiles(bins=10, mask=mask)
 
-    def top(self, N, mask=NotSpecified):
+    def top(self, N, mask=NotSpecified, groupby=NotSpecified):
         """
         Construct a Filter matching the top N asset values of self each day.
+
+        If ``groupby`` is supplied, returns a Filter matching the top N asset
+        values for each group.
 
         Parameters
         ----------
@@ -925,16 +942,21 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A Filter representing assets to consider when computing ranks.
             If mask is supplied, top values are computed ignoring any
             asset/date pairs for which `mask` produces a value of False.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to perform ranking.
 
         Returns
         -------
         filter : zipline.pipeline.filters.Filter
         """
-        return self.rank(ascending=False, mask=mask) <= N
+        return self.rank(ascending=False, mask=mask, groupby=groupby) <= N
 
-    def bottom(self, N, mask=NotSpecified):
+    def bottom(self, N, mask=NotSpecified, groupby=NotSpecified):
         """
         Construct a Filter matching the bottom N asset values of self each day.
+
+        If ``groupby`` is supplied, returns a Filter matching the bottom N
+        asset values for each group.
 
         Parameters
         ----------
@@ -944,12 +966,14 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A Filter representing assets to consider when computing ranks.
             If mask is supplied, bottom values are computed ignoring any
             asset/date pairs for which `mask` produces a value of False.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to perform ranking.
 
         Returns
         -------
         filter : zipline.pipeline.Filter
         """
-        return self.rank(ascending=True, mask=mask) <= N
+        return self.rank(ascending=True, mask=mask, groupby=groupby) <= N
 
     def percentile_between(self,
                            min_percentile,
@@ -1075,7 +1099,7 @@ class GroupedRowTransform(Factor):
     Factor.
 
     This is most often useful for normalization operators like ``zscore`` or
-    ``demean``.
+    ``demean`` or for performing ranking using ``rank``.
 
     Parameters
     ----------
@@ -1088,21 +1112,32 @@ class GroupedRowTransform(Factor):
     groupby : zipline.pipeline.Classifier
         Classifier partitioning ``factor`` into groups to use when calculating
         means.
+    transform_args : tuple[hashable]
+        Additional positional arguments to forward to ``transform``.
 
     Notes
     -----
     Users should rarely construct instances of this factor directly.  Instead,
     they should construct instances via factor normalization methods like
-    ``zscore`` and ``demean``.
+    ``zscore`` and ``demean`` or using ``rank`` with ``groupby``.
 
     See Also
     --------
     zipline.pipeline.factors.Factor.zscore
     zipline.pipeline.factors.Factor.demean
+    zipline.pipeline.factors.Factor.rank
     """
     window_length = 0
 
-    def __new__(cls, transform, factor, mask, groupby, **kwargs):
+    def __new__(cls,
+                transform,
+                transform_args,
+                factor,
+                groupby,
+                dtype,
+                missing_value,
+                mask,
+                **kwargs):
 
         if mask is NotSpecified:
             mask = factor.mask
@@ -1115,22 +1150,25 @@ class GroupedRowTransform(Factor):
         return super(GroupedRowTransform, cls).__new__(
             GroupedRowTransform,
             transform=transform,
+            transform_args=transform_args,
             inputs=(factor, groupby),
-            missing_value=factor.missing_value,
+            missing_value=missing_value,
             mask=mask,
-            dtype=factor.dtype,
+            dtype=dtype,
             **kwargs
         )
 
-    def _init(self, transform, *args, **kwargs):
+    def _init(self, transform, transform_args, *args, **kwargs):
         self._transform = transform
+        self._transform_args = transform_args
         return super(GroupedRowTransform, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls, transform, *args, **kwargs):
+    def _static_identity(cls, transform, transform_args, *args, **kwargs):
         return (
             super(GroupedRowTransform, cls)._static_identity(*args, **kwargs),
             transform,
+            transform_args,
         )
 
     def _compute(self, arrays, dates, assets, mask):
@@ -1152,13 +1190,14 @@ class GroupedRowTransform(Factor):
 
         # Make a copy with the null code written to masked locations.
         group_labels = where(mask, group_labels, null_label)
-
         return where(
             group_labels != null_label,
             naive_grouped_rowwise_apply(
                 data=data,
                 group_labels=group_labels,
                 func=self._transform,
+                func_args=self._transform_args,
+                out=empty_like(data, dtype=self.dtype),
             ),
             self.missing_value,
         )
@@ -1466,3 +1505,13 @@ class Latest(LatestMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         out[:] = data[-1]
+
+
+# Functions to be passed to GroupedRowTransform.  These aren't defined inline
+# because the transformation function is part of the instance hash key.
+def demean(row):
+    return row - nanmean(row)
+
+
+def zscore(row):
+    return (row - nanmean(row)) / nanstd(row)

@@ -21,6 +21,11 @@ Enhancements
 - Filters have been made window_safe by default. Now they can be passed in as
   arguments to other Filters, Factors and Classifiers (:issue:`1338`).
 
+- Added an optional ``groupby`` parameter to
+  :meth:`~zipline.pipeline.factors.Factor.rank`,
+  :meth:`~zipline.pipeline.factors.Factor.top`, and
+  :meth:`~zipline.pipeline.factors.Factor.bottom`. (:issue:`1349`).
+
 Bug Fixes
 ~~~~~~~~~
 

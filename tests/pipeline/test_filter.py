@@ -1,9 +1,11 @@
 """
 Tests for filter terms.
 """
+from functools import partial
 from itertools import product
 from operator import and_
 
+from toolz import compose
 from numpy import (
     arange,
     argsort,
@@ -19,15 +21,17 @@ from numpy import (
     ones,
     ones_like,
     putmask,
+    rot90,
     sum as np_sum
 )
 from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
 from zipline.pipeline import Filter, Factor, TermGraph
+from zipline.pipeline.classifiers import Classifier
 from zipline.pipeline.factors import CustomFactor
-from zipline.testing import check_arrays, parameter_space
-from zipline.utils.numpy_utils import float64_dtype
+from zipline.testing import check_arrays, parameter_space, permute_rows
+from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 from .base import BasePipelineTestCase, with_default_shape
 
 
@@ -71,6 +75,13 @@ class SomeOtherFactor(Factor):
     window_length = 0
 
 
+class SomeClassifier(Classifier):
+    dtype = int64_dtype
+    inputs = ()
+    window_length = 0
+    missing_value = -1
+
+
 class Mask(Filter):
     inputs = ()
     window_length = 0
@@ -82,6 +93,7 @@ class FilterTestCase(BasePipelineTestCase):
         super(FilterTestCase, self).init_instance_fixtures()
         self.f = SomeFactor()
         self.g = SomeOtherFactor()
+        self.c = SomeClassifier()
 
     @with_default_shape
     def randn_data(self, seed, shape):
@@ -414,4 +426,242 @@ class FilterTestCase(BasePipelineTestCase):
         check_arrays(
             results['windowsafe'],
             full(output_shape, factor_len, dtype=float64)
+        )
+
+    @parameter_space(
+        dtype=('float64', 'datetime64[ns]'),
+        seed=(1, 2, 3),
+        __fail_fast=True
+    )
+    def test_top_with_groupby(self, dtype, seed):
+        permute = partial(permute_rows, seed)
+        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+
+        shape = (8, 8)
+
+        # Shuffle the input rows to verify that we correctly pick out the top
+        # values independently of order.
+        factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
+
+        classifier_data = permuted_array([[0, 0, 1, 1, 2, 2, 0, 0],
+                                          [0, 0, 1, 1, 2, 2, 0, 0],
+                                          [0, 1, 2, 3, 0, 1, 2, 3],
+                                          [0, 1, 2, 3, 0, 1, 2, 3],
+                                          [0, 0, 0, 0, 1, 1, 1, 1],
+                                          [0, 0, 0, 0, 1, 1, 1, 1],
+                                          [0, 0, 0, 0, 0, 0, 0, 0],
+                                          [0, 0, 0, 0, 0, 0, 0, 0]])
+        f = self.f
+        c = self.c
+        self.check_terms(
+            terms={
+                '1': f.top(1, groupby=c),
+                '2': f.top(2, groupby=c),
+                '3': f.top(3, groupby=c),
+            },
+            initial_workspace={
+                f: factor_data,
+                c: classifier_data,
+            },
+            expected={
+                # Should be the rightmost location of each entry in
+                # classifier_data.
+                '1': permuted_array([[0, 0, 0, 1, 0, 1, 0, 1],
+                                     [0, 0, 0, 1, 0, 1, 0, 1],
+                                     [0, 0, 0, 0, 1, 1, 1, 1],
+                                     [0, 0, 0, 0, 1, 1, 1, 1],
+                                     [0, 0, 0, 1, 0, 0, 0, 1],
+                                     [0, 0, 0, 1, 0, 0, 0, 1],
+                                     [0, 0, 0, 0, 0, 0, 0, 1],
+                                     [0, 0, 0, 0, 0, 0, 0, 1]], dtype=bool),
+                # Should be the first and second-rightmost location of each
+                # entry in classifier_data.
+                '2': permuted_array([[0, 0, 1, 1, 1, 1, 1, 1],
+                                     [0, 0, 1, 1, 1, 1, 1, 1],
+                                     [1, 1, 1, 1, 1, 1, 1, 1],
+                                     [1, 1, 1, 1, 1, 1, 1, 1],
+                                     [0, 0, 1, 1, 0, 0, 1, 1],
+                                     [0, 0, 1, 1, 0, 0, 1, 1],
+                                     [0, 0, 0, 0, 0, 0, 1, 1],
+                                     [0, 0, 0, 0, 0, 0, 1, 1]], dtype=bool),
+                # Should be the first, second, and third-rightmost location of
+                # each entry in classifier_data.
+                '3': permuted_array([[0, 1, 1, 1, 1, 1, 1, 1],
+                                     [0, 1, 1, 1, 1, 1, 1, 1],
+                                     [1, 1, 1, 1, 1, 1, 1, 1],
+                                     [1, 1, 1, 1, 1, 1, 1, 1],
+                                     [0, 1, 1, 1, 0, 1, 1, 1],
+                                     [0, 1, 1, 1, 0, 1, 1, 1],
+                                     [0, 0, 0, 0, 0, 1, 1, 1],
+                                     [0, 0, 0, 0, 0, 1, 1, 1]], dtype=bool),
+            },
+            mask=self.build_mask(self.ones_mask(shape=shape)),
+        )
+
+    @parameter_space(
+        dtype=('float64', 'datetime64[ns]'),
+        seed=(1, 2, 3),
+        __fail_fast=True
+    )
+    def test_top_and_bottom_with_groupby(self, dtype, seed):
+        permute = partial(permute_rows, seed)
+        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+
+        shape = (8, 8)
+
+        # Shuffle the input rows to verify that we correctly pick out the top
+        # values independently of order.
+        factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
+        classifier_data = permuted_array([[0, 0, 1, 1, 2, 2, 0, 0],
+                                          [0, 0, 1, 1, 2, 2, 0, 0],
+                                          [0, 1, 2, 3, 0, 1, 2, 3],
+                                          [0, 1, 2, 3, 0, 1, 2, 3],
+                                          [0, 0, 0, 0, 1, 1, 1, 1],
+                                          [0, 0, 0, 0, 1, 1, 1, 1],
+                                          [0, 0, 0, 0, 0, 0, 0, 0],
+                                          [0, 0, 0, 0, 0, 0, 0, 0]])
+
+        f = self.f
+        c = self.c
+
+        self.check_terms(
+            terms={
+                'top1': f.top(1, groupby=c),
+                'top2': f.top(2, groupby=c),
+                'top3': f.top(3, groupby=c),
+                'bottom1': f.bottom(1, groupby=c),
+                'bottom2': f.bottom(2, groupby=c),
+                'bottom3': f.bottom(3, groupby=c),
+            },
+            initial_workspace={
+                f: factor_data,
+                c: classifier_data,
+            },
+            expected={
+                # Should be the rightmost location of each entry in
+                # classifier_data.
+                'top1': permuted_array([[0, 0, 0, 1, 0, 1, 0, 1],
+                                        [0, 0, 0, 1, 0, 1, 0, 1],
+                                        [0, 0, 0, 0, 1, 1, 1, 1],
+                                        [0, 0, 0, 0, 1, 1, 1, 1],
+                                        [0, 0, 0, 1, 0, 0, 0, 1],
+                                        [0, 0, 0, 1, 0, 0, 0, 1],
+                                        [0, 0, 0, 0, 0, 0, 0, 1],
+                                        [0, 0, 0, 0, 0, 0, 0, 1]], dtype=bool),
+                # Should be the leftmost location of each entry in
+                # classifier_data.
+                'bottom1': permuted_array([[1, 0, 1, 0, 1, 0, 0, 0],
+                                           [1, 0, 1, 0, 1, 0, 0, 0],
+                                           [1, 1, 1, 1, 0, 0, 0, 0],
+                                           [1, 1, 1, 1, 0, 0, 0, 0],
+                                           [1, 0, 0, 0, 1, 0, 0, 0],
+                                           [1, 0, 0, 0, 1, 0, 0, 0],
+                                           [1, 0, 0, 0, 0, 0, 0, 0],
+                                           [1, 0, 0, 0, 0, 0, 0, 0]],
+                                          dtype=bool),
+                # Should be the first and second-rightmost location of each
+                # entry in classifier_data.
+                'top2': permuted_array([[0, 0, 1, 1, 1, 1, 1, 1],
+                                        [0, 0, 1, 1, 1, 1, 1, 1],
+                                        [1, 1, 1, 1, 1, 1, 1, 1],
+                                        [1, 1, 1, 1, 1, 1, 1, 1],
+                                        [0, 0, 1, 1, 0, 0, 1, 1],
+                                        [0, 0, 1, 1, 0, 0, 1, 1],
+                                        [0, 0, 0, 0, 0, 0, 1, 1],
+                                        [0, 0, 0, 0, 0, 0, 1, 1]], dtype=bool),
+                # Should be the first and second leftmost location of each
+                # entry in classifier_data.
+                'bottom2': permuted_array([[1, 1, 1, 1, 1, 1, 0, 0],
+                                           [1, 1, 1, 1, 1, 1, 0, 0],
+                                           [1, 1, 1, 1, 1, 1, 1, 1],
+                                           [1, 1, 1, 1, 1, 1, 1, 1],
+                                           [1, 1, 0, 0, 1, 1, 0, 0],
+                                           [1, 1, 0, 0, 1, 1, 0, 0],
+                                           [1, 1, 0, 0, 0, 0, 0, 0],
+                                           [1, 1, 0, 0, 0, 0, 0, 0]],
+                                          dtype=bool),
+                # Should be the first, second, and third-rightmost location of
+                # each entry in classifier_data.
+                'top3': permuted_array([[0, 1, 1, 1, 1, 1, 1, 1],
+                                        [0, 1, 1, 1, 1, 1, 1, 1],
+                                        [1, 1, 1, 1, 1, 1, 1, 1],
+                                        [1, 1, 1, 1, 1, 1, 1, 1],
+                                        [0, 1, 1, 1, 0, 1, 1, 1],
+                                        [0, 1, 1, 1, 0, 1, 1, 1],
+                                        [0, 0, 0, 0, 0, 1, 1, 1],
+                                        [0, 0, 0, 0, 0, 1, 1, 1]], dtype=bool),
+                # Should be the first, second, and third-leftmost location of
+                # each entry in classifier_data.
+                'bottom3': permuted_array([[1, 1, 1, 1, 1, 1, 1, 0],
+                                           [1, 1, 1, 1, 1, 1, 1, 0],
+                                           [1, 1, 1, 1, 1, 1, 1, 1],
+                                           [1, 1, 1, 1, 1, 1, 1, 1],
+                                           [1, 1, 1, 0, 1, 1, 1, 0],
+                                           [1, 1, 1, 0, 1, 1, 1, 0],
+                                           [1, 1, 1, 0, 0, 0, 0, 0],
+                                           [1, 1, 1, 0, 0, 0, 0, 0]],
+                                          dtype=bool),
+            },
+            mask=self.build_mask(self.ones_mask(shape=shape)),
+        )
+
+    @parameter_space(
+        dtype=('float64', 'datetime64[ns]'),
+        seed=(1, 2, 3),
+        __fail_fast=True,
+    )
+    def test_top_and_bottom_with_groupby_and_mask(self, dtype, seed):
+        permute = partial(permute_rows, seed)
+        permuted_array = compose(permute, partial(array, dtype=int64_dtype))
+
+        shape = (8, 8)
+
+        # Shuffle the input rows to verify that we correctly pick out the top
+        # values independently of order.
+        factor_data = permute(arange(0, 64, dtype=dtype).reshape(shape))
+        classifier_data = permuted_array([[0, 0, 1, 1, 2, 2, 0, 0],
+                                          [0, 0, 1, 1, 2, 2, 0, 0],
+                                          [0, 1, 2, 3, 0, 1, 2, 3],
+                                          [0, 1, 2, 3, 0, 1, 2, 3],
+                                          [0, 0, 0, 0, 1, 1, 1, 1],
+                                          [0, 0, 0, 0, 1, 1, 1, 1],
+                                          [0, 0, 0, 0, 0, 0, 0, 0],
+                                          [0, 0, 0, 0, 0, 0, 0, 0]])
+
+        f = self.f
+        c = self.c
+
+        self.check_terms(
+            terms={
+                'top2': f.top(2, groupby=c),
+                'bottom2': f.bottom(2, groupby=c),
+            },
+            initial_workspace={
+                f: factor_data,
+                c: classifier_data,
+            },
+            expected={
+                # Should be the rightmost two entries in classifier_data,
+                # ignoring the off-diagonal.
+                'top2': permuted_array([[0, 1, 1, 1, 1, 1, 1, 0],
+                                        [0, 1, 1, 1, 1, 1, 0, 1],
+                                        [1, 1, 1, 1, 1, 0, 1, 1],
+                                        [1, 1, 1, 1, 0, 1, 1, 1],
+                                        [0, 1, 1, 0, 0, 0, 1, 1],
+                                        [0, 1, 0, 1, 0, 0, 1, 1],
+                                        [0, 0, 0, 0, 0, 0, 1, 1],
+                                        [0, 0, 0, 0, 0, 0, 1, 1]], dtype=bool),
+                # Should be the rightmost two entries in classifier_data,
+                # ignoring the off-diagonal.
+                'bottom2': permuted_array([[1, 1, 1, 1, 1, 1, 0, 0],
+                                           [1, 1, 1, 1, 1, 1, 0, 0],
+                                           [1, 1, 1, 1, 1, 0, 1, 1],
+                                           [1, 1, 1, 1, 0, 1, 1, 1],
+                                           [1, 1, 0, 0, 1, 1, 0, 0],
+                                           [1, 1, 0, 0, 1, 1, 0, 0],
+                                           [1, 0, 1, 0, 0, 0, 0, 0],
+                                           [0, 1, 1, 0, 0, 0, 0, 0]],
+                                          dtype=bool),
+            },
+            mask=self.build_mask(permute(rot90(self.eye_mask(shape=shape)))),
         )

@@ -336,6 +336,204 @@ class FactorTestCase(BasePipelineTestCase):
         for method in results:
             check_arrays(expected[method], results[method])
 
+    @for_each_factor_dtype
+    def test_grouped_rank_ascending(self, name, factor_dtype=float64_dtype):
+
+        f = F(dtype=factor_dtype)
+        c = C()
+        str_c = C(dtype=categorical_dtype, missing_value=None)
+
+        # Generated with:
+        # data = arange(25).reshape(5, 5).transpose() % 4
+        data = array([[0, 1, 2, 3, 0],
+                      [1, 2, 3, 0, 1],
+                      [2, 3, 0, 1, 2],
+                      [3, 0, 1, 2, 3],
+                      [0, 1, 2, 3, 0]], dtype=factor_dtype)
+
+        # Generated with:
+        # classifier_data = arange(25).reshape(5, 5).transpose() % 2
+        classifier_data = array([[0, 1, 0, 1, 0],
+                                 [1, 0, 1, 0, 1],
+                                 [0, 1, 0, 1, 0],
+                                 [1, 0, 1, 0, 1],
+                                 [0, 1, 0, 1, 0]], dtype=int64_dtype)
+        string_classifier_data = LabelArray(
+            classifier_data.astype(str).astype(object),
+            missing_value=None,
+        )
+
+        expected_grouped_ranks = {
+            'ordinal': array(
+                [[1., 1., 3., 2., 2.],
+                 [1., 2., 3., 1., 2.],
+                 [2., 2., 1., 1., 3.],
+                 [2., 1., 1., 2., 3.],
+                 [1., 1., 3., 2., 2.]]
+            ),
+            'average': array(
+                [[1.5, 1., 3., 2., 1.5],
+                 [1.5, 2., 3., 1., 1.5],
+                 [2.5, 2., 1., 1., 2.5],
+                 [2.5, 1., 1., 2., 2.5],
+                 [1.5, 1., 3., 2., 1.5]]
+            ),
+            'min': array(
+                [[1., 1., 3., 2., 1.],
+                 [1., 2., 3., 1., 1.],
+                 [2., 2., 1., 1., 2.],
+                 [2., 1., 1., 2., 2.],
+                 [1., 1., 3., 2., 1.]]
+            ),
+            'max': array(
+                [[2., 1., 3., 2., 2.],
+                 [2., 2., 3., 1., 2.],
+                 [3., 2., 1., 1., 3.],
+                 [3., 1., 1., 2., 3.],
+                 [2., 1., 3., 2., 2.]]
+            ),
+            'dense': array(
+                [[1., 1., 2., 2., 1.],
+                 [1., 2., 2., 1., 1.],
+                 [2., 2., 1., 1., 2.],
+                 [2., 1., 1., 2., 2.],
+                 [1., 1., 2., 2., 1.]]
+            ),
+        }
+
+        def check(terms):
+            graph = TermGraph(terms)
+            results = self.run_graph(
+                graph,
+                initial_workspace={
+                    f: data,
+                    c: classifier_data,
+                    str_c: string_classifier_data,
+                },
+                mask=self.build_mask(ones((5, 5))),
+            )
+
+            for method in terms:
+                check_arrays(results[method], expected_grouped_ranks[method])
+
+        # Not specifying the value of ascending param should default to True
+        check({
+            meth: f.rank(method=meth, groupby=c)
+            for meth in expected_grouped_ranks
+        })
+        check({
+            meth: f.rank(method=meth, groupby=str_c)
+            for meth in expected_grouped_ranks
+        })
+        check({
+            meth: f.rank(method=meth, groupby=c, ascending=True)
+            for meth in expected_grouped_ranks
+        })
+        check({
+            meth: f.rank(method=meth, groupby=str_c, ascending=True)
+            for meth in expected_grouped_ranks
+        })
+
+        # Not passing a method should default to ordinal
+        check({'ordinal': f.rank(groupby=c)})
+        check({'ordinal': f.rank(groupby=str_c)})
+        check({'ordinal': f.rank(groupby=c, ascending=True)})
+        check({'ordinal': f.rank(groupby=str_c, ascending=True)})
+
+    @for_each_factor_dtype
+    def test_grouped_rank_descending(self, name, factor_dtype):
+
+        f = F(dtype=factor_dtype)
+        c = C()
+        str_c = C(dtype=categorical_dtype, missing_value=None)
+
+        # Generated with:
+        # data = arange(25).reshape(5, 5).transpose() % 4
+        data = array([[0, 1, 2, 3, 0],
+                      [1, 2, 3, 0, 1],
+                      [2, 3, 0, 1, 2],
+                      [3, 0, 1, 2, 3],
+                      [0, 1, 2, 3, 0]], dtype=factor_dtype)
+
+        # Generated with:
+        # classifier_data = arange(25).reshape(5, 5).transpose() % 2
+        classifier_data = array([[0, 1, 0, 1, 0],
+                                 [1, 0, 1, 0, 1],
+                                 [0, 1, 0, 1, 0],
+                                 [1, 0, 1, 0, 1],
+                                 [0, 1, 0, 1, 0]], dtype=int64_dtype)
+
+        string_classifier_data = LabelArray(
+            classifier_data.astype(str).astype(object),
+            missing_value=None,
+        )
+
+        expected_grouped_ranks = {
+            'ordinal': array(
+                [[2., 2., 1., 1., 3.],
+                 [2., 1., 1., 2., 3.],
+                 [1., 1., 3., 2., 2.],
+                 [1., 2., 3., 1., 2.],
+                 [2., 2., 1., 1., 3.]]
+            ),
+            'average': array(
+                [[2.5, 2., 1., 1., 2.5],
+                 [2.5, 1., 1., 2., 2.5],
+                 [1.5, 1., 3., 2., 1.5],
+                 [1.5, 2., 3., 1., 1.5],
+                 [2.5, 2., 1., 1., 2.5]]
+            ),
+            'min': array(
+                [[2., 2., 1., 1., 2.],
+                 [2., 1., 1., 2., 2.],
+                 [1., 1., 3., 2., 1.],
+                 [1., 2., 3., 1., 1.],
+                 [2., 2., 1., 1., 2.]]
+            ),
+            'max': array(
+                [[3., 2., 1., 1., 3.],
+                 [3., 1., 1., 2., 3.],
+                 [2., 1., 3., 2., 2.],
+                 [2., 2., 3., 1., 2.],
+                 [3., 2., 1., 1., 3.]]
+            ),
+            'dense': array(
+                [[2., 2., 1., 1., 2.],
+                 [2., 1., 1., 2., 2.],
+                 [1., 1., 2., 2., 1.],
+                 [1., 2., 2., 1., 1.],
+                 [2., 2., 1., 1., 2.]]
+            ),
+        }
+
+        def check(terms):
+            graph = TermGraph(terms)
+            results = self.run_graph(
+                graph,
+                initial_workspace={
+                    f: data,
+                    c: classifier_data,
+                    str_c: string_classifier_data,
+                },
+                mask=self.build_mask(ones((5, 5))),
+            )
+
+            for method in terms:
+                check_arrays(results[method], expected_grouped_ranks[method])
+
+        check({
+            meth: f.rank(method=meth, groupby=c, ascending=False)
+            for meth in expected_grouped_ranks
+        })
+        check({
+            meth: f.rank(method=meth, groupby=str_c, ascending=False)
+            for meth in expected_grouped_ranks
+        })
+
+        # Not passing a method should default to ordinal
+        check({'ordinal': f.rank(groupby=c, ascending=False)})
+        check({'ordinal': f.rank(groupby=str_c, ascending=False)})
+
     @parameterized.expand([
         # Test cases computed by doing:
         # from numpy.random import seed, randn

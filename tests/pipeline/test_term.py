@@ -400,6 +400,17 @@ class ObjectIdentityTestCase(TestCase):
             method = getattr(f, funcname)
             self.assertIs(method(), method())
 
+    def test_instance_caching_grouped_transforms(self):
+        f = SomeFactor()
+        c = GenericClassifier()
+        m = GenericFilter()
+
+        for meth in f.demean, f.zscore, f.rank:
+            self.assertIs(meth(), meth())
+            self.assertIs(meth(groupby=c), meth(groupby=c))
+            self.assertIs(meth(mask=m), meth(mask=m))
+            self.assertIs(meth(groupby=c, mask=m), meth(groupby=c, mask=m))
+
     class SomeFactorParameterized(SomeFactor):
         params = ('a', 'b')
 
