@@ -698,7 +698,7 @@ class BcolzMinuteBarWriter(object):
         last_minute_to_write = dts[-1]
 
         # In the event that we've already written some minutely data to the
-        # ctable, guard against overwritting that data.
+        # ctable, guard against overwriting that data.
         if num_rec_mins > 0:
             last_recorded_minute = np.datetime64(all_minutes[num_rec_mins - 1])
             if last_minute_to_write <= last_recorded_minute:
