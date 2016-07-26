@@ -336,7 +336,8 @@ class FactorTestCase(BasePipelineTestCase):
         for method in results:
             check_arrays(expected[method], results[method])
 
-    def test_grouped_rank_ascending(self, factor_dtype=float64_dtype):
+    @for_each_factor_dtype
+    def test_grouped_rank_ascending(self, name, factor_dtype=float64_dtype):
 
         f = F(dtype=factor_dtype)
         c = C()
@@ -439,7 +440,8 @@ class FactorTestCase(BasePipelineTestCase):
         check({'ordinal': f.rank(groupby=c, ascending=True)})
         check({'ordinal': f.rank(groupby=str_c, ascending=True)})
 
-    def test_grouped_rank_descending(self, factor_dtype=float64_dtype):
+    @for_each_factor_dtype
+    def test_grouped_rank_descending(self, name, factor_dtype):
 
         f = F(dtype=factor_dtype)
         c = C()
@@ -531,11 +533,6 @@ class FactorTestCase(BasePipelineTestCase):
         # Not passing a method should default to ordinal
         check({'ordinal': f.rank(groupby=c, ascending=False)})
         check({'ordinal': f.rank(groupby=str_c, ascending=False)})
-
-        # TODO finish this
-        # @for_each_factor_dtype
-        # def test_grouped_rank_after_mask(self, name, factor_dtype):
-        #     pass
 
     @parameterized.expand([
         # Test cases computed by doing:

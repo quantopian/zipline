@@ -37,6 +37,13 @@ cpdef is_missing(ndarray data, object missing_value):
     return (data == missing_value)
 
 
+def rankdata_1d_descending(ndarray data, str method):
+    """
+    1D descending version of scipy.stats.rankdata.
+    """
+    return rankdata(-(data.view(float64)), method=method)
+
+
 def masked_rankdata_2d(ndarray data,
                        ndarray mask,
                        object missing_value,
