@@ -82,8 +82,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         self.writer = BcolzMinuteBarWriter(
             TEST_CALENDAR_START,
             self.dest,
-            self.market_opens,
-            self.market_closes,
+            self.trading_calendar,
             US_EQUITIES_MINUTES_PER_DAY,
         )
         self.reader = BcolzMinuteBarReader(self.dest)

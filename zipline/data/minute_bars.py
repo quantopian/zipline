@@ -32,6 +32,7 @@ from zipline.data._minute_bar_internal import (
 )
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
+from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
 
@@ -231,39 +232,33 @@ class BcolzMinuteBarMetadata(object):
 
             first_trading_day = pd.Timestamp(
                 raw_data['first_trading_day'], tz='UTC')
-            market_opens = pd.to_datetime(raw_data['market_opens'],
-                                          unit='m',
-                                          utc=True)
-            market_closes = pd.to_datetime(raw_data['market_closes'],
-                                           unit='m',
-                                           utc=True)
             ohlc_ratio = raw_data['ohlc_ratio']
 
             if version == 0:
                 # version 0 always assumed US equities.
                 minutes_per_day = US_EQUITIES_MINUTES_PER_DAY
+                # version 0 always assumed NYSE.
+                calendar_name = 'NYSE'
             else:
                 minutes_per_day = raw_data['minutes_per_day']
+                calendar_name = raw_data['calendar_name']
 
             return cls(
                 first_trading_day,
-                market_opens,
-                market_closes,
                 ohlc_ratio,
+                calendar_name,
                 minutes_per_day,
             )
 
     def __init__(
         self,
         first_trading_day,
-        market_opens,
-        market_closes,
         ohlc_ratio,
+        calendar_name,
         minutes_per_day,
     ):
         self.first_trading_day = first_trading_day
-        self.market_opens = market_opens
-        self.market_closes = market_closes
+        self.calendar_name  = calendar_name
         self.ohlc_ratio = ohlc_ratio
         self.minutes_per_day = minutes_per_day
 
@@ -284,15 +279,10 @@ class BcolzMinuteBarMetadata(object):
         """
         metadata = {
             'version': self.FORMAT_VERSION,
-            'first_trading_day': str(self.first_trading_day.date()),
-            'market_opens': self.market_opens.values.
-            astype('datetime64[m]').
-            astype(np.int64).tolist(),
-            'market_closes': self.market_closes.values.
-            astype('datetime64[m]').
-            astype(np.int64).tolist(),
             'ohlc_ratio': self.ohlc_ratio,
-            'minutes_per_day': self.minutes_per_day
+            'first_trading_day': str(self.first_trading_day.date()),
+            'minutes_per_day': self.minutes_per_day,
+            'calendar_name': self.calendar_name,
         }
         with open(self.metadata_path(rootdir), 'w+') as fp:
             json.dump(metadata, fp)
@@ -399,31 +389,28 @@ class BcolzMinuteBarWriter(object):
     def __init__(self,
                  first_trading_day,
                  rootdir,
-                 market_opens,
-                 market_closes,
+                 calendar,
                  minutes_per_day,
                  ohlc_ratio=OHLC_RATIO,
                  expectedlen=DEFAULT_EXPECTEDLEN):
 
         self._rootdir = rootdir
         self._first_trading_day = first_trading_day
-        self._market_opens = market_opens[
-            market_opens.index.slice_indexer(start=self._first_trading_day)]
-        self._market_closes = market_closes[
-            market_closes.index.slice_indexer(start=self._first_trading_day)]
-        self._trading_days = self._market_opens.index
+        self._calendar_name = calendar.name
+        slicer = calendar.schedule.index.slice_indexer(first_trading_day)
+        self._schedule = calendar.schedule[slicer]
+        self._session_labels = self._schedule.index
         self._minutes_per_day = minutes_per_day
         self._expectedlen = expectedlen
         self._ohlc_ratio = ohlc_ratio
 
         self._minute_index = _calc_minute_index(
-            self._market_opens, self._minutes_per_day)
+            self._schedule.market_open, self._minutes_per_day)
 
         metadata = BcolzMinuteBarMetadata(
             self._first_trading_day,
-            self._market_opens,
-            self._market_closes,
             self._ohlc_ratio,
+            self._calendar_name,
             self._minutes_per_day,
         )
         metadata.write(self._rootdir)
@@ -470,7 +457,7 @@ class BcolzMinuteBarWriter(object):
         if num_days == 0:
             # empty container
             return pd.NaT
-        return self._trading_days[num_days - 1]
+        return self._session_labels[num_days - 1]
 
     def _init_ctable(self, path):
         """
@@ -552,7 +539,7 @@ class BcolzMinuteBarWriter(object):
 
         last_date = self.last_date_in_output_for_sid(sid)
 
-        tds = self._trading_days
+        tds = self._session_labels
 
         if date <= last_date or date < tds[0]:
             # No need to pad.
@@ -695,7 +682,7 @@ class BcolzMinuteBarWriter(object):
         """
         table = self._ensure_ctable(sid)
 
-        tds = self._trading_days
+        tds = self._session_labels
         input_first_day = pd.Timestamp(dts[0].astype('datetime64[D]'),
                                        tz='UTC')
 
@@ -785,11 +772,14 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
         self._first_trading_day = metadata.first_trading_day
 
-        self._market_opens = metadata.market_opens
-        self._market_open_values = metadata.market_opens.values.\
+        calendar = get_calendar(metadata.calendar_name)
+        slicer = calendar.schedule.index.slice_indexer(self._first_trading_day)
+        self._schedule = calendar.schedule[slicer]
+        self._market_opens = self._schedule.market_open
+        self._market_open_values = self._market_opens.values.\
             astype('datetime64[m]').astype(np.int64)
-        self._market_closes = metadata.market_closes
-        self._market_close_values = metadata.market_closes.values.\
+        self._market_closes = self._schedule.market_close
+        self._market_close_values = self._market_closes.values.\
             astype('datetime64[m]').astype(np.int64)
 
         self._ohlc_inverse = 1.0 / metadata.ohlc_ratio
