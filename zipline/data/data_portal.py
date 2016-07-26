@@ -773,19 +773,20 @@ class DataPortal(object):
         if field not in BASE_FIELDS:
             raise KeyError("Invalid column: " + str(field))
 
+        session_label = self.trading_calendar.minute_to_session_label(dt)
+
         if dt < asset.start_date or \
-                (data_frequency == "daily" and dt > asset.end_date) or \
+                (data_frequency == "daily" and
+                    session_label > asset.end_date) or \
                 (data_frequency == "minute" and
-                 normalize_date(dt) > asset.end_date):
+                 session_label > asset.end_date):
             if field == "volume":
                 return 0
             elif field != "last_traded":
                 return np.NaN
 
         if data_frequency == "daily":
-            day_to_use = dt
-            day_to_use = normalize_date(day_to_use)
-            return self._get_daily_data(asset, field, day_to_use)
+            return self._get_daily_data(asset, field, session_label)
         else:
             if isinstance(asset, Future):
                 if field == "price":

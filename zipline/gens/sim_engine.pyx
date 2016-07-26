@@ -84,17 +84,3 @@ cdef class MinuteSimulationClock:
                     yield minute, MINUTE_END
 
             yield minutes[-1], DAY_END
-
-
-
-cdef class DailySimulationClock:
-    cdef object trading_days
-
-    def __init__(self, trading_days):
-        self.trading_days = trading_days
-
-    def __iter__(self):
-        for i, day in enumerate(self.trading_days):
-            yield day, DAY_START
-            yield day, BAR
-            yield day, DAY_END
