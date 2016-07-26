@@ -931,6 +931,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         Construct a Filter matching the top N asset values of self each day.
 
+        If ``groupby`` is supplied, returns a Filter matching the top N asset
+        values for each group.
+
         Parameters
         ----------
         N : int
@@ -951,6 +954,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     def bottom(self, N, mask=NotSpecified, groupby=NotSpecified):
         """
         Construct a Filter matching the bottom N asset values of self each day.
+
+        If ``groupby`` is supplied, returns a Filter matching the bottom N
+        asset values for each group.
 
         Parameters
         ----------
