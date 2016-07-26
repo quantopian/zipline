@@ -26,7 +26,6 @@ from pandas import (
     Series,
     Timestamp,
 )
-from pandas.tseries.tools import normalize_date
 from six import iteritems, itervalues
 
 from zipline.algorithm import TradingAlgorithm
@@ -513,7 +512,7 @@ class PipelineAlgorithmTestCase(WithBcolzEquityDailyBarReaderFromCSVs,
             attach_pipeline(pipeline, 'test')
 
         def handle_data(context, data):
-            today = normalize_date(get_datetime())
+            today = get_datetime()
             results = pipeline_output('test')
             expect_over_300 = {
                 AAPL: today < self.AAPL_split_date,
