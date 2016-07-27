@@ -101,8 +101,6 @@ cdef class Asset:
         self.first_traded = first_traded
         self.auto_close_date = auto_close_date
 
-
-
     def __int__(self):
         return self.sid
 
@@ -201,7 +199,7 @@ cdef class Asset:
         """
         return cls(**dict_)
 
-    def _is_alive_for_session(self, session_label):
+    def is_alive_for_session(self, session_label):
         """
         Returns whether the asset is alive at the given dt.
 
@@ -222,7 +220,7 @@ cdef class Asset:
 
         return ref_start <= session_label.value <= ref_end
 
-    def _asset_exchange_open(self, dt_minute):
+    def is_exchange_open(self, dt_minute):
         """
         Parameters
         ----------
@@ -233,10 +231,10 @@ cdef class Asset:
         -------
         boolean: whether the asset's exchange is open at the given minute.
         """
-        calendar = self._exchange_trading_calendar_for_asset()
+        calendar = self.exchange_trading_calendar()
         return calendar.is_open_on_minute(dt_minute)
 
-    def _exchange_trading_calendar_for_asset(self):
+    def exchange_trading_calendar(self):
         """
         Get the calendar for this asset's exchange.
 

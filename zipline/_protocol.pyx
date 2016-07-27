@@ -463,11 +463,11 @@ cdef class BarData:
 
     cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
         session_label = normalize_date(dt) # FIXME
-        if not asset._is_alive_for_session(session_label):
+        if not asset.is_alive_for_session(session_label):
             # asset isn't alive
             return False
 
-        if not asset._asset_exchange_open(dt):
+        if not asset.is_exchange_open(dt):
             # exchange isn't open
             return False
 
@@ -525,7 +525,7 @@ cdef class BarData:
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
         session_label = normalize_date(dt) # FIXME
 
-        if not asset._is_alive_for_session(session_label):
+        if not asset.is_alive_for_session(session_label):
             return False
 
         current_volume = data_portal.get_spot_value(

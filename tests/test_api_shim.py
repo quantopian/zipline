@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 from pandas.io.common import PerformanceWarning
 
-from tests.warnings_catcher import WarningsCatcher
 from zipline import TradingAlgorithm
 from zipline.finance.trading import SimulationParameters
 from zipline.protocol import BarData
@@ -292,7 +291,8 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         cease to be supported, we also want to assert that we're seeing a
         deprecation warning.
         """
-        with WarningsCatcher([PerformanceWarning]) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
             algo = self.create_algo(sid_accessor_algo)
             algo.run(self.data_portal)
@@ -320,7 +320,8 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         We also want to assert that we warn that iterating over the assets
         in `data` is deprecated.
         """
-        with WarningsCatcher([PerformanceWarning]) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
             algo = self.create_algo(data_items_algo)
             algo.run(self.data_portal)
@@ -344,7 +345,8 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
                     )
 
     def test_iterate_data(self):
-        with WarningsCatcher([PerformanceWarning]) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             algo = self.create_algo(simple_algo)
@@ -374,7 +376,8 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
                     )
 
     def test_history(self):
-        with WarningsCatcher([PerformanceWarning]) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             sim_params = self.sim_params.create_new(
@@ -415,7 +418,8 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
                                       expected_vol_with_split)
 
     def test_simple_transforms(self):
-        with WarningsCatcher([PerformanceWarning]) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             sim_params = SimulationParameters(
@@ -485,7 +489,8 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
             self.assertAlmostEqual(346, algo.returns)
 
     def test_manipulation(self):
-        with WarningsCatcher([PerformanceWarning]) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             algo = self.create_algo(simple_algo)

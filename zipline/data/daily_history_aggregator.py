@@ -99,7 +99,7 @@ class DailyHistoryAggregator(object):
         session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive_for_session(session_label):
+            if not asset.is_alive_for_session(session_label):
                 opens.append(np.NaN)
                 continue
 
@@ -168,7 +168,7 @@ class DailyHistoryAggregator(object):
         session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive_for_session(session_label):
+            if not asset.is_alive_for_session(session_label):
                 highs.append(np.NaN)
                 continue
 
@@ -237,7 +237,7 @@ class DailyHistoryAggregator(object):
         session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive_for_session(session_label):
+            if not asset.is_alive_for_session(session_label):
                 lows.append(np.NaN)
                 continue
 
@@ -307,7 +307,7 @@ class DailyHistoryAggregator(object):
         session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive_for_session(session_label):
+            if not asset.is_alive_for_session(session_label):
                 closes.append(np.NaN)
                 continue
 
@@ -367,7 +367,7 @@ class DailyHistoryAggregator(object):
         session_label = self._trading_calendar.minute_to_session_label(dt)
 
         for asset in assets:
-            if not asset._is_alive_for_session(session_label):
+            if not asset.is_alive_for_session(session_label):
                 volumes.append(0)
                 continue
 

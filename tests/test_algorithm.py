@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from collections import namedtuple
 import datetime
 from datetime import timedelta
@@ -34,7 +35,6 @@ import pytz
 from pandas.io.common import PerformanceWarning
 
 from zipline import run_algorithm
-from tests.warnings_catcher import WarningsCatcher
 from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future
@@ -1959,7 +1959,9 @@ def handle_data(context, data):
             pass
         """)
 
-        with WarningsCatcher([PerformanceWarning]) as w:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
+
             algo = TradingAlgorithm(
                 script=algocode,
                 sim_params=sim_params,
@@ -1967,18 +1969,19 @@ def handle_data(context, data):
             )
             algo.run(self.data_portal)
 
-        self.assertEqual(len(w), 2)
-        for i, warning in enumerate(w):
-            self.assertIsInstance(warning.message, UserWarning)
-            self.assertEqual(
-                warning.message.args[0],
-                'Got a time rule for the second positional argument '
-                'date_rule. You should use keyword argument '
-                'time_rule= when calling schedule_function without '
-                'specifying a date_rule'
-            )
-            # The warnings come from line 13 and 14 in the algocode
-            self.assertEqual(warning.lineno, 13 + i)
+            self.assertEqual(len(w), 2)
+
+            for i, warning in enumerate(w):
+                self.assertIsInstance(warning.message, UserWarning)
+                self.assertEqual(
+                    warning.message.args[0],
+                    'Got a time rule for the second positional argument '
+                    'date_rule. You should use keyword argument '
+                    'time_rule= when calling schedule_function without '
+                    'specifying a date_rule'
+                )
+                # The warnings come from line 13 and 14 in the algocode
+                self.assertEqual(warning.lineno, 13 + i)
 
         self.assertEqual(
             algo.done_at_open,

@@ -1,7 +1,6 @@
 from datetime import time
 from unittest import TestCase
 import pandas as pd
-import numpy as np
 from zipline.gens.sim_engine import (
     MinuteSimulationClock,
     SESSION_START,
@@ -26,8 +25,8 @@ class TestClock(TestCase):
         )
 
         trading_o_and_c = cls.nyse_calendar.schedule.ix[cls.sessions]
-        cls.opens = trading_o_and_c['market_open'].values.astype(np.int64)
-        cls.closes = trading_o_and_c['market_close'].values.astype(np.int64)
+        cls.opens = trading_o_and_c['market_open']
+        cls.closes = trading_o_and_c['market_close']
 
     def test_bts_before_session(self):
         clock = MinuteSimulationClock(

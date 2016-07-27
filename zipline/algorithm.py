@@ -496,13 +496,11 @@ class TradingAlgorithm(object):
         """
         trading_o_and_c = self.trading_calendar.schedule.ix[
             self.sim_params.sessions]
-        market_closes = trading_o_and_c['market_close'].values.astype(np.int64)
+        market_closes = trading_o_and_c['market_close']
         minutely_emission = False
 
         if self.sim_params.data_frequency == 'minute':
-            market_opens = trading_o_and_c['market_open'].values.astype(
-                np.int64
-            )
+            market_opens = trading_o_and_c['market_open']
 
             minutely_emission = self.sim_params.emission_rate == "minute"
         else:
