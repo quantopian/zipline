@@ -43,9 +43,6 @@ import zipline.utils.math_utils as zp_math
 from zipline.finance.blotter import Order
 from zipline.finance.performance.position import Position
 from zipline.utils.factory import create_simulation_parameters
-from zipline.utils.serialization_utils import (
-    loads_with_persistent_ids, dumps_with_persistent_ids
-)
 from zipline.testing import (
     MockDailyBarReader,
     create_data_portal_from_trade_history,
@@ -208,35 +205,6 @@ def calculate_results(sim_params,
         msg['account'] = perf_tracker.get_account(True)
         results.append(copy.deepcopy(msg))
     return results
-
-
-def check_perf_tracker_serialization(perf_tracker):
-    scalar_keys = [
-        'emission_rate',
-        'txn_count',
-        'market_open',
-        'last_close',
-        'start_session',
-        'day_count',
-        'capital_base',
-        'market_close',
-        'saved_dt',
-        'period_end',
-        'total_days',
-    ]
-    p_string = dumps_with_persistent_ids(perf_tracker)
-
-    test = loads_with_persistent_ids(p_string, env=perf_tracker.env)
-
-    for k in scalar_keys:
-        nt.assert_equal(getattr(test, k), getattr(perf_tracker, k), k)
-
-    perf_periods = (
-        test.cumulative_performance,
-        test.todays_performance
-    )
-    for period in perf_periods:
-        nt.assert_true(hasattr(period, '_position_tracker'))
 
 
 def setup_env_data(env, sim_params, sids, futures_sids=[]):
