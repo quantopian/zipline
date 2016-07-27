@@ -214,8 +214,7 @@ class RiskMetricsPeriod(object):
         """
         http://en.wikipedia.org/wiki/Sharpe_ratio
         """
-        return sharpe_ratio(self.algorithm_volatility,
-                            self.algorithm_period_returns,
+        return sharpe_ratio(self.algorithm_returns,
                             self.treasury_period_return)
 
     def calculate_sortino(self):
