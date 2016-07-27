@@ -96,7 +96,8 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
             np.testing.assert_almost_equal(
                 value,
                 self.cumulative_metrics_06.information[dt_loc],
-                err_msg="Mismatch at %s" % (dt,))
+                err_msg="Mismatch at %s" % (dt,),
+            )
 
     def test_alpha_06(self):
         for dt, value in answer_key.RISK_CUMULATIVE.alpha.iteritems():
@@ -110,8 +111,8 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         for dt, value in answer_key.RISK_CUMULATIVE.beta.iteritems():
             dt_loc = self.cumulative_metrics_06.cont_index.get_loc(dt)
             np.testing.assert_almost_equal(
-                value,
                 self.cumulative_metrics_06.beta[dt_loc],
+                value,
                 err_msg="Mismatch at %s" % (dt,))
 
     def test_max_drawdown_06(self):
