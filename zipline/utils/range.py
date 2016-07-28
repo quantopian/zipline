@@ -1,3 +1,4 @@
+from functools import reduce
 import operator as op
 
 from six import PY2
@@ -63,6 +64,15 @@ if PY2:
                 self.start,
                 self.stop,
                 (', ' + str(self.step)) if self.step != 1 else '',
+            )
+
+        def __hash__(self):
+            return hash((type(self), self.start, self.stop, self.step))
+
+        def __eq__(self, other):
+            return reduce(
+                getattr(self, attr) == getattr(other, attr)
+                for attr in self.__slots__
             )
 else:
     range = range
