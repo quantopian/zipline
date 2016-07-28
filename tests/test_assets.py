@@ -642,10 +642,16 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
 
         self.assertEqual(
             str(e.exception),
-            "Ambiguous ownership of 'MULTIPLE', multiple companies held this"
-            " ticker over the following ranges:\n"
-            "[('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
-            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00')]",
+            "Ambiguous ownership for 1 symbol, multiple assets held the"
+            " following symbols:\n"
+            "MULTIPLE:\n"
+            "  intersections: (('2010-01-01 00:00:00', '2012-01-01 00:00:00'),"
+            " ('2011-01-01 00:00:00', '2012-01-01 00:00:00'))\n"
+            "      start_date   end_date\n"
+            "  sid                      \n"
+            "  1   2010-01-01 2012-01-01\n"
+            "  2   2010-01-01 2013-01-01\n"
+            "  3   2011-01-01 2012-01-01"
         )
 
     def test_lookup_generic(self):
@@ -1381,7 +1387,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
         downgrade(self.engine, 3)
         metadata = sa.MetaData(conn)
         metadata.reflect(bind=self.engine)
-        check_version_info(metadata.tables['version_info'], 3)
+        check_version_info(conn, metadata.tables['version_info'], 3)
         self.assertFalse('exchange_full' in metadata.tables)
 
         # now go all the way to v0

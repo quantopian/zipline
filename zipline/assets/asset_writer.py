@@ -226,19 +226,39 @@ def _split_symbol_mappings(df):
         end_date.
     """
     mappings = df[list(mapping_columns)]
+    ambigious = {}
     for symbol in mappings.symbol.unique():
         persymbol = mappings[mappings.symbol == symbol]
-        intersections = list(intersecting_ranges(
-            map(from_tuple, zip(persymbol.start_date, persymbol.end_date)),
-        ))
+        intersections = list(intersecting_ranges(map(
+            from_tuple,
+            zip(persymbol.start_date, persymbol.end_date),
+        )))
         if intersections:
-            raise ValueError(
-                'Ambiguous ownership of %r, multiple companies held this'
-                ' ticker over the following ranges:\n%s' % (
-                    symbol,
-                    list(map(_format_range, intersections)),
+            ambigious[symbol] = (
+                intersections,
+                persymbol[['start_date', 'end_date']].astype('datetime64[ns]'),
+            )
+
+    if ambigious:
+        raise ValueError(
+            'Ambiguous ownership for %d symbol%s, multiple assets held the'
+            ' following symbols:\n%s' % (
+                len(ambigious),
+                '' if len(ambigious) == 1 else 's',
+                '\n'.join(
+                    '%s:\n  intersections: %s\n  %s' % (
+                        symbol,
+                        tuple(map(_format_range, intersections)),
+                        # indent the dataframe string
+                        '\n  '.join(str(df).splitlines()),
+                    )
+                    for symbol, (intersections, df) in sorted(
+                        ambigious.items(),
+                        key=first,
+                    ),
                 ),
             )
+        )
     return (
         df.groupby(level=0).apply(_check_asset_group),
         df[list(mapping_columns)],
