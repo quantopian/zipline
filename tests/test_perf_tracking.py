@@ -2264,12 +2264,11 @@ shares in position"
         pt.execute_transaction(txn)
         pp.handle_execution(txn)
 
-        # sync prices and calculate performance before we introduce a capital
-        # change
+        # sync prices before we introduce a capital change
         pt.sync_last_sale_prices(trades[2].dt, False, data_portal)
-        pp.calculate_performance()
 
-        pp.subdivide_period(1000.0)
+        pp.initialize_subperiod_divider()
+        pp.set_current_subperiod_starting_values(1000.0)
 
         pt.sync_last_sale_prices(trades[-1].dt, False, data_portal)
         pp.calculate_performance()

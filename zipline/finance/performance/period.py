@@ -241,14 +241,12 @@ class PerformancePeriod(object):
             else:
                 del self._payout_last_sale_prices[asset]
 
-    def subdivide_period(self, capital_change):
-        # Apply the capital change to the ending cash
-        self.ending_cash += capital_change
+    def initialize_subperiod_divider(self):
+        self.calculate_performance()
 
-        # Increment the total capital change occurred within the period
-        self._total_intraperiod_capital_change += capital_change
-
-        # Divide the period into subperiods
+        # Initialize a subperiod divider to stash the current performance
+        # values. Current period starting values are set to equal ending values
+        # of the previous subperiod
         self.subperiod_divider = SubPeriodDivider(
             prev_returns=self.returns,
             prev_pnl=self.pnl,
@@ -256,6 +254,20 @@ class PerformancePeriod(object):
             curr_starting_value=self.ending_value,
             curr_starting_cash=self.ending_cash
         )
+
+    def set_current_subperiod_starting_values(self, capital_change):
+        # Apply the capital change to the ending cash
+        self.ending_cash += capital_change
+
+        # Increment the total capital change occurred within the period
+        self._total_intraperiod_capital_change += capital_change
+
+        # Update the current subperiod starting cash to reflect the capital
+        # change
+        starting_value = self.subperiod_divider.curr_subperiod.starting_value
+        self.subperiod_divider.curr_subperiod = CurrSubPeriodStats(
+            starting_value=starting_value,
+            starting_cash=self.ending_cash)
 
     def handle_dividends_paid(self, net_cash_payment):
         if net_cash_payment:

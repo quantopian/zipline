@@ -821,25 +821,12 @@ class TradingAlgorithm(object):
                 self.data_portal
             )
 
-        # Calculate performance before we sync prices price for the current dt
-        self.perf_tracker.cumulative_performance.calculate_performance()
-        self.perf_tracker.todays_performance.calculate_performance()
+        self.perf_tracker.prepare_capital_change(is_interday)
 
         if capital_change['type'] == 'target':
-            # Get an updated portfolio value as of this dt, but do it in a way
-            # so that the performance is not recalculated. This is done so
-            # that `process_capital_change` can find the performance values
-            # for the end of the subperiod, which is the previous dt
-            self.perf_tracker.position_tracker.sync_last_sale_prices(
-                dt,
-                self._in_before_trading_start,
-                self.data_portal
-            )
-            portfolio_value = \
-                self.perf_tracker.position_tracker.stats().net_value + \
-                self.perf_tracker.cumulative_performance.ending_cash
-
-            capital_change_amount = capital_change['value'] - portfolio_value
+            capital_change_amount = capital_change['value'] - \
+                self.updated_portfolio().portfolio_value
+            self.portfolio_needs_update = True
 
             log.info('Processing capital change to target %s at %s. Capital '
                      'change delta is %s' % (capital_change['value'], dt,

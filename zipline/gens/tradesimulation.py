@@ -100,11 +100,11 @@ class AlgorithmSimulator(object):
         def every_bar(dt_to_use, current_data=self.current_data,
                       handle_data=algo.event_manager.handle_data):
             # called every tick (minute or day).
+            algo.on_dt_changed(dt_to_use)
 
             calculate_minute_capital_changes(dt_to_use)
 
             self.simulation_dt = dt_to_use
-            algo.on_dt_changed(dt_to_use)
 
             blotter = algo.blotter
             perf_tracker = algo.perf_tracker
@@ -149,10 +149,6 @@ class AlgorithmSimulator(object):
 
             perf_tracker = algo.perf_tracker
 
-            # process any capital changes that came overnight
-            algo.calculate_capital_changes(
-                midnight_dt, emission_rate=emission_rate, is_interday=True)
-
             # Get the positions before updating the date so that prices are
             # fetched for trading close instead of midnight
             positions = algo.perf_tracker.position_tracker.positions
@@ -161,6 +157,10 @@ class AlgorithmSimulator(object):
             # set all the timestamps
             self.simulation_dt = midnight_dt
             algo.on_dt_changed(midnight_dt)
+
+            # process any capital changes that came overnight
+            algo.calculate_capital_changes(
+                midnight_dt, emission_rate=emission_rate, is_interday=True)
 
             # we want to wait until the clock rolls over to the next day
             # before cleaning up expired assets.
