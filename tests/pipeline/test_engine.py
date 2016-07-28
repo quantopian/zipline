@@ -1141,10 +1141,10 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         alpha = 1 - decay_rate
         span = (2 / alpha) - 1
 
-        # XXX: This is a comically inefficient way to compute a windowed EWMSTD.
-        # Don't use it outside of testing.  We're using rolling-apply of an
-        # ewma (which is itself a rolling-window function) because we only want
-        # to look at ``window_length`` rows at a time.
+        # XXX: This is a comically inefficient way to compute a windowed
+        # EWMSTD.  Don't use it outside of testing.  We're using rolling-apply
+        # of an ewma (which is itself a rolling-window function) because we
+        # only want to look at ``window_length`` rows at a time.
         return rolling_apply(
             self.raw_data,
             window_length,
