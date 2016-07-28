@@ -164,6 +164,8 @@ def main(ctx, rebuild_input):
                 )
 
             # move the new results to the expected path
+            # note that new_perf_path will be cleaned up dataframe_cache on
+            # exit.
             shutil.rmtree(expected_perf_path)
             shutil.copytree(new_perf_path, expected_perf_path)
 
