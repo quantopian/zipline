@@ -348,6 +348,9 @@ def bundles():
     """List all of the available data bundles.
     """
     for bundle in sorted(bundles_module.bundles.keys()):
+        if bundle.startswith('.'):
+            # hide the test data
+            continue
         try:
             ingestions = sorted(
                 (str(bundles_module.from_bundle_ingest_dirname(ing))

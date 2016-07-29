@@ -6,6 +6,7 @@ from pandas_datareader.data import DataReader
 import requests
 
 from zipline.utils.cli import maybe_show_progress
+from .core import register
 
 
 def _cachpath(symbol, type_):
@@ -169,3 +170,24 @@ def yahoo_equities(symbols, start=None, end=None):
         adjustment_writer.write(splits=splits, dividends=dividends)
 
     return ingest
+
+
+# bundle used when creating test data
+register(
+    '.test',
+    yahoo_equities(
+        (
+            'AMD',
+            'CERN',
+            'COST',
+            'DELL',
+            'GPS',
+            'INTC',
+            'MMM',
+            'AAPL',
+            'MSFT',
+        ),
+        pd.Timestamp('2004-01-02', tz='utc'),
+        pd.Timestamp('2015-01-01', tz='utc'),
+    ),
+)
