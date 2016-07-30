@@ -156,8 +156,6 @@ class DataPortal(object):
                 self._equity_minute_reader,
                 self._adjustment_reader
             )
-            self.MINUTE_PRICE_ADJUSTMENT_FACTOR = \
-                self._equity_minute_reader._ohlc_inverse
 
         self._first_trading_day = first_trading_day
 

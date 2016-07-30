@@ -37,7 +37,7 @@ from six import (
 from zipline._protocol import handle_non_market_minutes
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.data_portal import DataPortal
-from zipline.data.us_equity_pricing import PanelDailyBarReader
+from zipline.data.us_equity_pricing import PanelBarReader
 from zipline.errors import (
     AttachPipelineAfterInitialize,
     HistoryInInitialize,
@@ -611,13 +611,29 @@ class TradingAlgorithm(object):
                 data = data.swapaxes(0, 2)
 
             if isinstance(data, pd.Panel):
+                # Guard against tz-naive index.
+                if data.major_axis.tz is None:
+                    data.major_axis = data.major_axis.tz_localize('UTC')
+
                 # For compatibility with existing examples allow start/end
                 # to be inferred.
                 if overwrite_sim_params:
                     self.sim_params = self.sim_params.create_new(
-                        data.major_axis[0],
-                        data.major_axis[-1]
+                        self.trading_calendar.minute_to_session_label(
+                            data.major_axis[0]
+                        ),
+                        self.trading_calendar.minute_to_session_label(
+                            data.major_axis[-1]
+                        ),
                     )
+
+                    # Assume data is daily if timestamp times are
+                    # standardized, otherwise assume minute bars.
+                    times = data.major_axis.time
+                    if np.all(times == times[0]):
+                        self.sim_params.data_frequency = 'daily'
+                    else:
+                        self.sim_params.data_frequency = 'minute'
 
                 copy_panel = data.rename(
                     # These were the old names for the close/open columns.  We
@@ -634,15 +650,22 @@ class TradingAlgorithm(object):
                         copy_panel.items
                     )
                 )
-                equity_daily_reader = PanelDailyBarReader(
-                    self.trading_calendar.all_sessions,
+
+                if self.sim_params.data_frequency == 'daily':
+                    equity_reader_arg = 'equity_daily_reader'
+                elif self.sim_params.data_frequency == 'minute':
+                    equity_reader_arg = 'equity_minute_reader'
+                equity_reader = PanelBarReader(
+                    self.trading_calendar,
                     copy_panel,
+                    self.sim_params.data_frequency,
                 )
+
                 self.data_portal = DataPortal(
                     self.asset_finder,
                     self.trading_calendar,
-                    first_trading_day=equity_daily_reader.first_trading_day,
-                    equity_daily_reader=equity_daily_reader,
+                    first_trading_day=equity_reader.first_trading_day,
+                    **{equity_reader_arg: equity_reader}
                 )
 
         # Force a reset of the performance tracker, in case

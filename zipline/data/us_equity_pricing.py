@@ -35,15 +35,14 @@ from numpy import (
     issubdtype,
     nan,
     uint32,
-    zeros,
 )
 from pandas import (
     DataFrame,
     read_csv,
     Timestamp,
     NaT,
-    isnull,
-    DatetimeIndex)
+    DatetimeIndex
+)
 from pandas.tslib import iNaT
 from six import (
     iteritems,
@@ -746,7 +745,7 @@ class BcolzDailyBarReader(DailyBarReader):
             return price
 
 
-class PanelDailyBarReader(DailyBarReader):
+class PanelBarReader(DailyBarReader):
     """
     Reader for data passed as Panel.
 
@@ -770,46 +769,54 @@ class PanelDailyBarReader(DailyBarReader):
         The first trading day in the dataset.
     """
     @preprocess(panel=call(verify_indices_all_unique))
-    def __init__(self, calendar, panel):
+    @expect_element(data_frequency={'daily', 'minute'})
+    def __init__(self, trading_calendar, panel, data_frequency):
 
         panel = panel.copy()
         if 'volume' not in panel.minor_axis:
             # Fake volume if it does not exist.
             panel.loc[:, :, 'volume'] = int(1e9)
 
-        self.first_trading_day = panel.major_axis[0]
-        self._calendar = calendar
+        self.trading_calendar = trading_calendar
+        self.first_trading_day = trading_calendar.minute_to_session_label(
+            panel.major_axis[0]
+        )
+        last_trading_day = trading_calendar.minute_to_session_label(
+            panel.major_axis[-1]
+        )
+
+        self.sessions = trading_calendar.sessions_in_range(
+            self.first_trading_day,
+            last_trading_day
+        )
+
+        if data_frequency == 'daily':
+            self._calendar = self.sessions
+        elif data_frequency == 'minute':
+            self._calendar = trading_calendar.minutes_for_sessions_in_range(
+                self.first_trading_day,
+                last_trading_day
+            )
 
         self.panel = panel
 
-    @property
-    def sessions(self):
-        return self._calendar
+    sessions = None
 
     @property
     def last_available_dt(self):
         return self._calendar[-1]
 
-    @property
-    def trading_calendar(self):
-        return None
+    trading_calendar = None
 
-    def load_raw_arrays(self, columns, start_date, end_date, assets):
-        columns = list(columns)
+    def load_raw_arrays(self, columns, start_dt, end_dt, assets):
         cal = self._calendar
-        index = cal[cal.slice_indexer(start_date, end_date)]
-        shape = (len(index), len(assets))
-        results = []
-        for col in columns:
-            outbuf = zeros(shape=shape)
-            for i, asset in enumerate(assets):
-                data = self.panel.loc[asset, start_date:end_date, col]
-                data = data.reindex_axis(index).values
-                outbuf[:, i] = data
-            results.append(outbuf)
-        return results
+        return self.panel.loc[
+            list(assets),
+            start_dt:end_dt,
+            list(columns)
+        ].reindex(major_axis=cal[cal.slice_indexer(start_dt, end_dt)]).values.T
 
-    def spot_price(self, sid, day, colname):
+    def spot_price(self, sid, dt, colname):
         """
         Parameters
         ----------
@@ -829,7 +836,9 @@ class PanelDailyBarReader(DailyBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        return self.panel.loc[sid, day, colname]
+        return self.panel.loc[sid, dt, colname]
+
+    get_value = spot_price
 
     def get_last_traded_dt(self, sid, dt):
         """
@@ -845,12 +854,9 @@ class PanelDailyBarReader(DailyBarReader):
         pd.Timestamp : The last know dt for the asset and dt;
                        NaT if no trade is found before the given dt.
         """
-        while dt in self.panel.major_axis:
-            freq = self.panel.major_axis.freq
-            if not isnull(self.panel.loc[sid, dt, 'close']):
-                return dt
-            dt -= freq
-        else:
+        try:
+            return self.panel.loc[sid, :dt, 'close'].last_valid_index()
+        except IndexError:
             return NaT
 
 

@@ -33,7 +33,10 @@ import numpy as np
 import pandas as pd
 import pytz
 
-from zipline import TradingAlgorithm
+from zipline import (
+    run_algorithm,
+    TradingAlgorithm,
+)
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future
 from zipline.assets.synthetic import (
@@ -161,6 +164,7 @@ from zipline.test_algorithms import (
     no_handle_data,
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
+from zipline.utils.calendars import get_calendar
 from zipline.utils.context_tricks import CallbackManager
 from zipline.utils.control_flow import nullctx
 import zipline.utils.events
@@ -4102,3 +4106,83 @@ class AlgoInputValidationTestCase(ZiplineTestCase):
                     script=script,
                     **{method: lambda *args, **kwargs: None}
                 )
+
+
+class TestPanelData(ZiplineTestCase):
+
+    @parameterized.expand([
+        ('daily',
+         pd.Timestamp('2015-12-23', tz='UTC'),
+         pd.Timestamp('2016-01-05', tz='UTC'),),
+        ('minute',
+         pd.Timestamp('2015-12-23', tz='UTC'),
+         pd.Timestamp('2015-12-24', tz='UTC'),),
+    ])
+    def test_panel_data(self, data_frequency, start_dt, end_dt):
+        trading_calendar = get_calendar('NYSE')
+        if data_frequency == 'daily':
+            history_freq = '1d'
+            create_df_for_asset = create_daily_df_for_asset
+            dt_transform = trading_calendar.minute_to_session_label
+        elif data_frequency == 'minute':
+            history_freq = '1m'
+            create_df_for_asset = create_minute_df_for_asset
+
+            def dt_transform(dt):
+                return dt
+
+        sids = range(1, 3)
+        dfs = {}
+        for sid in sids:
+            dfs[sid] = create_df_for_asset(trading_calendar,
+                                           start_dt, end_dt, interval=sid)
+            dfs[sid]['prev_close'] = dfs[sid]['close'].shift(1)
+        panel = pd.Panel(dfs)
+
+        price_record = pd.Panel(items=sids,
+                                major_axis=panel.major_axis,
+                                minor_axis=['current', 'previous'])
+
+        def initialize(algo):
+            algo.first_bar = True
+            algo.equities = []
+            for sid in sids:
+                algo.equities.append(algo.sid(sid))
+
+        def handle_data(algo, data):
+            price_record.loc[:, dt_transform(algo.get_datetime()),
+                             'current'] = (
+                data.current(algo.equities, 'price')
+            )
+            if algo.first_bar:
+                algo.first_bar = False
+            else:
+                price_record.loc[:, dt_transform(algo.get_datetime()),
+                                 'previous'] = (
+                    data.history(algo.equities, 'price',
+                                 2, history_freq).iloc[0]
+                )
+
+        def check_panels():
+            np.testing.assert_array_equal(
+                price_record.values.astype('float64'),
+                panel.loc[:, :, ['close',
+                                 'prev_close']].values.astype('float64')
+            )
+
+        trading_algo = TradingAlgorithm(initialize=initialize,
+                                        handle_data=handle_data)
+        trading_algo.run(data=panel)
+        check_panels()
+        price_record.loc[:] = np.nan
+
+        run_algorithm(
+            start=start_dt,
+            end=end_dt,
+            capital_base=1,
+            initialize=initialize,
+            handle_data=handle_data,
+            data_frequency=data_frequency,
+            data=panel
+        )
+        check_panels()
