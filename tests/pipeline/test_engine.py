@@ -80,12 +80,6 @@ from zipline.testing.fixtures import (
 )
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
-from zipline.utils.pandas_utils import (
-    ewma,
-    ewmstd,
-    rolling_apply,
-    rolling_mean,
-)
 
 
 class RollingSumDifference(CustomFactor):
@@ -1010,16 +1004,16 @@ class SyntheticBcolzTestCase(WithAdjustmentReader,
         # Shift back the raw inputs by a trading day because we expect our
         # computed results to be computed using values anchored on the
         # **previous** day's data.
-        expected_raw = rolling_mean(
-            DataFrame(
-                expected_bar_values_2d(
-                    dates - self.trading_calendar.day,
-                    self.equity_info,
-                    'close',
-                ),
+        expected_raw = DataFrame(
+            expected_bar_values_2d(
+                dates - self.trading_calendar.day,
+                self.equity_info,
+                'close',
             ),
+        ).rolling(
             window_length,
             min_periods=1,
+        ).mean(
         ).values
 
         expected = DataFrame(
@@ -1131,10 +1125,11 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         # Don't use it outside of testing.  We're using rolling-apply of an
         # ewma (which is itself a rolling-window function) because we only want
         # to look at ``window_length`` rows at a time.
-        return rolling_apply(
-            self.raw_data,
-            window_length,
-            lambda window: ewma(DataFrame(window), span=span).values[-1],
+        return self.raw_data.rolling(window_length).apply(
+            lambda subarray: (DataFrame(subarray)
+                              .ewm(span=span)
+                              .mean()
+                              .values[-1])
         )[window_length:]
 
     def expected_ewmstd(self, window_length, decay_rate):
@@ -1145,10 +1140,11 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         # EWMSTD.  Don't use it outside of testing.  We're using rolling-apply
         # of an ewma (which is itself a rolling-window function) because we
         # only want to look at ``window_length`` rows at a time.
-        return rolling_apply(
-            self.raw_data,
-            window_length,
-            lambda window: ewmstd(DataFrame(window), span=span).values[-1],
+        return self.raw_data.rolling(window_length).apply(
+            lambda subarray: (DataFrame(subarray)
+                              .ewm(span=span)
+                              .std()
+                              .values[-1])
         )[window_length:]
 
     @parameterized.expand([
@@ -1273,7 +1269,7 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
         expected_1 = (self.raw_data[5:] ** 2) * 2
         assert_frame_equal(results['dv1'].unstack(), expected_1)
 
-        expected_5 = rolling_mean((self.raw_data ** 2) * 2, window=5)[5:]
+        expected_5 = ((self.raw_data ** 2) * 2).rolling(5).mean()[5:]
         assert_frame_equal(results['dv5'].unstack(), expected_5)
 
         # The following two use USEquityPricing.open and .volume as inputs.
@@ -1283,9 +1279,11 @@ class ParameterizedFactorTestCase(WithTradingEnvironment, ZiplineTestCase):
                           * self.raw_data[5:] * 2).fillna(0)
         assert_frame_equal(results['dv1_nan'].unstack(), expected_1_nan)
 
-        expected_5_nan = rolling_mean((self.raw_data_with_nans
-                                       * self.raw_data * 2).fillna(0),
-                                      window=5)[5:]
+        expected_5_nan = ((self.raw_data_with_nans * self.raw_data * 2)
+                          .fillna(0)
+                          .rolling(5).mean()
+                          [5:])
+
         assert_frame_equal(results['dv5_nan'].unstack(), expected_5_nan)
 
 

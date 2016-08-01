@@ -12,6 +12,10 @@ from distutils.version import StrictVersion
 pandas_version = StrictVersion(pd.__version__)
 
 
+def july_5th_holiday_observance(datetime_index):
+    return datetime_index[datetime_index.year != 2013]
+
+
 def explode(df):
     """
     Take a DataFrame and return a triple of
@@ -19,19 +23,6 @@ def explode(df):
     (df.index, df.columns, df.values)
     """
     return df.index, df.columns, df.values
-
-
-try:
-    # This branch is hit in pandas 17
-    sort_values = pd.DataFrame.sort_values
-except AttributeError:
-    # This branch is hit in pandas 16
-    sort_values = pd.DataFrame.sort
-
-if pandas_version >= StrictVersion('0.17.1'):
-    july_5th_holiday_observance = lambda dtix: dtix[dtix.year != 2013]
-else:
-    july_5th_holiday_observance = lambda dt: None if dt.year == 2013 else dt
 
 
 def _time_to_micros(time):
@@ -175,85 +166,3 @@ def ignore_pandas_nan_categorical_warning():
             category=FutureWarning,
         )
         yield
-
-
-# Remove when we drop support for 0.17
-if pandas_version >= StrictVersion('0.18'):
-    def rolling_mean(arg,
-                     window,
-                     min_periods=None,
-                     freq=None,
-                     center=False,
-                     **kwargs):
-        return arg.rolling(
-            window,
-            min_periods=min_periods,
-            freq=freq,
-            center=center,
-            **kwargs
-        ).mean()
-
-    def rolling_apply(arg,
-                      window,
-                      func,
-                      min_periods=None,
-                      freq=None,
-                      center=False,
-                      **kwargs):
-        return arg.rolling(
-            window,
-            min_periods=min_periods,
-            freq=freq,
-            center=center,
-            **kwargs
-        ).apply(func)
-
-    def ewma(arg,
-             com=None,
-             span=None,
-             halflife=None,
-             alpha=None,
-             min_periods=0,
-             freq=None,
-             adjust=True,
-             how=None,
-             ignore_na=False):
-
-        return arg.ewm(
-            com=com,
-            span=span,
-            halflife=halflife,
-            alpha=alpha,
-            min_periods=min_periods,
-            freq=freq,
-            adjust=adjust,
-            ignore_na=ignore_na,
-        ).mean()
-
-    def ewmstd(arg,
-               com=None,
-               span=None,
-               halflife=None,
-               alpha=None,
-               min_periods=0,
-               freq=None,
-               adjust=True,
-               how=None,
-               ignore_na=False):
-
-        return arg.ewm(
-            com=com,
-            span=span,
-            halflife=halflife,
-            alpha=alpha,
-            min_periods=min_periods,
-            freq=freq,
-            adjust=adjust,
-            ignore_na=ignore_na,
-        ).std()
-
-else:
-    rolling_mean = pd.rolling_mean
-    rolling_apply = pd.rolling_apply
-    ewma = pd.ewma
-    ewmstd = pd.ewmstd
