@@ -409,7 +409,7 @@ class FilterTestCase(BasePipelineTestCase):
             window_length = 0
 
         strictly_true_filter = StrictlyTrueFilter(
-            inputs=[InputFilter()],
+            inputs=(InputFilter(), ),
             window_length=self.default_shape[0]
         )
 

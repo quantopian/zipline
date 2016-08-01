@@ -499,6 +499,5 @@ class StrictlyTrueFilter(CustomFilter):
 
     **Default Window Length**: None
     """
-
     def compute(self, today, assets, out, arg):
-        out[:] = (sum(arg) == self.window_length)
+        out[:] = (arg.sum(axis=0) == self.window_length)
