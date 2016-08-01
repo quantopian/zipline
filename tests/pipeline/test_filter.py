@@ -21,6 +21,7 @@ from numpy import (
     ones,
     ones_like,
     putmask,
+    reshape,
     rot90,
     sum as np_sum
 )
@@ -398,10 +399,10 @@ class FilterTestCase(BasePipelineTestCase):
     def test_strictly_true_filter(self):
         from zipline.pipeline.filters import StrictlyTrueFilter
 
-        data = full(self.default_shape, True, dtype=bool)
-        # one column all false
-        data[0, 0] = False
-        data[1, 1] = False
+        data = ~eye(N=self.default_shape[0],
+                    M=self.default_shape[1],
+                    k=1,
+                    dtype=bool)
 
         class InputFilter(Filter):
             inputs = ()
@@ -417,11 +418,10 @@ class FilterTestCase(BasePipelineTestCase):
             initial_workspace={InputFilter(): data}
         )
 
-        expected_result = full(self.default_shape[1], True, dtype=bool)
-        expected_result[0] = False
-        expected_result[1] = False
+        expected_result = full(self.default_shape[1], False, dtype=bool)
+        expected_result[0] = True
         check_arrays(
-            results['Filter'].flatten(),
+            reshape(results['Filter'], expected_result.shape[0]),
             expected_result,
         )
 
