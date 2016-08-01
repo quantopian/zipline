@@ -395,6 +395,36 @@ class FilterTestCase(BasePipelineTestCase):
         )
         check_arrays(results['isfinite'], isfinite(data))
 
+    def test_smoothing_filter(self):
+        from zipline.pipeline.filters import SmoothingFilter
+
+        data = full(self.default_shape, True, dtype=bool)
+        # one column all false
+        data[0, 0] = False
+        data[1, 1] = False
+
+        class InputFilter(Filter):
+            inputs = ()
+            window_length = 0
+
+        smoothing_filter = SmoothingFilter(
+            inputs=[InputFilter()],
+            window_length=self.default_shape[0]
+        )
+
+        results = self.run_graph(
+            TermGraph({'smoothing': smoothing_filter}),
+            initial_workspace={InputFilter(): data}
+        )
+
+        expected_result = full(self.default_shape[1], True, dtype=bool)
+        expected_result[0] = False
+        expected_result[1] = False
+        check_arrays(
+            results['smoothing'].flatten(),
+            expected_result,
+        )
+
     @parameter_space(factor_len=[2, 3, 4])
     def test_window_safe(self, factor_len):
         # all true data set of (days, securities)
