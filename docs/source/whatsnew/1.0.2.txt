@@ -26,6 +26,9 @@ Enhancements
   :meth:`~zipline.pipeline.factors.Factor.top`, and
   :meth:`~zipline.pipeline.factors.Factor.bottom`. (:issue:`1349`).
 
+- Added a smoothing filter that adds 'stickiness' to its input,
+  making boolean designations less volatile over time. (:issue:`1358`)
+
 Bug Fixes
 ~~~~~~~~~
 
