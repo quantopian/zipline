@@ -187,13 +187,6 @@ def _generate_output_dataframe(data_subset, defaults):
 
 
 def _check_asset_group(group):
-    for colname in set(group.columns) - mapping_columns:
-        col = group[colname]
-        if len(col.unique()) != 1:
-            raise ValueError(
-                'All values must be the same for the %s column' % colname,
-            )
-
     row = group.iloc[0]
     row.start_date = group.start_date.min()
     row.end_date = group.end_date.max()
