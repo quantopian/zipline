@@ -6,7 +6,7 @@ import sqlalchemy as sa
 # assets database
 # NOTE: When upgrading this remember to add a downgrade in:
 # .asset_db_migrations
-ASSET_DB_VERSION = 3
+ASSET_DB_VERSION = 4
 
 
 def generate_asset_db_metadata(bind=None):
@@ -55,6 +55,7 @@ def _equities_table_schema(metadata):
         sa.Column('first_traded', sa.Integer),
         sa.Column('auto_close_date', sa.Integer),
         sa.Column('exchange', sa.Text),
+        sa.Column('exchange_full', sa.Text)
     )
 
 

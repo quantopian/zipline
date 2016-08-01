@@ -1313,6 +1313,15 @@ class TestAssetDBVersioning(ZiplineTestCase):
     def test_downgrade(self):
         # Attempt to downgrade a current assets db all the way down to v0
         conn = self.engine.connect()
+
+        # first downgrade to v3
+        downgrade(self.engine, 3)
+        metadata = sa.MetaData(conn)
+        metadata.reflect(bind=self.engine)
+        check_version_info(metadata.tables['version_info'], 3)
+        self.assertFalse('exchange_full' in metadata.tables)
+
+        # now go all the way to v0
         downgrade(self.engine, 0)
 
         # Verify that the db version is now 0

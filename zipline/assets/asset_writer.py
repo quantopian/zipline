@@ -41,7 +41,10 @@ _equities_defaults = {
     'end_date': 2 ** 62 - 1,
     'first_traded': None,
     'auto_close_date': None,
+    # the canonical exchange name, like "NYSE"
     'exchange': None,
+    # optional, something like "New York Stock Exchange"
+    'exchange_full': None,
 }
 
 # Default values for the futures DataFrame
