@@ -8,7 +8,6 @@ from numpy import (
     float64,
     nan,
     nanpercentile,
-    sum as sum_
 )
 
 from zipline.errors import (
@@ -491,11 +490,10 @@ class SingleAsset(Filter):
         return out
 
 
-class SmoothingFilter(CustomFilter):
+class StrictlyTrueFilter(CustomFilter):
     """
     A Filter that requires its inputs to have
     been True for the last `window_length` days.
-    An integral part of the Q500US methodology
 
     **Default Inputs**: None
 
@@ -503,4 +501,4 @@ class SmoothingFilter(CustomFilter):
     """
 
     def compute(self, today, assets, out, arg):
-        out[:] = (sum_(arg, axis=0) == self.window_length)
+        out[:] = (sum(arg) == self.window_length)

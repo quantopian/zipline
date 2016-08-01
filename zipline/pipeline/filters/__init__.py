@@ -8,7 +8,7 @@ from .filter import (
     NumExprFilter,
     PercentileFilter,
     SingleAsset,
-    SmoothingFilter,
+    StrictlyTrueFilter,
 )
 
 __all__ = [
@@ -21,5 +21,5 @@ __all__ = [
     'NumExprFilter',
     'PercentileFilter',
     'SingleAsset',
-    'SmoothingFilter',
+    'StrictlyTrueFilter',
 ]

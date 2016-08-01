@@ -395,8 +395,8 @@ class FilterTestCase(BasePipelineTestCase):
         )
         check_arrays(results['isfinite'], isfinite(data))
 
-    def test_smoothing_filter(self):
-        from zipline.pipeline.filters import SmoothingFilter
+    def test_strictly_true_filter(self):
+        from zipline.pipeline.filters import StrictlyTrueFilter
 
         data = full(self.default_shape, True, dtype=bool)
         # one column all false
@@ -407,13 +407,13 @@ class FilterTestCase(BasePipelineTestCase):
             inputs = ()
             window_length = 0
 
-        smoothing_filter = SmoothingFilter(
+        strictly_true_filter = StrictlyTrueFilter(
             inputs=[InputFilter()],
             window_length=self.default_shape[0]
         )
 
         results = self.run_graph(
-            TermGraph({'smoothing': smoothing_filter}),
+            TermGraph({'Filter': strictly_true_filter}),
             initial_workspace={InputFilter(): data}
         )
 
@@ -421,7 +421,7 @@ class FilterTestCase(BasePipelineTestCase):
         expected_result[0] = False
         expected_result[1] = False
         check_arrays(
-            results['smoothing'].flatten(),
+            results['Filter'].flatten(),
             expected_result,
         )
 
