@@ -9,12 +9,13 @@ from .filter import (
     PercentileFilter,
     SingleAsset,
 )
-from .smoothing import All, Any
+from .smoothing import All, Any, AtLeastN
 
 __all__ = [
     'All',
     'Any',
     'ArrayPredicate',
+    'AtLeastN',
     'CustomFilter',
     'Filter',
     'Latest',
