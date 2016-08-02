@@ -783,8 +783,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         target : zipline.pipeline.Term with a numeric dtype
             The term to use as the predictor/independent variable in each
             regression. This may be a Factor, a BoundColumn or a Slice. If
-            `target` is two-dimensional, correlations are computed asset-wise.
-        correlation_length : int
+            `target` is two-dimensional, regressions are computed asset-wise.
+        regression_length : int
             Length of the lookback window over which to compute each
             regression.
         mask : zipline.pipeline.Filter, optional
