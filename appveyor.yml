@@ -16,14 +16,14 @@ environment:
     - PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.18.1"
-      NUMPY_VERSION: "1.11"
-      SCIPY_VERSION: "0.17.0"
+      NUMPY_VERSION: "1.11.1"
+      SCIPY_VERSION: "0.17.1"
 
     - PYTHON_VERSION: "3.4"
       PYTHON_ARCH: "64"
       PANDAS_VERSION: "0.18.1"
-      NUMPY_VERSION: "1.11"
-      SCIPY_VERSION: "0.17.0"
+      NUMPY_VERSION: "1.11.1"
+      SCIPY_VERSION: "0.17.1"
 
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
