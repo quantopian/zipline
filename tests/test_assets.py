@@ -30,7 +30,7 @@ from nose_parameterized import parameterized
 from numpy import full, int32, int64
 import pandas as pd
 from pandas.util.testing import assert_frame_equal
-from six import PY2
+from six import PY2, viewkeys
 import sqlalchemy as sa
 
 from zipline.assets import (
@@ -57,6 +57,7 @@ from zipline.assets.asset_writer import (
     check_version_info,
     write_version_info,
     _futures_defaults,
+    SQLITE_MAX_VARIABLE_NUMBER,
 )
 from zipline.assets.asset_db_schema import ASSET_DB_VERSION
 from zipline.assets.asset_db_migrations import (
@@ -83,6 +84,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
     WithTradingCalendar,
 )
+from zipline.utils.range import range
 
 
 @contextmanager
@@ -406,6 +408,28 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
         conn = self.enter_instance_context(empty_assets_db())
         self._asset_writer = AssetDBWriter(conn)
         self.asset_finder = self.asset_finder_type(conn)
+
+    def test_blocked_lookup_symbol_query(self):
+        # we will try to query for more variables than sqlite supports
+        # to make sure we are properly chunking on the client side
+        as_of = pd.Timestamp('2013-01-01', tz='UTC')
+        # we need more sids than we can query from sqlite
+        nsids = SQLITE_MAX_VARIABLE_NUMBER + 10
+        sids = range(nsids)
+        frame = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': sid,
+                    'symbol':  'TEST.%d' % sid,
+                    'start_date': as_of.value,
+                    'end_date': as_of.value,
+                }
+                for sid in sids
+            ]
+        )
+        self.write_assets(equities=frame)
+        assets = self.asset_finder.retrieve_equities(sids)
+        assert_equal(viewkeys(assets), set(sids))
 
     def test_lookup_symbol_delimited(self):
         as_of = pd.Timestamp('2013-01-01', tz='UTC')
