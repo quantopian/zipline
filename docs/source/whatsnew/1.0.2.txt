@@ -31,6 +31,11 @@ Enhancements
   returns True if an asset produced a True for any/all days in the previous
   ``window_length`` days (:issue:`1358`).
 
+- Added new pipeline filter :class:`~zipline.pipeline.filters.AtLeastN`,
+  which takes another filter and an int N and returns True if an asset
+  produced a True on N or more days in the previous ``window_length``
+  days (:issue:`1367`).
+
 Bug Fixes
 ~~~~~~~~~
 
