@@ -40,19 +40,8 @@ from zipline.utils.calendars import get_calendar
 # IMPORTANT NOTE: You must change this template if you change
 # Asset.__reduce__, or else we'll attempt to unpickle an old version of this
 # class
-from pandas.tslib import normalize_date
-
 CACHE_FILE_TEMPLATE = '/tmp/.%s-%s.v6.cache'
 
-FUTURE_EXCHANGE_MAPPING = {
-    "CFE": "CFE",
-    "CBOT": "CME",
-    "CME": "CME",
-    "COMEX": "CME",
-    "NYMEX": "CME",
-    "ICEUS": "ICE",
-    "NYFE": "ICE"
-}
 
 cdef class Asset:
 
@@ -231,26 +220,8 @@ cdef class Asset:
         -------
         boolean: whether the asset's exchange is open at the given minute.
         """
-        calendar = self.exchange_trading_calendar()
+        calendar = get_calendar(self.exchange)
         return calendar.is_open_on_minute(dt_minute)
-
-    def exchange_trading_calendar(self):
-        """
-        Get the calendar for this asset's exchange.
-
-        Raises KeyError if the asset's exchange calendar cannot be found.
-
-        Returns
-        -------
-        The asset's exchange's trading calendar.
-        """
-        if isinstance(self, Equity):
-            # FIXME: probably too Quantopian-specific
-            return get_calendar("NYSE")
-        else:
-            asset_exchange_str = self.exchange
-            calendar_str = FUTURE_EXCHANGE_MAPPING[asset_exchange_str]
-            return get_calendar(calendar_str)
 
 
 cdef class Equity(Asset):
