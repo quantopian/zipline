@@ -26,6 +26,11 @@ Enhancements
   :meth:`~zipline.pipeline.factors.Factor.top`, and
   :meth:`~zipline.pipeline.factors.Factor.bottom`. (:issue:`1349`).
 
+- Added new pipeline filters, :class:`~zipline.pipeline.filters.All` and
+  :class:`~zipline.pipeline.filters.Any`, which takes another filter and
+  returns True if an asset produced a True for any/all days in the previous
+  ``window_length`` days (:issue:`1358`).
+
 Bug Fixes
 ~~~~~~~~~
 
