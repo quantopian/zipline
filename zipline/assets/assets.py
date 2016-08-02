@@ -23,7 +23,16 @@ import pandas as pd
 from pandas import isnull
 from six import with_metaclass, string_types, viewkeys, iteritems
 import sqlalchemy as sa
-from toolz import merge, compose, valmap, sliding_window, concatv, curry
+from toolz import (
+    compose,
+    concat,
+    concatv,
+    curry,
+    merge,
+    partition_all,
+    sliding_window,
+    valmap,
+)
 from toolz.curried import operator as op
 
 from zipline.errors import (
@@ -43,6 +52,7 @@ from .asset_writer import (
     split_delimited_symbol,
     asset_db_table_names,
     symbol_columns,
+    SQLITE_MAX_VARIABLE_NUMBER,
 )
 from .asset_db_schema import (
     ASSET_DB_VERSION
@@ -432,21 +442,26 @@ class AssetFinder(object):
 
     def _lookup_most_recent_symbols(self, sids):
         symbol_cols = self.equity_symbol_mappings.c
-
         symbols = {
             row.sid: {c: row[c] for c in symbol_columns}
-            for row in self.engine.execute(
-                sa.select(
-                    (symbol_cols.sid,) +
-                    tuple(map(op.getitem(symbol_cols), symbol_columns)),
-                ).where(
-                    symbol_cols.sid.in_(map(int, sids)),
-                ).order_by(
-                    symbol_cols.end_date.desc(),
-                ).group_by(
-                    symbol_cols.sid,
-                )
-            ).fetchall()
+            for row in concat(
+                self.engine.execute(
+                    sa.select(
+                        (symbol_cols.sid,) +
+                        tuple(map(op.getitem(symbol_cols), symbol_columns)),
+                    ).where(
+                        symbol_cols.sid.in_(map(int, sid_group)),
+                    ).order_by(
+                        symbol_cols.end_date.desc(),
+                    ).group_by(
+                        symbol_cols.sid,
+                    )
+                ).fetchall()
+                for sid_group in partition_all(
+                    SQLITE_MAX_VARIABLE_NUMBER,
+                    sids
+                ),
+            )
         }
 
         if len(symbols) != len(sids):
