@@ -8,10 +8,12 @@ from .filter import (
     NumExprFilter,
     PercentileFilter,
     SingleAsset,
-    StrictlyTrueFilter,
 )
+from .smoothing import All, Any
 
 __all__ = [
+    'All',
+    'Any',
     'ArrayPredicate',
     'CustomFilter',
     'Filter',
@@ -21,5 +23,4 @@ __all__ = [
     'NumExprFilter',
     'PercentileFilter',
     'SingleAsset',
-    'StrictlyTrueFilter',
 ]
