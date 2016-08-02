@@ -488,16 +488,3 @@ class SingleAsset(Filter):
                 asset=self._asset, start_date=dates[0], end_date=dates[-1],
             )
         return out
-
-
-class StrictlyTrueFilter(CustomFilter):
-    """
-    A Filter that requires its inputs to have
-    been True for the last `window_length` days.
-
-    **Default Inputs**: None
-
-    **Default Window Length**: None
-    """
-    def compute(self, today, assets, out, arg):
-        out[:] = (arg.sum(axis=0) == self.window_length)
