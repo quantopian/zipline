@@ -72,3 +72,16 @@ def minutes_to_session_labels(ndarray[int64_t, ndim=1] minutes,
         current_idx = next_idx
 
     return results
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_session_nano(ndarray[int64_t, ndim=1] closes,
+               ndarray[int64_t, ndim=1] session_labels,
+               int64_t minute_val):
+    cdef int idx
+    cdef long current_or_next_session_nano
+
+    idx = searchsorted(closes, minute_val)
+    current_or_next_session_nano = session_labels[idx]
+
+    return current_or_next_session_nano
