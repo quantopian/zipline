@@ -82,7 +82,7 @@ from zipline.testing.predicates import assert_equal
 from zipline.testing.fixtures import (
     WithAssetFinder,
     ZiplineTestCase,
-    WithTradingCalendar,
+    WithTradingCalendars,
 )
 from zipline.utils.range import range
 
@@ -404,7 +404,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
             TestFuture.asset_finder.lookup_future_symbol('XXX99')
 
 
-class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
+class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
     asset_finder_type = AssetFinder
 
     def write_assets(self, **kwargs):
