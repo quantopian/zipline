@@ -56,13 +56,13 @@ class CalendarRegistrationTestCase(TestCase):
         dummy_cal = self.dummy_cal_type('DMY')
 
         # Try to register and retrieve the calendar
-        register_calendar(dummy_cal)
+        register_calendar('DMY', dummy_cal)
         retr_cal = get_calendar('DMY')
         self.assertEqual(dummy_cal, retr_cal)
 
         # Try to register again, expecting a name collision
         with self.assertRaises(CalendarNameCollision):
-            register_calendar(dummy_cal)
+            register_calendar('DMY', dummy_cal)
 
         # Deregister the calendar and ensure that it is removed
         deregister_calendar('DMY')
@@ -76,7 +76,7 @@ class CalendarRegistrationTestCase(TestCase):
         real_nyse = get_calendar('NYSE')
 
         # Force a registration of the dummy NYSE
-        register_calendar(dummy_nyse, force=True)
+        register_calendar("NYSE", dummy_nyse, force=True)
 
         # Ensure that the dummy overwrote the real calendar
         retr_cal = get_calendar('NYSE')
