@@ -438,7 +438,7 @@ def create_minute_bar_data(minutes, sids):
                 'high': np.arange(length) + 15 + sid_idx,
                 'low': np.arange(length) + 8 + sid_idx,
                 'close': np.arange(length) + 10 + sid_idx,
-                'volume': np.arange(length) + 100 + sid_idx,
+                'volume': 100 + sid_idx,
             },
             index=minutes,
         )
