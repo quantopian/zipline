@@ -72,13 +72,13 @@ cdef class Asset:
 
     def __init__(self,
                  int sid, # sid is required
+                 object exchange, # exchange is required
                  object symbol="",
                  object asset_name="",
                  object start_date=None,
                  object end_date=None,
                  object first_traded=None,
-                 object auto_close_date=None,
-                 object exchange=""):
+                 object auto_close_date=None):
 
         self.sid = sid
         self.sid_hash = hash(sid)
@@ -158,13 +158,13 @@ cdef class Asset:
         be serialized/deserialized during pickling.
         """
         return (self.__class__, (self.sid,
+                                 self.exchange,
                                  self.symbol,
                                  self.asset_name,
                                  self.start_date,
                                  self.end_date,
                                  self.first_traded,
-                                 self.auto_close_date,
-                                 self.exchange,))
+                                 self.auto_close_date,))
 
     cpdef to_dict(self):
         """
@@ -295,6 +295,7 @@ cdef class Future(Asset):
 
     def __init__(self,
                  int sid, # sid is required
+                 object exchange, # exchange is required
                  object symbol="",
                  object root_symbol="",
                  object asset_name="",
@@ -304,19 +305,18 @@ cdef class Future(Asset):
                  object expiration_date=None,
                  object auto_close_date=None,
                  object first_traded=None,
-                 object exchange="",
                  object tick_size="",
                  float multiplier=1.0):
 
         super().__init__(
             sid,
+            exchange,
             symbol=symbol,
             asset_name=asset_name,
             start_date=start_date,
             end_date=end_date,
             first_traded=first_traded,
             auto_close_date=auto_close_date,
-            exchange=exchange,
         )
         self.root_symbol = root_symbol
         self.notice_date = notice_date
@@ -351,6 +351,7 @@ cdef class Future(Asset):
         be serialized/deserialized during pickling.
         """
         return (self.__class__, (self.sid,
+                                 self.exchange,
                                  self.symbol,
                                  self.root_symbol,
                                  self.asset_name,
@@ -360,7 +361,6 @@ cdef class Future(Asset):
                                  self.expiration_date,
                                  self.auto_close_date,
                                  self.first_traded,
-                                 self.exchange,
                                  self.tick_size,
                                  self.multiplier,))
 

@@ -314,7 +314,7 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
         `RollingLinearRegressionOfReturns` raise the proper exception when
         given a nonexistent target asset.
         """
-        my_asset = Equity(0)
+        my_asset = Equity(0, exchange="TEST")
         start_date = self.pipeline_start_date
         end_date = self.pipeline_end_date
         run_pipeline = self.run_pipeline

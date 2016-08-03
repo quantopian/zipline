@@ -110,21 +110,21 @@ def build_lookup_generic_cases(asset_finder_type):
                 'symbol': 'duplicated',
                 'start_date': dupe_0_start.value,
                 'end_date': dupe_0_end.value,
-                'exchange': '',
+                'exchange': 'TEST',
             },
             {
                 'sid': 1,
                 'symbol': 'duplicated',
                 'start_date': dupe_1_start.value,
                 'end_date': dupe_1_end.value,
-                'exchange': '',
+                'exchange': 'TEST',
             },
             {
                 'sid': 2,
                 'symbol': 'unique',
                 'start_date': unique_start.value,
                 'end_date': unique_end.value,
-                'exchange': '',
+                'exchange': 'TEST',
             },
         ],
         index='sid')
@@ -194,15 +194,21 @@ class AssetTestCase(TestCase):
         exchange='THE MOON',
     )
 
+    asset3 = Asset(3, exchange="test")
+    asset4 = Asset(4, exchange="test")
+    asset5 = Asset(5, exchange="still testing")
+
     def test_asset_object(self):
-        self.assertEquals({5061: 'foo'}[Asset(5061)], 'foo')
-        self.assertEquals(Asset(5061), 5061)
-        self.assertEquals(5061, Asset(5061))
+        the_asset = Asset(5061, exchange="bar")
 
-        self.assertEquals(Asset(5061), Asset(5061))
-        self.assertEquals(int(Asset(5061)), 5061)
+        self.assertEquals({5061: 'foo'}[the_asset], 'foo')
+        self.assertEquals(the_asset, 5061)
+        self.assertEquals(5061, the_asset)
 
-        self.assertEquals(str(Asset(5061)), 'Asset(5061)')
+        self.assertEquals(the_asset, the_asset)
+        self.assertEquals(int(the_asset), 5061)
+
+        self.assertEquals(str(the_asset), 'Asset(5061)')
 
     def test_to_and_from_dict(self):
         asset_from_dict = Asset.from_dict(self.asset.to_dict())
@@ -220,8 +226,8 @@ class AssetTestCase(TestCase):
 
     def test_asset_comparisons(self):
 
-        s_23 = Asset(23)
-        s_24 = Asset(24)
+        s_23 = Asset(23, exchange="test")
+        s_24 = Asset(24, exchange="test")
 
         self.assertEqual(s_23, s_23)
         self.assertEqual(s_23, 23)
@@ -250,39 +256,39 @@ class AssetTestCase(TestCase):
         self.assertGreater(s_24, s_23)
 
     def test_lt(self):
-        self.assertTrue(Asset(3) < Asset(4))
-        self.assertFalse(Asset(4) < Asset(4))
-        self.assertFalse(Asset(5) < Asset(4))
+        self.assertTrue(self.asset3 < self.asset4)
+        self.assertFalse(self.asset4 < self.asset4)
+        self.assertFalse(self.asset5 < self.asset4)
 
     def test_le(self):
-        self.assertTrue(Asset(3) <= Asset(4))
-        self.assertTrue(Asset(4) <= Asset(4))
-        self.assertFalse(Asset(5) <= Asset(4))
+        self.assertTrue(self.asset3 <= self.asset4)
+        self.assertTrue(self.asset4 <= self.asset4)
+        self.assertFalse(self.asset5 <= self.asset4)
 
     def test_eq(self):
-        self.assertFalse(Asset(3) == Asset(4))
-        self.assertTrue(Asset(4) == Asset(4))
-        self.assertFalse(Asset(5) == Asset(4))
+        self.assertFalse(self.asset3 == self.asset4)
+        self.assertTrue(self.asset4 == self.asset4)
+        self.assertFalse(self.asset5 == self.asset4)
 
     def test_ge(self):
-        self.assertFalse(Asset(3) >= Asset(4))
-        self.assertTrue(Asset(4) >= Asset(4))
-        self.assertTrue(Asset(5) >= Asset(4))
+        self.assertFalse(self.asset3 >= self.asset4)
+        self.assertTrue(self.asset4 >= self.asset4)
+        self.assertTrue(self.asset5 >= self.asset4)
 
     def test_gt(self):
-        self.assertFalse(Asset(3) > Asset(4))
-        self.assertFalse(Asset(4) > Asset(4))
-        self.assertTrue(Asset(5) > Asset(4))
+        self.assertFalse(self.asset3 > self.asset4)
+        self.assertFalse(self.asset4 > self.asset4)
+        self.assertTrue(self.asset5 > self.asset4)
 
     def test_type_mismatch(self):
         if sys.version_info.major < 3:
-            self.assertIsNotNone(Asset(3) < 'a')
-            self.assertIsNotNone('a' < Asset(3))
+            self.assertIsNotNone(self.asset3 < 'a')
+            self.assertIsNotNone('a' < self.asset3)
         else:
             with self.assertRaises(TypeError):
-                Asset(3) < 'a'
+                self.asset3 < 'a'
             with self.assertRaises(TypeError):
-                'a' < Asset(3)
+                'a' < self.asset3
 
 
 class TestFuture(WithAssetFinder, ZiplineTestCase):
@@ -298,6 +304,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
                     'auto_close_date': pd.Timestamp('2014-01-18', tz='UTC'),
                     'tick_size': .01,
                     'multiplier': 500.0,
+                    'exchange': "TEST",
                 },
                 0: {
                     'symbol': 'CLG06',
@@ -306,6 +313,7 @@ class TestFuture(WithAssetFinder, ZiplineTestCase):
                     'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
                     'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
                     'multiplier': 1.0,
+                    'exchange': 'TEST',
                 },
             },
             orient='index',
@@ -471,9 +479,9 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
 
     def test_lookup_symbol_fuzzy(self):
         metadata = pd.DataFrame.from_records([
-            {'symbol': 'PRTY_HRD'},
-            {'symbol': 'BRKA'},
-            {'symbol': 'BRK_A'},
+            {'symbol': 'PRTY_HRD', 'exchange': "TEST"},
+            {'symbol': 'BRKA', 'exchange': "TEST",},
+            {'symbol': 'BRK_A', 'exchange': "TEST",},
         ])
         self.write_assets(equities=metadata)
         finder = self.asset_finder
@@ -697,14 +705,14 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                     'symbol': 'real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
                     'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': '',
+                    'exchange': 'TEST',
                 },
                 {
                     'sid': 1,
                     'symbol': 'also_real',
                     'start_date': pd.Timestamp('2013-1-1', tz='UTC'),
                     'end_date': pd.Timestamp('2014-1-1', tz='UTC'),
-                    'exchange': '',
+                    'exchange': 'TEST',
                 },
                 # Sid whose end date is before our query date.  We should
                 # still correctly find it.
@@ -713,7 +721,7 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                     'symbol': 'real_but_old',
                     'start_date': pd.Timestamp('2002-1-1', tz='UTC'),
                     'end_date': pd.Timestamp('2003-1-1', tz='UTC'),
-                    'exchange': '',
+                    'exchange': 'TEST',
                 },
                 # Sid whose start_date is **after** our query date.  We should
                 # **not** find it.
@@ -749,7 +757,8 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
 
         # Build an asset with an end_date
         eq_end = pd.Timestamp('2012-01-01', tz='UTC')
-        equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end)
+        equity_asset = Equity(1, symbol="TESTEQ", end_date=eq_end,
+                              exchange="TEST")
 
         # Catch all warnings
         with warnings.catch_warnings(record=True) as w:
@@ -772,14 +781,16 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                 'root_symbol': 'AD',
                 'notice_date': pd.Timestamp('2015-06-14', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-08-14', tz='UTC'),
-                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC'),
+                'exchange': "TEST",
             },
             {
                 'symbol': 'ADV15',
                 'root_symbol': 'AD',
                 'notice_date': pd.Timestamp('2015-05-14', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-09-14', tz='UTC'),
-                'start_date': pd.Timestamp('2015-01-01', tz='UTC')
+                'start_date': pd.Timestamp('2015-01-01', tz='UTC'),
+                'exchange': "TEST",
             },
             # Starts trading today, so should be valid.
             {
@@ -787,7 +798,8 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                 'root_symbol': 'AD',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
-                'start_date': pd.Timestamp('2015-05-14', tz='UTC')
+                'start_date': pd.Timestamp('2015-05-14', tz='UTC'),
+                'exchange': "TEST",
             },
             # Starts trading in August, so not valid.
             {
@@ -795,7 +807,8 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                 'root_symbol': 'AD',
                 'notice_date': pd.Timestamp('2015-11-16', tz='UTC'),
                 'expiration_date': pd.Timestamp('2015-12-16', tz='UTC'),
-                'start_date': pd.Timestamp('2015-08-01', tz='UTC')
+                'start_date': pd.Timestamp('2015-08-01', tz='UTC'),
+                'exchange': "TEST",
             },
             # Notice date comes after expiration
             {
@@ -803,7 +816,8 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                 'root_symbol': 'AD',
                 'notice_date': pd.Timestamp('2016-11-25', tz='UTC'),
                 'expiration_date': pd.Timestamp('2016-11-16', tz='UTC'),
-                'start_date': pd.Timestamp('2015-08-01', tz='UTC')
+                'start_date': pd.Timestamp('2015-08-01', tz='UTC'),
+                'exchange': "TEST",
             },
             # This contract has no start date and also this contract should be
             # last in all chains
@@ -811,7 +825,8 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                 'symbol': 'ADZ20',
                 'root_symbol': 'AD',
                 'notice_date': pd.Timestamp('2020-11-25', tz='UTC'),
-                'expiration_date': pd.Timestamp('2020-11-16', tz='UTC')
+                'expiration_date': pd.Timestamp('2020-11-16', tz='UTC'),
+                'exchange': "TEST",
             },
         ])
         self.write_assets(futures=metadata)
@@ -850,10 +865,10 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
         # Build an empty finder and some Assets
         dt = pd.Timestamp('2014-01-01', tz='UTC')
         finder = self.asset_finder
-        asset1 = Equity(1, symbol="AAPL")
-        asset2 = Equity(2, symbol="GOOG")
-        asset200 = Future(200, symbol="CLK15")
-        asset201 = Future(201, symbol="CLM15")
+        asset1 = Equity(1, symbol="AAPL", exchange="TEST")
+        asset2 = Equity(2, symbol="GOOG", exchange="TEST")
+        asset200 = Future(200, symbol="CLK15", exchange="TEST")
+        asset201 = Future(201, symbol="CLM15", exchange="TEST")
 
         # Check for correct mapping and types
         pre_map = [asset1, asset2, asset200, asset201]
@@ -1103,6 +1118,7 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
+                'exchange': "TEST",
             },
             {
                 'root_symbol': 'CL',
@@ -1110,6 +1126,7 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-04-20', tz='UTC'),
+                'exchange': "TEST",
             },
             {
                 'symbol': 'CLQ06',
@@ -1117,6 +1134,7 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
                 'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-07-20', tz='UTC'),
+                'exchange': "TEST",
             },
             {
                 'symbol': 'CLX06',
@@ -1124,6 +1142,7 @@ class TestFutureChain(WithAssetFinder, ZiplineTestCase):
                 'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
                 'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
                 'expiration_date': pd.Timestamp('2006-10-20', tz='UTC'),
+                'exchange': "TEST",
             }
         ])
 

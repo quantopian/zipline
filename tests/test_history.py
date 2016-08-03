@@ -121,42 +121,50 @@ class WithHistory(WithDataPortal):
                 1: {
                     'start_date': pd.Timestamp('2014-01-03', tz='UTC'),
                     'end_date': cls.TRADING_END_DT,
-                    'symbol': 'ASSET1'
+                    'symbol': 'ASSET1',
+                    'exchange': "TEST",
                 },
                 2: {
                     'start_date': jan_5_2015,
                     'end_date': day_after_12312015,
-                    'symbol': 'ASSET2'
+                    'symbol': 'ASSET2',
+                    'exchange': "TEST",
                 },
                 3: {
                     'start_date': jan_5_2015,
                     'end_date': day_after_12312015,
-                    'symbol': 'ASSET3'
+                    'symbol': 'ASSET3',
+                    'exchange': "TEST",
                 },
                 cls.SPLIT_ASSET_SID: {
                     'start_date': jan_5_2015,
                     'end_date': day_after_12312015,
-                    'symbol': 'SPLIT_ASSET'
+                    'symbol': 'SPLIT_ASSET',
+                    'exchange': "TEST",
                 },
                 cls.DIVIDEND_ASSET_SID: {
                     'start_date': jan_5_2015,
                     'end_date': day_after_12312015,
-                    'symbol': 'DIVIDEND_ASSET'
+                    'symbol': 'DIVIDEND_ASSET',
+                    'exchange': "TEST",
                 },
                 cls.MERGER_ASSET_SID: {
                     'start_date': jan_5_2015,
                     'end_date': day_after_12312015,
-                    'symbol': 'MERGER_ASSET'
+                    'symbol': 'MERGER_ASSET',
+                    'exchange': "TEST",
                 },
                 cls.HALF_DAY_TEST_ASSET_SID: {
                     'start_date': pd.Timestamp('2014-07-02', tz='UTC'),
                     'end_date': day_after_12312015,
-                    'symbol': 'HALF_DAY_TEST_ASSET'
+                    'symbol': 'HALF_DAY_TEST_ASSET',
+                    'exchange': "TEST",
                 },
                 cls.SHORT_ASSET_SID: {
                     'start_date': pd.Timestamp('2015-01-05', tz='UTC'),
                     'end_date': pd.Timestamp('2015-01-06', tz='UTC'),
-                    'symbol': 'SHORT_ASSET'
+                    'symbol': 'SHORT_ASSET',
+                    'exchange': "TEST",
                 }
             },
             orient='index',

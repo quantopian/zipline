@@ -210,10 +210,12 @@ class TestMiscellaneousAPI(WithLogger,
             pd.DataFrame.from_dict(
                 {3: {'symbol': 'PLAY',
                      'start_date': '2002-01-01',
-                     'end_date': '2004-01-01'},
+                     'end_date': '2004-01-01',
+                     'exchange': 'TEST'},
                  4: {'symbol': 'PLAY',
                      'start_date': '2005-01-01',
-                     'end_date': '2006-01-01'}},
+                     'end_date': '2006-01-01',
+                     'exchange': 'TEST'}},
                 orient='index',
             ),
         ))
@@ -227,25 +229,33 @@ class TestMiscellaneousAPI(WithLogger,
                     'root_symbol': 'CL',
                     'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
+                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
+                    'exchange': 'TEST'
+                },
                 6: {
                     'root_symbol': 'CL',
                     'symbol': 'CLK06',
                     'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
+                    'expiration_date': pd.Timestamp('2006-04-20', tz='UTC'),
+                    'exchange': 'TEST',
+                },
                 7: {
                     'symbol': 'CLQ06',
                     'root_symbol': 'CL',
                     'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
+                    'expiration_date': pd.Timestamp('2006-07-20', tz='UTC'),
+                    'exchange': 'TEST',
+                },
                 8: {
                     'symbol': 'CLX06',
                     'root_symbol': 'CL',
                     'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
+                    'expiration_date': pd.Timestamp('2006-10-20', tz='UTC'),
+                    'exchange': 'TEST',
+                }
             },
             orient='index',
         )
@@ -737,6 +747,7 @@ def handle_data(context, data):
                     'symbol': 'DUP',
                     'start_date': date.value,
                     'end_date': (date + timedelta(days=1)).value,
+                    'exchange': 'TEST',
                 }
                 for i, date in enumerate(dates)
             ]
@@ -780,10 +791,13 @@ class TestTransformAlgorithm(WithLogger,
 
     @classmethod
     def make_futures_info(cls):
-        return pd.DataFrame.from_dict(
-            {3: {'multiplier': 10, 'symbol': 'F'}},
-            orient='index',
-        )
+        return pd.DataFrame.from_dict({
+            3: {
+                'multiplier': 10,
+                'symbol': 'F',
+                'exchange': 'TEST'
+            }
+        }, orient='index')
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -989,7 +1003,8 @@ def before_trading_start(context, data):
         period_end = pd.Timestamp('2002-1-4', tz='UTC')
         equities = pd.DataFrame([{
             'start_date': start_session,
-            'end_date': period_end + timedelta(days=1)
+            'end_date': period_end + timedelta(days=1),
+            'exchange': "TEST",
         }] * 2)
         equities['symbol'] = ['A', 'B']
         with TempDirectory() as tempdir, \
@@ -2857,7 +2872,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 1: {
                     'symbol': 'SYM',
                     'start_date': start,
-                    'end_date': start + timedelta(days=6)
+                    'end_date': start + timedelta(days=6),
+                    'exchange': "TEST",
                 },
             },
             orient='index',
@@ -2986,6 +3002,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'symbol': 'SYM',
             'start_date': self.sim_params.start_session,
             'end_date': '2020-01-01',
+            'exchange': "TEST",
+            'sid': 999,
         }])
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
@@ -2997,7 +3015,7 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0],
+                [999],
                 self.trading_calendar,
             )
             algo.run(data_portal)
@@ -3006,6 +3024,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'symbol': 'SYM',
             'start_date': '1989-01-01',
             'end_date': '1990-01-01',
+            'exchange': "TEST",
+            'sid': 999,
         }])
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
@@ -3013,7 +3033,7 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0],
+                [999],
                 self.trading_calendar,
             )
             algo = SetAssetDateBoundsAlgorithm(
@@ -3027,6 +3047,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'symbol': 'SYM',
             'start_date': '2020-01-01',
             'end_date': '2021-01-01',
+            'exchange': "TEST",
+            'sid': 999,
         }])
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
@@ -3034,7 +3056,7 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0],
+                [999],
                 self.trading_calendar,
             )
             algo = SetAssetDateBoundsAlgorithm(
@@ -4056,7 +4078,8 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
                     'start_date': cls.start,
                     'end_date': cls.day_1,
                     'auto_close_date': cls.day_4,
-                    'symbol': "ASSET1"
+                    'symbol': "ASSET1",
+                    'exchange': "TEST",
                 },
             },
             orient='index',

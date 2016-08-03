@@ -47,22 +47,26 @@ class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendar,
                 1: {
                     'symbol': 'A',
                     'start_date': cls.START_DATE,
-                    'end_date': cls.END_DATE + pd.Timedelta(days=1)
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
                 },
                 2: {
                     'symbol': 'B',
                     'start_date': cls.START_DATE,
-                    'end_date': cls.END_DATE + pd.Timedelta(days=1)
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
                 },
                 3: {
                     'symbol': 'C',
                     'start_date': pd.Timestamp('2006-05-26', tz='utc'),
-                    'end_date': pd.Timestamp('2006-08-09', tz='utc')
+                    'end_date': pd.Timestamp('2006-08-09', tz='utc'),
+                    "exchange": "TEST",
                 },
                 4: {
                     'symbol': 'D',
                     'start_date': cls.START_DATE,
-                    'end_date': cls.END_DATE + pd.Timedelta(days=1)
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
                 },
             },
             orient='index',

@@ -1046,6 +1046,7 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendar,
                     'start_date': start,
                     'end_date': end,
                     'multiplier': 100,
+                    'exchange': "TEST",
                 }
                 for sid in futures_sids
             },
@@ -2345,9 +2346,9 @@ class TestPositionTracker(WithTradingEnvironment,
     def make_futures_info(cls):
         return pd.DataFrame.from_dict(
             {
-                3: {'multiplier': 1000},
-                4: {'multiplier': 1000},
-                1032201401: {'multiplier': 50},
+                3: {'multiplier': 1000, 'exchange': 'TEST'},
+                4: {'multiplier': 1000, 'exchange': 'TEST'},
+                1032201401: {'multiplier': 50, 'exchange': 'TEST'},
             },
             orient='index',
         )

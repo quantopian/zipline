@@ -85,7 +85,8 @@ class SecurityListTestCase(WithLogger, WithTradingCalendar, ZiplineTestCase):
             equities=pd.DataFrame.from_records([{
                 'start_date': cls.start,
                 'end_date': end,
-                'symbol': symbol
+                'symbol': symbol,
+                'exchange': "TEST",
             } for symbol in symbols]),
         ))
 
@@ -103,7 +104,8 @@ class SecurityListTestCase(WithLogger, WithTradingCalendar, ZiplineTestCase):
             equities=pd.DataFrame.from_records([{
                 'start_date': sp2.start_session,
                 'end_date': sp2.end_session,
-                'symbol': symbol
+                'symbol': symbol,
+                'exchange': "TEST",
             } for symbol in symbols]),
         ))
 
@@ -267,6 +269,7 @@ class SecurityListTestCase(WithLogger, WithTradingCalendar, ZiplineTestCase):
             'symbol': 'BZQ',
             'start_date': sim_params.start_session,
             'end_date': sim_params.end_session,
+            'exchange': "TEST",
         }])
         with TempDirectory() as new_tempdir, \
                 security_list_copy(), \

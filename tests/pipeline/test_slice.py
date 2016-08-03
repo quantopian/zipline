@@ -165,7 +165,7 @@ class SliceTestCase(WithSeededRandomPipelineEngine, ZiplineTestCase):
         Test that indexing into a term with a non-existent asset raises the
         proper exception.
         """
-        my_asset = Asset(0)
+        my_asset = Asset(0, exchange="TEST")
         returns = Returns(window_length=2, inputs=[self.col])
         returns_slice = returns[my_asset]
 
