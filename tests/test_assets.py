@@ -431,6 +431,7 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                     'symbol':  'TEST.%d' % sid,
                     'start_date': as_of.value,
                     'end_date': as_of.value,
+                    'exchange': uuid.uuid4().hex
                 }
                 for sid in sids
             ]
@@ -480,8 +481,8 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
     def test_lookup_symbol_fuzzy(self):
         metadata = pd.DataFrame.from_records([
             {'symbol': 'PRTY_HRD', 'exchange': "TEST"},
-            {'symbol': 'BRKA', 'exchange': "TEST",},
-            {'symbol': 'BRK_A', 'exchange': "TEST",},
+            {'symbol': 'BRKA', 'exchange': "TEST"},
+            {'symbol': 'BRK_A', 'exchange': "TEST"},
         ])
         self.write_assets(equities=metadata)
         finder = self.asset_finder
@@ -524,11 +525,13 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                     'symbol': 'A',
                     'start_date': T('2014-01-01'),
                     'end_date': T('2014-01-05'),
+                    'exchange': "TEST",
                 },
                 {
                     'symbol': 'B',
                     'start_date': T('2014-01-06'),
                     'end_date': T('2014-01-10'),
+                    'exchange': "TEST",
                 },
 
                 # sid 1
@@ -536,11 +539,13 @@ class AssetFinderTestCase(WithTradingCalendar, ZiplineTestCase):
                     'symbol': 'C',
                     'start_date': T('2014-01-01'),
                     'end_date': T('2014-01-05'),
+                    'exchange': "TEST",
                 },
                 {
                     'symbol': 'A',  # claiming the unused symbol 'A'
                     'start_date': T('2014-01-06'),
                     'end_date': T('2014-01-10'),
+                    'exchange': "TEST",
                 },
             ],
             index=[0, 0, 1, 1],

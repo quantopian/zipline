@@ -163,7 +163,7 @@ from zipline.test_algorithms import (
     no_handle_data,
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
-from zipline.utils.calendars import get_calendar
+from zipline.utils.calendars import get_calendar, register_calendar
 from zipline.utils.context_tricks import CallbackManager
 from zipline.utils.control_flow import nullctx
 import zipline.utils.events
@@ -1453,6 +1453,8 @@ class TestAlgoScript(WithLogger,
 
     @classmethod
     def make_equity_info(cls):
+        register_calendar("TEST", get_calendar("NYSE"), force=True)
+
         data = make_simple_equity_info(
             cls.sids,
             cls.START_DATE,
@@ -1787,6 +1789,7 @@ def handle_data(context, data):
         Test that api methods on the data object can be called with positional
         arguments.
         """
+
         params = SimulationParameters(
             start_session=pd.Timestamp("2006-01-10", tz='UTC'),
             end_session=pd.Timestamp("2006-01-11", tz='UTC'),
