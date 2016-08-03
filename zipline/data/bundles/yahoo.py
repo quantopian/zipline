@@ -123,6 +123,11 @@ def yahoo_equities(symbols, start=None, end=None):
         daily_bar_writer.write(_pricing_iter(), show_progress=show_progress)
 
         symbol_map = pd.Series(metadata.symbol.index, metadata.symbol)
+
+        # Hardcode the exchange to "YAHOO" for all assets and (elsewhere)
+        # register "YAHOO" to resolve to the NYSE calendar, because these are
+        # all equities and thus can use the NYSE calendar.
+        metadata['exchange'] = "YAHOO"
         asset_db_writer.write(equities=metadata)
 
         adjustments = []

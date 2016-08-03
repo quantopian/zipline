@@ -28,7 +28,7 @@ from zipline.utils.compat import mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
-from zipline.utils.calendars import get_calendar
+from zipline.utils.calendars import get_calendar, register_calendar
 
 nyse_cal = get_calendar('NYSE')
 trading_days = nyse_cal.all_sessions
@@ -564,3 +564,6 @@ def _make_bundle_core():
     return BundleCore(bundles, register, unregister, ingest, load, clean)
 
 bundles, register, unregister, ingest, load, clean = _make_bundle_core()
+
+register_calendar("YAHOO", get_calendar("NYSE"))
+register_calendar("QUANDL", get_calendar("NYSE"))
