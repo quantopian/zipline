@@ -14,21 +14,17 @@
 # limitations under the License.
 from pandas.tslib import Timedelta
 
-from zipline.data.data_portal import DataPortal
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.testing.fixtures import (
+    ZiplineTestCase,
+    WithDataPortal
+)
 import pandas as pd
 
 
 # Note: most of dataportal functionality is tested in various other places,
 # such as test_history.
 
-class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
-    def init_instance_fixtures(self):
-        super(TestDataPortal, self).init_instance_fixtures()
-
-        self.data_portal = DataPortal(self.env.asset_finder,
-                                      self.trading_calendar,
-                                      first_trading_day=None)
+class TestDataPortal(WithDataPortal, ZiplineTestCase):
 
     def test_bar_count_for_simple_transforms(self):
         # July 2015
