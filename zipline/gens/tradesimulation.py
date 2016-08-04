@@ -229,7 +229,7 @@ class AlgorithmSimulator(object):
 
                     yield self._get_daily_message(dt, algo, algo.perf_tracker)
                 elif action == BEFORE_TRADING_START_BAR:
-                    # call before trading start
+                    self.simulation_dt = dt
                     algo.on_dt_changed(dt)
                     algo.before_trading_start(self.current_data)
                 elif action == MINUTE_END:
