@@ -37,7 +37,7 @@ from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils.calendars import (
     get_calendar,
-)
+    register_calendar)
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -336,6 +336,8 @@ class WithAssetFinder(WithDefaultDateBounds):
 
     @classmethod
     def make_equity_info(cls):
+        register_calendar("TEST", get_calendar("NYSE"), force=True)
+
         return make_simple_equity_info(
             cls.ASSET_FINDER_EQUITY_SIDS,
             cls.ASSET_FINDER_EQUITY_START_DATE,

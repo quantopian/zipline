@@ -290,7 +290,7 @@ class ObjectIdentityTestCase(TestCase):
         self.assertIs(beta, multiple_outputs.beta)
 
     def test_instance_caching_of_slices(self):
-        my_asset = Asset(1)
+        my_asset = Asset(1, exchange="TEST")
 
         f = GenericCustomFactor()
         f_slice = f[my_asset]

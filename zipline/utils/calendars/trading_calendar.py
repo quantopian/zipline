@@ -757,12 +757,18 @@ def days_at_time(days, t, tz, day_offset=0):
     day_offset : int
         The number of days we want to offset @days by
     """
+    if len(days) == 0:
+        return days
+
     # Offset days without tz to avoid timezone issues.
     days = DatetimeIndex(days).tz_localize(None)
     days_offset = days + DateOffset(days=day_offset)
 
     # Shift all days to the target time in the local timezone, then
     # convert to UTC.
+
+    # FIXME: Once we're off Pandas 16, see if we can replace DateOffset with
+    # TimeDelta.
     return days_offset.shift(
         1, freq=DateOffset(hour=t.hour, minute=t.minute, second=t.second)
     ).tz_localize(tz).tz_convert('UTC')

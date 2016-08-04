@@ -12,11 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import warnings
 from collections import namedtuple
 import datetime
 from datetime import timedelta
 from textwrap import dedent
-import warnings
 from unittest import skip
 from copy import deepcopy
 
@@ -32,11 +32,10 @@ from testfixtures import TempDirectory
 import numpy as np
 import pandas as pd
 import pytz
+from pandas.io.common import PerformanceWarning
 
-from zipline import (
-    run_algorithm,
-    TradingAlgorithm,
-)
+from zipline import run_algorithm
+from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
 from zipline.assets import Equity, Future
 from zipline.assets.synthetic import (
@@ -164,7 +163,7 @@ from zipline.test_algorithms import (
     no_handle_data,
 )
 from zipline.utils.api_support import ZiplineAPI, set_algo_instance
-from zipline.utils.calendars import get_calendar
+from zipline.utils.calendars import get_calendar, register_calendar
 from zipline.utils.context_tricks import CallbackManager
 from zipline.utils.control_flow import nullctx
 import zipline.utils.events
@@ -211,10 +210,12 @@ class TestMiscellaneousAPI(WithLogger,
             pd.DataFrame.from_dict(
                 {3: {'symbol': 'PLAY',
                      'start_date': '2002-01-01',
-                     'end_date': '2004-01-01'},
+                     'end_date': '2004-01-01',
+                     'exchange': 'TEST'},
                  4: {'symbol': 'PLAY',
                      'start_date': '2005-01-01',
-                     'end_date': '2006-01-01'}},
+                     'end_date': '2006-01-01',
+                     'exchange': 'TEST'}},
                 orient='index',
             ),
         ))
@@ -228,25 +229,33 @@ class TestMiscellaneousAPI(WithLogger,
                     'root_symbol': 'CL',
                     'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2005-12-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC')},
+                    'expiration_date': pd.Timestamp('2006-01-20', tz='UTC'),
+                    'exchange': 'TEST'
+                },
                 6: {
                     'root_symbol': 'CL',
                     'symbol': 'CLK06',
                     'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2006-03-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-04-20', tz='UTC')},
+                    'expiration_date': pd.Timestamp('2006-04-20', tz='UTC'),
+                    'exchange': 'TEST',
+                },
                 7: {
                     'symbol': 'CLQ06',
                     'root_symbol': 'CL',
                     'start_date': pd.Timestamp('2005-12-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2006-06-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-07-20', tz='UTC')},
+                    'expiration_date': pd.Timestamp('2006-07-20', tz='UTC'),
+                    'exchange': 'TEST',
+                },
                 8: {
                     'symbol': 'CLX06',
                     'root_symbol': 'CL',
                     'start_date': pd.Timestamp('2006-02-01', tz='UTC'),
                     'notice_date': pd.Timestamp('2006-09-20', tz='UTC'),
-                    'expiration_date': pd.Timestamp('2006-10-20', tz='UTC')}
+                    'expiration_date': pd.Timestamp('2006-10-20', tz='UTC'),
+                    'exchange': 'TEST',
+                }
             },
             orient='index',
         )
@@ -738,6 +747,7 @@ def handle_data(context, data):
                     'symbol': 'DUP',
                     'start_date': date.value,
                     'end_date': (date + timedelta(days=1)).value,
+                    'exchange': 'TEST',
                 }
                 for i, date in enumerate(dates)
             ]
@@ -781,10 +791,13 @@ class TestTransformAlgorithm(WithLogger,
 
     @classmethod
     def make_futures_info(cls):
-        return pd.DataFrame.from_dict(
-            {3: {'multiplier': 10, 'symbol': 'F'}},
-            orient='index',
-        )
+        return pd.DataFrame.from_dict({
+            3: {
+                'multiplier': 10,
+                'symbol': 'F',
+                'exchange': 'TEST'
+            }
+        }, orient='index')
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -990,7 +1003,8 @@ def before_trading_start(context, data):
         period_end = pd.Timestamp('2002-1-4', tz='UTC')
         equities = pd.DataFrame([{
             'start_date': start_session,
-            'end_date': period_end + timedelta(days=1)
+            'end_date': period_end + timedelta(days=1),
+            'exchange': "TEST",
         }] * 2)
         equities['symbol'] = ['A', 'B']
         with TempDirectory() as tempdir, \
@@ -1439,6 +1453,8 @@ class TestAlgoScript(WithLogger,
 
     @classmethod
     def make_equity_info(cls):
+        register_calendar("TEST", get_calendar("NYSE"), force=True)
+
         data = make_simple_equity_info(
             cls.sids,
             cls.START_DATE,
@@ -1773,6 +1789,7 @@ def handle_data(context, data):
         Test that api methods on the data object can be called with positional
         arguments.
         """
+
         params = SimulationParameters(
             start_session=pd.Timestamp("2006-01-10", tz='UTC'),
             end_session=pd.Timestamp("2006-01-11", tz='UTC'),
@@ -1961,6 +1978,8 @@ def handle_data(context, data):
         """)
 
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
+
             algo = TradingAlgorithm(
                 script=algocode,
                 sim_params=sim_params,
@@ -1968,18 +1987,19 @@ def handle_data(context, data):
             )
             algo.run(self.data_portal)
 
-        self.assertEqual(len(w), 2)
-        for i, warning in enumerate(w):
-            self.assertIsInstance(warning.message, UserWarning)
-            self.assertEqual(
-                warning.message.args[0],
-                'Got a time rule for the second positional argument '
-                'date_rule. You should use keyword argument '
-                'time_rule= when calling schedule_function without '
-                'specifying a date_rule'
-            )
-            # The warnings come from line 13 and 14 in the algocode
-            self.assertEqual(warning.lineno, 13 + i)
+            self.assertEqual(len(w), 2)
+
+            for i, warning in enumerate(w):
+                self.assertIsInstance(warning.message, UserWarning)
+                self.assertEqual(
+                    warning.message.args[0],
+                    'Got a time rule for the second positional argument '
+                    'date_rule. You should use keyword argument '
+                    'time_rule= when calling schedule_function without '
+                    'specifying a date_rule'
+                )
+                # The warnings come from line 13 and 14 in the algocode
+                self.assertEqual(warning.lineno, 13 + i)
 
         self.assertEqual(
             algo.done_at_open,
@@ -2855,7 +2875,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 1: {
                     'symbol': 'SYM',
                     'start_date': start,
-                    'end_date': start + timedelta(days=6)
+                    'end_date': start + timedelta(days=6),
+                    'exchange': "TEST",
                 },
             },
             orient='index',
@@ -2984,6 +3005,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'symbol': 'SYM',
             'start_date': self.sim_params.start_session,
             'end_date': '2020-01-01',
+            'exchange': "TEST",
+            'sid': 999,
         }])
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
@@ -2995,7 +3018,7 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0],
+                [999],
                 self.trading_calendar,
             )
             algo.run(data_portal)
@@ -3004,6 +3027,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'symbol': 'SYM',
             'start_date': '1989-01-01',
             'end_date': '1990-01-01',
+            'exchange': "TEST",
+            'sid': 999,
         }])
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
@@ -3011,7 +3036,7 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0],
+                [999],
                 self.trading_calendar,
             )
             algo = SetAssetDateBoundsAlgorithm(
@@ -3025,6 +3050,8 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
             'symbol': 'SYM',
             'start_date': '2020-01-01',
             'end_date': '2021-01-01',
+            'exchange': "TEST",
+            'sid': 999,
         }])
         with TempDirectory() as tempdir, \
                 tmp_trading_env(equities=metadata) as env:
@@ -3032,7 +3059,7 @@ class TestTradingControls(WithSimParams, WithDataPortal, ZiplineTestCase):
                 env.asset_finder,
                 tempdir,
                 self.sim_params,
-                [0],
+                [999],
                 self.trading_calendar,
             )
             algo = SetAssetDateBoundsAlgorithm(
@@ -4054,7 +4081,8 @@ class TestOrderAfterDelist(WithTradingEnvironment, ZiplineTestCase):
                     'start_date': cls.start,
                     'end_date': cls.day_1,
                     'auto_close_date': cls.day_4,
-                    'symbol': "ASSET1"
+                    'symbol': "ASSET1",
+                    'exchange': "TEST",
                 },
             },
             orient='index',

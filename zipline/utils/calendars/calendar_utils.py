@@ -28,24 +28,25 @@ def get_calendar(name):
         The desired calendar.
     """
     if name not in _static_calendars:
-        if name == 'NYSE':
+        if name in ["NYSE", "NASDAQ", "BATS"]:
             cal = NYSEExchangeCalendar()
-        elif name == 'CME':
+        elif name in ["CME", "CBOT", "COMEX", "NYMEX"]:
             cal = CMEExchangeCalendar()
+        elif name in ["ICEUS", "NYFE"]:
+            cal = ICEExchangeCalendar()
+        elif name == "CFE":
+            cal = CFEExchangeCalendar()
         elif name == 'BMF':
             cal = BMFExchangeCalendar()
         elif name == 'LSE':
             cal = LSEExchangeCalendar()
         elif name == 'TSX':
             cal = TSXExchangeCalendar()
-        elif name == "ICE":
-            cal = ICEExchangeCalendar()
-        elif name == "CFE":
-            cal = CFEExchangeCalendar()
+
         else:
             raise InvalidCalendarName(calendar_name=name)
 
-        register_calendar(cal)
+        register_calendar(name, cal)
 
     return _static_calendars[name]
 
@@ -72,13 +73,15 @@ def clear_calendars():
     _static_calendars.clear()
 
 
-def register_calendar(calendar, force=False):
+def register_calendar(name, calendar, force=False):
     """
     Registers a calendar for retrieval by the get_calendar method.
 
     Parameters
     ----------
-    calendar : TradingCalendar
+    name: str
+        The key with which to register this calendar.
+    calendar: TradingCalendar
         The calendar to be registered for retrieval.
     force : bool, optional
         If True, old calendars will be overwritten on a name collision.
@@ -92,10 +95,10 @@ def register_calendar(calendar, force=False):
     # If we are forcing the registration, remove an existing calendar with the
     # same name.
     if force:
-        deregister_calendar(calendar.name)
+        deregister_calendar(name)
 
     # Check if we are already holding a calendar with the same name
-    if calendar.name in _static_calendars:
-        raise CalendarNameCollision(calendar_name=calendar.name)
+    if name in _static_calendars:
+        raise CalendarNameCollision(calendar_name=name)
 
-    _static_calendars[calendar.name] = calendar
+    _static_calendars[name] = calendar
