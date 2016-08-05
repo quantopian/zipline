@@ -32,7 +32,7 @@ from testfixtures import TempDirectory
 import numpy as np
 import pandas as pd
 import pytz
-from pandas.io.common import PerformanceWarning
+from pandas.core.common import PerformanceWarning
 
 from zipline import run_algorithm
 from zipline import TradingAlgorithm
