@@ -381,7 +381,7 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
         today = pd.Timestamp('2015')
         assets = np.arange(5, dtype=np.int64)
 
-        data = np.arange(50, dtype=float).reshape((10, 5))
+        data = np.arange(50, dtype=np.float64).reshape((10, 5))
         out = np.zeros(data.shape[1])
 
         wma2.compute(today, assets, out, data)
@@ -397,9 +397,9 @@ class TestTrueRange(ZiplineTestCase):
         assets = np.arange(3, dtype=np.int64)
         out = np.empty(3, dtype=np.float64)
 
-        highs = np.full((2, 3), 3)
-        lows = np.full((2, 3), 2)
-        closes = np.full((2, 3), 1)
+        highs = np.full((2, 3), 3.)
+        lows = np.full((2, 3), 2.)
+        closes = np.full((2, 3), 1.)
 
         tr.compute(today, assets, out, highs, lows, closes)
-        assert_equal(out, np.full((3,), 2))
+        assert_equal(out, np.full((3,), 2.))
