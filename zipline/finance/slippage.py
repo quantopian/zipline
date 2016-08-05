@@ -177,6 +177,24 @@ class VolumeShareSlippage(SlippageModel):
                     (order.direction < 0 and impacted_price < order.limit):
                 return None, None
 
+            # For "non-marketable" limit orders (limit price has been crossed)
+            # the final price must be the limit price.
+            # To disinguish between marketable and non-marketable limit
+            # order we can use the following check:
+            # if both open and close price are below/above (buy/sell)
+            # the limit price the order is markettable
+            # if open price is above (or below for sell) limit price
+            # and close price is below (or above for sell) limit price,
+            # then the order is non-marketable
+
+            open_price = data.current(order.asset, "open")
+            # Note: no need to check for close price if we are here
+            non_marketable = (order.direction > 0 and open_price > order.limit) or \
+                             (order.direction < 0 and open_price < order.limit)
+
+            if non_marketable:
+                impacted_price = order.limit
+
         return (
             impacted_price,
             math.copysign(cur_volume, order.direction)
