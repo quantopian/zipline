@@ -13,6 +13,8 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
+from zipline.pipeline.loaders.quarter_estimates import \
+    NextQuartersEstimatesLoader, PreviousQuartersEstimatesLoader
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
     normalize_data_query_bounds,
@@ -22,8 +24,8 @@ from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
 
 
-class BlazeEventsLoader(PipelineLoader):
-    """An abstract pipeline loader for the events datasets that loads
+class BlazeEstimatesLoader(PipelineLoader):
+    """An abstract pipeline loader for the estimates datasets that loads
     data from a blaze expression.
 
     Parameters
@@ -62,12 +64,12 @@ class BlazeEventsLoader(PipelineLoader):
     @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,
                  expr,
-                 next_value_columns,
-                 previous_value_columns,
+                 columns,
                  resources=None,
                  odo_kwargs=None,
                  data_query_time=None,
-                 data_query_tz=None):
+                 data_query_tz=None,
+                 loader=None):
 
         dshape = expr.dshape
         if not istabular(dshape):
@@ -76,30 +78,69 @@ class BlazeEventsLoader(PipelineLoader):
             )
 
         required_cols = list(
-            required_event_fields(next_value_columns, previous_value_columns)
+            required_event_fields(columns)
         )
         self._expr = bind_expression_to_resources(
             expr[required_cols],
             resources,
         )
-        self._next_value_columns = next_value_columns
-        self._previous_value_columns = previous_value_columns
+        self._columns = columns
         self._odo_kwargs = odo_kwargs if odo_kwargs is not None else {}
         check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
+        self.loader = loader
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         raw = load_raw_data(assets, dates, self._data_query_time,
-                            self._data_query_tz, self._expr, self._odo_kwargs)
+                            self._data_query_tz, self._exp, self._odo_kwargs)
 
-        return EventsLoader(
+        return self.loader(
             events=raw,
-            next_value_columns=self._next_value_columns,
-            previous_value_columns=self._previous_value_columns,
+            next_value_columns=self._columns,
         ).load_adjusted_array(
             columns,
             dates,
             assets,
             mask,
         )
+
+
+class BlazeNextEstimatesLoader(BlazeEstimatesLoader):
+    loader = NextQuartersEstimatesLoader
+
+    def __init__(self,
+                 expr,
+                 columns,
+                 resources=None,
+                 odo_kwargs=None,
+                 data_query_time=None,
+                 data_query_tz=None,
+                 loader=None):
+        super(BlazeNextEstimatesLoader).__init__(expr,
+                                                 columns,
+                                                 resources,
+                                                 odo_kwargs,
+                                                 data_query_time,
+                                                 data_query_tz,
+                                                 loader)
+
+
+class BlazePreviousEstimatesLoader(BlazeEstimatesLoader):
+    loader = PreviousQuartersEstimatesLoader
+
+    def __init__(self,
+                 expr,
+                 columns,
+                 resources=None,
+                 odo_kwargs=None,
+                 data_query_time=None,
+                 data_query_tz=None,
+                 loader=None):
+        super(BlazeNextEstimatesLoader).__init__(expr,
+                                                 columns,
+                                                 resources,
+                                                 odo_kwargs,
+                                                 data_query_time,
+                                                 data_query_tz,
+                                                 loader)

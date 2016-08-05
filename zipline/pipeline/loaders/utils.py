@@ -2,6 +2,8 @@ import datetime
 
 import numpy as np
 import pandas as pd
+from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
+from zipline.pipeline.loaders.blaze.core import ffill_query_in_range
 from zipline.utils.pandas_utils import mask_between_time
 
 
@@ -272,3 +274,33 @@ def check_data_query_args(data_query_time, data_query_tz):
                 data_query_tz,
             ),
         )
+
+
+def load_raw_data(assets, dates, data_query_time, data_query_tz, expr,
+                  odo_kwargs):
+    lower_dt, upper_dt = normalize_data_query_bounds(
+        dates[0],
+        dates[-1],
+        data_query_time,
+        data_query_tz,
+    )
+    raw = ffill_query_in_range(
+        expr,
+        lower_dt,
+        upper_dt,
+        odo_kwargs,
+    )
+    sids = raw.loc[:, SID_FIELD_NAME]
+    raw.drop(
+        sids[~sids.isin(assets)].index,
+        inplace=True
+    )
+    if data_query_time is not None:
+        normalize_timestamp_to_query_time(
+            raw,
+            data_query_time,
+            data_query_tz,
+            inplace=True,
+            ts_field=TS_FIELD_NAME,
+        )
+    return raw

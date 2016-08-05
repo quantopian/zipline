@@ -41,16 +41,8 @@ def validate_column_specs(events, next_value_columns, previous_value_columns):
     serve the BoundColumns described by ``next_value_columns`` and
     ``previous_value_columns``.
     """
-    required = {
-        TS_FIELD_NAME,
-        SID_FIELD_NAME,
-        EVENT_DATE_FIELD_NAME,
-    }.union(
-        # We also expect any of the field names that our loadable columns
-        # are mapped to.
-        viewvalues(next_value_columns),
-        viewvalues(previous_value_columns),
-    )
+    required = required_event_fields(next_value_columns,
+                                     previous_value_columns)
     received = set(events.columns)
     missing = required - received
     if missing:
