@@ -1208,8 +1208,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                     self.assertEqual(window[0], 391)
                     self.assertEqual(window[1], 781)
                 elif field == 'volume':
-                    self.assertEqual(window[0], 39100)
-                    self.assertEqual(window[1], 78100)
+                    self.assertEqual(window[0], 7663500)
+                    self.assertEqual(window[1], 22873500)
 
                 last_val = -1
 
@@ -1274,8 +1274,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
                 self.assertEqual(window[0], 781)
                 self.assertEqual(window[1], 1171)
             elif field == 'volume':
-                self.assertEqual(window[0], 78100)
-                self.assertEqual(window[1], 117100)
+                self.assertEqual(window[0], 22873500)
+                self.assertEqual(window[1], 38083500)
 
             last_val = -1
 

@@ -14,6 +14,7 @@ from .core import (
     tmp_dir,
 )
 from ..data.data_portal import DataPortal
+from ..data.resample import minute_to_session
 from ..data.us_equity_pricing import (
     SQLiteAdjustmentReader,
     SQLiteAdjustmentWriter,
@@ -659,34 +660,10 @@ class WithEquityDailyBarData(WithTradingEnvironment):
     @classmethod
     def _make_equity_daily_bar_from_minute(cls):
         assets = cls.asset_finder.retrieve_all(cls.asset_finder.sids)
-        ohclv_how = {
-            'open': 'first',
-            'high': 'max',
-            'low': 'min',
-            'close': 'last',
-            # TODO: Change test data so that large minute volumes are not used,
-            # so that 'sum' can be used without going over the uint limit.
-            # When that data is changed, this function can and should be moved
-            # to the `data` module so that loaders and tests can use the same
-            # source from minute logic.
-            'volume': 'last'
-        }
-        mm = cls.trading_calendar.all_minutes
-        m_opens = cls.trading_calendar.schedule.market_open
-        m_closes = cls.trading_calendar.schedule.market_close
-
         minute_data = dict(cls.make_equity_minute_bar_data())
-
         for asset in assets:
-            first_minute = m_opens.loc[asset.start_date]
-            last_minute = m_closes.loc[asset.end_date]
-            asset_df = minute_data[asset]
-            slicer = asset_df.index.slice_indexer(first_minute, last_minute)
-            asset_df = asset_df[slicer]
-            minutes = mm[mm.slice_indexer(start=first_minute,
-                                          end=last_minute)]
-            asset_df = asset_df.reindex(minutes)
-            yield asset.sid, asset_df.resample('1d', how=ohclv_how).dropna()
+            yield asset.sid, minute_to_session(minute_data[asset.sid],
+                                               cls.trading_calendar)
 
     @classmethod
     def make_equity_daily_bar_data(cls):
