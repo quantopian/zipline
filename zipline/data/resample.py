@@ -54,8 +54,7 @@ def minute_to_session(minute_frame, calendar):
     """
     how = OrderedDict((c, _MINUTE_TO_SESSION_OHCLV_HOW[c])
                       for c in minute_frame.columns)
-    return minute_frame.groupby(calendar.minute_to_session_label).agg(
-        how)
+    return minute_frame.groupby(calendar.minute_to_session_label).agg(how)
 
 
 class DailyHistoryAggregator(object):
