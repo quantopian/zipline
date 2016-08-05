@@ -10,95 +10,133 @@ from zipline.utils.calendars.exchange_calendar_bmf import BMFExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_lse import LSEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_tsx import TSXExchangeCalendar
 
-_static_calendars = {}
+
+NYSE_CALENDAR_EXCHANGE_NAMES = frozenset([
+    "NYSE",
+    "NASDAQ",
+    "BATS",
+])
+CME_CALENDAR_EXCHANGE_NAMES = frozenset([
+    "CBOT",
+    "CME",
+    "COMEX",
+    "NYMEX",
+])
+ICE_CALENDAR_EXCHANGE_NAMES = frozenset([
+    "ICEUS",
+    "NYFE",
+])
+CFE_CALENDAR_EXCHANGE_NAMES = frozenset(["CFE"])
+BMF_CALENDAR_EXCHANGE_NAMES = frozenset(["BMF"])
+LSE_CALENDAR_EXCHANGE_NAMES = frozenset(["LSE"])
+TSX_CALENDAR_EXCHANGE_NAMES = frozenset(["TSX"])
+
+_default_calendar_factories = {
+    NYSE_CALENDAR_EXCHANGE_NAMES: NYSEExchangeCalendar,
+    CME_CALENDAR_EXCHANGE_NAMES: CMEExchangeCalendar,
+    ICE_CALENDAR_EXCHANGE_NAMES: ICEExchangeCalendar,
+    CFE_CALENDAR_EXCHANGE_NAMES: CFEExchangeCalendar,
+    BMF_CALENDAR_EXCHANGE_NAMES: BMFExchangeCalendar,
+    LSE_CALENDAR_EXCHANGE_NAMES: LSEExchangeCalendar,
+    TSX_CALENDAR_EXCHANGE_NAMES: TSXExchangeCalendar,
+}
 
 
-def get_calendar(name):
+class TradingCalendarDispatcher(object):
     """
-    Retrieves an instance of an TradingCalendar whose name is given.
+    A class for dispatching and caching trading calendars.
 
-    Parameters
-    ----------
-    name : str
-        The name of the TradingCalendar to be retrieved.
-
-    Returns
-    -------
-    TradingCalendar
-        The desired calendar.
+    Methods of a global instance of this class are provided by
+    zipline.utils.calendar_utils.
     """
-    if name not in _static_calendars:
-        if name in ["NYSE", "NASDAQ", "BATS"]:
-            cal = NYSEExchangeCalendar()
-        elif name in ["CME", "CBOT", "COMEX", "NYMEX"]:
-            cal = CMEExchangeCalendar()
-        elif name in ["ICEUS", "NYFE"]:
-            cal = ICEExchangeCalendar()
-        elif name == "CFE":
-            cal = CFEExchangeCalendar()
-        elif name == 'BMF':
-            cal = BMFExchangeCalendar()
-        elif name == 'LSE':
-            cal = LSEExchangeCalendar()
-        elif name == 'TSX':
-            cal = TSXExchangeCalendar()
+    def __init__(self, calendar_factories):
+        self._calendars = {}
+        self._calendar_factories = calendar_factories
 
-        else:
-            raise InvalidCalendarName(calendar_name=name)
+    def get_calendar(self, name):
+        """
+        Retrieves an instance of an TradingCalendar whose name is given.
 
-        register_calendar(name, cal)
+        Parameters
+        ----------
+        name : str
+            The name of the TradingCalendar to be retrieved.
 
-    return _static_calendars[name]
+        Returns
+        -------
+        TradingCalendar
+            The desired calendar.
+        """
+        try:
+            return self._calendars[name]
+        except KeyError:
+            pass
+
+        for names, factory in self._calendar_factories.items():
+            if name in names:
+                # Use the same calendar for all exchanges that share the same
+                # factory.
+                calendar = factory()
+                self._calendars.update({n: calendar for n in names})
+                return calendar
+
+        raise InvalidCalendarName(calendar_name=name)
+
+    def register_calendar(self, name, calendar, force=False):
+        """
+        Registers a calendar for retrieval by the get_calendar method.
+
+        Parameters
+        ----------
+        name: str
+            The key with which to register this calendar.
+        calendar: TradingCalendar
+            The calendar to be registered for retrieval.
+        force : bool, optional
+            If True, old calendars will be overwritten on a name collision.
+            If False, name collisions will raise an exception. Default: False.
+
+        Raises
+        ------
+        CalendarNameCollision
+            If a calendar is already registered with the given calendar's name.
+        """
+        # If we are forcing the registration, remove an existing calendar with
+        # the same name.
+        if force:
+            self.deregister_calendar(name)
+
+        if name in self._calendars:
+            raise CalendarNameCollision(calendar_name=name)
+
+        self._calendars[name] = calendar
+
+    def deregister_calendar(self, name):
+        """
+        If a calendar is registered with the given name, it is de-registered.
+
+        Parameters
+        ----------
+        cal_name : str
+            The name of the calendar to be deregistered.
+        """
+        self._calendars.pop(name, None)
+
+    def clear_calendars(self):
+        """
+        Deregisters all current registered calendars
+        """
+        self._calendars.clear()
 
 
-def deregister_calendar(cal_name):
-    """
-    If a calendar is registered with the given name, it is de-registered.
+# We maintain a global calendar dispatcher so that users can just do
+# `register_calendar('my_calendar', calendar) and then use `get_calendar`
+# without having to thread around a dispatcher.
+global_calendar_dispatcher = TradingCalendarDispatcher(
+    _default_calendar_factories
+)
 
-    Parameters
-    ----------
-    cal_name : str
-        The name of the calendar to be deregistered.
-    """
-    try:
-        _static_calendars.pop(cal_name)
-    except KeyError:
-        pass
-
-
-def clear_calendars():
-    """
-    Deregisters all current registered calendars
-    """
-    _static_calendars.clear()
-
-
-def register_calendar(name, calendar, force=False):
-    """
-    Registers a calendar for retrieval by the get_calendar method.
-
-    Parameters
-    ----------
-    name: str
-        The key with which to register this calendar.
-    calendar: TradingCalendar
-        The calendar to be registered for retrieval.
-    force : bool, optional
-        If True, old calendars will be overwritten on a name collision.
-        If False, name collisions will raise an exception. Default: False.
-
-    Raises
-    ------
-    CalendarNameCollision
-        If a calendar is already registered with the given calendar's name.
-    """
-    # If we are forcing the registration, remove an existing calendar with the
-    # same name.
-    if force:
-        deregister_calendar(name)
-
-    # Check if we are already holding a calendar with the same name
-    if name in _static_calendars:
-        raise CalendarNameCollision(calendar_name=name)
-
-    _static_calendars[name] = calendar
+get_calendar = global_calendar_dispatcher.get_calendar
+clear_calendars = global_calendar_dispatcher.clear_calendars
+deregister_calendar = global_calendar_dispatcher.deregister_calendar
+register_calendar = global_calendar_dispatcher.register_calendar
