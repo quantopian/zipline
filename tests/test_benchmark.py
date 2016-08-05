@@ -30,12 +30,12 @@ from zipline.testing import (
 from zipline.testing.fixtures import (
     WithDataPortal,
     WithSimParams,
-    WithTradingCalendar,
+    WithTradingCalendars,
     ZiplineTestCase,
 )
 
 
-class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendar,
+class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
                     ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-29', tz='utc')

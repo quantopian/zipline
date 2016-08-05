@@ -17,7 +17,10 @@ from zipline.testing import (
     ExplodingObject,
     tmp_asset_finder,
 )
-from zipline.testing.fixtures import ZiplineTestCase, WithTradingCalendar
+from zipline.testing.fixtures import (
+    WithTradingCalendars,
+    ZiplineTestCase,
+)
 
 from zipline.utils.functional import dzip_exact
 from zipline.utils.pandas_utils import explode
@@ -50,7 +53,7 @@ def with_defaults(**default_funcs):
 with_default_shape = with_defaults(shape=lambda self: self.default_shape)
 
 
-class BasePipelineTestCase(WithTradingCalendar, ZiplineTestCase):
+class BasePipelineTestCase(WithTradingCalendars, ZiplineTestCase):
 
     @classmethod
     def init_class_fixtures(cls):

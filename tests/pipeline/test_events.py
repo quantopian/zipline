@@ -27,7 +27,7 @@ from zipline.pipeline.loaders.utils import (
 from zipline.testing import check_arrays, ZiplineTestCase
 from zipline.testing.fixtures import (
     WithAssetFinder,
-    WithNYSETradingDays,
+    WithTradingSessions,
 )
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import (
@@ -268,7 +268,7 @@ class EventIndexerTestCase(ZiplineTestCase):
 
 
 class EventsLoaderTestCase(WithAssetFinder,
-                           WithNYSETradingDays,
+                           WithTradingSessions,
                            ZiplineTestCase):
 
     START_DATE = pd.Timestamp('2014-01-01')
