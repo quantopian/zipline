@@ -10,8 +10,6 @@ from zipline.utils.calendars.exchange_calendar_bmf import BMFExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_lse import LSEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_tsx import TSXExchangeCalendar
 
-_static_calendars = {}
-
 
 NYSE_CALENDAR_EXCHANGE_NAMES = frozenset([
     "NYSE",
