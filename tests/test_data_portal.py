@@ -12,8 +12,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 
-from numpy import nan, full, append
+from numpy import array, append, nan, full
+from numpy.testing import assert_almost_equal
 import pandas as pd
 from pandas.tslib import Timedelta
 
@@ -153,7 +155,7 @@ class TestDataPortal(WithDataPortal,
             index=dts))
         yield asset.sid, pd.concat(dfs)
 
-    def test_get_last_traded_minute(self):
+    def test_get_last_traded_equity_minute(self):
         trading_calendar = self.trading_calendars[Equity]
         # Case: Missing data at front of data set, and request dt is before
         # first value.
@@ -175,7 +177,7 @@ class TestDataPortal(WithDataPortal,
                          self.data_portal.get_last_traded_dt(
                              asset, dts[5], 'minute'))
 
-    def test_get_last_traded_minute_future(self):
+    def test_get_last_traded_future_minute(self):
         asset = self.asset_finder.retrieve_asset(10000)
         trading_calendar = self.trading_calendars[asset.exchange]
         # Case: Missing data at front of data set, and request dt is before
@@ -197,7 +199,7 @@ class TestDataPortal(WithDataPortal,
                          self.data_portal.get_last_traded_dt(
                              asset, dts[5], 'minute'))
 
-    def test_get_last_traded_dt_daily(self):
+    def test_get_last_traded_dt_equity_daily(self):
         # Case: Missing data at front of data set, and request dt is before
         # first value.
         asset = self.asset_finder.retrieve_asset(1)
@@ -214,6 +216,84 @@ class TestDataPortal(WithDataPortal,
         self.assertEqual(self.trading_days[2],
                          self.data_portal.get_last_traded_dt(
                              asset, self.trading_days[3], 'daily'))
+
+    def test_get_spot_value_equity_minute(self):
+        trading_calendar = self.trading_calendars[Equity]
+        asset = self.asset_finder.retrieve_asset(1)
+        dts = trading_calendar.minutes_for_session(self.trading_days[2])
+
+        # Case: Get data on exact dt.
+        dt = dts[1]
+        expected = OrderedDict({
+            'open': 103.5,
+            'high': 103.9,
+            'low': 103.1,
+            'close': 103.3,
+            'volume': 1003,
+            'price': 103.3
+        })
+        result = [self.data_portal.get_spot_value(asset,
+                                                  field,
+                                                  dt,
+                                                  'minute')
+                  for field in expected.keys()]
+        assert_almost_equal(array(list(expected.values())), result)
+
+        # Case: Get data on empty dt, return nan or most recent data for price.
+        dt = dts[100]
+        expected = OrderedDict({
+            'open': nan,
+            'high': nan,
+            'low': nan,
+            'close': nan,
+            'volume': 0,
+            'price': 101.3
+        })
+        result = [self.data_portal.get_spot_value(asset,
+                                                  field,
+                                                  dt,
+                                                  'minute')
+                  for field in expected.keys()]
+        assert_almost_equal(array(list(expected.values())), result)
+
+    def test_get_spot_value_future_minute(self):
+        trading_calendar = self.trading_calendars['CME']
+        asset = self.asset_finder.retrieve_asset(10000)
+        dts = trading_calendar.minutes_for_session(self.trading_days[3])
+
+        # Case: Get data on exact dt.
+        dt = dts[1]
+        expected = OrderedDict({
+            'open': 203.5,
+            'high': 203.9,
+            'low': 203.1,
+            'close': 203.3,
+            'volume': 2003,
+            'price': 203.3
+        })
+        result = [self.data_portal.get_spot_value(asset,
+                                                  field,
+                                                  dt,
+                                                  'minute')
+                  for field in expected.keys()]
+        assert_almost_equal(array(list(expected.values())), result)
+
+        # Case: Get data on empty dt, return nan or most recent data for price.
+        dt = dts[100]
+        expected = OrderedDict({
+            'open': nan,
+            'high': nan,
+            'low': nan,
+            'close': nan,
+            'volume': 0,
+            'price': 201.3
+        })
+        result = [self.data_portal.get_spot_value(asset,
+                                                  field,
+                                                  dt,
+                                                  'minute')
+                  for field in expected.keys()]
+        assert_almost_equal(array(list(expected.values())), result)
 
     def test_bar_count_for_simple_transforms(self):
         # July 2015
