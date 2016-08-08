@@ -12,23 +12,116 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from numpy import nan, full, append
+import pandas as pd
 from pandas.tslib import Timedelta
 
-from zipline.data.data_portal import DataPortal
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
-import pandas as pd
+from zipline.assets import Equity
+from zipline.testing.fixtures import (
+    ZiplineTestCase,
+    WithTradingSessions,
+    WithDataPortal
+)
 
 
-# Note: most of dataportal functionality is tested in various other places,
-# such as test_history.
+class TestDataPortal(WithDataPortal,
+                     WithTradingSessions,
+                     ZiplineTestCase):
 
-class TestDataPortal(WithTradingEnvironment, ZiplineTestCase):
-    def init_instance_fixtures(self):
-        super(TestDataPortal, self).init_instance_fixtures()
+    ASSET_FINDER_EQUITY_SIDS = (1,)
+    START_DATE = pd.Timestamp('2016-08-01')
+    END_DATE = pd.Timestamp('2016-08-04')
 
-        self.data_portal = DataPortal(self.env.asset_finder,
-                                      self.trading_calendar,
-                                      first_trading_day=None)
+    EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE = True
+
+    @classmethod
+    def make_equity_minute_bar_data(cls):
+        trading_calendar = cls.trading_calendars[Equity]
+        # No data on first day.
+        dts = trading_calendar.minutes_for_session(cls.trading_days[0])
+        dfs = []
+        dfs.append(pd.DataFrame(
+            {
+                'open': full(len(dts), nan),
+                'high': full(len(dts), nan),
+                'low': full(len(dts), nan),
+                'close': full(len(dts), nan),
+                'volume': full(len(dts), 0),
+            },
+            index=dts))
+        dts = trading_calendar.minutes_for_session(cls.trading_days[1])
+        dfs.append(pd.DataFrame(
+            {
+                'open': append(100.5, full(len(dts) - 1, nan)),
+                'high': append(100.9, full(len(dts) - 1, nan)),
+                'low': append(100.1, full(len(dts) - 1, nan)),
+                'close': append(100.3, full(len(dts) - 1, nan)),
+                'volume': append(1000, full(len(dts) - 1, nan)),
+            },
+            index=dts))
+        dts = trading_calendar.minutes_for_session(cls.trading_days[2])
+        dfs.append(pd.DataFrame(
+            {
+                'open': [nan, 103.50, 102.50, 104.50, 101.50, nan],
+                'high': [nan, 103.90, 102.90, 104.90, 101.90, nan],
+                'low': [nan, 103.10, 102.10, 104.10, 101.10, nan],
+                'close': [nan, 103.30, 102.30, 104.30, 101.30, nan],
+                'volume': [0, 1003, 1002, 1004, 1001, 0]
+            },
+            index=dts[:6]
+        ))
+        dts = trading_calendar.minutes_for_session(cls.trading_days[3])
+        dfs.append(pd.DataFrame(
+            {
+                'open': full(len(dts), nan),
+                'high': full(len(dts), nan),
+                'low': full(len(dts), nan),
+                'close': full(len(dts), nan),
+                'volume': full(len(dts), 0),
+            },
+            index=dts))
+        yield 1, pd.concat(dfs)
+
+    def test_get_last_traded_minute(self):
+        trading_calendar = self.trading_calendars[Equity]
+        # Case: Missing data at front of data set, and request dt is before
+        # first value.
+        dts = trading_calendar.minutes_for_session(self.trading_days[0])
+        asset = self.asset_finder.retrieve_asset(1)
+        self.assertTrue(pd.isnull(
+            self.data_portal.get_last_traded_dt(
+                asset, dts[0], 'minute')))
+
+        # Case: Data on requested dt.
+        dts = trading_calendar.minutes_for_session(self.trading_days[2])
+
+        self.assertEqual(dts[1],
+                         self.data_portal.get_last_traded_dt(
+                             asset, dts[1], 'minute'))
+
+        # Case: No data on dt, but data occuring before dt.
+        self.assertEqual(dts[4],
+                         self.data_portal.get_last_traded_dt(
+                             asset, dts[5], 'minute'))
+
+    def test_get_last_traded_dt_daily(self):
+        # Case: Missing data at front of data set, and request dt is before
+        # first value.
+        asset = self.asset_finder.retrieve_asset(1)
+        self.assertTrue(pd.isnull(
+            self.data_portal.get_last_traded_dt(
+                asset, self.trading_days[0], 'daily')))
+
+        # Case: Data on requested dt.
+        self.assertEqual(self.trading_days[1],
+                         self.data_portal.get_last_traded_dt(
+                             asset, self.trading_days[1], 'daily'))
+
+        # Case: No data on dt, but data occuring before dt.
+        self.assertEqual(self.trading_days[2],
+                         self.data_portal.get_last_traded_dt(
+                             asset, self.trading_days[3], 'daily'))
 
     def test_bar_count_for_simple_transforms(self):
         # July 2015

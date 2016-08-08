@@ -147,6 +147,17 @@ class DataPortal(object):
         self._future_daily_reader = future_daily_reader
         self._future_minute_reader = future_minute_reader
 
+        self._pricing_readers = {
+            Equity: {
+                'minute': equity_minute_reader,
+                'daily': equity_daily_reader,
+            },
+            Future: {
+                'minute': future_minute_reader,
+                'daily': future_daily_reader
+            }
+        }
+
         if self._equity_minute_reader is not None:
             self._equity_daily_aggregator = DailyHistoryAggregator(
                 self.trading_calendar.schedule.market_open,
@@ -309,6 +320,9 @@ class DataPortal(object):
 
         return bcolz.open(path, mode='r')
 
+    def _get_pricing_reader(self, asset, data_frequency):
+        return self._pricing_readers[type(asset)][data_frequency]
+
     def get_last_traded_dt(self, asset, dt, data_frequency):
         """
         Given an asset and dt, returns the last traded dt from the viewpoint
@@ -316,10 +330,8 @@ class DataPortal(object):
 
         If there is a trade on the dt, the answer is dt provided.
         """
-        if data_frequency == 'minute':
-            return self._equity_minute_reader.get_last_traded_dt(asset, dt)
-        elif data_frequency == 'daily':
-            return self._equity_daily_reader.get_last_traded_dt(asset, dt)
+        return self._get_pricing_reader(asset, data_frequency).\
+            get_last_traded_dt(asset, dt)
 
     @staticmethod
     def _is_extra_source(asset, field, map):
