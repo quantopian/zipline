@@ -34,6 +34,7 @@ from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from .core import tmp_asset_finder, make_simple_equity_info
+from zipline.assets import Equity
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils.calendars import (
@@ -389,7 +390,7 @@ class WithTradingCalendars(object):
         with that asset type.
     """
     TRADING_CALENDAR_STRS = ('NYSE',)
-    TRADING_CALENDAR_FOR_ASSET_TYPE = {'equities': 'NYSE'}
+    TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE'}
 
     # For backwards compatibility, exisitng tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
@@ -411,9 +412,6 @@ class WithTradingCalendars(object):
         for asset_type, cal_str in iteritems(
                 cls.TRADING_CALENDAR_FOR_ASSET_TYPE):
             calendar = get_calendar(cal_str)
-            setattr(cls,
-                    '{0}_calendar'.format(asset_type),
-                    calendar)
             cls.trading_calendars[asset_type] = calendar
 
 
@@ -562,7 +560,8 @@ class WithTradingSessions(WithTradingCalendars):
 
         cls.trading_sessions = {}
 
-        for name, trading_calendar in iteritems(cls.trading_calendars):
+        for cal_str in cls.TRADING_CALENDAR_STRS:
+            trading_calendar = cls.trading_calendars[cal_str]
             all_sessions = trading_calendar.all_sessions
             start_loc = all_sessions.get_loc(cls.DATA_MIN_DAY, 'bfill')
             end_loc = all_sessions.get_loc(cls.DATA_MAX_DAY, 'ffill')
@@ -570,8 +569,8 @@ class WithTradingSessions(WithTradingCalendars):
             sessions = all_sessions[start_loc:end_loc + 1]
             # Set name for aliasing.
             setattr(cls,
-                    '{0}_sessions'.format(name.lower()), sessions)
-            cls.trading_sessions[name] = sessions
+                    '{0}_sessions'.format(cal_str.lower()), sessions)
+            cls.trading_sessions[cal_str] = sessions
 
 
 class WithTmpDir(object):
@@ -839,7 +838,7 @@ class WithEquityMinuteBarData(WithTradingEnvironment):
 
     @classmethod
     def make_equity_minute_bar_data(cls):
-        trading_calendar = cls.equities_calendar
+        trading_calendar = cls.trading_calendars[Equity]
         return create_minute_bar_data(
             trading_calendar.minutes_for_sessions_in_range(
                 cls.equity_minute_bar_days[0],
@@ -851,20 +850,21 @@ class WithEquityMinuteBarData(WithTradingEnvironment):
     @classmethod
     def init_class_fixtures(cls):
         super(WithEquityMinuteBarData, cls).init_class_fixtures()
+        trading_calendar = cls.trading_calendars[Equity]
         if cls.EQUITY_MINUTE_BAR_USE_FULL_CALENDAR:
-            days = cls.equites_calendar.all_execution_days
+            days = trading_calendar.all_execution_days
         else:
-            first_session = cls.equities_calendar.minute_to_session_label(
+            first_session = trading_calendar.minute_to_session_label(
                 pd.Timestamp(cls.EQUITY_MINUTE_BAR_START_DATE)
             )
 
             if cls.EQUITY_MINUTE_BAR_LOOKBACK_DAYS > 0:
-                first_session = cls.equities_calendar.sessions_window(
+                first_session = trading_calendar.sessions_window(
                     first_session,
                     -1 * cls.EQUITY_MINUTE_BAR_LOOKBACK_DAYS
                 )[0]
 
-            days = cls.equities_calendar.sessions_in_range(
+            days = trading_calendar.sessions_in_range(
                 first_session,
                 cls.EQUITY_MINUTE_BAR_END_DATE
             )
