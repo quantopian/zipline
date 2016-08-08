@@ -391,6 +391,7 @@ class WithTradingCalendars(object):
     """
     TRADING_CALENDAR_STRS = ('NYSE',)
     TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE'}
+    TRADING_CALENDAR_FOR_EXCHANGE = {}
 
     # For backwards compatibility, exisitng tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
@@ -413,6 +414,9 @@ class WithTradingCalendars(object):
                 cls.TRADING_CALENDAR_FOR_ASSET_TYPE):
             calendar = get_calendar(cal_str)
             cls.trading_calendars[asset_type] = calendar
+        for exchange, cal_str in iteritems(cls.TRADING_CALENDAR_FOR_EXCHANGE):
+            register_calendar(exchange, get_calendar(cal_str))
+            cls.trading_calendars[exchange] = get_calendar(cal_str)
 
 
 class WithTradingEnvironment(WithAssetFinder, WithTradingCalendars):
@@ -562,15 +566,17 @@ class WithTradingSessions(WithTradingCalendars):
 
         for cal_str in cls.TRADING_CALENDAR_STRS:
             trading_calendar = cls.trading_calendars[cal_str]
-            all_sessions = trading_calendar.all_sessions
-            start_loc = all_sessions.get_loc(cls.DATA_MIN_DAY, 'bfill')
-            end_loc = all_sessions.get_loc(cls.DATA_MAX_DAY, 'ffill')
-
-            sessions = all_sessions[start_loc:end_loc + 1]
+            sessions = trading_calendar.sessions_in_range(
+                cls.DATA_MIN_DAY, cls.DATA_MAX_DAY)
             # Set name for aliasing.
             setattr(cls,
                     '{0}_sessions'.format(cal_str.lower()), sessions)
             cls.trading_sessions[cal_str] = sessions
+        for exchange, cal_str in iteritems(cls.TRADING_CALENDAR_FOR_EXCHANGE):
+            trading_calendar = cls.trading_calendars[cal_str]
+            sessions = trading_calendar.sessions_in_range(
+                cls.DATA_MIN_DAY, cls.DATA_MAX_DAY)
+            cls.trading_sessions[exchange] = sessions
 
 
 class WithTmpDir(object):
@@ -632,7 +638,7 @@ class WithEquityDailyBarData(WithTradingEnvironment):
         The end date up to which to create data. This defaults to ``END_DATE``.
     EQUITY_DAILY_BAR_SOURCE_FROM_MINUTE : bool
         If this flag is set, `make_equity_daily_bar_data` will read data from
-        the minute bars defined by `WithMinuteBarData`.
+        the minute bars defined by `WithEquityMinuteBarData`.
         The current default is `False`, but could be `True` in the future.
 
     Methods
@@ -658,7 +664,7 @@ class WithEquityDailyBarData(WithTradingEnvironment):
 
     @classmethod
     def _make_equity_daily_bar_from_minute(cls):
-        assets = cls.asset_finder.retrieve_all(cls.asset_finder.sids)
+        assets = cls.asset_finder.retrieve_all(cls.asset_finder.equities_sids)
         minute_data = dict(cls.make_equity_minute_bar_data())
         for asset in assets:
             yield asset.sid, minute_to_session(minute_data[asset.sid],
@@ -792,12 +798,33 @@ class WithBcolzEquityDailyBarReaderFromCSVs(WithBcolzEquityDailyBarReader):
     _write_method_name = 'write_csvs'
 
 
-class WithEquityMinuteBarData(WithTradingEnvironment):
+def _trading_days_for_minute_bars(calendar,
+                                  start_date,
+                                  end_date,
+                                  lookback_days):
+    first_session = calendar.minute_to_session_label(start_date)
+
+    if lookback_days > 0:
+        first_session = calendar.sessions_window(
+            first_session,
+            -1 * lookback_days
+        )[0]
+
+    return calendar.sessions_in_range(first_session, end_date)
+
+
+class _WithMinuteBarDataBase(WithTradingEnvironment):
+    MINUTE_BAR_LOOKBACK_DAYS = 0
+    MINUTE_BAR_START_DATE = alias('START_DATE')
+    MINUTE_BAR_END_DATE = alias('END_DATE')
+
+
+class WithEquityMinuteBarData(_WithMinuteBarDataBase):
     """
     ZiplineTestCase mixin providing cls.equity_minute_bar_days.
 
     After init_class_fixtures has been called:
-    - `cls.equyt_minute_bar_days` has the range over which data has been
+    - `cls.equity_minute_bar_days` has the range over which data has been
        generated.
 
     Attributes
@@ -806,10 +833,6 @@ class WithEquityMinuteBarData(WithTradingEnvironment):
         The number of days of data to add before the first day.
         This is used when a test needs to use history, in which case this
         should be set to the largest history window that will be requested.
-    EQUITY_MINUTE_BAR_USE_FULL_CALENDAR : bool
-        If this flag is set the ``equity_daily_bar_days`` will be the full
-        set of trading days from the trading environment. This flag overrides
-        ``EQUITY_MINUTE_BAR_LOOKBACK_DAYS``.
     EQUITY_MINUTE_BAR_START_DATE : Timestamp
         The date at to which to start creating data. This defaults to
         ``START_DATE``.
@@ -830,11 +853,9 @@ class WithEquityMinuteBarData(WithTradingEnvironment):
     WithEquityDailyBarData
     zipline.testing.create_minute_bar_data
     """
-
-    EQUITY_MINUTE_BAR_LOOKBACK_DAYS = 0
-    EQUITY_MINUTE_BAR_USE_FULL_CALENDAR = False
-    EQUITY_MINUTE_BAR_START_DATE = alias('START_DATE')
-    EQUITY_MINUTE_BAR_END_DATE = alias('END_DATE')
+    EQUITY_MINUTE_BAR_LOOKBACK_DAYS = alias('MINUTE_BAR_LOOKBACK_DAYS')
+    EQUITY_MINUTE_BAR_START_DATE = alias('MINUTE_BAR_START_DATE')
+    EQUITY_MINUTE_BAR_END_DATE = alias('MINUTE_BAR_END_DATE')
 
     @classmethod
     def make_equity_minute_bar_data(cls):
@@ -844,32 +865,80 @@ class WithEquityMinuteBarData(WithTradingEnvironment):
                 cls.equity_minute_bar_days[0],
                 cls.equity_minute_bar_days[-1],
             ),
-            cls.asset_finder.sids,
+            cls.asset_finder.equities_sids,
         )
 
     @classmethod
     def init_class_fixtures(cls):
         super(WithEquityMinuteBarData, cls).init_class_fixtures()
         trading_calendar = cls.trading_calendars[Equity]
-        if cls.EQUITY_MINUTE_BAR_USE_FULL_CALENDAR:
-            days = trading_calendar.all_execution_days
-        else:
-            first_session = trading_calendar.minute_to_session_label(
-                pd.Timestamp(cls.EQUITY_MINUTE_BAR_START_DATE)
-            )
+        cls.equity_minute_bar_days = _trading_days_for_minute_bars(
+            trading_calendar,
+            pd.Timestamp(cls.EQUITY_MINUTE_BAR_START_DATE),
+            pd.Timestamp(cls.EQUITY_MINUTE_BAR_END_DATE),
+            cls.EQUITY_MINUTE_BAR_LOOKBACK_DAYS
+        )
 
-            if cls.EQUITY_MINUTE_BAR_LOOKBACK_DAYS > 0:
-                first_session = trading_calendar.sessions_window(
-                    first_session,
-                    -1 * cls.EQUITY_MINUTE_BAR_LOOKBACK_DAYS
-                )[0]
 
-            days = trading_calendar.sessions_in_range(
-                first_session,
-                cls.EQUITY_MINUTE_BAR_END_DATE
-            )
+class WithFutureMinuteBarData(_WithMinuteBarDataBase):
+    """
+    ZiplineTestCase mixin providing cls.future_minute_bar_days.
 
-        cls.equity_minute_bar_days = days
+    After init_class_fixtures has been called:
+    - `cls.future_minute_bar_days` has the range over which data has been
+       generated.
+
+    Attributes
+    ----------
+    FUTURE_MINUTE_BAR_LOOKBACK_DAYS : int
+        The number of days of data to add before the first day.
+        This is used when a test needs to use history, in which case this
+        should be set to the largest history window that will be requested.
+    FUTURE_MINUTE_BAR_START_DATE : Timestamp
+        The date at to which to start creating data. This defaults to
+        ``START_DATE``.
+    FUTURE_MINUTE_BAR_END_DATE = Timestamp
+        The end date up to which to create data. This defaults to ``END_DATE``.
+
+    Methods
+    -------
+    make_future_minute_bar_data() -> iterable[(int, pd.DataFrame)]
+        A class method that returns a dict mapping sid to dataframe
+        which will be written to into the the format of the inherited
+        class which writes the minute bar data for use by a reader.
+        By default this creates some simple sythetic data with
+        :func:`~zipline.testing.create_minute_bar_data`
+
+    See Also
+    --------
+    zipline.testing.create_minute_bar_data
+    """
+    FUTURE_MINUTE_BAR_LOOKBACK_DAYS = alias('MINUTE_BAR_LOOKBACK_DAYS')
+    FUTURE_MINUTE_BAR_START_DATE = alias('MINUTE_BAR_START_DATE')
+    FUTURE_MINUTE_BAR_END_DATE = alias('MINUTE_BAR_END_DATE')
+
+    @classmethod
+    def make_future_minute_bar_data(cls):
+        trading_calendar = get_calendar('CME')
+        return create_minute_bar_data(
+            trading_calendar.minutes_for_sessions_in_range(
+                cls.future_minute_bar_days[0],
+                cls.future_minute_bar_days[-1],
+            ),
+            cls.asset_finder.futures_sids,
+        )
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithFutureMinuteBarData, cls).init_class_fixtures()
+        # To be replaced by quanto calendar.
+        trading_calendar = get_calendar('CME')
+        cls.future_minute_bar_days = _trading_days_for_minute_bars(
+            trading_calendar,
+            pd.Timestamp(cls.FUTURE_MINUTE_BAR_START_DATE),
+            pd.Timestamp(cls.FUTURE_MINUTE_BAR_END_DATE),
+            cls.FUTURE_MINUTE_BAR_LOOKBACK_DAYS
+        )
 
 
 class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
@@ -891,14 +960,6 @@ class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
     ----------
     BCOLZ_MINUTE_BAR_PATH : str
         The path inside the tmpdir where this will be written.
-    EQUITY_MINUTE_BAR_LOOKBACK_DAYS : int
-        The number of days of data to add before the first day.
-        This is used when a test needs to use history, in which case this
-        should be set to the largest history window that will be requested.
-    BCOLZ_MINUTE_BAR_USE_FULL_CALENDAR : bool
-        If this flag is set the ``equity_daily_bar_days`` will be the full
-        set of trading days from the trading environment. This flag overrides
-        ``EQUITY_MINUTE_BAR_LOOKBACK_DAYS``.
 
     Methods
     -------
@@ -913,17 +974,17 @@ class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
     WithDataPortal
     zipline.testing.create_minute_bar_data
     """
-    BCOLZ_MINUTE_BAR_PATH = 'minute_equity_pricing.bcolz'
+    BCOLZ_EQUITY_MINUTE_BAR_PATH = 'minute_equity_pricing'
 
     @classmethod
-    def make_bcolz_minute_bar_rootdir_path(cls):
-        return cls.tmpdir.makedir(cls.BCOLZ_MINUTE_BAR_PATH)
+    def make_bcolz_equity_minute_bar_rootdir_path(cls):
+        return cls.tmpdir.makedir(cls.BCOLZ_EQUITY_MINUTE_BAR_PATH)
 
     @classmethod
     def init_class_fixtures(cls):
         super(WithBcolzEquityMinuteBarReader, cls).init_class_fixtures()
-        cls.bcolz_minute_bar_path = p = \
-            cls.make_bcolz_minute_bar_rootdir_path()
+        cls.bcolz_equity_minute_bar_path = p = \
+            cls.make_bcolz_equity_minute_bar_rootdir_path()
         days = cls.equity_minute_bar_days
 
         writer = BcolzMinuteBarWriter(
@@ -936,6 +997,67 @@ class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
         writer.write(cls.make_equity_minute_bar_data())
 
         cls.bcolz_equity_minute_bar_reader = \
+            BcolzMinuteBarReader(p)
+
+
+class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
+    """
+    ZiplineTestCase mixin providing cls.bcolz_minute_bar_path,
+    cls.bcolz_minute_bar_ctable, and cls.bcolz_equity_minute_bar_reader
+    class level fixtures.
+
+    After init_class_fixtures has been called:
+    - `cls.bcolz_minute_bar_path` is populated with
+      `cls.tmpdir.getpath(cls.BCOLZ_MINUTE_BAR_PATH)`.
+    - `cls.bcolz_minute_bar_ctable` is populated with data returned from
+      `cls.make_equity_minute_bar_data`. By default this calls
+      :func:`zipline.pipeline.loaders.synthetic.make_equity_minute_bar_data`.
+    - `cls.bcolz_equity_minute_bar_reader` is a minute bar reader
+       pointing to the directory that was just written to.
+
+    Attributes
+    ----------
+    BCOLZ_FUTURE_MINUTE_BAR_PATH : str
+        The path inside the tmpdir where this will be written.
+
+    Methods
+    -------
+    make_bcolz_minute_bar_rootdir_path() -> string
+        A class method that returns the path for the directory that contains
+        the minute bar ctables. By default this is a subdirectory
+        BCOLZ_MINUTE_BAR_PATH in the shared temp directory.
+
+    See Also
+    --------
+    WithBcolzEquityDailyBarReader
+    WithDataPortal
+    zipline.testing.create_minute_bar_data
+    """
+    BCOLZ_FUTURE_MINUTE_BAR_PATH = 'minute_future_pricing'
+
+    @classmethod
+    def make_bcolz_future_minute_bar_rootdir_path(cls):
+        return cls.tmpdir.makedir(cls.BCOLZ_FUTURE_MINUTE_BAR_PATH)
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithBcolzFutureMinuteBarReader, cls).init_class_fixtures()
+        trading_calendar = get_calendar('CME')
+        cls.bcolz_future_minute_bar_path = p = \
+            cls.make_bcolz_future_minute_bar_rootdir_path()
+        days = cls.future_minute_bar_days
+
+        writer = BcolzMinuteBarWriter(
+            days[0],
+            p,
+            trading_calendar.schedule.market_open.loc[days],
+            trading_calendar.schedule.market_close.loc[days],
+            # TODO: Make futures minutes per day.
+            1440,
+        )
+        writer.write(cls.make_future_minute_bar_data())
+
+        cls.bcolz_future_minute_bar_reader = \
             BcolzMinuteBarReader(p)
 
 
@@ -1100,7 +1222,8 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
 
 class WithDataPortal(WithAdjustmentReader,
                      # Ordered so that bcolz minute reader is used first.
-                     WithBcolzEquityMinuteBarReader):
+                     WithBcolzEquityMinuteBarReader,
+                     WithBcolzFutureMinuteBarReader):
     """
     ZiplineTestCase mixin providing self.data_portal as an instance level
     fixture.
@@ -1160,6 +1283,11 @@ class WithDataPortal(WithAdjustmentReader,
             adjustment_reader=(
                 self.adjustment_reader
                 if self.DATA_PORTAL_USE_ADJUSTMENTS else
+                None
+            ),
+            future_minute_reader=(
+                self.bcolz_future_minute_bar_reader
+                if self.DATA_PORTAL_USE_MINUTE_DATA else
                 None
             ),
         )
