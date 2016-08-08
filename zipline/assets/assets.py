@@ -440,22 +440,27 @@ class AssetFinder(object):
     def _select_asset_by_symbol(asset_tbl, symbol):
         return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
 
-    def _lookup_most_recent_symbols(self, sids):
+    def _select_most_recent_symbols_chunk(self, sid_group):
         symbol_cols = self.equity_symbol_mappings.c
+        inner = sa.select(
+            (symbol_cols.sid,) +
+            tuple(map(
+                op.getitem(symbol_cols),
+                symbol_columns,
+            )),
+        ).where(
+            symbol_cols.sid.in_(map(int, sid_group)),
+        ).order_by(
+            symbol_cols.end_date.asc(),
+        )
+        return sa.select(inner.c).group_by(inner.c.sid)
+
+    def _lookup_most_recent_symbols(self, sids):
         symbols = {
             row.sid: {c: row[c] for c in symbol_columns}
             for row in concat(
                 self.engine.execute(
-                    sa.select(
-                        (symbol_cols.sid,) +
-                        tuple(map(op.getitem(symbol_cols), symbol_columns)),
-                    ).where(
-                        symbol_cols.sid.in_(map(int, sid_group)),
-                    ).order_by(
-                        symbol_cols.end_date.desc(),
-                    ).group_by(
-                        symbol_cols.sid,
-                    )
+                    self._select_most_recent_symbols_chunk(sid_group),
                 ).fetchall()
                 for sid_group in partition_all(
                     SQLITE_MAX_VARIABLE_NUMBER,
