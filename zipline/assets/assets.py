@@ -441,6 +441,29 @@ class AssetFinder(object):
         return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
 
     def _select_most_recent_symbols_chunk(self, sid_group):
+        """Retrieve the most recent symbol for a set of sids.
+
+        Parameters
+        ----------
+        sid_group : iterable[int]
+            The sids to lookup. The length of this sequence must be less than
+            or equal to SQLITE_MAX_VARIABLE_NUMBER because the sids will be
+            passed in as sql bind params.
+
+        Returns
+        -------
+        sel : Selectable
+            The sqlalchemy selectable that will query for the most recent
+            symbol for each sid.
+
+        Notes
+        -----
+        This is implemented as an inner select of the columns of interest
+        ordered by the end date of the (sid, symbol) mapping. We then group
+        that inner select on the sid with no aggregations to select the last
+        row per group which gives us the most recently active symbol for all
+        of the sids.
+        """
         symbol_cols = self.equity_symbol_mappings.c
         inner = sa.select(
             (symbol_cols.sid,) +
