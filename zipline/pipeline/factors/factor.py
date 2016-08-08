@@ -574,6 +574,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             dtype=self.dtype,
             missing_value=self.missing_value,
             mask=mask,
+            window_safe=True,
         )
 
     def rank(self,
