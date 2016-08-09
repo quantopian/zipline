@@ -141,6 +141,26 @@ class StopLimitOrder(ExecutionStyle):
         return asymmetric_round_price_to_penny(self.stop_price, not is_buy)
 
 
+class TrailingStop(ExecutionStyle):
+    """
+    Execution style representing a percentage from max (or min) value
+    """
+    def __init__(self,percentage,exchange=None):
+        """
+        Store the given percentage
+        """
+
+        self.percentage = percentage
+        self._exchange = exchange
+
+    def get_limit_price(self, is_buy):
+        return None
+
+    def get_stop_price(self, is_buy, current_price=None):
+        return None
+
+
+
 def asymmetric_round_price_to_penny(price, prefer_round_down,
                                     diff=(0.0095 - .005)):
     """

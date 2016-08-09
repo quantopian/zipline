@@ -33,6 +33,7 @@ SELL = 1 << 0
 BUY = 1 << 1
 STOP = 1 << 2
 LIMIT = 1 << 3
+TRAIL = 1 << 4
 
 ORDER_FIELDS_TO_IGNORE = {'type', 'direction', '_status'}
 
@@ -42,10 +43,10 @@ class Order(object):
     # Order objects and we keep them all in memory, so it's worthwhile trying
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
-                 "commission", "_status", "stop", "limit", "stop_reached",
+                 "commission", "_status", "stop", "limit","trail", "stop_reached",
                  "limit_reached", "direction", "type", "broker_order_id"]
 
-    def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
+    def __init__(self, dt, sid, amount, stop=None, limit=None,trail=None, filled=0,
                  commission=0, id=None):
         """
         @dt - datetime.datetime that the order was placed
@@ -69,6 +70,7 @@ class Order(object):
         self._status = ORDER_STATUS.OPEN
         self.stop = stop
         self.limit = limit
+        self.trail = trail
         self.stop_reached = False
         self.limit_reached = False
         self.direction = math.copysign(1, self.amount)
@@ -166,6 +168,16 @@ class Order(object):
             # This is a SELL LIMIT order
             if current_price >= self.limit:
                 limit_reached = True
+        elif order_type == BUY | STOP | TRAIL:
+            if current_price > extreme:
+                extreme = current_price
+            elif  current_price <= extreme*(1-trail):
+                stop_reached = True
+        elif order_type == SELL | STOP | TRAIL:
+            if current_price < extreme:
+                extreme = current_price
+            elif current_price >= extreme*(1+trail):
+                stop_reached = True
 
         return (stop_reached, limit_reached, sl_stop_reached)
 
