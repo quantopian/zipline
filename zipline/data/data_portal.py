@@ -14,7 +14,6 @@
 # limitations under the License.
 from operator import mul
 
-import bcolz
 from logbook import Logger
 
 import numpy as np
@@ -276,50 +275,6 @@ class DataPortal(object):
 
         self._extra_source_df = extra_source_df
 
-    def _open_minute_file(self, field, asset):
-        sid_str = str(int(asset))
-
-        try:
-            carray = self._carrays[field][sid_str]
-        except KeyError:
-            carray = self._carrays[field][sid_str] = \
-                self._get_ctable(asset)[field]
-
-        return carray
-
-    def _get_ctable(self, asset):
-        sid = int(asset)
-
-        if isinstance(asset, Future):
-            if self._future_minute_reader.sid_path_func is not None:
-                path = self._future_minute_reader.sid_path_func(
-                    self._future_minute_reader.rootdir, sid
-                )
-            else:
-                path = "{0}/{1}.bcolz".format(
-                    self._future_minute_reader.rootdir, sid)
-        elif isinstance(asset, Equity):
-            if self._equity_minute_reader.sid_path_func is not None:
-                path = self._equity_minute_reader.sid_path_func(
-                    self._equity_minute_reader.rootdir, sid
-                )
-            else:
-                path = "{0}/{1}.bcolz".format(
-                    self._equity_minute_reader.rootdir, sid)
-
-        else:
-            # TODO: Figure out if assets should be allowed if neither, and
-            # why this code path is being hit.
-            if self._equity_minute_reader.sid_path_func is not None:
-                path = self._equity_minute_reader.sid_path_func(
-                    self._equity_minute_reader.rootdir, sid
-                )
-            else:
-                path = "{0}/{1}.bcolz".format(
-                    self._equity_minute_reader.rootdir, sid)
-
-        return bcolz.open(path, mode='r')
-
     def _get_pricing_reader(self, asset, data_frequency):
         return self._pricing_readers[type(asset)][data_frequency]
 
@@ -402,23 +357,13 @@ class DataPortal(object):
         if data_frequency == "daily":
             return self._get_daily_data(asset, field, session_label)
         else:
-            if isinstance(asset, Future):
-                if field == "price":
-                    return self._get_minute_spot_value_future(
-                        asset, "close", dt)
-                else:
-                    return self._get_minute_spot_value_future(
-                        asset, field, dt)
+            if field == "last_traded":
+                return self.get_last_traded_dt(asset, dt, 'minute')
+            elif field == "price":
+                return self._get_minute_spot_value(asset, "close", dt,
+                                                   ffill=True)
             else:
-                if field == "last_traded":
-                    return self._equity_minute_reader.get_last_traded_dt(
-                        asset, dt
-                    )
-                elif field == "price":
-                    return self._get_minute_spot_value(asset, "close", dt,
-                                                       True)
-                else:
-                    return self._get_minute_spot_value(asset, field, dt)
+                return self._get_minute_spot_value(asset, field, dt)
 
     def get_adjustments(self, assets, field, dt, perspective_dt):
         """
@@ -537,59 +482,27 @@ class DataPortal(object):
 
         return spot_value
 
-    def _get_minute_spot_value_future(self, asset, column, dt):
-        # Futures bcolz files have 1440 bars per day (24 hours), 7 days a week.
-        # The file attributes contain the "start_dt" and "last_dt" fields,
-        # which represent the time period for this bcolz file.
-
-        # The start_dt is midnight of the first day that this future started
-        # trading.
-
-        # figure out the # of minutes between dt and this asset's start_dt
-        start_date = self._get_asset_start_date(asset)
-        minute_offset = int((dt - start_date).total_seconds() / 60)
-
-        if minute_offset < 0:
-            # asking for a date that is before the asset's start date, no dice
-            return 0.0
-
-        # then just index into the bcolz carray at that offset
-        carray = self._open_minute_file(column, asset)
-        result = carray[minute_offset]
-
-        # if there's missing data, go backwards until we run out of file
-        while result == 0 and minute_offset > 0:
-            minute_offset -= 1
-            result = carray[minute_offset]
-
-        if column != 'volume':
-            # FIXME switch to a futures reader
-            return result * 0.001
-        else:
-            return result
-
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
-        result = self._equity_minute_reader.get_value(
+        reader = self._get_pricing_reader(asset, 'minute')
+        result = reader.get_value(
             asset.sid, dt, column
         )
 
-        if column == "volume":
-            if result == 0:
-                return 0
-        elif not ffill or not np.isnan(result):
-            # if we're not forward filling, or we found a result, return it
+        if not ffill:
             return result
 
         # we are looking for price, and didn't find one. have to go hunting.
-        last_traded_dt = \
-            self._equity_minute_reader.get_last_traded_dt(asset, dt)
+        last_traded_dt = reader.get_last_traded_dt(asset, dt)
 
         if last_traded_dt is pd.NaT:
             # no last traded dt, bail
-            return np.nan
+            if column == 'volume':
+                return 0
+            else:
+                return np.nan
 
         # get the value as of the last traded dt
-        result = self._equity_minute_reader.get_value(
+        result = reader.get_value(
             asset.sid,
             last_traded_dt,
             column
