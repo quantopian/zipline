@@ -163,9 +163,13 @@ class PreviousEstimateTestCase(WithAssetFinder,
         sid_events = results.xs(1, level=1)
         ed_sorted_events = self.events.sort(['event_date', 'timestamp'])
         for i, date in enumerate(sid_events.index):
-            expected_event = ed_sorted_events[ed_sorted_events['event_date'] <=
-                                 date].iloc[-1]
-            if not expected_event.empty:
+            # Filter for events that happened on or before the simulation
+            # date and that we knew about on or before the simulation date.
+            ed_eligible_events = ed_sorted_events[ed_sorted_events['event_date'] <= date]
+            ts_eligible_events = ed_eligible_events[ed_eligible_events['timestamp'] <= date]
+            if not ts_eligible_events.empty:
+                # The expected event is the one we knew about last.
+                expected_event = ts_eligible_events.iloc[-1]
                 for colname in sid_events.columns:
                     expected_value = expected_event[colname]
                     computed_value = sid_events.iloc[i][colname]

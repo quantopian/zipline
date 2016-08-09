@@ -2,22 +2,14 @@ from datashape import istabular
 
 from .core import (
     bind_expression_to_resources,
-    ffill_query_in_range,
+    load_raw_data,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.events import (
     EventsLoader,
     required_event_fields,
 )
-from zipline.pipeline.common import (
-    SID_FIELD_NAME,
-    TS_FIELD_NAME,
-)
-from zipline.pipeline.loaders.utils import (
-    check_data_query_args,
-    normalize_data_query_bounds,
-    normalize_timestamp_to_query_time,
-    load_raw_data)
+from zipline.pipeline.loaders.utils import check_data_query_args
 from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
 
