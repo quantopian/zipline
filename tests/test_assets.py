@@ -568,18 +568,24 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
 
         for asof in pd.date_range('2014-01-01', '2014-01-05', tz='utc'):
             # from 01 through 05 sid 0 held 'A'
+            A_result = finder.lookup_symbol('A', asof)
             assert_equal(
-                finder.lookup_symbol('A', asof),
+                A_result,
                 finder.retrieve_asset(0),
                 msg=str(asof),
             )
+            # the symbol should always be the last symbol
+            assert_equal(A_result.symbol, 'B')
 
             # from 01 through 05 sid 1 held 'C'
+            C_result = finder.lookup_symbol('C', asof)
             assert_equal(
-                finder.lookup_symbol('C', asof),
+                C_result,
                 finder.retrieve_asset(1),
                 msg=str(asof),
             )
+            # the symbol should always be the last symbol
+            assert_equal(C_result.symbol, 'A')
 
         # no one held 'B' before 06
         with self.assertRaises(SymbolNotFound):
@@ -596,20 +602,24 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
             # from 06 through 10 sid 0 held 'B'
             # we test through the 11th because sid 1 is the last to hold 'B'
             # so it should ffill
+            B_result = finder.lookup_symbol('B', asof)
             assert_equal(
-                finder.lookup_symbol('B', asof),
+                B_result,
                 finder.retrieve_asset(0),
                 msg=str(asof),
             )
+            assert_equal(B_result.symbol, 'B')
 
             # from 06 through 10 sid 1 held 'A'
             # we test through the 11th because sid 1 is the last to hold 'A'
             # so it should ffill
+            A_result = finder.lookup_symbol('A', asof)
             assert_equal(
-                finder.lookup_symbol('A', asof),
+                A_result,
                 finder.retrieve_asset(1),
                 msg=str(asof),
             )
+            assert_equal(A_result.symbol, 'A')
 
     def test_lookup_symbol(self):
 

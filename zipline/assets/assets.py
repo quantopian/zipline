@@ -440,22 +440,50 @@ class AssetFinder(object):
     def _select_asset_by_symbol(asset_tbl, symbol):
         return sa.select([asset_tbl]).where(asset_tbl.c.symbol == symbol)
 
-    def _lookup_most_recent_symbols(self, sids):
+    def _select_most_recent_symbols_chunk(self, sid_group):
+        """Retrieve the most recent symbol for a set of sids.
+
+        Parameters
+        ----------
+        sid_group : iterable[int]
+            The sids to lookup. The length of this sequence must be less than
+            or equal to SQLITE_MAX_VARIABLE_NUMBER because the sids will be
+            passed in as sql bind params.
+
+        Returns
+        -------
+        sel : Selectable
+            The sqlalchemy selectable that will query for the most recent
+            symbol for each sid.
+
+        Notes
+        -----
+        This is implemented as an inner select of the columns of interest
+        ordered by the end date of the (sid, symbol) mapping. We then group
+        that inner select on the sid with no aggregations to select the last
+        row per group which gives us the most recently active symbol for all
+        of the sids.
+        """
         symbol_cols = self.equity_symbol_mappings.c
+        inner = sa.select(
+            (symbol_cols.sid,) +
+            tuple(map(
+                op.getitem(symbol_cols),
+                symbol_columns,
+            )),
+        ).where(
+            symbol_cols.sid.in_(map(int, sid_group)),
+        ).order_by(
+            symbol_cols.end_date.asc(),
+        )
+        return sa.select(inner.c).group_by(inner.c.sid)
+
+    def _lookup_most_recent_symbols(self, sids):
         symbols = {
             row.sid: {c: row[c] for c in symbol_columns}
             for row in concat(
                 self.engine.execute(
-                    sa.select(
-                        (symbol_cols.sid,) +
-                        tuple(map(op.getitem(symbol_cols), symbol_columns)),
-                    ).where(
-                        symbol_cols.sid.in_(map(int, sid_group)),
-                    ).order_by(
-                        symbol_cols.end_date.desc(),
-                    ).group_by(
-                        symbol_cols.sid,
-                    )
+                    self._select_most_recent_symbols_chunk(sid_group),
                 ).fetchall()
                 for sid_group in partition_all(
                     SQLITE_MAX_VARIABLE_NUMBER,
