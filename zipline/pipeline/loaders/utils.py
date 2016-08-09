@@ -2,8 +2,6 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
-from zipline.pipeline.loaders.blaze.core import ffill_query_in_range
 from zipline.utils.pandas_utils import mask_between_time
 
 
@@ -276,31 +274,59 @@ def check_data_query_args(data_query_time, data_query_tz):
         )
 
 
-def load_raw_data(assets, dates, data_query_time, data_query_tz, expr,
-                  odo_kwargs):
-    lower_dt, upper_dt = normalize_data_query_bounds(
-        dates[0],
-        dates[-1],
-        data_query_time,
-        data_query_tz,
-    )
-    raw = ffill_query_in_range(
-        expr,
-        lower_dt,
-        upper_dt,
-        odo_kwargs,
-    )
-    sids = raw.loc[:, SID_FIELD_NAME]
-    raw.drop(
-        sids[~sids.isin(assets)].index,
-        inplace=True
-    )
-    if data_query_time is not None:
-        normalize_timestamp_to_query_time(
-            raw,
-            data_query_time,
-            data_query_tz,
-            inplace=True,
-            ts_field=TS_FIELD_NAME,
-        )
-    return raw
+def calc_forward_shift(qtr, num_qtrs_shift):
+    """
+    Calculate the number of years to shift forward and the new quarter in the
+    shifted year.
+
+    Parameters
+    ----------
+    qtr : int
+        The starting quarter.
+    num_qtr_shift : int
+        The number of quarters to shift forward.
+
+    Returns
+    -------
+    yrs_to_shift : int
+        The number of years to shift forward.
+    new_qtr : int
+        The quarter number of the new quarter after shifting num_qtrs_shift
+        forward from qtr.
+    """
+    yrs_to_shift, new_qtr = divmod(qtr + num_qtrs_shift, 4)
+    if new_qtr == 0:
+        yrs_to_shift -= 1
+        new_qtr = 4
+    return yrs_to_shift, new_qtr
+
+
+def calc_backward_shift(qtr, num_qtrs_shift):
+    """
+    Calculate the number of years to shift backward and the new quarter in the
+    shifted year.
+
+    Parameters
+    ----------
+    qtr : int
+        The starting quarter.
+    num_qtr_shift : int
+        The number of quarters to shift backward.
+
+    Returns
+    -------
+    yrs_to_shift : int
+        The number of years to shift backward.
+    new_qtr : int
+        The quarter number of the new quarter after shifting num_qtrs_shift
+        backward from qtr.
+    """
+    if qtr > num_qtrs_shift:
+        return 0, qtr - num_qtrs_shift
+    # num_qtrs_shift >= qtr; subtract to offset qtr, then calculate how many
+    # years/quarters to subtract.
+    yrs_to_shift, subtract_qtr = divmod(abs(num_qtrs_shift - qtr), 4)
+    # Must add 1 year since we go backwards at least `qtr` number of quarters
+    yrs_to_shift += 1
+    new_qtr = 4 - subtract_qtr
+    return yrs_to_shift, new_qtr

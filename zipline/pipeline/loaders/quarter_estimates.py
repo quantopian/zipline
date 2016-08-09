@@ -1,11 +1,17 @@
-from itertools import groupby
-import numpy as np
 import pandas as pd
 from six import viewvalues
-from zipline.pipeline.common import AD_FIELD_NAME, SID_FIELD_NAME, \
-    EVENT_DATE_FIELD_NAME, FISCAL_QUARTER_FIELD_NAME, FISCAL_YEAR_FIELD_NAME
+from toolz import groupby
+from zipline.pipeline.common import (
+    EVENT_DATE_FIELD_NAME,
+    FISCAL_QUARTER_FIELD_NAME,
+    FISCAL_YEAR_FIELD_NAME,
+    SID_FIELD_NAME,
+    TS_FIELD_NAME,
+)
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.pipeline.loaders.utils import calc_backward_shift, \
+    calc_forward_shift
 
 
 def required_event_fields(columns):
@@ -15,7 +21,7 @@ def required_event_fields(columns):
     """
     # These metadata columns are used to align event indexers.
     return {
-        AD_FIELD_NAME,
+        TS_FIELD_NAME,
         SID_FIELD_NAME,
         EVENT_DATE_FIELD_NAME,
         FISCAL_QUARTER_FIELD_NAME,
@@ -48,23 +54,6 @@ def validate_column_specs(events, columns):
         )
 
 
-def calc_forward_shift(qtr, num_shifts):
-    yrs_to_shift, new_qtr = divmod(qtr + num_shifts, 4)
-    if yrs_to_shift == 1 and new_qtr == 0:
-        yrs_to_shift = 0
-        new_qtr = 4
-    return yrs_to_shift, new_qtr
-
-
-def calc_backward_shift(qtr, num_shifts):
-    yrs_to_shift, new_qtr = divmod(abs(num_shifts - qtr), 4)
-    if yrs_to_shift == 0 and new_qtr == 0:
-        yrs_to_shift = 1
-        new_qtr = 4
-    yrs_to_shift = -yrs_to_shift
-    return yrs_to_shift, new_qtr
-
-
 class QuarterEstimatesLoader(PipelineLoader):
     def __init__(self,
                  events,
@@ -75,60 +64,45 @@ class QuarterEstimatesLoader(PipelineLoader):
         )
 
         self.events = events[
-            events[EVENT_DATE_FIELD_NAME].notnull() and
-            events[FISCAL_QUARTER_FIELD_NAME].notnull() and
+            events[EVENT_DATE_FIELD_NAME].notnull() &
+            events[FISCAL_QUARTER_FIELD_NAME].notnull() &
             events[FISCAL_YEAR_FIELD_NAME].notnull()
         ]
 
         self.columns = columns
 
-    def load_quarters(self, next_releases, num_quarters, dates_sids, gb):
+    def load_quarters(self, num_quarters, dates_sids, final_releases_per_qtr):
         pass
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
         out = {}
-        date_values = pd.DataFrame(dates, columns=['dates'])
+        date_values = pd.DataFrame({'dates': dates})
         date_values['key'] = 1
         self.events['key'] = 1
         merged = pd.merge(date_values, self.events, on='key')
-        asset_df = pd.DataFrame(assets, columns=['sid'])
+        asset_df = pd.DataFrame({'sid': assets})
         asset_df['key'] = 1
         dates_sids = pd.merge(date_values, asset_df, on='key')
         for num_quarters in groups:
             columns = groups[num_quarters]
             # First, group by sid, fiscal year, and fiscal quarter and only
             # keep the last estimate made.
-            final_releases_per_qtr = merged[merged.asof_date <=
+            final_releases_per_qtr = merged[merged[TS_FIELD_NAME] <=
                                             merged.dates].sort(
-                ['dates', 'asof_date']
+                ['dates', TS_FIELD_NAME]
             ).groupby(
                 ['dates', 'sid', 'fiscal_year', 'fiscal_quarter']
             ).last()
-            gb = final_releases_per_qtr.reset_index().groupby(['dates', 'sid'])
-            # Split the date-sid combinations into ones with a next release
-            # and ones without
-            eligible_next_releases = pd.concat([group[1] for group in gb if (
-                group[1][EVENT_DATE_FIELD_NAME] >= group[1]['dates']
-            ).any()])
+            final_releases_per_qtr = final_releases_per_qtr.reset_index()
 
-            eligible_next_releases.sort(EVENT_DATE_FIELD_NAME)
-            # For each sid, get the next release/year/quarter that we care
-            # about.
-            next_releases = eligible_next_releases.groupby(
-                ['dates', 'sid']
-            ).min()
-            next_releases = next_releases.rename(
-                columns={'fiscal_year': 'next_fiscal_year',
-                         'fiscal_quarter': 'next_fiscal_quarter'}
-            )
-
-            result = self.load_quarters(next_releases,
-                                        num_quarters,
-                                        dates_sids)
+            result = self.load_quarters(num_quarters,
+                                        dates_sids,
+                                        final_releases_per_qtr)
 
             for c in columns:
-                column_name = self.columns[c.name]
+                super_col = getattr(c.dataset.__base__, c.name)
+                column_name = self.columns[super_col]
                 # Need to pass a DataFrame that has dates as the index and
                 # all sids as columns with column values being the value in
                 # 'result' for column c
@@ -147,9 +121,24 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
     def __init__(self,
                  events,
                  columns):
-        super(NextQuartersEstimatesLoader).__init__(events, columns)
+        super(NextQuartersEstimatesLoader, self).__init__(events, columns)
 
-    def load_quarters(self, next_releases, num_quarters, dates_sids, gb):
+    def load_quarters(self, num_quarters, dates_sids, final_releases_per_qtr):
+        # Filter for releases that are after each simulation date.
+        eligible_next_releases = final_releases_per_qtr[
+            final_releases_per_qtr[EVENT_DATE_FIELD_NAME] >=
+            final_releases_per_qtr['dates']
+        ]
+
+        eligible_next_releases.sort(EVENT_DATE_FIELD_NAME)
+        # For each sid, get the upcoming release/year/quarter.
+        next_releases = eligible_next_releases.groupby(
+            ['dates', 'sid']
+        ).min()
+        next_releases = next_releases.rename(
+            columns={'fiscal_year': 'next_fiscal_year',
+                     'fiscal_quarter': 'next_fiscal_quarter'}
+        )
         # `next_qtr` is already the next quarter over,
         # so we should offest `num_shifts` by 1.
         next_releases['fiscal_quarter'] = next_releases.apply(
@@ -175,47 +164,39 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
     def __init__(self,
                  events,
                  columns):
-        super(PreviousQuartersEstimatesLoader).__init__(events, columns)
+        super(PreviousQuartersEstimatesLoader, self).__init__(events, columns)
 
-    def load_quarters(self, next_releases, num_quarters, dates_sids, gb):
-        next_releases['fiscal_quarter'] = next_releases.apply(
-            lambda x: calc_backward_shift(x['next_fiscal_quarter'],
-                                          num_quarters)[1],
-            axis=1
-        )
-        next_releases['fiscal_year'] = next_releases.apply(
-            lambda x:
-            x['next_fiscal_year'] +
-            calc_backward_shift(x['next_fiscal_quarter'],
-                                num_quarters)[0],
-            axis=1
-        )
-        only_previous_releases = pd.concat([group[1] for group in gb if (
-                group[1][EVENT_DATE_FIELD_NAME] < group[1]['dates']
-            ).all()])
-        only_previous_releases.sort(EVENT_DATE_FIELD_NAME)
+    def load_quarters(self, num_quarters, dates_sids, final_releases_per_qtr):
+        # Filter for releases that are before each simulation date.
+        eligible_previous_releases = final_releases_per_qtr[
+            final_releases_per_qtr[EVENT_DATE_FIELD_NAME] <=
+            final_releases_per_qtr['dates']
+        ]
+
+        eligible_previous_releases.sort(EVENT_DATE_FIELD_NAME)
         # For each sid, get the latest release we knew about prior to
         # each simulation date.
-        previous_releases = only_previous_releases.groupby(['dates',
-                                                            'sid']).max()
+        previous_releases = eligible_previous_releases.groupby(
+            ['dates', 'sid']
+        ).max()
+
         previous_releases = previous_releases.rename(columns={
             'fiscal_year': 'previous_fiscal_year',
             'fiscal_quarter': 'previous_fiscal_quarter'
         })
         previous_releases['fiscal_quarter'] = previous_releases.apply(
             lambda x: calc_backward_shift(x['previous_fiscal_quarter'],
-                                          num_quarters)[1],
+                                          (num_quarters - 1))[1],
             axis=1
         )
         previous_releases['fiscal_year'] = previous_releases.apply(
             lambda x:
-            x['previous_fiscal_year'] +
+            x['previous_fiscal_year'] -
             calc_backward_shift(x['previous_fiscal_quarter'],
-                                num_quarters)[0],
+                                (num_quarters - 1))[0],
             axis=1
         )
-        all_releases = pd.concat([next_releases, previous_releases])
         # Merge to get the rows we care about for each date
-        result = dates_sids.merge(all_releases.reset_index(),
+        result = dates_sids.merge(previous_releases.reset_index(),
                                   on=(['dates', 'sid']), how='left')
         return result
