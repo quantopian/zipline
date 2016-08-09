@@ -209,27 +209,38 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
         # Expected %K
         assert_equal(out, np.full((3,), 200))
 
-    def test_fso_expected_with_talib(self):
+    @parameter_space(seed=range(5))
+    def test_fso_expected_with_talib(self, seed):
         """
         Test the output that is returned from the fast stochastic oscillator
         is the same as that from the ta-lib STOCHF function.
         """
         window_length = 14
         nassets = 6
-        closes = np.random.random_integers(1, 6, size=(50, nassets))*1.0
-        highs = np.random.random_integers(4, 6, size=(50, nassets))*1.0
-        lows = np.random.random_integers(1, 3, size=(50, nassets))*1.0
+        rng = np.random.RandomState(seed=seed)
+
+        input_size = (window_length, nassets)
+
+        # values from 9 to 12
+        closes = 9.0 + (rng.random_sample(input_size) * 3.0)
+
+        # Values from 13 to 15
+        highs = 13.0 + (rng.random_sample(input_size) * 2.0)
+
+        # Values from 6 to 8.
+        lows = 6.0 + (rng.random_sample(input_size) * 2.0)
 
         expected_out_k = []
         for i in range(nassets):
-            e = talib.STOCHF(
+            fastk, fastd = talib.STOCHF(
                 high=highs[:, i],
                 low=lows[:, i],
                 close=closes[:, i],
                 fastk_period=window_length,
+                fastd_period=1,
             )
 
-            expected_out_k.append(e[0][-1])
+            expected_out_k.append(fastk[-1])
         expected_out_k = np.array(expected_out_k)
 
         today = pd.Timestamp('2015')
@@ -241,7 +252,7 @@ class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
             today, assets, out, closes, lows, highs
         )
 
-        assert_equal(out, expected_out_k)
+        assert_equal(out, expected_out_k, array_decimal=6)
 
 
 class IchimokuKinkoHyoTestCase(ZiplineTestCase):
