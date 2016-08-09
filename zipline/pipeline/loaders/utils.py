@@ -2,6 +2,7 @@ import datetime
 
 import numpy as np
 import pandas as pd
+from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.utils.pandas_utils import mask_between_time
 
 
@@ -274,59 +275,18 @@ def check_data_query_args(data_query_time, data_query_tz):
         )
 
 
-def calc_forward_shift(qtr, num_qtrs_shift):
-    """
-    Calculate the number of years to shift forward and the new quarter in the
-    shifted year.
+def choose_rows_by_indexer(rows, name_map, indexer, columns, dates, sids, mask):
+    def to_frame(array):
+        return pd.DataFrame(array, index=dates, columns=sids)
 
-    Parameters
-    ----------
-    qtr : int
-        The starting quarter.
-    num_qtr_shift : int
-        The number of quarters to shift forward.
+    out = {}
+    for c in columns:
+        raw = rows[name_map[c]][indexer]
+        # indexer will be -1 for locations where we don't have a known
+        # value.
+        raw[indexer < 0] = c.missing_value
 
-    Returns
-    -------
-    yrs_to_shift : int
-        The number of years to shift forward.
-    new_qtr : int
-        The quarter number of the new quarter after shifting num_qtrs_shift
-        forward from qtr.
-    """
-    yrs_to_shift, new_qtr = divmod(qtr + num_qtrs_shift, 4)
-    if new_qtr == 0:
-        yrs_to_shift -= 1
-        new_qtr = 4
-    return yrs_to_shift, new_qtr
-
-
-def calc_backward_shift(qtr, num_qtrs_shift):
-    """
-    Calculate the number of years to shift backward and the new quarter in the
-    shifted year.
-
-    Parameters
-    ----------
-    qtr : int
-        The starting quarter.
-    num_qtr_shift : int
-        The number of quarters to shift backward.
-
-    Returns
-    -------
-    yrs_to_shift : int
-        The number of years to shift backward.
-    new_qtr : int
-        The quarter number of the new quarter after shifting num_qtrs_shift
-        backward from qtr.
-    """
-    if qtr > num_qtrs_shift:
-        return 0, qtr - num_qtrs_shift
-    # num_qtrs_shift >= qtr; subtract to offset qtr, then calculate how many
-    # years/quarters to subtract.
-    yrs_to_shift, subtract_qtr = divmod(abs(num_qtrs_shift - qtr), 4)
-    # Must add 1 year since we go backwards at least `qtr` number of quarters
-    yrs_to_shift += 1
-    new_qtr = 4 - subtract_qtr
-    return yrs_to_shift, new_qtr
+        # Delegate the actual array formatting logic to a DataFrameLoader.
+        loader = DataFrameLoader(c, to_frame(raw), adjustments=None)
+        out[c] = loader.load_adjusted_array([c], dates, sids, mask)[c]
+    return out
