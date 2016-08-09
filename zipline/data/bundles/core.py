@@ -385,8 +385,7 @@ def _make_bundle_core():
                     wd.ensure_dir(*minute_equity_relative(
                         name, timestr, environ=environ)
                     ),
-                    bundle.calendar.schedule['market_open'],
-                    bundle.calendar.schedule['market_close'],
+                    bundle.calendar,
                     minutes_per_day=bundle.minutes_per_day,
                 )
                 asset_db_writer = AssetDBWriter(
