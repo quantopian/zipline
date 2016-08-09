@@ -1,6 +1,8 @@
 import datetime
 
+import blaze as bz
 import numpy as np
+from odo import odo
 import pandas as pd
 from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
 from zipline.pipeline.loaders.blaze.core import ffill_query_in_range
@@ -303,4 +305,61 @@ def load_raw_data(assets, dates, data_query_time, data_query_tz, expr,
             inplace=True,
             ts_field=TS_FIELD_NAME,
         )
+    return raw
+
+
+def ffill_query_in_range(expr,
+                         lower,
+                         upper,
+                         odo_kwargs=None,
+                         ts_field=TS_FIELD_NAME,
+                         sid_field=SID_FIELD_NAME):
+    """Query a blaze expression in a given time range properly forward filling
+    from values that fall before the lower date.
+
+    Parameters
+    ----------
+    expr : Expr
+        Bound blaze expression.
+    lower : datetime
+        The lower date to query for.
+    upper : datetime
+        The upper date to query for.
+    odo_kwargs : dict, optional
+        The extra keyword arguments to pass to ``odo``.
+    ts_field : str, optional
+        The name of the timestamp field in the given blaze expression.
+    sid_field : str, optional
+        The name of the sid field in the given blaze expression.
+
+    Returns
+    -------
+    raw : pd.DataFrame
+        A strict dataframe for the data in the given date range. This may
+        start before the requested start date if a value is needed to ffill.
+    """
+    odo_kwargs = odo_kwargs or {}
+    filtered = expr[expr[ts_field] <= lower]
+    computed_lower = odo(
+        bz.by(
+            filtered[sid_field],
+            timestamp=filtered[ts_field].max(),
+        ).timestamp.min(),
+        pd.Timestamp,
+        **odo_kwargs
+    )
+    if pd.isnull(computed_lower):
+        # If there is no lower date, just query for data in the date
+        # range. It must all be null anyways.
+        computed_lower = lower
+
+    raw = odo(
+        expr[
+            (expr[ts_field] >= computed_lower) &
+            (expr[ts_field] <= upper)
+        ],
+        pd.DataFrame,
+        **odo_kwargs
+    )
+    raw.loc[:, ts_field] = raw.loc[:, ts_field].astype('datetime64[ns]')
     return raw
