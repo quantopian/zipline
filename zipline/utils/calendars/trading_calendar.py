@@ -824,4 +824,4 @@ def _overwrite_special_dates(midnight_utcs,
 
 class HolidayCalendar(AbstractHolidayCalendar):
     def __init__(self, rules):
-        super(HolidayCalendar, self).__init__(self, rules=rules)
+        super(HolidayCalendar, self).__init__(rules=rules)
