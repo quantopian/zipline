@@ -105,6 +105,7 @@ class Blotter(object):
             amount=amount,
             stop=style.get_stop_price(is_buy),
             limit=style.get_limit_price(is_buy),
+            trail=style.get_trail_percentage(is_buy)
             id=order_id
         )
 

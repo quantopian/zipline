@@ -43,7 +43,7 @@ class Order(object):
     # Order objects and we keep them all in memory, so it's worthwhile trying
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
-                 "commission", "_status", "stop", "limit","trail", "stop_reached",
+                 "commission", "_status", "_stop", "limit","trail", "stop_reached",
                  "limit_reached", "direction", "type", "broker_order_id"]
 
     def __init__(self, dt, sid, amount, stop=None, limit=None,trail=None, filled=0,
@@ -68,9 +68,10 @@ class Order(object):
         self.filled = filled
         self.commission = commission
         self._status = ORDER_STATUS.OPEN
-        self.stop = stop
+        self._stop = stop
         self.limit = limit
         self.trail = trail
+        self.extreme = None
         self.stop_reached = False
         self.limit_reached = False
         self.direction = math.copysign(1, self.amount)
@@ -128,6 +129,11 @@ class Order(object):
         if self.triggered:
             return (self.stop_reached, self.limit_reached, False)
 
+        if self.trail is not None:
+            order_type |= TRAIL
+            if self.extreme is None:
+                self.extreme = current_price
+
         stop_reached = False
         limit_reached = False
         sl_stop_reached = False
@@ -144,6 +150,7 @@ class Order(object):
 
         if self.limit is not None:
             order_type |= LIMIT
+
 
         if order_type == BUY | STOP | LIMIT:
             if current_price >= self.stop:
@@ -168,16 +175,6 @@ class Order(object):
             # This is a SELL LIMIT order
             if current_price >= self.limit:
                 limit_reached = True
-        elif order_type == BUY | STOP | TRAIL:
-            if current_price > extreme:
-                extreme = current_price
-            elif  current_price <= extreme*(1-trail):
-                stop_reached = True
-        elif order_type == SELL | STOP | TRAIL:
-            if current_price < extreme:
-                extreme = current_price
-            elif current_price >= extreme*(1+trail):
-                stop_reached = True
 
         return (stop_reached, limit_reached, sl_stop_reached)
 
@@ -224,6 +221,12 @@ class Order(object):
         self.reason = reason
 
     @property
+    def stop(self):
+        if self.trail is not None:
+            return self.extreme*(1-trail*self.direction)
+        return self._stop
+
+    @property
     def open(self):
         return self.status in [ORDER_STATUS.OPEN, ORDER_STATUS.HELD]
 
@@ -242,6 +245,9 @@ class Order(object):
         For a stop order, True IFF stop_reached.
         For a limit order, True IFF limit_reached.
         """
+        if self.trail is not None and self.extreme is None:
+            return False
+
         if self.stop is not None and not self.stop_reached:
             return False
 

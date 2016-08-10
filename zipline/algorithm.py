@@ -74,6 +74,7 @@ from zipline.finance.execution import (
     MarketOrder,
     StopLimitOrder,
     StopOrder,
+    TrailingStop,
 )
 from zipline.finance.performance import PerformanceTracker
 from zipline.finance.slippage import (

@@ -49,6 +49,15 @@ class ExecutionStyle(with_metaclass(abc.ABCMeta)):
         """
         raise NotImplemented
 
+    @abs.abstractmethod
+    def get_trail_percentage(self, is_buy):
+        """
+        Return the trailing percentage for this order.
+        Returns either None or a numerical value >= 0.
+        """
+
+        return None
+
     @property
     def exchange(self):
         """
@@ -69,6 +78,9 @@ class MarketOrder(ExecutionStyle):
         return None
 
     def get_stop_price(self, _is_buy):
+        return None
+
+    def get_trail_percentage(self,_is_buy):
         return None
 
 
@@ -93,6 +105,9 @@ class LimitOrder(ExecutionStyle):
     def get_stop_price(self, _is_buy):
         return None
 
+    def get_trail_percentage(self,_is_buy):
+        return None
+
 
 class StopOrder(ExecutionStyle):
     """
@@ -114,6 +129,9 @@ class StopOrder(ExecutionStyle):
 
     def get_stop_price(self, is_buy):
         return asymmetric_round_price_to_penny(self.stop_price, not is_buy)
+
+    def get_trail_percentage(self,_is_buy):
+        return None
 
 
 class StopLimitOrder(ExecutionStyle):
@@ -140,6 +158,9 @@ class StopLimitOrder(ExecutionStyle):
     def get_stop_price(self, is_buy):
         return asymmetric_round_price_to_penny(self.stop_price, not is_buy)
 
+    def get_trail_percentage(self,_is_buy):
+        return None
+
 
 class TrailingStop(ExecutionStyle):
     """
@@ -150,14 +171,20 @@ class TrailingStop(ExecutionStyle):
         Store the given percentage
         """
 
+        check_stoplimit_prices(percentage,exchange=none)
+
         self.percentage = percentage
         self._exchange = exchange
 
-    def get_limit_price(self, is_buy):
+    def get_limit_price(self, _is_buy):
         return None
 
-    def get_stop_price(self, is_buy, current_price=None):
+    def get_stop_price(self, _is_buy):
         return None
+
+
+    def get_trail_percentage(self,is_buy):
+        return self.percentage
 
 
 
