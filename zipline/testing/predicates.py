@@ -30,7 +30,6 @@ from nose.tools import (  # noqa
     assert_raises_regexp,
     assert_regexp_matches,
     assert_sequence_equal,
-    assert_set_equal,
     assert_true,
     assert_tuple_equal,
 )
@@ -302,36 +301,53 @@ def assert_float_equal(result,
     )
 
 
-@assert_equal.register(dict, dict)
-def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
-    if path is None:
-        path = ()
+def _check_sets(result, expected, msg, path, type_):
+    """Compare two sets. This is used to check dictionary keys and sets.
 
-    result_keys = viewkeys(result)
-    expected_keys = viewkeys(expected)
-    if result_keys != expected_keys:
-        if result_keys > expected_keys:
-            diff = result_keys - expected_keys
-            msg = 'extra %s in result: %r' % (_s('key', diff), diff)
-        elif result_keys < expected_keys:
-            diff = expected_keys - result_keys
-            msg = 'result is missing %s: %r' % (_s('key', diff), diff)
+    Parameters
+    ----------
+    result : set
+    expected : set
+    msg : str
+    path : tuple
+    type : str
+        The type of an element. For dict we use ``'key'`` and for set we use
+        ``'element'``.
+    """
+    if result != expected:
+        if result > expected:
+            diff = result - expected
+            msg = 'extra %s in result: %r' % (_s(type_, diff), diff)
+        elif result < expected:
+            diff = expected - result
+            msg = 'result is missing %s: %r' % (_s(type_, diff), diff)
         else:
-            sym = result_keys ^ expected_keys
-            in_result = sym - expected_keys
-            in_expected = sym - result_keys
+            in_result = result - expected
+            in_expected = expected - result
             msg = '%s only in result: %s\n%s only in expected: %s' % (
-                _s('key', in_result),
+                _s(type_, in_result),
                 in_result,
-                _s('key', in_expected),
+                _s(type_, in_expected),
                 in_expected,
             )
         raise AssertionError(
-            '%sdict keys do not match\n%s' % (
+            '%s%ss do not match\n%s' % (
                 _fmt_msg(msg),
-                _fmt_path(path + ('.%s()' % ('viewkeys' if PY2 else 'keys'),)),
+                type_,
+                _fmt_path(path),
             ),
         )
+
+
+@assert_equal.register(dict, dict)
+def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
+    _check_sets(
+        viewkeys(result),
+        viewkeys(expected),
+        msg,
+        path + ('.%s()' % ('viewkeys' if PY2 else 'keys'),),
+        'key',
+    )
 
     failures = []
     for k, (resultv, expectedv) in iteritems(dzip_exact(result, expected)):
@@ -350,7 +366,7 @@ def assert_dict_equal(result, expected, path=(), msg='', **kwargs):
         raise AssertionError('\n'.join(failures))
 
 
-@assert_equal.register(list, list)  # noqa
+@assert_equal.register(list, list)
 def assert_list_equal(result, expected, path=(), msg='', **kwargs):
     result_len = len(result)
     expected_len = len(expected)
@@ -362,7 +378,6 @@ def assert_list_equal(result, expected, path=(), msg='', **kwargs):
             _fmt_path(path),
         )
     )
-
     for n, (resultv, expectedv) in enumerate(zip(result, expected)):
         assert_equal(
             resultv,
@@ -371,6 +386,17 @@ def assert_list_equal(result, expected, path=(), msg='', **kwargs):
             msg=msg,
             **kwargs
         )
+
+
+@assert_equal.register(set, set)
+def assert_set_equal(result, expected, path=(), msg='', **kwargs):
+    _check_sets(
+        result,
+        expected,
+        msg,
+        path,
+        'element',
+    )
 
 
 @assert_equal.register(np.ndarray, np.ndarray)
