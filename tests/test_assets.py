@@ -1470,3 +1470,36 @@ class TestAssetDBVersioning(ZiplineTestCase):
         # higher-than-current version
         with self.assertRaises(AssetDBImpossibleDowngrade):
             downgrade(self.engine, ASSET_DB_VERSION + 5)
+
+    def test_v5_to_v4_selects_most_recent_ticker(self):
+        T = pd.Timestamp
+        AssetDBWriter(self.engine).write(
+            equities=pd.DataFrame(
+                [['A', 'A', T('2014-01-01'), T('2014-01-02')],
+                 ['B', 'B', T('2014-01-01'), T('2014-01-02')],
+                 # these two are both ticker sid 2
+                 ['B', 'C', T('2014-01-03'), T('2014-01-04')],
+                 ['C', 'C', T('2014-01-01'), T('2014-01-02')]],
+                index=[0, 1, 2, 2],
+                columns=['symbol', 'asset_name', 'start_date', 'end_date'],
+            ),
+        )
+
+        downgrade(self.engine, 4)
+        metadata = sa.MetaData(self.engine)
+        metadata.reflect()
+
+        def select_fields(r):
+            return r.sid, r.symbol, r.asset_name, r.start_date, r.end_date
+
+        expected_data = {
+            (0, 'A', 'A', T('2014-01-01').value, T('2014-01-02').value),
+            (1, 'B', 'B', T('2014-01-01').value, T('2014-01-02').value),
+            (2, 'B', 'C', T('2014-01-01').value, T('2014-01-04').value),
+        }
+        actual_data = set(map(
+            select_fields,
+            sa.select(metadata.tables['equities'].c).execute(),
+        ))
+
+        assert_equal(expected_data, actual_data)
