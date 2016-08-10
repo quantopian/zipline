@@ -1,4 +1,4 @@
-{% set data = load_setuptools() %}
+{% set data = load_setup_py_data() %}
 
 package:
   name: zipline
@@ -28,12 +28,6 @@ requirements:
     {% endfor %}
 
 test:
-  {#  When we include the tests module in the zipline package, we can use this:
-  requires:
-    {% for req in data.get('extras_require', {}).get('dev', []) -%}
-    - {{req}}
-    {% endfor %}
-  #}
   # Python imports
   imports:
     - zipline
