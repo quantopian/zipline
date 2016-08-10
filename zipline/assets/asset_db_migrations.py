@@ -272,14 +272,22 @@ def _downgrade_v5(op):
         from
             equities
         inner join
+            -- Nested select here to take the most recently held ticker
+            -- for each sid. The group by with no aggregation function will
+            -- take the last element in the group, so we first order by
+            -- the end date ascending to ensure that the groupby takes
+            -- the last ticker.
             (select
                  *
              from
-                 equity_symbol_mappings
+                 (select
+                      *
+                  from
+                      equity_symbol_mappings
+                  order by
+                      equity_symbol_mappings.end_date asc)
              group by
-                 equity_symbol_mappings.sid
-             order by
-                 equity_symbol_mappings.end_date desc) sym
+                 sid) sym
         on
             equities.sid == sym.sid
         """,
