@@ -19,7 +19,6 @@ from os.path import (
     join,
 )
 from unittest import TestCase
-from collections import namedtuple
 
 import numpy as np
 import pandas as pd
@@ -38,22 +37,40 @@ from zipline.utils.calendars import(
     register_calendar,
     deregister_calendar,
     get_calendar,
-    clear_calendars,
 )
-from zipline.utils.calendars.trading_calendar import days_at_time
+from zipline.utils.calendars.calendar_utils import register_calendar_type
+from zipline.utils.calendars.trading_calendar import days_at_time, \
+    TradingCalendar
+
+
+class FakeCalendar(TradingCalendar):
+    @property
+    def name(self):
+        return "DMY"
+
+    @property
+    def tz(self):
+        return "Asia/Ulaanbaatar"
+
+    @property
+    def open_time(self):
+        return time(11, 13)
+
+    @property
+    def close_time(self):
+        return time(11, 49)
 
 
 class CalendarRegistrationTestCase(TestCase):
-
     def setUp(self):
-        self.dummy_cal_type = namedtuple('DummyCal', ('name'))
+        self.dummy_cal_type = FakeCalendar
 
     def tearDown(self):
-        clear_calendars()
+        deregister_calendar('DMY')
 
     def test_register_calendar(self):
         # Build a fake calendar
-        dummy_cal = self.dummy_cal_type('DMY')
+        dummy_cal = self.dummy_cal_type()
 
         # Try to register and retrieve the calendar
         register_calendar('DMY', dummy_cal)
@@ -69,18 +86,37 @@ class CalendarRegistrationTestCase(TestCase):
         with self.assertRaises(InvalidCalendarName):
             get_calendar('DMY')
 
+    def test_register_calendar_type(self):
+        register_calendar_type("DMY", self.dummy_cal_type)
+        retr_cal = get_calendar("DMY")
+        self.assertEqual(self.dummy_cal_type, type(retr_cal))
+
+    def test_both_places_are_checked(self):
+        dummy_cal = self.dummy_cal_type()
+
+        # if instance is registered, can't register type with same name
+        register_calendar('DMY', dummy_cal)
+        with self.assertRaises(CalendarNameCollision):
+            register_calendar_type('DMY', type(dummy_cal))
+
+        deregister_calendar('DMY')
+
+        # if type is registered, can't register instance with same name
+        register_calendar_type('DMY', type(dummy_cal))
+
+        with self.assertRaises(CalendarNameCollision):
+            register_calendar('DMY', dummy_cal)
+
     def test_force_registration(self):
-        dummy_nyse = self.dummy_cal_type('NYSE')
+        register_calendar("DMY", self.dummy_cal_type())
+        first_dummy = get_calendar("DMY")
 
-        # Get the actual NYSE calendar
-        real_nyse = get_calendar('NYSE')
+        # force-register a new instance
+        register_calendar("DMY", self.dummy_cal_type(), force=True)
 
-        # Force a registration of the dummy NYSE
-        register_calendar("NYSE", dummy_nyse, force=True)
+        second_dummy = get_calendar("DMY")
 
-        # Ensure that the dummy overwrote the real calendar
-        retr_cal = get_calendar('NYSE')
-        self.assertNotEqual(real_nyse, retr_cal)
+        self.assertNotEqual(first_dummy, second_dummy)
 
 
 class DaysAtTimeTestCase(TestCase):
