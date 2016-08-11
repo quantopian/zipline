@@ -26,7 +26,8 @@ from ..data.us_equity_pricing import (
 from ..data.minute_bars import (
     BcolzMinuteBarReader,
     BcolzMinuteBarWriter,
-    US_EQUITIES_MINUTES_PER_DAY
+    US_EQUITIES_MINUTES_PER_DAY,
+    FUTURES_MINUTES_PER_DAY,
 )
 
 from ..finance.trading import TradingEnvironment
@@ -1052,8 +1053,7 @@ class WithBcolzFutureMinuteBarReader(WithFutureMinuteBarData, WithTmpDir):
             p,
             trading_calendar.schedule.market_open.loc[days],
             trading_calendar.schedule.market_close.loc[days],
-            # TODO: Make futures minutes per day.
-            1440,
+            FUTURES_MINUTES_PER_DAY,
         )
         writer.write(cls.make_future_minute_bar_data())
 
