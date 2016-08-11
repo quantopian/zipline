@@ -34,6 +34,7 @@ from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
 
 US_EQUITIES_MINUTES_PER_DAY = 390
+FUTURES_MINUTES_PER_DAY = 1440
 
 DEFAULT_EXPECTEDLEN = US_EQUITIES_MINUTES_PER_DAY * 252 * 15
 
