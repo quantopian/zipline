@@ -345,6 +345,7 @@ class LoadableTerm(Term):
     This is the base class for :class:`zipline.pipeline.data.BoundColumn`.
     """
     windowed = False
+    inputs = ()
 
     @lazyval
     def dependencies(self):
