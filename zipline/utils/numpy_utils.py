@@ -364,3 +364,36 @@ def vectorized_is_element(array, choices):
         Array indicating whether each element of ``array`` was in ``choices``.
     """
     return vectorize(choices.__contains__, otypes=[bool])(array)
+
+
+def as_column(a):
+    """
+    Convert an array of shape (N,) into an array of shape (N, 1).
+
+    This is equivalent to `a[:, np.newaxis]`.
+
+    Parameters
+    ----------
+    a : np.ndarray
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> a = np.arange(5)
+    >>> a
+    array([0, 1, 2, 3, 4])
+    >>> as_column(a)
+    array([[0],
+           [1],
+           [2],
+           [3],
+           [4]])
+    >>> as_column(a).shape
+    (5, 1)
+    """
+    if a.ndim != 1:
+        raise ValueError(
+            "as_column expected an 1-dimensional array, "
+            "but got an array of shape %s" % a.shape
+        )
+    return a[:, None]
