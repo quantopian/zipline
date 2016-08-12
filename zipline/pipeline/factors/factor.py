@@ -1468,7 +1468,9 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
 
 
 class RecarrayField(SingleInputMixin, Factor):
-
+    """
+    A single field from a multi-output factor.
+    """
     def __new__(cls, factor, attribute):
         return super(RecarrayField, cls).__new__(
             cls,
