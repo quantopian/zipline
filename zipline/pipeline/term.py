@@ -320,6 +320,9 @@ class AssetExists(Term):
     every asset on every date.  We don't subclass Filter, however, because
     `AssetExists` is computed directly by the PipelineEngine.
 
+    This term is guaranteed to be available as an input for any term computed
+    by SimplePipelineEngine.run_pipeline().
+
     See Also
     --------
     zipline.assets.AssetFinder.lifetimes
