@@ -353,7 +353,7 @@ class ComputableTerm(Term):
     A Term that should be computed from a tuple of inputs.
 
     This is the base class for :class:`zipline.pipeline.Factor`,
-    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Factor`.
+    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Classifier`.
     """
     inputs = NotSpecified
     outputs = NotSpecified
