@@ -34,10 +34,10 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
+    datetime64ns_dtype,
     default_missing_value_for_dtype,
 )
 
-from .mixins import SingleInputMixin
 from .sentinels import NotSpecified
 
 
@@ -279,6 +279,20 @@ class Term(with_metaclass(ABCMeta, object)):
         # call super().
         self._subclass_called_super_validate = True
 
+    def compute_extra_rows(self,
+                           all_dates,
+                           start_date,
+                           end_date,
+                           min_extra_rows):
+        """
+        Calculate the number of extra rows needed to compute ``self``.
+
+        Must return at least ``min_extra_rows``, but can optionally require
+        more. This is used by downsampled terms to ensure that the first date
+        computed is a recomputation date.
+        """
+        return min_extra_rows
+
     @abstractproperty
     def inputs(self):
         """
@@ -336,6 +350,38 @@ class AssetExists(Term):
 
     def __repr__(self):
         return "AssetExists()"
+
+    def _compute(self, today, assets, out):
+        raise NotImplementedError(
+            "AssetExists cannot be computed directly."
+            " Check your PipelineEngine configuration."
+        )
+
+
+class InputDates(Term):
+    """
+    1-Dimensional term providing date labels for other term inputs.
+
+    This term is guaranteed to be available as an input for any term computed
+    by SimplePipelineEngine.run_pipeline().
+    """
+    ndim = 1
+    dataset = None
+    dtype = datetime64ns_dtype
+    inputs = ()
+    dependencies = {}
+    mask = None
+    windowed = False
+    window_safe = True
+
+    def __repr__(self):
+        return "InputDates()"
+
+    def _compute(self, today, assets, out):
+        raise NotImplementedError(
+            "InputDates cannot be computed directly."
+            " Check your PipelineEngine configuration."
+        )
 
 
 class LoadableTerm(Term):
@@ -530,7 +576,7 @@ class ComputableTerm(Term):
         )
 
 
-class Slice(ComputableTerm, SingleInputMixin):
+class Slice(ComputableTerm):
     """
     Term for extracting a single column of a another term's output.
 

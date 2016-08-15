@@ -123,20 +123,18 @@ class FactorTestCase(BasePipelineTestCase):
         data = arange(25).reshape(5, 5)
         data[eye(5, dtype=bool)] = custom_missing_value
 
-        graph = TermGraph(
+        self.check_terms(
             {
                 'isnull': factor.isnull(),
                 'notnull': factor.notnull(),
-            }
-        )
-
-        results = self.run_graph(
-            graph,
+            },
+            {
+                'isnull': eye(5, dtype=bool),
+                'notnull': ~eye(5, dtype=bool),
+            },
             initial_workspace={factor: data},
             mask=self.build_mask(ones((5, 5))),
         )
-        check_arrays(results['isnull'], eye(5, dtype=bool))
-        check_arrays(results['notnull'], ~eye(5, dtype=bool))
 
     def test_isnull_datetime_dtype(self):
         class DatetimeFactor(Factor):
@@ -149,20 +147,18 @@ class FactorTestCase(BasePipelineTestCase):
         data = arange(25).reshape(5, 5).astype('datetime64[ns]')
         data[eye(5, dtype=bool)] = NaTns
 
-        graph = TermGraph(
+        self.check_terms(
             {
                 'isnull': factor.isnull(),
                 'notnull': factor.notnull(),
-            }
-        )
-
-        results = self.run_graph(
-            graph,
+            },
+            {
+                'isnull': eye(5, dtype=bool),
+                'notnull': ~eye(5, dtype=bool),
+            },
             initial_workspace={factor: data},
             mask=self.build_mask(ones((5, 5))),
         )
-        check_arrays(results['isnull'], eye(5, dtype=bool))
-        check_arrays(results['notnull'], ~eye(5, dtype=bool))
 
     @for_each_factor_dtype
     def test_rank_ascending(self, name, factor_dtype):
@@ -206,14 +202,12 @@ class FactorTestCase(BasePipelineTestCase):
         }
 
         def check(terms):
-            graph = TermGraph(terms)
-            results = self.run_graph(
-                graph,
+            self.check_terms(
+                terms,
+                expected={name: expected_ranks[name] for name in terms},
                 initial_workspace={f: data},
                 mask=self.build_mask(ones((5, 5))),
             )
-            for method in terms:
-                check_arrays(results[method], expected_ranks[method])
 
         check({meth: f.rank(method=meth) for meth in expected_ranks})
         check({
@@ -265,14 +259,12 @@ class FactorTestCase(BasePipelineTestCase):
         }
 
         def check(terms):
-            graph = TermGraph(terms)
-            results = self.run_graph(
-                graph,
+            self.check_terms(
+                terms,
+                expected={name: expected_ranks[name] for name in terms},
                 initial_workspace={f: data},
                 mask=self.build_mask(ones((5, 5))),
             )
-            for method in terms:
-                check_arrays(results[method], expected_ranks[method])
 
         check({
             meth: f.rank(method=meth, ascending=False)
@@ -294,14 +286,12 @@ class FactorTestCase(BasePipelineTestCase):
         mask_data = ~eye(5, dtype=bool)
         initial_workspace = {f: data, Mask(): mask_data}
 
-        graph = TermGraph(
-            {
-                "ascending_nomask": f.rank(ascending=True),
-                "ascending_mask": f.rank(ascending=True, mask=Mask()),
-                "descending_nomask": f.rank(ascending=False),
-                "descending_mask": f.rank(ascending=False, mask=Mask()),
-            }
-        )
+        terms = {
+            "ascending_nomask": f.rank(ascending=True),
+            "ascending_mask": f.rank(ascending=True, mask=Mask()),
+            "descending_nomask": f.rank(ascending=False),
+            "descending_mask": f.rank(ascending=False, mask=Mask()),
+        }
 
         expected = {
             "ascending_nomask": array([[1., 3., 4., 5., 2.],
@@ -328,13 +318,12 @@ class FactorTestCase(BasePipelineTestCase):
                                       [4., 3., 2., 1., nan]]),
         }
 
-        results = self.run_graph(
-            graph,
+        self.check_terms(
+            terms,
+            expected,
             initial_workspace,
             mask=self.build_mask(ones((5, 5))),
         )
-        for method in results:
-            check_arrays(expected[method], results[method])
 
     @for_each_factor_dtype
     def test_grouped_rank_ascending(self, name, factor_dtype=float64_dtype):
@@ -363,7 +352,7 @@ class FactorTestCase(BasePipelineTestCase):
             missing_value=None,
         )
 
-        expected_grouped_ranks = {
+        expected_ranks = {
             'ordinal': array(
                 [[1., 1., 3., 2., 2.],
                  [1., 2., 3., 1., 2.],
@@ -402,9 +391,9 @@ class FactorTestCase(BasePipelineTestCase):
         }
 
         def check(terms):
-            graph = TermGraph(terms)
-            results = self.run_graph(
-                graph,
+            self.check_terms(
+                terms,
+                expected={name: expected_ranks[name] for name in terms},
                 initial_workspace={
                     f: data,
                     c: classifier_data,
@@ -413,25 +402,22 @@ class FactorTestCase(BasePipelineTestCase):
                 mask=self.build_mask(ones((5, 5))),
             )
 
-            for method in terms:
-                check_arrays(results[method], expected_grouped_ranks[method])
-
         # Not specifying the value of ascending param should default to True
         check({
             meth: f.rank(method=meth, groupby=c)
-            for meth in expected_grouped_ranks
+            for meth in expected_ranks
         })
         check({
             meth: f.rank(method=meth, groupby=str_c)
-            for meth in expected_grouped_ranks
+            for meth in expected_ranks
         })
         check({
             meth: f.rank(method=meth, groupby=c, ascending=True)
-            for meth in expected_grouped_ranks
+            for meth in expected_ranks
         })
         check({
             meth: f.rank(method=meth, groupby=str_c, ascending=True)
-            for meth in expected_grouped_ranks
+            for meth in expected_ranks
         })
 
         # Not passing a method should default to ordinal
@@ -468,7 +454,7 @@ class FactorTestCase(BasePipelineTestCase):
             missing_value=None,
         )
 
-        expected_grouped_ranks = {
+        expected_ranks = {
             'ordinal': array(
                 [[2., 2., 1., 1., 3.],
                  [2., 1., 1., 2., 3.],
@@ -507,9 +493,9 @@ class FactorTestCase(BasePipelineTestCase):
         }
 
         def check(terms):
-            graph = TermGraph(terms)
-            results = self.run_graph(
-                graph,
+            self.check_terms(
+                terms,
+                expected={name: expected_ranks[name] for name in terms},
                 initial_workspace={
                     f: data,
                     c: classifier_data,
@@ -518,16 +504,13 @@ class FactorTestCase(BasePipelineTestCase):
                 mask=self.build_mask(ones((5, 5))),
             )
 
-            for method in terms:
-                check_arrays(results[method], expected_grouped_ranks[method])
-
         check({
             meth: f.rank(method=meth, groupby=c, ascending=False)
-            for meth in expected_grouped_ranks
+            for meth in expected_ranks
         })
         check({
             meth: f.rank(method=meth, groupby=str_c, ascending=False)
-            for meth in expected_grouped_ranks
+            for meth in expected_ranks
         })
 
         # Not passing a method should default to ordinal
@@ -707,9 +690,9 @@ class FactorTestCase(BasePipelineTestCase):
         expected['grouped_str'] = expected['grouped']
         expected['grouped_masked_str'] = expected['grouped_masked']
 
-        graph = TermGraph(terms)
-        results = self.run_graph(
-            graph,
+        self.check_terms(
+            terms,
+            expected,
             initial_workspace={
                 f: factor_data,
                 c: classifier_data,
@@ -717,19 +700,12 @@ class FactorTestCase(BasePipelineTestCase):
                 m: filter_data,
             },
             mask=self.build_mask(self.ones_mask(shape=factor_data.shape)),
+            # The hand-computed values aren't very precise (in particular,
+            # we truncate repeating decimals at 3 places) This is just
+            # asserting that the example isn't misleading by being totally
+            # wrong.
+            check=partial(check_allclose, atol=0.001),
         )
-
-        for key, (res, exp) in dzip_exact(results, expected).items():
-            check_allclose(
-                res,
-                exp,
-                # The hand-computed values aren't very precise (in particular,
-                # we truncate repeating decimals at 3 places) This is just
-                # asserting that the example isn't misleading by being totally
-                # wrong.
-                atol=0.001,
-                err_msg="Mismatch for %r" % key
-            )
 
     @parameter_space(
         seed_value=range(1, 2),

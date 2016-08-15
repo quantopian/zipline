@@ -5,7 +5,7 @@ from networkx import (
     DiGraph,
     topological_sort,
 )
-from six import itervalues, iteritems
+from six import iteritems
 from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
@@ -18,7 +18,112 @@ class CyclicDependency(Exception):
 
 class TermGraph(DiGraph):
     """
-    Graph represention of Pipeline Term dependencies.
+    An abstract representation of Pipeline Term dependencies.
+
+    This class does not keep any additional metadata about any term relations
+    other than dependency ordering.  As such it is only useful in contexts
+    where you care exclusively about order properties (for example, when
+    drawing visualizations of execution order).
+
+    Parameters
+    ----------
+    terms : dict
+        A dict mapping names to final output terms.
+
+    Attributes
+    ----------
+    outputs
+
+    Methods
+    -------
+    ordered()
+        Return a topologically-sorted iterator over the terms in self.
+
+    See Also
+    --------
+    ExecutionPlan
+    """
+    def __init__(self, terms):
+        super(TermGraph, self).__init__()
+
+        self._frozen = False
+        parents = set()
+        for name, term in iteritems(terms):
+            self._add_to_graph(term, parents)
+            # No parents should be left between top-level terms.
+            assert not parents
+
+        self._outputs = terms
+        self._ordered = topological_sort(self)
+
+        # Mark that no more terms should be added to the graph.
+        self._frozen = True
+
+    def _add_to_graph(self, term, parents):
+        """
+        Add a term and all its children to ``graph``.
+
+        ``parents`` is the set of all the parents of ``term` that we've added
+        so far. It is only used to detect dependency cycles.
+        """
+        if self._frozen:
+            raise ValueError(
+                "Can't mutate %s after construction." % type(self).__name__
+            )
+
+        # If we've seen this node already as a parent of the current traversal,
+        # it means we have an unsatisifiable dependency.  This should only be
+        # possible if the term's inputs are mutated after construction.
+        if term in parents:
+            raise CyclicDependency(term)
+
+        parents.add(term)
+
+        self.add_node(term)
+
+        for dependency in term.dependencies:
+            self._add_to_graph(dependency, parents)
+            self.add_edge(dependency, term)
+
+        parents.remove(term)
+
+    @property
+    def outputs(self):
+        """
+        Dict mapping names to designated output terms.
+        """
+        return self._outputs
+
+    def ordered(self):
+        """
+        Return a topologically-sorted iterator over the terms in `self`.
+        """
+        return iter(self._ordered)
+
+    @lazyval
+    def loadable_terms(self):
+        return tuple(term for term in self if isinstance(term, LoadableTerm))
+
+    @lazyval
+    def jpeg(self):
+        return display_graph(self, 'jpeg')
+
+    @lazyval
+    def png(self):
+        return display_graph(self, 'png')
+
+    @lazyval
+    def svg(self):
+        return display_graph(self, 'svg')
+
+    def _repr_png_(self):
+        return self.png.data
+
+
+class ExecutionPlan(TermGraph):
+    """
+    Graph represention of Pipeline Term dependencies that includes metadata
+    about extra rows required to perform computations.
 
     Each node in the graph has an `extra_rows` attribute, indicating how many,
     if any, extra rows we should compute for the node.  Extra rows are most
@@ -30,6 +135,8 @@ class TermGraph(DiGraph):
     ----------
     terms : dict
         A dict mapping names to final output terms.
+    all_dates : pd.DatetimeIndex
+        The dates fo
 
     Attributes
     ----------
@@ -42,21 +149,58 @@ class TermGraph(DiGraph):
     ordered()
         Return a topologically-sorted iterator over the terms in self.
     """
-    def __init__(self, terms):
-        super(TermGraph, self).__init__(self)
+    def __init__(self,
+                 terms,
+                 all_dates,
+                 start_date,
+                 end_date,
+                 min_extra_rows=0):
+        super(ExecutionPlan, self).__init__(terms)
 
-        self._frozen = False
-        parents = set()
-        for term in itervalues(terms):
-            self._add_to_graph(term, parents, extra_rows=0)
-            # No parents should be left between top-level terms.
-            assert not parents
+        for term in terms.values():
+            self.set_extra_rows(
+                term,
+                all_dates,
+                start_date,
+                end_date,
+                min_extra_rows=min_extra_rows,
+            )
 
-        self._outputs = terms
-        self._ordered = topological_sort(self)
+    def set_extra_rows(self,
+                       term,
+                       all_dates,
+                       start_date,
+                       end_date,
+                       min_extra_rows):
+        """
+        Compute ``extra_rows`` for transitive dependencies of ``root_terms``
+        """
+        # A term can require that additional extra rows beyond the minimum be
+        # computed.  This is most often used with downsampled terms, which need
+        # to ensure that the first date is a computation date.
+        extra_rows_for_term = term.compute_extra_rows(
+            all_dates,
+            start_date,
+            end_date,
+            min_extra_rows,
+        )
+        if extra_rows_for_term < min_extra_rows:
+            raise ValueError(
+                "term %s requested fewer rows than the minimum of %d" % (
+                    term, min_extra_rows,
+                )
+            )
 
-        # Mark that no more terms should be added to the graph.
-        self._frozen = True
+        self._ensure_extra_rows(term, extra_rows_for_term)
+
+        for dependency, additional_extra_rows in term.dependencies.items():
+            self.set_extra_rows(
+                dependency,
+                all_dates,
+                start_date,
+                end_date,
+                min_extra_rows=extra_rows_for_term + additional_extra_rows,
+            )
 
     @lazyval
     def offset(self):
@@ -175,71 +319,9 @@ class TermGraph(DiGraph):
             for term, attrs in iteritems(self.node)
         }
 
-    @property
-    def outputs(self):
-        """
-        Dict mapping names to designated output terms.
-        """
-        return self._outputs
-
-    def ordered(self):
-        """
-        Return a topologically-sorted iterator over the terms in `self`.
-        """
-        return iter(self._ordered)
-
-    @lazyval
-    def loadable_terms(self):
-        return tuple(term for term in self if isinstance(term, LoadableTerm))
-
-    def _add_to_graph(self, term, parents, extra_rows):
-        """
-        Add `term` and all its inputs to the graph.
-        """
-        if self._frozen:
-            raise ValueError("Can't mutate `TermGraph` after construction.")
-        # If we've seen this node already as a parent of the current traversal,
-        # it means we have an unsatisifiable dependency.  This should only be
-        # possible if the term's inputs are mutated after construction.
-        if term in parents:
-            raise CyclicDependency(term)
-        parents.add(term)
-
-        # Idempotent if term is already in the graph.
-        self.add_node(term)
-
-        # Make sure we're going to compute at least `extra_rows` of `term`.
-        self._ensure_extra_rows(term, extra_rows)
-
-        # Recursively add dependencies.
-        for dependency, additional_extra_rows in term.dependencies.items():
-            self._add_to_graph(
-                dependency,
-                parents,
-                extra_rows=extra_rows + additional_extra_rows,
-            )
-            self.add_edge(dependency, term)
-
-        parents.remove(term)
-
     def _ensure_extra_rows(self, term, N):
         """
         Ensure that we're going to compute at least N extra rows of `term`.
         """
         attrs = self.node[term]
         attrs['extra_rows'] = max(N, attrs.get('extra_rows', 0))
-
-    @lazyval
-    def jpeg(self):
-        return display_graph(self, 'jpeg')
-
-    @lazyval
-    def png(self):
-        return display_graph(self, 'png')
-
-    @lazyval
-    def svg(self):
-        return display_graph(self, 'svg')
-
-    def _repr_png_(self):
-        return self.png.data

@@ -2,9 +2,9 @@
 from zipline.errors import UnsupportedPipelineOutput
 from zipline.utils.input_validation import expect_types, optional
 
-from .term import AssetExists, ComputableTerm, Term
+from .graph import ExecutionPlan, TermGraph
 from .filters import Filter
-from .graph import TermGraph
+from .term import AssetExists, ComputableTerm, Term
 
 
 class Pipeline(object):
@@ -148,9 +148,39 @@ class Pipeline(object):
             )
         self._screen = screen
 
-    def to_graph(self, screen_name, default_screen):
+    def to_execution_plan(self,
+                          screen_name,
+                          default_screen,
+                          all_dates,
+                          start_date,
+                          end_date):
         """
-        Compile into a TermGraph.
+        Compile into an ExecutionPlan.
+
+        Parameters
+        ----------
+        screen_name : str
+            Name to supply for self.screen.
+        default_screen : zipline.pipeline.term.Term
+            Term to use as a screen if self.screen is None.
+        all_dates : pd.DatetimeIndex
+            A calendar of dates to use to calculate starts and ends for each
+            term.
+        start_date : pd.Timestamp
+            The first date of requested output.
+        end_date : pd.Timestamp
+            The last date of requested output.
+        """
+        return ExecutionPlan(
+            self._prepare_graph_terms(screen_name, default_screen),
+            all_dates,
+            start_date,
+            end_date,
+        )
+
+    def to_simple_graph(self, screen_name, default_screen):
+        """
+        Compile into a simple TermGraph with no extra row metadata.
 
         Parameters
         ----------
@@ -159,13 +189,16 @@ class Pipeline(object):
         default_screen : zipline.pipeline.term.Term
             Term to use as a screen if self.screen is None.
         """
+        return TermGraph(self._prepare_graph_terms())
+
+    def _prepare_graph_terms(self, screen_name, default_screen):
+        """Helper for to_graph and to_execution_plan."""
         columns = self.columns.copy()
         screen = self.screen
         if screen is None:
             screen = default_screen
         columns[screen_name] = screen
-
-        return TermGraph(columns)
+        return columns
 
     def show_graph(self, format='svg'):
         """
@@ -176,7 +209,7 @@ class Pipeline(object):
         format : {'svg', 'png', 'jpeg'}
             Image format to render with.  Default is 'svg'.
         """
-        g = self.to_graph('', AssetExists())
+        g = self.to_simple_graph('', AssetExists())
         if format == 'svg':
             return g.svg
         elif format == 'png':

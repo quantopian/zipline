@@ -21,7 +21,7 @@ from zipline.errors import NoFurtherDataError
 from zipline.utils.numpy_utils import repeat_first_axis, repeat_last_axis
 from zipline.utils.pandas_utils import explode
 
-from .term import AssetExists, LoadableTerm
+from .term import AssetExists, InputDates, LoadableTerm
 
 
 class PipelineEngine(with_metaclass(ABCMeta)):
@@ -98,6 +98,7 @@ class SimplePipelineEngine(object):
         '_calendar',
         '_finder',
         '_root_mask_term',
+        '_root_mask_dates_term',
         '__weakref__',
     )
 
@@ -105,7 +106,9 @@ class SimplePipelineEngine(object):
         self._get_loader = get_loader
         self._calendar = calendar
         self._finder = asset_finder
+
         self._root_mask_term = AssetExists()
+        self._root_mask_dates_term = InputDates()
 
     def run_pipeline(self, pipeline, start_date, end_date):
         """
@@ -161,7 +164,13 @@ class SimplePipelineEngine(object):
             )
 
         screen_name = uuid4().hex
-        graph = pipeline.to_graph(screen_name, self._root_mask_term)
+        graph = pipeline.to_execution_plan(
+            screen_name,
+            self._root_mask_term,
+            self._calendar,
+            start_date,
+            end_date,
+        )
         extra_rows = graph.extra_rows[self._root_mask_term]
         root_mask = self._compute_root_mask(start_date, end_date, extra_rows)
         dates, assets, root_mask_values = explode(root_mask)
@@ -170,7 +179,10 @@ class SimplePipelineEngine(object):
             graph,
             dates,
             assets,
-            initial_workspace={self._root_mask_term: root_mask_values},
+            initial_workspace={
+                self._root_mask_term: root_mask_values,
+                self._root_mask_dates_term: dates.values[:, None],
+            },
         )
 
         return self._to_narrow(
