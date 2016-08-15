@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from abc import ABCMeta, abstractmethod, abstractproperty
 import json
 import os
 from os.path import join
@@ -22,6 +23,7 @@ from bcolz import ctable
 from intervaltree import IntervalTree
 import numpy as np
 import pandas as pd
+from six import with_metaclass
 
 from zipline.data._minute_bar_internal import (
     minute_value,
@@ -47,6 +49,102 @@ class BcolzMinuteOverlappingData(Exception):
 
 class BcolzMinuteWriterColumnMismatch(Exception):
     pass
+
+
+class MinuteBarReader(with_metaclass(ABCMeta)):
+
+    @abstractproperty
+    def last_available_dt(self):
+        """
+        Returns
+        -------
+        dt : pd.Timestamp
+            The last minute for which the reader can provide data.
+        """
+        pass
+
+    @abstractproperty
+    def first_trading_day(self):
+        """
+        Returns
+        -------
+        dt : pd.Timestamp
+            The first trading day (session) for which the reader can provide
+            data.
+        """
+        pass
+
+    @abstractmethod
+    def get_value(self, sid, dt, field):
+        """
+        Retrieve the value at the given coordinates.
+
+        Parameters
+        ----------
+        sid : int
+            The asset identifier.
+        dt : pd.Timestamp
+            The minute label for the desired data point.
+        field : string
+            The OHLVC name for the desired data point.
+
+        Returns
+        -------
+        value : float|int
+            The value at the given coordinates, ``float`` for OHLC, ``int``
+            for 'volume'.
+        """
+        pass
+
+    @abstractmethod
+    def get_last_traded_dt(self, asset, dt):
+        """
+        Get the latest minute on or before ``dt`` in which ``asset`` traded.
+
+        If there are no trades on or before ``dt`` returns ``pd.NaT``
+
+        Parameters
+        ----------
+        asset : zipline.asset.Asset
+            The asset for which to get the last traded minute.
+        dt : pd.Timestamp
+            The minute at which to start searching for the last traded minute.
+
+        Returns
+        -------
+        last_traded : pd.Timestamp
+            The minute of the last trade for the given asset, using the input
+            dt as a vantage point.
+        """
+        pass
+
+    @abstractmethod
+    def load_raw_arrays(self, fields, start_dt, end_dt, sids):
+        """
+        Retrieve the arrays of pricing data for the given coordinates of
+        ``fields`` (OHLCV), minute range [``start_dt``, ``end_dt``] and sids.
+
+        Parameters
+        ----------
+        fields : iterable of str
+            The OHLCV fields ('open', 'high', 'low', 'close', 'volume') for
+            which to read data.
+        start_dt : pd.Timestamp
+            The first minute of the date range for which to read data.
+        end_dt : pd.Timestamp
+            The last minute of the date range for which to read data.
+        sids : iterable of int
+            The sid identifiers for which to retrieve data.
+
+        Returns
+        -------
+        raw_arrays : list of ndarray
+            A list where each item corresponds with the fields in the order
+            the fields are given.
+            Each item is a 2D array with a shape of (minutes_in_range, sids)
+            The OHLC arrays are floats; the 'volume' array is ints.
+        """
+        pass
 
 
 def _calc_minute_index(market_opens, minutes_per_day):
@@ -664,7 +762,7 @@ class BcolzMinuteBarWriter(object):
         table.flush()
 
 
-class BcolzMinuteBarReader(object):
+class BcolzMinuteBarReader(MinuteBarReader):
     """
     Reader for data written by BcolzMinuteBarWriter
 
