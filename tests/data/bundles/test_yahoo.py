@@ -20,11 +20,8 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
     columns = 'open', 'high', 'low', 'close', 'volume'
     asset_start = pd.Timestamp('2014-01-02', tz='utc')
     asset_end = pd.Timestamp('2014-12-31', tz='utc')
-    trading_days = get_calendar('NYSE').all_sessions
-    calendar = trading_days[
-        (trading_days >= asset_start) &
-        (trading_days <= asset_end)
-    ]
+    calendar = get_calendar('NYSE')
+    sessions = calendar.sessions_in_range(asset_start, asset_end)
 
     @classmethod
     def init_class_fixtures(cls):
@@ -157,11 +154,12 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
                 adjustments_callback,
             )
 
-        cal = self.calendar
         self.register(
             'bundle',
             yahoo_equities(self.symbols),
-            calendar=cal,
+            calendar=self.calendar,
+            start_session=self.asset_start,
+            end_session=self.asset_end,
         )
 
         zipline_root = self.enter_instance_context(tmp_dir()).path
@@ -181,10 +179,11 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
             assert_equal(equity.start_date, self.asset_start, msg=equity)
             assert_equal(equity.end_date, self.asset_end, msg=equity)
 
+        sessions = self.sessions
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             self.columns,
-            cal[cal.get_loc(self.asset_start, 'bfill')],
-            cal[cal.get_loc(self.asset_end, 'ffill')],
+            sessions[sessions.get_loc(self.asset_start, 'bfill')],
+            sessions[sessions.get_loc(self.asset_end, 'ffill')],
             sids,
         )
         expected_pricing, expected_adjustments = self._expected_data()
@@ -192,7 +191,7 @@ class YahooBundleTestCase(WithResponses, ZiplineTestCase):
 
         adjustments_for_cols = bundle.adjustment_reader.load_adjustments(
             self.columns,
-            cal,
+            self.sessions,
             pd.Index(sids),
         )
 

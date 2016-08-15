@@ -61,6 +61,8 @@ def yahoo_equities(symbols, start=None, end=None):
                daily_bar_writer,
                adjustment_writer,
                calendar,
+               start_session,
+               end_session,
                cache,
                show_progress,
                output_dir,
@@ -68,7 +70,7 @@ def yahoo_equities(symbols, start=None, end=None):
                start=start,
                end=end):
         if start is None:
-            start = calendar[0]
+            start = start_session
         if end is None:
             end = None
 

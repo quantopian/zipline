@@ -234,11 +234,11 @@ def gen_symbol_data(api_key,
                     cache,
                     symbol_map,
                     calendar,
+                    start_session,
+                    end_session,
                     splits,
                     dividends,
                     retries):
-    start_date = calendar[0]
-    end_date = calendar[-1]
     for asset_id, symbol in symbol_map.iteritems():
         start_time = time()
         try:
@@ -250,16 +250,18 @@ def gen_symbol_data(api_key,
             raw_data = cache[symbol] = fetch_single_equity(
                 api_key,
                 symbol,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_session,
+                end_date=end_session,
             )
             should_sleep = True
 
         _update_splits(splits, asset_id, raw_data)
         _update_dividends(dividends, asset_id, raw_data)
 
+        sessions = calendar.sessions_in_range(start_session, end_session)
+
         raw_data = raw_data.reindex(
-            calendar.tz_localize(None),
+            sessions.tz_localize(None),
             copy=False,
         ).fillna(0.0)
         yield asset_id, raw_data
@@ -277,6 +279,8 @@ def quandl_bundle(environ,
                   daily_bar_writer,
                   adjustment_writer,
                   calendar,
+                  start_session,
+                  end_session,
                   cache,
                   show_progress,
                   output_dir):
@@ -301,6 +305,8 @@ def quandl_bundle(environ,
             cache,
             symbol_map,
             calendar,
+            start_session,
+            end_session,
             splits,
             dividends,
             environ.get('QUANDL_DOWNLOAD_ATTEMPTS', 5),
@@ -378,6 +384,8 @@ def quantopian_quandl_bundle(environ,
                              daily_bar_writer,
                              adjustment_writer,
                              calendar,
+                             start_session,
+                             end_session,
                              cache,
                              show_progress,
                              output_dir):
