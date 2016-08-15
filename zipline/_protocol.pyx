@@ -467,9 +467,11 @@ cdef class BarData:
             # asset isn't alive
             return False
 
-        if not asset.is_exchange_open(dt):
-            # exchange isn't open
-            return False
+        # FIXME temporarily commenting out while we sort out some downstream
+        # dependencies
+        # if not asset.is_exchange_open(dt):
+        #     # exchange isn't open
+        #     return False
 
         if isinstance(asset, Future):
             # FIXME: this will get removed once we can get prices for futures
