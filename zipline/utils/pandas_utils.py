@@ -96,3 +96,53 @@ def mask_between_time(dts, start, end, include_start=True, include_end=True):
         left_op(start_micros, time_micros),
         right_op(time_micros, end_micros),
     )
+
+
+def nearest_unequal_elements(dts, dt):
+    """
+    Find values in ``dts`` closest but not equal to ``dt``.
+
+    Returns a pair of (last_before, first_after).
+
+    When ``dt`` is less than any element in ``dts``, ``last_before`` is None.
+    When ``dt`` is greater any element in ``dts``, ``first_after`` is None.
+
+    ``dts`` must be unique and sorted in increasing order.
+
+    Parameters
+    ----------
+    dts : pd.DatetimeIndex
+        Dates in which to search.
+    dt : pd.Timestamp
+        Date for which to find bounds.
+    """
+    if not dts.is_unique:
+        raise ValueError("dts must be unique")
+
+    if not dts.is_monotonic_increasing:
+        raise ValueError("dts must be sorted in increasing order")
+
+    if not len(dts):
+        return None, None
+
+    sortpos = dts.searchsorted(dt, side='left')
+    try:
+        sortval = dts[sortpos]
+    except IndexError:
+        # dt is greater than any value in the array.
+        return dts[-1], None
+
+    if dt < sortval:
+        lower_ix = sortpos - 1
+        upper_ix = sortpos
+    elif dt == sortval:
+        lower_ix = sortpos - 1
+        upper_ix = sortpos + 1
+    else:
+        lower_ix = sortpos
+        upper_ix = sortpos + 1
+
+    lower_value = dts[lower_ix] if lower_ix >= 0 else None
+    upper_value = dts[upper_ix] if upper_ix < len(dts) else None
+
+    return lower_value, upper_value
