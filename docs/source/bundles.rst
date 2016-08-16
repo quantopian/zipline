@@ -302,20 +302,21 @@ have.
 ``calendar``
 ````````````
 
-``calendar`` is an instance of ``zipline.utils.calendars.TradingCalendar``. The
-calendar is provided to help some bundles generate queries for the days needed.
+``calendar`` is an instance of
+:class:`zipline.utils.calendars.TradingCalendar`. The calendar is provided to
+help some bundles generate queries for the days needed.
 
 ``start_session``
 ````````````
 
-``start_session`` is a ``pandas.Timestamp`` object indicating the first day
-that the bundle should load data for.
+``start_session`` is a :class:`pandas.Timestamp` object indicating the first
+day that the bundle should load data for.
 
 ``end_session``
 ````````````
 
-``end_session`` is a ``pandas.Timestamp`` object indicating the last day that
-the bundle should load data for.
+``end_session`` is a :class:`pandas.Timestamp` object indicating the last day
+that the bundle should load data for.
 
 ``cache``
 `````````
