@@ -18,7 +18,11 @@ from toolz.curried.operator import getitem
 
 from zipline.lib.adjusted_array import ensure_adjusted_array, ensure_ndarray
 from zipline.errors import NoFurtherDataError
-from zipline.utils.numpy_utils import repeat_first_axis, repeat_last_axis
+from zipline.utils.numpy_utils import (
+    as_column,
+    repeat_first_axis,
+    repeat_last_axis,
+)
 from zipline.utils.pandas_utils import explode
 
 from .term import AssetExists, InputDates, LoadableTerm
@@ -181,7 +185,7 @@ class SimplePipelineEngine(object):
             assets,
             initial_workspace={
                 self._root_mask_term: root_mask_values,
-                self._root_mask_dates_term: dates.values[:, None],
+                self._root_mask_dates_term: as_column(dates.values)
             },
         )
 
