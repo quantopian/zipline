@@ -1,3 +1,4 @@
+import blaze as bz
 import itertools
 import numpy as np
 import pandas as pd
@@ -9,6 +10,10 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.loaders.blaze.estimates import (
+    BlazeNextEstimatesLoader,
+    BlazePreviousEstimatesLoader
+)
 from zipline.pipeline.loaders.quarter_estimates import (
     FISCAL_QUARTER,
     NextQuartersEstimatesLoader,
@@ -195,6 +200,19 @@ class NextEstimateTestCase(EstimateTestCase):
                     assert sid_estimates.iloc[i].isnull().all()
 
 
+class BlazeNextEstimateLoaderTestCase(NextEstimateTestCase):
+    """
+    Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
+    """
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazeNextEstimatesLoader(
+            bz.data(events),
+            columns,
+        )
+
+
 class PreviousEstimateTestCase(EstimateTestCase):
     @classmethod
     def make_loader(cls, events, columns):
@@ -258,6 +276,19 @@ class PreviousEstimateTestCase(EstimateTestCase):
                         assert_equal(expected_value, computed_value)
                 else:
                     assert sid_estimates.iloc[i].isnull().all()
+
+
+class BlazePreviousEstimateLoaderTestCase(PreviousEstimateTestCase):
+    """
+    Run the same tests as EventsLoaderTestCase, but using a BlazeEventsLoader.
+    """
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return BlazePreviousEstimatesLoader(
+            bz.data(events),
+            columns,
+        )
 
 
 class QuarterShiftTestCase(ZiplineTestCase):

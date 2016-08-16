@@ -2,7 +2,6 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.utils.pandas_utils import mask_between_time
 
 

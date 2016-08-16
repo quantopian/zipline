@@ -188,7 +188,6 @@ class EventsLoader(PipelineLoader):
             mask=mask,
         )
 
-
     def _load_events(self, name_map, indexer, columns, dates, sids, mask):
         def to_frame(array):
             return pd.DataFrame(array, index=dates, columns=sids)
@@ -204,7 +203,6 @@ class EventsLoader(PipelineLoader):
             loader = DataFrameLoader(c, to_frame(raw), adjustments=None)
             out[c] = loader.load_adjusted_array([c], dates, sids, mask)[c]
         return out
-
 
     def load_adjusted_array(self, columns, dates, sids, mask):
         n, p = self.split_next_and_previous_event_columns(columns)

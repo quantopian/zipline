@@ -186,7 +186,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             final_releases_per_qtr = estimates_all_dates[
                 estimates_all_dates[TS_FIELD_NAME] <=
                 estimates_all_dates.dates
-            ].sort([TS_FIELD_NAME]).groupby(
+            ].sort_by([TS_FIELD_NAME]).groupby(
                 [SIMULTATION_DATES,
                  SID_FIELD_NAME,
                  FISCAL_YEAR,
@@ -261,7 +261,7 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
             final_releases_per_qtr[SIMULTATION_DATES]
         ]
         # For each sid, get the latest release.
-        eligible_previous_releases.sort(EVENT_DATE_FIELD_NAME)
+        eligible_previous_releases.sort_by(EVENT_DATE_FIELD_NAME)
         previous_releases = eligible_previous_releases.groupby(
             [SIMULTATION_DATES, SID_FIELD_NAME]
         ).nth(-1).reset_index()  # We use nth here to avoid forward filling
