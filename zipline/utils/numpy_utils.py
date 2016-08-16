@@ -11,8 +11,11 @@ from numpy import (
     broadcast,
     busday_count,
     datetime64,
+    diff,
     dtype,
     empty,
+    flatnonzero,
+    hstack,
     nan,
     vectorize,
     where
@@ -397,3 +400,33 @@ def as_column(a):
             "but got an array of shape %s" % a.shape
         )
     return a[:, None]
+
+
+def changed_locations(a, include_first):
+    """
+    Compute indices of values in ``a`` that differ from the previous value.
+
+    Parameters
+    ----------
+    a : np.ndarray
+        The array on which to indices of change.
+    include_first : bool
+        Whether or not to consider the first index of the array as "changed".
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> changed_locations(np.array([0, 0, 5, 5, 1, 1]), include_first=False)
+    array([2, 4])
+
+    >>> changed_locations(np.array([0, 0, 5, 5, 1, 1]), include_first=True)
+    array([0, 2, 4])
+    """
+    if a.ndim > 1:
+        raise ValueError("indices_of_changed_values only supports 1D arrays.")
+    indices = flatnonzero(diff(a)) + 1
+
+    if not include_first:
+        return indices
+
+    return hstack([[0], indices])
