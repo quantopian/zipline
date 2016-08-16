@@ -30,7 +30,6 @@ from .core import (  # noqa
     make_test_handler,
     make_trade_data_for_asset_info,
     parameter_space,
-    parameter_space,
     patch_os_environment,
     patch_read_csv,
     permute_rows,
