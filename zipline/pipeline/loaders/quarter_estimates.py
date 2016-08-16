@@ -50,9 +50,9 @@ def calc_forward_shift(yrs, qtrs, num_qtrs_shift):
     result_years = yrs + (qtrs + num_qtrs_shift) // 4
     # When we get 0, this actually means we're in Q1 of the previous year,
     # so we need to adjust.
-    to_adjust = result_qtrs[result_qtrs == 0].index
-    result_years.iloc[to_adjust] -= 1
-    result_qtrs.iloc[to_adjust] = 4
+    to_adjust = result_qtrs[result_qtrs == 0]
+    result_years.iloc[to_adjust.index] -= 1
+    result_qtrs.iloc[to_adjust.index] = 4
     return result_years, result_qtrs
 
 
@@ -86,14 +86,15 @@ def calc_backward_shift(yrs, qtrs, num_qtrs_shift):
     result_years = yrs - (num_qtrs_shift - qtrs) // 4 - 1
     # Find cases where we aren't shifting enough quarters backwards to cross
     # a year boundary and correct for these.
-    no_yr_boundary_crossed = qtrs[qtrs > num_qtrs_shift].index
+    no_yr_boundary_crossed = qtrs[qtrs > num_qtrs_shift]
     # Set the year back to the original.
-    result_years.iloc[no_yr_boundary_crossed] = yrs.iloc[
-        no_yr_boundary_crossed
-    ]
-    result_qtrs.iloc[no_yr_boundary_crossed] = qtrs.iloc[
-                                                   no_yr_boundary_crossed
-                                               ] - num_qtrs_shift
+    # cast to tuple is a temporary workaround for a pandas 0.16.1 bug.
+    result_years.iloc[
+        tuple([no_yr_boundary_crossed.index])
+    ] = yrs.iloc[no_yr_boundary_crossed.index]
+    result_qtrs.iloc[
+        tuple([no_yr_boundary_crossed.index])
+    ] = qtrs.iloc[no_yr_boundary_crossed.index] - num_qtrs_shift
     return result_years, result_qtrs
 
 
@@ -172,9 +173,9 @@ class QuarterEstimatesLoader(PipelineLoader):
         date_values = pd.DataFrame({SIMULTATION_DATES: dates})
         # dates column must be of type datetime64[ns] in order for subsequent
         # comparisons to work correctly.
-        date_values[SIMULTATION_DATES] = pd.to_datetime(date_values[
+        date_values[SIMULTATION_DATES] = date_values[
             SIMULTATION_DATES
-        ])
+        ].astype('datetime64[ns]')
         estimates_all_dates = cross_product(date_values, self.estimates)
         asset_df = pd.DataFrame({SID_FIELD_NAME: assets})
         dates_sids = cross_product(date_values, asset_df)
@@ -191,7 +192,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             final_releases_per_qtr = estimates_all_dates[
                 estimates_all_dates[TS_FIELD_NAME] <=
                 estimates_all_dates.dates
-            ].sort_values([TS_FIELD_NAME]).groupby(
+            ].sort([TS_FIELD_NAME]).groupby(
                 [SIMULTATION_DATES,
                  SID_FIELD_NAME,
                  FISCAL_YEAR,
@@ -229,7 +230,7 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
             final_releases_per_qtr[SIMULTATION_DATES]
         ]
         # For each sid, get the upcoming release.
-        eligible_next_releases.sort_values(EVENT_DATE_FIELD_NAME)
+        eligible_next_releases.sort(EVENT_DATE_FIELD_NAME)
         next_releases = eligible_next_releases.groupby(
             [SIMULTATION_DATES, SID_FIELD_NAME]
         ).nth(0).reset_index()  # We use nth here to avoid forward filling
@@ -266,7 +267,7 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
             final_releases_per_qtr[SIMULTATION_DATES]
         ]
         # For each sid, get the latest release.
-        eligible_previous_releases.sort_values(EVENT_DATE_FIELD_NAME)
+        eligible_previous_releases.sort(EVENT_DATE_FIELD_NAME)
         previous_releases = eligible_previous_releases.groupby(
             [SIMULTATION_DATES, SID_FIELD_NAME]
         ).nth(-1).reset_index()  # We use nth here to avoid forward filling

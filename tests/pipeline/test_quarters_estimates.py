@@ -161,7 +161,7 @@ class NextEstimateTestCase(EstimateTestCase):
             sid_estimates = results.xs(sid, level=1)
             ts_sorted_estimates = self.events[
                 self.events[SID_FIELD_NAME] == sid
-            ].sort_values(by=[TS_FIELD_NAME])
+            ].sort(TS_FIELD_NAME)
             for i, date in enumerate(sid_estimates.index):
                 comparable_date = date.tz_localize(None)
                 # Filter out estimates we don't know about yet.
@@ -239,7 +239,7 @@ class PreviousEstimateTestCase(EstimateTestCase):
             sid_estimates = results.xs(sid, level=1)
             ts_sorted_estimates = self.events[
                 self.events[SID_FIELD_NAME] == sid
-            ].sort_values(by=[TS_FIELD_NAME])
+            ].sort(TS_FIELD_NAME)
             for i, date in enumerate(sid_estimates.index):
                 comparable_date = date.tz_localize(None)
                 # Filter out estimates we don't know about yet.
