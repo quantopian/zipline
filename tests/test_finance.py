@@ -319,7 +319,8 @@ class FinanceTestCase(WithLogger,
                     bar_data = BarData(
                         data_portal,
                         lambda: tick,
-                        sim_params.data_frequency
+                        sim_params.data_frequency,
+                        self.trading_calendar
                     )
                     txns, _, closed_orders = blotter.get_transactions(bar_data)
                     for txn in txns:

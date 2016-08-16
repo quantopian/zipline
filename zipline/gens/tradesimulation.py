@@ -88,6 +88,7 @@ class AlgorithmSimulator(object):
             data_portal=self.data_portal,
             simulation_dt_func=self.get_simulation_dt,
             data_frequency=self.sim_params.data_frequency,
+            trading_calendar=self.algo.trading_calendar,
             universe_func=universe_func
         )
 
