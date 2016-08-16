@@ -170,7 +170,11 @@ class QuarterEstimatesLoader(PipelineLoader):
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
         out = {}
         date_values = pd.DataFrame({SIMULTATION_DATES: dates})
-
+        # dates column must be of type datetime64[ns] in order for subsequent
+        # comparisons to work correctly.
+        date_values[SIMULTATION_DATES] = pd.to_datetime(date_values[
+            SIMULTATION_DATES
+        ])
         estimates_all_dates = cross_product(date_values, self.estimates)
         asset_df = pd.DataFrame({SID_FIELD_NAME: assets})
         dates_sids = cross_product(date_values, asset_df)
