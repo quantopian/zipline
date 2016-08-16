@@ -30,8 +30,6 @@ import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
 from zipline.utils.calendars import get_calendar, register_calendar
 
-nyse_cal = get_calendar('NYSE')
-
 
 def asset_db_path(bundle_name, timestr, environ=None):
     return pth.data_path(
@@ -208,9 +206,9 @@ def _make_bundle_core():
     @curry
     def register(name,
                  f,
-                 calendar=nyse_cal,
-                 start_session=nyse_cal.first_session,
-                 end_session=nyse_cal.last_session,
+                 calendar='NYSE',
+                 start_session=None,
+                 end_session=None,
                  minutes_per_day=390,
                  create_writers=True):
         """Register a data bundle ingest function.
@@ -245,9 +243,10 @@ def _make_bundle_core():
                   successful load.
               show_progress : bool
                   Show the progress for the current load where possible.
-        calendar : zipline.utils.calendars.TradingCalendar, optional
-            The exchange calendar to align the data to. This defaults to the
-            NYSE calendar.
+        calendar : zipline.utils.calendars.TradingCalendar or str, optional
+            The trading calendar to align the data to, or the name of a trading
+            calendar. This defaults to 'NYSE', in which case we use the NYSE
+            calendar.
         start_session : pd.Timestamp, optional
             The first session for which we want data.
         end_session : pd.Timestamp, optional
@@ -278,6 +277,15 @@ def _make_bundle_core():
                 'Overwriting bundle with name %r' % name,
                 stacklevel=3,
             )
+
+        if isinstance(calendar, str):
+            calendar = get_calendar(calendar)
+
+        if start_session is None:
+            start_session = calendar.first_session
+        if end_session is None:
+            end_session = calendar.last_session
+
         _bundles[name] = _BundlePayload(
             calendar,
             start_session,
@@ -473,7 +481,7 @@ def _make_bundle_core():
                 asset_db_path(name, timestr, environ=environ),
             ),
             equity_minute_bar_reader=BcolzMinuteBarReader(
-                minute_equity_path(name, timestr,  environ=environ),
+                minute_equity_path(name, timestr, environ=environ),
             ),
             equity_daily_bar_reader=BcolzDailyBarReader(
                 daily_equity_path(name, timestr, environ=environ),
