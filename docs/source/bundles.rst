@@ -305,7 +305,7 @@ have.
 ``calendar`` is an instance of ``zipline.utils.calendars.TradingCalendar``. The
 calendar is provided to help some bundles generate queries for the days needed.
 
-``calendar``
+``start_session``
 ````````````
 
 ``start_session`` is a ``pandas.Timestamp`` object indicating the first day
