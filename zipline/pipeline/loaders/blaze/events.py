@@ -2,14 +2,16 @@ from datashape import istabular
 
 from .core import (
     bind_expression_to_resources,
-    load_raw_data,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
+from zipline.pipeline.loaders.blaze.utils import load_raw_data
 from zipline.pipeline.loaders.events import (
     EventsLoader,
     required_event_fields,
 )
-from zipline.pipeline.loaders.utils import check_data_query_args
+from zipline.pipeline.loaders.utils import (
+    check_data_query_args,
+)
 from zipline.utils.input_validation import ensure_timezone, optionally
 from zipline.utils.preprocess import preprocess
 
@@ -29,7 +31,7 @@ class BlazeEventsLoader(PipelineLoader):
     data_query_time : time, optional
         The time to use for the data query cutoff.
     data_query_tz : tzinfo or str
-        The timezeone to use for the data query cutoff.
+        The timezone to use for the data query cutoff.
     dataset : DataSet
         The DataSet object for which this loader loads data.
 

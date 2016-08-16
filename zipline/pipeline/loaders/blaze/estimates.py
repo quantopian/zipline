@@ -2,14 +2,14 @@ from datashape import istabular
 
 from .core import (
     bind_expression_to_resources,
-    load_raw_data,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
-from zipline.pipeline.loaders.events import (
-    required_event_fields,
+from zipline.pipeline.loaders.blaze.utils import load_raw_data
+from zipline.pipeline.loaders.quarter_estimates import (
+    NextQuartersEstimatesLoader,
+    PreviousQuartersEstimatesLoader,
+    required_estimates_fields,
 )
-from zipline.pipeline.loaders.quarter_estimates import \
-    NextQuartersEstimatesLoader, PreviousQuartersEstimatesLoader
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
 )
@@ -47,7 +47,7 @@ class BlazeEstimatesLoader(PipelineLoader):
 
     And other dataset-specific fields, where each row of the table is a
     record including the sid to identify the company, the timestamp where we
-    learned about the announcement, and the date when the earnings will be z
+    learned about the announcement, and the date when the earnings will be
     announced.
 
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
@@ -61,8 +61,7 @@ class BlazeEstimatesLoader(PipelineLoader):
                  resources=None,
                  odo_kwargs=None,
                  data_query_time=None,
-                 data_query_tz=None,
-                 loader=None):
+                 data_query_tz=None):
 
         dshape = expr.dshape
         if not istabular(dshape):
@@ -71,7 +70,7 @@ class BlazeEstimatesLoader(PipelineLoader):
             )
 
         required_cols = list(
-            required_event_fields(columns)
+            required_estimates_fields(columns)
         )
         self._expr = bind_expression_to_resources(
             expr[required_cols],
@@ -82,15 +81,18 @@ class BlazeEstimatesLoader(PipelineLoader):
         check_data_query_args(data_query_time, data_query_tz)
         self._data_query_time = data_query_time
         self._data_query_tz = data_query_tz
-        self.loader = loader
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        raw = load_raw_data(assets, dates, self._data_query_time,
-                            self._data_query_tz, self._exp, self._odo_kwargs)
+        raw = load_raw_data(assets,
+                            dates,
+                            self._data_query_time,
+                            self._data_query_tz,
+                            self._expr,
+                            self._odo_kwargs)
 
         return self.loader(
-            events=raw,
-            next_value_columns=self._columns,
+            raw,
+            self._columns,
         ).load_adjusted_array(
             columns,
             dates,
@@ -102,38 +104,6 @@ class BlazeEstimatesLoader(PipelineLoader):
 class BlazeNextEstimatesLoader(BlazeEstimatesLoader):
     loader = NextQuartersEstimatesLoader
 
-    def __init__(self,
-                 expr,
-                 columns,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 loader=None):
-        super(BlazeNextEstimatesLoader).__init__(expr,
-                                                 columns,
-                                                 resources,
-                                                 odo_kwargs,
-                                                 data_query_time,
-                                                 data_query_tz,
-                                                 loader)
-
 
 class BlazePreviousEstimatesLoader(BlazeEstimatesLoader):
     loader = PreviousQuartersEstimatesLoader
-
-    def __init__(self,
-                 expr,
-                 columns,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None,
-                 loader=None):
-        super(BlazeNextEstimatesLoader).__init__(expr,
-                                                 columns,
-                                                 resources,
-                                                 odo_kwargs,
-                                                 data_query_time,
-                                                 data_query_tz,
-                                                 loader)
