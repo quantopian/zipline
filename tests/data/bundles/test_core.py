@@ -264,7 +264,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         # register but do not ingest data
         self.register('bundle', lambda *args: None)
 
-        ts = pd.Timestamp('2014')
+        ts = pd.Timestamp('2014', tz='UTC')
 
         with assert_raises(ValueError) as e:
             self.load('bundle', timestamp=ts, environ=self.environ)
@@ -293,8 +293,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         if not self.bundles:
             @self.register('bundle',
                            calendar=get_calendar('NYSE'),
-                           start_session=pd.Timestamp('2014'),
-                           end_session=pd.Timestamp('2014'))
+                           start_session=pd.Timestamp('2014', tz='UTC'),
+                           end_session=pd.Timestamp('2014', tz='UTC'))
             def _(environ,
                   asset_db_writer,
                   minute_bar_writer,
