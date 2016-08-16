@@ -26,7 +26,7 @@ from zipline.errors import UnknownRankMethod
 from zipline.lib.labelarray import LabelArray
 from zipline.lib.rank import masked_rankdata_2d
 from zipline.lib.normalize import naive_grouped_rowwise_apply as grouped_apply
-from zipline.pipeline import Classifier, Factor, Filter, TermGraph
+from zipline.pipeline import Classifier, Factor, Filter
 from zipline.pipeline.factors import (
     Returns,
     RSI,
@@ -37,7 +37,6 @@ from zipline.testing import (
     parameter_space,
     permute_rows,
 )
-from zipline.utils.functional import dzip_exact
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     datetime64ns_dtype,

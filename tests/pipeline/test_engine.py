@@ -228,7 +228,7 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
 
         # We shouldn't be able to compute dates[8], since we only know about 8
         # prior dates, and we need a window length of 10.
-        with self.assertRaises(NoFurtherDataError) as e:
+        with self.assertRaises(NoFurtherDataError):
             engine.run_pipeline(p, self.dates[8], self.dates[8])
 
     def test_input_dates_provided_by_default(self):
@@ -254,7 +254,6 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         # All results are the same, so just grab one column.
         column = results.unstack().iloc[:, 0].values
         check_arrays(column, self.dates[:2].values)
-
 
     def test_same_day_pipeline(self):
         loader = self.loader

@@ -5,7 +5,7 @@ from networkx import (
     DiGraph,
     topological_sort,
 )
-from six import iteritems
+from six import iteritems, itervalues
 from zipline.utils.memoize import lazyval
 from zipline.pipeline.visualize import display_graph
 
@@ -48,7 +48,7 @@ class TermGraph(DiGraph):
 
         self._frozen = False
         parents = set()
-        for name, term in iteritems(terms):
+        for term in itervalues(terms):
             self._add_to_graph(term, parents)
             # No parents should be left between top-level terms.
             assert not parents

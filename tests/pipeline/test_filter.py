@@ -26,11 +26,11 @@ from numpy import (
 from numpy.random import randn, seed as random_seed
 
 from zipline.errors import BadPercentileBounds
-from zipline.pipeline import Filter, Factor, TermGraph
+from zipline.pipeline import Filter, Factor
 from zipline.pipeline.classifiers import Classifier
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.filters import All, Any, AtLeastN
-from zipline.testing import check_arrays, parameter_space, permute_rows
+from zipline.testing import parameter_space, permute_rows
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 from .base import BasePipelineTestCase, with_default_shape
 
