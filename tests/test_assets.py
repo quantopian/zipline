@@ -523,12 +523,14 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 # sid 0
                 {
                     'symbol': 'A',
+                    'asset_name': 'Asset A',
                     'start_date': T('2014-01-01'),
                     'end_date': T('2014-01-05'),
                     'exchange': "TEST",
                 },
                 {
                     'symbol': 'B',
+                    'asset_name': 'Asset B',
                     'start_date': T('2014-01-06'),
                     'end_date': T('2014-01-10'),
                     'exchange': "TEST",
@@ -537,12 +539,14 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 # sid 1
                 {
                     'symbol': 'C',
+                    'asset_name': 'Asset C',
                     'start_date': T('2014-01-01'),
                     'end_date': T('2014-01-05'),
                     'exchange': "TEST",
                 },
                 {
                     'symbol': 'A',  # claiming the unused symbol 'A'
+                    'asset_name': 'Asset A',
                     'start_date': T('2014-01-06'),
                     'end_date': T('2014-01-10'),
                     'exchange': "TEST",
@@ -574,8 +578,9 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 finder.retrieve_asset(0),
                 msg=str(asof),
             )
-            # the symbol should always be the last symbol
+            # The symbol and asset_name should always be the last held values
             assert_equal(A_result.symbol, 'B')
+            assert_equal(A_result.asset_name, 'Asset B')
 
             # from 01 through 05 sid 1 held 'C'
             C_result = finder.lookup_symbol('C', asof)
@@ -584,8 +589,9 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 finder.retrieve_asset(1),
                 msg=str(asof),
             )
-            # the symbol should always be the last symbol
+            # The symbol and asset_name should always be the last held values
             assert_equal(C_result.symbol, 'A')
+            assert_equal(C_result.asset_name, 'Asset A')
 
         # no one held 'B' before 06
         with self.assertRaises(SymbolNotFound):
@@ -609,6 +615,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 msg=str(asof),
             )
             assert_equal(B_result.symbol, 'B')
+            assert_equal(B_result.asset_name, 'Asset B')
 
             # from 06 through 10 sid 1 held 'A'
             # we test through the 11th because sid 1 is the last to hold 'A'
@@ -620,6 +627,7 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 msg=str(asof),
             )
             assert_equal(A_result.symbol, 'A')
+            assert_equal(A_result.asset_name, 'Asset A')
 
     def test_lookup_symbol(self):
 

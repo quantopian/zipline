@@ -187,7 +187,7 @@ def _generate_output_dataframe(data_subset, defaults):
 
 
 def _check_asset_group(group):
-    row = group.iloc[0]
+    row = group.sort('end_date').iloc[-1]
     row.start_date = group.start_date.min()
     row.end_date = group.end_date.max()
     row.drop(list(symbol_columns), inplace=True)
