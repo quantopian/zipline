@@ -136,7 +136,12 @@ class ExecutionPlan(TermGraph):
     terms : dict
         A dict mapping names to final output terms.
     all_dates : pd.DatetimeIndex
-        The dates fo
+        An index of all known trading days for which ``terms`` will be
+        computed.
+    start_date : pd.Timestamp
+        The first date for which output is requested for ``terms``.
+    end_date : pd.Timestamp
+        The last date for which output is requested for ``terms``.
 
     Attributes
     ----------
@@ -281,9 +286,6 @@ class ExecutionPlan(TermGraph):
     def extra_rows(self):
         """
         A dict mapping `term` -> `# of extra rows to load/compute of `term`.
-
-        This is always the maximum number of extra **input** rows required by
-        any Filter/Factor for which `term` is an input.
 
         Notes
         ----
