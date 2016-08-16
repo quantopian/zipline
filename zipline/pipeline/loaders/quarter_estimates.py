@@ -170,6 +170,7 @@ class QuarterEstimatesLoader(PipelineLoader):
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
         out = {}
         date_values = pd.DataFrame({SIMULTATION_DATES: dates})
+
         estimates_all_dates = cross_product(date_values, self.estimates)
         asset_df = pd.DataFrame({SID_FIELD_NAME: assets})
         dates_sids = cross_product(date_values, asset_df)
@@ -186,7 +187,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             final_releases_per_qtr = estimates_all_dates[
                 estimates_all_dates[TS_FIELD_NAME] <=
                 estimates_all_dates.dates
-            ].sort_by([TS_FIELD_NAME]).groupby(
+            ].sort_values([TS_FIELD_NAME]).groupby(
                 [SIMULTATION_DATES,
                  SID_FIELD_NAME,
                  FISCAL_YEAR,
@@ -224,7 +225,7 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
             final_releases_per_qtr[SIMULTATION_DATES]
         ]
         # For each sid, get the upcoming release.
-        eligible_next_releases.sort(EVENT_DATE_FIELD_NAME)
+        eligible_next_releases.sort_values(EVENT_DATE_FIELD_NAME)
         next_releases = eligible_next_releases.groupby(
             [SIMULTATION_DATES, SID_FIELD_NAME]
         ).nth(0).reset_index()  # We use nth here to avoid forward filling
@@ -261,7 +262,7 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
             final_releases_per_qtr[SIMULTATION_DATES]
         ]
         # For each sid, get the latest release.
-        eligible_previous_releases.sort_by(EVENT_DATE_FIELD_NAME)
+        eligible_previous_releases.sort_values(EVENT_DATE_FIELD_NAME)
         previous_releases = eligible_previous_releases.groupby(
             [SIMULTATION_DATES, SID_FIELD_NAME]
         ).nth(-1).reset_index()  # We use nth here to avoid forward filling
