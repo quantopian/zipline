@@ -84,6 +84,7 @@ from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.assets import Asset, Future
 from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
+from zipline.pipeline import Pipeline
 from zipline.pipeline.engine import (
     ExplodingPipelineEngine,
     SimplePipelineEngine,
@@ -94,8 +95,13 @@ from zipline.utils.api_support import (
     require_not_initialized,
     ZiplineAPI,
     disallowed_in_before_trading_start)
-from zipline.utils.input_validation import ensure_upper_case, error_keywords, \
-    expect_types, optional, coerce_string
+from zipline.utils.input_validation import (
+    coerce_string,
+    ensure_upper_case,
+    error_keywords,
+    expect_types,
+    optional,
+)
 from zipline.utils.calendars.trading_calendar import days_at_time
 from zipline.utils.cache import CachedObject, Expired
 from zipline.utils.calendars import get_calendar
@@ -2207,6 +2213,11 @@ class TradingAlgorithm(object):
     ##############
     @api_method
     @require_not_initialized(AttachPipelineAfterInitialize())
+    @expect_types(
+        pipeline=Pipeline,
+        name=string_types,
+        chunksize=optional(int),
+    )
     def attach_pipeline(self, pipeline, name, chunksize=None):
         """Register a pipeline to be computed at the start of each day.
 
