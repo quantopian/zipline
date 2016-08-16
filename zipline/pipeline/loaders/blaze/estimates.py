@@ -2,13 +2,14 @@ from datashape import istabular
 
 from .core import (
     bind_expression_to_resources,
-    load_raw_data,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
+from zipline.pipeline.loaders.blaze.utils import load_raw_data
 from zipline.pipeline.loaders.quarter_estimates import (
     NextQuartersEstimatesLoader,
     PreviousQuartersEstimatesLoader,
-    required_estimates_fields)
+    required_estimates_fields,
+)
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
 )
@@ -46,7 +47,7 @@ class BlazeEstimatesLoader(PipelineLoader):
 
     And other dataset-specific fields, where each row of the table is a
     record including the sid to identify the company, the timestamp where we
-    learned about the announcement, and the date when the earnings will be z
+    learned about the announcement, and the date when the earnings will be
     announced.
 
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
@@ -103,38 +104,6 @@ class BlazeEstimatesLoader(PipelineLoader):
 class BlazeNextEstimatesLoader(BlazeEstimatesLoader):
     loader = NextQuartersEstimatesLoader
 
-    def __init__(self,
-                 expr,
-                 columns,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None):
-        super(BlazeNextEstimatesLoader, self).__init__(
-            expr,
-            columns,
-            resources,
-            odo_kwargs,
-            data_query_time,
-            data_query_tz,
-        )
-
 
 class BlazePreviousEstimatesLoader(BlazeEstimatesLoader):
     loader = PreviousQuartersEstimatesLoader
-
-    def __init__(self,
-                 expr,
-                 columns,
-                 resources=None,
-                 odo_kwargs=None,
-                 data_query_time=None,
-                 data_query_tz=None):
-        super(BlazePreviousEstimatesLoader, self).__init__(
-            expr,
-            columns,
-            resources,
-            odo_kwargs,
-            data_query_time,
-            data_query_tz,
-        )

@@ -6,6 +6,8 @@ import pandas as pd
 from zipline.pipeline import SimplePipelineEngine, Pipeline
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
+    FISCAL_QUARTER_FIELD_NAME,
+    FISCAL_YEAR_FIELD_NAME,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
@@ -15,14 +17,10 @@ from zipline.pipeline.loaders.blaze.estimates import (
     BlazePreviousEstimatesLoader
 )
 from zipline.pipeline.loaders.quarter_estimates import (
-    FISCAL_QUARTER,
     NextQuartersEstimatesLoader,
-    PreviousQuartersEstimatesLoader,
-    FISCAL_YEAR)
-from zipline.pipeline.loaders.quarter_estimates import (
-    calc_backward_shift,
-    calc_forward_shift,
+    PreviousQuartersEstimatesLoader
 )
+from zipline.pipeline.loaders.quarter_estimates import shift_quarters
 from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import WithAssetFinder, WithTradingSessions
 from zipline.testing.predicates import assert_equal
@@ -52,8 +50,8 @@ releases = pd.DataFrame({
                             pd.Timestamp('2015-01-31')],
     'estimate': [0.5, 0.8],
     'value': [0.6, 0.9],
-    FISCAL_QUARTER: [1.0, 2.0],
-    FISCAL_YEAR: [2015.0, 2015.0]
+    FISCAL_QUARTER_FIELD_NAME: [1.0, 2.0],
+    FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0]
 })
 
 q1_knowledge_dates = [pd.Timestamp('2015-01-01'), pd.Timestamp('2015-01-04'),
@@ -74,8 +72,8 @@ estimates = pd.DataFrame({
     EVENT_DATE_FIELD_NAME: q1_release_dates + q2_release_dates,
     'estimate': [.1, .2, .3, .4],
     'value': [np.NaN, np.NaN, np.NaN, np.NaN],
-    FISCAL_QUARTER: [1.0, 1.0, 2.0, 2.0],
-    FISCAL_YEAR: [2015.0, 2015.0, 2015.0, 2015.0]
+    FISCAL_QUARTER_FIELD_NAME: [1.0, 1.0, 2.0, 2.0],
+    FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0, 2015.0, 2015.0]
 })
 
 
@@ -118,8 +116,8 @@ class EstimateTestCase(WithAssetFinder,
         cls.columns = {
             Estimates.estimate: 'estimate',
             Estimates.event_date: EVENT_DATE_FIELD_NAME,
-            Estimates.fiscal_quarter: FISCAL_QUARTER,
-            Estimates.fiscal_year: FISCAL_YEAR,
+            Estimates.fiscal_quarter: FISCAL_QUARTER_FIELD_NAME,
+            Estimates.fiscal_year: FISCAL_YEAR_FIELD_NAME,
             Estimates.value: 'value',
         }
         cls.loader = cls.make_loader(
@@ -133,6 +131,21 @@ class EstimateTestCase(WithAssetFinder,
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
         super(EstimateTestCase, cls).init_class_fixtures()
+
+    def _test_wrong_num_quarters_passed(self):
+        with self.assertRaises(ValueError):
+            dataset = QuartersEstimates(-1)
+            engine = SimplePipelineEngine(
+                lambda x: self.loader,
+                self.trading_days,
+                self.asset_finder,
+            )
+
+            engine.run_pipeline(
+                Pipeline({c.name: c.latest for c in dataset.columns}),
+                start_date=self.trading_days[0],
+                end_date=self.trading_days[-1],
+            )
 
 
 class NextEstimateTestCase(EstimateTestCase):
@@ -171,10 +184,10 @@ class NextEstimateTestCase(EstimateTestCase):
                 expected_estimate = pd.DataFrame()
                 if not ts_eligible_estimates.empty:
                     q1_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER] == 1
+                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
                     ]
                     q2_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER] == 2
+                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 2
                     ]
 
                     # If our latest knowledge of q1 is that the release is
@@ -198,6 +211,9 @@ class NextEstimateTestCase(EstimateTestCase):
                         assert_equal(expected_value, computed_value)
                 else:
                     assert sid_estimates.iloc[i].isnull().all()
+
+    def test_wrong_num_quarters_passed(self):
+        self._test_wrong_num_quarters_passed()
 
 
 class BlazeNextEstimateLoaderTestCase(NextEstimateTestCase):
@@ -252,10 +268,10 @@ class PreviousEstimateTestCase(EstimateTestCase):
                     # for q1 and q2. This takes advantage of the fact that we
                     # only have 2 quarters in the test data.
                     q1_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER] == 1
+                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
                     ]
                     q2_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER] == 2
+                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 2
                     ]
                     # The expected estimate will be for q2 if the last thing
                     # we've seen is that the release date already happened.
@@ -276,6 +292,9 @@ class PreviousEstimateTestCase(EstimateTestCase):
                         assert_equal(expected_value, computed_value)
                 else:
                     assert sid_estimates.iloc[i].isnull().all()
+
+    def test_wrong_num_quarters_passed(self):
+        self._test_wrong_num_quarters_passed()
 
 
 class BlazePreviousEstimateLoaderTestCase(PreviousEstimateTestCase):
@@ -302,7 +321,7 @@ class QuarterShiftTestCase(ZiplineTestCase):
         expected = pd.DataFrame(([yr, qtr] for yr in range(0, 4) for qtr
                                  in range(1, 5)))
         for i in range(0, 8):
-            years, quarters = calc_forward_shift(input_yrs, input_qtrs, i)
+            years, quarters = shift_quarters(i, input_yrs, input_qtrs)
             # Can't use assert_series_equal here with check_names=False
             # because that still fails due to name differences.
             assert years.equals(expected[i:i+4].reset_index(drop=True)[0])
@@ -313,17 +332,9 @@ class QuarterShiftTestCase(ZiplineTestCase):
         input_qtrs = pd.Series(range(4, 0, -1))
         expected = pd.DataFrame(([yr, qtr] for yr in range(0, -4, -1) for qtr
                                  in range(4, 0, -1)))
-        for i in range(0, 8):
-            years, quarters = calc_backward_shift(input_yrs, input_qtrs, i)
+        for i in range(0, 8, 1):
+            years, quarters = shift_quarters(-i, input_yrs, input_qtrs)
             # Can't use assert_series_equal here with check_names=False
             # because that still fails due to name differences.
             assert years.equals(expected[i:i+4].reset_index(drop=True)[0])
             assert quarters.equals(expected[i:i+4].reset_index(drop=True)[1])
-
-    def test_wrong_num_quarters_passed(self):
-        input_yrs = pd.Series([0] * 4)
-        input_qtrs = pd.Series(range(1, 5))
-        with self.assertRaises(AssertionError):
-            calc_backward_shift(input_yrs, input_qtrs, -1)
-        with self.assertRaises(AssertionError):
-            calc_forward_shift(input_yrs, input_qtrs, -1)

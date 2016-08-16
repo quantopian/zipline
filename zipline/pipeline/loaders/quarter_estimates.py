@@ -1,6 +1,8 @@
+from abc import abstractmethod
 import pandas as pd
 from six import viewvalues
 from toolz import groupby
+
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
@@ -10,10 +12,8 @@ from zipline.pipeline.common import (
 )
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.utils.pandas_utils import cross_product
 
-ALL_DATES = 'dates'
-FISCAL_QUARTER = 'fiscal_quarter'
-FISCAL_YEAR = 'fiscal_year'
 NEXT_FISCAL_QUARTER = 'next_fiscal_quarter'
 NEXT_FISCAL_YEAR = 'next_fiscal_year'
 PREVIOUS_FISCAL_QUARTER = 'previous_fiscal_quarter'
@@ -21,81 +21,18 @@ PREVIOUS_FISCAL_YEAR = 'previous_fiscal_year'
 SIMULTATION_DATES = 'dates'
 
 
-def calc_forward_shift(yrs, qtrs, num_qtrs_shift):
-    """
-    Calculate the new years and quarters based on on shifting the specified
-    number of quarters forward.
-
-    Parameters
-    ----------
-    yrs : np.Series
-        The starting years.
-    qtrs : np.Series
-        The starting quarters.
-    num_qtrs_shift : int
-        The number of quarters to shift forward.
+def normalize_quarters(years, quarters):
+    return years * 4 + quarters - 1
 
 
-    Returns
-    -------
-    result_years : pd.Series
-        A series contains the new years.
-    result_qtrs : pd.Series
-        A series that contains the new quarters.
-    """
-
-    if num_qtrs_shift < 0:
-        raise AssertionError("Must pass a number of quarters >= 0")
-    result_qtrs = (qtrs + num_qtrs_shift) % 4
-    result_years = yrs + (qtrs + num_qtrs_shift) // 4
-    # When we get 0, this actually means we're in Q1 of the previous year,
-    # so we need to adjust.
-    to_adjust = result_qtrs[result_qtrs == 0]
-    result_years.iloc[to_adjust.index] -= 1
-    result_qtrs.iloc[to_adjust.index] = 4
-    return result_years, result_qtrs
+def split_normalized_quarters(normalized_quarters):
+    years = normalized_quarters // 4
+    quarters = normalized_quarters % 4
+    return years, quarters + 1
 
 
-def calc_backward_shift(yrs, qtrs, num_qtrs_shift):
-    """
-    Calculate the new years and quarters based shifting the specified number
-    of quarters backwards.
-
-    Parameters
-    ----------
-    yrs : np.Series
-        The starting years.
-    qtrs : np.Series
-        The starting quarters.
-    num_qtrs_shift : int
-        The number of quarters to shift backward.
-
-
-    Returns
-    -------
-    result_years : pd.Series
-        A series contains the new years.
-    result_qtrs : pd.Series
-        A series that contains the new quarters.
-    """
-
-    if num_qtrs_shift < 0:
-        raise AssertionError("Must pass a number of quarters >= 0")
-    result_qtrs = 4 - (num_qtrs_shift - qtrs) % 4
-    # Subtract 1 year since we go backwards at least `qtrs` number of quarters.
-    result_years = yrs - (num_qtrs_shift - qtrs) // 4 - 1
-    # Find cases where we aren't shifting enough quarters backwards to cross
-    # a year boundary and correct for these.
-    no_yr_boundary_crossed = qtrs[qtrs > num_qtrs_shift]
-    # Set the year back to the original.
-    # cast to tuple is a temporary workaround for a pandas 0.16.1 bug.
-    result_years.iloc[
-        tuple([no_yr_boundary_crossed.index])
-    ] = yrs.iloc[no_yr_boundary_crossed.index]
-    result_qtrs.iloc[
-        tuple([no_yr_boundary_crossed.index])
-    ] = qtrs.iloc[no_yr_boundary_crossed.index] - num_qtrs_shift
-    return result_years, result_qtrs
+def shift_quarters(by, years, quarters):
+    return split_normalized_quarters(normalize_quarters(years, quarters) + by)
 
 
 def required_estimates_fields(columns):
@@ -138,13 +75,6 @@ def validate_column_specs(events, columns):
         )
 
 
-def cross_product(df1, df2):
-    df1['key'] = 1
-    df2['key'] = 1
-    merged = pd.merge(df1, df2, on='key')
-    return merged.drop('key', axis=1)
-
-
 class QuarterEstimatesLoader(PipelineLoader):
     def __init__(self,
                  estimates,
@@ -162,6 +92,7 @@ class QuarterEstimatesLoader(PipelineLoader):
 
         self.base_column_name_map = base_column_name_map
 
+    @abstractmethod
     def load_quarters(self, num_quarters, dates_sids, final_releases_per_qtr):
         pass
 
@@ -169,6 +100,9 @@ class QuarterEstimatesLoader(PipelineLoader):
         # TODO: how can we enforce that datasets have the num_quarters
         # attribute, given that they're created dynamically?
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
+        groups_columns = dict(groups)
+        if (pd.Series(groups_columns.keys()) < 0).any():
+            raise ValueError("Must pass a number of quarters >= 0")
         out = {}
         date_values = pd.DataFrame({SIMULTATION_DATES: dates})
         # dates column must be of type datetime64[ns] in order for subsequent
@@ -179,13 +113,12 @@ class QuarterEstimatesLoader(PipelineLoader):
         estimates_all_dates = cross_product(date_values, self.estimates)
         asset_df = pd.DataFrame({SID_FIELD_NAME: assets})
         dates_sids = cross_product(date_values, asset_df)
-        for num_quarters in groups:
+        for num_quarters, columns in groups_columns.iteritems():
             name_map = {c:
                         self.base_column_name_map[
                             getattr(c.dataset.__base__, c.name)
                         ] for c in columns}
 
-            columns = groups[num_quarters]
             # First, determine which estimates we would have known about on
             # each date. Then, Sort by timestamp and group to find the latest
             # estimate for each quarter.
@@ -195,8 +128,8 @@ class QuarterEstimatesLoader(PipelineLoader):
             ].sort([TS_FIELD_NAME]).groupby(
                 [SIMULTATION_DATES,
                  SID_FIELD_NAME,
-                 FISCAL_YEAR,
-                 FISCAL_QUARTER]
+                 FISCAL_YEAR_FIELD_NAME,
+                 FISCAL_QUARTER_FIELD_NAME]
             ).nth(-1).reset_index()
 
             result = self.load_quarters(num_quarters,
@@ -236,15 +169,16 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
         ).nth(0).reset_index()  # We use nth here to avoid forward filling
         # NaNs, which `first()` will do.
         next_releases = next_releases.rename(
-            columns={FISCAL_YEAR: NEXT_FISCAL_YEAR,
-                     FISCAL_QUARTER: NEXT_FISCAL_QUARTER}
+            columns={FISCAL_YEAR_FIELD_NAME: NEXT_FISCAL_YEAR,
+                     FISCAL_QUARTER_FIELD_NAME: NEXT_FISCAL_QUARTER}
         )
         # The next fiscal quarter is already our starting point,
         # so we should offset `num_quarters` by 1.
-        (next_releases[FISCAL_YEAR],
-         next_releases[FISCAL_QUARTER]) = calc_forward_shift(
+        (next_releases[FISCAL_YEAR_FIELD_NAME],
+         next_releases[FISCAL_QUARTER_FIELD_NAME]) = shift_quarters(
+            (num_quarters - 1),
             next_releases[NEXT_FISCAL_YEAR],
-            next_releases[NEXT_FISCAL_QUARTER], (num_quarters - 1)
+            next_releases[NEXT_FISCAL_QUARTER],
         )
         # Do a left merge to get values for each date.
         result = dates_sids.merge(next_releases,
@@ -273,16 +207,16 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
         ).nth(-1).reset_index()  # We use nth here to avoid forward filling
         # NaNs, which `last()` will do.
         previous_releases = previous_releases.rename(columns={
-            FISCAL_YEAR: PREVIOUS_FISCAL_YEAR,
-            FISCAL_QUARTER: PREVIOUS_FISCAL_QUARTER
+            FISCAL_YEAR_FIELD_NAME: PREVIOUS_FISCAL_YEAR,
+            FISCAL_QUARTER_FIELD_NAME: PREVIOUS_FISCAL_QUARTER
         })
         # The previous fiscal quarter is already our starting point,
         # so we should offset `num_quarters` by 1.
-        (previous_releases[FISCAL_YEAR],
-         previous_releases[FISCAL_QUARTER]) = calc_backward_shift(
+        (previous_releases[FISCAL_YEAR_FIELD_NAME],
+         previous_releases[FISCAL_QUARTER_FIELD_NAME]) = shift_quarters(
+            -(num_quarters - 1),
             previous_releases[PREVIOUS_FISCAL_YEAR],
             previous_releases[PREVIOUS_FISCAL_QUARTER],
-            (num_quarters - 1)
         )
         # Do a left merge to get values for each date.
         result = dates_sids.merge(previous_releases,
