@@ -527,7 +527,7 @@ class WithSimParams(WithTradingEnvironment):
         cls.sim_params = cls.make_simparams()
 
 
-class WithTradingSessions(WithTradingCalendars):
+class WithTradingSessions(WithTradingCalendars, WithDefaultDateBounds):
     """
     ZiplineTestCase mixin providing cls.trading_days, cls.all_trading_sessions
     as a class-level fixture.
@@ -1212,7 +1212,7 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
         if start_date not in self.trading_days:
             raise AssertionError("Start date not in calendar: %s" % start_date)
         if end_date not in self.trading_days:
-            raise AssertionError("Start date not in calendar: %s" % start_date)
+            raise AssertionError("End date not in calendar: %s" % end_date)
         return self.seeded_random_engine.run_pipeline(
             pipeline,
             start_date,
