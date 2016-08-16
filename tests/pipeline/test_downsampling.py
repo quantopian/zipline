@@ -12,11 +12,13 @@ from zipline.pipeline import (
 )
 from zipline.pipeline.data.testing import TestingDataSet
 from zipline.pipeline.factors import SimpleMovingAverage
+from zipline.pipeline.filters.smoothing import All
 from zipline.testing import ZiplineTestCase, parameter_space
 from zipline.testing.fixtures import (
     WithTradingSessions,
     WithSeededRandomPipelineEngine,
 )
+from zipline.utils.numpy_utils import int64_dtype
 
 
 class NDaysAgoFactor(CustomFactor):
@@ -552,12 +554,9 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
     # Extend into the first few days of 2015 to test year/quarter boundaries.
     END_DATE = pd.Timestamp('2015-01-06', tz='UTC')
 
-    def test_downsample_windowed_factor(self):
+    ASSET_FINDER_EQUITY_SIDS = tuple(range(10))
 
-        f = SimpleMovingAverage(
-            inputs=[TestingDataSet.float_col],
-            window_length=5,
-        )
+    def check_downsampled_term(self, term):
 
         #       June 2014
         # Mo Tu We Th Fr Sa Su
@@ -574,34 +573,34 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         start_date, end_date = compute_dates[[0, -1]]
 
         pipe = Pipeline({
-            'year': f.downsample(frequency='Y'),
-            'quarter': f.downsample(frequency='Q'),
-            'month': f.downsample(frequency='M'),
-            'week': f.downsample(frequency='W'),
+            'year': term.downsample(frequency='Y'),
+            'quarter': term.downsample(frequency='Q'),
+            'month': term.downsample(frequency='M'),
+            'week': term.downsample(frequency='W'),
         })
 
-        # Raw values for f, computed each day from 2014 to the end of the
+        # Raw values for term, computed each day from 2014 to the end of the
         # target period.
-        raw_f_results = self.run_pipeline(
-            Pipeline({'f': f}),
+        raw_term_results = self.run_pipeline(
+            Pipeline({'term': term}),
             start_date=pd.Timestamp('2014-01-02', tz='UTC'),
             end_date=pd.Timestamp('2015-01-06', tz='UTC'),
-        )['f'].unstack()
+        )['term'].unstack()
 
         expected_results = {
-            'year': (raw_f_results
+            'year': (raw_term_results
                      .groupby(pd.TimeGrouper('AS'))
                      .first()
                      .reindex(compute_dates, method='ffill')),
-            'quarter': (raw_f_results
+            'quarter': (raw_term_results
                         .groupby(pd.TimeGrouper('QS'))
                         .first()
                         .reindex(compute_dates, method='ffill')),
-            'month': (raw_f_results
+            'month': (raw_term_results
                       .groupby(pd.TimeGrouper('MS'))
                       .first()
                       .reindex(compute_dates, method='ffill')),
-            'week': (raw_f_results
+            'week': (raw_term_results
                      .groupby(pd.TimeGrouper('W', label='left'))
                      .first()
                      .reindex(compute_dates, method='ffill')),
@@ -613,3 +612,53 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
             result = results[frequency].unstack()
             expected = expected_results[frequency]
             assert_frame_equal(result, expected)
+
+    def test_downsample_windowed_factor(self):
+        self.check_downsampled_term(
+            SimpleMovingAverage(
+                inputs=[TestingDataSet.float_col],
+                window_length=5,
+            )
+        )
+
+    def test_downsample_non_windowed_factor(self):
+        sma = SimpleMovingAverage(
+            inputs=[TestingDataSet.float_col],
+            window_length=5,
+        )
+
+        self.check_downsampled_term(((sma + sma) / 2).rank())
+
+    def test_downsample_windowed_filter(self):
+        sma = SimpleMovingAverage(
+            inputs=[TestingDataSet.float_col],
+            window_length=5,
+        )
+        self.check_downsampled_term(All(inputs=[sma.top(4)], window_length=5))
+
+    def test_downsample_nonwindowed_filter(self):
+        sma = SimpleMovingAverage(
+            inputs=[TestingDataSet.float_col],
+            window_length=5,
+        )
+        self.check_downsampled_term(sma > 5)
+
+    def test_downsample_windowed_classifier(self):
+
+        class IntSumClassifier(CustomClassifier):
+            inputs = [TestingDataSet.float_col]
+            window_length = 8
+            dtype = int64_dtype
+            missing_value = -1
+
+            def compute(self, today, assets, out, floats):
+                out[:] = floats.sum(axis=0).astype(int) % 4
+
+        self.check_downsampled_term(IntSumClassifier())
+
+    def test_downsample_nonwindowed_classifier(self):
+        sma = SimpleMovingAverage(
+            inputs=[TestingDataSet.float_col],
+            window_length=5,
+        )
+        self.check_downsampled_term(sma.quantiles(5))

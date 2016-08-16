@@ -388,7 +388,7 @@ class DownsampledMixin(StandardOutputs):
 
         return min_extra_rows + (current_start_pos - new_start_pos)
 
-    def _compute(self, windows, dates, assets, mask):
+    def _compute(self, inputs, dates, assets, mask):
         """
         Compute by delegating to self._wrapped_term._compute on sample dates.
 
@@ -400,6 +400,27 @@ class DownsampledMixin(StandardOutputs):
 
         real_compute = self._wrapped_term._compute
 
+        if self.windowed:
+            # If we're windowed, inputs are stateful AdjustedArrays.  We don't
+            # need to do any preparation before forwarding to real_compute, but
+            # we need to call `next` on them if we want to skip an iteration.
+            def prepare_inputs():
+                return inputs
+
+            def skip_this_input():
+                for w in inputs:
+                    next(w)
+        else:
+            # If we're not windowed, inputs are just ndarrays.  We need to
+            # slice off one row when forwarding to real_compute, but we don't
+            # need to do anything to skip an input.
+            def prepare_inputs():
+                # i is the loop iteration variable below.
+                return [a[[i]] for a in inputs]
+
+            def skip_this_input():
+                pass
+
         results = []
         samples = iter(to_sample)
         next_sample = next(samples)
@@ -407,7 +428,7 @@ class DownsampledMixin(StandardOutputs):
             if next_sample == compute_date:
                 results.append(
                     real_compute(
-                        windows,
+                        prepare_inputs(),
                         dates[i:i + 1],
                         assets,
                         mask[i:i + 1],
@@ -420,12 +441,9 @@ class DownsampledMixin(StandardOutputs):
                     # compares False with any other datetime.
                     next_sample = pd_NaT
             else:
+                skip_this_input()
                 # Copy results from previous sample period.
                 results.append(results[-1])
-
-                # Force adjusted arrays forward one tick.
-                for w in windows:
-                    next(w)
 
         # We should have exhausted our sample dates.
         try:
