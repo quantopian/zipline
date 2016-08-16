@@ -248,9 +248,13 @@ def _make_bundle_core():
             calendar. This defaults to 'NYSE', in which case we use the NYSE
             calendar.
         start_session : pd.Timestamp, optional
-            The first session for which we want data.
+            The first session for which we want data. If not provided,
+            or if the date lies outside the range supported by the
+            calendar, the first_session of the calendar is used.
         end_session : pd.Timestamp, optional
-            The last session for which we want data.
+            The last session for which we want data. If not provided,
+            or if the date lies outside the range supported by the
+            calendar, the last_session of the calendar is used.
         minutes_per_day : int, optional
             The number of minutes in each normal trading day.
         create_writers : bool, optional
@@ -281,9 +285,12 @@ def _make_bundle_core():
         if isinstance(calendar, str):
             calendar = get_calendar(calendar)
 
-        if start_session is None:
+        # If the start and end sessions are not provided or lie outside
+        # the bounds of the calendar being used, set them to the first
+        # and last sessions of the calendar.
+        if start_session is None or start_session < calendar.first_session:
             start_session = calendar.first_session
-        if end_session is None:
+        if end_session is None or end_session > calendar.last_session:
             end_session = calendar.last_session
 
         _bundles[name] = _BundlePayload(
