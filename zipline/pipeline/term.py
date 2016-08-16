@@ -287,9 +287,28 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         Calculate the number of extra rows needed to compute ``self``.
 
-        Must return at least ``min_extra_rows``, but can optionally require
-        more. This is used by downsampled terms to ensure that the first date
-        computed is a recomputation date.
+        Must return at least ``min_extra_rows``, and the default implementation
+        is to just return ``min_extra_rows``.  This is overridden by
+        downsampled terms to ensure that the first date computed is a
+        recomputation date.
+
+        Parameters
+        ----------
+        all_dates : pd.DatetimeIndex
+            The trading sessions against which ``self`` will be computed.
+        start_date : pd.Timestamp
+            The first date for which final output is requested.
+        end_date : pd.Timestamp
+            The last date for which final output is requested.
+        min_extra_rows : int
+            The minimum number of extra rows required of ``self``, as
+            determined by other terms that depend on ``self``.
+
+        Returns
+        -------
+        extra_rows : int
+            The number of extra rows to compute.  Must be at least
+            ``min_extra_rows``.
         """
         return min_extra_rows
 
@@ -566,6 +585,31 @@ class ComputableTerm(Term):
         """
         return data
 
+    def _downsampled_type(self):
+        """
+        The expression type to return from self.downsample().
+        """
+        raise NotImplementedError(
+            "downsampling is not yet implemented "
+            "for instances of %s." % type(self).__name__
+        )
+
+    def downsample(self, frequency):
+        """
+        Make a term that computes from ``self`` at lower-than-daily frequency.
+
+        Parameters
+        ----------
+        frequency : str, {'Y', 'Q', 'M', 'W'}
+            A string indicating the desired sampling rate.
+            'Y' -> sample on the first trading day of each calendar year
+            'Q' -> sample on the first trading day of
+                   January, April, July, and October
+            'M' -> sample on the first trading day of each month
+            'W' -> sample on the first trading day of each week
+        """
+        return self._downsampled_type(term=self, frequency=frequency)
+
     def __repr__(self):
         return (
             "{type}({inputs}, window_length={window_length})"
@@ -631,6 +675,12 @@ class Slice(ComputableTerm):
         # Return a 2D array with one column rather than a 1D array of the
         # column.
         return windows[0][:, [asset_column]]
+
+    @property
+    def _downsampled_type(self):
+        raise NotImplementedError(
+            'downsampling of slices is not yet supported'
+        )
 
 
 def validate_dtype(termname, dtype, missing_value):

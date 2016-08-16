@@ -222,13 +222,11 @@ class SimplePipelineEngine(object):
         finder = self._finder
         start_idx, end_idx = self._calendar.slice_locs(start_date, end_date)
         if start_idx < extra_rows:
-            raise NoFurtherDataError(
-                msg="Insufficient data to compute Pipeline.\n\n"
-                "start date was %s\n"
-                "earliest known date was %s\n"
-                "%d extra rows were required" % (
-                    start_date, calendar[0], extra_rows,
-                ),
+            raise NoFurtherDataError.from_lookback_window(
+                initial_message="Insufficient data to compute Pipeline:",
+                first_date=calendar[0],
+                lookback_start=start_date,
+                lookback_length=extra_rows,
             )
 
         # Build lifetimes matrix reaching back to `extra_rows` days before

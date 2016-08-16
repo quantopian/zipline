@@ -33,6 +33,7 @@ from zipline.pipeline.filters import (
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
+    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -1071,6 +1072,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
+    @property
+    def _downsampled_type(self):
+        return DownsampledFactor
+
 
 class NumExprFactor(NumericalExpression, Factor):
     """
@@ -1508,6 +1513,17 @@ class Latest(LatestMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         out[:] = data[-1]
+
+
+class DownsampledFactor(DownsampledMixin, Factor):
+    """
+    A Factor that defers to another Factor at lower-than-daily frequency.
+
+    Parameters
+    ----------
+    term : zipline.pipeline.Factor
+    freq : {'Y', 'Q', 'M', 'W'}
+    """
 
 
 # Functions to be passed to GroupedRowTransform.  These aren't defined inline

@@ -23,6 +23,7 @@ from zipline.utils.numpy_utils import (
 from ..filters import ArrayPredicate, NotNullFilter, NullFilter, NumExprFilter
 from ..mixins import (
     CustomTermMixin,
+    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -301,6 +302,10 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             raise AssertionError("Expected a LabelArray, got %s." % type(data))
         return data.as_categorical()
 
+    @property
+    def _downsampled_type(self):
+        return DownsampledClassifier
+
 
 class Everything(Classifier):
     """
@@ -384,6 +389,18 @@ class Latest(LatestMixin, CustomClassifier):
     zipline.pipeline.filters.filter.Latest
     """
     pass
+
+
+class DownsampledClassifier(DownsampledMixin, Classifier):
+    """
+    A Classifier that defers to another Classifier at lower-than-daily
+    frequency.
+
+    Parameters
+    ----------
+    term : zipline.Classifier
+    freq : {'Y', 'Q', 'M', 'W'}
+    """
 
 
 class InvalidClassifierComparison(TypeError):

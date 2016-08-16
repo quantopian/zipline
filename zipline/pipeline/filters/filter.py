@@ -25,6 +25,7 @@ from zipline.pipeline.expression import (
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
+    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -200,6 +201,10 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
                 dtype=self.dtype
             )
         return retval
+
+    @property
+    def _downsampled_type(self):
+        return DownsampledFilter
 
 
 class NumExprFilter(NumericalExpression, Filter):
@@ -456,6 +461,17 @@ class Latest(LatestMixin, CustomFilter):
     Filter producing the most recently-known value of `inputs[0]` on each day.
     """
     pass
+
+
+class DownsampledFilter(DownsampledMixin, Filter):
+    """
+    A Filter that defers to another Filter at lower-than-daily frequency.
+
+    Parameters
+    ----------
+    term : zipline.pipeline.Filter
+    freq : {'Y', 'Q', 'M', 'W'}
+    """
 
 
 class SingleAsset(Filter):
