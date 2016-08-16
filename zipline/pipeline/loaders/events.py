@@ -5,14 +5,13 @@ from six import viewvalues
 from toolz import groupby, merge
 
 from .base import PipelineLoader
-from .frame import DataFrameLoader
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
+from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.pipeline.loaders.utils import (
-    choose_rows_by_indexer,
     next_event_indexer,
     previous_event_indexer,
 )
@@ -165,7 +164,7 @@ class EventsLoader(PipelineLoader):
         if not columns:
             return {}
 
-        return choose_rows_by_indexer(
+        return self._load_events(
             rows=self.events,
             name_map=self.next_value_columns,
             indexer=self.next_event_indexer(dates, sids),
@@ -179,7 +178,7 @@ class EventsLoader(PipelineLoader):
         if not columns:
             return {}
 
-        return choose_rows_by_indexer(
+        return self._load_events(
             rows=self.events,
             name_map=self.previous_value_columns,
             indexer=self.previous_event_indexer(dates, sids),
@@ -188,6 +187,24 @@ class EventsLoader(PipelineLoader):
             sids=sids,
             mask=mask,
         )
+
+
+    def _load_events(self, name_map, indexer, columns, dates, sids, mask):
+        def to_frame(array):
+            return pd.DataFrame(array, index=dates, columns=sids)
+
+        out = {}
+        for c in columns:
+            raw = self.events[name_map[c]][indexer]
+            # indexer will be -1 for locations where we don't have a known
+            # value.
+            raw[indexer < 0] = c.missing_value
+
+            # Delegate the actual array formatting logic to a DataFrameLoader.
+            loader = DataFrameLoader(c, to_frame(raw), adjustments=None)
+            out[c] = loader.load_adjusted_array([c], dates, sids, mask)[c]
+        return out
+
 
     def load_adjusted_array(self, columns, dates, sids, mask):
         n, p = self.split_next_and_previous_event_columns(columns)

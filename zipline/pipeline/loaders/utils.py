@@ -273,20 +273,3 @@ def check_data_query_args(data_query_time, data_query_tz):
                 data_query_tz,
             ),
         )
-
-
-def choose_rows_by_indexer(rows, name_map, indexer, columns, dates, sids, mask):
-    def to_frame(array):
-        return pd.DataFrame(array, index=dates, columns=sids)
-
-    out = {}
-    for c in columns:
-        raw = rows[name_map[c]][indexer]
-        # indexer will be -1 for locations where we don't have a known
-        # value.
-        raw[indexer < 0] = c.missing_value
-
-        # Delegate the actual array formatting logic to a DataFrameLoader.
-        loader = DataFrameLoader(c, to_frame(raw), adjustments=None)
-        out[c] = loader.load_adjusted_array([c], dates, sids, mask)[c]
-    return out

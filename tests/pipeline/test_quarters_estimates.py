@@ -1,24 +1,27 @@
 import itertools
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_series_equal
-from zipline.pipeline import SimplePipelineEngine, Pipeline
 
+from zipline.pipeline import SimplePipelineEngine, Pipeline
+from zipline.pipeline.common import (
+    EVENT_DATE_FIELD_NAME,
+    SID_FIELD_NAME,
+    TS_FIELD_NAME,
+)
 from zipline.pipeline.data import DataSet, Column
 from zipline.pipeline.loaders.quarter_estimates import (
+    FISCAL_QUARTER,
     NextQuartersEstimatesLoader,
-    PreviousQuartersEstimatesLoader
-)
+    PreviousQuartersEstimatesLoader,
+    FISCAL_YEAR)
 from zipline.pipeline.loaders.quarter_estimates import (
+    calc_backward_shift,
     calc_forward_shift,
-    calc_backward_shift
 )
 from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import WithAssetFinder, WithTradingSessions
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
-import line_profiler
-prof = line_profiler.LineProfiler()
 
 
 class Estimates(DataSet):
@@ -39,12 +42,13 @@ def QuartersEstimates(num_qtr):
 # in order to reduce the number of dates we need to iterate through when
 # testing.
 releases = pd.DataFrame({
-    'timestamp': [pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-31')],
-    'event_date': [pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-31')],
+    TS_FIELD_NAME: [pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-31')],
+    EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-15'),
+                            pd.Timestamp('2015-01-31')],
     'estimate': [0.5, 0.8],
     'value': [0.6, 0.9],
-    'fiscal_quarter': [1.0, 2.0],
-    'fiscal_year': [2015.0, 2015.0]
+    FISCAL_QUARTER: [1.0, 2.0],
+    FISCAL_YEAR: [2015.0, 2015.0]
 })
 
 q1_knowledge_dates = [pd.Timestamp('2015-01-01'), pd.Timestamp('2015-01-04'),
@@ -52,40 +56,43 @@ q1_knowledge_dates = [pd.Timestamp('2015-01-01'), pd.Timestamp('2015-01-04'),
 q2_knowledge_dates = [pd.Timestamp('2015-01-16'), pd.Timestamp('2015-01-20'),
                       pd.Timestamp('2015-01-24'), pd.Timestamp('2015-01-28')]
 # We want to model the possibility of an estimate predicting a release date
-# that gets shifted forward/backward.
-q1_release_dates = [pd.Timestamp('2015-01-13'), pd.Timestamp('2015-01-15')]
-q2_release_dates = [pd.Timestamp('2015-01-28'), pd.Timestamp('2015-01-30')]
+# that doesn't match the actual release. This could be done by dynamically
+# generating more combinations with different release dates, but that
+# significantly increases the amount of time it takes to run the tests. These
+# hard-coded cases are sufficient to know that we can update our beliefs when
+# we get new information.
+q1_release_dates = [pd.Timestamp('2015-01-15'),
+                    pd.Timestamp('2015-01-16')]  # One day late
+q2_release_dates = [pd.Timestamp('2015-01-30'),  # One day early
+                    pd.Timestamp('2015-01-31')]
 estimates = pd.DataFrame({
+    EVENT_DATE_FIELD_NAME: q1_release_dates + q2_release_dates,
     'estimate': [.1, .2, .3, .4],
     'value': [np.NaN, np.NaN, np.NaN, np.NaN],
-    'fiscal_quarter': [1.0, 1.0, 2.0, 2.0],
-    'fiscal_year': [2015.0, 2015.0, 2015.0, 2015.0]
+    FISCAL_QUARTER: [1.0, 1.0, 2.0, 2.0],
+    FISCAL_YEAR: [2015.0, 2015.0, 2015.0, 2015.0]
 })
 
 
 def gen_estimates():
     sid_estimates = []
     sid_releases = []
-    release_dates = list(itertools.product(q1_release_dates, q2_release_dates))
-    knowledge_permutations = list(itertools.permutations(q1_knowledge_dates +
-                                                         q2_knowledge_dates,
-                                                         4))
-    all_permutations = itertools.product(knowledge_permutations,
-                                         release_dates)
-    for sid, ((q1e1, q1e2, q2e1, q2e2), (rd1, rd2)) in enumerate(
-            all_permutations):
+    for sid, (q1e1, q1e2, q2e1, q2e2) in enumerate(
+            itertools.permutations(q1_knowledge_dates + q2_knowledge_dates,
+                                   4)
+    ):
         # We're assuming that estimates must come before the relevant release.
-        if q1e1 < q1e2 and q2e1 < q2e2 and q1e1 < rd1 and q1e2 < \
-                rd2:
+        if (q1e1 < q1e2 and
+                q2e1 < q2e2 and
+                q1e1 < q1_release_dates[0] and
+                q1e2 < q1_release_dates[1]):
             sid_estimate = estimates.copy(True)
-            sid_estimate['timestamp'] = [q1e1, q1e2, q2e1, q2e2]
-            sid_estimate['event_date'] = [rd1]*2 + [rd2] * 2
-            sid_estimate['sid'] = sid
+            sid_estimate[TS_FIELD_NAME] = [q1e1, q1e2, q2e1, q2e2]
+            sid_estimate[SID_FIELD_NAME] = sid
             sid_estimates += [sid_estimate]
             sid_release = releases.copy(True)
-            sid_release['sid'] = sid_estimate['sid']
+            sid_release[SID_FIELD_NAME] = sid_estimate[SID_FIELD_NAME]
             sid_releases += [sid_release]
-
     return pd.concat(sid_estimates + sid_releases).reset_index(drop=True)
 
 
@@ -105,16 +112,18 @@ class EstimateTestCase(WithAssetFinder,
         cls.sids = cls.events['sid'].unique()
         cls.columns = {
             Estimates.estimate: 'estimate',
-            Estimates.event_date: 'event_date',
-            Estimates.fiscal_quarter: 'fiscal_quarter',
-            Estimates.fiscal_year: 'fiscal_year',
+            Estimates.event_date: EVENT_DATE_FIELD_NAME,
+            Estimates.fiscal_quarter: FISCAL_QUARTER,
+            Estimates.fiscal_year: FISCAL_YEAR,
             Estimates.value: 'value',
         }
         cls.loader = cls.make_loader(
             events=cls.events,
             columns=cls.columns
         )
-        cls.ASSET_FINDER_EQUITY_SIDS = list(cls.events['sid'].unique())
+        cls.ASSET_FINDER_EQUITY_SIDS = list(
+            cls.events[SID_FIELD_NAME].unique()
+        )
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
@@ -126,7 +135,6 @@ class NextEstimateTestCase(EstimateTestCase):
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
 
-    #@profile
     def test_next_estimates(self):
         """
         The goal of this test is to make sure that we select the right
@@ -145,30 +153,46 @@ class NextEstimateTestCase(EstimateTestCase):
             end_date=self.trading_days[-1],
         )
         for sid in self.sids:
-            sid_events = results.xs(sid, level=1)
-            ed_sorted_events = self.events[
-                self.events['sid'] == sid
-            ]
-            ed_sorted_events['key'] = 1
-            all_dates = pd.DataFrame({'all_dates': sid_events.index})
-            all_dates['key'] = 1
-            crossproduct = pd.merge(all_dates, ed_sorted_events, on='key')
-            crossproduct = crossproduct[crossproduct['timestamp'] <=
-                                        crossproduct['all_dates']]
-            crossproduct = crossproduct[crossproduct['event_date'] >=
-                                        crossproduct['all_dates']]
-            final = crossproduct.sort_values(by=['all_dates',
-                                                 'event_date',
-                                                 'timestamp'],
-                                             ascending=[True, True,
-                                                        False]).groupby([
-                'all_dates', 'sid']).first().reset_index()
-            final = pd.merge(final, all_dates,
-                             how='right').sort_values(by='all_dates').set_index(
-                'all_dates')
-            final.index.name = None
-            for colname in sid_events.columns:
-                assert_series_equal(final[colname], sid_events[colname])
+            sid_estimates = results.xs(sid, level=1)
+            ts_sorted_estimates = self.events[
+                self.events[SID_FIELD_NAME] == sid
+            ].sort_values(by=[TS_FIELD_NAME])
+            for i, date in enumerate(sid_estimates.index):
+                comparable_date = date.tz_localize(None)
+                # Filter out estimates we don't know about yet.
+                ts_eligible_estimates = ts_sorted_estimates[
+                    ts_sorted_estimates[TS_FIELD_NAME] <= comparable_date
+                ]
+                expected_estimate = pd.DataFrame()
+                if not ts_eligible_estimates.empty:
+                    q1_knowledge = ts_eligible_estimates[
+                        ts_eligible_estimates[FISCAL_QUARTER] == 1
+                    ]
+                    q2_knowledge = ts_eligible_estimates[
+                        ts_eligible_estimates[FISCAL_QUARTER] == 2
+                    ]
+
+                    # If our latest knowledge of q1 is that the release is
+                    # happening on this simulation date or later, then that's
+                    # the estimate we want to use.
+                    if (not q1_knowledge.empty and
+                        q1_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] >=
+                            comparable_date):
+                        expected_estimate = q1_knowledge.iloc[-1]
+                    # If q1 has already happened or we don't know about it
+                    # yet and our latest knowledge indicates that q2 hasn't
+                    # happend yet, then that's the estimate we want to use.
+                    elif (not q2_knowledge.empty and
+                          q2_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] >=
+                            comparable_date):
+                        expected_estimate = q2_knowledge.iloc[-1]
+                if not expected_estimate.empty:
+                    for colname in sid_estimates.columns:
+                        expected_value = expected_estimate[colname]
+                        computed_value = sid_estimates.iloc[i][colname]
+                        assert_equal(expected_value, computed_value)
+                else:
+                    assert sid_estimates.iloc[i].isnull().all()
 
 
 class PreviousEstimateTestCase(EstimateTestCase):
@@ -194,24 +218,46 @@ class PreviousEstimateTestCase(EstimateTestCase):
             end_date=self.trading_days[-1],
         )
         for sid in self.sids:
-            sid_events = results.xs(sid, level=1)
-            ed_sorted_events = self.events[
-                self.events['sid'] == sid
-            ].sort_values(by=['event_date', 'timestamp'])
-            for i, date in enumerate(sid_events.index):
-                # Filter for events that happened on or before the simulation
-                # date and that we knew about on or before the simulation date.
-                ed_eligible_events = ed_sorted_events[ed_sorted_events['event_date'] <= date]
-                ts_eligible_events = ed_eligible_events[ed_eligible_events['timestamp'] <= date]
-                if not ts_eligible_events.empty:
-                    # The expected event is the one we knew about last.
-                    expected_event = ts_eligible_events.iloc[-1]
-                    for colname in sid_events.columns:
-                        expected_value = expected_event[colname]
-                        computed_value = sid_events.iloc[i][colname]
+            sid_estimates = results.xs(sid, level=1)
+            ts_sorted_estimates = self.events[
+                self.events[SID_FIELD_NAME] == sid
+            ].sort_values(by=[TS_FIELD_NAME])
+            for i, date in enumerate(sid_estimates.index):
+                comparable_date = date.tz_localize(None)
+                # Filter out estimates we don't know about yet.
+                ts_eligible_estimates = ts_sorted_estimates[
+                    ts_sorted_estimates[TS_FIELD_NAME] <= comparable_date
+                ]
+                expected_estimate = pd.DataFrame()
+                if not ts_eligible_estimates.empty:
+                    # Determine the last piece of information we know about
+                    # for q1 and q2. This takes advantage of the fact that we
+                    # only have 2 quarters in the test data.
+                    q1_knowledge = ts_eligible_estimates[
+                        ts_eligible_estimates[FISCAL_QUARTER] == 1
+                    ]
+                    q2_knowledge = ts_eligible_estimates[
+                        ts_eligible_estimates[FISCAL_QUARTER] == 2
+                    ]
+                    # The expected estimate will be for q2 if the last thing
+                    # we've seen is that the release date already happened.
+                    # Otherwise, it'll be for q1, as long as the release date
+                    # for q1 has already happened.
+                    if (not q2_knowledge.empty and
+                        q2_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] <=
+                            comparable_date):
+                        expected_estimate = q2_knowledge.iloc[-1]
+                    elif (not q1_knowledge.empty and
+                          q1_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] <=
+                            comparable_date):
+                        expected_estimate = q1_knowledge.iloc[-1]
+                if not expected_estimate.empty:
+                    for colname in sid_estimates.columns:
+                        expected_value = expected_estimate[colname]
+                        computed_value = sid_estimates.iloc[i][colname]
                         assert_equal(expected_value, computed_value)
                 else:
-                    assert sid_events.iloc[i].isnull().all()
+                    assert sid_estimates.iloc[i].isnull().all()
 
 
 class QuarterShiftTestCase(ZiplineTestCase):
@@ -231,7 +277,6 @@ class QuarterShiftTestCase(ZiplineTestCase):
             assert years.equals(expected[i:i+4].reset_index(drop=True)[0])
             assert quarters.equals(expected[i:i+4].reset_index(drop=True)[1])
 
-
     def test_calc_backward_shift(self):
         input_yrs = pd.Series([0] * 4)
         input_qtrs = pd.Series(range(4, 0, -1))
@@ -243,3 +288,11 @@ class QuarterShiftTestCase(ZiplineTestCase):
             # because that still fails due to name differences.
             assert years.equals(expected[i:i+4].reset_index(drop=True)[0])
             assert quarters.equals(expected[i:i+4].reset_index(drop=True)[1])
+
+    def test_wrong_num_quarters_passed(self):
+        input_yrs = pd.Series([0] * 4)
+        input_qtrs = pd.Series(range(1, 5))
+        with self.assertRaises(AssertionError):
+            calc_backward_shift(input_yrs, input_qtrs, -1)
+        with self.assertRaises(AssertionError):
+            calc_forward_shift(input_yrs, input_qtrs, -1)
