@@ -394,8 +394,6 @@ cdef class Float642DArrayOverwrite:
            [ 15.,  16.,  20.,  20.,  20.],
            [ 20.,  21.,  20.,  20.,  20.]])
     """
-
-    """
     cdef:
         readonly int64_t[:] row_starts, row_ends, column_starts, column_ends
         readonly float64_t[:] values
