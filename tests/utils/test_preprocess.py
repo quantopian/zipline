@@ -264,7 +264,7 @@ class PreprocessTestCase(TestCase):
             " for argument 'a', but got 'c' instead."
         ).format(
             # We special-case set to show a tuple instead of the set repr.
-            set_=tuple(set_),
+            set_=tuple(sorted(set_)),
             qualname=qualname(f),
         )
         self.assertEqual(e.exception.args[0], expected_message)
