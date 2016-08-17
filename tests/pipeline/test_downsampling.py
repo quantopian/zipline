@@ -18,6 +18,7 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     WithSeededRandomPipelineEngine,
 )
+from zipline.utils.input_validation import _qualified_name
 from zipline.utils.numpy_utils import int64_dtype
 
 
@@ -678,8 +679,8 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
             f.downsample('bad')
 
         expected = (
-            "zipline.pipeline.term.downsample() expected a value in "
+            "{}() expected a value in "
             "('month_start', 'quarter_start', 'week_start', 'year_start') "
             "for argument 'frequency', but got 'bad' instead."
-        )
+        ).format(_qualified_name(f.downsample))
         self.assertEqual(str(e.exception), expected)
