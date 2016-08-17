@@ -196,13 +196,15 @@ class BcolzMinuteBarMetadata(object):
     """
     Parameters
     ----------
-    first_trading_day : datetime-like
-        UTC midnight of the first day available in the dataset.
     ohlc_ratio : int
          The factor by which the pricing data is multiplied so that the
          float data can be stored as an integer.
     calendar :  zipline.utils.calendars.trading_calendar.TradingCalendar
         The TradingCalendar on which the minute bars are based.
+    start_session : datetime
+        The first trading session in the data set.
+    end_session : datetime
+        The last trading session in the data set.
     minutes_per_day : int
         The number of minutes per each period.
     """
@@ -227,8 +229,9 @@ class BcolzMinuteBarMetadata(object):
                 # if version does not match.
                 version = 0
 
-            first_trading_day = pd.Timestamp(
-                raw_data['first_trading_day'], tz='UTC')
+            start_session = pd.Timestamp(raw_data['start_session'], tz='UTC')
+            end_session = pd.Timestamp(raw_data['end_session'], tz='UTC')
+
             ohlc_ratio = raw_data['ohlc_ratio']
 
             if version == 0:
@@ -241,21 +244,24 @@ class BcolzMinuteBarMetadata(object):
                 calendar = get_calendar(raw_data['calendar_name'])
 
             return cls(
-                first_trading_day,
                 ohlc_ratio,
                 calendar,
+                start_session,
+                end_session,
                 minutes_per_day,
             )
 
     def __init__(
         self,
-        first_trading_day,
         ohlc_ratio,
         calendar,
+        start_session,
+        end_session,
         minutes_per_day,
     ):
-        self.first_trading_day = first_trading_day
         self.calendar = calendar
+        self.start_session = start_session
+        self.end_session = end_session
         self.ohlc_ratio = ohlc_ratio
         self.minutes_per_day = minutes_per_day
 
@@ -278,6 +284,12 @@ class BcolzMinuteBarMetadata(object):
         calendar_name : str
             The name of the TradingCalendar on which the minute bars are
             based.
+        start_session : datetime
+            'YYYY-MM-DD' formatted representation of the first trading
+            session in the data set.
+        end_session : datetime
+            'YYYY-MM-DD' formatted representation of the last trading
+            session in the data set.
         market_opens : list
             List of int64 values representing UTC market opens as
             minutes since epoch.
@@ -287,7 +299,10 @@ class BcolzMinuteBarMetadata(object):
         """
 
         calendar = self.calendar
-        slicer = calendar.schedule.index.slice_indexer(self.first_trading_day)
+        slicer = calendar.schedule.index.slice_indexer(
+            self.start_session,
+            self.end_session,
+        )
         schedule = calendar.schedule[slicer]
         market_opens = schedule.market_open
         market_closes = schedule.market_close
@@ -295,9 +310,12 @@ class BcolzMinuteBarMetadata(object):
         metadata = {
             'version': self.FORMAT_VERSION,
             'ohlc_ratio': self.ohlc_ratio,
-            'first_trading_day': str(self.first_trading_day.date()),
             'minutes_per_day': self.minutes_per_day,
             'calendar_name': self.calendar.name,
+            'start_session': str(self.start_session.date()),
+            'end_session': str(self.end_session.date()),
+            # Write these values for backwards compatibility
+            'first_trading_day': str(self.start_session.date()),
             'market_opens': (
                 market_opens.values.astype('datetime64[m]').
                 astype(np.int64).tolist()),
@@ -315,8 +333,6 @@ class BcolzMinuteBarWriter(object):
 
     Parameters
     ----------
-    first_trading_day : datetime
-        The first trading day in the data set.
     rootdir : string
         Path to the root directory into which to write the metadata and
         bcolz subdirectories.
@@ -328,6 +344,10 @@ class BcolzMinuteBarWriter(object):
     minutes_per_day : int
         The number of minutes per each period. Defaults to 390, the mode
         of minutes in NYSE trading days.
+    start_session : datetime
+        The first trading session in the data set.
+    end_session : datetime
+        The last trading session in the data set.
     ohlc_ratio : int, optional
         The ratio by which to multiply the pricing data to convert the
         floats from floats to an integer to fit within the np.uint32.
@@ -392,17 +412,20 @@ class BcolzMinuteBarWriter(object):
     COL_NAMES = ('open', 'high', 'low', 'close', 'volume')
 
     def __init__(self,
-                 first_trading_day,
                  rootdir,
                  calendar,
+                 start_session,
+                 end_session,
                  minutes_per_day,
                  ohlc_ratio=OHLC_RATIO,
                  expectedlen=DEFAULT_EXPECTEDLEN):
 
         self._rootdir = rootdir
-        self._first_trading_day = first_trading_day
+        self._start_session = start_session
+        self._end_session = end_session
         self._calendar = calendar
-        slicer = calendar.schedule.index.slice_indexer(first_trading_day)
+        slicer = (
+            calendar.schedule.index.slice_indexer(start_session, end_session))
         self._schedule = calendar.schedule[slicer]
         self._session_labels = self._schedule.index
         self._minutes_per_day = minutes_per_day
@@ -413,16 +436,17 @@ class BcolzMinuteBarWriter(object):
             self._schedule.market_open, self._minutes_per_day)
 
         metadata = BcolzMinuteBarMetadata(
-            self._first_trading_day,
             self._ohlc_ratio,
             self._calendar,
+            self._start_session,
+            self._end_session,
             self._minutes_per_day,
         )
         metadata.write(self._rootdir)
 
     @property
     def first_trading_day(self):
-        return self._first_trading_day
+        return self._start_session
 
     def sidpath(self, sid):
         """
@@ -775,10 +799,14 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
         metadata = self._get_metadata()
 
-        self._first_trading_day = metadata.first_trading_day
+        self._start_session = metadata.start_session
+        self._end_session = metadata.end_session
 
         calendar = metadata.calendar
-        slicer = calendar.schedule.index.slice_indexer(self._first_trading_day)
+        slicer = calendar.schedule.index.slice_indexer(
+            self._start_session,
+            self._end_session,
+        )
         self._schedule = calendar.schedule[slicer]
         self._market_opens = self._schedule.market_open
         self._market_open_values = self._market_opens.values.\
@@ -808,7 +836,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
     @property
     def first_trading_day(self):
-        return self._first_trading_day
+        return self._start_session
 
     def _minutes_to_exclude(self):
         """

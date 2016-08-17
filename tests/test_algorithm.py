@@ -3563,9 +3563,10 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 self.test_days[-1],
             )
             writer = BcolzMinuteBarWriter(
-                self.test_days[0],
                 self.tmpdir.path,
                 self.trading_calendar,
+                self.test_days[0],
+                self.test_days[-1],
                 US_EQUITIES_MINUTES_PER_DAY
             )
             trade_data_by_sid = make_trade_data_for_asset_info(
