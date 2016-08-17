@@ -7,7 +7,7 @@ import toolz.curried.operator as op
 
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.bundles import UnknownBundle, from_bundle_ingest_dirname
-from zipline.data.bundles.core import _make_bundle_core
+from zipline.data.bundles.core import _make_bundle_core, BadClean
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     make_bar_data,
@@ -367,6 +367,26 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
             self._list_bundle(),
             {fourth, fifth},
             msg='keep_last=2 did not remove the correct number of ingestions',
+        )
+
+        with assert_raises(BadClean):
+            self.clean('bundle', keep_last=-1, environ=self.environ)
+
+        assert_equal(
+            self._list_bundle(),
+            {fourth, fifth},
+            msg='keep_last=-1 removed some ingestions',
+        )
+
+        assert_equal(
+            self.clean('bundle', keep_last=0, environ=self.environ),
+            {fourth, fifth},
+        )
+
+        assert_equal(
+            self._list_bundle(),
+            set(),
+            msg='keep_last=0 did not remove the correct number of ingestions',
         )
 
     @staticmethod

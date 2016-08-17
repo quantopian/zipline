@@ -7,7 +7,7 @@ import warnings
 from contextlib2 import ExitStack
 import click
 import pandas as pd
-from toolz import curry, complement
+from toolz import curry, complement, take
 
 from ..us_equity_pricing import (
     BcolzDailyBarReader,
@@ -563,11 +563,13 @@ def _make_bundle_core():
                     (after is not None and dt > after)
                 )
 
-        else:
-            last_n_dts = set(all_runs[-keep_last:])
+        elif keep_last >= 0:
+            last_n_dts = set(take(keep_last, reversed(all_runs)))
 
             def should_clean(name):
                 return name not in last_n_dts
+        else:
+            raise BadClean(before, after, keep_last)
 
         cleaned = set()
         for run in all_runs:
