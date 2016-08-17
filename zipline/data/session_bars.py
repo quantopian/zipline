@@ -93,6 +93,7 @@ class SessionBarReader(with_metaclass(ABCMeta)):
         """
         pass
 
+    @abstractproperty
     def trading_calendar(self):
         """
         Returns the zipline.utils.calendar.trading_calendar used to read

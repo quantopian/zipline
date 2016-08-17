@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from abc import ABCMeta, abstractmethod, abstractproperty
 from errno import ENOENT
 from functools import partial
 from os import remove
@@ -46,10 +45,10 @@ from pandas import (
 from pandas.tslib import iNaT
 from six import (
     iteritems,
-    with_metaclass,
     viewkeys,
 )
 
+from zipline.data.session_bars import SessionBarReader
 from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
 from zipline.utils.preprocess import call
@@ -391,36 +390,7 @@ class BcolzDailyBarWriter(object):
         return full_table
 
 
-class DailyBarReader(with_metaclass(ABCMeta)):
-    """
-    Reader for OHCLV pricing data at a daily frequency.
-    """
-    @abstractmethod
-    def load_raw_arrays(self, columns, start_date, end_date, assets):
-        pass
-
-    @abstractmethod
-    def spot_price(self, sid, day, colname):
-        pass
-
-    @abstractproperty
-    def sessions(self):
-        pass
-
-    @abstractproperty
-    def last_available_dt(self):
-        pass
-
-    @abstractproperty
-    def trading_calendar(self):
-        """
-        Returns the zipline.utils.calendar.trading_calendar used to read
-         the data.  Can be None (if the writer didn't specify it).
-        """
-        pass
-
-
-class BcolzDailyBarReader(DailyBarReader):
+class BcolzDailyBarReader(SessionBarReader):
     """
     Reader for raw pricing data written by BcolzDailyOHLCVWriter.
 
@@ -745,7 +715,7 @@ class BcolzDailyBarReader(DailyBarReader):
             return price
 
 
-class PanelBarReader(DailyBarReader):
+class PanelBarReader(SessionBarReader):
     """
     Reader for data passed as Panel.
 
