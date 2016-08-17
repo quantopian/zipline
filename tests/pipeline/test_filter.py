@@ -168,7 +168,7 @@ class FilterTestCase(BasePipelineTestCase):
 
         quintiles = range(5)
         filter_names = ['pct_' + str(q) for q in quintiles]
-        iter_quintiles = zip(filter_names, quintiles)
+        iter_quintiles = list(zip(filter_names, quintiles))
         terms = {
             name: self.f.percentile_between(q * 20.0, (q + 1) * 20.0)
             for name, q in iter_quintiles
