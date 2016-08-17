@@ -235,6 +235,9 @@ class WithDefaultDateBounds(object):
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
 
+    This fixture should always be the last fixture in bases of any fixture or
+    test case that uses it.
+
     Attributes
     ----------
     START_DATE : datetime
@@ -420,7 +423,9 @@ class WithTradingCalendars(object):
             cls.trading_calendars[exchange] = get_calendar(cal_str)
 
 
-class WithTradingEnvironment(WithAssetFinder, WithTradingCalendars):
+class WithTradingEnvironment(WithAssetFinder,
+                             WithTradingCalendars,
+                             WithDefaultDateBounds):
     """
     ZiplineTestCase mixin providing cls.env as a class-level fixture.
 
