@@ -457,5 +457,6 @@ class DownsampledMixin(StandardOutputs):
         return type(
             'Downsampled' + other_base.__name__,
             (cls, other_base,),
-            {'__doc__': doc},
+            {'__doc__': doc,
+             '__module__': other_base.__module__},
         )
