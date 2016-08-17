@@ -101,7 +101,7 @@ install:
   - pip freeze | sort
 
 test_script:
-  - nosetests
+  - nosetests -e zipline.utils.numpy_utils
   - flake8 zipline tests
 
 branches:
