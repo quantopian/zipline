@@ -85,7 +85,9 @@ class ComputeExtraRowsTestcase(WithTradingSessions, ZiplineTestCase):
         __fail_fast=True
     )
     def test_yearly(self, base_terms, calendar_name):
-        downsampled_terms = tuple(t.downsample('Y') for t in base_terms)
+        downsampled_terms = tuple(
+            t.downsample('year_start') for t in base_terms
+        )
         all_terms = base_terms + downsampled_terms
 
         all_sessions = self.trading_sessions[calendar_name]
@@ -188,7 +190,9 @@ class ComputeExtraRowsTestcase(WithTradingSessions, ZiplineTestCase):
         __fail_fast=True
     )
     def test_quarterly(self, calendar_name, base_terms):
-        downsampled_terms = tuple(t.downsample('Q') for t in base_terms)
+        downsampled_terms = tuple(
+            t.downsample('quarter_start') for t in base_terms
+        )
         all_terms = base_terms + downsampled_terms
 
         # This region intersects with Q4 2013, Q1 2014, and Q2 2014.
@@ -293,7 +297,9 @@ class ComputeExtraRowsTestcase(WithTradingSessions, ZiplineTestCase):
         __fail_fast=True
     )
     def test_monthly(self, calendar_name, base_terms):
-        downsampled_terms = tuple(t.downsample('M') for t in base_terms)
+        downsampled_terms = tuple(
+            t.downsample('month_start') for t in base_terms
+        )
         all_terms = base_terms + downsampled_terms
 
         # This region intersects with Dec 2013, Jan 2014, and Feb 2014.
@@ -398,7 +404,9 @@ class ComputeExtraRowsTestcase(WithTradingSessions, ZiplineTestCase):
         __fail_fast=True
     )
     def test_weekly(self, calendar_name, base_terms):
-        downsampled_terms = tuple(t.downsample('W') for t in base_terms)
+        downsampled_terms = tuple(
+            t.downsample('week_start') for t in base_terms
+        )
         all_terms = base_terms + downsampled_terms
 
         #    December 2013
@@ -573,10 +581,10 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
         start_date, end_date = compute_dates[[0, -1]]
 
         pipe = Pipeline({
-            'year': term.downsample(frequency='Y'),
-            'quarter': term.downsample(frequency='Q'),
-            'month': term.downsample(frequency='M'),
-            'week': term.downsample(frequency='W'),
+            'year': term.downsample(frequency='year_start'),
+            'quarter': term.downsample(frequency='quarter_start'),
+            'month': term.downsample(frequency='month_start'),
+            'week': term.downsample(frequency='week_start'),
         })
 
         # Raw values for term, computed each day from 2014 to the end of the
@@ -662,3 +670,16 @@ class DownsampledPipelineTestCase(WithSeededRandomPipelineEngine,
             window_length=5,
         )
         self.check_downsampled_term(sma.quantiles(5))
+
+    def test_errors_on_bad_downsample_frequency(self):
+
+        f = NDaysAgoFactor(window_length=3)
+        with self.assertRaises(ValueError) as e:
+            f.downsample('bad')
+
+        expected = (
+            "zipline.pipeline.term.downsample() expected a value in "
+            "('month_start', 'quarter_start', 'week_start', 'year_start') "
+            "for argument 'frequency', but got 'bad' instead."
+        )
+        self.assertEqual(str(e.exception), expected)

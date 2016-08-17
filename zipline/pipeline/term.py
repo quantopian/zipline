@@ -37,7 +37,12 @@ from zipline.utils.numpy_utils import (
     datetime64ns_dtype,
     default_missing_value_for_dtype,
 )
+from zipline.utils.sharedoc import (
+    templated_docstring,
+    PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
+)
 
+from .downsample_helpers import expect_downsample_frequency
 from .sentinels import NotSpecified
 
 
@@ -594,19 +599,15 @@ class ComputableTerm(Term):
             "for instances of %s." % type(self).__name__
         )
 
+    @expect_downsample_frequency
+    @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
     def downsample(self, frequency):
         """
         Make a term that computes from ``self`` at lower-than-daily frequency.
 
         Parameters
         ----------
-        frequency : str, {'Y', 'Q', 'M', 'W'}
-            A string indicating the desired sampling rate.
-            'Y' -> sample on the first trading day of each calendar year
-            'Q' -> sample on the first trading day of
-                   January, April, July, and October
-            'M' -> sample on the first trading day of each month
-            'W' -> sample on the first trading day of each week
+        {frequency}
         """
         return self._downsampled_type(term=self, frequency=frequency)
 

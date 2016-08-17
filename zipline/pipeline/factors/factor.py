@@ -44,6 +44,7 @@ from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
+from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
@@ -1072,9 +1073,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
-    @property
+    @classlazyval
     def _downsampled_type(self):
-        return DownsampledFactor
+        return DownsampledMixin.make_downsampled_type(Factor)
 
 
 class NumExprFactor(NumericalExpression, Factor):
@@ -1513,17 +1514,6 @@ class Latest(LatestMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         out[:] = data[-1]
-
-
-class DownsampledFactor(DownsampledMixin, Factor):
-    """
-    A Factor that defers to another Factor at lower-than-daily frequency.
-
-    Parameters
-    ----------
-    term : zipline.pipeline.Factor
-    freq : {'Y', 'Q', 'M', 'W'}
-    """
 
 
 # Functions to be passed to GroupedRowTransform.  These aren't defined inline

@@ -33,6 +33,7 @@ from zipline.pipeline.mixins import (
 )
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
+from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
 
 
@@ -202,9 +203,9 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
             )
         return retval
 
-    @property
+    @classlazyval
     def _downsampled_type(self):
-        return DownsampledFilter
+        return DownsampledMixin.make_downsampled_type(Filter)
 
 
 class NumExprFilter(NumericalExpression, Filter):
@@ -461,17 +462,6 @@ class Latest(LatestMixin, CustomFilter):
     Filter producing the most recently-known value of `inputs[0]` on each day.
     """
     pass
-
-
-class DownsampledFilter(DownsampledMixin, Filter):
-    """
-    A Filter that defers to another Filter at lower-than-daily frequency.
-
-    Parameters
-    ----------
-    term : zipline.pipeline.Filter
-    freq : {'Y', 'Q', 'M', 'W'}
-    """
 
 
 class SingleAsset(Filter):

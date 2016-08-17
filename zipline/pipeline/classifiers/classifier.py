@@ -14,6 +14,7 @@ from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import ComputableTerm
 from zipline.utils.compat import unicode
 from zipline.utils.input_validation import expect_types
+from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     categorical_dtype,
     int64_dtype,
@@ -302,9 +303,9 @@ class Classifier(RestrictedDTypeMixin, ComputableTerm):
             raise AssertionError("Expected a LabelArray, got %s." % type(data))
         return data.as_categorical()
 
-    @property
+    @classlazyval
     def _downsampled_type(self):
-        return DownsampledClassifier
+        return DownsampledMixin.make_downsampled_type(Classifier)
 
 
 class Everything(Classifier):
@@ -389,18 +390,6 @@ class Latest(LatestMixin, CustomClassifier):
     zipline.pipeline.filters.filter.Latest
     """
     pass
-
-
-class DownsampledClassifier(DownsampledMixin, Classifier):
-    """
-    A Classifier that defers to another Classifier at lower-than-daily
-    frequency.
-
-    Parameters
-    ----------
-    term : zipline.Classifier
-    freq : {'Y', 'Q', 'M', 'W'}
-    """
 
 
 class InvalidClassifierComparison(TypeError):

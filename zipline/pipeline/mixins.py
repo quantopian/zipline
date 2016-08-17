@@ -1,7 +1,7 @@
 """
 Mixins classes for use with Filters and Factors.
 """
-from operator import attrgetter
+from textwrap import dedent
 
 from numpy import (
     array,
@@ -17,10 +17,18 @@ from zipline.errors import (
     NoFurtherDataError,
 )
 from zipline.utils.control_flow import nullctx
-from zipline.utils.input_validation import expect_element, expect_types
-from zipline.utils.numpy_utils import changed_locations
+from zipline.utils.input_validation import expect_types
+from zipline.utils.sharedoc import (
+    format_docstring,
+    PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
+)
 from zipline.utils.pandas_utils import nearest_unequal_elements
 
+
+from .downsample_helpers import (
+    select_sampling_indices,
+    expect_downsample_frequency,
+)
 from .sentinels import NotSpecified
 from .term import Term
 
@@ -232,49 +240,6 @@ class LatestMixin(SingleInputMixin):
             )
 
 
-_dt_to_period = {
-    'Y': attrgetter('year'),
-    'Q': attrgetter('quarter'),
-    'M': attrgetter('month'),
-    'W': attrgetter('week'),
-}
-
-
-def select_sampling_indices(dates, frequency):
-    """
-    Choose entries from ``dates`` to use for downsampling at ``frequency``.
-
-    Parameters
-    ----------
-    dates : pd.DatetimeIndex
-        Dates from which to select sample choices.
-    frequency : {'Y', 'Q', 'M', 'W'}
-        Frequency at which samples are to be taken.
-
-    Returns
-    -------
-    indices : np.array[int64]
-        An array condtaining indices of dates on which samples should be taken.
-
-        The resulting index will always include 0 as a sample index, and it
-        will include the first date of each subsequent year/quarter/month/week,
-        as determined by ``frequency``.
-
-    Notes
-    -----
-    This function assumes that ``dates`` does not have large gaps.
-
-    In particular, it assumes that the maximum distance between any two entries
-    in ``dates`` is never greater than a year, which we rely on because we use
-    ``np.diff(dates.{quarter,month,week})`` to find dates where the sampling
-    period has changed.
-    """
-    return changed_locations(
-        _dt_to_period[frequency](dates),
-        include_first=True
-    )
-
-
 class DownsampledMixin(StandardOutputs):
     """
     Mixin for behavior shared by Downsampled{Factor,Filter,Classifier}
@@ -291,7 +256,7 @@ class DownsampledMixin(StandardOutputs):
     window_safe = False
 
     @expect_types(term=Term)
-    @expect_element(frequency=frozenset(_dt_to_period))
+    @expect_downsample_frequency
     def __new__(cls, term, frequency):
         return super(DownsampledMixin, cls).__new__(
             cls,
@@ -400,6 +365,17 @@ class DownsampledMixin(StandardOutputs):
 
         real_compute = self._wrapped_term._compute
 
+        # Inputs will contain different kinds of values depending on whether or
+        # not we're a windowed computation.
+
+        # If we're windowed, then `inputs` is a list of iterators of ndarrays.
+        # If we're not windowed, then `inputs` is just a list of ndarrays.
+        # There are two things we care about doing with the input:
+        #   1. Preparing an input to be passed to our wrapped term.
+        #   2. Skipping an input if we're going to use an already-computed row.
+        # We perform these actions differently based on the expected kind of
+        # input, and we encapsulate these actions with closures so that we
+        # don't clutter the code below with lots of branching.
         if self.windowed:
             # If we're windowed, inputs are stateful AdjustedArrays.  We don't
             # need to do any preparation before forwarding to real_compute, but
@@ -412,8 +388,8 @@ class DownsampledMixin(StandardOutputs):
                     next(w)
         else:
             # If we're not windowed, inputs are just ndarrays.  We need to
-            # slice off one row when forwarding to real_compute, but we don't
-            # need to do anything to skip an input.
+            # slice out a single row when forwarding to real_compute, but we
+            # don't need to do anything to skip an input.
             def prepare_inputs():
                 # i is the loop iteration variable below.
                 return [a[[i]] for a in inputs]
@@ -455,3 +431,31 @@ class DownsampledMixin(StandardOutputs):
 
         # Concatenate stored results.
         return vstack(results)
+
+    @classmethod
+    def make_downsampled_type(cls, other_base):
+        """
+        Factory for making Downsampled{Filter,Factor,Classifier}.
+        """
+        docstring = dedent(
+            """
+            A {t} that defers to another {t} at lower-than-daily frequency.
+
+            Parameters
+            ----------
+            term : {t}
+            {{frequency}}
+            """
+        ).format(t=other_base.__name__)
+
+        doc = format_docstring(
+            owner_name=other_base.__name__,
+            docstring=docstring,
+            formatters={'frequency': PIPELINE_DOWNSAMPLING_FREQUENCY_DOC},
+        )
+
+        return type(
+            'Downsampled' + other_base.__name__,
+            (cls, other_base,),
+            {'__doc__': doc},
+        )
