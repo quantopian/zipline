@@ -23,7 +23,7 @@ from six import iteritems
 from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
-from zipline.data.daily_history_aggregator import DailyHistoryAggregator
+from zipline.data.resample import DailyHistoryAggregator
 from zipline.data.us_equity_pricing import NoDataOnDate
 from zipline.data.us_equity_loader import (
     USEquityDailyHistoryLoader,
