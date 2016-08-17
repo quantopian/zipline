@@ -364,6 +364,77 @@ cdef class Float64Overwrite(Float64Adjustment):
                 data[row, col] = value
 
 
+cdef class Float642DArrayOverwrite:
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+
+    Example
+    -------
+
+    >>> import numpy as np
+    >>> arr = np.arange(25, dtype=float).reshape(5, 5)
+    >>> arr
+    array([[  0.,   1.,   2.,   3.,   4.],
+           [  5.,   6.,   7.,   8.,   9.],
+           [ 10.,  11.,  12.,  13.,  14.],
+           [ 15.,  16.,  17.,  18.,  19.],
+           [ 20.,  21.,  22.,  23.,  24.]])
+    >>> adj = Float642DArrayOverwrite(
+    ...     row_starts=np.array([0, 3]),
+    ...     row_ends=np.array([2, 4]),
+    ...     column_starts=np.array([0, 2]),
+    ...     column_ends=np.array([1, 4]),
+    ...     values=np.array([10., 20.]),
+    )
+    >>> adj.mutate(arr)
+    >>> arr
+    array([[ 10.,  10.,   2.,   3.,   4.],
+           [ 10.,  10.,   7.,   8.,   9.],
+           [ 10.,  10.,  12.,  13.,  14.],
+           [ 15.,  16.,  20.,  20.,  20.],
+           [ 20.,  21.,  20.,  20.,  20.]])
+    """
+
+    """
+    cdef:
+        readonly int64_t[:] row_starts, row_ends, column_starts, column_ends
+        readonly float64_t[:] values
+
+    def __init__(self,
+                 int64_t[:] row_starts,
+                 int64_t[:] row_ends,
+                 int64_t[:] column_starts,
+                 int64_t[:] column_ends,
+                 float64_t[:] values):
+        assert (len(row_starts) ==
+                len(row_ends) ==
+                len(column_starts) ==
+                len(column_ends))
+        for (row_start, row_end) in zip(row_starts, row_ends):
+            assert row_start <= row_end
+        for (column_start, column_end) in zip(column_starts, column_ends):
+            assert column_start <= column_end
+
+        self.row_starts = row_starts
+        self.row_ends = row_ends
+        self.column_starts = column_starts
+        self.column_ends = column_ends
+        self.values = values
+
+    cpdef mutate(self, float64_t[:, :] data):
+        for (row_start,
+             row_end,
+             col_start,
+             col_end,
+             value) in zip(self.row_starts,
+                           self.row_ends,
+                           self.column_starts,
+                           self.column_ends,
+                            self.values):
+            for col in range(col_start, col_end + 1):
+                data[row_start:row_end+1, col] = value
+
+
 cdef class Float64Add(Float64Adjustment):
     """
     An adjustment that adds a float.
