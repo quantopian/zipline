@@ -69,9 +69,9 @@ class SlidingWindow(object):
         return self.current
 
 
-class USEquityHistoryLoader(with_metaclass(ABCMeta)):
+class HistoryLoader(with_metaclass(ABCMeta)):
     """
-    Loader for sliding history windows of adjusted US Equity Pricing data.
+    Loader for sliding history windows, with support for adjustments.
 
     Parameters
     ----------
@@ -131,7 +131,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         field : str
             OHLCV field for which to get the adjustments.
         is_perspective_after : bool
-            see: `USEquityHistoryLoader.history`
+            see: `PricingHistoryLoader.history`
             If True, the index at which the Multiply object is registered to
             be popped is calculated so that it applies to the last slot in the
             sliding window  when the adjustment occurs immediately after the dt
@@ -237,7 +237,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         field : str
             The OHLCV field for which to retrieve data.
         is_perspective_after : bool
-            see: `USEquityHistoryLoader.history`
+            see: `PricingHistoryLoader.history`
 
         Returns
         -------
@@ -379,7 +379,7 @@ class USEquityHistoryLoader(with_metaclass(ABCMeta)):
         return hstack([window.get(end_ix) for window in block])
 
 
-class USEquityDailyHistoryLoader(USEquityHistoryLoader):
+class DailyHistoryLoader(HistoryLoader):
 
     @property
     def _prefetch_length(self):
@@ -398,7 +398,7 @@ class USEquityDailyHistoryLoader(USEquityHistoryLoader):
         )[0]
 
 
-class USEquityMinuteHistoryLoader(USEquityHistoryLoader):
+class MinuteHistoryLoader(HistoryLoader):
 
     @property
     def _prefetch_length(self):
