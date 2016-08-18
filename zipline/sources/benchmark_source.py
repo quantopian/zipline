@@ -20,6 +20,7 @@ from zipline.errors import (
     BenchmarkAssetNotAvailableTooEarly,
     BenchmarkAssetNotAvailableTooLate
 )
+from zipline.utils.calendars import get_calendar
 
 
 class BenchmarkSource(object):
@@ -70,7 +71,10 @@ class BenchmarkSource(object):
                 self._precalculated_series = daily_series
 
     def get_value(self, dt):
-        return self._precalculated_series.loc[dt]
+        try:
+            return self._precalculated_series.loc[dt]
+        except:
+            return 0
 
     def _validate_benchmark(self, benchmark_asset):
         # check if this security has a stock dividend.  if so, raise an
@@ -157,14 +161,24 @@ class BenchmarkSource(object):
                 # last trading day of the simulation, going up to one day
                 # before the simulation start day (so that we can get the %
                 # change on day 1)
+
+                # HACK
+                # assume asset is an equity on the NYSE calendar
+                nyse = get_calendar("NYSE")
+                days = nyse.sessions_in_range(
+                    trading_days[0],
+                    trading_days[-1]
+                )
+
                 benchmark_series = data_portal.get_history_window(
                     [asset],
-                    trading_days[-1],
-                    bar_count=len(trading_days) + 1,
+                    days[-1],
+                    bar_count=len(days) + 1,
                     frequency="1d",
                     field="price",
                     ffill=True
                 )[asset]
+
                 return benchmark_series.pct_change()[1:]
             elif start_date == trading_days[0]:
                 # Attempt to handle case where stock data starts on first
