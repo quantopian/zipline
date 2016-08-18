@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from textwrap import dedent
 
 from zipline.utils.memoize import lazyval
 
@@ -582,6 +583,29 @@ class NoFurtherDataError(ZiplineError):
     # This accepts an arbitrary message string because it's used in more places
     # that can be usefully templated.
     msg = '{msg}'
+
+    @classmethod
+    def from_lookback_window(cls,
+                             initial_message,
+                             first_date,
+                             lookback_start,
+                             lookback_length):
+        return cls(
+            msg=dedent(
+                """
+                {initial_message}
+
+                lookback window started at {lookback_start}
+                earliest known date was {first_date}
+                {lookback_length} extra rows of data were required
+                """
+            ).format(
+                initial_message=initial_message,
+                first_date=first_date,
+                lookback_start=lookback_start,
+                lookback_length=lookback_length,
+            )
+        )
 
 
 class UnsupportedDatetimeFormat(ZiplineError):

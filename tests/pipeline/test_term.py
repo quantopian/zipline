@@ -6,6 +6,7 @@ from itertools import product
 from unittest import TestCase
 
 from toolz import assoc
+import pandas as pd
 
 from zipline.assets import Asset
 from zipline.errors import (
@@ -24,7 +25,7 @@ from zipline.pipeline import (
     CustomFactor,
     Factor,
     Filter,
-    TermGraph,
+    ExecutionPlan,
 )
 from zipline.pipeline.data import Column, DataSet
 from zipline.pipeline.data.testing import TestingDataSet
@@ -33,6 +34,7 @@ from zipline.pipeline.factors import RecarrayField
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists, Slice
 from zipline.testing import parameter_space
+from zipline.testing.fixtures import WithTradingSessions, ZiplineTestCase
 from zipline.testing.predicates import (
     assert_equal,
     assert_raises,
@@ -152,7 +154,14 @@ def to_dict(l):
     return dict(zip(map(str, range(len(l))), l))
 
 
-class DependencyResolutionTestCase(TestCase):
+class DependencyResolutionTestCase(WithTradingSessions, ZiplineTestCase):
+
+    TRADING_CALENDAR_STRS = ('NYSE',)
+    START_DATE = pd.Timestamp('2014-01-02', tz='UTC')
+    END_DATE = pd.Timestamp('2014-12-31', tz='UTC')
+
+    execution_plan_start = pd.Timestamp('2014-06-01', tz='UTC')
+    execution_plan_end = pd.Timestamp('2014-06-30', tz='UTC')
 
     def check_dependency_order(self, ordered_terms):
         seen = set()
@@ -162,6 +171,14 @@ class DependencyResolutionTestCase(TestCase):
                 self.assertIn(dep, seen)
 
             seen.add(term)
+
+    def make_execution_plan(self, terms):
+        return ExecutionPlan(
+            terms,
+            self.nyse_sessions,
+            self.execution_plan_start,
+            self.execution_plan_end,
+        )
 
     def test_single_factor(self):
         """
@@ -182,7 +199,7 @@ class DependencyResolutionTestCase(TestCase):
             self.assertEqual(graph.node[SomeDataSet.bar]['extra_rows'], 4)
 
         for foobar in gen_equivalent_factors():
-            check_output(TermGraph(to_dict([foobar])))
+            check_output(self.make_execution_plan(to_dict([foobar])))
 
     def test_single_factor_instance_args(self):
         """
@@ -190,7 +207,9 @@ class DependencyResolutionTestCase(TestCase):
         the constructor.
         """
         bar, buzz = SomeDataSet.bar, SomeDataSet.buzz
-        graph = TermGraph(to_dict([SomeFactor([bar, buzz], window_length=5)]))
+
+        factor = SomeFactor([bar, buzz], window_length=5)
+        graph = self.make_execution_plan(to_dict([factor]))
 
         resolution_order = list(graph.ordered())
 
@@ -214,7 +233,7 @@ class DependencyResolutionTestCase(TestCase):
         f1 = SomeFactor([SomeDataSet.foo, SomeDataSet.bar])
         f2 = SomeOtherFactor([SomeDataSet.bar, SomeDataSet.buzz])
 
-        graph = TermGraph(to_dict([f1, f2]))
+        graph = self.make_execution_plan(to_dict([f1, f2]))
         resolution_order = list(graph.ordered())
 
         # bar should only appear once.

@@ -483,10 +483,17 @@ def expect_element(*_pos, **named):
         raise TypeError("expect_element() only takes keyword arguments.")
 
     def _expect_element(collection):
+        if isinstance(collection, (set, frozenset)):
+            # Special case the error message for set and frozen set to make it
+            # less verbose.
+            collection_for_error_message = tuple(sorted(collection))
+        else:
+            collection_for_error_message = collection
+
         template = (
             "%(funcname)s() expected a value in {collection} "
             "for argument '%(argname)s', but got %(actual)s instead."
-        ).format(collection=collection)
+        ).format(collection=collection_for_error_message)
         return make_check(
             ValueError,
             template,

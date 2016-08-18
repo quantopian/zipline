@@ -235,6 +235,9 @@ class WithDefaultDateBounds(object):
     ZiplineTestCase mixin which makes it possible to synchronize date bounds
     across fixtures.
 
+    This fixture should always be the last fixture in bases of any fixture or
+    test case that uses it.
+
     Attributes
     ----------
     START_DATE : datetime
@@ -420,7 +423,9 @@ class WithTradingCalendars(object):
             cls.trading_calendars[exchange] = get_calendar(cal_str)
 
 
-class WithTradingEnvironment(WithAssetFinder, WithTradingCalendars):
+class WithTradingEnvironment(WithAssetFinder,
+                             WithTradingCalendars,
+                             WithDefaultDateBounds):
     """
     ZiplineTestCase mixin providing cls.env as a class-level fixture.
 
@@ -527,7 +532,7 @@ class WithSimParams(WithTradingEnvironment):
         cls.sim_params = cls.make_simparams()
 
 
-class WithTradingSessions(WithTradingCalendars):
+class WithTradingSessions(WithTradingCalendars, WithDefaultDateBounds):
     """
     ZiplineTestCase mixin providing cls.trading_days, cls.all_trading_sessions
     as a class-level fixture.
@@ -1212,7 +1217,7 @@ class WithSeededRandomPipelineEngine(WithTradingSessions, WithAssetFinder):
         if start_date not in self.trading_days:
             raise AssertionError("Start date not in calendar: %s" % start_date)
         if end_date not in self.trading_days:
-            raise AssertionError("Start date not in calendar: %s" % start_date)
+            raise AssertionError("End date not in calendar: %s" % end_date)
         return self.seeded_random_engine.run_pipeline(
             pipeline,
             start_date,

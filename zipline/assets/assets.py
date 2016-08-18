@@ -59,6 +59,7 @@ from .asset_db_schema import (
 )
 from zipline.utils.control_flow import invert
 from zipline.utils.memoize import lazyval
+from zipline.utils.numpy_utils import as_column
 from zipline.utils.sqlite_utils import group_into_chunks
 
 log = Logger('assets.py')
@@ -1096,7 +1097,7 @@ class AssetFinder(object):
             self._asset_lifetimes = self._compute_asset_lifetimes()
         lifetimes = self._asset_lifetimes
 
-        raw_dates = dates.asi8[:, None]
+        raw_dates = as_column(dates.asi8)
         if include_start_date:
             mask = lifetimes.start <= raw_dates
         else:

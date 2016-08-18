@@ -34,10 +34,15 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
+    datetime64ns_dtype,
     default_missing_value_for_dtype,
 )
+from zipline.utils.sharedoc import (
+    templated_docstring,
+    PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
+)
 
-from .mixins import SingleInputMixin
+from .downsample_helpers import expect_downsample_frequency
 from .sentinels import NotSpecified
 
 
@@ -279,6 +284,39 @@ class Term(with_metaclass(ABCMeta, object)):
         # call super().
         self._subclass_called_super_validate = True
 
+    def compute_extra_rows(self,
+                           all_dates,
+                           start_date,
+                           end_date,
+                           min_extra_rows):
+        """
+        Calculate the number of extra rows needed to compute ``self``.
+
+        Must return at least ``min_extra_rows``, and the default implementation
+        is to just return ``min_extra_rows``.  This is overridden by
+        downsampled terms to ensure that the first date computed is a
+        recomputation date.
+
+        Parameters
+        ----------
+        all_dates : pd.DatetimeIndex
+            The trading sessions against which ``self`` will be computed.
+        start_date : pd.Timestamp
+            The first date for which final output is requested.
+        end_date : pd.Timestamp
+            The last date for which final output is requested.
+        min_extra_rows : int
+            The minimum number of extra rows required of ``self``, as
+            determined by other terms that depend on ``self``.
+
+        Returns
+        -------
+        extra_rows : int
+            The number of extra rows to compute.  Must be at least
+            ``min_extra_rows``.
+        """
+        return min_extra_rows
+
     @abstractproperty
     def inputs(self):
         """
@@ -320,6 +358,9 @@ class AssetExists(Term):
     every asset on every date.  We don't subclass Filter, however, because
     `AssetExists` is computed directly by the PipelineEngine.
 
+    This term is guaranteed to be available as an input for any term computed
+    by SimplePipelineEngine.run_pipeline().
+
     See Also
     --------
     zipline.assets.AssetFinder.lifetimes
@@ -334,6 +375,38 @@ class AssetExists(Term):
     def __repr__(self):
         return "AssetExists()"
 
+    def _compute(self, today, assets, out):
+        raise NotImplementedError(
+            "AssetExists cannot be computed directly."
+            " Check your PipelineEngine configuration."
+        )
+
+
+class InputDates(Term):
+    """
+    1-Dimensional term providing date labels for other term inputs.
+
+    This term is guaranteed to be available as an input for any term computed
+    by SimplePipelineEngine.run_pipeline().
+    """
+    ndim = 1
+    dataset = None
+    dtype = datetime64ns_dtype
+    inputs = ()
+    dependencies = {}
+    mask = None
+    windowed = False
+    window_safe = True
+
+    def __repr__(self):
+        return "InputDates()"
+
+    def _compute(self, today, assets, out):
+        raise NotImplementedError(
+            "InputDates cannot be computed directly."
+            " Check your PipelineEngine configuration."
+        )
+
 
 class LoadableTerm(Term):
     """
@@ -342,6 +415,7 @@ class LoadableTerm(Term):
     This is the base class for :class:`zipline.pipeline.data.BoundColumn`.
     """
     windowed = False
+    inputs = ()
 
     @lazyval
     def dependencies(self):
@@ -353,7 +427,7 @@ class ComputableTerm(Term):
     A Term that should be computed from a tuple of inputs.
 
     This is the base class for :class:`zipline.pipeline.Factor`,
-    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Factor`.
+    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Classifier`.
     """
     inputs = NotSpecified
     outputs = NotSpecified
@@ -516,6 +590,27 @@ class ComputableTerm(Term):
         """
         return data
 
+    def _downsampled_type(self):
+        """
+        The expression type to return from self.downsample().
+        """
+        raise NotImplementedError(
+            "downsampling is not yet implemented "
+            "for instances of %s." % type(self).__name__
+        )
+
+    @expect_downsample_frequency
+    @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
+    def downsample(self, frequency):
+        """
+        Make a term that computes from ``self`` at lower-than-daily frequency.
+
+        Parameters
+        ----------
+        {frequency}
+        """
+        return self._downsampled_type(term=self, frequency=frequency)
+
     def __repr__(self):
         return (
             "{type}({inputs}, window_length={window_length})"
@@ -526,7 +621,7 @@ class ComputableTerm(Term):
         )
 
 
-class Slice(ComputableTerm, SingleInputMixin):
+class Slice(ComputableTerm):
     """
     Term for extracting a single column of a another term's output.
 
@@ -581,6 +676,12 @@ class Slice(ComputableTerm, SingleInputMixin):
         # Return a 2D array with one column rather than a 1D array of the
         # column.
         return windows[0][:, [asset_column]]
+
+    @property
+    def _downsampled_type(self):
+        raise NotImplementedError(
+            'downsampling of slices is not yet supported'
+        )
 
 
 def validate_dtype(termname, dtype, missing_value):

@@ -47,9 +47,11 @@ from zipline.pipeline.engine import SimplePipelineEngine
 from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
-from zipline.utils.input_validation import expect_dimensions
-from zipline.utils.sentinel import sentinel
 from zipline.utils.calendars import get_calendar
+from zipline.utils.input_validation import expect_dimensions
+from zipline.utils.numpy_utils import as_column
+from zipline.utils.sentinel import sentinel
+
 import numpy as np
 from numpy import float64
 
@@ -308,11 +310,11 @@ def make_trade_data_for_asset_info(dates,
     price_sid_deltas = np.arange(len(sids), dtype=float64) * price_step_by_sid
     price_date_deltas = (np.arange(len(dates), dtype=float64) *
                          price_step_by_date)
-    prices = (price_sid_deltas + price_date_deltas[:, None]) + price_start
+    prices = (price_sid_deltas + as_column(price_date_deltas)) + price_start
 
     volume_sid_deltas = np.arange(len(sids)) * volume_step_by_sid
     volume_date_deltas = np.arange(len(dates)) * volume_step_by_date
-    volumes = (volume_sid_deltas + volume_date_deltas[:, None]) + volume_start
+    volumes = volume_sid_deltas + as_column(volume_date_deltas) + volume_start
 
     for j, sid in enumerate(sids):
         start_date, end_date = asset_info.loc[sid, ['start_date', 'end_date']]

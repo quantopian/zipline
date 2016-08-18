@@ -6,7 +6,7 @@ from .engine import SimplePipelineEngine
 from .factors import Factor, CustomFactor
 from .filters import Filter, CustomFilter
 from .term import Term
-from .graph import TermGraph
+from .graph import ExecutionPlan, TermGraph
 from .pipeline import Pipeline
 from .loaders import USEquityPricingLoader
 
@@ -56,6 +56,7 @@ __all__ = (
     'CustomFilter',
     'CustomClassifier',
     'engine_from_files',
+    'ExecutionPlan',
     'Factor',
     'Filter',
     'Pipeline',

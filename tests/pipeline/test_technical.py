@@ -7,10 +7,7 @@ import pandas as pd
 import talib
 
 from zipline.lib.adjusted_array import AdjustedArray
-from zipline.pipeline import TermGraph
 from zipline.pipeline.data import USEquityPricing
-from zipline.pipeline.engine import SimplePipelineEngine
-from zipline.pipeline.term import AssetExists
 from zipline.pipeline.factors import (
     BollingerBands,
     Aroon,
@@ -20,61 +17,22 @@ from zipline.pipeline.factors import (
     RateOfChangePercentage,
     TrueRange,
 )
-from zipline.testing import ExplodingObject, parameter_space
-from zipline.testing.fixtures import WithAssetFinder, ZiplineTestCase
+from zipline.testing import parameter_space
+from zipline.testing.fixtures import ZiplineTestCase
 from zipline.testing.predicates import assert_equal
 
-
-class WithTechnicalFactor(WithAssetFinder):
-    """ZiplineTestCase fixture for testing technical factors.
-    """
-    ASSET_FINDER_EQUITY_SIDS = tuple(range(5))
-    START_DATE = pd.Timestamp('2014-01-01', tz='utc')
-
-    @classmethod
-    def init_class_fixtures(cls):
-        super(WithTechnicalFactor, cls).init_class_fixtures()
-        cls.ndays = ndays = 24
-        cls.nassets = nassets = len(cls.ASSET_FINDER_EQUITY_SIDS)
-        cls.dates = dates = pd.date_range(cls.START_DATE, periods=ndays)
-        cls.assets = pd.Index(cls.asset_finder.sids)
-        cls.engine = SimplePipelineEngine(
-            lambda column: ExplodingObject(),
-            dates,
-            cls.asset_finder,
-        )
-        cls.asset_exists = exists = np.full((ndays, nassets), True, dtype=bool)
-        cls.asset_exists_masked = masked = exists.copy()
-        masked[:, -1] = False
-
-    def run_graph(self, graph, initial_workspace, mask_sid):
-        initial_workspace.setdefault(
-            AssetExists(),
-            self.asset_exists_masked if mask_sid else self.asset_exists,
-        )
-        return self.engine.compute_chunk(
-            graph,
-            self.dates,
-            self.assets,
-            initial_workspace,
-        )
+from .base import BasePipelineTestCase
 
 
-class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
-    @classmethod
-    def init_class_fixtures(cls):
-        super(BollingerBandsTestCase, cls).init_class_fixtures()
-        cls._closes = closes = (
-            np.arange(cls.ndays, dtype=float)[:, np.newaxis] +
-            np.arange(cls.nassets, dtype=float) * 100
-        )
-        cls._closes_masked = masked = closes.copy()
-        masked[:, -1] = np.nan
+class BollingerBandsTestCase(BasePipelineTestCase):
 
-    def closes(self, masked):
-        return self._closes_masked if masked else self._closes
+    def closes(self, mask_last_sid):
+        data = self.arange_data(dtype=np.float64)
+        if mask_last_sid:
+            data[:, -1] = np.nan
+        return data
 
-    def expected(self, window_length, k, closes):
+    def expected_bbands(self, window_length, k, closes):
         """Compute the expected data (without adjustments) for the given
         window, k, and closes array.
 
@@ -83,11 +41,14 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
         lower_cols = []
         middle_cols = []
         upper_cols = []
-        for n in range(self.nassets):
+
+        ndates, nassets = closes.shape
+
+        for n in range(nassets):
             close_col = closes[:, n]
             if np.isnan(close_col).all():
                 # ta-lib doesn't deal well with all nans.
-                upper, middle, lower = [np.full(self.ndays, np.nan)] * 3
+                upper, middle, lower = [np.full(ndates, np.nan)] * 3
             else:
                 upper, middle, lower = talib.BBANDS(
                     close_col,
@@ -112,37 +73,37 @@ class BollingerBandsTestCase(WithTechnicalFactor, ZiplineTestCase):
     @parameter_space(
         window_length={5, 10, 20},
         k={1.5, 2, 2.5},
-        mask_sid={True, False},
+        mask_last_sid={True, False},
+        __fail_fast=True,
     )
-    def test_bollinger_bands(self, window_length, k, mask_sid):
-        closes = self.closes(mask_sid)
-        result = self.run_graph(
-            TermGraph({
-                'f': BollingerBands(
-                    window_length=window_length,
-                    k=k,
-                ),
-            }),
+    def test_bollinger_bands(self, window_length, k, mask_last_sid):
+        closes = self.closes(mask_last_sid=mask_last_sid)
+        mask = ~np.isnan(closes)
+        bbands = BollingerBands(window_length=window_length, k=k)
+
+        expected = self.expected_bbands(window_length, k, closes)
+
+        self.check_terms(
+            terms={
+                'upper': bbands.upper,
+                'middle': bbands.middle,
+                'lower': bbands.lower,
+            },
+            expected={
+                'upper': expected[0],
+                'middle': expected[1],
+                'lower': expected[2],
+            },
             initial_workspace={
                 USEquityPricing.close: AdjustedArray(
-                    closes,
-                    np.full_like(closes, True, dtype=bool),
-                    {},
-                    np.nan,
+                    data=closes,
+                    mask=mask,
+                    adjustments={},
+                    missing_value=np.nan,
                 ),
             },
-            mask_sid=mask_sid,
-        )['f']
-
-        expected_upper, expected_middle, expected_lower = self.expected(
-            window_length,
-            k,
-            closes,
+            mask=self.build_mask(mask),
         )
-
-        assert_equal(result.upper, expected_upper)
-        assert_equal(result.middle, expected_middle)
-        assert_equal(result.lower, expected_lower)
 
     def test_bollinger_bands_output_ordering(self):
         bbands = BollingerBands(window_length=5, k=2)
@@ -185,7 +146,7 @@ class AroonTestCase(ZiplineTestCase):
         assert_equal(out, expected_out)
 
 
-class TestFastStochasticOscillator(WithTechnicalFactor, ZiplineTestCase):
+class TestFastStochasticOscillator(ZiplineTestCase):
     """
     Test the Fast Stochastic Oscillator
     """
@@ -427,7 +388,7 @@ class TestLinearWeightedMovingAverage(ZiplineTestCase):
         assert_equal(out, np.array([30.,  31.,  32.,  33.,  34.]))
 
 
-class TestTrueRange(WithTechnicalFactor, ZiplineTestCase):
+class TestTrueRange(ZiplineTestCase):
 
     def test_tr_basic(self):
         tr = TrueRange()

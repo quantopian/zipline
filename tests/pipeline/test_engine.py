@@ -40,6 +40,7 @@ from six import iteritems, itervalues
 from toolz import merge
 
 from zipline.assets.synthetic import make_rotating_equity_info
+from zipline.errors import NoFurtherDataError
 from zipline.lib.adjustment import MULTIPLY
 from zipline.lib.labelarray import LabelArray
 from zipline.pipeline import CustomFactor, Pipeline
@@ -65,6 +66,7 @@ from zipline.pipeline.loaders.synthetic import (
     expected_bar_values_2d,
 )
 from zipline.pipeline.sentinels import NotSpecified
+from zipline.pipeline.term import InputDates
 from zipline.testing import (
     AssetID,
     AssetIDPlusDay,
@@ -81,7 +83,7 @@ from zipline.testing.fixtures import (
     ZiplineTestCase,
 )
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import bool_dtype
+from zipline.utils.numpy_utils import bool_dtype, datetime64ns_dtype
 
 
 class RollingSumDifference(CustomFactor):
@@ -205,6 +207,53 @@ class ConstantInputTestCase(WithTradingEnvironment, ZiplineTestCase):
         msg = "start_date must be before or equal to end_date .*"
         with self.assertRaisesRegexp(ValueError, msg):
             engine.run_pipeline(p, self.dates[2], self.dates[1])
+
+    def test_fail_usefully_on_insufficient_data(self):
+        loader = self.loader
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+
+        class SomeFactor(CustomFactor):
+            inputs = [USEquityPricing.close]
+            window_length = 10
+
+            def compute(self, today, assets, out, closes):
+                pass
+
+        p = Pipeline(columns={'t': SomeFactor()})
+
+        # self.dates[9] is the earliest date we should be able to compute.
+        engine.run_pipeline(p, self.dates[9], self.dates[9])
+
+        # We shouldn't be able to compute dates[8], since we only know about 8
+        # prior dates, and we need a window length of 10.
+        with self.assertRaises(NoFurtherDataError):
+            engine.run_pipeline(p, self.dates[8], self.dates[8])
+
+    def test_input_dates_provided_by_default(self):
+        loader = self.loader
+        engine = SimplePipelineEngine(
+            lambda column: loader, self.dates, self.asset_finder,
+        )
+
+        class TestFactor(CustomFactor):
+            inputs = [InputDates(), USEquityPricing.close]
+            window_length = 10
+            dtype = datetime64ns_dtype
+
+            def compute(self, today, assets, out, dates, closes):
+                first, last = dates[[0, -1], 0]
+                assert last == today.asm8
+                assert len(dates) == len(closes) == self.window_length
+                out[:] = first
+
+        p = Pipeline(columns={'t': TestFactor()})
+        results = engine.run_pipeline(p, self.dates[9], self.dates[10])
+
+        # All results are the same, so just grab one column.
+        column = results.unstack().iloc[:, 0].values
+        check_arrays(column, self.dates[:2].values)
 
     def test_same_day_pipeline(self):
         loader = self.loader

@@ -25,6 +25,7 @@ from zipline.pipeline.expression import (
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
+    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -32,6 +33,7 @@ from zipline.pipeline.mixins import (
 )
 from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.input_validation import expect_types
+from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import bool_dtype, repeat_first_axis
 
 
@@ -200,6 +202,10 @@ class Filter(RestrictedDTypeMixin, ComputableTerm):
                 dtype=self.dtype
             )
         return retval
+
+    @classlazyval
+    def _downsampled_type(self):
+        return DownsampledMixin.make_downsampled_type(Filter)
 
 
 class NumExprFilter(NumericalExpression, Filter):

@@ -112,7 +112,6 @@ class BoundColumn(LoadableTerm):
         The name of this column.
     """
     mask = AssetExists()
-    inputs = ()
     window_safe = True
 
     def __new__(cls, dtype, missing_value, dataset, name):

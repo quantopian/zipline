@@ -33,6 +33,7 @@ from zipline.pipeline.filters import (
 )
 from zipline.pipeline.mixins import (
     CustomTermMixin,
+    DownsampledMixin,
     LatestMixin,
     PositiveWindowLengthMixin,
     RestrictedDTypeMixin,
@@ -43,6 +44,7 @@ from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
+from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
@@ -1071,6 +1073,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
+    @classlazyval
+    def _downsampled_type(self):
+        return DownsampledMixin.make_downsampled_type(Factor)
+
 
 class NumExprFactor(NumericalExpression, Factor):
     """
@@ -1468,7 +1474,9 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
 
 
 class RecarrayField(SingleInputMixin, Factor):
-
+    """
+    A single field from a multi-output factor.
+    """
     def __new__(cls, factor, attribute):
         return super(RecarrayField, cls).__new__(
             cls,
