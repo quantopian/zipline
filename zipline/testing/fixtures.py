@@ -396,11 +396,10 @@ class WithTradingCalendars(object):
     TRADING_CALENDAR_STRS = ('NYSE',)
     TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE'}
     TRADING_CALENDAR_FOR_EXCHANGE = {}
-
     # For backwards compatibility, exisitng tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
     # calendar.
-    trading_calendar = alias('nyse_calendar')
+    TRADING_CALENDAR_PRIMARY_CAL = 'NYSE'
 
     @classmethod
     def init_class_fixtures(cls):
@@ -421,6 +420,8 @@ class WithTradingCalendars(object):
         for exchange, cal_str in iteritems(cls.TRADING_CALENDAR_FOR_EXCHANGE):
             register_calendar(exchange, get_calendar(cal_str))
             cls.trading_calendars[exchange] = get_calendar(cal_str)
+        cls.trading_calendar = cls.trading_calendars[
+            cls.TRADING_CALENDAR_PRIMARY_CAL]
 
 
 class WithTradingEnvironment(WithAssetFinder,

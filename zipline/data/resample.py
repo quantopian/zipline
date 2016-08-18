@@ -15,6 +15,10 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
+
+from zipline.data.session_bars import SessionBarReader
+from zipline.utils.memoize import lazyval
 
 _MINUTE_TO_SESSION_OHCLV_HOW = OrderedDict((
     ('open', 'first'),
@@ -45,11 +49,10 @@ def minute_to_session(minute_frame, calendar):
         A DataFrame with the columns `open`, `high`, `low`, `close`, `volume`,
         and `day` (datetime-like).
     """
-    # Group minutes into their respective days. Note that this will
-    # create groups for all trading days in the desired range,
-    # including days with no minute data.
-    return minute_frame.resample(calendar.day,
-                                 how=_MINUTE_TO_SESSION_OHCLV_HOW)
+    how = OrderedDict((c, _MINUTE_TO_SESSION_OHCLV_HOW[c])
+                      for c in minute_frame.columns)
+    return minute_frame.groupby(calendar.minute_to_session_label).agg(
+        how)
 
 
 class DailyHistoryAggregator(object):
@@ -450,3 +453,48 @@ class DailyHistoryAggregator(object):
                     volumes.append(val)
                     continue
         return np.array(volumes)
+
+
+class MinuteResampleSessionBarReader(SessionBarReader):
+
+    def __init__(self, calendar, minute_bar_reader):
+        self._calendar = calendar
+        self._minute_bar_reader = minute_bar_reader
+
+    def _get_resampled(self, columns, start_dt, end_dt, assets):
+        minute_data = self._minute_bar_reader.load_raw_arrays(
+            columns, start_dt, end_dt, assets)
+        dts = self._calendar.minutes_in_range(start_dt, end_dt)
+        minute_frame = DataFrame(
+            [d.T[0] for d in minute_data], index=columns, columns=dts).T
+        return minute_to_session(minute_frame, self._calendar)
+
+    @property
+    def trading_calendar(self):
+        return self._calendar
+
+    def load_raw_arrays(self, columns, start_dt, end_dt, assets):
+        return self._get_resampled(columns, start_dt, end_dt, assets).values
+
+    def spot_price(self, sid, session, colname):
+        # WARNING: This will need caching or other optimization if used in a
+        # tight loop.
+        # This was developed to complete interface, but has not been tuned
+        # for real world use.
+        start, end = self._calendar.open_and_close_for_session(session)
+        frame = self._get_resampled([colname], start, end, [sid])
+        return frame.loc[session, colname]
+
+    @lazyval
+    def sessions(self):
+        cal = self._calendar
+        first = self._minute_bar_reader.first_trading_day
+        last = cal.minute_to_session_label(
+            self._minute_bar_reader.last_available_dt)
+        return cal.sessions_in_range(first, last)
+
+    @lazyval
+    def last_available_dt(self):
+        return self.trading_calendar.minute_to_session_label(
+            self._minute_bar_reader.last_available_dt
+        )
