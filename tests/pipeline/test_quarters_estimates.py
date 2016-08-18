@@ -20,7 +20,6 @@ from zipline.pipeline.loaders.quarter_estimates import (
     NextQuartersEstimatesLoader,
     PreviousQuartersEstimatesLoader
 )
-from zipline.pipeline.loaders.quarter_estimates import shift_quarters
 from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import WithAssetFinder, WithTradingSessions
 from zipline.testing.predicates import assert_equal

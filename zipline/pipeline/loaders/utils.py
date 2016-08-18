@@ -2,6 +2,8 @@ import datetime
 
 import numpy as np
 import pandas as pd
+from zipline.pipeline.common import TS_FIELD_NAME, SID_FIELD_NAME
+from zipline.utils.numpy_utils import categorical_dtype
 from zipline.utils.pandas_utils import mask_between_time
 
 
@@ -272,3 +274,72 @@ def check_data_query_args(data_query_time, data_query_tz):
                 data_query_tz,
             ),
         )
+
+
+def last_in_date_group(df, reindex, dates, assets, have_sids=True,
+                       extra_groupers=[]):
+    idx = dates[dates.searchsorted(
+        df[TS_FIELD_NAME].values.astype('datetime64[D]')
+    )]
+    if have_sids:
+        idx = [idx, SID_FIELD_NAME] + extra_groupers
+
+    last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
+        idx,
+        sort=False,
+    ).last()
+
+    # For the number of things that we're grouping by (except TS), unstack
+    # the df
+    for _ in range(len(idx) - 1):
+        last_in_group = last_in_group.unstack()
+
+    if reindex:
+        if have_sids:
+            cols = last_in_group.columns
+            last_in_group = last_in_group.reindex(
+                index=dates,
+                columns=pd.MultiIndex.from_product(
+                    tuple(cols.levels[0:len(extra_groupers) + 1]) + (assets,),
+                    names=cols.names,
+                ),
+            )
+        else:
+            last_in_group = last_in_group.reindex(dates)
+
+    return last_in_group
+
+
+def ffill_across_cols(df, columns):
+    df.ffill(inplace=True)
+
+    # Fill in missing values specified by each column. This is made
+    # significantly more complex by the fact that we need to work around
+    # two pandas issues:
+
+    # 1) When we have sids, if there are no records for a given sid for any
+    #    dates, pandas will generate a column full of NaNs for that sid.
+    #    This means that some of the columns in `dense_output` are now
+    #    float instead of the intended dtype, so we have to coerce back to
+    #    our expected type and convert NaNs into the desired missing value.
+
+    # 2) DataFrame.ffill assumes that receiving None as a fill-value means
+    #    that no value was passed.  Consequently, there's no way to tell
+    #    pandas to replace NaNs in an object column with None using fillna,
+    #    so we have to roll our own instead using df.where.
+    for column in columns:
+        # Special logic for strings since `fillna` doesn't work if the
+        # missing value is `None`.
+        if column.dtype == categorical_dtype:
+            df[column.name] = df[
+                column.name
+            ].where(pd.notnull(df[column.name]),
+                    column.missing_value)
+        else:
+            # We need to execute `fillna` before `astype` in case the
+            # column contains NaNs and needs to be cast to bool or int.
+            # This is so that the NaNs are replaced first, since pandas
+            # can't convert NaNs for those types.
+            df[column.name] = df[
+                column.name
+            ].fillna(column.missing_value).astype(column.dtype)

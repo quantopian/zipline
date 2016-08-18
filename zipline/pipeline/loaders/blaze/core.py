@@ -175,9 +175,10 @@ from zipline.pipeline.common import (
 from zipline.pipeline.data.dataset import DataSet, Column
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
+    last_in_date_group,
     normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
-)
+    ffill_across_cols)
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
 from zipline.lib.adjustment import Float64Overwrite
@@ -869,9 +870,9 @@ def adjustments_from_deltas_with_sids(dense_dates,
 
     Parameters
     ----------
-    dates : pd.DatetimeIndex
-        The dates requested by the loader.
     dense_dates : pd.DatetimeIndex
+        The dates requested by the loader.
+    sparse_dates : pd.DatetimeIndex
         The dates that were in the raw data.
     column_idx : int
         The index of the column in the dataset.
@@ -1091,71 +1092,15 @@ class BlazeLoader(dict):
         )
         sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
 
-        def last_in_date_group(df, reindex, have_sids=have_sids):
-            idx = dates[dates.searchsorted(
-                df[TS_FIELD_NAME].values.astype('datetime64[D]')
-            )]
-            if have_sids:
-                idx = [idx, SID_FIELD_NAME]
-
-            last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
-                idx,
-                sort=False,
-            ).last()
-
-            if have_sids:
-                last_in_group = last_in_group.unstack()
-
-            if reindex:
-                if have_sids:
-                    cols = last_in_group.columns
-                    last_in_group = last_in_group.reindex(
-                        index=dates,
-                        columns=pd.MultiIndex.from_product(
-                            (cols.levels[0], assets),
-                            names=cols.names,
-                        ),
-                    )
-                else:
-                    last_in_group = last_in_group.reindex(dates)
-
-            return last_in_group
-
-        sparse_deltas = last_in_date_group(non_novel_deltas, reindex=False)
-        dense_output = last_in_date_group(sparse_output, reindex=True)
-        dense_output.ffill(inplace=True)
-
-        # Fill in missing values specified by each column. This is made
-        # significantly more complex by the fact that we need to work around
-        # two pandas issues:
-
-        # 1) When we have sids, if there are no records for a given sid for any
-        #    dates, pandas will generate a column full of NaNs for that sid.
-        #    This means that some of the columns in `dense_output` are now
-        #    float instead of the intended dtype, so we have to coerce back to
-        #    our expected type and convert NaNs into the desired missing value.
-
-        # 2) DataFrame.ffill assumes that receiving None as a fill-value means
-        #    that no value was passed.  Consequently, there's no way to tell
-        #    pandas to replace NaNs in an object column with None using fillna,
-        #    so we have to roll our own instead using df.where.
-        for column in columns:
-            # Special logic for strings since `fillna` doesn't work if the
-            # missing value is `None`.
-            if column.dtype == categorical_dtype:
-                dense_output[column.name] = dense_output[
-                    column.name
-                ].where(pd.notnull(dense_output[column.name]),
-                        column.missing_value)
-            else:
-                # We need to execute `fillna` before `astype` in case the
-                # column contains NaNs and needs to be cast to bool or int.
-                # This is so that the NaNs are replaced first, since pandas
-                # can't convert NaNs for those types.
-                dense_output[column.name] = dense_output[
-                    column.name
-                ].fillna(column.missing_value).astype(column.dtype)
-
+        sparse_deltas = last_in_date_group(non_novel_deltas,
+                                           dates,
+                                           assets,
+                                           reindex=False)
+        dense_output = last_in_date_group(sparse_output,
+                                          dates,
+                                          assets,
+                                          reindex=True)
+        ffill_across_cols(dense_output, columns)
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
