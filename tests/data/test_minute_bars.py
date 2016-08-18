@@ -80,10 +80,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         self.dest = self.instance_tmpdir.getpath('minute_bars')
         os.makedirs(self.dest)
         self.writer = BcolzMinuteBarWriter(
-            TEST_CALENDAR_START,
             self.dest,
-            self.market_opens,
-            self.market_closes,
+            self.trading_calendar,
+            TEST_CALENDAR_START,
+            TEST_CALENDAR_STOP,
             US_EQUITIES_MINUTES_PER_DAY,
         )
         self.reader = BcolzMinuteBarReader(self.dest)

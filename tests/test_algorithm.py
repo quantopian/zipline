@@ -3532,12 +3532,6 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
         sids = asset_info.index
 
         env = self.enter_instance_context(tmp_trading_env(equities=asset_info))
-        market_opens = self.trading_calendar.schedule.market_open.loc[
-            self.test_days
-        ]
-        market_closes = self.trading_calendar.schedule.market_close.loc[
-            self.test_days
-        ]
 
         if frequency == 'daily':
             dates = self.test_days
@@ -3569,10 +3563,10 @@ class TestEquityAutoClose(WithTmpDir, WithTradingCalendars, ZiplineTestCase):
                 self.test_days[-1],
             )
             writer = BcolzMinuteBarWriter(
-                self.test_days[0],
                 self.tmpdir.path,
-                market_opens,
-                market_closes,
+                self.trading_calendar,
+                self.test_days[0],
+                self.test_days[-1],
                 US_EQUITIES_MINUTES_PER_DAY
             )
             trade_data_by_sid = make_trade_data_for_asset_info(

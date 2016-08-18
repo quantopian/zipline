@@ -507,14 +507,11 @@ def create_data_portal(asset_finder, tempdir, sim_params, sids,
 
 
 def write_bcolz_minute_data(trading_calendar, days, path, data):
-    market_opens = trading_calendar.schedule.loc[days].market_open
-    market_closes = trading_calendar.schedule.loc[days].market_close
-
     BcolzMinuteBarWriter(
-        days[0],
         path,
-        market_opens,
-        market_closes,
+        trading_calendar,
+        days[0],
+        days[-1],
         US_EQUITIES_MINUTES_PER_DAY
     ).write(data)
 

@@ -381,12 +381,12 @@ def _make_bundle_core():
 
                 daily_bar_writer.write(())
                 minute_bar_writer = BcolzMinuteBarWriter(
-                    bundle.start_session,
                     wd.ensure_dir(*minute_equity_relative(
                         name, timestr, environ=environ)
                     ),
-                    bundle.calendar.schedule['market_open'],
-                    bundle.calendar.schedule['market_close'],
+                    bundle.calendar,
+                    bundle.start_session,
+                    bundle.end_session,
                     minutes_per_day=bundle.minutes_per_day,
                 )
                 asset_db_writer = AssetDBWriter(
