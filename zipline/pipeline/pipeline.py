@@ -1,6 +1,10 @@
 
 from zipline.errors import UnsupportedPipelineOutput
-from zipline.utils.input_validation import expect_types, optional
+from zipline.utils.input_validation import (
+    expect_element,
+    expect_types,
+    optional,
+)
 
 from .graph import ExecutionPlan, TermGraph
 from .filters import Filter
@@ -189,7 +193,9 @@ class Pipeline(object):
         default_screen : zipline.pipeline.term.Term
             Term to use as a screen if self.screen is None.
         """
-        return TermGraph(self._prepare_graph_terms())
+        return TermGraph(
+            self._prepare_graph_terms(screen_name, default_screen)
+        )
 
     def _prepare_graph_terms(self, screen_name, default_screen):
         """Helper for to_graph and to_execution_plan."""
@@ -200,6 +206,7 @@ class Pipeline(object):
         columns[screen_name] = screen
         return columns
 
+    @expect_element(format=('svg', 'png', 'jpeg'))
     def show_graph(self, format='svg'):
         """
         Render this Pipeline as a DAG.
@@ -217,7 +224,9 @@ class Pipeline(object):
         elif format == 'jpeg':
             return g.jpeg
         else:
-            raise ValueError("Unknown graph format %r." % format)
+            # We should never get here because of the expect_element decorator
+            # above.
+            raise AssertionError("Unknown graph format %r." % format)
 
     @staticmethod
     def validate_column(column_name, term):
