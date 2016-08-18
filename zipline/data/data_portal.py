@@ -24,11 +24,11 @@ from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
 from zipline.data.resample import DailyHistoryAggregator
-from zipline.data.us_equity_pricing import NoDataOnDate
-from zipline.data.us_equity_loader import (
-    USEquityDailyHistoryLoader,
-    USEquityMinuteHistoryLoader,
+from zipline.data.history_loader import (
+    DailyHistoryLoader,
+    MinuteHistoryLoader,
 )
+from zipline.data.us_equity_pricing import NoDataOnDate
 
 from zipline.utils.math_utils import (
     nansum,
@@ -137,7 +137,7 @@ class DataPortal(object):
 
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
-            self._equity_history_loader = USEquityDailyHistoryLoader(
+            self._equity_history_loader = DailyHistoryLoader(
                 self.trading_calendar,
                 self._equity_daily_reader,
                 self._adjustment_reader
@@ -163,7 +163,7 @@ class DataPortal(object):
                 self._equity_minute_reader,
                 self.trading_calendar
             )
-            self._equity_minute_history_loader = USEquityMinuteHistoryLoader(
+            self._equity_minute_history_loader = MinuteHistoryLoader(
                 self.trading_calendar,
                 self._equity_minute_reader,
                 self._adjustment_reader
