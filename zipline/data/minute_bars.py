@@ -208,7 +208,7 @@ class BcolzMinuteBarMetadata(object):
     minutes_per_day : int
         The number of minutes per each period.
     """
-    FORMAT_VERSION = 1
+    FORMAT_VERSION = 2
 
     METADATA_FILENAME = 'metadata.json'
 
@@ -229,19 +229,30 @@ class BcolzMinuteBarMetadata(object):
                 # if version does not match.
                 version = 0
 
-            start_session = pd.Timestamp(raw_data['start_session'], tz='UTC')
-            end_session = pd.Timestamp(raw_data['end_session'], tz='UTC')
-
             ohlc_ratio = raw_data['ohlc_ratio']
 
-            if version == 0:
+            if version >= 1:
+                minutes_per_day = raw_data['minutes_per_day']
+            else:
                 # version 0 always assumed US equities.
                 minutes_per_day = US_EQUITIES_MINUTES_PER_DAY
-                # version 0 always assumed NYSE.
-                calendar = get_calendar('NYSE')
-            else:
-                minutes_per_day = raw_data['minutes_per_day']
+
+            if version >= 2:
                 calendar = get_calendar(raw_data['calendar_name'])
+                start_session = pd.Timestamp(
+                    raw_data['start_session'], tz='UTC')
+                end_session = pd.Timestamp(raw_data['end_session'], tz='UTC')
+            else:
+                # No calendar info included in older versions, so
+                # default to NYSE.
+                calendar = get_calendar('NYSE')
+
+                start_session = pd.Timestamp(
+                    raw_data['first_trading_day'], tz='UTC')
+                end_session = calendar.minute_to_session_label(
+                    pd.Timestamp(
+                        raw_data['market_closes'][-1], unit='m', tz='UTC')
+                )
 
             return cls(
                 ohlc_ratio,
