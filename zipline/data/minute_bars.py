@@ -802,12 +802,12 @@ class BcolzMinuteBarReader(MinuteBarReader):
         self._start_session = metadata.start_session
         self._end_session = metadata.end_session
 
-        calendar = metadata.calendar
-        slicer = calendar.schedule.index.slice_indexer(
+        self.calendar = metadata.calendar
+        slicer = self.calendar.schedule.index.slice_indexer(
             self._start_session,
             self._end_session,
         )
-        self._schedule = calendar.schedule[slicer]
+        self._schedule = self.calendar.schedule[slicer]
         self._market_opens = self._schedule.market_open
         self._market_open_values = self._market_opens.values.\
             astype('datetime64[m]').astype(np.int64)
@@ -832,7 +832,8 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
     @lazyval
     def last_available_dt(self):
-        return self._market_closes[-1]
+        _, close = self.calendar.open_and_close_for_session(self._end_session)
+        return close
 
     @property
     def first_trading_day(self):
