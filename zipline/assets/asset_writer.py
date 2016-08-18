@@ -69,6 +69,8 @@ _equities_defaults = {
     'exchange': None,
     # optional, something like "New York Stock Exchange"
     'exchange_full': None,
+    'company_symbol': None,
+    'share_class_symbol': None
 }
 
 # Default values for the futures DataFrame
@@ -597,15 +599,6 @@ class AssetDBWriter(object):
             data_subset=equities,
             defaults=_equities_defaults,
         )
-
-        # Split symbols to company_symbols and share_class_symbols
-        tuple_series = equities_output['symbol'].apply(split_delimited_symbol)
-        split_symbols = pd.DataFrame(
-            tuple_series.tolist(),
-            columns=['company_symbol', 'share_class_symbol'],
-            index=tuple_series.index
-        )
-        equities_output = pd.concat((equities_output, split_symbols), axis=1)
 
         # Upper-case all symbol data
         for col in symbol_columns:
