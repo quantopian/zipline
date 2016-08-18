@@ -109,17 +109,6 @@ class DataPortal(object):
         self.trading_calendar = trading_calendar
         self.asset_finder = asset_finder
 
-        self.views = {}
-
-        self._carrays = {
-            'open': {},
-            'high': {},
-            'low': {},
-            'close': {},
-            'volume': {},
-            'sid': {},
-        }
-
         self._adjustment_reader = adjustment_reader
 
         # caches of sid -> adjustment list
