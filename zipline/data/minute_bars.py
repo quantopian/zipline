@@ -287,9 +287,6 @@ class BcolzMinuteBarMetadata(object):
         ohlc_ratio : int
              The factor by which the pricing data is multiplied so that the
              float data can be stored as an integer.
-        first_trading_day : string
-            'YYYY-MM-DD' formatted representation of the first trading day
-             available in the dataset.
         minutes_per_day : int
             The number of minutes per each period.
         calendar_name : str
@@ -301,6 +298,12 @@ class BcolzMinuteBarMetadata(object):
         end_session : datetime
             'YYYY-MM-DD' formatted representation of the last trading
             session in the data set.
+
+        Deprecated, but included for backwards compatibility:
+
+        first_trading_day : string
+            'YYYY-MM-DD' formatted representation of the first trading day
+             available in the dataset.
         market_opens : list
             List of int64 values representing UTC market opens as
             minutes since epoch.
