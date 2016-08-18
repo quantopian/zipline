@@ -29,7 +29,7 @@ from zipline.data.history_loader import (
     MinuteHistoryLoader,
 )
 from zipline.data.us_equity_pricing import NoDataOnDate
-
+from zipline.utils.calendars import get_calendar
 from zipline.utils.math_utils import (
     nansum,
     nanmean,
@@ -127,7 +127,7 @@ class DataPortal(object):
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
             self._history_loader = DailyHistoryLoader(
-                self.trading_calendar,
+                get_calendar("NYSE"),
                 self._equity_daily_reader,
                 self._adjustment_reader
             )
@@ -554,7 +554,7 @@ class DataPortal(object):
 
     @remember_last
     def _get_days_for_window(self, end_date, bar_count):
-        tds = self.trading_calendar.all_sessions
+        tds = get_calendar("NYSE").all_sessions
         end_loc = tds.get_loc(end_date)
         start_loc = end_loc - bar_count + 1
         if start_loc < self._first_trading_day_loc:
