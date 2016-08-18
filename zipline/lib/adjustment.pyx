@@ -3,7 +3,7 @@ from cpython cimport Py_EQ
 
 from pandas import isnull, Timestamp
 from numpy cimport float64_t, uint8_t, int64_t
-from numpy import datetime64, float64
+from numpy import asarray, datetime64, float64
 # Purely for readability. There aren't C-level declarations for these types.
 ctypedef object Int64Index_t
 ctypedef object DatetimeIndex_t
@@ -364,7 +364,7 @@ cdef class Float64Overwrite(Float64Adjustment):
                 data[row, col] = value
 
 
-cdef class Float642DArrayOverwrite:
+cdef class Float641DArrayOverwrite:
     """
     An adjustment that overwrites subarrays with a value for each subarray.
 
@@ -379,7 +379,7 @@ cdef class Float642DArrayOverwrite:
            [ 10.,  11.,  12.,  13.,  14.],
            [ 15.,  16.,  17.,  18.,  19.],
            [ 20.,  21.,  22.,  23.,  24.]])
-    >>> adj = Float642DArrayOverwrite(
+    >>> adj = Float641DArrayOverwrite(
     ...     row_starts=np.array([0, 3]),
     ...     row_ends=np.array([2, 4]),
     ...     column_starts=np.array([0, 2]),
@@ -420,18 +420,26 @@ cdef class Float642DArrayOverwrite:
         self.values = values
 
     cpdef mutate(self, float64_t[:, :] data):
-        for (row_start,
-             row_end,
-             col_start,
-             col_end,
-             value) in zip(self.row_starts,
-                           self.row_ends,
-                           self.column_starts,
-                           self.column_ends,
-                            self.values):
-            for col in range(col_start, col_end + 1):
-                data[row_start:row_end+1, col] = value
+        cdef Py_ssize_t fill_range, row, col
+        for fill_range in range(len(self.row_starts)):
+            for row in range(self.row_starts[fill_range],
+                             self.row_ends[fill_range] + 1):
+                for col in range(self.column_starts[fill_range],
+                                 self.column_ends[fill_range] + 1):
+                    data[row, col] = self.values[fill_range]
 
+    def __repr__(self):
+            return (
+                "%s(row_starts=%s, row_ends=%s,"
+                " column_starts=%s, column_ends=%s, values=%s)" % (
+                    type(self).__name__,
+                    asarray(self.row_starts),
+                    asarray(self.row_ends),
+                    asarray(self.column_starts),
+                    asarray(self.column_ends),
+                    asarray(self.values),
+                )
+            )
 
 cdef class Float64Add(Float64Adjustment):
     """
