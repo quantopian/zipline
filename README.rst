@@ -161,7 +161,7 @@ line, run:
 
 .. code:: bash
 
-    python run_algo.py -f dual_moving_average.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
+    zipline run -f dual_moving_average.py --symbols AAPL --start 2011-1-1 --end 2012-1-1 -o dma.pickle
 
 This will download the AAPL price data from Yahoo! Finance in the
 specified time range and stream it through the algorithm and save the

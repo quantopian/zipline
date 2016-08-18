@@ -122,11 +122,11 @@ on OSX):
 
 .. code-block:: bash
 
-   $ python -m zipline run --help
+   $ zipline run --help
 
 .. parsed-literal::
 
-   Usage: __main__.py run [OPTIONS]
+   Usage: zipline run [OPTIONS]
 
      Run a backtest for the given algorithm.
 
@@ -168,7 +168,7 @@ supply the command line args all the time (see the .conf files in the examples
 directory).
 
 Thus, to execute our algorithm from above and save the results to
-``buyapple_out.pickle`` we would call ``python -m zipline run`` as follows:
+``buyapple_out.pickle`` we would call ``zipline run`` as follows:
 
 .. code-block:: python
 
