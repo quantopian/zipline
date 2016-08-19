@@ -422,6 +422,61 @@ def handle_data(context, data):
                                 env=self.env)
         algo.run(self.data_portal)
 
+    def test_schedule_function_custom_cal(self):
+        # run a simulation on the CME cal, and schedule a function
+        # using the NYSE cal
+        algotext = """
+from zipline.api import schedule_function, get_datetime, time_rules, date_rules
+from zipline.utils.calendars import get_calendar
+
+def initialize(context):
+    schedule_function(
+        func=log_nyse_open,
+        date_rule=date_rules.every_day(),
+        time_rule=time_rules.market_open(),
+        calendar=get_calendar("NYSE")
+    )
+
+    schedule_function(
+        func=log_nyse_close,
+        date_rule=date_rules.every_day(),
+        time_rule=time_rules.market_close(),
+        calendar=get_calendar("NYSE")
+    )
+
+    context.nyse_opens = []
+    context.nyse_closes = []
+
+def log_nyse_open(context, data):
+    context.nyse_opens.append(get_datetime())
+
+def log_nyse_close(context, data):
+    context.nyse_closes.append(get_datetime())
+        """
+
+        algo = TradingAlgorithm(
+            script=algotext,
+            sim_params=self.sim_params,
+            env=self.env,
+            trading_calendar=get_calendar("CME")
+        )
+
+        algo.run(self.data_portal)
+
+        nyse = get_calendar("NYSE")
+
+        for minute in algo.nyse_opens:
+            # each minute should be a nyse session open
+            session_label = nyse.minute_to_session_label(minute)
+            session_open = nyse.open_and_close_for_session(session_label)[0]
+            self.assertEqual(session_open, minute)
+
+        for minute in algo.nyse_closes:
+            # each minute should be a minute before a nyse session close
+            session_label = nyse.minute_to_session_label(minute)
+            session_close = nyse.open_and_close_for_session(session_label)[1]
+            self.assertEqual(session_close - timedelta(minutes=1), minute)
+
     def test_schedule_function(self):
         us_eastern = pytz.timezone('US/Eastern')
 
