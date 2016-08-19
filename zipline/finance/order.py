@@ -242,13 +242,14 @@ class Order(object):
     # Binds the cancel methods of two orders together
     @classmethod
     def bindcancels(order1,order2):
-        order1.cancel, order2.cancel = Order.bindmethods(order1.cancel,order2.cancel)
+        order1.cancel, order2.cancel = Order.bindmethods(order1.cancel,order2.cancel,True)
     
     # A classmethod binding the calls of two methods together
-    # WIP: needs to be able to separate calls
     @classmethod
-    def bindmethods(func1,func2):
+    def bindmethods(func1,func2,broadcast=False):
         def bind(*args,**kwargs):
+            if not broadcast:
+                raise NotImplementedError("Unable to split argument calls")
             try:
                 func1(*args,**kwargs)
             except TypeError:
@@ -257,7 +258,6 @@ class Order(object):
                 func2(*args,**kwargs)
             except TypeError:
                 func2()
-
             return
         return bind, bind
 
