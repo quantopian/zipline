@@ -24,7 +24,7 @@ from six import iteritems, PY2
 from cpython cimport bool
 from collections import Iterable
 
-from zipline.assets import Asset, Future
+from zipline.assets import Asset
 from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
@@ -164,7 +164,6 @@ cdef class BarData:
     cdef object _universe_func
     cdef object _last_calculated_universe
     cdef object _universe_last_updated_at
-    cdef bool _daily_mode
 
     cdef bool _adjust_minutes
 
@@ -177,8 +176,6 @@ cdef class BarData:
         self.simulation_dt_func = simulation_dt_func
         self.data_frequency = data_frequency
         self._views = {}
-
-        self._daily_mode = (self.data_frequency == "daily")
 
         self._universe_func = universe_func
         self._last_calculated_universe = None
@@ -206,7 +203,7 @@ cdef class BarData:
             view = self._views[asset]
         except KeyError:
             try:
-                asset = self.data_portal.asset_finder.retrieve_asset(asset)
+                asset = self.data_portal.env.asset_finder.retrieve_asset(asset)
             except ValueError:
                 # assume fetcher
                 pass
@@ -223,27 +220,10 @@ cdef class BarData:
         )
 
     cdef _get_current_minute(self):
-        """
-        Internal utility method to get the current simulation time.
-
-        Possible answers are:
-        - whatever the algorithm's get_datetime() method returns (this is what
-            `self.simulation_dt_func()` points to)
-        - sometimes we're knowingly not in a market minute, like if we're in
-            before_trading_start.  In that case, `self._adjust_minutes` is
-            True, and we get the previous market minute.
-        - if we're in daily mode, get the session label for this minute.
-        """
         dt = self.simulation_dt_func()
 
         if self._adjust_minutes:
-            dt = \
-                self.data_portal.trading_calendar.previous_minute(dt)
-
-        if self._daily_mode:
-            # if we're in daily mode, take the given dt (which is the last
-            # minute of the session) and get the session label for it.
-            dt = self.data_portal.trading_calendar.minute_to_session_label(dt)
+            dt = self.data_portal.env.previous_market_minute(dt)
 
         return dt
 
@@ -426,11 +406,9 @@ cdef class BarData:
     @check_parameters(('assets',), (Asset,))
     def can_trade(self, assets):
         """
-        For the given asset or iterable of assets, returns true if all of the
-        following are true:
-        - the asset is alive at the current simulation time
-        - the asset's exchange is open at the current simulation time
-        - there is a known last price for the asset.
+        For the given asset or iterable of assets, returns true if the asset
+        is alive at the current simulation time and there is a known last
+        price.
 
         Parameters
         ----------
@@ -462,27 +440,15 @@ cdef class BarData:
             })
 
     cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = normalize_date(dt) # FIXME
-        if not asset.is_alive_for_session(session_label):
-            # asset isn't alive
-            return False
-
-        # FIXME temporarily commenting out while we sort out some downstream
-        # dependencies
-        # if not asset.is_exchange_open(dt):
-        #     # exchange isn't open
-        #     return False
-
-        if isinstance(asset, Future):
-            # FIXME: this will get removed once we can get prices for futures
-            return True
-
-        # is there a last price?
-        return not np.isnan(
-            data_portal.get_spot_value(
-                asset, "price", adjusted_dt, self.data_frequency
+        if asset._is_alive(dt, False):
+            # is there a last price?
+            return not np.isnan(
+                data_portal.get_spot_value(
+                    asset, "price", adjusted_dt, self.data_frequency
+                )
             )
-        )
+
+        return False
 
     @check_parameters(('assets',), (Asset,))
     def is_stale(self, assets):
@@ -525,9 +491,7 @@ cdef class BarData:
             })
 
     cdef bool _is_stale_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = normalize_date(dt) # FIXME
-
-        if not asset.is_alive_for_session(session_label):
+        if not asset._is_alive(dt, False):
             return False
 
         current_volume = data_portal.get_spot_value(

@@ -15,6 +15,8 @@
 from datetime import timedelta
 import os
 
+from unittest import TestCase
+
 from numpy import (
     arange,
     array,
@@ -34,6 +36,7 @@ from pandas import (
     NaT,
     date_range,
 )
+from testfixtures import TempDirectory
 
 from zipline.data.minute_bars import (
     BcolzMinuteBarWriter,
@@ -42,12 +45,8 @@ from zipline.data.minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     BcolzMinuteWriterColumnMismatch
 )
+from zipline.finance.trading import TradingEnvironment
 
-from zipline.testing.fixtures import (
-    WithInstanceTmpDir,
-    WithTradingCalendars,
-    ZiplineTestCase,
-)
 
 # Calendar is set to cover several half days, to check a case where half
 # days would be read out of order in cases of windows which spanned over
@@ -56,37 +55,39 @@ TEST_CALENDAR_START = Timestamp('2014-06-02', tz='UTC')
 TEST_CALENDAR_STOP = Timestamp('2015-12-31', tz='UTC')
 
 
-class BcolzMinuteBarTestCase(WithTradingCalendars,
-                             WithInstanceTmpDir,
-                             ZiplineTestCase):
+class BcolzMinuteBarTestCase(TestCase):
 
     @classmethod
-    def init_class_fixtures(cls):
-        super(BcolzMinuteBarTestCase, cls).init_class_fixtures()
-
-        cal = cls.trading_calendar.schedule.loc[
-            TEST_CALENDAR_START:TEST_CALENDAR_STOP
-        ]
-
-        cls.market_opens = cal.market_open
-        cls.market_closes = cal.market_close
-
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
+        all_market_opens = cls.env.open_and_closes.market_open
+        all_market_closes = cls.env.open_and_closes.market_close
+        indexer = all_market_opens.index.slice_indexer(
+            start=TEST_CALENDAR_START,
+            end=TEST_CALENDAR_STOP
+        )
+        cls.market_opens = all_market_opens[indexer]
+        cls.market_closes = all_market_closes[indexer]
         cls.test_calendar_start = cls.market_opens.index[0]
         cls.test_calendar_stop = cls.market_opens.index[-1]
 
-    def init_instance_fixtures(self):
-        super(BcolzMinuteBarTestCase, self).init_instance_fixtures()
+    def setUp(self):
 
-        self.dest = self.instance_tmpdir.getpath('minute_bars')
+        self.dir_ = TempDirectory()
+        self.dir_.create()
+        self.dest = self.dir_.getpath('minute_bars')
         os.makedirs(self.dest)
         self.writer = BcolzMinuteBarWriter(
-            self.dest,
-            self.trading_calendar,
             TEST_CALENDAR_START,
-            TEST_CALENDAR_STOP,
+            self.dest,
+            self.market_opens,
+            self.market_closes,
             US_EQUITIES_MINUTES_PER_DAY,
         )
         self.reader = BcolzMinuteBarReader(self.dest)
+
+    def tearDown(self):
+        self.dir_.cleanup()
 
     def test_write_one_ohlcv(self):
         minute = self.market_opens[self.test_calendar_start]
@@ -801,13 +802,10 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         data = {sids[0]: data_1, sids[1]: data_2}
 
-        start_minute_loc = \
-            self.trading_calendar.all_minutes.get_loc(minutes[0])
-        minute_locs = [
-            self.trading_calendar.all_minutes.get_loc(minute)
-            - start_minute_loc
-            for minute in minutes
-        ]
+        start_minute_loc = self.env.market_minutes.get_loc(minutes[0])
+        minute_locs = [self.env.market_minutes.get_loc(minute) -
+                       start_minute_loc
+                       for minute in minutes]
 
         for i, col in enumerate(columns):
             for j, sid in enumerate(sids):
@@ -826,11 +824,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             'close': arange(1, 781),
             'volume': arange(1, 781)
         }
-        dts = array(self.trading_calendar.minutes_for_sessions_in_range(
-            self.trading_calendar.minute_to_session_label(start_day),
-            self.trading_calendar.minute_to_session_label(end_day)
-        ))
-
+        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
         self.writer.write_cols(sid, dts, cols)
 
         self.assertEqual(
@@ -872,13 +866,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             'close': arange(1, 601),
             'volume': arange(1, 601)
         }
-        dts = array(
-            self.trading_calendar.minutes_for_sessions_in_range(
-                self.trading_calendar.minute_to_session_label(start_day),
-                self.trading_calendar.minute_to_session_label(end_day)
-            )
-        )
-
+        dts = array(self.env.minutes_for_days_in_range(start_day, end_day))
         self.writer.write_cols(sid, dts, cols)
 
         self.assertEqual(

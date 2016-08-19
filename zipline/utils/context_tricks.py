@@ -41,7 +41,7 @@ class CallbackManager(object):
     >>> with manager('example'):
     ...    print('inside example block')
     entering example block
-    inside example block
+    inside example
     exiting example block
 
     These are reusable with different args:

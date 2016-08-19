@@ -525,14 +525,14 @@ class SetLongOnlyAlgorithm(TradingAlgorithm):
 
 class SetAssetDateBoundsAlgorithm(TradingAlgorithm):
     """
-    Algorithm that tries to order 1 share of sid 999 on every bar and has an
+    Algorithm that tries to order 1 share of sid 0 on every bar and has an
     AssetDateBounds() trading control in place.
     """
     def initialize(self):
         self.register_trading_control(AssetDateBounds())
 
     def handle_data(algo, data):
-        algo.order(algo.sid(999), 1)
+        algo.order(algo.sid(0), 1)
 
 
 class TestRegisterTransformAlgorithm(TradingAlgorithm):

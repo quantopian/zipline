@@ -13,9 +13,9 @@ except ImportError:
     pass
 else:
     globals().update(namespace)
-    del namespace
 
 dispatch = partial(dispatch, namespace=globals())
 
+del namespace
 del partial
 del sys

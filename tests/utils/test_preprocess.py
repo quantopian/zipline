@@ -262,11 +262,7 @@ class PreprocessTestCase(TestCase):
         expected_message = (
             "{qualname}() expected a value in {set_!r}"
             " for argument 'a', but got 'c' instead."
-        ).format(
-            # We special-case set to show a tuple instead of the set repr.
-            set_=tuple(sorted(set_)),
-            qualname=qualname(f),
-        )
+        ).format(set_=set_, qualname=qualname(f))
         self.assertEqual(e.exception.args[0], expected_message)
 
     def test_expect_dtypes(self):

@@ -1,5 +1,5 @@
 #
-# Copyright 2016 Quantopian, Inc.
+# Copyright 2015 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,30 +13,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
+
+import datetime
 import numpy as np
-import pandas as pd
+import pytz
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
-from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
+from zipline.finance.trading import SimulationParameters, TradingEnvironment
 
-from zipline.finance.trading import SimulationParameters
 from . import answer_key
 ANSWER_KEY = answer_key.ANSWER_KEY
 
 
-class TestRisk(WithTradingEnvironment, ZiplineTestCase):
+class TestRisk(unittest.TestCase):
 
-    def init_instance_fixtures(self):
-        super(TestRisk, self).init_instance_fixtures()
+    @classmethod
+    def setUpClass(cls):
+        cls.env = TradingEnvironment()
 
-        start_session = pd.Timestamp("2006-01-01", tz='UTC')
-        end_session = pd.Timestamp("2006-12-29", tz='UTC')
+    @classmethod
+    def tearDownClass(cls):
+        del cls.env
+
+    def setUp(self):
+        start_date = datetime.datetime(
+            year=2006,
+            month=1,
+            day=1,
+            hour=0,
+            minute=0,
+            tzinfo=pytz.utc)
+        end_date = datetime.datetime(
+            year=2006, month=12, day=29, tzinfo=pytz.utc)
 
         self.sim_params = SimulationParameters(
-            start_session=start_session,
-            end_session=end_session,
-            trading_calendar=self.trading_calendar,
+            period_start=start_date,
+            period_end=end_date,
+            env=self.env,
         )
 
         self.algo_returns_06 = factory.create_returns_from_list(
@@ -45,9 +60,7 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         )
 
         self.cumulative_metrics_06 = risk.RiskMetricsCumulative(
-            self.sim_params,
-            treasury_curves=self.env.treasury_curves,
-            trading_calendar=self.trading_calendar,
+            self.sim_params, env=self.env
         )
 
         for dt, returns in answer_key.RETURNS_DATA.iterrows():
