@@ -238,6 +238,29 @@ class Order(object):
         """
         return self.sid
 
+
+    # Binds the cancel methods of two orders together
+    @classmethod
+    def bindcancels(order1,order2):
+        order1.cancel, order2.cancel = Order.bindmethods(order1.cancel,order2.cancel)
+    
+    # A classmethod binding the calls of two methods together
+    # WIP: needs to be able to separate calls
+    @classmethod
+    def bindmethods(func1,func2):
+        def bind(*args,**kwargs):
+            try:
+                func1(*args,**kwargs)
+            except TypeError:
+                func()
+            try:
+                func2(*args,**kwargs)
+            except TypeError:
+                func2()
+
+            return
+        return bind, bind
+
     @property
     def triggered(self):
         """
