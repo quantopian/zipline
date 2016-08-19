@@ -11,8 +11,11 @@ from numpy import (
     broadcast,
     busday_count,
     datetime64,
+    diff,
     dtype,
     empty,
+    flatnonzero,
+    hstack,
     nan,
     vectorize,
     where
@@ -364,3 +367,66 @@ def vectorized_is_element(array, choices):
         Array indicating whether each element of ``array`` was in ``choices``.
     """
     return vectorize(choices.__contains__, otypes=[bool])(array)
+
+
+def as_column(a):
+    """
+    Convert an array of shape (N,) into an array of shape (N, 1).
+
+    This is equivalent to `a[:, np.newaxis]`.
+
+    Parameters
+    ----------
+    a : np.ndarray
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> a = np.arange(5)
+    >>> a
+    array([0, 1, 2, 3, 4])
+    >>> as_column(a)
+    array([[0],
+           [1],
+           [2],
+           [3],
+           [4]])
+    >>> as_column(a).shape
+    (5, 1)
+    """
+    if a.ndim != 1:
+        raise ValueError(
+            "as_column expected an 1-dimensional array, "
+            "but got an array of shape %s" % a.shape
+        )
+    return a[:, None]
+
+
+def changed_locations(a, include_first):
+    """
+    Compute indices of values in ``a`` that differ from the previous value.
+
+    Parameters
+    ----------
+    a : np.ndarray
+        The array on which to indices of change.
+    include_first : bool
+        Whether or not to consider the first index of the array as "changed".
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> changed_locations(np.array([0, 0, 5, 5, 1, 1]), include_first=False)
+    array([2, 4])
+
+    >>> changed_locations(np.array([0, 0, 5, 5, 1, 1]), include_first=True)
+    array([0, 2, 4])
+    """
+    if a.ndim > 1:
+        raise ValueError("indices_of_changed_values only supports 1D arrays.")
+    indices = flatnonzero(diff(a)) + 1
+
+    if not include_first:
+        return indices
+
+    return hstack([[0], indices])

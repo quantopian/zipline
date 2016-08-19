@@ -211,7 +211,7 @@ def run(ctx,
     if start is None:
         ctx.fail("must specify a start date with '-s' / '--start'")
     if end is None:
-        ctx.fail("must specify an end date with '-s' / '--end'")
+        ctx.fail("must specify an end date with '-e' / '--end'")
 
     if (algotext is not None) == (algofile is not None):
         ctx.fail(
@@ -348,6 +348,9 @@ def bundles():
     """List all of the available data bundles.
     """
     for bundle in sorted(bundles_module.bundles.keys()):
+        if bundle.startswith('.'):
+            # hide the test data
+            continue
         try:
             ingestions = sorted(
                 (str(bundles_module.from_bundle_ingest_dirname(ing))

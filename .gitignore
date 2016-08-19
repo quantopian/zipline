@@ -38,6 +38,7 @@ sdist
 develop-eggs
 .installed.cfg
 coverage.xml
+htmlcov
 nosetests.xml
 
 # C Extensions

@@ -10,10 +10,10 @@ from six import (
 from zipline.pipeline.classifiers import Classifier, Latest as LatestClassifier
 from zipline.pipeline.factors import Factor, Latest as LatestFactor
 from zipline.pipeline.filters import Filter, Latest as LatestFilter
+from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import (
     AssetExists,
     LoadableTerm,
-    NotSpecified,
     validate_dtype,
 )
 from zipline.utils.input_validation import ensure_dtype
@@ -112,7 +112,6 @@ class BoundColumn(LoadableTerm):
         The name of this column.
     """
     mask = AssetExists()
-    inputs = ()
     window_safe = True
 
     def __new__(cls, dtype, missing_value, dataset, name):
@@ -123,6 +122,7 @@ class BoundColumn(LoadableTerm):
             missing_value=missing_value,
             dataset=dataset,
             name=name,
+            ndim=dataset.ndim,
         )
 
     def _init(self, dataset, name, *args, **kwargs):
@@ -176,6 +176,7 @@ class BoundColumn(LoadableTerm):
             inputs=(self,),
             dtype=dtype,
             missing_value=self.missing_value,
+            ndim=self.ndim,
         )
 
     def __repr__(self):
@@ -227,3 +228,4 @@ class DataSetMeta(type):
 
 class DataSet(with_metaclass(DataSetMeta, object)):
     domain = None
+    ndim = 2

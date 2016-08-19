@@ -14,10 +14,29 @@
 # limitations under the License.
 import pandas as pd
 import pytz
+# import warnings
 
 from datetime import datetime
 from dateutil import rrule
 from functools import partial
+
+# from zipline.zipline_warnings import ZiplineDeprecationWarning
+
+# IMPORTANT: This module is deprecated and is only here for temporary backwards
+# compatibility.  Look at the `zipline.utils.calendars.trading_schedule`
+# module, as well as the calendar definitions in `zipline.utils.calendars`.
+
+# TODO: The new calendar API is currently in flux, so the deprecation
+#       warning for this module is currently disabled. Re-enable once
+#       the new API is stabilized.
+#
+# warnings.warn(
+#     "The `tradingcalendar` module is deprecated. See the "
+#     "`zipline.utils.calendars.trading_schedule` module,  as well as the "
+#     "calendar definitions in `zipline.utils.calendars`.",
+#     category=ZiplineDeprecationWarning,
+#     stacklevel=1,
+# )
 
 start = pd.Timestamp('1990-01-01', tz='UTC')
 end_base = pd.Timestamp('today', tz='UTC')

@@ -24,77 +24,94 @@ NANOS_IN_MINUTE = _nanos_in_minute
 
 cpdef enum:
     BAR = 0
-    DAY_START = 1
-    DAY_END = 2
+    SESSION_START = 1
+    SESSION_END = 2
     MINUTE_END = 3
+    BEFORE_TRADING_START_BAR = 4
 
 cdef class MinuteSimulationClock:
-    cdef object trading_days
     cdef bool minute_emission
-    cdef np.int64_t[:] market_opens, market_closes
-    cdef public dict minutes_by_day, minutes_to_day
+    cdef np.int64_t[:] market_opens_nanos, market_closes_nanos, bts_nanos, \
+        sessions_nanos
+    cdef dict minutes_by_session
 
     def __init__(self,
-                 trading_days,
+                 sessions,
                  market_opens,
                  market_closes,
+                 before_trading_start_minutes,
                  minute_emission=False):
         self.minute_emission = minute_emission
-        self.market_opens = market_opens
-        self.market_closes = market_closes
-        self.trading_days = trading_days
-        self.minutes_by_day = self.calc_minutes_by_day()
+
+        self.market_opens_nanos = market_opens.values.astype(np.int64)
+        self.market_closes_nanos = market_closes.values.astype(np.int64)
+        self.sessions_nanos = sessions.values.astype(np.int64)
+        self.bts_nanos = before_trading_start_minutes.values.astype(np.int64)
+
+        self.minutes_by_session = self.calc_minutes_by_session()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef np.ndarray[np.int64_t, ndim=1] market_minutes(self, np.intp_t i):
-        cdef np.int64_t[:] market_opens, market_closes
+    cdef dict calc_minutes_by_session(self):
+        cdef dict minutes_by_session
+        cdef int session_idx
+        cdef np.int64_t session_nano
+        cdef np.ndarray[np.int64_t, ndim=1] minutes_nanos
 
-        market_opens = self.market_opens
-        market_closes = self.market_closes
-
-        return np.arange(market_opens[i],
-                         market_closes[i] + _nanos_in_minute,
-                         _nanos_in_minute)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef dict calc_minutes_by_day(self):
-        cdef dict minutes_by_day
-        cdef int day_idx
-        cdef object day
-
-        minutes_by_day = {}
-        for day_idx, day in enumerate(self.trading_days):
-            minutes_by_day[day] = pd.to_datetime(
-                self.market_minutes(day_idx), utc=True, box=True)
-        return minutes_by_day
+        minutes_by_session = {}
+        for session_idx, session_nano in enumerate(self.sessions_nanos):
+            minutes_nanos = np.arange(
+                self.market_opens_nanos[session_idx],
+                self.market_closes_nanos[session_idx] + _nanos_in_minute,
+                _nanos_in_minute
+            )
+            minutes_by_session[session_nano] = pd.to_datetime(
+                minutes_nanos, utc=True, box=True
+            )
+        return minutes_by_session
 
     def __iter__(self):
         minute_emission = self.minute_emission
 
-        for day in self.trading_days:
-            yield day, DAY_START
+        for idx, session_nano in enumerate(self.sessions_nanos):
+            yield pd.Timestamp(session_nano, tz='UTC'), SESSION_START
 
-            minutes = self.minutes_by_day[day]
+            bts_minute = pd.Timestamp(self.bts_nanos[idx], tz='UTC')
+            regular_minutes = self.minutes_by_session[session_nano]
 
-            for minute in minutes:
-                yield minute, BAR
-                if minute_emission:
-                    yield minute, MINUTE_END
+            if bts_minute > regular_minutes[-1]:
+                # before_trading_start is after the last close,
+                # so don't emit it
+                for minute, evt in self._get_minutes_for_list(
+                    regular_minutes,
+                    minute_emission
+                ):
+                    yield minute, evt
+            else:
+                # we have to search anew every session, because there is no
+                # guarantee that any two session start on the same minute
+                bts_idx = regular_minutes.searchsorted(bts_minute)
 
-            yield minutes[-1], DAY_END
+                # emit all the minutes before bts_minute
+                for minute, evt in self._get_minutes_for_list(
+                    regular_minutes[0:bts_idx],
+                    minute_emission
+                ):
+                    yield minute, evt
 
+                yield bts_minute, BEFORE_TRADING_START_BAR
 
+                # emit all the minutes after bts_minute
+                for minute, evt in self._get_minutes_for_list(
+                    regular_minutes[bts_idx:],
+                    minute_emission
+                ):
+                    yield minute, evt
 
-cdef class DailySimulationClock:
-    cdef object trading_days
+            yield regular_minutes[-1], SESSION_END
 
-    def __init__(self, trading_days):
-        self.trading_days = trading_days
-
-    def __iter__(self):
-        for i, day in enumerate(self.trading_days):
-            yield day, DAY_START
-            yield day, BAR
-            yield day, DAY_END
+    def _get_minutes_for_list(self, minutes, minute_emission):
+        for minute in minutes:
+            yield minute, BAR
+            if minute_emission:
+                yield minute, MINUTE_END

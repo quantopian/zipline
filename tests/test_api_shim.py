@@ -3,6 +3,7 @@ import warnings
 from mock import patch
 import numpy as np
 import pandas as pd
+from pandas.io.common import PerformanceWarning
 
 from zipline import TradingAlgorithm
 from zipline.finance.trading import SimulationParameters
@@ -121,19 +122,19 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
     sids = ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
     @classmethod
-    def make_minute_bar_data(cls):
+    def make_equity_minute_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_minute_df_for_asset(
-                cls.env,
+                cls.trading_calendar,
                 cls.SIM_PARAMS_START,
                 cls.SIM_PARAMS_END,
             )
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         for sid in cls.sids:
             yield sid, create_daily_df_for_asset(
-                cls.env,
+                cls.trading_calendar,
                 cls.SIM_PARAMS_START,
                 cls.SIM_PARAMS_END,
             )
@@ -149,7 +150,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         ])
 
     @classmethod
-    def make_adjustment_writer_daily_bar_reader(cls):
+    def make_adjustment_writer_equity_daily_bar_reader(cls):
         return MockDailyBarReader()
 
     @classmethod
@@ -179,11 +180,11 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         similar)  and the new data API(data.current(sid(N), field) and
         similar) hit the same code paths on the DataPortal.
         """
-        test_start_minute = self.env.market_minutes_for_day(
-            self.sim_params.trading_days[0]
+        test_start_minute = self.trading_calendar.minutes_for_session(
+            self.sim_params.sessions[0]
         )[1]
-        test_end_minute = self.env.market_minutes_for_day(
-            self.sim_params.trading_days[0]
+        test_end_minute = self.trading_calendar.minutes_for_session(
+            self.sim_params.sessions[0]
         )[-1]
         bar_data = BarData(
             self.data_portal,
@@ -257,10 +258,10 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
                     )
 
         test_sim_params = SimulationParameters(
-            period_start=test_start_minute,
-            period_end=test_end_minute,
+            start_session=test_start_minute,
+            end_session=test_end_minute,
             data_frequency="minute",
-            env=self.env
+            trading_calendar=self.trading_calendar,
         )
 
         history_algorithm = self.create_algo(
@@ -291,6 +292,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         deprecation warning.
         """
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
             algo = self.create_algo(sid_accessor_algo)
             algo.run(self.data_portal)
@@ -319,6 +321,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         in `data` is deprecated.
         """
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
             algo = self.create_algo(data_items_algo)
             algo.run(self.data_portal)
@@ -343,6 +346,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     def test_iterate_data(self):
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             algo = self.create_algo(simple_algo)
@@ -373,15 +377,12 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     def test_history(self):
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
-            sim_params = SimulationParameters(
-                period_start=self.sim_params.trading_days[1],
-                period_end=self.sim_params.period_end,
-                capital_base=self.sim_params.capital_base,
-                data_frequency=self.sim_params.data_frequency,
-                emission_rate=self.sim_params.emission_rate,
-                env=self.env,
+            sim_params = self.sim_params.create_new(
+                self.sim_params.sessions[1],
+                self.sim_params.end_session
             )
 
             algo = self.create_algo(history_algo,
@@ -418,13 +419,14 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     def test_simple_transforms(self):
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             sim_params = SimulationParameters(
-                period_start=self.sim_params.trading_days[8],
-                period_end=self.sim_params.trading_days[-1],
+                start_session=self.sim_params.sessions[8],
+                end_session=self.sim_params.sessions[-1],
                 data_frequency="minute",
-                env=self.env
+                trading_calendar=self.trading_calendar,
             )
 
             algo = self.create_algo(simple_transforms_algo,
@@ -488,6 +490,7 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
 
     def test_manipulation(self):
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("ignore", PerformanceWarning)
             warnings.simplefilter("default", ZiplineDeprecationWarning)
 
             algo = self.create_algo(simple_algo)

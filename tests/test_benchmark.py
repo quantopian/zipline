@@ -25,16 +25,18 @@ from zipline.sources.benchmark_source import BenchmarkSource
 from zipline.testing import (
     MockDailyBarReader,
     create_minute_bar_data,
-    tmp_bcolz_minute_bar_reader,
+    tmp_bcolz_equity_minute_bar_reader,
 )
 from zipline.testing.fixtures import (
     WithDataPortal,
     WithSimParams,
+    WithTradingCalendars,
     ZiplineTestCase,
 )
 
 
-class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
+class TestBenchmark(WithDataPortal, WithSimParams, WithTradingCalendars,
+                    ZiplineTestCase):
     START_DATE = pd.Timestamp('2006-01-03', tz='utc')
     END_DATE = pd.Timestamp('2006-12-29', tz='utc')
 
@@ -43,34 +45,42 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
         return pd.DataFrame.from_dict(
             {
                 1: {
-                    "start_date": cls.START_DATE,
-                    "end_date": cls.END_DATE + pd.Timedelta(days=1)
+                    'symbol': 'A',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
                 },
                 2: {
-                    "start_date": cls.START_DATE,
-                    "end_date": cls.END_DATE + pd.Timedelta(days=1)
+                    'symbol': 'B',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
                 },
                 3: {
-                    "start_date": pd.Timestamp('2006-05-26', tz='utc'),
-                    "end_date": pd.Timestamp('2006-08-09', tz='utc')
+                    'symbol': 'C',
+                    'start_date': pd.Timestamp('2006-05-26', tz='utc'),
+                    'end_date': pd.Timestamp('2006-08-09', tz='utc'),
+                    "exchange": "TEST",
                 },
                 4: {
-                    "start_date": cls.START_DATE,
-                    "end_date": cls.END_DATE + pd.Timedelta(days=1)
+                    'symbol': 'D',
+                    'start_date': cls.START_DATE,
+                    'end_date': cls.END_DATE + pd.Timedelta(days=1),
+                    "exchange": "TEST",
                 },
             },
             orient='index',
         )
 
     @classmethod
-    def make_adjustment_writer_daily_bar_reader(cls):
+    def make_adjustment_writer_equity_daily_bar_reader(cls):
         return MockDailyBarReader()
 
     @classmethod
     def make_stock_dividends_data(cls):
-        declared_date = cls.sim_params.trading_days[45]
-        ex_date = cls.sim_params.trading_days[50]
-        record_date = pay_date = cls.sim_params.trading_days[55]
+        declared_date = cls.sim_params.sessions[45]
+        ex_date = cls.sim_params.sessions[50]
+        record_date = pay_date = cls.sim_params.sessions[55]
         return pd.DataFrame({
             'sid': np.array([4], dtype=np.uint32),
             'payment_sid': np.array([5], dtype=np.uint32),
@@ -82,10 +92,10 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
         })
 
     def test_normal(self):
-        days_to_use = self.sim_params.trading_days[1:]
+        days_to_use = self.sim_params.sessions[1:]
 
         source = BenchmarkSource(
-            1, self.env, days_to_use, self.data_portal
+            1, self.env, self.trading_calendar, days_to_use, self.data_portal
         )
 
         # should be the equivalent of getting the price history, then doing
@@ -111,13 +121,14 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             BenchmarkSource(
                 3,
                 self.env,
-                self.sim_params.trading_days[1:],
+                self.trading_calendar,
+                self.sim_params.sessions[1:],
                 self.data_portal
             )
 
         self.assertEqual(
             '3 does not exist on %s. It started trading on %s.' %
-            (self.sim_params.trading_days[1], benchmark_start),
+            (self.sim_params.sessions[1], benchmark_start),
             exc.exception.message
         )
 
@@ -125,45 +136,48 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
             BenchmarkSource(
                 3,
                 self.env,
-                self.sim_params.trading_days[120:],
+                self.trading_calendar,
+                self.sim_params.sessions[120:],
                 self.data_portal
             )
 
         self.assertEqual(
             '3 does not exist on %s. It stopped trading on %s.' %
-            (self.sim_params.trading_days[-1], benchmark_end),
+            (self.sim_params.sessions[-1], benchmark_end),
             exc2.exception.message
         )
 
     def test_asset_IPOed_same_day(self):
         # gotta get some minute data up in here.
         # add sid 4 for a couple of days
-        minutes = self.env.minutes_for_days_in_range(
-            self.sim_params.trading_days[0],
-            self.sim_params.trading_days[5]
+        minutes = self.trading_calendar.minutes_for_sessions_in_range(
+            self.sim_params.sessions[0],
+            self.sim_params.sessions[5]
         )
 
-        tmp_reader = tmp_bcolz_minute_bar_reader(
-            self.env,
-            self.env.trading_days,
+        tmp_reader = tmp_bcolz_equity_minute_bar_reader(
+            self.trading_calendar,
+            self.trading_calendar.all_sessions,
             create_minute_bar_data(minutes, [2]),
         )
         with tmp_reader as reader:
             data_portal = DataPortal(
-                self.env,
+                self.env.asset_finder, self.trading_calendar,
+                first_trading_day=reader.first_trading_day,
                 equity_minute_reader=reader,
-                equity_daily_reader=self.bcolz_daily_bar_reader,
+                equity_daily_reader=self.bcolz_equity_daily_bar_reader,
                 adjustment_reader=self.adjustment_reader,
             )
 
             source = BenchmarkSource(
                 2,
                 self.env,
-                self.sim_params.trading_days,
+                self.trading_calendar,
+                self.sim_params.sessions,
                 data_portal
             )
 
-            days_to_use = self.sim_params.trading_days
+            days_to_use = self.sim_params.sessions
 
             # first value should be 0.0, coming from daily data
             self.assertAlmostEquals(0.0, source.get_value(days_to_use[0]))
@@ -187,7 +201,8 @@ class TestBenchmark(WithDataPortal, WithSimParams, ZiplineTestCase):
 
         with self.assertRaises(InvalidBenchmarkAsset) as exc:
             BenchmarkSource(
-                4, self.env, self.sim_params.trading_days, self.data_portal
+                4, self.env, self.trading_calendar,
+                self.sim_params.sessions, self.data_portal
             )
 
         self.assertEqual("4 cannot be used as the benchmark because it has a "

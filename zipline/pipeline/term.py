@@ -3,13 +3,23 @@ Base class for Filters, Factors and Classifiers
 """
 from abc import ABCMeta, abstractproperty
 from bisect import insort
+from collections import Mapping
 from weakref import WeakValueDictionary
 
-from numpy import array, dtype as dtype_class, ndarray
+from numpy import (
+    array,
+    dtype as dtype_class,
+    ndarray,
+    searchsorted,
+)
 from six import with_metaclass
+
+from zipline.assets import Asset
 from zipline.errors import (
     DTypeNotSpecified,
     InvalidOutputName,
+    NonExistentAssetInTimeFrame,
+    NonSliceableTerm,
     NonWindowSafeInput,
     NotDType,
     TermInputsNotSpecified,
@@ -24,17 +34,16 @@ from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
+    datetime64ns_dtype,
     default_missing_value_for_dtype,
 )
-from zipline.utils.sentinel import sentinel
-
-
-NotSpecified = sentinel(
-    'NotSpecified',
-    'Singleton sentinel value used for Term defaults.',
+from zipline.utils.sharedoc import (
+    templated_docstring,
+    PIPELINE_DOWNSAMPLING_FREQUENCY_DOC,
 )
 
-NotSpecifiedType = type(NotSpecified)
+from .downsample_helpers import expect_downsample_frequency
+from .sentinels import NotSpecified
 
 
 class Term(with_metaclass(ABCMeta, object)):
@@ -53,6 +62,9 @@ class Term(with_metaclass(ABCMeta, object)):
     # Determines if a term is safe to be used as a windowed input.
     window_safe = False
 
+    # The dimensions of the term's output (1D or 2D).
+    ndim = 2
+
     _term_cache = WeakValueDictionary()
 
     def __new__(cls,
@@ -60,6 +72,7 @@ class Term(with_metaclass(ABCMeta, object)):
                 dtype=dtype,
                 missing_value=missing_value,
                 window_safe=NotSpecified,
+                ndim=NotSpecified,
                 # params is explicitly not allowed to be passed to an instance.
                 *args,
                 **kwargs):
@@ -81,6 +94,8 @@ class Term(with_metaclass(ABCMeta, object)):
             dtype = cls.dtype
         if missing_value is NotSpecified:
             missing_value = cls.missing_value
+        if ndim is NotSpecified:
+            ndim = cls.ndim
         if window_safe is NotSpecified:
             window_safe = cls.window_safe
 
@@ -96,6 +111,7 @@ class Term(with_metaclass(ABCMeta, object)):
             dtype=dtype,
             missing_value=missing_value,
             window_safe=window_safe,
+            ndim=ndim,
             params=params,
             *args, **kwargs
         )
@@ -109,6 +125,7 @@ class Term(with_metaclass(ABCMeta, object)):
                     dtype=dtype,
                     missing_value=missing_value,
                     window_safe=window_safe,
+                    ndim=ndim,
                     params=params,
                     *args, **kwargs
                 )
@@ -135,10 +152,16 @@ class Term(with_metaclass(ABCMeta, object)):
         TypeError
             Raised if any parameter values are not passed or not hashable.
         """
+        params = cls.params
+        if not isinstance(params, Mapping):
+            params = {k: NotSpecified for k in params}
         param_values = []
-        for key in cls.params:
+        for key, default_value in params.items():
             try:
-                value = kwargs.pop(key)
+                value = kwargs.pop(key, default_value)
+                if value is NotSpecified:
+                    raise KeyError(key)
+
                 # Check here that the value is hashable so that we fail here
                 # instead of trying to hash the param values tuple later.
                 hash(value)
@@ -160,8 +183,8 @@ class Term(with_metaclass(ABCMeta, object)):
                     )
                 )
 
-            param_values.append(value)
-        return tuple(zip(cls.params, param_values))
+            param_values.append((key, value))
+        return tuple(param_values)
 
     def __init__(self, *args, **kwargs):
         """
@@ -179,12 +202,19 @@ class Term(with_metaclass(ABCMeta, object)):
         """
         pass
 
+    @expect_types(key=Asset)
+    def __getitem__(self, key):
+        if isinstance(self, LoadableTerm):
+            raise NonSliceableTerm(term=self)
+        return Slice(self, key)
+
     @classmethod
     def _static_identity(cls,
                          domain,
                          dtype,
                          missing_value,
                          window_safe,
+                         ndim,
                          params):
         """
         Return the identity of the Term that would be constructed from the
@@ -197,9 +227,9 @@ class Term(with_metaclass(ABCMeta, object)):
         This is a classmethod so that it can be called from Term.__new__ to
         determine whether to produce a new instance.
         """
-        return (cls, domain, dtype, missing_value, window_safe, params)
+        return (cls, domain, dtype, missing_value, window_safe, ndim, params)
 
-    def _init(self, domain, dtype, missing_value, window_safe, params):
+    def _init(self, domain, dtype, missing_value, window_safe, ndim, params):
         """
         Parameters
         ----------
@@ -214,6 +244,7 @@ class Term(with_metaclass(ABCMeta, object)):
         self.dtype = dtype
         self.missing_value = missing_value
         self.window_safe = window_safe
+        self.ndim = ndim
 
         for name, value in params:
             if hasattr(self, name):
@@ -252,6 +283,39 @@ class Term(with_metaclass(ABCMeta, object)):
         # mark that we got here to enforce that subclasses overriding _validate
         # call super().
         self._subclass_called_super_validate = True
+
+    def compute_extra_rows(self,
+                           all_dates,
+                           start_date,
+                           end_date,
+                           min_extra_rows):
+        """
+        Calculate the number of extra rows needed to compute ``self``.
+
+        Must return at least ``min_extra_rows``, and the default implementation
+        is to just return ``min_extra_rows``.  This is overridden by
+        downsampled terms to ensure that the first date computed is a
+        recomputation date.
+
+        Parameters
+        ----------
+        all_dates : pd.DatetimeIndex
+            The trading sessions against which ``self`` will be computed.
+        start_date : pd.Timestamp
+            The first date for which final output is requested.
+        end_date : pd.Timestamp
+            The last date for which final output is requested.
+        min_extra_rows : int
+            The minimum number of extra rows required of ``self``, as
+            determined by other terms that depend on ``self``.
+
+        Returns
+        -------
+        extra_rows : int
+            The number of extra rows to compute.  Must be at least
+            ``min_extra_rows``.
+        """
+        return min_extra_rows
 
     @abstractproperty
     def inputs(self):
@@ -294,6 +358,9 @@ class AssetExists(Term):
     every asset on every date.  We don't subclass Filter, however, because
     `AssetExists` is computed directly by the PipelineEngine.
 
+    This term is guaranteed to be available as an input for any term computed
+    by SimplePipelineEngine.run_pipeline().
+
     See Also
     --------
     zipline.assets.AssetFinder.lifetimes
@@ -308,6 +375,38 @@ class AssetExists(Term):
     def __repr__(self):
         return "AssetExists()"
 
+    def _compute(self, today, assets, out):
+        raise NotImplementedError(
+            "AssetExists cannot be computed directly."
+            " Check your PipelineEngine configuration."
+        )
+
+
+class InputDates(Term):
+    """
+    1-Dimensional term providing date labels for other term inputs.
+
+    This term is guaranteed to be available as an input for any term computed
+    by SimplePipelineEngine.run_pipeline().
+    """
+    ndim = 1
+    dataset = None
+    dtype = datetime64ns_dtype
+    inputs = ()
+    dependencies = {}
+    mask = None
+    windowed = False
+    window_safe = True
+
+    def __repr__(self):
+        return "InputDates()"
+
+    def _compute(self, today, assets, out):
+        raise NotImplementedError(
+            "InputDates cannot be computed directly."
+            " Check your PipelineEngine configuration."
+        )
+
 
 class LoadableTerm(Term):
     """
@@ -316,6 +415,7 @@ class LoadableTerm(Term):
     This is the base class for :class:`zipline.pipeline.data.BoundColumn`.
     """
     windowed = False
+    inputs = ()
 
     @lazyval
     def dependencies(self):
@@ -327,7 +427,7 @@ class ComputableTerm(Term):
     A Term that should be computed from a tuple of inputs.
 
     This is the base class for :class:`zipline.pipeline.Factor`,
-    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Factor`.
+    :class:`zipline.pipeline.Filter`, and :class:`zipline.pipeline.Classifier`.
     """
     inputs = NotSpecified
     outputs = NotSpecified
@@ -490,6 +590,27 @@ class ComputableTerm(Term):
         """
         return data
 
+    def _downsampled_type(self):
+        """
+        The expression type to return from self.downsample().
+        """
+        raise NotImplementedError(
+            "downsampling is not yet implemented "
+            "for instances of %s." % type(self).__name__
+        )
+
+    @expect_downsample_frequency
+    @templated_docstring(frequency=PIPELINE_DOWNSAMPLING_FREQUENCY_DOC)
+    def downsample(self, frequency):
+        """
+        Make a term that computes from ``self`` at lower-than-daily frequency.
+
+        Parameters
+        ----------
+        {frequency}
+        """
+        return self._downsampled_type(term=self, frequency=frequency)
+
     def __repr__(self):
         return (
             "{type}({inputs}, window_length={window_length})"
@@ -497,6 +618,69 @@ class ComputableTerm(Term):
             type=type(self).__name__,
             inputs=self.inputs,
             window_length=self.window_length,
+        )
+
+
+class Slice(ComputableTerm):
+    """
+    Term for extracting a single column of a another term's output.
+
+    Parameters
+    ----------
+    term : zipline.pipeline.term.Term
+        The term from which to extract a column of data.
+    asset : zipline.assets.Asset
+        The asset corresponding to the column of `term` to be extracted.
+
+    Notes
+    -----
+    Users should rarely construct instances of `Slice` directly. Instead, they
+    should construct instances via indexing, e.g. `MyFactor()[Asset(24)]`.
+    """
+    def __new__(cls, term, asset):
+        return super(Slice, cls).__new__(
+            cls,
+            asset=asset,
+            inputs=[term],
+            window_length=0,
+            mask=term.mask,
+            dtype=term.dtype,
+            missing_value=term.missing_value,
+            window_safe=term.window_safe,
+            ndim=1,
+        )
+
+    def __repr__(self):
+        return "{type}({parent_term}, column={asset})".format(
+            type=type(self).__name__,
+            parent_term=type(self.inputs[0]).__name__,
+            asset=self._asset,
+        )
+
+    def _init(self, asset, *args, **kwargs):
+        self._asset = asset
+        return super(Slice, self)._init(*args, **kwargs)
+
+    @classmethod
+    def _static_identity(cls, asset, *args, **kwargs):
+        return (super(Slice, cls)._static_identity(*args, **kwargs), asset)
+
+    def _compute(self, windows, dates, assets, mask):
+        asset = self._asset
+        asset_column = searchsorted(assets.values, asset.sid)
+        if assets[asset_column] != asset.sid:
+            raise NonExistentAssetInTimeFrame(
+                asset=asset, start_date=dates[0], end_date=dates[-1],
+            )
+
+        # Return a 2D array with one column rather than a 1D array of the
+        # column.
+        return windows[0][:, [asset_column]]
+
+    @property
+    def _downsampled_type(self):
+        raise NotImplementedError(
+            'downsampling of slices is not yet supported'
         )
 
 

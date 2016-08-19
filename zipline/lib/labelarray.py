@@ -226,7 +226,7 @@ class LabelArray(ndarray):
 
         1. Someone tries to directly construct a new array by doing::
 
-            >>> ndarray.__new__(LabelArray, ...)
+            >>> ndarray.__new__(LabelArray, ...)  # doctest: +SKIP
 
            In this case, obj will be None.  We treat this as an error case and
            fail.
