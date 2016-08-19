@@ -2,131 +2,149 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from zipline.utils.pandas_utils import mask_between_time
+from six import iteritems
+from six.moves import zip
+
+from zipline.utils.numpy_utils import categorical_dtype, NaTns
 
 
-def is_sorted_ascending(a):
-    """Check if a numpy array is sorted."""
-    return (np.fmax.accumulate(a) <= a).all()
-
-
-def validate_event_metadata(event_dates,
-                            event_timestamps,
-                            event_sids):
-    assert is_sorted_ascending(event_dates), "event dates must be sorted"
-    assert len(event_sids) == len(event_dates) == len(event_timestamps), \
-        "mismatched arrays: %d != %d != %d" % (
-            len(event_sids),
-            len(event_dates),
-            len(event_timestamps),
-        )
-
-
-def next_event_indexer(all_dates,
-                       all_sids,
-                       event_dates,
-                       event_timestamps,
-                       event_sids):
+def next_event_frame(events_by_sid,
+                     dates,
+                     missing_value,
+                     field_dtype,
+                     event_date_field_name,
+                     return_field_name):
     """
-    Construct an index array that, when applied to an array of values, produces
-    a 2D array containing the values associated with the next event for each
-    sid at each moment in time.
-
-    Locations where no next event was known will be filled with -1.
+    Make a DataFrame representing the simulated next known dates or values
+    for an event.
 
     Parameters
     ----------
-    all_dates : ndarray[datetime64[ns], ndim=1]
-        Row labels for the target output.
-    all_sids : ndarray[int, ndim=1]
-        Column labels for the target output.
-    event_dates : ndarray[datetime64[ns], ndim=1]
-        Dates on which each input events occurred/will occur.  ``event_dates``
-        must be in sorted order, and may not contain any NaT values.
-    event_timestamps : ndarray[datetime64[ns], ndim=1]
-        Dates on which we learned about each input event.
-    event_sids : ndarray[int, ndim=1]
-        Sids assocated with each input event.
+    dates : pd.DatetimeIndex.
+        The index of the returned DataFrame.
+    events_by_sid : dict[int -> pd.Series]
+        Dict mapping sids to a series of dates. Each k:v pair of the series
+        represents the date we learned of the event mapping to the date the
+        event will occur.
+    event_date_field_name : str
+        The name of the date field that marks when the event occurred.
 
     Returns
     -------
-    indexer : ndarray[int, ndim=2]
-        An array of shape (len(all_dates), len(all_sids)) of indices into
-        ``event_{dates,timestamps,sids}``.
+    next_events: pd.DataFrame
+        A DataFrame where each column is a security from `events_by_sid` where
+        the values are the dates of the next known event with the knowledge we
+        had on the date of the index. Entries falling after the last date will
+        have `NaT` as the result in the output.
+
+
+    See Also
+    --------
+    previous_date_frame
     """
-    validate_event_metadata(event_dates, event_timestamps, event_sids)
-    out = np.full((len(all_dates), len(all_sids)), -1, dtype=np.int64)
+    date_cols = {
+        equity: np.full_like(dates, NaTns) for equity in events_by_sid
+    }
+    value_cols = {
+        equity: np.full(len(dates), missing_value, dtype=field_dtype)
+        for equity in events_by_sid
+    }
 
-    sid_ixs = all_sids.searchsorted(event_sids)
-    # side='right' here ensures that we include the event date itself
-    # if it's in all_dates.
-    dt_ixs = all_dates.searchsorted(event_dates, side='right')
-    ts_ixs = all_dates.searchsorted(event_timestamps)
+    raw_dates = dates.values
+    for equity, df in iteritems(events_by_sid):
+        event_dates = df[event_date_field_name]
+        values = df[return_field_name]
+        data = date_cols[equity]
+        if not event_dates.index.is_monotonic_increasing:
+            event_dates = event_dates.sort_index()
 
-    # Walk backward through the events, writing the index of the event into
-    # slots ranging from the event's timestamp to its asof.  This depends for
-    # correctness on the fact that event_dates is sorted in ascending order,
-    # because we need to overwrite later events with earlier ones if their
-    # eligible windows overlap.
-    for i in range(len(event_sids) - 1, -1, -1):
-        start_ix = ts_ixs[i]
-        end_ix = dt_ixs[i]
-        out[start_ix:end_ix, sid_ixs[i]] = i
+        # Iterate over the raw Series values, since we're comparing against
+        # numpy arrays anyway.
+        iter_date_vals = zip(event_dates.index.values, event_dates.values,
+                             values)
+        for knowledge_date, event_date, value in iter_date_vals:
+            date_mask = (
+                (knowledge_date <= raw_dates) &
+                (raw_dates <= event_date)
+            )
+            value_mask = (event_date <= data) | (data == NaTns)
+            data_indices = np.where(date_mask & value_mask)
+            data[data_indices] = event_date
+            value_cols[equity][data_indices] = value
+    return pd.DataFrame(index=dates, data=value_cols)
 
-    return out
 
-
-def previous_event_indexer(all_dates,
-                           all_sids,
-                           event_dates,
-                           event_timestamps,
-                           event_sids):
+def previous_event_frame(events_by_sid,
+                         date_index,
+                         missing_value,
+                         field_dtype,
+                         event_date_field,
+                         previous_return_field):
     """
-    Construct an index array that, when applied to an array of values, produces
-    a 2D array containing the values associated with the previous event for
-    each sid at each moment in time.
-
-    Locations where no previous event was known will be filled with -1.
+    Make a DataFrame representing simulated previous dates or values for an
+    event.
 
     Parameters
     ----------
-    all_dates : ndarray[datetime64[ns], ndim=1]
-        Row labels for the target output.
-    all_sids : ndarray[int, ndim=1]
-        Column labels for the target output.
-    event_dates : ndarray[datetime64[ns], ndim=1]
-        Dates on which each input events occurred/will occur.  ``event_dates``
-        must be in sorted order, and may not contain any NaT values.
-    event_timestamps : ndarray[datetime64[ns], ndim=1]
-        Dates on which we learned about each input event.
-    event_sids : ndarray[int, ndim=1]
-        Sids assocated with each input event.
+    events_by_sid : dict[int -> DatetimeIndex]
+        Dict mapping sids to a series of dates. Each k:v pair of the series
+        represents the date we learned of the event mapping to the date the
+        event will occur.
+    date_index : DatetimeIndex.
+        The index of the returned DataFrame.
+    missing_value : any
+        Data which missing values should be filled with.
+    field_dtype: any
+        The dtype of the field for which the previous values are being
+        retrieved.
+    event_date_field: str
+        The name of the date field that marks when the event occurred.
+    return_field: str
+        The name of the field for which the previous values are being
+        retrieved.
 
     Returns
     -------
-    indexer : ndarray[int, ndim=2]
-        An array of shape (len(all_dates), len(all_sids)) of indices into
-        ``event_{dates,timestamps,sids}``.
+    previous_events: pd.DataFrame
+        A DataFrame where each column is a security from `events_by_sid` and
+        the values are the values for the previous event that occurred on the
+        date of the index. Entries falling before the first date will have
+        `missing_value` filled in as the result in the output.
+
+    See Also
+    --------
+    next_date_frame
     """
-    validate_event_metadata(event_dates, event_timestamps, event_sids)
-    out = np.full((len(all_dates), len(all_sids)), -1, dtype=np.int64)
+    sids = list(events_by_sid)
+    populate_value = None if field_dtype == categorical_dtype else \
+        missing_value
+    out = np.full(
+        (len(date_index), len(sids)),
+        populate_value,
+        dtype=field_dtype
+    )
+    d_n = date_index[-1].asm8
+    for col_idx, sid in enumerate(sids):
+        # events_by_sid[sid] is a DataFrame mapping knowledge_date to event
+        # date and values.
+        df = events_by_sid[sid]
+        df = df[df[event_date_field] <= d_n]
+        event_date_vals = df[event_date_field].values
+        # Get knowledge dates corresponding to the values in which we are
+        # interested
+        kd_vals = df[df[event_date_field] <= d_n].index.values
+        # The date at which a previous event is first known is the max of the
+        #  kd and the event date.
+        index_dates = np.maximum(kd_vals, event_date_vals)
+        out[
+            date_index.searchsorted(index_dates), col_idx
+        ] = df[previous_return_field]
 
-    eff_dts = np.maximum(event_dates, event_timestamps)
-    sid_ixs = all_sids.searchsorted(event_sids)
-    dt_ixs = all_dates.searchsorted(eff_dts)
-
-    # Walk backwards through the events, writing the index of the event into
-    # slots ranging from max(event_date, event_timestamp) to the start of the
-    # previously-written event.  This depends for correctness on the fact that
-    # event_dates is sorted in ascending order, because we need to have written
-    # later events so we know where to stop forward-filling earlier events.
-    last_written = {}
-    for i in range(len(event_dates) - 1, -1, -1):
-        sid_ix = sid_ixs[i]
-        dt_ix = dt_ixs[i]
-        out[dt_ix:last_written.get(sid_ix, None), sid_ix] = i
-        last_written[sid_ix] = dt_ix
-    return out
+    frame = pd.DataFrame(out, index=date_index, columns=sids)
+    frame.ffill(inplace=True)
+    if field_dtype == categorical_dtype:
+        frame[frame.isnull()] = missing_value
+    return frame
 
 
 def normalize_data_query_time(dt, time, tz):
@@ -191,9 +209,6 @@ def normalize_data_query_bounds(lower, upper, time, tz):
     return lower, upper
 
 
-_midnight = datetime.time(0, 0)
-
-
 def normalize_timestamp_to_query_time(df,
                                       time,
                                       tz,
@@ -231,21 +246,12 @@ def normalize_timestamp_to_query_time(df,
 
     dtidx = pd.DatetimeIndex(df.loc[:, ts_field], tz='utc')
     dtidx_local_time = dtidx.tz_convert(tz)
-    to_roll_forward = mask_between_time(
-        dtidx_local_time,
-        time,
-        _midnight,
-        include_end=False,
-    )
-    # For all of the times that are greater than our query time add 1
-    # day and truncate to the date.
-    # We normalize twice here because of a bug in pandas 0.16.1 that causes
-    # tz_localize() to shift some timestamps by an hour if they are not grouped
-    # together by DST/EST.
+    to_roll_forward = dtidx_local_time.time >= time
+    # for all of the times that are greater than our query time add 1
+    # day and truncate to the date
     df.loc[to_roll_forward, ts_field] = (
         dtidx_local_time[to_roll_forward] + datetime.timedelta(days=1)
-    ).normalize().tz_localize(None).tz_localize('utc').normalize()
-
+    ).normalize().tz_localize(None).tz_localize('utc')  # cast back to utc
     df.loc[~to_roll_forward, ts_field] = dtidx[~to_roll_forward].normalize()
     return df
 
@@ -272,3 +278,66 @@ def check_data_query_args(data_query_time, data_query_tz):
                 data_query_tz,
             ),
         )
+
+
+def zip_with_floats(dates, flts):
+        return pd.Series(flts, index=dates, dtype='float')
+
+
+def zip_with_strs(dates, strs):
+        return pd.Series(strs, index=dates, dtype='object')
+
+
+def zip_with_dates(index_dates, dts):
+    return pd.Series(pd.to_datetime(dts), index=index_dates)
+
+
+def get_values_for_date_ranges(zip_date_index_with_vals,
+                               vals_for_date_intervals,
+                               starts,
+                               ends,
+                               date_index):
+    """
+    Returns a Series of values indexed by date based on the intervals defined
+    by the start and end dates.
+
+    Parameters
+    ----------
+    zip_date_index_with_vals : callable
+        A function that takes in a list of dates and a list of values and
+        returns a pd.Series with the values indexed by the dates.
+    vals_for_date_intervals : list
+        A list of values for each date interval in `date_intervals`.
+    starts : DatetimeIndex
+        A DatetimeIndex of start dates.
+    ends : list
+        A DatetimeIndex of end dates.
+    date_index : DatetimeIndex
+        The DatetimeIndex containing all dates for which values were requested.
+
+    Returns
+    -------
+    date_index_with_vals : pd.Series
+        A Series indexed by the given DatetimeIndex and with values assigned
+        to dates based on the given date intervals.
+    """
+    # Fill in given values for given date ranges.
+    end_indexes = date_index.values.searchsorted(ends)
+    start_indexes = date_index.values.searchsorted(starts)
+    num_days = (end_indexes - start_indexes) + 1
+
+    # In case any of the end dates falls on days missing from the date_index,
+    # searchsorted will have placed their index within `date_index` to the
+    # index of the next start date, so we will have added 1 extra day for
+    # each of these. Subtract those extra days, but ignore any cases where the
+    # start and end dates are equal. Note: if any of the start dates is
+    # missing, it won't affect calculations because searchsorted will advance
+    # the index to the next date within the same range.
+    num_days[np.where(~np.in1d(ends, date_index) & (num_days != 0))] -= 1
+    return zip_date_index_with_vals(
+        date_index,
+        np.repeat(
+            vals_for_date_intervals,
+            num_days,
+        )
+    )

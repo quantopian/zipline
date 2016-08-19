@@ -19,7 +19,7 @@ def hidden(path):
     path : str
         A filepath.
     """
-    return os.path.split(path)[1].startswith('.')
+    return path.startswith('.')
 
 
 def ensure_directory(path):

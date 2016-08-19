@@ -30,10 +30,7 @@ instructions <https://github.com/quantopian/zipline#installation>`__ if
 you haven't set up zipline yet.
 
 Every ``zipline`` algorithm consists of two functions you have to
-define:
-
-* ``initialize(context)``
-* ``handle_data(context, data)``
+define: \* ``initialize(context)`` \* ``handle_data(context, data)``
 
 Before the start of the algorithm, ``zipline`` calls the
 ``initialize()`` function and passes in a ``context`` variable.
@@ -99,20 +96,6 @@ To now test this algorithm on financial data, ``zipline`` provides three
 interfaces: A command-line interface, ``IPython Notebook`` magic, and
 :func:`~zipline.run_algorithm`.
 
-Ingesting Data
-^^^^^^^^^^^^^^
-If you haven't ingested the data, run:
-
-.. code-block:: bash
-
-   $ zipline ingest [-b <bundle>]
-
-where ``<bundle>`` is the name of the bundle to ingest, defaulting to
-:ref:`quantopian-quandl <quantopian-quandl-mirror>`.
-
-you can check out the :ref:`ingesting data <ingesting-data>` section for
-more detail.
-
 Command line interface
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -122,11 +105,11 @@ on OSX):
 
 .. code-block:: bash
 
-   $ zipline run --help
+   $ python -m zipline run --help
 
 .. parsed-literal::
 
-   Usage: zipline run [OPTIONS]
+   Usage: __main__.py run [OPTIONS]
 
      Run a backtest for the given algorithm.
 
@@ -168,11 +151,11 @@ supply the command line args all the time (see the .conf files in the examples
 directory).
 
 Thus, to execute our algorithm from above and save the results to
-``buyapple_out.pickle`` we would call ``zipline run`` as follows:
+``buyapple_out.pickle`` we would call ``python -m zipline run`` as follows:
 
 .. code-block:: python
 
-    zipline run -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 -o buyapple_out.pickle
+    python -m zipline run -f ../../zipline/examples/buyapple.py --start 2000-1-1 --end 2014-1-1 --symbols AAPL -o buyapple_out.pickle
 
 
 .. parsed-literal::
@@ -629,18 +612,26 @@ data for you. The first argument is the number of bars you want to
 collect, the second argument is the unit (either ``'1d'`` for ``'1m'``
 but note that you need to have minute-level data for using ``1m``). For
 a more detailed description ``history()``'s features, see the
-`Quantopian docs <https://www.quantopian.com/help#ide-history>`__.
-Let's look at the strategy which should make this clear:
+`Quantopian docs <https://www.quantopian.com/help#ide-history>`__. While
+you can directly use the ``history()`` function on Quantopian, in
+``zipline`` you have to register each history container you want to use
+with ``add_history()`` and pass it the same arguments as the history
+function below. Lets look at the strategy which should make this clear:
 
 .. code-block:: python
 
    %%zipline --start 2000-1-1 --end 2014-1-1 -o perf_dma
 
 
-   from zipline.api import order_target, record, symbol, history
+   from zipline.api import order_target, record, symbol, history, add_history
    import numpy as np
 
    def initialize(context):
+       # Register 2 histories that track daily prices,
+       # one with a 100 window and one with a 300 day window
+       add_history(100, '1d', 'price')
+       add_history(300, '1d', 'price')
+
        context.i = 0
 
 

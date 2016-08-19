@@ -217,7 +217,6 @@ def make_future_info(first_sid,
             'notice_date': notice_date_func(month_begin),
             'expiration_date': notice_date_func(month_begin),
             'multiplier': 500,
-            'exchange': "TEST",
         })
     return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
 

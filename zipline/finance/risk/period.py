@@ -41,12 +41,14 @@ choose_treasury = functools.partial(risk.choose_treasury,
 
 
 class RiskMetricsPeriod(object):
-    def __init__(self, start_session, end_session, returns, trading_calendar,
-                 treasury_curves, benchmark_returns, algorithm_leverages=None):
+    def __init__(self, start_date, end_date, returns, env,
+                 benchmark_returns=None, algorithm_leverages=None):
 
-        if treasury_curves.index[-1] >= start_session:
-            mask = ((treasury_curves.index >= start_session) &
-                    (treasury_curves.index <= end_session))
+        self.env = env
+        treasury_curves = env.treasury_curves
+        if treasury_curves.index[-1] >= start_date:
+            mask = ((treasury_curves.index >= start_date) &
+                    (treasury_curves.index <= end_date))
 
             self.treasury_curves = treasury_curves[mask]
         else:
@@ -54,27 +56,24 @@ class RiskMetricsPeriod(object):
             # so we'll use the last available treasury curve
             self.treasury_curves = treasury_curves[-1:]
 
-        self._start_session = start_session
-        self._end_session = end_session
-        self.trading_calendar = trading_calendar
+        self.start_date = start_date
+        self.end_date = end_date
 
-        trading_sessions = trading_calendar.sessions_in_range(
-            self._start_session,
-            self._end_session,
-        )
+        if benchmark_returns is None:
+            br = env.benchmark_returns
+            benchmark_returns = br[(br.index >= returns.index[0]) &
+                                   (br.index <= returns.index[-1])]
+
         self.algorithm_returns = self.mask_returns_to_period(returns,
-                                                             trading_sessions)
-
-        # Benchmark needs to be masked to the same dates as the algo returns
-        self.benchmark_returns = self.mask_returns_to_period(
-            benchmark_returns,
-            self.algorithm_returns.index
-        )
+                                                             env)
+        self.benchmark_returns = self.mask_returns_to_period(benchmark_returns,
+                                                             env)
         self.algorithm_leverages = algorithm_leverages
 
         self.calculate_metrics()
 
     def calculate_metrics(self):
+
         self.benchmark_period_returns = \
             self.calculate_period_returns(self.benchmark_returns)
 
@@ -89,8 +88,8 @@ class RiskMetricsPeriod(object):
             message = message.format(
                 bm_count=len(self.benchmark_returns),
                 algo_count=len(self.algorithm_returns),
-                start=self._start_session,
-                end=self._end_session
+                start=self.start_date,
+                end=self.end_date
             )
             raise Exception(message)
 
@@ -107,9 +106,9 @@ class RiskMetricsPeriod(object):
             self.algorithm_returns)
         self.treasury_period_return = choose_treasury(
             self.treasury_curves,
-            self._start_session,
-            self._end_session,
-            self.trading_calendar,
+            self.start_date,
+            self.end_date,
+            self.env,
         )
         self.sharpe = self.calculate_sharpe()
         # The consumer currently expects a 0.0 value for sharpe in period,
@@ -136,7 +135,7 @@ class RiskMetricsPeriod(object):
         Creates a dictionary representing the state of the risk report.
         Returns a dict object of the form:
         """
-        period_label = self._end_session.strftime("%Y-%m")
+        period_label = self.end_date.strftime("%Y-%m")
         rval = {
             'trading_days': self.num_trading_days,
             'benchmark_volatility': self.benchmark_volatility,
@@ -188,17 +187,18 @@ class RiskMetricsPeriod(object):
 
         return '\n'.join(statements)
 
-    def mask_returns_to_period(self, daily_returns, trading_days):
+    def mask_returns_to_period(self, daily_returns, env):
         if isinstance(daily_returns, list):
             returns = pd.Series([x.returns for x in daily_returns],
                                 index=[x.date for x in daily_returns])
         else:  # otherwise we're receiving an index already
             returns = daily_returns
 
-        trade_day_mask = returns.index.normalize().isin(trading_days)
+        trade_days = env.trading_days
+        trade_day_mask = returns.index.normalize().isin(trade_days)
 
-        mask = ((returns.index >= self._start_session) &
-                (returns.index <= self._end_session) & trade_day_mask)
+        mask = ((returns.index >= self.start_date) &
+                (returns.index <= self.end_date) & trade_day_mask)
 
         returns = returns[mask]
         return returns

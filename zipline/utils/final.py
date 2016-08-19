@@ -69,7 +69,7 @@ class final(with_metaclass(ABCMeta)):
 
     Example usage:
     >>> from six import with_metaclass
-    >>> class C(with_metaclass(FinalMeta, object)):
+    >>> class C(with_metaclass(FinalMeta)):
     ...    @final
     ...    def f(self):
     ...        return 'value'

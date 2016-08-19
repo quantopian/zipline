@@ -1,9 +1,8 @@
-from functools import reduce
 from pprint import pformat
 
 from six import viewkeys
 from six.moves import map, zip
-from toolz import curry, flip
+from toolz import curry
 
 
 @curry
@@ -221,16 +220,14 @@ def unzip(seq, elem_len=None):
     >>> seq = [('a', 1), ('b', 2), ('c', 3, 'extra')]
     >>> cs, ns = unzip(seq)
     Traceback (most recent call last):
-       ...
+      ...
     ValueError: element at index 2 was length 3, expected 2
-
     # allows an explicit element length instead of infering
     >>> seq = [('a', 1, 'extra'), ('b', 2), ('c', 3)]
     >>> cs, ns = unzip(seq, 2)
     Traceback (most recent call last):
       ...
     ValueError: element at index 0 was length 3, expected 2
-
     # handles empty sequences when a length is given
     >>> cs, ns = unzip([], elem_len=2)
     >>> cs == ns == ()
@@ -331,62 +328,3 @@ def set_attribute(name, value):
 # Example:
 with_name = set_attribute('__name__')
 with_doc = set_attribute('__doc__')
-
-
-def foldr(f, seq, default=_no_default):
-    """Fold a function over a sequence with right associativity.
-
-    Parameters
-    ----------
-    f : callable[any, any]
-        The function to reduce the sequence with.
-        The first argument will be the element of the sequence; the second
-        argument will be the accumulator.
-    seq : iterable[any]
-        The sequence to reduce.
-    default : any, optional
-        The starting value to reduce with. If not provided, the sequence
-        cannot be empty, and the last value of the sequence will be used.
-
-    Returns
-    -------
-    folded : any
-        The folded value.
-
-    Notes
-    -----
-    This functions works by reducing the list in a right associative way.
-
-    For example, imagine we are folding with ``operator.add`` or ``+``:
-
-    .. code-block:: python
-
-       foldr(add, seq) -> seq[0] + (seq[1] + (seq[2] + (...seq[-1], default)))
-
-    In the more general case with an arbitrary function, ``foldr`` will expand
-    like so:
-
-    .. code-block:: python
-
-       foldr(f, seq) -> f(seq[0], f(seq[1], f(seq[2], ...f(seq[-1], default))))
-
-    For a more in depth discussion of left and right folds, see:
-    `https://en.wikipedia.org/wiki/Fold_(higher-order_function)`_
-    The images in that page are very good for showing the differences between
-    ``foldr`` and ``foldl`` (``reduce``).
-
-    .. note::
-
-       For performance reasons is is best to pass a strict (non-lazy) sequence,
-       for example, a list.
-
-    See Also
-    --------
-    :func:`functools.reduce`
-    :func:`sum`
-    """
-    return reduce(
-        flip(f),
-        reversed(seq),
-        *(default,) if default is not _no_default else ()
-    )

@@ -22,7 +22,6 @@ from zipline.data.us_equity_pricing import (
 )
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.errors import NoFurtherDataError
-from zipline.utils.calendars import get_calendar
 
 from .base import PipelineLoader
 
@@ -38,12 +37,10 @@ class USEquityPricingLoader(PipelineLoader):
 
     def __init__(self, raw_price_loader, adjustments_loader):
         self.raw_price_loader = raw_price_loader
+        # HACK: Pull the calendar off our raw_price_loader so that we can
+        # backshift dates.
+        self._calendar = self.raw_price_loader._calendar
         self.adjustments_loader = adjustments_loader
-
-        cal = self.raw_price_loader.trading_calendar or \
-            get_calendar("NYSE")
-
-        self._all_sessions = cal.all_sessions
 
     @classmethod
     def from_files(cls, pricing_path, adjustments_path):
@@ -70,7 +67,7 @@ class USEquityPricingLoader(PipelineLoader):
         # known on day N is the data from day (N - 1), so we shift all query
         # dates back by a day.
         start_date, end_date = _shift_dates(
-            self._all_sessions, dates[0], dates[-1], shift=1,
+            self._calendar, dates[0], dates[-1], shift=1,
         )
         colnames = [c.name for c in columns]
         raw_arrays = self.raw_price_loader.load_raw_arrays(

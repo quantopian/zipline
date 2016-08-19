@@ -5,8 +5,7 @@ from collections import namedtuple, MutableMapping
 import errno
 import os
 import pickle
-from distutils import dir_util
-from shutil import rmtree, move
+from shutil import rmtree, copyfile, copytree
 from tempfile import mkdtemp, NamedTemporaryFile
 
 import pandas as pd
@@ -42,7 +41,6 @@ class CachedObject(namedtuple("_CachedObject", "value expires")):
     >>> obj.unwrap(expires)
     1
     >>> obj.unwrap(expires + Timedelta('1 minute'))
-    ... # doctest: +IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
         ...
     Expired: 2014-01-01 00:00:00+00:00
@@ -273,11 +271,11 @@ class working_file(object):
     Notes
     -----
     The file is moved on __exit__ if there are no exceptions.
-    ``working_file`` uses :func:`shutil.move` to move the actual files,
-    meaning it has as strong of guarantees as :func:`shutil.move`.
+    ``working_file`` uses :func:`shutil.copyfile` to move the actual files,
+    meaning it has as strong of guarantees as :func:`shutil.copyfile`.
     """
     def __init__(self, final_path, *args, **kwargs):
-        self._tmpfile = NamedTemporaryFile(delete=False, *args, **kwargs)
+        self._tmpfile = NamedTemporaryFile(*args, **kwargs)
         self._final_path = final_path
 
     @property
@@ -290,8 +288,7 @@ class working_file(object):
     def _commit(self):
         """Sync the temporary file to the final path.
         """
-        self._tmpfile.close()
-        move(self._name, self._final_path)
+        copyfile(self.name, self._final_path)
 
     def __getattr__(self, attr):
         return getattr(self._tmpfile, attr)
@@ -301,9 +298,9 @@ class working_file(object):
         return self
 
     def __exit__(self, *exc_info):
-        self._tmpfile.__exit__(*exc_info)
         if exc_info[0] is None:
             self._commit()
+        self._tmpfile.__exit__(*exc_info)
 
 
 class working_dir(object):
@@ -320,15 +317,15 @@ class working_dir(object):
     Notes
     -----
     The file is moved on __exit__ if there are no exceptions.
-    ``working_dir`` uses :func:`dir_util.copy_tree` to move the actual files,
-    meaning it has as strong of guarantees as :func:`dir_util.copy_tree`.
+    ``working_dir`` uses :func:`shutil.copytree` to move the actual files,
+    meaning it has as strong of guarantees as :func:`shutil.copytree`.
     """
     def __init__(self, final_path, *args, **kwargs):
         self.path = mkdtemp()
         self._final_path = final_path
 
-    def ensure_dir(self, *path_parts):
-        """Ensures a subdirectory of the working directory.
+    def mkdir(self, *path_parts):
+        """Create a subdirectory of the working directory.
 
         Parameters
         ----------
@@ -336,7 +333,7 @@ class working_dir(object):
             The parts of the path after the working directory.
         """
         path = self.getpath(*path_parts)
-        ensure_directory(path)
+        os.mkdir(path)
         return path
 
     def getpath(self, *path_parts):
@@ -352,7 +349,7 @@ class working_dir(object):
     def _commit(self):
         """Sync the temporary directory to the final path.
         """
-        dir_util.copy_tree(self.path, self._final_path)
+        copytree(self.path, self._final_path)
 
     def __enter__(self):
         return self

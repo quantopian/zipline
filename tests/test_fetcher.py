@@ -108,8 +108,7 @@ class FetcherTestCase(WithResponses,
             data_frequency=data_frequency
         )
 
-        results = test_algo.run(FetcherDataPortal(self.env,
-                                                  self.trading_calendar))
+        results = test_algo.run(FetcherDataPortal(self.env))
 
         return results
 
@@ -142,8 +141,7 @@ def handle_data(context, data):
         # manually setting data portal and getting generator because we need
         # the minutely emission packets here.  TradingAlgorithm.run() only
         # returns daily packets.
-        test_algo.data_portal = FetcherDataPortal(self.env,
-                                                  self.trading_calendar)
+        test_algo.data_portal = FetcherDataPortal(self.env)
         gen = test_algo.get_generator()
         perf_packets = list(gen)
 
@@ -417,7 +415,6 @@ def handle_data(context, data):
 
             algocode = """
 from pandas import Timestamp
-from pandas.tseries.tools import normalize_date
 from zipline.api import fetch_csv, record, sid, get_datetime
 
 def initialize(context):
@@ -433,7 +430,7 @@ def initialize(context):
     context.bar_count = 0
 
 def handle_data(context, data):
-    expected = context.expected_sids[normalize_date(get_datetime())]
+    expected = context.expected_sids[get_datetime()]
     actual = data.fetcher_assets
     for stk in expected:
         if stk not in actual:
