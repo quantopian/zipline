@@ -126,7 +126,7 @@ class DataPortal(object):
 
         self._equity_daily_reader = equity_daily_reader
         if self._equity_daily_reader is not None:
-            self._equity_history_loader = DailyHistoryLoader(
+            self._history_loader = DailyHistoryLoader(
                 self.trading_calendar,
                 self._equity_daily_reader,
                 self._adjustment_reader
@@ -146,17 +146,16 @@ class DataPortal(object):
             }
         }
 
-        if self._equity_minute_reader is not None:
-            self._equity_daily_aggregator = DailyHistoryAggregator(
-                self.trading_calendar.schedule.market_open,
-                self._equity_minute_reader,
-                self.trading_calendar
-            )
-            self._equity_minute_history_loader = MinuteHistoryLoader(
-                self.trading_calendar,
-                self._equity_minute_reader,
-                self._adjustment_reader
-            )
+        self._daily_aggregator = DailyHistoryAggregator(
+            self.trading_calendar.schedule.market_open,
+            self._equity_minute_reader,
+            self.trading_calendar
+        )
+        self._minute_history_loader = MinuteHistoryLoader(
+            self.trading_calendar,
+            self._equity_minute_reader,
+            self._adjustment_reader
+        )
 
         self._first_trading_day = first_trading_day
 
@@ -511,9 +510,9 @@ class DataPortal(object):
         )
 
     def _get_daily_data(self, asset, column, dt):
+        reader = self._pricing_readers[type(asset)]['daily']
         if column == "last_traded":
-            last_traded_dt = \
-                self._equity_daily_reader.get_last_traded_dt(asset, dt)
+            last_traded_dt = reader.get_last_traded_dt(asset, dt)
 
             if pd.isnull(last_traded_dt):
                 return pd.NaT
@@ -522,7 +521,7 @@ class DataPortal(object):
         elif column in OHLCV_FIELDS:
             # don't forward fill
             try:
-                val = self._equity_daily_reader.spot_price(asset, dt, column)
+                val = reader.spot_price(asset, dt, column)
                 if val == -1:
                     if column == "volume":
                         return 0
@@ -536,7 +535,7 @@ class DataPortal(object):
             found_dt = dt
             while True:
                 try:
-                    value = self._equity_daily_reader.spot_price(
+                    value = reader.spot_price(
                         asset, found_dt, "close"
                     )
                     if value != -1:
@@ -581,88 +580,16 @@ class DataPortal(object):
                                 index=days_for_window,
                                 columns=None)
 
-        future_data = []
-        eq_assets = []
-
-        for asset in assets:
-            if isinstance(asset, Future):
-                future_data.append(self._get_history_daily_window_future(
-                    asset, days_for_window, end_dt, field_to_use
-                ))
-            else:
-                eq_assets.append(asset)
-        eq_data = self._get_history_daily_window_equities(
-            eq_assets, days_for_window, end_dt, field_to_use
+        data = self._get_history_daily_window_data(
+            assets, days_for_window, end_dt, field_to_use
         )
-        if future_data:
-            # TODO: This case appears to be uncovered by testing.
-            data = np.concatenate(eq_data, np.array(future_data).T)
-        else:
-            data = eq_data
         return pd.DataFrame(
             data,
             index=days_for_window,
             columns=assets
         )
 
-    def _get_history_daily_window_future(self, asset, days_for_window,
-                                         end_dt, column):
-        # Since we don't have daily bcolz files for futures (yet), use minute
-        # bars to calculate the daily values.
-        data = []
-        data_groups = []
-
-        # get all the minutes for the days NOT including today
-        for day in days_for_window[:-1]:
-            minutes = self.sessions_in_range.minutes_for_session(day)
-
-            values_for_day = np.zeros(len(minutes), dtype=np.float64)
-
-            for idx, minute in enumerate(minutes):
-                minute_val = self._get_minute_spot_value_future(
-                    asset, column, minute
-                )
-
-                values_for_day[idx] = minute_val
-
-            data_groups.append(values_for_day)
-
-        # get the minutes for today
-        last_day_minutes = pd.date_range(
-            start=self.trading_calendar.open_and_close_for_session(end_dt)[0],
-            end=end_dt,
-            freq="T"
-        )
-
-        values_for_last_day = np.zeros(len(last_day_minutes), dtype=np.float64)
-
-        for idx, minute in enumerate(last_day_minutes):
-            minute_val = self._get_minute_spot_value_future(
-                asset, column, minute
-            )
-
-            values_for_last_day[idx] = minute_val
-
-        data_groups.append(values_for_last_day)
-
-        for group in data_groups:
-            if len(group) == 0:
-                continue
-
-            if column == 'volume':
-                data.append(np.sum(group))
-            elif column == 'open':
-                data.append(group[0])
-            elif column == 'close':
-                data.append(group[-1])
-            elif column == 'high':
-                data.append(np.amax(group))
-            elif column == 'low':
-                data.append(np.amin(group))
-
-        return data
-
-    def _get_history_daily_window_equities(
+    def _get_history_daily_window_data(
             self, assets, days_for_window, end_dt, field_to_use):
         ends_at_midnight = end_dt.hour == 0 and end_dt.minute == 0
 
@@ -686,19 +613,19 @@ class DataPortal(object):
             )
 
             if field_to_use == 'open':
-                minute_value = self._equity_daily_aggregator.opens(
+                minute_value = self._daily_aggregator.opens(
                     assets, end_dt)
             elif field_to_use == 'high':
-                minute_value = self._equity_daily_aggregator.highs(
+                minute_value = self._daily_aggregator.highs(
                     assets, end_dt)
             elif field_to_use == 'low':
-                minute_value = self._equity_daily_aggregator.lows(
+                minute_value = self._daily_aggregator.lows(
                     assets, end_dt)
             elif field_to_use == 'close':
-                minute_value = self._equity_daily_aggregator.closes(
+                minute_value = self._daily_aggregator.closes(
                     assets, end_dt)
             elif field_to_use == 'volume':
-                minute_value = self._equity_daily_aggregator.volumes(
+                minute_value = self._daily_aggregator.volumes(
                     assets, end_dt)
 
             # append the partial day.
@@ -860,40 +787,14 @@ class DataPortal(object):
         -------
         A numpy array with requested values.
         """
-        if isinstance(assets, Future):
-            return self._get_minute_window_for_future([assets], field,
-                                                      minutes_for_window)
-        else:
-            # TODO: Make caller accept assets.
-            window = self._get_minute_window_for_equities(assets, field,
-                                                          minutes_for_window)
-            return window
+        return self._get_minute_window_data(assets, field, minutes_for_window)
 
-    def _get_minute_window_for_future(self, asset, field, minutes_for_window):
-        # THIS IS TEMPORARY.  For now, we are only exposing futures within
-        # equity trading hours (9:30 am to 4pm, Eastern).  The easiest way to
-        # do this is to simply do a spot lookup for each desired minute.
-        return_data = np.zeros(len(minutes_for_window), dtype=np.float64)
-        for idx, minute in enumerate(minutes_for_window):
-            return_data[idx] = \
-                self._get_minute_spot_value_future(asset, field, minute)
-
-        # Note: an improvement could be to find the consecutive runs within
-        # minutes_for_window, and use them to read the underlying ctable
-        # more efficiently.
-
-        # Once futures are on 24-hour clock, then we can just grab all the
-        # requested minutes in one shot from the ctable.
-
-        # no adjustments for futures, yay.
-        return return_data
-
-    def _get_minute_window_for_equities(
+    def _get_minute_window_data(
             self, assets, field, minutes_for_window):
-        return self._equity_minute_history_loader.history(assets,
-                                                          minutes_for_window,
-                                                          field,
-                                                          False)
+        return self._minute_history_loader.history(assets,
+                                                   minutes_for_window,
+                                                   field,
+                                                   False)
 
     def _apply_all_adjustments(self, data, asset, dts, field,
                                price_adj_factor=1.0):
@@ -1007,10 +908,10 @@ class DataPortal(object):
             return_array[:] = np.NAN
 
         if bar_count != 0:
-            data = self._equity_history_loader.history(assets,
-                                                       days_in_window,
-                                                       field,
-                                                       extra_slot)
+            data = self._history_loader.history(assets,
+                                                days_in_window,
+                                                field,
+                                                extra_slot)
             if extra_slot:
                 return_array[:len(return_array) - 1, :] = data
             else:
