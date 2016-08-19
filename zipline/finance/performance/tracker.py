@@ -60,13 +60,12 @@ Performance Tracking
 from __future__ import division
 
 import logbook
-from datetime import datetime
 
 import pandas as pd
 from pandas.tseries.tools import normalize_date
 
 from zipline.finance.performance.period import PerformancePeriod
-
+from zipline.errors import NoFurtherDataError
 import zipline.finance.risk as risk
 
 from . position_tracker import PositionTracker
@@ -78,46 +77,54 @@ class PerformanceTracker(object):
     """
     Tracks the performance of the algorithm.
     """
-    def __init__(self, sim_params, env):
+    def __init__(self, sim_params, trading_calendar, env):
         self.sim_params = sim_params
-        self.env = env
+        self.trading_calendar = trading_calendar
+        self.asset_finder = env.asset_finder
+        self.treasury_curves = env.treasury_curves
 
-        self.period_start = self.sim_params.period_start
-        self.period_end = self.sim_params.period_end
+        self.period_start = self.sim_params.start_session
+        self.period_end = self.sim_params.end_session
         self.last_close = self.sim_params.last_close
-        first_open = self.sim_params.first_open.tz_convert(
-            self.env.exchange_tz
-        )
-        self.day = pd.Timestamp(datetime(first_open.year, first_open.month,
-                                         first_open.day), tz='UTC')
-        self.market_open, self.market_close = env.get_open_and_close(self.day)
-        self.total_days = self.sim_params.days_in_period
+        self._current_session = self.sim_params.start_session
+
+        self.market_open, self.market_close = \
+            self.trading_calendar.open_and_close_for_session(
+                self._current_session
+            )
+
+        self.total_session_count = len(self.sim_params.sessions)
         self.capital_base = self.sim_params.capital_base
         self.emission_rate = sim_params.emission_rate
 
-        all_trading_days = env.trading_days
-        mask = ((all_trading_days >= normalize_date(self.period_start)) &
-                (all_trading_days <= normalize_date(self.period_end)))
-
-        self.trading_days = all_trading_days[mask]
-
         self.position_tracker = PositionTracker(
             asset_finder=env.asset_finder,
-            data_frequency=self.sim_params.data_frequency)
+            data_frequency=self.sim_params.data_frequency
+        )
 
         if self.emission_rate == 'daily':
             self.all_benchmark_returns = pd.Series(
-                index=self.trading_days)
+                index=self.sim_params.sessions
+            )
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params, self.env)
+                risk.RiskMetricsCumulative(
+                    self.sim_params,
+                    self.treasury_curves,
+                    self.trading_calendar
+                )
         elif self.emission_rate == 'minute':
             self.all_benchmark_returns = pd.Series(index=pd.date_range(
                 self.sim_params.first_open, self.sim_params.last_close,
-                freq='Min'))
+                freq='Min')
+            )
 
             self.cumulative_risk_metrics = \
-                risk.RiskMetricsCumulative(self.sim_params, self.env,
-                                           create_first_day_stats=True)
+                risk.RiskMetricsCumulative(
+                    self.sim_params,
+                    self.treasury_curves,
+                    self.trading_calendar,
+                    create_first_day_stats=True
+                )
 
         # this performance period will span the entire simulation from
         # inception.
@@ -134,7 +141,7 @@ class PerformanceTracker(object):
             keep_orders=False,
             # don't serialize positions for cumulative period
             serialize_positions=False,
-            asset_finder=self.env.asset_finder,
+            asset_finder=self.asset_finder,
             name="Cumulative"
         )
         self.cumulative_performance.position_tracker = self.position_tracker
@@ -150,14 +157,14 @@ class PerformanceTracker(object):
             keep_transactions=True,
             keep_orders=True,
             serialize_positions=True,
-            asset_finder=self.env.asset_finder,
+            asset_finder=self.asset_finder,
             name="Daily"
         )
         self.todays_performance.position_tracker = self.position_tracker
 
         self.saved_dt = self.period_start
         # one indexed so that we reach 100%
-        self.day_count = 0.0
+        self.session_count = 0.0
         self.txn_count = 0
 
         self.account_needs_update = True
@@ -174,7 +181,7 @@ class PerformanceTracker(object):
             # Fake a value
             return 1.0
         elif self.emission_rate == 'daily':
-            return self.day_count / self.total_days
+            return self.session_count / self.total_session_count
 
     def set_date(self, date):
         if self.emission_rate == 'minute':
@@ -231,16 +238,25 @@ class PerformanceTracker(object):
 
         return _dict
 
-    def process_capital_changes(self, capital_change, is_interday):
-        self.cumulative_performance.subdivide_period(capital_change)
+    def prepare_capital_change(self, is_interday):
+        self.cumulative_performance.initialize_subperiod_divider()
+
+        if not is_interday:
+            # Change comes in the middle of day
+            self.todays_performance.initialize_subperiod_divider()
+
+    def process_capital_change(self, capital_change_amount, is_interday):
+        self.cumulative_performance.set_current_subperiod_starting_values(
+            capital_change_amount)
 
         if is_interday:
             # Change comes between days
             self.todays_performance.adjust_period_starting_capital(
-                capital_change)
+                capital_change_amount)
         else:
             # Change comes in the middle of day
-            self.todays_performance.subdivide_period(capital_change)
+            self.todays_performance.set_current_subperiod_starting_values(
+                capital_change_amount)
 
     def process_transaction(self, transaction):
         self.txn_count += 1
@@ -272,7 +288,7 @@ class PerformanceTracker(object):
         if txn:
             self.process_transaction(txn)
 
-    def check_upcoming_dividends(self, next_trading_day, adjustment_reader):
+    def check_upcoming_dividends(self, next_session, adjustment_reader):
         """
         Check if we currently own any stocks with dividends whose ex_date is
         the next trading day.  Track how much we should be payed on those
@@ -291,21 +307,24 @@ class PerformanceTracker(object):
         # date comes.
 
         if held_sids:
-            asset_finder = self.env.asset_finder
-
-            cash_dividends = adjustment_reader.\
-                get_dividends_with_ex_date(held_sids, next_trading_day,
-                                           asset_finder)
+            cash_dividends = adjustment_reader.get_dividends_with_ex_date(
+                held_sids,
+                next_session,
+                self.asset_finder
+            )
             stock_dividends = adjustment_reader.\
-                get_stock_dividends_with_ex_date(held_sids, next_trading_day,
-                                                 asset_finder)
+                get_stock_dividends_with_ex_date(
+                    held_sids,
+                    next_session,
+                    self.asset_finder
+                )
 
             position_tracker.earn_dividends(
                 cash_dividends,
                 stock_dividends
             )
 
-        net_cash_payment = position_tracker.pay_dividends(next_trading_day)
+        net_cash_payment = position_tracker.pay_dividends(next_session)
         if not net_cash_payment:
             return
 
@@ -357,7 +376,7 @@ class PerformanceTracker(object):
         _______
         A daily perf packet.
         """
-        completed_date = self.day
+        completed_session = self._current_session
 
         if self.emission_rate == 'daily':
             # this method is called for both minutely and daily emissions, but
@@ -367,20 +386,25 @@ class PerformanceTracker(object):
             self.update_performance()
             account = self.get_account(False)
 
-            benchmark_value = self.all_benchmark_returns[completed_date]
+            benchmark_value = self.all_benchmark_returns[completed_session]
 
             self.cumulative_risk_metrics.update(
-                completed_date,
+                completed_session,
                 self.todays_performance.returns,
                 benchmark_value,
                 account.leverage)
 
         # increment the day counter before we move markers forward.
-        self.day_count += 1.0
+        self.session_count += 1.0
 
         # Get the next trading day and, if it is past the bounds of this
         # simulation, return the daily perf packet
-        next_trading_day = self.env.next_trading_day(completed_date)
+        try:
+            next_session = self.trading_calendar.next_session_label(
+                completed_session
+            )
+        except NoFurtherDataError:
+            next_session = None
 
         # Take a snapshot of our current performance to return to the
         # browser.
@@ -392,23 +416,26 @@ class PerformanceTracker(object):
         if self.market_close >= self.last_close:
             return daily_update
 
+        # If the next trading day is irrelevant, then return the daily packet
+        if (next_session is None) or (next_session >= self.last_close):
+            return daily_update
+
         # move the market day markers forward
+        # TODO Is this redundant with next_trading_day above?
+        self._current_session = next_session
         self.market_open, self.market_close = \
-            self.env.next_open_and_close(self.day)
-        self.day = self.env.next_trading_day(self.day)
+            self.trading_calendar.open_and_close_for_session(
+                self._current_session
+            )
 
         # Roll over positions to current day.
         self.todays_performance.rollover()
         self.todays_performance.period_open = self.market_open
         self.todays_performance.period_close = self.market_close
 
-        # If the next trading day is irrelevant, then return the daily packet
-        if (next_trading_day is None) or (next_trading_day >= self.last_close):
-            return daily_update
-
         # Check for any dividends, then return the daily perf packet
         self.check_upcoming_dividends(
-            next_trading_day=next_trading_day,
+            next_session=next_session,
             adjustment_reader=data_portal._adjustment_reader
         )
 
@@ -421,7 +448,8 @@ class PerformanceTracker(object):
         """
 
         log_msg = "Simulated {n} trading days out of {m}."
-        log.info(log_msg.format(n=int(self.day_count), m=self.total_days))
+        log.info(log_msg.format(n=int(self.session_count),
+                                m=self.total_session_count))
         log.info("first open: {d}".format(
             d=self.sim_params.first_open))
         log.info("last close: {d}".format(
@@ -434,12 +462,15 @@ class PerformanceTracker(object):
             index=self.cumulative_risk_metrics.cont_index,
             data=self.cumulative_risk_metrics.algorithm_returns_cont)
         acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
+
         self.risk_report = risk.RiskReport(
             ars,
             self.sim_params,
             benchmark_returns=bms,
             algorithm_leverages=acl,
-            env=self.env)
+            trading_calendar=self.trading_calendar,
+            treasury_curves=self.treasury_curves,
+        )
 
         risk_dict = self.risk_report.to_dict()
         return risk_dict

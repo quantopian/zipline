@@ -1,5 +1,5 @@
 #
-# Copyright 2013 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import datetime
 import calendar
+import pandas as pd
 import numpy as np
 import pytz
 
@@ -25,8 +25,8 @@ from six import itervalues
 import zipline.finance.risk as risk
 from zipline.utils import factory
 
-from zipline.finance.trading import SimulationParameters, TradingEnvironment
-
+from zipline.finance.trading import SimulationParameters
+from zipline.testing.fixtures import WithTradingEnvironment, ZiplineTestCase
 from . import answer_key
 from . answer_key import AnswerKey
 
@@ -35,32 +35,22 @@ ANSWER_KEY = AnswerKey()
 RETURNS = ANSWER_KEY.RETURNS
 
 
-class TestRisk(unittest.TestCase):
+class TestRisk(WithTradingEnvironment, ZiplineTestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.env = TradingEnvironment()
+    def init_instance_fixtures(self):
+        super(TestRisk, self).init_instance_fixtures()
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.env
+        start_session = pd.Timestamp("2006-01-01", tz='UTC')
 
-    def setUp(self):
-
-        start_date = datetime.datetime(
-            year=2006,
-            month=1,
-            day=1,
-            hour=0,
-            minute=0,
-            tzinfo=pytz.utc)
-        end_date = datetime.datetime(
-            year=2006, month=12, day=31, tzinfo=pytz.utc)
+        end_session = self.trading_calendar.minute_to_session_label(
+            pd.Timestamp("2006-12-31", tz='UTC'),
+            direction="previous"
+        )
 
         self.sim_params = SimulationParameters(
-            period_start=start_date,
-            period_end=end_date,
-            env=self.env,
+            start_session=start_session,
+            end_session=end_session,
+            trading_calendar=self.trading_calendar,
         )
 
         self.algo_returns_06 = factory.create_returns_from_list(
@@ -75,31 +65,15 @@ class TestRisk(unittest.TestCase):
             self.algo_returns_06,
             self.sim_params,
             benchmark_returns=self.benchmark_returns_06,
-            env=self.env,
+            trading_calendar=self.trading_calendar,
+            treasury_curves=self.env.treasury_curves,
         )
 
-        start_08 = datetime.datetime(
-            year=2008,
-            month=1,
-            day=1,
-            hour=0,
-            minute=0,
-            tzinfo=pytz.utc)
-
-        end_08 = datetime.datetime(
-            year=2008,
-            month=12,
-            day=31,
-            tzinfo=pytz.utc
-        )
         self.sim_params08 = SimulationParameters(
-            period_start=start_08,
-            period_end=end_08,
-            env=self.env,
+            start_session=pd.Timestamp("2008-01-01", tz='UTC'),
+            end_session=pd.Timestamp("2008-12-31", tz='UTC'),
+            trading_calendar=self.trading_calendar,
         )
-
-    def tearDown(self):
-        return
 
     def test_factory(self):
         returns = [0.1] * 100
@@ -116,8 +90,9 @@ class TestRisk(unittest.TestCase):
             returns.index[0],
             returns.index[-1],
             returns,
-            env=self.env,
+            trading_calendar=self.trading_calendar,
             benchmark_returns=self.env.benchmark_returns,
+            treasury_curves=self.env.treasury_curves,
             )
         self.assertEqual(metrics.max_drawdown, 0.505)
 
@@ -142,7 +117,10 @@ class TestRisk(unittest.TestCase):
 
     def test_trading_days_06(self):
         returns = factory.create_returns_from_range(self.sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params, env=self.env)
+        metrics = risk.RiskReport(returns, self.sim_params,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
         self.assertEqual([x.num_trading_days for x in metrics.year_periods],
                          [251])
         self.assertEqual([x.num_trading_days for x in metrics.month_periods],
@@ -366,7 +344,10 @@ class TestRisk(unittest.TestCase):
 
     def test_benchmark_returns_08(self):
         returns = factory.create_returns_from_range(self.sim_params08)
-        metrics = risk.RiskReport(returns, self.sim_params08, env=self.env)
+        metrics = risk.RiskReport(returns, self.sim_params08,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
 
         self.assertEqual([round(x.benchmark_period_returns, 3)
                           for x in metrics.month_periods],
@@ -412,7 +393,10 @@ class TestRisk(unittest.TestCase):
 
     def test_trading_days_08(self):
         returns = factory.create_returns_from_range(self.sim_params08)
-        metrics = risk.RiskReport(returns, self.sim_params08, env=self.env)
+        metrics = risk.RiskReport(returns, self.sim_params08,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
         self.assertEqual([x.num_trading_days for x in metrics.year_periods],
                          [253])
 
@@ -421,7 +405,10 @@ class TestRisk(unittest.TestCase):
 
     def test_benchmark_volatility_08(self):
         returns = factory.create_returns_from_range(self.sim_params08)
-        metrics = risk.RiskReport(returns, self.sim_params08, env=self.env)
+        metrics = risk.RiskReport(returns, self.sim_params08,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
 
         self.assertEqual([round(x.benchmark_volatility, 3)
                           for x in metrics.month_periods],
@@ -469,7 +456,10 @@ class TestRisk(unittest.TestCase):
 
     def test_treasury_returns_06(self):
         returns = factory.create_returns_from_range(self.sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params, env=self.env)
+        metrics = risk.RiskReport(returns, self.sim_params,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
         self.assertEqual([round(x.treasury_period_return, 4)
                           for x in metrics.month_periods],
                          [0.0037,
@@ -512,46 +502,55 @@ class TestRisk(unittest.TestCase):
                          [0.0500])
 
     def test_benchmarkrange(self):
-        self.check_year_range(
-            datetime.datetime(
-                year=2008, month=1, day=1, tzinfo=pytz.utc),
-            2)
+        start_session = self.trading_calendar.minute_to_session_label(
+            pd.Timestamp("2008-01-01", tz='UTC')
+        )
+
+        end_session = self.trading_calendar.minute_to_session_label(
+            pd.Timestamp("2010-01-01", tz='UTC'), direction="previous"
+        )
+
+        sim_params = SimulationParameters(
+            start_session=start_session,
+            end_session=end_session,
+            trading_calendar=self.trading_calendar,
+        )
+
+        returns = factory.create_returns_from_range(sim_params)
+        metrics = risk.RiskReport(returns, self.sim_params,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
+
+        self.check_metrics(metrics, 24, start_session)
+        # self.check_year_range(
+        #     datetime.datetime(
+        #         year=2008, month=1, day=1, tzinfo=pytz.utc),
+        #     2)
 
     def test_partial_month(self):
 
-        start = datetime.datetime(
-            year=1991,
-            month=1,
-            day=1,
-            hour=0,
-            minute=0,
-            tzinfo=pytz.utc)
+        start_session = self.trading_calendar.minute_to_session_label(
+            pd.Timestamp("1991-01-01", tz='UTC')
+        )
 
         # 1992 and 1996 were leap years
         total_days = 365 * 5 + 2
-        end = start + datetime.timedelta(days=total_days)
+        end_session = start_session + datetime.timedelta(days=total_days)
         sim_params90s = SimulationParameters(
-            period_start=start,
-            period_end=end,
-            env=self.env,
+            start_session=start_session,
+            end_session=end_session,
+            trading_calendar=self.trading_calendar,
         )
 
         returns = factory.create_returns_from_range(sim_params90s)
         returns = returns[:-10]  # truncate the returns series to end mid-month
-        metrics = risk.RiskReport(returns, sim_params90s, env=self.env)
+        metrics = risk.RiskReport(returns, sim_params90s,
+                                  trading_calendar=self.trading_calendar,
+                                  treasury_curves=self.env.treasury_curves,
+                                  benchmark_returns=self.env.benchmark_returns)
         total_months = 60
-        self.check_metrics(metrics, total_months, start)
-
-    def check_year_range(self, start_date, years):
-        sim_params = SimulationParameters(
-            period_start=start_date,
-            period_end=start_date.replace(year=(start_date.year + years)),
-            env=self.env,
-        )
-        returns = factory.create_returns_from_range(sim_params)
-        metrics = risk.RiskReport(returns, self.sim_params, env=self.env)
-        total_months = years * 12
-        self.check_metrics(metrics, total_months, start_date)
+        self.check_metrics(metrics, total_months, start_session)
 
     def check_metrics(self, metrics, total_months, start_date):
         """
@@ -609,7 +608,7 @@ class TestRisk(unittest.TestCase):
 
     def assert_range_length(self, col, total_months,
                             period_length, start_date):
-        if(period_length > total_months):
+        if (period_length > total_months):
             self.assertEqual(len(col), 0)
         else:
             self.assertEqual(
@@ -621,11 +620,11 @@ class TestRisk(unittest.TestCase):
                 calculated end:{end}".format(total_months=total_months,
                                              period_length=period_length,
                                              start_date=start_date,
-                                             end=col[-1].end_date,
+                                             end=col[-1]._end_session,
                                              actual=len(col))
             )
-            self.assert_month(start_date.month, col[-1].end_date.month)
-            self.assert_last_day(col[-1].end_date)
+            self.assert_month(start_date.month, col[-1]._end_session.month)
+            self.assert_last_day(col[-1]._end_session)
 
     def test_sparse_benchmark(self):
         benchmark_returns = self.benchmark_returns_06.copy()
@@ -636,7 +635,8 @@ class TestRisk(unittest.TestCase):
             self.algo_returns_06,
             self.sim_params,
             benchmark_returns=benchmark_returns,
-            env=self.env,
+            trading_calendar=self.trading_calendar,
+            treasury_curves=self.env.treasury_curves,
         )
         for risk_period in chain.from_iterable(itervalues(report.to_dict())):
             self.assertIsNone(risk_period['beta'])

@@ -261,6 +261,24 @@ Asset Metadata
 .. autoclass:: zipline.assets.AssetConvertible
    :members:
 
+
+Trading Calendar API
+~~~~~~~~~~~~~~~~~~~~
+
+.. autofunction:: zipline.utils.calendars.get_calendar
+
+.. autoclass:: zipline.utils.calendars.TradingCalendar
+   :members:
+
+.. autofunction:: zipline.utils.calendars.register_calendar
+
+.. autofunction:: zipline.utils.calendars.register_calendar_type
+
+.. autofunction:: zipline.utils.calendars.deregister_calendar
+
+.. autofunction:: zipline.utils.calendars.clear_calendars
+
+
 Data API
 ~~~~~~~~
 
@@ -316,6 +334,7 @@ Bundles
    :func:`~zipline.data.bundles.unregister`.
 
 .. autofunction:: zipline.data.bundles.yahoo_equities
+
 
 
 Utilities

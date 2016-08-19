@@ -12,6 +12,7 @@ import operator
 import os
 from os.path import abspath, dirname, join, realpath
 import shutil
+from sys import _getframe
 import tempfile
 
 from logbook import TestHandler
@@ -23,7 +24,7 @@ from six import itervalues, iteritems, with_metaclass
 from six.moves import filter, map
 from sqlalchemy import create_engine
 from testfixtures import TempDirectory
-from toolz import concat
+from toolz import concat, curry
 
 from zipline.assets import AssetFinder, AssetDBWriter
 from zipline.assets.synthetic import make_simple_equity_info
@@ -41,12 +42,16 @@ from zipline.data.us_equity_pricing import (
 from zipline.finance.trading import TradingEnvironment
 from zipline.finance.order import ORDER_STATUS
 from zipline.lib.labelarray import LabelArray
+from zipline.pipeline.data import USEquityPricing
 from zipline.pipeline.engine import SimplePipelineEngine
+from zipline.pipeline.factors import CustomFactor
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
+from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
+from zipline.utils.numpy_utils import as_column
 from zipline.utils.sentinel import sentinel
-from zipline.utils.tradingcalendar import trading_days
+
 import numpy as np
 from numpy import float64
 
@@ -168,24 +173,6 @@ def assert_single_position(test, zipline):
     )
 
     return output, transaction_count
-
-
-class ExceptionSource(object):
-
-    def __init__(self):
-        pass
-
-    def get_hash(self):
-        return "ExceptionSource"
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        5 / 0
-
-    def __next__(self):
-        5 / 0
 
 
 @contextmanager
@@ -323,11 +310,11 @@ def make_trade_data_for_asset_info(dates,
     price_sid_deltas = np.arange(len(sids), dtype=float64) * price_step_by_sid
     price_date_deltas = (np.arange(len(dates), dtype=float64) *
                          price_step_by_date)
-    prices = (price_sid_deltas + price_date_deltas[:, None]) + price_start
+    prices = (price_sid_deltas + as_column(price_date_deltas)) + price_start
 
     volume_sid_deltas = np.arange(len(sids)) * volume_step_by_sid
     volume_date_deltas = np.arange(len(dates)) * volume_step_by_date
-    volumes = (volume_sid_deltas + volume_date_deltas[:, None]) + volume_start
+    volumes = volume_sid_deltas + as_column(volume_date_deltas) + volume_start
 
     for j, sid in enumerate(sids):
         start_date, end_date = asset_info.loc[sid, ['start_date', 'end_date']]
@@ -425,10 +412,19 @@ class ExplodingObject(object):
         raise UnexpectedAttributeAccess(name)
 
 
-def write_minute_data(env, tempdir, minutes, sids):
+def write_minute_data(trading_calendar, tempdir, minutes, sids):
+    first_session = trading_calendar.minute_to_session_label(
+        minutes[0], direction="none"
+    )
+    last_session = trading_calendar.minute_to_session_label(
+        minutes[-1], direction="none"
+    )
+
+    sessions = trading_calendar.sessions_in_range(first_session, last_session)
+
     write_bcolz_minute_data(
-        env,
-        env.days_in_range(minutes[0], minutes[-1]),
+        trading_calendar,
+        sessions,
         tempdir.path,
         create_minute_bar_data(minutes, sids),
     )
@@ -444,14 +440,14 @@ def create_minute_bar_data(minutes, sids):
                 'high': np.arange(length) + 15 + sid_idx,
                 'low': np.arange(length) + 8 + sid_idx,
                 'close': np.arange(length) + 10 + sid_idx,
-                'volume': np.arange(length) + 100 + sid_idx,
+                'volume': 100 + sid_idx,
             },
             index=minutes,
         )
 
 
-def create_daily_bar_data(trading_days, sids):
-    length = len(trading_days)
+def create_daily_bar_data(sessions, sids):
+    length = len(sessions)
     for sid_idx, sid in enumerate(sids):
         yield sid, pd.DataFrame(
             {
@@ -460,70 +456,76 @@ def create_daily_bar_data(trading_days, sids):
                 "low": (np.array(range(8, 8 + length)) + sid_idx),
                 "close": (np.array(range(10, 10 + length)) + sid_idx),
                 "volume": np.array(range(100, 100 + length)) + sid_idx,
-                "day": [day.value for day in trading_days]
+                "day": [session.value for session in sessions]
             },
-            index=trading_days,
+            index=sessions,
         )
 
 
-def write_daily_data(tempdir, sim_params, sids):
+def write_daily_data(tempdir, sim_params, sids, trading_calendar):
     path = os.path.join(tempdir.path, "testdaily.bcolz")
-    BcolzDailyBarWriter(path, sim_params.trading_days).write(
-        create_daily_bar_data(sim_params.trading_days, sids),
+    BcolzDailyBarWriter(path, trading_calendar,
+                        sim_params.start_session,
+                        sim_params.end_session).write(
+        create_daily_bar_data(sim_params.sessions, sids),
     )
 
     return path
 
 
-def create_data_portal(env, tempdir, sim_params, sids, adjustment_reader=None):
+def create_data_portal(asset_finder, tempdir, sim_params, sids,
+                       trading_calendar, adjustment_reader=None):
     if sim_params.data_frequency == "daily":
-        daily_path = write_daily_data(tempdir, sim_params, sids)
+        daily_path = write_daily_data(tempdir, sim_params, sids,
+                                      trading_calendar)
 
         equity_daily_reader = BcolzDailyBarReader(daily_path)
 
         return DataPortal(
-            env,
+            asset_finder, trading_calendar,
+            first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
             adjustment_reader=adjustment_reader
         )
     else:
-        minutes = env.minutes_for_days_in_range(
+        minutes = trading_calendar.minutes_in_range(
             sim_params.first_open,
             sim_params.last_close
         )
 
-        minute_path = write_minute_data(env, tempdir, minutes, sids)
+        minute_path = write_minute_data(trading_calendar, tempdir, minutes,
+                                        sids)
 
         equity_minute_reader = BcolzMinuteBarReader(minute_path)
 
         return DataPortal(
-            env,
+            asset_finder, trading_calendar,
+            first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
             adjustment_reader=adjustment_reader
         )
 
 
-def write_bcolz_minute_data(env, days, path, data):
-    market_opens = env.open_and_closes.market_open.loc[days]
-    market_closes = env.open_and_closes.market_close.loc[days]
-
+def write_bcolz_minute_data(trading_calendar, days, path, data):
     BcolzMinuteBarWriter(
-        days[0],
         path,
-        market_opens,
-        market_closes,
+        trading_calendar,
+        days[0],
+        days[-1],
         US_EQUITIES_MINUTES_PER_DAY
     ).write(data)
 
 
-def create_minute_df_for_asset(env,
+def create_minute_df_for_asset(trading_calendar,
                                start_dt,
                                end_dt,
                                interval=1,
                                start_val=1,
                                minute_blacklist=None):
 
-    asset_minutes = env.minutes_for_days_in_range(start_dt, end_dt)
+    asset_minutes = trading_calendar.minutes_for_sessions_in_range(
+        start_dt, end_dt
+    )
     minutes_count = len(asset_minutes)
     minutes_arr = np.array(range(start_val, start_val + minutes_count))
 
@@ -551,8 +553,9 @@ def create_minute_df_for_asset(env,
     return df
 
 
-def create_daily_df_for_asset(env, start_day, end_day, interval=1):
-    days = env.days_in_range(start_day, end_day)
+def create_daily_df_for_asset(trading_calendar, start_day, end_day,
+                              interval=1):
+    days = trading_calendar.sessions_in_range(start_day, end_day)
     days_count = len(days)
     days_arr = np.arange(days_count) + 2
 
@@ -606,22 +609,28 @@ def trades_by_sid_to_dfs(trades_by_sid, index):
         )
 
 
-def create_data_portal_from_trade_history(env, tempdir, sim_params,
-                                          trades_by_sid):
+def create_data_portal_from_trade_history(asset_finder, trading_calendar,
+                                          tempdir, sim_params, trades_by_sid):
     if sim_params.data_frequency == "daily":
         path = os.path.join(tempdir.path, "testdaily.bcolz")
-        BcolzDailyBarWriter(path, sim_params.trading_days).write(
-            trades_by_sid_to_dfs(trades_by_sid, sim_params.trading_days),
+        writer = BcolzDailyBarWriter(
+            path, trading_calendar,
+            sim_params.start_session,
+            sim_params.end_session
+        )
+        writer.write(
+            trades_by_sid_to_dfs(trades_by_sid, sim_params.sessions),
         )
 
         equity_daily_reader = BcolzDailyBarReader(path)
 
         return DataPortal(
-            env,
+            asset_finder, trading_calendar,
+            first_trading_day=equity_daily_reader.first_trading_day,
             equity_daily_reader=equity_daily_reader,
         )
     else:
-        minutes = env.minutes_for_days_in_range(
+        minutes = trading_calendar.minutes_in_range(
             sim_params.first_open,
             sim_params.last_close
         )
@@ -656,11 +665,8 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
             }).set_index("dt")
 
         write_bcolz_minute_data(
-            env,
-            env.days_in_range(
-                sim_params.first_open,
-                sim_params.last_close
-            ),
+            trading_calendar,
+            sim_params.sessions,
             tempdir.path,
             assets
         )
@@ -668,18 +674,24 @@ def create_data_portal_from_trade_history(env, tempdir, sim_params,
         equity_minute_reader = BcolzMinuteBarReader(tempdir.path)
 
         return DataPortal(
-            env,
+            asset_finder, trading_calendar,
+            first_trading_day=equity_minute_reader.first_trading_day,
             equity_minute_reader=equity_minute_reader,
         )
 
 
 class FakeDataPortal(DataPortal):
-
-    def __init__(self, env=None):
+    def __init__(self, env=None, trading_calendar=None,
+                 first_trading_day=None):
         if env is None:
             env = TradingEnvironment()
 
-        super(FakeDataPortal, self).__init__(env)
+        if trading_calendar is None:
+            trading_calendar = get_calendar("NYSE")
+
+        super(FakeDataPortal, self).__init__(env.asset_finder,
+                                             trading_calendar,
+                                             first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         if field == "volume":
@@ -690,9 +702,11 @@ class FakeDataPortal(DataPortal):
     def get_history_window(self, assets, end_dt, bar_count, frequency, field,
                            ffill=True):
         if frequency == "1d":
-            end_idx = self.env.trading_days.searchsorted(end_dt)
-            days = \
-                self.env.trading_days[(end_idx - bar_count + 1):(end_idx + 1)]
+            end_idx = \
+                self.trading_calendar.all_sessions.searchsorted(end_dt)
+            days = self.trading_calendar.all_sessions[
+                (end_idx - bar_count + 1):(end_idx + 1)
+            ]
 
             df = pd.DataFrame(
                 np.full((bar_count, len(assets)), 100),
@@ -708,8 +722,9 @@ class FetcherDataPortal(DataPortal):
     Mock dataportal that returns fake data for history and non-fetcher
     spot value.
     """
-    def __init__(self, env):
-        super(FetcherDataPortal, self).__init__(env)
+    def __init__(self, asset_finder, trading_calendar, first_trading_day=None):
+        super(FetcherDataPortal, self).__init__(asset_finder, trading_calendar,
+                                                first_trading_day)
 
     def get_spot_value(self, asset, field, dt, data_frequency):
         # if this is a fetcher field, exercise the regular code path
@@ -734,6 +749,8 @@ class tmp_assets_db(object):
 
     Parameters
     ----------
+    url : string
+        The URL for the database connection.
     **frames
         The frames to pass to the AssetDBWriter.
         By default this maps equities:
@@ -746,7 +763,11 @@ class tmp_assets_db(object):
     """
     _default_equities = sentinel('_default_equities')
 
-    def __init__(self, equities=_default_equities, **frames):
+    def __init__(self,
+                 url='sqlite:///:memory:',
+                 equities=_default_equities,
+                 **frames):
+        self._url = url
         self._eng = None
         if equities is self._default_equities:
             equities = make_simple_equity_info(
@@ -760,7 +781,7 @@ class tmp_assets_db(object):
         self._eng = None  # set in enter and exit
 
     def __enter__(self):
-        self._eng = eng = create_engine('sqlite://')
+        self._eng = eng = create_engine(self._url)
         AssetDBWriter(eng).write(**self._frames)
         return eng
 
@@ -785,6 +806,8 @@ class tmp_asset_finder(tmp_assets_db):
 
     Parameters
     ----------
+    url : string
+        The URL for the database connection.
     finder_cls : type, optional
         The type of asset finder to create from the assets db.
     **frames
@@ -794,9 +817,12 @@ class tmp_asset_finder(tmp_assets_db):
     --------
     tmp_assets_db
     """
-    def __init__(self, finder_cls=AssetFinder, **frames):
+    def __init__(self,
+                 url='sqlite:///:memory:',
+                 finder_cls=AssetFinder,
+                 **frames):
         self._finder_cls = finder_cls
-        super(tmp_asset_finder, self).__init__(**frames)
+        super(tmp_asset_finder, self).__init__(url=url, **frames)
 
     def __enter__(self):
         return self._finder_cls(super(tmp_asset_finder, self).__enter__())
@@ -852,6 +878,7 @@ class SubTestFailures(AssertionError):
         )
 
 
+@nottest
 def subtest(iterator, *_names):
     """
     Construct a subtest in a unittest.
@@ -1011,6 +1038,7 @@ def gen_calendars(start, stop, critical_dates):
         yield (all_dates.drop(to_drop),)
 
     # Also test with the trading calendar.
+    trading_days = get_calendar("NYSE").all_days
     yield (trading_days[trading_days.slice_indexer(start, stop)],)
 
 
@@ -1140,6 +1168,72 @@ def create_empty_splits_mergers_frame():
     )
 
 
+def make_alternating_boolean_array(shape, first_value=True):
+    """
+    Create a 2D numpy array with the given shape containing alternating values
+    of False, True, False, True,... along each row and each column.
+
+    Examples
+    --------
+    >>> make_alternating_boolean_array((4,4))
+    array([[ True, False,  True, False],
+           [False,  True, False,  True],
+           [ True, False,  True, False],
+           [False,  True, False,  True]], dtype=bool)
+    >>> make_alternating_boolean_array((4,3), first_value=False)
+    array([[False,  True, False],
+           [ True, False,  True],
+           [False,  True, False],
+           [ True, False,  True]], dtype=bool)
+    """
+    if len(shape) != 2:
+        raise ValueError(
+            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+        )
+    alternating = np.empty(shape, dtype=np.bool)
+    for row in alternating:
+        row[::2] = first_value
+        row[1::2] = not(first_value)
+        first_value = not(first_value)
+    return alternating
+
+
+def make_cascading_boolean_array(shape, first_value=True):
+    """
+    Create a numpy array with the given shape containing cascading boolean
+    values, with `first_value` being the top-left value.
+
+    Examples
+    --------
+    >>> make_cascading_boolean_array((4,4))
+    array([[ True,  True,  True, False],
+           [ True,  True, False, False],
+           [ True, False, False, False],
+           [False, False, False, False]], dtype=bool)
+    >>> make_cascading_boolean_array((4,2))
+    array([[ True, False],
+           [False, False],
+           [False, False],
+           [False, False]], dtype=bool)
+    >>> make_cascading_boolean_array((2,4))
+    array([[ True,  True,  True, False],
+           [ True,  True, False, False]], dtype=bool)
+    """
+    if len(shape) != 2:
+        raise ValueError(
+            'Shape must be 2-dimensional. Given shape was {}'.format(shape)
+        )
+    cascading = np.full(shape, not(first_value), dtype=np.bool)
+    ending_col = shape[1] - 1
+    for row in cascading:
+        if ending_col > 0:
+            row[:ending_col] = first_value
+            ending_col -= 1
+        else:
+            break
+    return cascading
+
+
 @expect_dimensions(array=2)
 def permute_rows(seed, array):
     """
@@ -1240,7 +1334,8 @@ class tmp_dir(TempDirectory, object):
 
 
 class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
-    """A helper for tmp_bcolz_minute_bar_reader and tmp_bcolz_daily_bar_reader.
+    """A helper for tmp_bcolz_equity_minute_bar_reader and
+    tmp_bcolz_equity_daily_bar_reader.
 
     Parameters
     ----------
@@ -1284,7 +1379,7 @@ class _TmpBarReader(with_metaclass(ABCMeta, tmp_dir)):
             raise
 
 
-class tmp_bcolz_minute_bar_reader(_TmpBarReader):
+class tmp_bcolz_equity_minute_bar_reader(_TmpBarReader):
     """A temporary BcolzMinuteBarReader object.
 
     Parameters
@@ -1301,13 +1396,13 @@ class tmp_bcolz_minute_bar_reader(_TmpBarReader):
 
     See Also
     --------
-    tmp_bcolz_daily_bar_reader
+    tmp_bcolz_equity_daily_bar_reader
     """
     _reader_cls = BcolzMinuteBarReader
     _write = staticmethod(write_bcolz_minute_data)
 
 
-class tmp_bcolz_daily_bar_reader(_TmpBarReader):
+class tmp_bcolz_equity_daily_bar_reader(_TmpBarReader):
     """A temporary BcolzDailyBarReader object.
 
     Parameters
@@ -1324,7 +1419,7 @@ class tmp_bcolz_daily_bar_reader(_TmpBarReader):
 
     See Also
     --------
-    tmp_bcolz_daily_bar_reader
+    tmp_bcolz_equity_daily_bar_reader
     """
     _reader_cls = BcolzDailyBarReader
 
@@ -1365,3 +1460,61 @@ def patch_read_csv(url_map, module=pd, strict=False):
 
     with patch.object(module, 'read_csv', patched_read_csv):
         yield
+
+
+@curry
+def ensure_doctest(f, name=None):
+    """Ensure that an object gets doctested. This is useful for instances
+    of objects like curry or partial which are not discovered by default.
+
+    Parameters
+    ----------
+    f : any
+        The thing to doctest.
+    name : str, optional
+        The name to use in the doctest function mapping. If this is None,
+        Then ``f.__name__`` will be used.
+
+    Returns
+    -------
+    f : any
+       ``f`` unchanged.
+    """
+    _getframe(2).f_globals.setdefault('__test__', {})[
+        f.__name__ if name is None else name
+    ] = f
+    return f
+
+
+####################################
+# Shared factors for pipeline tests.
+####################################
+
+class AssetID(CustomFactor):
+    """
+    CustomFactor that returns the AssetID of each asset.
+
+    Useful for providing a Factor that produces a different value for each
+    asset.
+    """
+    window_length = 1
+    inputs = ()
+
+    def compute(self, today, assets, out):
+        out[:] = assets
+
+
+class AssetIDPlusDay(CustomFactor):
+    window_length = 1
+    inputs = ()
+
+    def compute(self, today, assets, out):
+        out[:] = assets + today.day
+
+
+class OpenPrice(CustomFactor):
+    window_length = 1
+    inputs = [USEquityPricing.open]
+
+    def compute(self, today, assets, out, open):
+        out[:] = open

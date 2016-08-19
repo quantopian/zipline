@@ -50,7 +50,7 @@ def downgrade(engine, desired_version):
 
     # Execute the downgrades in order
     for downgrade_key in downgrade_keys:
-        _downgrade_methods[downgrade_key](op, version_info_table)
+        _downgrade_methods[downgrade_key](op, engine, version_info_table)
 
     # Re-enable foreign keys
     _pragma_foreign_keys(conn, True)
@@ -96,10 +96,10 @@ def downgrades(src):
 
         @do(op.setitem(_downgrade_methods, destination))
         @wraps(f)
-        def wrapper(op, version_info_table):
+        def wrapper(op, engine, version_info_table):
             version_info_table.delete().execute()  # clear the version
             f(op)
-            write_version_info(version_info_table, destination)
+            write_version_info(engine, version_info_table, destination)
 
         return wrapper
     return _
@@ -148,7 +148,6 @@ def _downgrade_v2(op):
 
     # Execute batch op to allow column modification in SQLite
     with op.batch_alter_table('equities') as batch_op:
-
         batch_op.drop_column('auto_close_date')
 
     # Recreate indices after batch
@@ -193,6 +192,107 @@ def _downgrade_v3(op):
         where equities.first_traded is not null
         """,
     )
+    op.drop_table('equities')
+    op.rename_table('_new_equities', 'equities')
+    # we need to make sure the indices have the proper names after the rename
+    op.create_index(
+        'ix_equities_company_symbol',
+        'equities',
+        ['company_symbol'],
+    )
+    op.create_index(
+        'ix_equities_fuzzy_symbol',
+        'equities',
+        ['fuzzy_symbol'],
+    )
+
+
+@downgrades(4)
+def _downgrade_v4(op):
+    """
+    Downgrades assets db by copying the `exchange_full` column to `exchange`,
+    then dropping the `exchange_full` column.
+    """
+    op.drop_index('ix_equities_fuzzy_symbol')
+    op.drop_index('ix_equities_company_symbol')
+
+    op.execute("UPDATE equities SET exchange = exchange_full")
+
+    with op.batch_alter_table('equities') as batch_op:
+        batch_op.drop_column('exchange_full')
+
+    op.create_index('ix_equities_fuzzy_symbol',
+                    table_name='equities',
+                    columns=['fuzzy_symbol'])
+    op.create_index('ix_equities_company_symbol',
+                    table_name='equities',
+                    columns=['company_symbol'])
+
+
+@downgrades(5)
+def _downgrade_v5(op):
+    op.create_table(
+        '_new_equities',
+        sa.Column(
+            'sid',
+            sa.Integer,
+            unique=True,
+            nullable=False,
+            primary_key=True,
+        ),
+        sa.Column('symbol', sa.Text),
+        sa.Column('company_symbol', sa.Text),
+        sa.Column('share_class_symbol', sa.Text),
+        sa.Column('fuzzy_symbol', sa.Text),
+        sa.Column('asset_name', sa.Text),
+        sa.Column('start_date', sa.Integer, default=0, nullable=False),
+        sa.Column('end_date', sa.Integer, nullable=False),
+        sa.Column('first_traded', sa.Integer),
+        sa.Column('auto_close_date', sa.Integer),
+        sa.Column('exchange', sa.Text),
+        sa.Column('exchange_full', sa.Text)
+    )
+
+    op.execute(
+        """
+        insert into _new_equities
+        select
+            equities.sid as sid,
+            sym.symbol as symbol,
+            sym.company_symbol as company_symbol,
+            sym.share_class_symbol as share_class_symbol,
+            sym.company_symbol || sym.share_class_symbol as fuzzy_symbol,
+            equities.asset_name as asset_name,
+            equities.start_date as start_date,
+            equities.end_date as end_date,
+            equities.first_traded as first_traded,
+            equities.auto_close_date as auto_close_date,
+            equities.exchange as exchange,
+            equities.exchange_full as exchange_full
+        from
+            equities
+        inner join
+            -- Nested select here to take the most recently held ticker
+            -- for each sid. The group by with no aggregation function will
+            -- take the last element in the group, so we first order by
+            -- the end date ascending to ensure that the groupby takes
+            -- the last ticker.
+            (select
+                 *
+             from
+                 (select
+                      *
+                  from
+                      equity_symbol_mappings
+                  order by
+                      equity_symbol_mappings.end_date asc)
+             group by
+                 sid) sym
+        on
+            equities.sid == sym.sid
+        """,
+    )
+    op.drop_table('equity_symbol_mappings')
     op.drop_table('equities')
     op.rename_table('_new_equities', 'equities')
     # we need to make sure the indicies have the proper names after the rename

@@ -17,6 +17,8 @@ from zipline.utils.cli import maybe_show_progress
 
 log = Logger(__name__)
 seconds_per_call = (pd.Timedelta('10 minutes') / 2000).total_seconds()
+# Invalid symbols that quandl has had in its metadata:
+excluded_symbols = frozenset({'TEST123456789'})
 
 
 def _fetch_raw_metadata(api_key, cache, retries, environ):
@@ -116,10 +118,12 @@ def fetch_symbol_metadata_frame(api_key,
             'oldest_available_date': 'start_date',
             'newest_available_date': 'end_date',
         }).sort('symbol')
+
+    data = data[~data.symbol.isin(excluded_symbols)]
     # cut out all the other stuff in the name column
     # we need to escape the paren because it is actually splitting on a regex
     data.asset_name = data.asset_name.str.split(r' \(', 1).str.get(0)
-    data['exchange'] = 'quandl'
+    data['exchange'] = 'QUANDL'
     data['auto_close_date'] = data['end_date'] + pd.Timedelta(days=1)
     return data
 
@@ -230,11 +234,11 @@ def gen_symbol_data(api_key,
                     cache,
                     symbol_map,
                     calendar,
+                    start_session,
+                    end_session,
                     splits,
                     dividends,
                     retries):
-    start_date = calendar[0]
-    end_date = calendar[-1]
     for asset_id, symbol in symbol_map.iteritems():
         start_time = time()
         try:
@@ -246,15 +250,20 @@ def gen_symbol_data(api_key,
             raw_data = cache[symbol] = fetch_single_equity(
                 api_key,
                 symbol,
-                start_date=start_date,
-                end_date=end_date,
+                start_date=start_session,
+                end_date=end_session,
             )
             should_sleep = True
 
         _update_splits(splits, asset_id, raw_data)
         _update_dividends(dividends, asset_id, raw_data)
 
-        raw_data = raw_data.reindex(calendar, copy=False).fillna(0.0)
+        sessions = calendar.sessions_in_range(start_session, end_session)
+
+        raw_data = raw_data.reindex(
+            sessions.tz_localize(None),
+            copy=False,
+        ).fillna(0.0)
         yield asset_id, raw_data
 
         if should_sleep:
@@ -270,6 +279,8 @@ def quandl_bundle(environ,
                   daily_bar_writer,
                   adjustment_writer,
                   calendar,
+                  start_session,
+                  end_session,
                   cache,
                   show_progress,
                   output_dir):
@@ -294,6 +305,8 @@ def quandl_bundle(environ,
             cache,
             symbol_map,
             calendar,
+            start_session,
+            end_session,
             splits,
             dividends,
             environ.get('QUANDL_DOWNLOAD_ATTEMPTS', 5),
@@ -371,6 +384,8 @@ def quantopian_quandl_bundle(environ,
                              daily_bar_writer,
                              adjustment_writer,
                              calendar,
+                             start_session,
+                             end_session,
                              cache,
                              show_progress,
                              output_dir):

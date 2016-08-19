@@ -126,6 +126,7 @@ class Account(object):
         self.buying_power = float('inf')
         self.equity_with_loan = 0.0
         self.total_positions_value = 0.0
+        self.total_positions_exposure = 0.0
         self.regt_equity = 0.0
         self.regt_margin = float('inf')
         self.initial_margin_requirement = 0.0

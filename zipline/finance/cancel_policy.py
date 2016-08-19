@@ -17,7 +17,7 @@ import abc
 from abc import abstractmethod
 from six import with_metaclass
 
-from zipline.gens.sim_engine import DAY_END
+from zipline.gens.sim_engine import SESSION_END
 
 
 class CancelPolicy(with_metaclass(abc.ABCMeta)):
@@ -58,7 +58,7 @@ class EODCancel(CancelPolicy):
         self.warn_on_cancel = warn_on_cancel
 
     def should_cancel(self, event):
-        return event == DAY_END
+        return event == SESSION_END
 
 
 class NeverCancel(CancelPolicy):

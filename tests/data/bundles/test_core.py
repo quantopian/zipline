@@ -7,7 +7,7 @@ import toolz.curried.operator as op
 
 from zipline.assets.synthetic import make_simple_equity_info
 from zipline.data.bundles import UnknownBundle, from_bundle_ingest_dirname
-from zipline.data.bundles.core import _make_bundle_core
+from zipline.data.bundles.core import _make_bundle_core, BadClean
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     make_bar_data,
@@ -16,7 +16,6 @@ from zipline.pipeline.loaders.synthetic import (
 from zipline.testing import (
     subtest,
     str_to_seconds,
-    tmp_trading_env,
 )
 from zipline.testing.fixtures import WithInstanceTmpDir, ZiplineTestCase
 from zipline.testing.predicates import (
@@ -31,7 +30,7 @@ from zipline.testing.predicates import (
 )
 from zipline.utils.cache import dataframe_cache
 from zipline.utils.functional import apply
-from zipline.utils.tradingcalendar import trading_days
+from zipline.utils.calendars import TradingCalendar, get_calendar
 import zipline.utils.paths as pth
 
 
@@ -97,6 +96,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
                           daily_bar_writer,
                           adjustment_writer,
                           calendar,
+                          start_session,
+                          end_session,
                           cache,
                           show_progress,
                           output_dir):
@@ -110,21 +111,21 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         assert_true(called[0])
 
     def test_ingest(self):
-        env = self.enter_instance_context(tmp_trading_env())
-
         start = pd.Timestamp('2014-01-06', tz='utc')
         end = pd.Timestamp('2014-01-10', tz='utc')
-        calendar = trading_days[trading_days.slice_indexer(start, end)]
-        minutes = env.minutes_for_days_in_range(calendar[0], calendar[-1])
+        calendar = get_calendar('NYSE')
+
+        sessions = calendar.sessions_in_range(start, end)
+        minutes = calendar.minutes_for_sessions_in_range(start, end)
 
         sids = tuple(range(3))
         equities = make_simple_equity_info(
             sids,
-            calendar[0],
-            calendar[-1],
+            start,
+            end,
         )
 
-        daily_bar_data = make_bar_data(equities, calendar)
+        daily_bar_data = make_bar_data(equities, sessions)
         minute_bar_data = make_bar_data(equities, minutes)
         first_split_ratio = 0.5
         second_split_ratio = 0.1
@@ -141,16 +142,20 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
             },
         ])
 
-        @self.register('bundle',
-                       calendar=calendar,
-                       opens=env.opens_in_range(calendar[0], calendar[-1]),
-                       closes=env.closes_in_range(calendar[0], calendar[-1]))
+        @self.register(
+            'bundle',
+            calendar=calendar,
+            start_session=start,
+            end_session=end,
+        )
         def bundle_ingest(environ,
                           asset_db_writer,
                           minute_bar_writer,
                           daily_bar_writer,
                           adjustment_writer,
                           calendar,
+                          start_session,
+                          end_session,
                           cache,
                           show_progress,
                           output_dir):
@@ -161,7 +166,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
             daily_bar_writer.write(daily_bar_data)
             adjustment_writer.write(splits=splits)
 
-            assert_is_instance(calendar, pd.DatetimeIndex)
+            assert_is_instance(calendar, TradingCalendar)
             assert_is_instance(cache, dataframe_cache)
             assert_is_instance(show_progress, bool)
 
@@ -172,7 +177,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
 
         columns = 'open', 'high', 'low', 'close', 'volume'
 
-        actual = bundle.minute_bar_reader.load_raw_arrays(
+        actual = bundle.equity_minute_bar_reader.load_raw_arrays(
             columns,
             minutes[0],
             minutes[-1],
@@ -186,21 +191,21 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
                 msg=colname,
             )
 
-        actual = bundle.daily_bar_reader.load_raw_arrays(
+        actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             columns,
-            calendar[0],
-            calendar[-1],
+            start,
+            end,
             sids,
         )
         for actual_column, colname in zip(actual, columns):
             assert_equal(
                 actual_column,
-                expected_bar_values_2d(calendar, equities, colname),
+                expected_bar_values_2d(sessions, equities, colname),
                 msg=colname,
             )
         adjustments_for_cols = bundle.adjustment_reader.load_adjustments(
             columns,
-            calendar,
+            sessions,
             pd.Index(sids),
         )
         for column, adjustments in zip(columns, adjustments_for_cols[:-1]):
@@ -259,7 +264,7 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         # register but do not ingest data
         self.register('bundle', lambda *args: None)
 
-        ts = pd.Timestamp('2014')
+        ts = pd.Timestamp('2014', tz='UTC')
 
         with assert_raises(ValueError) as e:
             self.load('bundle', timestamp=ts, environ=self.environ)
@@ -287,19 +292,23 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         """
         if not self.bundles:
             @self.register('bundle',
-                           calendar=pd.DatetimeIndex([pd.Timestamp('2014')]))
+                           calendar=get_calendar('NYSE'),
+                           start_session=pd.Timestamp('2014', tz='UTC'),
+                           end_session=pd.Timestamp('2014', tz='UTC'))
             def _(environ,
                   asset_db_writer,
                   minute_bar_writer,
                   daily_bar_writer,
                   adjustment_writer,
                   calendar,
+                  start_session,
+                  end_session,
                   cache,
                   show_progress,
                   output_dir):
                 _wrote_to.append(output_dir)
 
-        _wrote_to.clear()
+        _wrote_to[:] = []
         self.ingest('bundle', environ=self.environ)
         assert_equal(len(_wrote_to), 1, msg='ingest was called more than once')
         ingestions = self._list_bundle()
@@ -358,6 +367,26 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
             self._list_bundle(),
             {fourth, fifth},
             msg='keep_last=2 did not remove the correct number of ingestions',
+        )
+
+        with assert_raises(BadClean):
+            self.clean('bundle', keep_last=-1, environ=self.environ)
+
+        assert_equal(
+            self._list_bundle(),
+            {fourth, fifth},
+            msg='keep_last=-1 removed some ingestions',
+        )
+
+        assert_equal(
+            self.clean('bundle', keep_last=0, environ=self.environ),
+            {fourth, fifth},
+        )
+
+        assert_equal(
+            self._list_bundle(),
+            set(),
+            msg='keep_last=0 did not remove the correct number of ingestions',
         )
 
     @staticmethod

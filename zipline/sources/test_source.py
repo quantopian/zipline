@@ -52,7 +52,7 @@ def create_trade(sid, price, amount, datetime, source_id="test_factory"):
 
 def date_gen(start,
              end,
-             env,
+             trading_calendar,
              delta=timedelta(minutes=1),
              repeats=None):
     """
@@ -73,15 +73,19 @@ def date_gen(start,
         """
         cur = cur + delta
 
-        if not (env.is_trading_day
-                if daily_delta
-                else env.is_market_hours)(cur):
-            if daily_delta:
-                return env.next_trading_day(cur)
-            else:
-                return env.next_open_and_close(cur)[0]
-        else:
+        currently_executing = \
+            (daily_delta and (cur in trading_calendar.all_sessions)) or \
+            (trading_calendar.is_open_on_minute(cur))
+
+        if currently_executing:
             return cur
+        else:
+            if daily_delta:
+                return trading_calendar.minute_to_session_label(cur)
+            else:
+                return trading_calendar.open_and_close_for_session(
+                    trading_calendar.minute_to_session_label(cur)
+                )[0]
 
     # yield count trade events, all on trading days, and
     # during trading hours.
@@ -109,11 +113,12 @@ class SpecificEquityTrades(object):
     delta  : timedelta between internal events
     filter : filter to remove the sids
     """
-    def __init__(self, env, *args, **kwargs):
+    def __init__(self, env, trading_calendar, *args, **kwargs):
         # We shouldn't get any positional arguments.
         assert len(args) == 0
 
         self.env = env
+        self.trading_calendar = trading_calendar
 
         # Default to None for event_list and filter.
         self.event_list = kwargs.get('event_list')
@@ -205,14 +210,14 @@ class SpecificEquityTrades(object):
                     end=self.end,
                     delta=self.delta,
                     repeats=len(self.sids),
-                    env=self.env,
+                    trading_calendar=self.trading_calendar,
                 )
             else:
                 date_generator = date_gen(
                     start=self.start,
                     end=self.end,
                     delta=self.delta,
-                    env=self.env,
+                    trading_calendar=self.trading_calendar,
                 )
 
             source_id = self.get_hash()
