@@ -88,7 +88,8 @@ cdef class Asset:
         self.symbol = symbol
         self.asset_name = asset_name
         self.exchange = exchange
-        self.exchange_full = exchange_full
+        self.exchange_full = (exchange_full if exchange_full is not None
+                              else exchange)
         self.start_date = start_date
         self.end_date = end_date
         self.first_traded = first_traded
