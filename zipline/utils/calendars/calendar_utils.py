@@ -9,6 +9,9 @@ from zipline.utils.calendars.exchange_calendar_cme import CMEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_bmf import BMFExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_lse import LSEExchangeCalendar
 from zipline.utils.calendars.exchange_calendar_tsx import TSXExchangeCalendar
+from zipline.utils.calendars.us_futures_calendar import (
+    QuantopianUSFuturesCalendar,
+)
 
 
 NYSE_CALENDAR_EXCHANGE_NAMES = frozenset([
@@ -31,6 +34,8 @@ BMF_CALENDAR_EXCHANGE_NAMES = frozenset(["BMF"])
 LSE_CALENDAR_EXCHANGE_NAMES = frozenset(["LSE"])
 TSX_CALENDAR_EXCHANGE_NAMES = frozenset(["TSX"])
 
+US_FUTURES_CALENDAR_NAMES = frozenset(["us_futures"])
+
 _default_calendar_factories = {
     NYSE_CALENDAR_EXCHANGE_NAMES: NYSEExchangeCalendar,
     CME_CALENDAR_EXCHANGE_NAMES: CMEExchangeCalendar,
@@ -39,6 +44,7 @@ _default_calendar_factories = {
     BMF_CALENDAR_EXCHANGE_NAMES: BMFExchangeCalendar,
     LSE_CALENDAR_EXCHANGE_NAMES: LSEExchangeCalendar,
     TSX_CALENDAR_EXCHANGE_NAMES: TSXExchangeCalendar,
+    US_FUTURES_CALENDAR_NAMES: QuantopianUSFuturesCalendar,
 }
 
 
