@@ -5,26 +5,14 @@ from functools import wraps
 from operator import attrgetter
 from numbers import Number
 
-from numpy import inf, where
+from numpy import empty_like, inf, nan, where
+from scipy.stats import rankdata
 
 from zipline.errors import UnknownRankMethod
 from zipline.lib.normalize import naive_grouped_rowwise_apply
-from zipline.lib.rank import masked_rankdata_2d
+from zipline.lib.rank import masked_rankdata_2d, rankdata_1d_descending
 from zipline.pipeline.api_utils import restrict_to_dtype
 from zipline.pipeline.classifiers import Classifier, Everything, Quantiles
-from zipline.pipeline.mixins import (
-    CustomTermMixin,
-    LatestMixin,
-    PositiveWindowLengthMixin,
-    RestrictedDTypeMixin,
-    SingleInputMixin,
-)
-from zipline.pipeline.term import (
-    ComputableTerm,
-    NotSpecified,
-    NotSpecifiedType,
-    Term,
-)
 from zipline.pipeline.expression import (
     BadBinaryOperator,
     COMPARISONS,
@@ -40,11 +28,23 @@ from zipline.pipeline.filters import (
     Filter,
     NumExprFilter,
     PercentileFilter,
+    NotNullFilter,
     NullFilter,
 )
+from zipline.pipeline.mixins import (
+    CustomTermMixin,
+    DownsampledMixin,
+    LatestMixin,
+    PositiveWindowLengthMixin,
+    RestrictedDTypeMixin,
+    SingleInputMixin,
+)
+from zipline.pipeline.sentinels import NotSpecified, NotSpecifiedType
+from zipline.pipeline.term import ComputableTerm, Term
 from zipline.utils.functional import with_doc, with_name
 from zipline.utils.input_validation import expect_types
 from zipline.utils.math_utils import nanmean, nanstd
+from zipline.utils.memoize import classlazyval
 from zipline.utils.numpy_utils import (
     bool_dtype,
     categorical_dtype,
@@ -316,7 +316,6 @@ float64_only = restrict_to_dtype(
     )
 )
 
-
 FACTOR_DTYPES = frozenset([datetime64ns_dtype, float64_dtype, int64_dtype])
 
 
@@ -333,9 +332,9 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
     Factors.  For example, constructing a Factor that computes the average of
     two other Factors is simply::
 
-        >>> f1 = SomeFactor(...)
-        >>> f2 = SomeOtherFactor(...)
-        >>> average = (f1 + f2) / 2.0
+        >>> f1 = SomeFactor(...)  # doctest: +SKIP
+        >>> f2 = SomeOtherFactor(...)  # doctest: +SKIP
+        >>> average = (f1 + f2) / 2.0  # doctest: +SKIP
 
     Factors can also be converted into :class:`zipline.pipeline.Filter` objects
     via comparison operators: (``<``, ``<=``, ``!=``, ``eq``, ``>``, ``>=``).
@@ -492,8 +491,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         to use the ``mask`` parameter to discard values at the extremes of the
         distribution::
 
-            >>> base = MyFactor(...)
-            >>> normalized = base.demean(mask=base.percentile_between(1, 99))
+            >>> base = MyFactor(...)  # doctest: +SKIP
+            >>> normalized = base.demean(
+            ...     mask=base.percentile_between(1, 99),
+            ... )  # doctest: +SKIP
 
         ``demean()`` is only supported on Factors of dtype float64.
 
@@ -501,16 +502,14 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
-        # This is a named function so that it has a __name__ for use in the
-        # graph repr of GroupedRowTransform.
-        def demean(row):
-            return row - nanmean(row)
-
         return GroupedRowTransform(
             transform=demean,
+            transform_args=(),
             factor=self,
-            mask=mask,
             groupby=groupby,
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            mask=mask,
         )
 
     @expect_types(
@@ -553,8 +552,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         outliers, it is often useful to use the ``mask`` parameter to discard
         values at the extremes of the distribution::
 
-            >>> base = MyFactor(...)
-            >>> normalized = base.zscore(mask=base.percentile_between(1, 99))
+            >>> base = MyFactor(...)  # doctest: +SKIP
+            >>> normalized = base.zscore(
+            ...    mask=base.percentile_between(1, 99),
+            ... )  # doctest: +SKIP
 
         ``zscore()`` is only supported on Factors of dtype float64.
 
@@ -567,20 +568,22 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         --------
         :meth:`pandas.DataFrame.groupby`
         """
-        # This is a named function so that it has a __name__ for use in the
-        # graph repr of GroupedRowTransform.
-        def zscore(row):
-            return (row - nanmean(row)) / nanstd(row)
-
         return GroupedRowTransform(
             transform=zscore,
+            transform_args=(),
             factor=self,
-            mask=mask,
             groupby=groupby,
+            dtype=self.dtype,
+            missing_value=self.missing_value,
+            mask=mask,
             window_safe=True,
         )
 
-    def rank(self, method='ordinal', ascending=True, mask=NotSpecified):
+    def rank(self,
+             method='ordinal',
+             ascending=True,
+             mask=NotSpecified,
+             groupby=NotSpecified):
         """
         Construct a new Factor representing the sorted rank of each column
         within each row.
@@ -598,6 +601,8 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A Filter representing assets to consider when computing ranks.
             If mask is supplied, ranks are computed ignoring any asset/date
             pairs for which `mask` produces a value of False.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to perform ranking.
 
         Returns
         -------
@@ -619,7 +624,212 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         :func:`scipy.stats.rankdata`
         :class:`zipline.pipeline.factors.factor.Rank`
         """
-        return Rank(self, method=method, ascending=ascending, mask=mask)
+
+        if groupby is NotSpecified:
+            return Rank(self, method=method, ascending=ascending, mask=mask)
+
+        return GroupedRowTransform(
+            transform=rankdata if ascending else rankdata_1d_descending,
+            transform_args=(method,),
+            factor=self,
+            groupby=groupby,
+            dtype=float64_dtype,
+            missing_value=nan,
+            mask=mask,
+            window_safe=True,
+        )
+
+    @expect_types(
+        target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
+    )
+    def pearsonr(self, target, correlation_length, mask=NotSpecified):
+        """
+        Construct a new Factor that computes rolling pearson correlation
+        coefficients between `target` and the columns of `self`.
+
+        This method can only be called on factors which are deemed safe for use
+        as inputs to other factors. This includes `Returns` and any factors
+        created from `Factor.rank` or `Factor.zscore`.
+
+        Parameters
+        ----------
+        target : zipline.pipeline.Term with a numeric dtype
+            The term used to compute correlations against each column of data
+            produced by `self`. This may be a Factor, a BoundColumn or a Slice.
+            If `target` is two-dimensional, correlations are computed
+            asset-wise.
+        correlation_length : int
+            Length of the lookback window over which to compute each
+            correlation coefficient.
+        mask : zipline.pipeline.Filter, optional
+            A Filter describing which assets should have their correlation with
+            the target slice computed each day.
+
+        Returns
+        -------
+        correlations : zipline.pipeline.factors.RollingPearson
+            A new Factor that will compute correlations between `target` and
+            the columns of `self`.
+
+        Example
+        -------
+        Suppose we want to create a factor that computes the correlation
+        between AAPL's 10-day returns and the 10-day returns of all other
+        assets, computing each correlation over 30 days. This can be achieved
+        by doing the following::
+
+            returns = Returns(window_length=10)
+            returns_slice = returns[sid(24)]
+            aapl_correlations = returns.pearsonr(
+                target=returns_slice, correlation_length=30,
+            )
+
+        This is equivalent to doing::
+
+            aapl_correlations = RollingPearsonOfReturns(
+                target=sid(24), returns_length=10, correlation_length=30,
+            )
+
+        See Also
+        --------
+        :func:`scipy.stats.pearsonr`
+        :class:`zipline.pipeline.factors.RollingPearsonOfReturns`
+        :meth:`Factor.spearmanr`
+        """
+        from .statistical import RollingPearson
+        return RollingPearson(
+            base_factor=self,
+            target=target,
+            correlation_length=correlation_length,
+            mask=mask,
+        )
+
+    @expect_types(
+        target=Term, correlation_length=int, mask=(Filter, NotSpecifiedType),
+    )
+    def spearmanr(self, target, correlation_length, mask=NotSpecified):
+        """
+        Construct a new Factor that computes rolling spearman rank correlation
+        coefficients between `target` and the columns of `self`.
+
+        This method can only be called on factors which are deemed safe for use
+        as inputs to other factors. This includes `Returns` and any factors
+        created from `Factor.rank` or `Factor.zscore`.
+
+        Parameters
+        ----------
+        target : zipline.pipeline.Term with a numeric dtype
+            The term used to compute correlations against each column of data
+            produced by `self`. This may be a Factor, a BoundColumn or a Slice.
+            If `target` is two-dimensional, correlations are computed
+            asset-wise.
+        correlation_length : int
+            Length of the lookback window over which to compute each
+            correlation coefficient.
+        mask : zipline.pipeline.Filter, optional
+            A Filter describing which assets should have their correlation with
+            the target slice computed each day.
+
+        Returns
+        -------
+        correlations : zipline.pipeline.factors.RollingSpearman
+            A new Factor that will compute correlations between `target` and
+            the columns of `self`.
+
+        Example
+        -------
+        Suppose we want to create a factor that computes the correlation
+        between AAPL's 10-day returns and the 10-day returns of all other
+        assets, computing each correlation over 30 days. This can be achieved
+        by doing the following::
+
+            returns = Returns(window_length=10)
+            returns_slice = returns[sid(24)]
+            aapl_correlations = returns.spearmanr(
+                target=returns_slice, correlation_length=30,
+            )
+
+        This is equivalent to doing::
+
+            aapl_correlations = RollingSpearmanOfReturns(
+                target=sid(24), returns_length=10, correlation_length=30,
+            )
+
+        See Also
+        --------
+        :func:`scipy.stats.spearmanr`
+        :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`
+        :meth:`Factor.pearsonr`
+        """
+        from .statistical import RollingSpearman
+        return RollingSpearman(
+            base_factor=self,
+            target=target,
+            correlation_length=correlation_length,
+            mask=mask,
+        )
+
+    @expect_types(
+        target=Term, regression_length=int, mask=(Filter, NotSpecifiedType),
+    )
+    def linear_regression(self, target, regression_length, mask=NotSpecified):
+        """
+        Construct a new Factor that performs an ordinary least-squares
+        regression predicting the columns of `self` from `target`.
+
+        This method can only be called on factors which are deemed safe for use
+        as inputs to other factors. This includes `Returns` and any factors
+        created from `Factor.rank` or `Factor.zscore`.
+
+        Parameters
+        ----------
+        target : zipline.pipeline.Term with a numeric dtype
+            The term to use as the predictor/independent variable in each
+            regression. This may be a Factor, a BoundColumn or a Slice. If
+            `target` is two-dimensional, regressions are computed asset-wise.
+        regression_length : int
+            Length of the lookback window over which to compute each
+            regression.
+        mask : zipline.pipeline.Filter, optional
+            A Filter describing which assets should be regressed with the
+            target slice each day.
+
+        Returns
+        -------
+        regressions : zipline.pipeline.factors.RollingLinearRegression
+            A new Factor that will compute linear regressions of `target`
+            against the columns of `self`.
+
+        Example
+        -------
+        Suppose we want to create a factor that regresses AAPL's 10-day returns
+        against the 10-day returns of all other assets, computing each
+        regression over 30 days. This can be achieved by doing the following::
+
+            returns = Returns(window_length=10)
+            returns_slice = returns[sid(24)]
+            aapl_regressions = returns.linear_regression(
+                target=returns_slice, regression_length=30,
+            )
+
+        This is equivalent to doing::
+
+            aapl_regressions = RollingLinearRegressionOfReturns(
+                target=sid(24), returns_length=10, regression_length=30,
+            )
+
+        See Also
+        --------
+        :func:`scipy.stats.linregress`
+        :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`
+        """
+        from .statistical import RollingLinearRegression
+        return RollingLinearRegression(
+            dependent=self,
+            independent=target,
+            regression_length=regression_length,
+            mask=mask,
+        )
 
     @expect_types(bins=int, mask=(Filter, NotSpecifiedType))
     def quantiles(self, bins, mask=NotSpecified):
@@ -720,9 +930,12 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return self.quantiles(bins=10, mask=mask)
 
-    def top(self, N, mask=NotSpecified):
+    def top(self, N, mask=NotSpecified, groupby=NotSpecified):
         """
         Construct a Filter matching the top N asset values of self each day.
+
+        If ``groupby`` is supplied, returns a Filter matching the top N asset
+        values for each group.
 
         Parameters
         ----------
@@ -732,16 +945,21 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A Filter representing assets to consider when computing ranks.
             If mask is supplied, top values are computed ignoring any
             asset/date pairs for which `mask` produces a value of False.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to perform ranking.
 
         Returns
         -------
         filter : zipline.pipeline.filters.Filter
         """
-        return self.rank(ascending=False, mask=mask) <= N
+        return self.rank(ascending=False, mask=mask, groupby=groupby) <= N
 
-    def bottom(self, N, mask=NotSpecified):
+    def bottom(self, N, mask=NotSpecified, groupby=NotSpecified):
         """
         Construct a Filter matching the bottom N asset values of self each day.
+
+        If ``groupby`` is supplied, returns a Filter matching the bottom N
+        asset values for each group.
 
         Parameters
         ----------
@@ -751,12 +969,14 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
             A Filter representing assets to consider when computing ranks.
             If mask is supplied, bottom values are computed ignoring any
             asset/date pairs for which `mask` produces a value of False.
+        groupby : zipline.pipeline.Classifier, optional
+            A classifier defining partitions over which to perform ranking.
 
         Returns
         -------
         filter : zipline.pipeline.Filter
         """
-        return self.rank(ascending=True, mask=mask) <= N
+        return self.rank(ascending=True, mask=mask, groupby=groupby) <= N
 
     def percentile_between(self,
                            min_percentile,
@@ -821,7 +1041,7 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.
         Otherwise equivalent to ``(self != self.missing_value)``.
         """
-        return ~self.isnull()
+        return NotNullFilter(self)
 
     @if_not_float64_tell_caller_to_use_isnull
     def isnan(self):
@@ -853,6 +1073,10 @@ class Factor(RestrictedDTypeMixin, ComputableTerm):
         """
         return (-inf < self) & (self < inf)
 
+    @classlazyval
+    def _downsampled_type(self):
+        return DownsampledMixin.make_downsampled_type(Factor)
+
 
 class NumExprFactor(NumericalExpression, Factor):
     """
@@ -882,7 +1106,7 @@ class GroupedRowTransform(Factor):
     Factor.
 
     This is most often useful for normalization operators like ``zscore`` or
-    ``demean``.
+    ``demean`` or for performing ranking using ``rank``.
 
     Parameters
     ----------
@@ -895,21 +1119,32 @@ class GroupedRowTransform(Factor):
     groupby : zipline.pipeline.Classifier
         Classifier partitioning ``factor`` into groups to use when calculating
         means.
+    transform_args : tuple[hashable]
+        Additional positional arguments to forward to ``transform``.
 
     Notes
     -----
     Users should rarely construct instances of this factor directly.  Instead,
     they should construct instances via factor normalization methods like
-    ``zscore`` and ``demean``.
+    ``zscore`` and ``demean`` or using ``rank`` with ``groupby``.
 
     See Also
     --------
     zipline.pipeline.factors.Factor.zscore
     zipline.pipeline.factors.Factor.demean
+    zipline.pipeline.factors.Factor.rank
     """
     window_length = 0
 
-    def __new__(cls, transform, factor, mask, groupby, **kwargs):
+    def __new__(cls,
+                transform,
+                transform_args,
+                factor,
+                groupby,
+                dtype,
+                missing_value,
+                mask,
+                **kwargs):
 
         if mask is NotSpecified:
             mask = factor.mask
@@ -922,22 +1157,25 @@ class GroupedRowTransform(Factor):
         return super(GroupedRowTransform, cls).__new__(
             GroupedRowTransform,
             transform=transform,
+            transform_args=transform_args,
             inputs=(factor, groupby),
-            missing_value=factor.missing_value,
+            missing_value=missing_value,
             mask=mask,
-            dtype=factor.dtype,
+            dtype=dtype,
             **kwargs
         )
 
-    def _init(self, transform, *args, **kwargs):
+    def _init(self, transform, transform_args, *args, **kwargs):
         self._transform = transform
+        self._transform_args = transform_args
         return super(GroupedRowTransform, self)._init(*args, **kwargs)
 
     @classmethod
-    def _static_identity(cls, transform, *args, **kwargs):
+    def _static_identity(cls, transform, transform_args, *args, **kwargs):
         return (
             super(GroupedRowTransform, cls)._static_identity(*args, **kwargs),
             transform,
+            transform_args,
         )
 
     def _compute(self, arrays, dates, assets, mask):
@@ -959,13 +1197,14 @@ class GroupedRowTransform(Factor):
 
         # Make a copy with the null code written to masked locations.
         group_labels = where(mask, group_labels, null_label)
-
         return where(
             group_labels != null_label,
             naive_grouped_rowwise_apply(
                 data=data,
                 group_labels=group_labels,
                 func=self._transform,
+                func_args=self._transform_args,
+                out=empty_like(data, dtype=self.dtype),
             ),
             self.missing_value,
         )
@@ -1235,7 +1474,9 @@ class CustomFactor(PositiveWindowLengthMixin, CustomTermMixin, Factor):
 
 
 class RecarrayField(SingleInputMixin, Factor):
-
+    """
+    A single field from a multi-output factor.
+    """
     def __new__(cls, factor, attribute):
         return super(RecarrayField, cls).__new__(
             cls,
@@ -1273,3 +1514,13 @@ class Latest(LatestMixin, CustomFactor):
 
     def compute(self, today, assets, out, data):
         out[:] = data[-1]
+
+
+# Functions to be passed to GroupedRowTransform.  These aren't defined inline
+# because the transformation function is part of the instance hash key.
+def demean(row):
+    return row - nanmean(row)
+
+
+def zscore(row):
+    return (row - nanmean(row)) / nanstd(row)

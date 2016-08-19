@@ -1,4 +1,4 @@
-{% set data = load_setuptools() %}
+{% set data = load_setup_py_data() %}
 
 package:
   name: zipline
@@ -16,24 +16,18 @@ source:
 requirements:
   build:
     - python {{ PY_VER }}*
-    - libgfortran ==1  # [(not win) and (np == 19)]
+    - libgfortran ==1  # [linux and (np == 19)]
     {% for req in data.get('build_requires', []) -%}
     - {{req}}
     {% endfor %}
   run:
     - python
-    - libgfortran ==1 # [(not win) and (np == 19)]
+    - libgfortran ==1 # [linux and (np == 19)]
     {% for req in data.get('install_requires', []) -%}
     - {{req}}
     {% endfor %}
 
 test:
-  {#  When we include the tests module in the zipline package, we can use this:
-  requires:
-    {% for req in data.get('extras_require', {}).get('dev', []) -%}
-    - {{req}}
-    {% endfor %}
-  #}
   # Python imports
   imports:
     - zipline

@@ -1,10 +1,14 @@
 """
 Tests for zipline.pipeline.Pipeline
 """
+import inspect
 from unittest import TestCase
+
+from mock import patch
 
 from zipline.pipeline import Factor, Filter, Pipeline
 from zipline.pipeline.data import USEquityPricing
+from zipline.pipeline.graph import display_graph
 from zipline.utils.numpy_utils import float64_dtype
 
 
@@ -63,6 +67,9 @@ class PipelineTestCase(TestCase):
         with self.assertRaises(TypeError):
             Pipeline({}, SomeFactor())
 
+        with self.assertRaises(TypeError):
+            Pipeline({'open': USEquityPricing.open})
+
         Pipeline({}, SomeFactor() > 5)
 
     def test_add(self):
@@ -77,6 +84,9 @@ class PipelineTestCase(TestCase):
 
         with self.assertRaises(TypeError):
             p.add(f, 1)
+
+        with self.assertRaises(TypeError):
+            p.add(USEquityPricing.open, 'open')
 
     def test_overwrite(self):
         p = Pipeline()
@@ -131,3 +141,57 @@ class PipelineTestCase(TestCase):
             "expected a value of type bool or int for argument 'overwrite'",
             message,
         )
+
+    def test_show_graph(self):
+        f = SomeFactor()
+        p = Pipeline(columns={'f': SomeFactor()})
+
+        # The real display_graph call shells out to GraphViz, which isn't a
+        # requirement, so patch it out for testing.
+
+        def mock_display_graph(g, format='svg', include_asset_exists=False):
+            return (g, format, include_asset_exists)
+
+        self.assertEqual(
+            inspect.getargspec(display_graph),
+            inspect.getargspec(mock_display_graph),
+            msg="Mock signature doesn't match signature for display_graph."
+        )
+
+        patch_display_graph = patch(
+            'zipline.pipeline.graph.display_graph',
+            mock_display_graph,
+        )
+
+        with patch_display_graph:
+            graph, format, include_asset_exists = p.show_graph()
+            self.assertIs(graph.outputs['f'], f)
+            # '' is a sentinel used for screen if it's not supplied.
+            self.assertEqual(sorted(graph.outputs.keys()), ['', 'f'])
+            self.assertEqual(format, 'svg')
+            self.assertEqual(include_asset_exists, False)
+
+        with patch_display_graph:
+            graph, format, include_asset_exists = p.show_graph(format='png')
+            self.assertIs(graph.outputs['f'], f)
+            # '' is a sentinel used for screen if it's not supplied.
+            self.assertEqual(sorted(graph.outputs.keys()), ['', 'f'])
+            self.assertEqual(format, 'png')
+            self.assertEqual(include_asset_exists, False)
+
+        with patch_display_graph:
+            graph, format, include_asset_exists = p.show_graph(format='jpeg')
+            self.assertIs(graph.outputs['f'], f)
+            # '' is a sentinel used for screen if it's not supplied.
+            self.assertEqual(sorted(graph.outputs.keys()), ['', 'f'])
+            self.assertEqual(format, 'jpeg')
+            self.assertEqual(include_asset_exists, False)
+
+        expected = (
+            r".*\.show_graph\(\) expected a value in "
+            r"\('svg', 'png', 'jpeg'\) for argument 'format', "
+            r"but got 'fizzbuzz' instead."
+        )
+
+        with self.assertRaisesRegexp(ValueError, expected):
+            p.show_graph(format='fizzbuzz')

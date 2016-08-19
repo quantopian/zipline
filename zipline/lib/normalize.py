@@ -1,7 +1,11 @@
 import numpy as np
 
 
-def naive_grouped_rowwise_apply(data, group_labels, func, out=None):
+def naive_grouped_rowwise_apply(data,
+                                group_labels,
+                                func,
+                                func_args=(),
+                                out=None):
     """
     Simple implementation of grouped row-wise function application.
 
@@ -14,6 +18,8 @@ def naive_grouped_rowwise_apply(data, group_labels, func, out=None):
         Should be the same shape as array.
     func : function[ndarray[ndim=1]] -> function[ndarray[ndim=1]]
         Function to apply to pieces of each row in array.
+    func_args : tuple
+        Additional positional arguments to provide to each row in array.
     out : ndarray, optional
         Array into which to write output.  If not supplied, a new array of the
         same shape as ``data`` is allocated and returned.
@@ -41,5 +47,5 @@ def naive_grouped_rowwise_apply(data, group_labels, func, out=None):
     for (row, label_row, out_row) in zip(data, group_labels, out):
         for label in np.unique(label_row):
             locs = (label_row == label)
-            out_row[locs] = func(row[locs])
+            out_row[locs] = func(row[locs], *func_args)
     return out

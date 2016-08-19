@@ -1,8 +1,14 @@
-from zipline.utils.input_validation import expect_types, optional
 
-from .term import Term, AssetExists
+from zipline.errors import UnsupportedPipelineOutput
+from zipline.utils.input_validation import (
+    expect_element,
+    expect_types,
+    optional,
+)
+
+from .graph import ExecutionPlan, TermGraph
 from .filters import Filter
-from .graph import TermGraph
+from .term import AssetExists, ComputableTerm, Term
 
 
 class Pipeline(object):
@@ -34,9 +40,20 @@ class Pipeline(object):
         screen=optional(Filter),
     )
     def __init__(self, columns=None, screen=None):
-
         if columns is None:
             columns = {}
+
+        validate_column = self.validate_column
+        for column_name, term in columns.items():
+            validate_column(column_name, term)
+            if not isinstance(term, ComputableTerm):
+                raise TypeError(
+                    "Column {column_name!r} contains an invalid pipeline term "
+                    "({term}). Did you mean to append '.latest'?".format(
+                        column_name=column_name, term=term,
+                    )
+                )
+
         self._columns = columns
         self._screen = screen
 
@@ -72,12 +89,20 @@ class Pipeline(object):
             Whether to overwrite the existing entry if we already have a column
             named `name`.
         """
+        self.validate_column(name, term)
+
         columns = self.columns
         if name in columns:
             if overwrite:
                 self.remove(name)
             else:
                 raise KeyError("Column '{}' already exists.".format(name))
+
+        if not isinstance(term, ComputableTerm):
+            raise TypeError(
+                "{term} is not a valid pipeline column. Did you mean to "
+                "append '.latest'?".format(term=term)
+            )
 
         self._columns[name] = term
 
@@ -127,9 +152,39 @@ class Pipeline(object):
             )
         self._screen = screen
 
-    def to_graph(self, screen_name, default_screen):
+    def to_execution_plan(self,
+                          screen_name,
+                          default_screen,
+                          all_dates,
+                          start_date,
+                          end_date):
         """
-        Compile into a TermGraph.
+        Compile into an ExecutionPlan.
+
+        Parameters
+        ----------
+        screen_name : str
+            Name to supply for self.screen.
+        default_screen : zipline.pipeline.term.Term
+            Term to use as a screen if self.screen is None.
+        all_dates : pd.DatetimeIndex
+            A calendar of dates to use to calculate starts and ends for each
+            term.
+        start_date : pd.Timestamp
+            The first date of requested output.
+        end_date : pd.Timestamp
+            The last date of requested output.
+        """
+        return ExecutionPlan(
+            self._prepare_graph_terms(screen_name, default_screen),
+            all_dates,
+            start_date,
+            end_date,
+        )
+
+    def to_simple_graph(self, screen_name, default_screen):
+        """
+        Compile into a simple TermGraph with no extra row metadata.
 
         Parameters
         ----------
@@ -138,14 +193,20 @@ class Pipeline(object):
         default_screen : zipline.pipeline.term.Term
             Term to use as a screen if self.screen is None.
         """
+        return TermGraph(
+            self._prepare_graph_terms(screen_name, default_screen)
+        )
+
+    def _prepare_graph_terms(self, screen_name, default_screen):
+        """Helper for to_graph and to_execution_plan."""
         columns = self.columns.copy()
         screen = self.screen
         if screen is None:
             screen = default_screen
         columns[screen_name] = screen
+        return columns
 
-        return TermGraph(columns)
-
+    @expect_element(format=('svg', 'png', 'jpeg'))
     def show_graph(self, format='svg'):
         """
         Render this Pipeline as a DAG.
@@ -155,7 +216,7 @@ class Pipeline(object):
         format : {'svg', 'png', 'jpeg'}
             Image format to render with.  Default is 'svg'.
         """
-        g = self.to_graph('', AssetExists())
+        g = self.to_simple_graph('', AssetExists())
         if format == 'svg':
             return g.svg
         elif format == 'png':
@@ -163,4 +224,11 @@ class Pipeline(object):
         elif format == 'jpeg':
             return g.jpeg
         else:
-            raise ValueError("Unknown graph format %r." % format)
+            # We should never get here because of the expect_element decorator
+            # above.
+            raise AssertionError("Unknown graph format %r." % format)
+
+    @staticmethod
+    def validate_column(column_name, term):
+        if term.ndim == 1:
+            raise UnsupportedPipelineOutput(column_name=column_name, term=term)

@@ -1,0 +1,50 @@
+Release 1.0.2
+-------------
+
+:Release: 1.0.2
+:Date: TBD
+
+Enhancements
+~~~~~~~~~~~~
+
+- Adds forward fill checkpoint tables for the blaze core loader. This allow the
+  loader to more efficiently forward fill the data by capping the lower date it
+  must search for when querying data. The checkpoints should have novel deltas
+  applied (:issue:`1276`).
+
+- Updated VagrantFile to include all dev requirements and use a newer image
+  (:issue:`1310`).
+
+- Allow correlations and regressions to be computed between two 2D factors by
+  doing computations asset-wise (:issue:`1307`).
+
+- Filters have been made window_safe by default. Now they can be passed in as
+  arguments to other Filters, Factors and Classifiers (:issue:`1338`).
+
+- Added an optional ``groupby`` parameter to
+  :meth:`~zipline.pipeline.factors.Factor.rank`,
+  :meth:`~zipline.pipeline.factors.Factor.top`, and
+  :meth:`~zipline.pipeline.factors.Factor.bottom`. (:issue:`1349`).
+
+- Added new pipeline filters, :class:`~zipline.pipeline.filters.All` and
+  :class:`~zipline.pipeline.filters.Any`, which takes another filter and
+  returns True if an asset produced a True for any/all days in the previous
+  ``window_length`` days (:issue:`1358`).
+
+- Added new pipeline filter :class:`~zipline.pipeline.filters.AtLeastN`,
+  which takes another filter and an int N and returns True if an asset
+  produced a True on N or more days in the previous ``window_length``
+  days (:issue:`1367`).
+
+Bug Fixes
+~~~~~~~~~
+
+- Changes :class:`~zipline.pipeline.factors.AverageDollarVolume` built-in
+  factor to treat missing close or volume values as 0. Previously, NaNs were
+  simply discarded before averaging, giving the remaining values too much
+  weight (:issue:`1309`).
+
+Documentation
+~~~~~~~~~~~~~
+
+None

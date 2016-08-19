@@ -25,7 +25,7 @@ from zipline.finance.execution import (
     StopOrder,
 )
 
-from zipline.gens.sim_engine import DAY_END, BAR
+from zipline.gens.sim_engine import SESSION_END, BAR
 from zipline.finance.cancel_policy import EODCancel, NeverCancel
 from zipline.finance.slippage import (
     DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
@@ -49,7 +49,7 @@ class BlotterTestCase(WithLogger,
     ASSET_FINDER_EQUITY_SIDS = 24, 25
 
     @classmethod
-    def make_daily_bar_data(cls):
+    def make_equity_daily_bar_data(cls):
         yield 24, pd.DataFrame(
             {
                 'open': [50, 50],
@@ -58,7 +58,7 @@ class BlotterTestCase(WithLogger,
                 'close': [50, 50],
                 'volume': [100, 400],
             },
-            index=cls.sim_params.trading_days,
+            index=cls.sim_params.sessions,
         )
         yield 25, pd.DataFrame(
             {
@@ -68,7 +68,7 @@ class BlotterTestCase(WithLogger,
                 'close': [50, 50],
                 'volume': [100, 400],
             },
-            index=cls.sim_params.trading_days,
+            index=cls.sim_params.sessions,
         )
 
     @parameterized.expand([(MarketOrder(), None, None),
@@ -143,7 +143,7 @@ class BlotterTestCase(WithLogger,
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
         self.assertEqual(blotter.new_orders[1].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(DAY_END)
+        blotter.execute_cancel_policy(SESSION_END)
         for order_id in order_ids:
             order = blotter.orders[order_id]
             self.assertEqual(order.status, ORDER_STATUS.CANCELLED)
@@ -161,7 +161,7 @@ class BlotterTestCase(WithLogger,
         blotter.execute_cancel_policy(BAR)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
-        blotter.execute_cancel_policy(DAY_END)
+        blotter.execute_cancel_policy(SESSION_END)
         self.assertEqual(blotter.new_orders[0].status, ORDER_STATUS.OPEN)
 
     def test_order_rejection(self):
@@ -218,10 +218,10 @@ class BlotterTestCase(WithLogger,
         blotter.slippage_func = FixedSlippage()
         filled_id = blotter.order(asset_24, 100, MarketOrder())
         filled_order = None
-        blotter.current_dt = self.sim_params.trading_days[-1]
+        blotter.current_dt = self.sim_params.sessions[-1]
         bar_data = BarData(
             self.data_portal,
-            lambda: self.sim_params.trading_days[-1],
+            lambda: self.sim_params.sessions[-1],
             self.sim_params.data_frequency,
         )
         txns, _, closed_orders = blotter.get_transactions(bar_data)
@@ -270,8 +270,8 @@ class BlotterTestCase(WithLogger,
         self.assertEqual(cancelled_order.id, held_order.id)
         self.assertEqual(cancelled_order.status, ORDER_STATUS.CANCELLED)
 
-        for data in ([100, self.sim_params.trading_days[0]],
-                     [400, self.sim_params.trading_days[1]]):
+        for data in ([100, self.sim_params.sessions[0]],
+                     [400, self.sim_params.sessions[1]]):
             # Verify that incoming fills will change the order status.
             trade_amt = data[0]
             dt = data[1]
