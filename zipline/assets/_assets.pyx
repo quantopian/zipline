@@ -164,7 +164,7 @@ cdef class Asset:
                                  self.start_date,
                                  self.end_date,
                                  self.first_traded,
-                                 self.auto_close_date,))
+                                 self.auto_close_date))
 
     cpdef to_dict(self):
         """
@@ -226,9 +226,63 @@ cdef class Asset:
 
 cdef class Equity(Asset):
 
+    cdef readonly object exchange_full
+
+    _kwargnames = frozenset({
+        'sid',
+        'symbol',
+        'asset_name',
+        'start_date',
+        'end_date',
+        'first_traded',
+        'auto_close_date',
+        'exchange',
+        'exchange_full',
+    })
+
+    def __init__(self,
+                 int sid, # sid is required
+                 object exchange, # exchange is required
+                 object symbol="",
+                 object asset_name="",
+                 object start_date=None,
+                 object end_date=None,
+                 object first_traded=None,
+                 object auto_close_date=None,
+                 object exchange_full=None):
+        super().__init__(
+            sid,
+            exchange,
+            symbol=symbol,
+            asset_name=asset_name,
+            start_date=start_date,
+            end_date=end_date,
+            first_traded=first_traded,
+            auto_close_date=auto_close_date,
+        )
+
+        self.exchange_full = exchange_full
+
+    cpdef to_dict(self):
+        """
+        Convert to a python dict.
+        """
+        return {
+            'sid': self.sid,
+            'symbol': self.symbol,
+            'asset_name': self.asset_name,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'first_traded': self.first_traded,
+            'auto_close_date': self.auto_close_date,
+            'exchange': self.exchange,
+            'exchange_full': self.exchange_full,
+        }
+
     def __repr__(self):
         attrs = ('symbol', 'asset_name', 'exchange',
-                 'start_date', 'end_date', 'first_traded', 'auto_close_date')
+                 'start_date', 'end_date', 'first_traded', 'auto_close_date',
+                 'exchange_full')
         tuples = ((attr, repr(getattr(self, attr, None)))
                   for attr in attrs)
         strings = ('%s=%s' % (t[0], t[1]) for t in tuples)
