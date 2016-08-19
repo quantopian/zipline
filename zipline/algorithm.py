@@ -1044,7 +1044,8 @@ class TradingAlgorithm(object):
                           func,
                           date_rule=None,
                           time_rule=None,
-                          half_days=True):
+                          half_days=True,
+                          calendar=None):
         """Schedules a function to be called according to some timed rules.
 
         Parameters
@@ -1082,8 +1083,7 @@ class TradingAlgorithm(object):
         # Check the type of the algorithm's schedule before pulling calendar
         # Note that the ExchangeTradingSchedule is currently the only
         # TradingSchedule class, so this is unlikely to be hit
-        # TODO The calendar should be a required arg for schedule_function
-        cal = self.trading_calendar
+        cal = calendar or self.trading_calendar
 
         self.add_event(
             make_eventrule(date_rule, time_rule, cal, half_days),
