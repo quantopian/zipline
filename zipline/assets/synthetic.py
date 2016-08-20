@@ -51,6 +51,7 @@ def make_rotating_equity_info(num_assets,
                 periods=num_assets,
             ),
             'exchange': 'TEST',
+            'exchange_full': 'TEST FULL',
         },
         index=range(num_assets),
     )
@@ -87,6 +88,7 @@ def make_simple_equity_info(sids,
             'start_date': pd.to_datetime([start_date] * num_assets),
             'end_date': pd.to_datetime([end_date] * num_assets),
             'exchange': 'TEST',
+            'exchange_full': 'TEST FULL',
         },
         index=sids,
         columns=(
@@ -94,6 +96,7 @@ def make_simple_equity_info(sids,
             'end_date',
             'symbol',
             'exchange',
+            'exchange_full',
         ),
     )
 
@@ -137,6 +140,7 @@ def make_jagged_equity_info(num_assets,
                 periods=num_assets,
             ),
             'exchange': 'TEST',
+            'exchange_full': 'TEST FULL',
         },
         index=range(num_assets),
     )
@@ -218,6 +222,7 @@ def make_future_info(first_sid,
             'expiration_date': notice_date_func(month_begin),
             'multiplier': 500,
             'exchange': "TEST",
+            'exchange_full': 'TEST FULL',
         })
     return pd.DataFrame.from_records(contracts, index='sid').convert_objects()
 
