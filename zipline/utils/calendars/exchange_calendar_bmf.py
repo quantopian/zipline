@@ -202,7 +202,7 @@ class BMFExchangeCalendar(TradingCalendar):
 
     @property
     def tz(self):
-        return timezone("America/Sao_Paolo")
+        return timezone("America/Sao_Paulo")
 
     @property
     def open_time(self):

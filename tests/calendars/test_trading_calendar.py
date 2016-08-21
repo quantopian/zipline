@@ -27,6 +27,7 @@ from pandas import read_csv
 from pandas.tslib import Timedelta
 from pandas.util.testing import assert_index_equal
 from pytz import timezone
+from toolz import concat
 
 from zipline.errors import (
     CalendarNameCollision,
@@ -38,7 +39,8 @@ from zipline.utils.calendars import(
     deregister_calendar,
     get_calendar,
 )
-from zipline.utils.calendars.calendar_utils import register_calendar_type
+from zipline.utils.calendars.calendar_utils import register_calendar_type, \
+    _default_calendar_factories
 from zipline.utils.calendars.trading_calendar import days_at_time, \
     TradingCalendar
 
@@ -117,6 +119,13 @@ class CalendarRegistrationTestCase(TestCase):
         second_dummy = get_calendar("DMY")
 
         self.assertNotEqual(first_dummy, second_dummy)
+
+
+class DefaultsTestCase(TestCase):
+    def test_default_calendars(self):
+        for name in concat(_default_calendar_factories):
+            self.assertIsNotNone(get_calendar(name),
+                                 "get_calendar(%r) returned None" % name)
 
 
 class DaysAtTimeTestCase(TestCase):

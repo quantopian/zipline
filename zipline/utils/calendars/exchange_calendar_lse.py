@@ -27,6 +27,7 @@ MayBank = Holiday(
     "Early May Bank Holiday",
     month=5,
     offset=DateOffset(weekday=MO(1)),
+    day=1,
 )
 # Spring bank holiday
 SpringBank = Holiday(
