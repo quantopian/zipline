@@ -1,6 +1,5 @@
 from datetime import time
 from pandas.tseries.holiday import(
-    AbstractHolidayCalendar,
     Holiday,
     Easter,
     Day,
@@ -130,43 +129,6 @@ AnoNovoSabado = Holiday(
     day=30,
     days_of_week=(FRIDAY,),
 )
-
-
-class BMFHolidayCalendar(AbstractHolidayCalendar):
-    """
-    Non-trading days for the BM&F.
-
-    See NYSEExchangeCalendar for full description.
-    """
-    rules = [
-        ConfUniversal,
-        AniversarioSaoPaulo,
-        CarnavalSegunda,
-        CarnavalTerca,
-        SextaPaixao,
-        CorpusChristi,
-        Tiradentes,
-        DiaTrabalho,
-        Constitucionalista,
-        Independencia,
-        Aparecida,
-        Finados,
-        ProclamacaoRepublica,
-        ConscienciaNegra,
-        VesperaNatal,
-        Natal,
-        AnoNovo,
-        AnoNovoSabado,
-    ]
-
-
-class BMFLateOpenCalendar(AbstractHolidayCalendar):
-    """
-    Regular early close calendar for NYSE
-    """
-    rules = [
-        QuartaCinzas,
-    ]
 
 
 class BMFExchangeCalendar(TradingCalendar):
