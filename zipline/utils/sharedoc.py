@@ -11,17 +11,17 @@ PIPELINE_DOWNSAMPLING_FREQUENCY_DOC = dedent(
     frequency : {'year_start', 'quarter_start', 'month_start', 'week_start'}
         A string indicating desired sampling dates:
 
-        'year_start'    -> first trading day of each year
-        'quarter_start' -> first trading day of January, April, July, October
-        'month_start'   -> first trading day of each month
-        'week_start'    -> first trading_day of each week
+        * 'year_start'    -> first trading day of each year
+        * 'quarter_start' -> first trading day of January, April, July, October
+        * 'month_start'   -> first trading day of each month
+        * 'week_start'    -> first trading_day of each week
     """
 )
 
 
-def pad_lines(prefix, s):
-    """Apply a prefix to each line in s."""
-    return '\n'.join(prefix + line for line in s.splitlines())
+def pad_lines_after_first(prefix, s):
+    """Apply a prefix to each line in s after the first."""
+    return ('\n' + prefix).join(s.splitlines())
 
 
 def format_docstring(owner_name, docstring, formatters):
@@ -66,7 +66,10 @@ def format_docstring(owner_name, docstring, formatters):
             )
 
         (leading_whitespace, _) = matches[0]
-        format_params[target] = pad_lines(leading_whitespace, doc_for_target)
+        format_params[target] = pad_lines_after_first(
+            leading_whitespace,
+            doc_for_target,
+        )
 
     return docstring.format(**format_params)
 
