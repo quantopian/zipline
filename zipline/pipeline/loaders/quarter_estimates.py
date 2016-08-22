@@ -1,11 +1,14 @@
 from abc import abstractmethod
 from collections import defaultdict
+from functools import partial
 import numpy as np
+from numpy.ma import asarray
 import pandas as pd
 from six import viewvalues
-from toolz import groupby
+from toolz import groupby, curry
 from zipline.lib.adjusted_array import AdjustedArray
-from zipline.lib.adjustment import Float641DArrayOverwrite
+from zipline.lib.adjustment import (Datetime641DArrayOverwrite,
+                                    Float641DArrayOverwrite)
 
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
@@ -16,6 +19,7 @@ from zipline.pipeline.common import (
 )
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.frame import DataFrameLoader
+from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.pandas_utils import cross_product
 from zipline.pipeline.loaders.utils import last_in_date_group, ffill_across_cols
 
@@ -97,42 +101,49 @@ class QuarterEstimatesLoader(PipelineLoader):
     def load_quarters(self, num_quarters, last, dates):
         pass
 
-    def get_adjustments(self, df, column, mask, assets,
-                        final_releases_per_qtr, dates, raw_events):
+    def get_adjustments(self, result, col_result, last,
+                        column_name,
+                        column, mask,
+                        assets):
         adjustments = defaultdict(list)
-        for idx, sid in enumerate(assets):
-            # Get the releases for a particular sid
-            sid_data = final_releases_per_qtr[final_releases_per_qtr[
-                SID_FIELD_NAME] == sid
+        if column.dtype == datetime64ns_dtype:
+            overwrite = Datetime641DArrayOverwrite
+        else:
+            overwrite = Float641DArrayOverwrite
+        for sid_idx, sid in enumerate(assets):
+            sid_result = result[result.index.get_level_values(
+                SID_FIELD_NAME
+            ) == sid]
+            sid_result = sid_result.reset_index(
+                level='shifted_normalized_quarters'
+            )  # Remove qtrs from index to find shifts
+            # Figure out where we think quarters are changing.
+            qtr_shifts = sid_result[
+                sid_result['shifted_normalized_quarters'] !=
+                sid_result['shifted_normalized_quarters'].shift(1)
             ]
-            # Get the release dates for this sid - these are the quarter
-            # boundaries
-            qtr_boundaries, years, qtrs = sid_data[[
-                EVENT_DATE_FIELD_NAME,
-                FISCAL_YEAR_FIELD_NAME,
-                FISCAL_QUARTER_FIELD_NAME
-            ]].unique()
-            next_qtr_starts = dates.searchsorted(qtr_boundaries, sid='right')
-            for idx, start in enumerate(next_qtr_starts):
-                # Here we need to take the new quarter and, for all dates in
-                # previous quarters, apply adjustments that use this
-                # quarter's values for those previous dates.
-                adjustments[start].extend(Float641DArrayOverwrite(first_row,
-                                                             last_row,
-                                                             idx,
-                                                             idx,
-                                                             value))
+            # Iterate backwards. No adjustment for 1st quarter.
+            for row_indexer in list(reversed(qtr_shifts.index))[:-1]:
+                # We want to write the values for this row's quarter over
+                # everything that comes before this quarter when we are at
+                # the date before this quarter starts.
+                qtr_start_idx = last.index.get_loc(row_indexer[0])
+                quarter = qtr_shifts.loc[row_indexer][
+                    'shifted_normalized_quarters'
+                ]
+                adjustments[qtr_start_idx] = \
+                    [overwrite(0,
+                               qtr_start_idx - 1,  # get index date
+                               sid_idx,
+                               sid_idx,
+                               last[column_name, quarter,
+                                    sid][:qtr_start_idx].values)
+                     ]
+
         return AdjustedArray(
-                df[column.name].values.astype(column.dtype),
+                col_result.values.astype(column.dtype),
                 mask,
-                adjustments_from_deltas(
-                    dates,
-                    sparse_output[TS_FIELD_NAME].values,
-                    column_idx,
-                    column.name,
-                    asset_idx,
-                    sparse_deltas,
-                ),
+                dict(adjustments),
                 column.missing_value,
             )
 
@@ -150,8 +161,6 @@ class QuarterEstimatesLoader(PipelineLoader):
         date_values[SIMULTATION_DATES] = date_values[
             SIMULTATION_DATES
         ].astype('datetime64[ns]')
-        asset_df = pd.DataFrame({SID_FIELD_NAME: assets})
-        dates_sids = cross_product(date_values, asset_df)
         self.estimates['normalized_quarters'] = normalize_quarters(
             self.estimates[FISCAL_YEAR_FIELD_NAME],
             self.estimates[FISCAL_QUARTER_FIELD_NAME],
@@ -166,50 +175,51 @@ class QuarterEstimatesLoader(PipelineLoader):
             last = last_in_date_group(self.estimates, True, dates,
                                       assets,
                                       extra_groupers=[
-                                          'normalized_quarters']).reset_index()
+                                          'normalized_quarters'])
             # Forward fill values for each quarter.
             ffill_across_cols(last, columns)
-            stacked = last.stack(1).stack(1).reset_index()
+            stacked = last.stack(1).stack(1)
 
-            result = self.load_quarters(num_quarters,
-                                        stacked, dates)
+            result = self.load_quarters(num_quarters, stacked)
 
             for c in columns:
                 column_name = name_map[c]
-                pivoted = result.pivot(index=SIMULTATION_DATES,
-                                       columns=SID_FIELD_NAME,
-                                       values=column_name)
-                adjusted_array = self.get_adjustments(pivoted, c, mask, assets)
-                # Pivot to get a DataFrame with dates as the index and
-                # sids as the columns.
-                loader = DataFrameLoader(
-                    c,
-                    result.pivot(index=SIMULTATION_DATES,
-                                 columns=SID_FIELD_NAME,
-                                 values=column_name),
-                    adjustments=adjusted_array
-                )
-                out[c] = loader.load_adjusted_array([c],
-                                                    dates,
-                                                    assets,
-                                                    mask)[c]
+                col_result = result[
+                    column_name
+                ].reset_index(1, drop=True).unstack(1).reindex(dates)
+                adjusted_array = self.get_adjustments(result,
+                                                      col_result,
+                                                      last,
+                                                      column_name,
+                                                      c,
+                                                      mask,
+                                                      assets)
+                out[c] = adjusted_array
         return out
 
 
 class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
 
-    def load_quarters(self, num_quarters, stacked, dates):
+    def load_quarters(self, num_quarters, stacked):
         # Filter for releases that are on or after each simulation date and
         # determine the next quarter by picking out the upcoming release for
         # each date in the index.
-        event_date_idxs = dates.searchsorted(pd.to_datetime(stacked[EVENT_DATE_FIELD_NAME]).values)
-        next_releases = stacked.loc[event_date_idxs >= stacked['level_0']].groupby(['level_0', 'sid']).nth(0)
-
-
-        next_releases['shifted_normalized_quarters'] = next_releases[
-            'normalized_quarters'].convert_objects(convert_numeric=True) + (num_quarters - 1)
-
-        return result
+        stacked = stacked.sort(EVENT_DATE_FIELD_NAME)
+        next_releases = stacked.loc[
+            stacked[EVENT_DATE_FIELD_NAME] >= stacked.index.get_level_values(
+                0
+            )].groupby(level=[0, 2]).nth(0)
+        next_releases[
+            'shifted_normalized_quarters'
+        ] = next_releases.index.get_level_values(
+            'normalized_quarters'
+        ) + (num_quarters - 1)
+        next_releases = next_releases.set_index([
+            next_releases.index.get_level_values(0),  # dates
+            'shifted_normalized_quarters',
+            next_releases.index.get_level_values(2)  # sids
+        ])
+        return stacked.loc[next_releases.index]
 
 
 class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
