@@ -260,7 +260,7 @@ class BcolzMinuteBarMetadata(object):
                 start_session,
                 end_session,
                 minutes_per_day,
-                version,
+                version=version,
             )
 
     def __init__(
@@ -270,7 +270,7 @@ class BcolzMinuteBarMetadata(object):
         start_session,
         end_session,
         minutes_per_day,
-        version,
+        version=FORMAT_VERSION,
     ):
         self.calendar = calendar
         self.start_session = start_session
@@ -458,7 +458,6 @@ class BcolzMinuteBarWriter(object):
             self._start_session,
             self._end_session,
             self._minutes_per_day,
-            BcolzMinuteBarMetadata.FORMAT_VERSION,
         )
         metadata.write(self._rootdir)
 
