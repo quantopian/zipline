@@ -19,16 +19,9 @@ PIPELINE_DOWNSAMPLING_FREQUENCY_DOC = dedent(
 )
 
 
-def _gen_for_pad_lines_after_first(prefix, s):
-    lines = iter(s.splitlines())
-    yield next(lines)
-    for line in lines:
-        yield prefix + line
-
-
 def pad_lines_after_first(prefix, s):
     """Apply a prefix to each line in s after the first."""
-    return '\n'.join(_gen_for_pad_lines_after_first(prefix, s))
+    return ('\n' + prefix).join(s.splitlines())
 
 
 def format_docstring(owner_name, docstring, formatters):
