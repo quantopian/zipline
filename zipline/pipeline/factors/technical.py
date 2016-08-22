@@ -201,7 +201,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
 
     @classmethod
     @expect_types(span=Number)
-    def from_span(cls, inputs, window_length, span):
+    def from_span(cls, inputs, window_length, span, **kwargs):
         """
         Convenience constructor for passing `decay_rate` in terms of `span`.
 
@@ -242,11 +242,12 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=decay_rate,
+            **kwargs
         )
 
     @classmethod
     @expect_types(halflife=Number)
-    def from_halflife(cls, inputs, window_length, halflife):
+    def from_halflife(cls, inputs, window_length, halflife, **kwargs):
         """
         Convenience constructor for passing ``decay_rate`` in terms of half
         life.
@@ -287,10 +288,15 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=decay_rate,
+            **kwargs
         )
 
     @classmethod
-    def from_center_of_mass(cls, inputs, window_length, center_of_mass):
+    def from_center_of_mass(cls,
+                            inputs,
+                            window_length,
+                            center_of_mass,
+                            **kwargs):
         """
         Convenience constructor for passing `decay_rate` in terms of center of
         mass.
@@ -324,6 +330,7 @@ class _ExponentialWeightedFactor(SingleInputMixin, CustomFactor):
             inputs=inputs,
             window_length=window_length,
             decay_rate=(1.0 - (1.0 / (1.0 + center_of_mass))),
+            **kwargs
         )
 
 
