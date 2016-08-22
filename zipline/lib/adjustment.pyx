@@ -364,7 +364,39 @@ cdef class Float64Overwrite(Float64Adjustment):
                 data[row, col] = value
 
 
-cdef class Float641DArrayOverwrite:
+cdef class ArrayAdjustment(Adjustment):
+    """
+    Base class for ArrayAdjustments.
+
+    Subclasses should inherit and provide a `values` attribute and a `mutate`
+    method.
+    """
+    def __init__(self,
+                 int64_t first_row,
+                 int64_t last_row,
+                 int64_t first_col,
+                 int64_t last_col):
+        super(ArrayAdjustment, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+
+    def __repr__(self):
+            return (
+                "%s(first_row=%d, last_row=%d,"
+                " first_col=%d, last_col=%d, values=%s)" % (
+                    type(self).__name__,
+                    self.first_row,
+                    self.last_row,
+                    self.first_col,
+                    self.last_col,
+                    asarray(self.values),
+                )
+            )
+
+cdef class Float641DArrayOverwrite(ArrayAdjustment):
     """
     An adjustment that overwrites subarrays with a value for each subarray.
 
@@ -380,66 +412,101 @@ cdef class Float641DArrayOverwrite:
            [ 15.,  16.,  17.,  18.,  19.],
            [ 20.,  21.,  22.,  23.,  24.]])
     >>> adj = Float641DArrayOverwrite(
-    ...     row_starts=np.array([0, 3]),
-    ...     row_ends=np.array([2, 4]),
-    ...     column_starts=np.array([0, 2]),
-    ...     column_ends=np.array([1, 4]),
-    ...     values=np.array([10., 20.]),
+    ...     row_start=0,
+    ...     row_end=3,
+    ...     column_start=0,
+    ...     column_end=0,
+    ...     values=np.array([1, 2, 3, 4]),
     )
     >>> adj.mutate(arr)
     >>> arr
-    array([[ 10.,  10.,   2.,   3.,   4.],
-           [ 10.,  10.,   7.,   8.,   9.],
-           [ 10.,  10.,  12.,  13.,  14.],
-           [ 15.,  16.,  20.,  20.,  20.],
-           [ 20.,  21.,  20.,  20.,  20.]])
+    array([[  1.,   1.,   2.,   3.,   4.],
+           [  2.,   6.,   7.,   8.,   9.],
+           [ 3.,  11.,  12.,  13.,  14.],
+           [ 4.,  16.,  17.,  18.,  19.],
+           [ 20.,  21.,  22.,  23.,  24.]])
     """
     cdef:
-        readonly int64_t[:] row_starts, row_ends, column_starts, column_ends
         readonly float64_t[:] values
 
     def __init__(self,
-                 int64_t[:] row_starts,
-                 int64_t[:] row_ends,
-                 int64_t[:] column_starts,
-                 int64_t[:] column_ends,
+                 int64_t first_row,
+                 int64_t last_row,
+                 int64_t first_col,
+                 int64_t last_col,
                  float64_t[:] values):
-        assert (len(row_starts) ==
-                len(row_ends) ==
-                len(column_starts) ==
-                len(column_ends))
-        for (row_start, row_end) in zip(row_starts, row_ends):
-            assert row_start <= row_end
-        for (column_start, column_end) in zip(column_starts, column_ends):
-            assert column_start <= column_end
-
-        self.row_starts = row_starts
-        self.row_ends = row_ends
-        self.column_starts = column_starts
-        self.column_ends = column_ends
+        super(Float641DArrayOverwrite, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+        assert (last_row + 1 - first_row) == len(values)
         self.values = values
 
     cpdef mutate(self, float64_t[:, :] data):
         cdef Py_ssize_t fill_range, row, col
-        for fill_range in range(len(self.row_starts)):
-            for row in range(self.row_starts[fill_range],
-                             self.row_ends[fill_range] + 1):
-                for col in range(self.column_starts[fill_range],
-                                 self.column_ends[fill_range] + 1):
-                    data[row, col] = self.values[fill_range]
+        cdef float64_t[:] values = self.values
+        for col in range(self.first_col, self.last_col + 1):
+            for i, row in enumerate(range(self.first_row, self.last_row + 1)):
+                data[row, col] = values[i]
 
-    def __repr__(self):
-            return (
-                "%s(row_starts=%s, row_ends=%s,"
-                " column_starts=%s, column_ends=%s, values=%s)" % (
-                    type(self).__name__,
-                    asarray(self.row_starts),
-                    asarray(self.row_ends),
-                    asarray(self.column_starts),
-                    asarray(self.column_ends),
-                    asarray(self.values),
-                )
-            )
+
+cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
+    """
+    An adjustment that overwrites subarrays with a value for each subarray.
+
+    Example
+    -------
+
+    >>> import numpy as np
+    >>> arr = np.arange(25, dtype=float).reshape(5, 5)
+    >>> arr
+    array([[  0.,   1.,   2.,   3.,   4.],
+           [  5.,   6.,   7.,   8.,   9.],
+           [ 10.,  11.,  12.,  13.,  14.],
+           [ 15.,  16.,  17.,  18.,  19.],
+           [ 20.,  21.,  22.,  23.,  24.]])
+    >>> adj = Datetime641DArrayOverwrite(
+    ...     row_start=0,
+    ...     row_end=3,
+    ...     column_start=0,
+    ...     column_end=0,
+    ...     values=np.array([1, 2, 3, 4]),
+    )
+    >>> adj.mutate(arr)
+    >>> arr
+    array([[  1.,   1.,   2.,   3.,   4.],
+           [  2.,   6.,   7.,   8.,   9.],
+           [ 3.,  11.,  12.,  13.,  14.],
+           [ 4.,  16.,  17.,  18.,  19.],
+           [ 20.,  21.,  22.,  23.,  24.]])
+    """
+    cdef:
+        readonly int64_t[:] values
+
+    def __init__(self,
+                 int64_t first_row,
+                 int64_t last_row,
+                 int64_t first_col,
+                 int64_t last_col,
+                 object values):
+        super(Datetime641DArrayOverwrite, self).__init__(
+            first_row=first_row,
+            last_row=last_row,
+            first_col=first_col,
+            last_col=last_col,
+        )
+        assert (last_row + 1 - first_row) == len(values)
+        self.values = asarray([datetime_to_int(value) for value in values])
+
+    cpdef mutate(self, int64_t[:, :] data):
+        cdef Py_ssize_t row, col
+        cdef int64_t[:] values = self.values
+        for col in range(self.first_col, self.last_col + 1):
+            for i, row in enumerate(range(self.first_row, self.last_row + 1)):
+                data[row, col] = values[i]
+
 
 cdef class Float64Add(Float64Adjustment):
     """
