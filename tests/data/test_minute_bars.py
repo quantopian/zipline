@@ -36,6 +36,7 @@ from pandas import (
 )
 
 from zipline.data.minute_bars import (
+    BcolzMinuteBarMetadata,
     BcolzMinuteBarWriter,
     BcolzMinuteBarReader,
     BcolzMinuteOverlappingData,
@@ -87,6 +88,13 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             US_EQUITIES_MINUTES_PER_DAY,
         )
         self.reader = BcolzMinuteBarReader(self.dest)
+
+    def test_version(self):
+        metadata = self.reader._get_metadata()
+        self.assertEquals(
+            metadata.version,
+            BcolzMinuteBarMetadata.FORMAT_VERSION,
+        )
 
     def test_write_one_ohlcv(self):
         minute = self.market_opens[self.test_calendar_start]

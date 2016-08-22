@@ -223,7 +223,7 @@ class BcolzMinuteBarMetadata(object):
             raw_data = json.load(fp)
 
             try:
-                version = raw_data['minutes_per_day']
+                version = raw_data['version']
             except KeyError:
                 # Version was first written with version 1, assume 0,
                 # if version does not match.
@@ -260,6 +260,7 @@ class BcolzMinuteBarMetadata(object):
                 start_session,
                 end_session,
                 minutes_per_day,
+                version=version,
             )
 
     def __init__(
@@ -269,12 +270,14 @@ class BcolzMinuteBarMetadata(object):
         start_session,
         end_session,
         minutes_per_day,
+        version=FORMAT_VERSION,
     ):
         self.calendar = calendar
         self.start_session = start_session
         self.end_session = end_session
         self.ohlc_ratio = ohlc_ratio
         self.minutes_per_day = minutes_per_day
+        self.version = version
 
     def write(self, rootdir):
         """
@@ -322,7 +325,7 @@ class BcolzMinuteBarMetadata(object):
         market_closes = schedule.market_close
 
         metadata = {
-            'version': self.FORMAT_VERSION,
+            'version': self.version,
             'ohlc_ratio': self.ohlc_ratio,
             'minutes_per_day': self.minutes_per_day,
             'calendar_name': self.calendar.name,
