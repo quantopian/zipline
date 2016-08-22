@@ -1,6 +1,20 @@
+#
+# Copyright 2016 Quantopian, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from datetime import time
 from pandas.tseries.holiday import(
-    AbstractHolidayCalendar,
     Holiday,
     Easter,
     Day,
@@ -132,43 +146,6 @@ AnoNovoSabado = Holiday(
 )
 
 
-class BMFHolidayCalendar(AbstractHolidayCalendar):
-    """
-    Non-trading days for the BM&F.
-
-    See NYSEExchangeCalendar for full description.
-    """
-    rules = [
-        ConfUniversal,
-        AniversarioSaoPaulo,
-        CarnavalSegunda,
-        CarnavalTerca,
-        SextaPaixao,
-        CorpusChristi,
-        Tiradentes,
-        DiaTrabalho,
-        Constitucionalista,
-        Independencia,
-        Aparecida,
-        Finados,
-        ProclamacaoRepublica,
-        ConscienciaNegra,
-        VesperaNatal,
-        Natal,
-        AnoNovo,
-        AnoNovoSabado,
-    ]
-
-
-class BMFLateOpenCalendar(AbstractHolidayCalendar):
-    """
-    Regular early close calendar for NYSE
-    """
-    rules = [
-        QuartaCinzas,
-    ]
-
-
 class BMFExchangeCalendar(TradingCalendar):
     """
     Exchange calendar for BM&F BOVESPA
@@ -202,7 +179,7 @@ class BMFExchangeCalendar(TradingCalendar):
 
     @property
     def tz(self):
-        return timezone("America/Sao_Paolo")
+        return timezone("America/Sao_Paulo")
 
     @property
     def open_time(self):
