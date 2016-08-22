@@ -29,7 +29,13 @@ from pandas.tseries.offsets import CustomBusinessDay
 from zipline.utils.calendars._calendar_helpers import (
     next_divider_idx,
     previous_divider_idx,
-    is_open
+    is_open,
+    minutes_to_session_labels,
+)
+from zipline.utils.input_validation import (
+    attrgetter,
+    coerce,
+    preprocess,
 )
 from zipline.utils.memoize import remember_last, lazyval
 
@@ -659,13 +665,14 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
         return DatetimeIndex(all_minutes).tz_localize("UTC")
 
+    @preprocess(dt=coerce(pd.Timestamp, attrgetter('value')))
     def minute_to_session_label(self, dt, direction="next"):
         """
         Given a minute, get the label of its containing session.
 
         Parameters
         ----------
-        dt : pd.Timestamp
+        dt : pd.Timestamp or nanosecond offset
             The dt for which to get the containing session.
 
         direction: str
@@ -684,17 +691,17 @@ class TradingCalendar(with_metaclass(ABCMeta)):
             The label of the containing session.
         """
 
-        idx = searchsorted(self.market_closes_nanos, dt.value)
+        idx = searchsorted(self.market_closes_nanos, dt)
         current_or_next_session = self.schedule.index[idx]
 
         if direction == "previous":
             if not is_open(self.market_opens_nanos, self.market_closes_nanos,
-                           dt.value):
+                           dt):
                 # if the exchange is closed, use the previous session
                 return self.schedule.index[idx - 1]
         elif direction == "none":
             if not is_open(self.market_opens_nanos, self.market_closes_nanos,
-                           dt.value):
+                           dt):
                 # if the exchange is closed, blow up
                 raise ValueError("The given dt is not an exchange minute!")
         elif direction != "next":
@@ -703,6 +710,30 @@ class TradingCalendar(with_metaclass(ABCMeta)):
                              "{0}".format(direction))
 
         return current_or_next_session
+
+    def minute_index_to_session_labels(self, index):
+        """
+        Given a sorted DatetimeIndex of market minutes, return a
+        DatetimeIndex of the corresponding session labels.
+
+        Parameters
+        ----------
+        index: pd.DatetimeIndex or pd.Series
+            The ordered list of market minutes we want session labels for.
+
+        Returns
+        -------
+        pd.DatetimeIndex (UTC)
+            The list of session labels corresponding to the given minutes.
+        """
+        def minute_to_session_label_nanos(dt_nanos):
+            return self.minute_to_session_label(dt_nanos).value
+
+        return DatetimeIndex(minutes_to_session_labels(
+            index.values.astype(np.int64),
+            minute_to_session_label_nanos,
+            self.market_closes_nanos,
+        ).astype('datetime64[ns]'), tz='UTC')
 
     def _special_dates(self, calendars, ad_hoc_dates, start_date, end_date):
         """
