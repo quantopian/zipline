@@ -46,6 +46,7 @@ from pandas.tslib import iNaT
 from six import (
     iteritems,
     viewkeys,
+    string_types,
 )
 
 from zipline.data.session_bars import SessionBarReader
@@ -856,7 +857,7 @@ class SQLiteAdjustmentWriter(object):
                  overwrite=False):
         if isinstance(conn_or_path, sqlite3.Connection):
             self.conn = conn_or_path
-        elif isinstance(conn_or_path, str):
+        elif isinstance(conn_or_path, string_types):
             if overwrite:
                 try:
                     remove(conn_or_path)
