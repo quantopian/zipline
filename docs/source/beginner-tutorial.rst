@@ -428,7 +428,7 @@ magic.
 
 .. code-block:: python
 
-   %%zipline --start 2000-1-1 --end 2014-1-1 --symbols AAPL
+   %%zipline --start 2000-1-1 --end 2014-1-1
    from zipline.api import symbol, order, record
 
    def initialize(context):
