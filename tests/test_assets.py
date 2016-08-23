@@ -1452,7 +1452,7 @@ class TestAssetDBVersioning(ZiplineTestCase):
         # first downgrade to v3
         downgrade(self.engine, 3)
         metadata = sa.MetaData(conn)
-        metadata.reflect(bind=self.engine)
+        metadata.reflect()
         check_version_info(conn, metadata.tables['version_info'], 3)
         self.assertFalse('exchange_full' in metadata.tables)
 
@@ -1461,9 +1461,9 @@ class TestAssetDBVersioning(ZiplineTestCase):
 
         # Verify that the db version is now 0
         metadata = sa.MetaData(conn)
-        metadata.reflect(bind=self.engine)
+        metadata.reflect()
         version_table = metadata.tables['version_info']
-        check_version_info(self.engine, version_table, 0)
+        check_version_info(conn, version_table, 0)
 
         # Check some of the v1-to-v0 downgrades
         self.assertTrue('futures_contracts' in metadata.tables)
