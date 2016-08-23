@@ -20,6 +20,7 @@ from toolz import curry
 from zipline.errors import WindowLengthNotPositive, WindowLengthTooLong
 from zipline.lib.adjustment import (
     Datetime64Overwrite,
+    Datetime641DArrayOverwrite,
     Float64Multiply,
     Float64Overwrite,
     Float641DArrayOverwrite,
@@ -305,7 +306,11 @@ def _gen_overwrite_adjustment_cases(name,
     )
 
 
-def _gen_overwrite_1d_array_adjustment_case():
+def _gen_overwrite_1d_array_adjustment_case(name,
+                                            make_input,
+                                            make_expected_output,
+                                            dtype,
+                                            missing_value):
     """
     Generate test cases for overwrite adjustments.
 
@@ -314,90 +319,91 @@ def _gen_overwrite_1d_array_adjustment_case():
     the adjustments are expected to modify the arrays.
 
     This is parameterized on `make_input` and `make_expected_output` functions,
-    which take 2-D lists of values and transform them into desired input/output
+    which take 1-D lists of values and transform them into desired input/output
     arrays. We do this so that we can easily test both vanilla numpy ndarrays
     and our own LabelArray class for strings.
     """
-
+    adjustment_type = {
+        float64_dtype: Float641DArrayOverwrite,
+        datetime64ns_dtype: Datetime641DArrayOverwrite,
+    }[dtype]
     adjustments = {}
     buffer_as_of = [None] * 6
-    baseline = as_dtype(float64_dtype, [[2, 2, 2],
-                                        [2, 2, 2],
-                                        [2, 2, 2],
-                                        [2, 2, 2],
-                                        [2, 2, 2],
-                                        [2, 2, 2]])
+    baseline = make_input([[2, 2, 2],
+                           [2, 2, 2],
+                           [2, 2, 2],
+                           [2, 2, 2],
+                           [2, 2, 2],
+                           [2, 2, 2]])
 
-    buffer_as_of[0] = as_dtype(float64_dtype, [[2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2]])
+    buffer_as_of[0] = make_expected_output([[2, 2, 2],
+                                            [2, 2, 2],
+                                            [2, 2, 2],
+                                            [2, 2, 2],
+                                            [2, 2, 2],
+                                            [2, 2, 2]])
 
+    vals1 = [1]
     # Note that row indices are inclusive!
     adjustments[1] = [
-        Float641DArrayOverwrite(array([0]),
-                                array([0]),
-                                array([0]),
-                                array([0]),
-                                as_dtype(float64_dtype, array([1])))
+        adjustment_type(
+            0, 0, 0, 0,
+            array([coerce_to_dtype(dtype, val) for val in vals1])
+        )
     ]
-    buffer_as_of[1] = as_dtype(float64_dtype, [[1, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2]])
+    buffer_as_of[1] = make_input([[1, 2, 2],
+                                  [2, 2, 2],
+                                  [2, 2, 2],
+                                  [2, 2, 2],
+                                  [2, 2, 2],
+                                  [2, 2, 2]])
 
     # No adjustment at index 2.
     buffer_as_of[2] = buffer_as_of[1]
 
+    vals3 = [4, 4, 1]
     adjustments[3] = [
-        Float641DArrayOverwrite(array([0, 2, 1]),
-                                array([1, 2, 2]),
-                                array([0, 0, 1]),
-                                array([0, 0, 1]),
-                                as_dtype(float64_dtype, array([4, 1, 3])))
+        adjustment_type(
+            0, 2, 0, 0,
+            array([coerce_to_dtype(dtype, val) for val in vals3])
+        )
     ]
-    buffer_as_of[3] = as_dtype(float64_dtype, [[4, 2, 2],
-                                               [4, 3, 2],
-                                               [1, 3, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2],
-                                               [2, 2, 2]])
+    buffer_as_of[3] = make_input([[4, 2, 2],
+                                  [4, 2, 2],
+                                  [1, 2, 2],
+                                  [2, 2, 2],
+                                  [2, 2, 2],
+                                  [2, 2, 2]])
 
+    vals4 = [5] * 4
     adjustments[4] = [
-        Float641DArrayOverwrite(array([0]),
-                                array([3]),
-                                array([2]),
-                                array([2]),
-                                as_dtype(float64_dtype, array([5])))
+        adjustment_type(
+            0, 3, 2, 2,
+            array([coerce_to_dtype(dtype, val) for val in vals4]))
     ]
-    buffer_as_of[4] = as_dtype(float64_dtype, [[4, 2, 5],
-                                               [4, 3, 5],
-                                               [1, 3, 5],
-                                               [2, 2, 5],
-                                               [2, 2, 2],
-                                               [2, 2, 2]])
+    buffer_as_of[4] = make_input([[4, 2, 5],
+                                  [4, 2, 5],
+                                  [1, 2, 5],
+                                  [2, 2, 5],
+                                  [2, 2, 2],
+                                  [2, 2, 2]])
 
+    vals5 = range(1, 6)
     adjustments[5] = [
-        Float641DArrayOverwrite(array([0, 2]),
-                                array([4, 2]),
-                                array([1, 2]),
-                                array([1, 2]),
-                                as_dtype(float64_dtype, array([6, 7]))),
+        adjustment_type(
+            0, 4, 1, 1,
+            array([coerce_to_dtype(dtype, val) for val in vals5])),
     ]
-    buffer_as_of[5] = as_dtype(float64_dtype, [[4, 6, 5],
-                                               [4, 6, 5],
-                                               [1, 6, 7],
-                                               [2, 6, 5],
-                                               [2, 6, 2],
-                                               [2, 2, 2]])
+    buffer_as_of[5] = make_input([[4, 1, 5],
+                                  [4, 2, 5],
+                                  [1, 3, 5],
+                                  [2, 4, 5],
+                                  [2, 5, 2],
+                                  [2, 2, 2]])
 
     return _gen_expectations(
         baseline,
-        default_missing_value_for_dtype(float64_dtype),
+        missing_value,
         adjustments,
         buffer_as_of,
         nrows=6,
@@ -542,7 +548,22 @@ class AdjustedArrayTestCase(TestCase):
                     datetime64ns_dtype,
                 ),
             ),
-            _gen_overwrite_1d_array_adjustment_case(),
+            _gen_overwrite_1d_array_adjustment_case(
+                'float',
+                make_input=as_dtype(float64_dtype),
+                make_expected_output=as_dtype(float64_dtype),
+                dtype=float64_dtype,
+                missing_value=default_missing_value_for_dtype(float64_dtype),
+            ),
+            _gen_overwrite_1d_array_adjustment_case(
+                'datetime',
+                make_input=as_dtype(datetime64ns_dtype),
+                make_expected_output=as_dtype(datetime64ns_dtype),
+                dtype=datetime64ns_dtype,
+                missing_value=default_missing_value_for_dtype(
+                    datetime64ns_dtype,
+                ),
+            ),
             # There are six cases here:
             # Using np.bytes/np.unicode/object arrays as inputs.
             # Passing np.bytes/np.unicode/object arrays to LabelArray,
