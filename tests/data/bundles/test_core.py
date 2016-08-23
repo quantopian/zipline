@@ -2,12 +2,17 @@ import os
 
 from nose_parameterized import parameterized
 import pandas as pd
+import sqlalchemy as sa
 from toolz import valmap
 import toolz.curried.operator as op
+from zipline.assets import ASSET_DB_VERSION
 
+from zipline.assets.asset_writer import check_version_info
 from zipline.assets.synthetic import make_simple_equity_info
-from zipline.data.bundles import UnknownBundle, from_bundle_ingest_dirname
-from zipline.data.bundles.core import _make_bundle_core, BadClean
+from zipline.data.bundles import UnknownBundle, from_bundle_ingest_dirname, \
+    ingestions_for_bundle
+from zipline.data.bundles.core import _make_bundle_core, BadClean, \
+    to_bundle_ingest_dirname, asset_db_path
 from zipline.lib.adjustment import Float64Multiply
 from zipline.pipeline.loaders.synthetic import (
     make_bar_data,
@@ -17,7 +22,8 @@ from zipline.testing import (
     subtest,
     str_to_seconds,
 )
-from zipline.testing.fixtures import WithInstanceTmpDir, ZiplineTestCase
+from zipline.testing.fixtures import WithInstanceTmpDir, ZiplineTestCase, \
+    WithDefaultDateBounds
 from zipline.testing.predicates import (
     assert_equal,
     assert_false,
@@ -37,7 +43,13 @@ import zipline.utils.paths as pth
 _1_ns = pd.Timedelta(1, unit='ns')
 
 
-class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
+class BundleCoreTestCase(WithInstanceTmpDir,
+                         WithDefaultDateBounds,
+                         ZiplineTestCase):
+
+    START_DATE = pd.Timestamp('2014-01-06', tz='utc')
+    END_DATE = pd.Timestamp('2014-01-10', tz='utc')
+
     def init_instance_fixtures(self):
         super(BundleCoreTestCase, self).init_instance_fixtures()
         (self.bundles,
@@ -111,18 +123,17 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         assert_true(called[0])
 
     def test_ingest(self):
-        start = pd.Timestamp('2014-01-06', tz='utc')
-        end = pd.Timestamp('2014-01-10', tz='utc')
         calendar = get_calendar('NYSE')
-
-        sessions = calendar.sessions_in_range(start, end)
-        minutes = calendar.minutes_for_sessions_in_range(start, end)
+        sessions = calendar.sessions_in_range(self.START_DATE, self.END_DATE)
+        minutes = calendar.minutes_for_sessions_in_range(
+            self.START_DATE, self.END_DATE,
+        )
 
         sids = tuple(range(3))
         equities = make_simple_equity_info(
             sids,
-            start,
-            end,
+            self.START_DATE,
+            self.END_DATE,
         )
 
         daily_bar_data = make_bar_data(equities, sessions)
@@ -145,8 +156,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
         @self.register(
             'bundle',
             calendar=calendar,
-            start_session=start,
-            end_session=end,
+            start_session=self.START_DATE,
+            end_session=self.END_DATE,
         )
         def bundle_ingest(environ,
                           asset_db_writer,
@@ -193,8 +204,8 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
 
         actual = bundle.equity_daily_bar_reader.load_raw_arrays(
             columns,
-            start,
-            end,
+            self.START_DATE,
+            self.END_DATE,
             sids,
         )
         for actual_column, colname in zip(actual, columns):
@@ -252,6 +263,72 @@ class BundleCoreTestCase(WithInstanceTmpDir, ZiplineTestCase):
             },
             msg='volume',
         )
+
+    def test_ingest_assets_versions(self):
+        versions = (1, 2)
+
+        called = [False]
+
+        @self.register('bundle', create_writers=False)
+        def bundle_ingest_no_create_writers(*args, **kwargs):
+            called[0] = True
+
+        now = pd.Timestamp.utcnow()
+        with self.assertRaisesRegexp(ValueError,
+                                     "ingest .* creates writers .* downgrade"):
+            self.ingest('bundle', self.environ, assets_versions=versions,
+                        timestamp=now - pd.Timedelta(seconds=1))
+        assert_false(called[0])
+        assert_equal(len(ingestions_for_bundle('bundle', self.environ)), 1)
+
+        @self.register('bundle', create_writers=True)
+        def bundle_ingest_create_writers(
+                environ,
+                asset_db_writer,
+                minute_bar_writer,
+                daily_bar_writer,
+                adjustment_writer,
+                calendar,
+                start_session,
+                end_session,
+                cache,
+                show_progress,
+                output_dir):
+            self.assertIsNotNone(asset_db_writer)
+            self.assertIsNotNone(minute_bar_writer)
+            self.assertIsNotNone(daily_bar_writer)
+            self.assertIsNotNone(adjustment_writer)
+
+            equities = make_simple_equity_info(
+                tuple(range(3)),
+                self.START_DATE,
+                self.END_DATE,
+            )
+            asset_db_writer.write(equities=equities)
+            called[0] = True
+
+        # Explicitly use different timestamp; otherwise, test could run so fast
+        # that first ingestion is re-used.
+        self.ingest('bundle', self.environ, assets_versions=versions,
+                    timestamp=now)
+        assert_true(called[0])
+
+        ingestions = ingestions_for_bundle('bundle', self.environ)
+        assert_equal(len(ingestions), 2)
+        for version in sorted(set(versions) | {ASSET_DB_VERSION}):
+            eng = sa.create_engine(
+                'sqlite:///' +
+                asset_db_path(
+                    'bundle',
+                    to_bundle_ingest_dirname(ingestions[0]),  # most recent
+                    self.environ,
+                    version,
+                )
+            )
+            metadata = sa.MetaData()
+            metadata.reflect(eng)
+            version_table = metadata.tables['version_info']
+            check_version_info(eng, version_table, version)
 
     @parameterized.expand([('clean',), ('load',)])
     def test_bundle_doesnt_exist(self, fnname):
