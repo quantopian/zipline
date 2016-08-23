@@ -106,29 +106,18 @@ class QuarterEstimatesLoader(PipelineLoader):
                         column, mask,
                         assets):
         adjustments = defaultdict(list)
-        # TODO: result gives me a timeline of what to return on each date for
-        #  each sid. What I need to do now is to go through this timeline and
-        #  figure out where I'm changing quarters (I can use the 'shifted'
-        # quarters for this because those depend on the 'next' quarter
-        # anyway). Once I figure out where a new quarter is being returned,
-        # I need to get the release date for the previous quarter; then,
-        # for all dates up to the release date of the previous quarter,
-        # I need to put in adjustments for timestamps - i.e., I need to
-        # figure out what information I knew about the new quarter before
-        # that release date and put in adjustments that contain that
-        # information for those timestamps up to the release date. I need to
-        # make sure not to put in adjustments for days on which we had no
-        # information (i.e., NaNs)
         if column.dtype == datetime64ns_dtype:
             overwrite = Datetime641DArrayOverwrite
         else:
             overwrite = Float641DArrayOverwrite
         for sid_idx, sid in enumerate(assets):
-            sid_result = result[result.index.get_level_values(SID_FIELD_NAME)
-                                == sid]
+            sid_result = result[result.index.get_level_values(
+                SID_FIELD_NAME
+            ) == sid]
             sid_result = sid_result.reset_index(
                 level='shifted_normalized_quarters'
             )  # Remove qtrs from index to find shifts
+            # Figure out where we think quarters are changing.
             qtr_shifts = sid_result[
                 sid_result['shifted_normalized_quarters'] !=
                 sid_result['shifted_normalized_quarters'].shift(1)
@@ -137,24 +126,24 @@ class QuarterEstimatesLoader(PipelineLoader):
             for row_indexer in list(reversed(qtr_shifts.index))[:-1]:
                 # We want to write the values for this row's quarter over
                 # everything that comes before this quarter when we are at
-                # the date after the previous quarter ends.
-                last_qtr_end_idx = last.index.get_loc(row_indexer[0] - 1)
+                # the date before this quarter starts.
+                qtr_start_idx = last.index.get_loc(row_indexer[0])
                 quarter = qtr_shifts.loc[row_indexer][
                     'shifted_normalized_quarters'
                 ]
-                adjustments[last_qtr_end_idx] = \
+                adjustments[qtr_start_idx] = \
                     [overwrite(0,
-                               last_qtr_end_idx,  # get index date
+                               qtr_start_idx - 1,  # get index date
                                sid_idx,
                                sid_idx,
                                last[column_name, quarter,
-                                    sid][:last_qtr_end_idx + 1].values)
+                                    sid][:qtr_start_idx].values)
                      ]
 
         return AdjustedArray(
                 col_result.values.astype(column.dtype),
                 mask,
-                adjustments,
+                dict(adjustments),
                 column.missing_value,
             )
 
@@ -205,17 +194,7 @@ class QuarterEstimatesLoader(PipelineLoader):
                                                       c,
                                                       mask,
                                                       assets)
-                # Pivot to get a DataFrame with dates as the index and
-                # sids as the columns.
-                loader = DataFrameLoader(
-                    c,
-                    col_result,
-                    adjustments=adjusted_array
-                )
-                out[c] = loader.load_adjusted_array([c],
-                                                    dates,
-                                                    assets,
-                                                    mask)[c]
+                out[c] = adjusted_array
         return out
 
 
