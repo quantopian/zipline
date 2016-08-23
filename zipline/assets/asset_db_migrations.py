@@ -24,7 +24,7 @@ def downgrade(engine, desired_version):
     """
 
     # Check the version of the db at the engine
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         metadata = sa.MetaData(conn)
         metadata.reflect()
         version_info_table = metadata.tables['version_info']
@@ -100,7 +100,7 @@ def downgrades(src):
         @do(op.setitem(_downgrade_methods, destination))
         @wraps(f)
         def wrapper(op, conn, version_info_table):
-            version_info_table.delete().execute()  # clear the version
+            conn.execute(version_info_table.delete())  # clear the version
             f(op)
             write_version_info(conn, version_info_table, destination)
 

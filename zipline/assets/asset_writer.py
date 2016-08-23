@@ -442,9 +442,9 @@ class AssetDBWriter(object):
         --------
         zipline.assets.asset_finder
         """
-        with self.engine.begin() as txn:
+        with self.engine.begin() as conn:
             # Create SQL tables if they do not exist.
-            self.init_db(txn)
+            self.init_db(conn)
 
             # Get the data to add to SQL.
             data = self._load_data(
@@ -457,25 +457,25 @@ class AssetDBWriter(object):
             self._write_df_to_table(
                 futures_exchanges,
                 data.exchanges,
-                txn,
+                conn,
                 chunk_size,
             )
             self._write_df_to_table(
                 futures_root_symbols,
                 data.root_symbols,
-                txn,
+                conn,
                 chunk_size,
             )
             self._write_assets(
                 'future',
                 data.futures,
-                txn,
+                conn,
                 chunk_size,
             )
             self._write_assets(
                 'equity',
                 data.equities,
-                txn,
+                conn,
                 chunk_size,
                 mapping_data=data.equities_mappings,
             )
