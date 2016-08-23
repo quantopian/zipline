@@ -192,7 +192,14 @@ class EstimateWindowsTestCase(EstimateTestCase):
             window_length = window_len
 
             def compute(self, today, assets, out, *inputs):
-                print()
+                # Assert here that all our estimates in the window input are
+                # for the current quarter.
+                assert (np.unique(inputs) ==
+                        estimates_timeline[
+                            estimates_timeline[EVENT_DATE_FIELD_NAME] >=
+                            today
+                        ].min()[FISCAL_QUARTER_FIELD_NAME]).all()
+
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
