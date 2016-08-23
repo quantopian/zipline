@@ -675,7 +675,7 @@ class WithEquityDailyBarData(WithTradingEnvironment):
         minute_data = dict(cls.make_equity_minute_bar_data())
         for asset in assets:
             yield asset.sid, minute_to_session(minute_data[asset.sid],
-                                               cls.trading_calendar)
+                                               cls.trading_calendars[Equity])
 
     @classmethod
     def make_equity_daily_bar_data(cls):
@@ -692,25 +692,26 @@ class WithEquityDailyBarData(WithTradingEnvironment):
     @classmethod
     def init_class_fixtures(cls):
         super(WithEquityDailyBarData, cls).init_class_fixtures()
+        trading_calendar = cls.trading_calendars[Equity]
         if cls.EQUITY_DAILY_BAR_USE_FULL_CALENDAR:
-            days = cls.trading_calendar.all_sessions
+            days = trading_calendar.all_sessions
         else:
-            if cls.trading_calendar.is_session(
+            if trading_calendar.is_session(
                     cls.EQUITY_DAILY_BAR_START_DATE
             ):
                 first_session = cls.EQUITY_DAILY_BAR_START_DATE
             else:
-                first_session = cls.trading_calendar.minute_to_session_label(
+                first_session = trading_calendar.minute_to_session_label(
                     pd.Timestamp(cls.EQUITY_DAILY_BAR_START_DATE)
                 )
 
             if cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS > 0:
-                first_session = cls.trading_calendar.sessions_window(
+                first_session = trading_calendar.sessions_window(
                     first_session,
                     -1 * cls.EQUITY_DAILY_BAR_LOOKBACK_DAYS
                 )[0]
 
-            days = cls.trading_calendar.sessions_in_range(
+            days = trading_calendar.sessions_in_range(
                 first_session,
                 cls.EQUITY_DAILY_BAR_END_DATE,
             )
@@ -784,8 +785,9 @@ class WithBcolzEquityDailyBarReader(WithEquityDailyBarData, WithTmpDir):
         cls.bcolz_daily_bar_path = p = cls.make_bcolz_daily_bar_rootdir_path()
         days = cls.equity_daily_bar_days
 
+        trading_calendar = cls.trading_calendars[Equity]
         cls.bcolz_daily_bar_ctable = t = getattr(
-            BcolzDailyBarWriter(p, cls.trading_calendar, days[0], days[-1]),
+            BcolzDailyBarWriter(p, trading_calendar, days[0], days[-1]),
             cls._write_method_name,
         )(cls.make_equity_daily_bar_data())
 
@@ -996,7 +998,7 @@ class WithBcolzEquityMinuteBarReader(WithEquityMinuteBarData, WithTmpDir):
 
         writer = BcolzMinuteBarWriter(
             p,
-            cls.trading_calendar,
+            cls.trading_calendars[Equity],
             days[0],
             days[-1],
             US_EQUITIES_MINUTES_PER_DAY
