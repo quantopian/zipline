@@ -1,0 +1,33 @@
+package:
+  name: empyrical
+  version: "0.1.9"
+
+source:
+  fn: empyrical-0.1.9.tar.gz
+  url: https://pypi.python.org/packages/15/6b/de1d277d4342d2cecc8134f4935248853f32299cdd9b01728b0ec420c350/empyrical-0.1.9.tar.gz
+  md5: 2c8b928cae192fc9cb8b7104608eec56
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - numpy x.x
+    - pandas >=0.16.1
+    - scipy >=0.15.1
+    - bottleneck >=1.0.0
+
+  run:
+    - python
+    - numpy x.x
+    - pandas >=0.16.1
+    - scipy >=0.15.1
+    - bottleneck >=1.0.0
+
+about:
+  home: https://github.com/quantopian/empyrical
+  license: Apache Software License
+  summary: 'empyrical is a Python library with performance and risk statistics\ncommonly used in quantitative finance'
+
+# See
+# http://docs.continuum.io/conda/build.html for
+# more information about meta.yaml

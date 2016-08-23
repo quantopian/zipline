@@ -36,6 +36,10 @@ Enhancements
   produced a True on N or more days in the previous ``window_length``
   days (:issue:`1367`).
 
+- Use external library empyrical for risk calculations. Empyrical unifies risk
+  metric calculations between pyfolio and zipline. Empyrical adds custom
+  annualization options for returns of custom frequencies. (:issue:`855`)
+
 Bug Fixes
 ~~~~~~~~~
 
@@ -43,6 +47,23 @@ Bug Fixes
   factor to treat missing close or volume values as 0. Previously, NaNs were
   simply discarded before averaging, giving the remaining values too much
   weight (:issue:`1309`).
+
+- Remove risk-free rate from sharpe ratio calculation. The ratio is now the
+  average of risk adjusted returns over violatility of adjusted
+  returns. (:issue:`853`)
+
+- Sortino ratio will return calculation instead of np.nan when required returns
+  are equal to zero. The ratio now returns the average of risk adjusted returns
+  over downside risk. Fixed mislabeled API by converting `mar` to
+  `downside_risk`. (:issue:`747`)
+
+- Downside risk now returns the square root of the mean of downside
+  difference squares. (:issue:`747`)
+
+- Information ratio updated to return mean of risk adjusted returns over
+  standard deviation of risk adjusted returns. (:issue:`1322`)
+
+- Alpha and sharpe ratio are now annualized. (:issue:`1322`)
 
 Documentation
 ~~~~~~~~~~~~~
