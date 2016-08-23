@@ -187,7 +187,7 @@ from zipline.utils.input_validation import (
     ensure_timezone,
     optionally,
 )
-from zipline.utils.numpy_utils import bool_dtype, categorical_dtype
+from zipline.utils.numpy_utils import bool_dtype
 from zipline.utils.pandas_utils import sort_values
 from zipline.utils.pool import SequentialPool
 from zipline.utils.preprocess import preprocess

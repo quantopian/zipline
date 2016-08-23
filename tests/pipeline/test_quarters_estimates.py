@@ -18,8 +18,8 @@ from zipline.pipeline.loaders.blaze.estimates import (
 )
 from zipline.pipeline.loaders.quarter_estimates import (
     NextQuartersEstimatesLoader,
-    PreviousQuartersEstimatesLoader
-)
+    PreviousQuartersEstimatesLoader,
+    split_normalized_quarters, normalize_quarters)
 from zipline.testing import ZiplineTestCase
 from zipline.testing.fixtures import WithAssetFinder, WithTradingSessions
 from zipline.testing.predicates import assert_equal
@@ -314,26 +314,13 @@ class QuarterShiftTestCase(ZiplineTestCase):
     This tests, in isolation, quarter calculation logic for shifting quarters
     backwards/forwards from a starting point.
     """
-    def test_calc_forward_shift(self):
+    def test_quarter_normalization(self):
         input_yrs = pd.Series([0] * 4)
         input_qtrs = pd.Series(range(1, 5))
-        expected = pd.DataFrame(([yr, qtr] for yr in range(0, 4) for qtr
-                                 in range(1, 5)))
-        for i in range(0, 8):
-            years, quarters = shift_quarters(i, input_yrs, input_qtrs)
-            # Can't use assert_series_equal here with check_names=False
-            # because that still fails due to name differences.
-            assert years.equals(expected[i:i+4].reset_index(drop=True)[0])
-            assert quarters.equals(expected[i:i+4].reset_index(drop=True)[1])
-
-    def test_calc_backward_shift(self):
-        input_yrs = pd.Series([0] * 4)
-        input_qtrs = pd.Series(range(4, 0, -1))
-        expected = pd.DataFrame(([yr, qtr] for yr in range(0, -4, -1) for qtr
-                                 in range(4, 0, -1)))
-        for i in range(0, 8, 1):
-            years, quarters = shift_quarters(-i, input_yrs, input_qtrs)
-            # Can't use assert_series_equal here with check_names=False
-            # because that still fails due to name differences.
-            assert years.equals(expected[i:i+4].reset_index(drop=True)[0])
-            assert quarters.equals(expected[i:i+4].reset_index(drop=True)[1])
+        result_years, result_quarters = split_normalized_quarters(
+            normalize_quarters(input_yrs, input_qtrs)
+        )
+        # Can't use assert_series_equal here with check_names=False
+        # because that still fails due to name differences.
+        assert input_yrs.equals(result_years)
+        assert input_qtrs.equals(result_quarters)

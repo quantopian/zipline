@@ -278,6 +278,35 @@ def check_data_query_args(data_query_time, data_query_tz):
 
 def last_in_date_group(df, reindex, dates, assets, have_sids=True,
                        extra_groupers=[]):
+    """
+    Determine the last piece of information known on each date in the date
+    index for each group.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the data to be grouped.
+    reindex : bool
+        Whether or not the DataFrame should be reindexed against the date
+        index. This will add back any dates to the index that were grouped
+        away.
+    dates : pd.DatetimeIndex
+        The dates to use for grouping and reindexing.
+    assets : pd.Int64Index
+        The assets that should be included in the column multiindex.
+    have_sids : bool
+        Whether or not the DataFrame has sids. If it does, they will be used
+        in the groupby.
+    extra_groupers : list of str
+        Any extra field names that should be included in the groupby.
+
+    Returns
+    -------
+    last_in_group : pd.DataFrame
+        A DataFrame with dates as the index and fields used in the groupby as
+        levels of a multiindex of columns.
+
+    """
     idx = dates[dates.searchsorted(
         df[TS_FIELD_NAME].values.astype('datetime64[D]')
     )]
@@ -311,6 +340,18 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
 
 
 def ffill_across_cols(df, columns):
+    """
+    Forward fill values in a DataFrame with special logic to handle cases
+    that pd.DataFrame.ffill cannot and cast columns to appropriate types.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame to do forward-filling on.
+    columns : list of BoundColumn
+        The BoundColumns that correspond to columns in the DataFrame to which
+        special filling and/or casting logic should be applied.
+    """
     df.ffill(inplace=True)
 
     # Fill in missing values specified by each column. This is made

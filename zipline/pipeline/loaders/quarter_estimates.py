@@ -1,11 +1,8 @@
 from abc import abstractmethod
 from collections import defaultdict
-from functools import partial
-import numpy as np
-from numpy.ma import asarray
 import pandas as pd
 from six import viewvalues
-from toolz import groupby, curry
+from toolz import groupby
 from zipline.lib.adjusted_array import AdjustedArray
 from zipline.lib.adjustment import (Datetime641DArrayOverwrite,
                                     Float641DArrayOverwrite)
@@ -18,10 +15,15 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
-from zipline.pipeline.loaders.frame import DataFrameLoader
 from zipline.utils.numpy_utils import datetime64ns_dtype
-from zipline.utils.pandas_utils import cross_product
-from zipline.pipeline.loaders.utils import last_in_date_group, ffill_across_cols
+from zipline.pipeline.loaders.utils import (
+    ffill_across_cols,
+    last_in_date_group
+)
+
+NORMALIZED_QUARTERS = 'normalized_quarters'
+
+SHIFTED_NORMALIZED_QTRS = 'shifted_normalized_quarters'
 
 NEXT_FISCAL_QUARTER = 'next_fiscal_quarter'
 NEXT_FISCAL_YEAR = 'next_fiscal_year'
@@ -114,31 +116,28 @@ class QuarterEstimatesLoader(PipelineLoader):
             sid_result = result[result.index.get_level_values(
                 SID_FIELD_NAME
             ) == sid]
-            sid_result = sid_result.reset_index(
-                level='shifted_normalized_quarters'
-            )  # Remove qtrs from index to find shifts
-            # Figure out where we think quarters are changing.
+            # Determine where we think quarters are changing for this sid.
             qtr_shifts = sid_result[
-                sid_result['shifted_normalized_quarters'] !=
-                sid_result['shifted_normalized_quarters'].shift(1)
+                sid_result[SHIFTED_NORMALIZED_QTRS] !=
+                sid_result[SHIFTED_NORMALIZED_QTRS].shift(1)
             ]
-            # Iterate backwards. No adjustment for 1st quarter.
+            # Iterate backwards making adjustments. No adjustment for 1st
+            # quarter.
             for row_indexer in list(reversed(qtr_shifts.index))[:-1]:
-                # We want to write the values for this row's quarter over
+                # We want to write estimates for this row's quarter over
                 # everything that comes before this quarter when we are at
-                # the date before this quarter starts.
+                # the date when this quarter starts.
                 qtr_start_idx = last.index.get_loc(row_indexer[0])
-                quarter = qtr_shifts.loc[row_indexer][
-                    'shifted_normalized_quarters'
-                ]
+                quarter = qtr_shifts.loc[row_indexer][SHIFTED_NORMALIZED_QTRS]
                 adjustments[qtr_start_idx] = \
-                    [overwrite(0,
-                               qtr_start_idx - 1,  # get index date
-                               sid_idx,
-                               sid_idx,
-                               last[column_name, quarter,
-                                    sid][:qtr_start_idx].values)
-                     ]
+                    [overwrite(
+                        0,
+                        qtr_start_idx - 1,  # overwrite thru last qtr
+                        sid_idx,
+                        sid_idx,
+                        last[column_name,
+                             quarter,
+                             sid][:qtr_start_idx].values)]
 
         return AdjustedArray(
                 col_result.values.astype(column.dtype),
@@ -152,44 +151,55 @@ class QuarterEstimatesLoader(PipelineLoader):
         # attribute, given that they're created dynamically?
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
         groups_columns = dict(groups)
-        if (pd.Series(groups_columns) < 0).any():
+        if (pd.Series(groups_columns.keys()) < 0).any():
             raise ValueError("Must pass a number of quarters >= 0")
         out = {}
-        date_values = pd.DataFrame({SIMULTATION_DATES: dates})
-        # dates column must be of type datetime64[ns] in order for subsequent
-        # comparisons to work correctly.
-        date_values[SIMULTATION_DATES] = date_values[
-            SIMULTATION_DATES
-        ].astype('datetime64[ns]')
-        self.estimates['normalized_quarters'] = normalize_quarters(
+        self.estimates[NORMALIZED_QUARTERS] = normalize_quarters(
             self.estimates[FISCAL_YEAR_FIELD_NAME],
             self.estimates[FISCAL_QUARTER_FIELD_NAME],
         ).astype(float)
         for num_quarters, columns in groups_columns.iteritems():
-            name_map = {c:
-                        self.base_column_name_map[
+            # The column's dataset is itself dynamic and the mapping we
+            # actually want is to its dataset's parent's column name.
+            name_map = {c: self.base_column_name_map[
                             getattr(c.dataset.__base__, c.name)
                         ] for c in columns}
             # Determine the last piece of information we know for each column
-            # on each date in the index.
-            last = last_in_date_group(self.estimates, True, dates,
-                                      assets,
-                                      extra_groupers=[
-                                          'normalized_quarters'])
+            # on each date in the index for each sid and quarter.
+            last_per_qtr = last_in_date_group(
+                self.estimates, True, dates, assets,
+                extra_groupers=[NORMALIZED_QUARTERS]
+            )
+
             # Forward fill values for each quarter.
-            ffill_across_cols(last, columns)
-            stacked = last.stack(1).stack(1)
-
-            result = self.load_quarters(num_quarters, stacked)
-
+            ffill_across_cols(last_per_qtr, columns)
+            # Stack quarter and sid into the index
+            stacked_last_per_qtr = last_per_qtr.stack(
+                NORMALIZED_QUARTERS
+            ).stack(SID_FIELD_NAME)
+            # Set date index name for ease of reference
+            stacked_last_per_qtr.index.set_names(SIMULTATION_DATES, 0, True)
+            # Load data for the requested quarter.
+            requested_qtr_data = self.load_quarters(num_quarters,
+                                                    stacked_last_per_qtr)
+            # We no longer need this in the index, but we do need it as a
+            # column for adjustments.
+            requested_qtr_data = requested_qtr_data.reset_index(
+                SHIFTED_NORMALIZED_QTRS
+            )
+            (requested_qtr_data[FISCAL_YEAR_FIELD_NAME],
+             requested_qtr_data[FISCAL_QUARTER_FIELD_NAME]) = \
+                split_normalized_quarters(
+                    requested_qtr_data[SHIFTED_NORMALIZED_QTRS]
+                )
             for c in columns:
                 column_name = name_map[c]
-                col_result = result[
+                col_result = requested_qtr_data[
                     column_name
-                ].reset_index(1, drop=True).unstack(1).reindex(dates)
-                adjusted_array = self.get_adjustments(result,
+                ].unstack(SID_FIELD_NAME).reindex(dates)
+                adjusted_array = self.get_adjustments(requested_qtr_data,
                                                       col_result,
-                                                      last,
+                                                      last_per_qtr,
                                                       column_name,
                                                       c,
                                                       mask,
@@ -200,26 +210,28 @@ class QuarterEstimatesLoader(PipelineLoader):
 
 class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
 
-    def load_quarters(self, num_quarters, stacked):
+    def load_quarters(self, num_quarters, stacked_last_per_qtr):
         # Filter for releases that are on or after each simulation date and
         # determine the next quarter by picking out the upcoming release for
         # each date in the index.
-        stacked = stacked.sort(EVENT_DATE_FIELD_NAME)
-        next_releases = stacked.loc[
-            stacked[EVENT_DATE_FIELD_NAME] >= stacked.index.get_level_values(
-                0
-            )].groupby(level=[0, 2]).nth(0)
-        next_releases[
-            'shifted_normalized_quarters'
-        ] = next_releases.index.get_level_values(
-            'normalized_quarters'
+        stacked_last_per_qtr = stacked_last_per_qtr.sort(
+            EVENT_DATE_FIELD_NAME
+        )
+        next_releases_per_date = stacked_last_per_qtr.loc[
+            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] >=
+            stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
+        ].groupby(level=[SIMULTATION_DATES, SID_FIELD_NAME]).nth(0)
+        next_releases_per_date[
+            SHIFTED_NORMALIZED_QTRS
+        ] = next_releases_per_date.index.get_level_values(
+            NORMALIZED_QUARTERS
         ) + (num_quarters - 1)
-        next_releases = next_releases.set_index([
-            next_releases.index.get_level_values(0),  # dates
-            'shifted_normalized_quarters',
-            next_releases.index.get_level_values(2)  # sids
+        next_releases_per_date = next_releases_per_date.set_index([
+            next_releases_per_date.index.get_level_values(SIMULTATION_DATES),
+            SHIFTED_NORMALIZED_QTRS,
+            next_releases_per_date.index.get_level_values(SID_FIELD_NAME)
         ])
-        return stacked.loc[next_releases.index]
+        return stacked_last_per_qtr.loc[next_releases_per_date.index]
 
 
 class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
@@ -229,33 +241,26 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
         super(PreviousQuartersEstimatesLoader, self).__init__(estimates,
                                                               columns)
 
-    def load_quarters(self, num_quarters, dates_sids, final_releases_per_qtr):
-        # Filter for releases that are on or before each simulation date.
-        eligible_previous_releases = final_releases_per_qtr[
-            final_releases_per_qtr[EVENT_DATE_FIELD_NAME] <=
-            final_releases_per_qtr[SIMULTATION_DATES]
-        ]
-        # For each sid, get the latest release.
-        eligible_previous_releases.sort(EVENT_DATE_FIELD_NAME)
-        previous_releases = eligible_previous_releases.groupby(
-            [SIMULTATION_DATES, SID_FIELD_NAME]
-        ).nth(-1).reset_index()  # We use nth here to avoid forward filling
-        # NaNs, which `last()` will do.
-        previous_releases = previous_releases.rename(columns={
-            FISCAL_YEAR_FIELD_NAME: PREVIOUS_FISCAL_YEAR,
-            FISCAL_QUARTER_FIELD_NAME: PREVIOUS_FISCAL_QUARTER
-        })
-        # The previous fiscal quarter is already our starting point,
-        # so we should offset `num_quarters` by 1.
-        (previous_releases[FISCAL_YEAR_FIELD_NAME],
-         previous_releases[FISCAL_QUARTER_FIELD_NAME]) = shift_quarters(
-            -(num_quarters - 1),
-            previous_releases[PREVIOUS_FISCAL_YEAR],
-            previous_releases[PREVIOUS_FISCAL_QUARTER],
-        )
-        # Do a left merge to get values for each date.
-        result = dates_sids.merge(previous_releases,
-                                  on=([SIMULTATION_DATES,
-                                       SID_FIELD_NAME]),
-                                  how='left')
-        return result
+    def load_quarters(self, num_quarters, stacked_last_per_qtr):
+        # Filter for releases that are on or before each simulation date and
+        # determine the previous quarter by picking out the upcoming release
+        # for each date in the index.
+        stacked_last_per_qtr = stacked_last_per_qtr.sort(EVENT_DATE_FIELD_NAME)
+        previous_releases_per_date = stacked_last_per_qtr.loc[
+            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
+            stacked_last_per_qtr.index.get_level_values(
+                SIMULTATION_DATES
+            )].groupby(level=[SIMULTATION_DATES, SID_FIELD_NAME]).nth(-1)
+        previous_releases_per_date[
+            SHIFTED_NORMALIZED_QTRS
+        ] = previous_releases_per_date.index.get_level_values(
+            NORMALIZED_QUARTERS
+        ) - (num_quarters - 1)
+        previous_releases_per_date = previous_releases_per_date.set_index([
+            previous_releases_per_date.index.get_level_values(
+                SIMULTATION_DATES
+            ),
+            SHIFTED_NORMALIZED_QTRS,
+            previous_releases_per_date.index.get_level_values(SID_FIELD_NAME)
+        ])
+        return stacked_last_per_qtr.loc[previous_releases_per_date.index]
