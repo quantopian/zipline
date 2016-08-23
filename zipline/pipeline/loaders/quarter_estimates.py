@@ -157,8 +157,8 @@ class QuarterEstimatesLoader(PipelineLoader):
         self.estimates[NORMALIZED_QUARTERS] = normalize_quarters(
             self.estimates[FISCAL_YEAR_FIELD_NAME],
             self.estimates[FISCAL_QUARTER_FIELD_NAME],
-        ).astype(float)
-        for num_quarters, columns in groups_columns.iteritems():
+        )
+        for num_quarters, columns in groups_columns.items():
             # The column's dataset is itself dynamic and the mapping we
             # actually want is to its dataset's parent's column name.
             name_map = {c: self.base_column_name_map[
@@ -174,37 +174,37 @@ class QuarterEstimatesLoader(PipelineLoader):
             # Forward fill values for each quarter.
             ffill_across_cols(last_per_qtr, columns)
             # Stack quarter and sid into the index
-            stacked_last_per_qtr = last_per_qtr.stack(
-                NORMALIZED_QUARTERS
-            ).stack(SID_FIELD_NAME)
+            stacked_last_per_qtr = last_per_qtr.stack([NORMALIZED_QUARTERS,
+                                                       SID_FIELD_NAME])
             # Set date index name for ease of reference
             stacked_last_per_qtr.index.set_names(SIMULTATION_DATES, 0, True)
             # Load data for the requested quarter.
             requested_qtr_data = self.load_quarters(num_quarters,
                                                     stacked_last_per_qtr)
-            # We no longer need this in the index, but we do need it as a
-            # column for adjustments.
-            requested_qtr_data = requested_qtr_data.reset_index(
-                SHIFTED_NORMALIZED_QTRS
-            )
-            (requested_qtr_data[FISCAL_YEAR_FIELD_NAME],
-             requested_qtr_data[FISCAL_QUARTER_FIELD_NAME]) = \
-                split_normalized_quarters(
-                    requested_qtr_data[SHIFTED_NORMALIZED_QTRS]
+            if not requested_qtr_data.empty:
+                # We no longer need this in the index, but we do need it as a
+                # column for adjustments.
+                requested_qtr_data = requested_qtr_data.reset_index(
+                    SHIFTED_NORMALIZED_QTRS
                 )
-            for c in columns:
-                column_name = name_map[c]
-                col_result = requested_qtr_data[
-                    column_name
-                ].unstack(SID_FIELD_NAME).reindex(dates)
-                adjusted_array = self.get_adjustments(requested_qtr_data,
-                                                      col_result,
-                                                      last_per_qtr,
-                                                      column_name,
-                                                      c,
-                                                      mask,
-                                                      assets)
-                out[c] = adjusted_array
+                (requested_qtr_data[FISCAL_YEAR_FIELD_NAME],
+                 requested_qtr_data[FISCAL_QUARTER_FIELD_NAME]) = \
+                    split_normalized_quarters(
+                        requested_qtr_data[SHIFTED_NORMALIZED_QTRS]
+                    )
+                for c in columns:
+                    column_name = name_map[c]
+                    col_result = requested_qtr_data[
+                        column_name
+                    ].unstack(SID_FIELD_NAME).reindex(dates)
+                    adjusted_array = self.get_adjustments(requested_qtr_data,
+                                                          col_result,
+                                                          last_per_qtr,
+                                                          column_name,
+                                                          c,
+                                                          mask,
+                                                          assets)
+                    out[c] = adjusted_array
         return out
 
 

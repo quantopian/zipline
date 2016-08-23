@@ -371,18 +371,6 @@ cdef class ArrayAdjustment(Adjustment):
     Subclasses should inherit and provide a `values` attribute and a `mutate`
     method.
     """
-    def __init__(self,
-                 int64_t first_row,
-                 int64_t last_row,
-                 int64_t first_col,
-                 int64_t last_col):
-        super(ArrayAdjustment, self).__init__(
-            first_row=first_row,
-            last_row=last_row,
-            first_col=first_col,
-            last_col=last_col,
-        )
-
     def __repr__(self):
             return (
                 "%s(first_row=%d, last_row=%d,"
@@ -441,7 +429,10 @@ cdef class Float641DArrayOverwrite(ArrayAdjustment):
             first_col=first_col,
             last_col=last_col,
         )
-        assert (last_row + 1 - first_row) == len(values)
+        if last_row + 1 - first_row != len(values):
+            raise ValueError("Mismatch: got %d values for rows starting at
+            index %d and ending at index %d." % (len(values), first_row,
+            last_row)
         self.values = values
 
     cpdef mutate(self, float64_t[:, :] data):
@@ -497,7 +488,10 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
             first_col=first_col,
             last_col=last_col,
         )
-        assert (last_row + 1 - first_row) == len(values)
+        if last_row + 1 - first_row != len(values):
+            raise ValueError("Mismatch: got %d values for rows starting at
+            index %d and ending at index %d." % (len(values), first_row,
+            last_row)
         self.values = asarray([datetime_to_int(value) for value in values])
 
     cpdef mutate(self, int64_t[:, :] data):

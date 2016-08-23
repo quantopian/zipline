@@ -1,9 +1,10 @@
 import blaze as bz
 import itertools
+from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
 
-from zipline.pipeline import SimplePipelineEngine, Pipeline
+from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
     FISCAL_QUARTER_FIELD_NAME,
@@ -31,7 +32,6 @@ class Estimates(DataSet):
     fiscal_quarter = Column(dtype=float64_dtype)
     fiscal_year = Column(dtype=float64_dtype)
     estimate = Column(dtype=float64_dtype)
-    value = Column(dtype=float64_dtype)
 
 
 def QuartersEstimates(num_qtr):
@@ -39,6 +39,32 @@ def QuartersEstimates(num_qtr):
         num_quarters = num_qtr
         name = Estimates
     return QtrEstimates
+
+
+# 0Q1: 2015-01-05.Q1.e1.2015-01-06, 2015-01-10.Q1.e1.2015-01-11,
+# 0Q2: 2015-01-15.Q2.e1.2015-01-16, 2015-01-20.Q2.e1.2015-01-21,
+# 0Q3: 2015-01-25.Q3.e1.2015-01-26, 2015-01-30.Q3.e1.2015-01-31,
+# 0Q4: 2015-02-05.Q4.e1.2015-02-06, 2015-02-10.Q4.e1.2015-02-11,
+estimates_timeline = pd.DataFrame({
+    TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),  #Q1
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),  #Q2
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),  #Q3
+                    pd.Timestamp('2015-01-22'),
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),  #Q3
+                    pd.Timestamp('2015-01-22'), pd.Timestamp('2015-02-02')], #Q4
+    EVENT_DATE_FIELD_NAME:
+        [pd.Timestamp('2015-01-10'), pd.Timestamp('2015-01-10'),
+         pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20'),
+         pd.Timestamp('2015-01-30'), pd.Timestamp('2015-01-30'),
+         pd.Timestamp('2015-01-30'),
+         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10'),
+         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10')],
+    'estimate': [1.]*2 + [2.] * 2 + [3.] * 3 + [4.] * 4,
+    FISCAL_QUARTER_FIELD_NAME: [1]*2 + [2] * 2 + [3] * 3 + [4] * 4,
+    FISCAL_YEAR_FIELD_NAME: [2015]*11,
+    SID_FIELD_NAME: [0]*11
+})
+
 
 # Final release dates never change. The quarters have very tight date ranges
 # in order to reduce the number of dates we need to iterate through when
@@ -48,7 +74,6 @@ releases = pd.DataFrame({
     EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-15'),
                             pd.Timestamp('2015-01-31')],
     'estimate': [0.5, 0.8],
-    'value': [0.6, 0.9],
     FISCAL_QUARTER_FIELD_NAME: [1.0, 2.0],
     FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0]
 })
@@ -70,7 +95,6 @@ q2_release_dates = [pd.Timestamp('2015-01-30'),  # One day early
 estimates = pd.DataFrame({
     EVENT_DATE_FIELD_NAME: q1_release_dates + q2_release_dates,
     'estimate': [.1, .2, .3, .4],
-    'value': [np.NaN, np.NaN, np.NaN, np.NaN],
     FISCAL_QUARTER_FIELD_NAME: [1.0, 1.0, 2.0, 2.0],
     FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0, 2015.0, 2015.0]
 })
@@ -110,14 +134,12 @@ class EstimateTestCase(WithAssetFinder,
 
     @classmethod
     def init_class_fixtures(cls):
-        cls.events = gen_estimates()
         cls.sids = cls.events['sid'].unique()
         cls.columns = {
             Estimates.estimate: 'estimate',
             Estimates.event_date: EVENT_DATE_FIELD_NAME,
             Estimates.fiscal_quarter: FISCAL_QUARTER_FIELD_NAME,
             Estimates.fiscal_year: FISCAL_YEAR_FIELD_NAME,
-            Estimates.value: 'value',
         }
         cls.loader = cls.make_loader(
             events=cls.events,
@@ -147,10 +169,50 @@ class EstimateTestCase(WithAssetFinder,
             )
 
 
-class NextEstimateTestCase(EstimateTestCase):
+class EstimateWindowsTestCase(EstimateTestCase):
+    events = estimates_timeline
+    START_DATE = pd.Timestamp('2014-12-31')
+    END_DATE = pd.Timestamp('2015-02-15')
+
     @classmethod
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
+
+    @parameterized.expand([[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
+                           [7, pd.Timestamp('2015-01-12').tz_localize('utc')],
+                           [12, pd.Timestamp('2015-01-20').tz_localize('utc')],
+                           [20, pd.Timestamp('2015-01-30').tz_localize('utc')],
+                           [27, pd.Timestamp('2015-02-10').tz_localize('utc')]])
+    def test_estimate_windows_at_quarter_boundaries(self, window_len,
+                                                    start_idx):
+        dataset = QuartersEstimates(1)
+
+        class SomeFactor(CustomFactor):
+            inputs = [dataset.estimate]
+            window_length = window_len
+
+            def compute(self, today, assets, out, *inputs):
+                print()
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        result = engine.run_pipeline(
+            Pipeline({'est': SomeFactor()}),
+            start_date=start_idx,
+            end_date=self.trading_days[-1],
+        )
+        print()
+
+
+class NextEstimateTestCase(EstimateTestCase):
+    events = gen_estimates()
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextQuartersEstimatesLoader(events, columns)
+
 
     def test_next_estimates(self):
         """
@@ -229,6 +291,8 @@ class BlazeNextEstimateLoaderTestCase(NextEstimateTestCase):
 
 
 class PreviousEstimateTestCase(EstimateTestCase):
+    events = gen_estimates()
+
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousQuartersEstimatesLoader(events, columns)
