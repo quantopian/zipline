@@ -7,6 +7,7 @@ import warnings
 from contextlib2 import ExitStack
 import click
 import pandas as pd
+from six import string_types
 from toolz import curry, complement, take
 
 from ..us_equity_pricing import (
@@ -295,7 +296,7 @@ def _make_bundle_core():
                 stacklevel=3,
             )
 
-        if isinstance(calendar, str):
+        if isinstance(calendar, string_types):
             calendar = get_calendar(calendar)
 
         # If the start and end sessions are not provided or lie outside
