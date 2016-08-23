@@ -35,7 +35,9 @@ from zipline.assets.asset_db_schema import (
     version_info,
 )
 
+from zipline.utils.preprocess import preprocess
 from zipline.utils.range import from_tuple, intersecting_ranges
+from zipline.utils.sqlite_utils import coerce_string_to_eng
 
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple(
@@ -344,9 +346,8 @@ class AssetDBWriter(object):
     """
     DEFAULT_CHUNK_SIZE = SQLITE_MAX_VARIABLE_NUMBER
 
+    @preprocess(engine=coerce_string_to_eng)
     def __init__(self, engine):
-        if isinstance(engine, str):
-            engine = sa.create_engine('sqlite:///' + engine)
         self.engine = engine
 
     def write(self,

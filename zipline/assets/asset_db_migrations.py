@@ -7,8 +7,11 @@ from toolz.curried import do, operator as op
 
 from zipline.assets.asset_writer import write_version_info
 from zipline.errors import AssetDBImpossibleDowngrade
+from zipline.utils.preprocess import preprocess
+from zipline.utils.sqlite_utils import coerce_string_to_eng
 
 
+@preprocess(engine=coerce_string_to_eng)
 def downgrade(engine, desired_version):
     """Downgrades the assets db at the given engine to the desired version.
 
