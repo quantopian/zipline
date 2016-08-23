@@ -178,7 +178,8 @@ from zipline.pipeline.loaders.utils import (
     last_in_date_group,
     normalize_data_query_bounds,
     normalize_timestamp_to_query_time,
-    ffill_across_cols)
+    ffill_across_cols
+)
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.lib.adjusted_array import AdjustedArray, can_represent_dtype
 from zipline.lib.adjustment import Float64Overwrite

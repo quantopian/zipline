@@ -167,7 +167,6 @@ class EventsLoader(PipelineLoader):
             return {}
 
         return self._load_events(
-            rows=self.events,
             name_map=self.next_value_columns,
             indexer=self.next_event_indexer(dates, sids),
             columns=columns,
@@ -181,7 +180,6 @@ class EventsLoader(PipelineLoader):
             return {}
 
         return self._load_events(
-            rows=self.events,
             name_map=self.previous_value_columns,
             indexer=self.previous_event_indexer(dates, sids),
             columns=columns,
