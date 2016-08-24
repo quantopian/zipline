@@ -686,7 +686,7 @@ class BcolzDailyBarReader(SessionBarReader):
                     day, sid))
         return ix
 
-    def spot_price(self, sid, day, colname):
+    def get_value(self, sid, day, colname):
         """
         Parameters
         ----------
@@ -787,7 +787,7 @@ class PanelBarReader(SessionBarReader):
             list(columns)
         ].reindex(major_axis=cal[cal.slice_indexer(start_dt, end_dt)]).values.T
 
-    def spot_price(self, sid, dt, colname):
+    def get_value(self, sid, dt, colname):
         """
         Parameters
         ----------
@@ -808,8 +808,6 @@ class PanelBarReader(SessionBarReader):
             0.
         """
         return self.panel.loc[sid, dt, colname]
-
-    get_value = spot_price
 
     def get_last_traded_dt(self, sid, dt):
         """
@@ -985,7 +983,7 @@ class SQLiteAdjustmentWriter(object):
             day_loc = calendar.get_loc(ex_date, method='bfill')
             prev_close_date = calendar[day_loc - 1]
             try:
-                prev_close = equity_daily_bar_reader.spot_price(
+                prev_close = equity_daily_bar_reader.get_value(
                     sid, prev_close_date, 'close')
                 if prev_close != 0.0:
                     ratio = 1.0 - amount / prev_close

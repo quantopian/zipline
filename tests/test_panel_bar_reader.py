@@ -55,14 +55,14 @@ class WithPanelBarReader(WithAssetFinder):
 
         cls.reader = PanelBarReader(trading_calendar, cls.panel, cls.FREQUENCY)
 
-    def test_spot_price(self):
+    def test_get_value(self):
         panel = self.panel
         reader = self.reader
 
         for asset, date, field in product(*panel.axes):
             self.assertEqual(
                 panel.loc[asset, date, field],
-                reader.spot_price(asset, date, field),
+                reader.get_value(asset, date, field),
             )
 
     def test_duplicate_values(self):
