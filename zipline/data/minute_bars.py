@@ -388,7 +388,7 @@ class BcolzMinuteBarWriter(object):
         convert from floats to integers that fit within np.uint32. If
         ohlc_ratios_per_sid is None or does not contain a mapping for a
         given sid, this ratio is used. Default is OHLC_RATIO (1000).
-    ohlc_ratios : dict, optional
+    ohlc_ratios_per_sid : dict, optional
         A dict mapping each sid in the output to the ratio by which to
         multiply the pricing data to convert the floats from floats to
         an integer to fit within the np.uint32.
