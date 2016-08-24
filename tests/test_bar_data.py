@@ -358,7 +358,7 @@ class TestMinuteBarData(WithBarDataChecks,
                     elif field == "last_traded":
                         self.assertEqual(last_trading_minute, asset_value)
 
-    def test_spot_price_is_unadjusted(self):
+    def test_get_value_is_unadjusted(self):
         # verify there is a split for SPLIT_ASSET
         splits = self.adjustment_reader.get_adjustments_for_sid(
             "splits",
@@ -385,7 +385,7 @@ class TestMinuteBarData(WithBarDataChecks,
                 bar_data.current(self.SPLIT_ASSET, "price")
             )
 
-    def test_spot_price_is_adjusted_if_needed(self):
+    def test_get_value_is_adjusted_if_needed(self):
         # on cls.days[1], the first 9 minutes of ILLIQUID_SPLIT_ASSET are
         # missing. let's get them.
         day0_minutes = self.trading_calendar.minutes_for_session(
@@ -420,7 +420,7 @@ class TestMinuteBarData(WithBarDataChecks,
                 bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
             )
 
-    def test_spot_price_at_midnight(self):
+    def test_get_value_at_midnight(self):
         # make sure that if we try to get a minute price at a non-market
         # minute, we use the previous market close's timestamp
         day = self.equity_minute_bar_days[1]
@@ -872,12 +872,12 @@ class TestDailyBarData(WithBarDataChecks,
         ("merger", 2, 3, 3, 1.8),
         ("dividend", 2, 3, 3, 2.88)
     ])
-    def test_spot_price_adjustments(self,
-                                    adjustment_type,
-                                    liquid_day_0_price,
-                                    liquid_day_1_price,
-                                    illiquid_day_0_price,
-                                    illiquid_day_1_price_adjusted):
+    def test_get_value_adjustments(self,
+                                   adjustment_type,
+                                   liquid_day_0_price,
+                                   liquid_day_1_price,
+                                   illiquid_day_0_price,
+                                   illiquid_day_1_price_adjusted):
         """Test the behaviour of spot prices during adjustments."""
         table_name = adjustment_type + 's'
         liquid_asset = getattr(self, (adjustment_type.upper() + "_ASSET"))

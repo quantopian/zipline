@@ -336,7 +336,7 @@ class MockDailyBarSpotReader(object):
     """
     A BcolzDailyBarReader which returns a constant value for spot price.
     """
-    def spot_price(self, sid, day, column):
+    def get_value(self, sid, day, column):
         return 100.0
 
 

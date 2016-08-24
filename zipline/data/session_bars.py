@@ -43,7 +43,7 @@ class SessionBarReader(with_metaclass(ABCMeta)):
         pass
 
     @abstractmethod
-    def spot_price(self, sid, session, colname):
+    def get_value(self, sid, session, colname):
         """
         Retrieve the value at the given coordinates.
 

@@ -512,7 +512,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
 
         self.assertEqual(self.END_DATE, session_bar_reader.last_available_dt)
 
-    def test_spot_price(self):
+    def test_get_value(self):
         calendar = self.trading_calendar
         session_bar_reader = MinuteResampleSessionBarReader(
             calendar,
@@ -523,7 +523,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
             for dt_str, values in expected.iterrows():
                 dt = pd.Timestamp(dt_str, tz='UTC')
                 for col in OHLCV:
-                    result = session_bar_reader.spot_price(sid, dt, col)
+                    result = session_bar_reader.get_value(sid, dt, col)
                     assert_almost_equal(values[col], result,
                                         err_msg="sid={0} col={1} dt={2}".
                                         format(sid, col, dt))

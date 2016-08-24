@@ -959,7 +959,7 @@ def subtest(iterator, *_names):
 
 
 class MockDailyBarReader(object):
-    def spot_price(self, col, sid, dt):
+    def get_value(self, col, sid, dt):
         return 100
 
 

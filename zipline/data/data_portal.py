@@ -521,7 +521,7 @@ class DataPortal(object):
         elif column in OHLCV_FIELDS:
             # don't forward fill
             try:
-                val = reader.spot_price(asset, dt, column)
+                val = reader.get_value(asset, dt, column)
                 if val == -1:
                     if column == "volume":
                         return 0
@@ -535,7 +535,7 @@ class DataPortal(object):
             found_dt = dt
             while True:
                 try:
-                    value = reader.spot_price(
+                    value = reader.get_value(
                         asset, found_dt, "close"
                     )
                     if value != -1:

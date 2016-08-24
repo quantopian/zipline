@@ -476,7 +476,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def load_raw_arrays(self, columns, start_dt, end_dt, assets):
         return self._get_resampled(columns, start_dt, end_dt, assets).values
 
-    def spot_price(self, sid, session, colname):
+    def get_value(self, sid, session, colname):
         # WARNING: This will need caching or other optimization if used in a
         # tight loop.
         # This was developed to complete interface, but has not been tuned
