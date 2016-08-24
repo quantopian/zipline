@@ -897,7 +897,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
     def first_trading_day(self):
         return self._start_session
 
-    def _ohlcv_ratio_inverse_for_sid(self, sid):
+    def _ohlc_ratio_inverse_for_sid(self, sid):
         if self._ohlc_inverses_per_sid is not None:
             try:
                 return self._ohlc_inverses_per_sid[sid]
@@ -1053,7 +1053,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
                 return np.nan
 
         if field != 'volume':
-            value *= self._ohlcv_ratio_inverse_for_sid(sid)
+            value *= self._ohlc_ratio_inverse_for_sid(sid)
         return value
 
     def get_last_traded_dt(self, asset, dt):
@@ -1170,7 +1170,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
                 # written data for all the minutes requested
                 if field != 'volume':
                     out[:len(where), i][where] = (
-                        values[where] * self._ohlcv_ratio_inverse_for_sid(sid))
+                        values[where] * self._ohlc_ratio_inverse_for_sid(sid))
                 else:
                     out[:len(where), i][where] = values[where]
 
