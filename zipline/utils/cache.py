@@ -290,11 +290,7 @@ class working_file(object):
     def _commit(self):
         """Sync the temporary file to the final path.
         """
-        self._tmpfile.close()
-        move(self._name, self._final_path)
-
-    def __getattr__(self, attr):
-        return getattr(self._tmpfile, attr)
+        move(self.path, self._final_path)
 
     def __enter__(self):
         self._tmpfile.__enter__()

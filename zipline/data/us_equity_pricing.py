@@ -54,12 +54,11 @@ from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
 from zipline.utils.preprocess import call
 from zipline.utils.input_validation import (
-    coerce_string,
     preprocess,
     expect_element,
     verify_indices_all_unique,
 )
-from zipline.utils.sqlite_utils import group_into_chunks
+from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_conn
 from zipline.utils.memoize import lazyval
 from zipline.utils.cli import maybe_show_progress
 from ._equities import _compute_row_slices, _read_bcolz_data
@@ -1228,7 +1227,7 @@ class SQLiteAdjustmentReader(object):
     :class:`zipline.data.us_equity_pricing.SQLiteAdjustmentWriter`
     """
 
-    @preprocess(conn=coerce_string(sqlite3.connect))
+    @preprocess(conn=coerce_string_to_conn)
     def __init__(self, conn):
         self.conn = conn
 

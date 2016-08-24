@@ -99,7 +99,7 @@ class TradingEnvironment(object):
         self.exchange_tz = exchange_tz
 
         if isinstance(asset_db_path, string_types):
-            asset_db_path = 'sqlite:///%s' % asset_db_path
+            asset_db_path = 'sqlite:///' + asset_db_path
             self.engine = engine = create_engine(asset_db_path)
         else:
             self.engine = engine = asset_db_path

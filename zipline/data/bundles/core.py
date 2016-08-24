@@ -7,6 +7,7 @@ import warnings
 from contextlib2 import ExitStack
 import click
 import pandas as pd
+from six import string_types
 from toolz import curry, complement, take
 
 from ..us_equity_pricing import (
@@ -20,9 +21,11 @@ from ..minute_bars import (
     BcolzMinuteBarWriter,
 )
 from zipline.assets import AssetDBWriter, AssetFinder, ASSET_DB_VERSION
+from zipline.assets.asset_db_migrations import downgrade
 from zipline.utils.cache import (
     dataframe_cache,
     working_dir,
+    working_file,
 )
 from zipline.utils.compat import mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
@@ -31,9 +34,9 @@ from zipline.utils.preprocess import preprocess
 from zipline.utils.calendars import get_calendar, register_calendar
 
 
-def asset_db_path(bundle_name, timestr, environ=None):
+def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
     return pth.data_path(
-        asset_db_relative(bundle_name, timestr, environ),
+        asset_db_relative(bundle_name, timestr, environ, db_version),
         environ=environ,
     )
 
@@ -82,8 +85,10 @@ def minute_equity_relative(bundle_name, timestr, environ=None):
     return bundle_name, timestr, 'minute_equities.bcolz'
 
 
-def asset_db_relative(bundle_name, timestr, environ=None):
-    return bundle_name, timestr, 'assets-%d.sqlite' % ASSET_DB_VERSION
+def asset_db_relative(bundle_name, timestr, environ=None, db_version=None):
+    db_version = ASSET_DB_VERSION if db_version is None else db_version
+
+    return bundle_name, timestr, 'assets-%d.sqlite' % db_version
 
 
 def to_bundle_ingest_dirname(ts):
@@ -117,6 +122,15 @@ def from_bundle_ingest_dirname(cs):
         The time when this ingestion happened.
     """
     return pd.Timestamp(cs.replace(';', ':'))
+
+
+def ingestions_for_bundle(bundle, environ=None):
+    return sorted(
+        (from_bundle_ingest_dirname(ing)
+         for ing in os.listdir(pth.data_path([bundle], environ))
+         if not pth.hidden(ing)),
+        reverse=True,
+    )
 
 
 _BundlePayload = namedtuple(
@@ -282,7 +296,7 @@ def _make_bundle_core():
                 stacklevel=3,
             )
 
-        if isinstance(calendar, str):
+        if isinstance(calendar, string_types):
             calendar = get_calendar(calendar)
 
         # If the start and end sessions are not provided or lie outside
@@ -328,6 +342,7 @@ def _make_bundle_core():
     def ingest(name,
                environ=os.environ,
                timestamp=None,
+               assets_versions=(),
                show_progress=False):
         """Ingest data for a given bundle.
 
@@ -340,6 +355,8 @@ def _make_bundle_core():
         timestamp : datetime, optional
             The timestamp to use for the load.
             By default this is the current time.
+        assets_versions : Iterable[int], optional
+            Versions of the assets db to which to downgrade.
         show_progress : bool, optional
             Tell the ingest function to display the progress where possible.
         """
@@ -389,11 +406,10 @@ def _make_bundle_core():
                     bundle.end_session,
                     minutes_per_day=bundle.minutes_per_day,
                 )
-                asset_db_writer = AssetDBWriter(
-                    wd.getpath(*asset_db_relative(
-                        name, timestr, environ=environ,
-                    ))
-                )
+                assets_db_path = wd.getpath(*asset_db_relative(
+                    name, timestr, environ=environ,
+                ))
+                asset_db_writer = AssetDBWriter(assets_db_path)
 
                 adjustment_db_writer = stack.enter_context(
                     SQLiteAdjustmentWriter(
@@ -409,6 +425,10 @@ def _make_bundle_core():
                 minute_bar_writer = None
                 asset_db_writer = None
                 adjustment_db_writer = None
+                if assets_versions:
+                    raise ValueError('Need to ingest a bundle that creates '
+                                     'writers in order to downgrade the assets'
+                                     ' db.')
             bundle.ingest(
                 environ,
                 asset_db_writer,
@@ -422,6 +442,14 @@ def _make_bundle_core():
                 show_progress,
                 pth.data_path([name, timestr], environ=environ),
             )
+
+            for version in sorted(set(assets_versions), reverse=True):
+                version_path = wd.getpath(*asset_db_relative(
+                    name, timestr, environ=environ, db_version=version,
+                ))
+                with working_file(version_path) as wf:
+                    shutil.copy2(assets_db_path, wf.path)
+                    downgrade(wf.path, version)
 
     def most_recent_data(bundle_name, timestamp, environ=None):
         """Get the path to the most recent data after ``date``for the

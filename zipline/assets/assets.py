@@ -60,7 +60,8 @@ from .asset_db_schema import (
 from zipline.utils.control_flow import invert
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import as_column
-from zipline.utils.sqlite_utils import group_into_chunks
+from zipline.utils.preprocess import preprocess
+from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_eng
 
 log = Logger('assets.py')
 
@@ -141,12 +142,9 @@ class AssetFinder(object):
     # reference to an AssetFinder.
     PERSISTENT_TOKEN = "<AssetFinder>"
 
+    @preprocess(engine=coerce_string_to_eng)
     def __init__(self, engine):
-        self.engine = engine = (
-            sa.create_engine('sqlite:///' + engine)
-            if isinstance(engine, string_types) else
-            engine
-        )
+        self.engine = engine
         metadata = sa.MetaData(bind=engine)
         metadata.reflect(only=asset_db_table_names)
         for table_name in asset_db_table_names:

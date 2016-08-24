@@ -35,7 +35,9 @@ from zipline.assets.asset_db_schema import (
     version_info,
 )
 
+from zipline.utils.preprocess import preprocess
 from zipline.utils.range import from_tuple, intersecting_ranges
+from zipline.utils.sqlite_utils import coerce_string_to_eng
 
 # Define a namedtuple for use with the load_data and _load_data methods
 AssetData = namedtuple(
@@ -344,9 +346,8 @@ class AssetDBWriter(object):
     """
     DEFAULT_CHUNK_SIZE = SQLITE_MAX_VARIABLE_NUMBER
 
+    @preprocess(engine=coerce_string_to_eng)
     def __init__(self, engine):
-        if isinstance(engine, str):
-            engine = sa.create_engine('sqlite:///' + engine)
         self.engine = engine
 
     def write(self,
@@ -441,9 +442,9 @@ class AssetDBWriter(object):
         --------
         zipline.assets.asset_finder
         """
-        with self.engine.begin() as txn:
+        with self.engine.begin() as conn:
             # Create SQL tables if they do not exist.
-            self.init_db(txn)
+            self.init_db(conn)
 
             # Get the data to add to SQL.
             data = self._load_data(
@@ -456,25 +457,25 @@ class AssetDBWriter(object):
             self._write_df_to_table(
                 futures_exchanges,
                 data.exchanges,
-                txn,
+                conn,
                 chunk_size,
             )
             self._write_df_to_table(
                 futures_root_symbols,
                 data.root_symbols,
-                txn,
+                conn,
                 chunk_size,
             )
             self._write_assets(
                 'future',
                 data.futures,
-                txn,
+                conn,
                 chunk_size,
             )
             self._write_assets(
                 'equity',
                 data.equities,
-                txn,
+                conn,
                 chunk_size,
                 mapping_data=data.equities_mappings,
             )

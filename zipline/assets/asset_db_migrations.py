@@ -7,8 +7,11 @@ from toolz.curried import do, operator as op
 
 from zipline.assets.asset_writer import write_version_info
 from zipline.errors import AssetDBImpossibleDowngrade
+from zipline.utils.preprocess import preprocess
+from zipline.utils.sqlite_utils import coerce_string_to_eng
 
 
+@preprocess(engine=coerce_string_to_eng)
 def downgrade(engine, desired_version):
     """Downgrades the assets db at the given engine to the desired version.
 
@@ -21,39 +24,39 @@ def downgrade(engine, desired_version):
     """
 
     # Check the version of the db at the engine
-    conn = engine.connect()
-    metadata = sa.MetaData(conn)
-    metadata.reflect(bind=engine)
-    version_info_table = metadata.tables['version_info']
-    starting_version = sa.select((version_info_table.c.version,)).scalar()
+    with engine.begin() as conn:
+        metadata = sa.MetaData(conn)
+        metadata.reflect()
+        version_info_table = metadata.tables['version_info']
+        starting_version = sa.select((version_info_table.c.version,)).scalar()
 
-    # Check for accidental upgrade
-    if starting_version < desired_version:
-        raise AssetDBImpossibleDowngrade(db_version=starting_version,
-                                         desired_version=desired_version)
+        # Check for accidental upgrade
+        if starting_version < desired_version:
+            raise AssetDBImpossibleDowngrade(db_version=starting_version,
+                                             desired_version=desired_version)
 
-    # Check if the desired version is already the db version
-    if starting_version == desired_version:
-        # No downgrade needed
-        return
+        # Check if the desired version is already the db version
+        if starting_version == desired_version:
+            # No downgrade needed
+            return
 
-    # Create alembic context
-    ctx = MigrationContext.configure(conn)
-    op = Operations(ctx)
+        # Create alembic context
+        ctx = MigrationContext.configure(conn)
+        op = Operations(ctx)
 
-    # Integer keys of downgrades to run
-    # E.g.: [5, 4, 3, 2] would downgrade v6 to v2
-    downgrade_keys = range(desired_version, starting_version)[::-1]
+        # Integer keys of downgrades to run
+        # E.g.: [5, 4, 3, 2] would downgrade v6 to v2
+        downgrade_keys = range(desired_version, starting_version)[::-1]
 
-    # Disable foreign keys until all downgrades are complete
-    _pragma_foreign_keys(conn, False)
+        # Disable foreign keys until all downgrades are complete
+        _pragma_foreign_keys(conn, False)
 
-    # Execute the downgrades in order
-    for downgrade_key in downgrade_keys:
-        _downgrade_methods[downgrade_key](op, engine, version_info_table)
+        # Execute the downgrades in order
+        for downgrade_key in downgrade_keys:
+            _downgrade_methods[downgrade_key](op, conn, version_info_table)
 
-    # Re-enable foreign keys
-    _pragma_foreign_keys(conn, True)
+        # Re-enable foreign keys
+        _pragma_foreign_keys(conn, True)
 
 
 def _pragma_foreign_keys(connection, on):
@@ -96,10 +99,10 @@ def downgrades(src):
 
         @do(op.setitem(_downgrade_methods, destination))
         @wraps(f)
-        def wrapper(op, engine, version_info_table):
-            version_info_table.delete().execute()  # clear the version
+        def wrapper(op, conn, version_info_table):
+            conn.execute(version_info_table.delete())  # clear the version
             f(op)
-            write_version_info(engine, version_info_table, destination)
+            write_version_info(conn, version_info_table, destination)
 
         return wrapper
     return _

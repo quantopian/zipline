@@ -5,10 +5,10 @@ from functools import wraps
 import click
 import logbook
 import pandas as pd
+from six import text_type
 
 from zipline.data import bundles as bundles_module
 from zipline.utils.cli import Date, Timestamp
-import zipline.utils.paths as pth
 from zipline.utils.run_algo import _run, load_extensions
 
 try:
@@ -285,18 +285,24 @@ def zipline_magic(line, cell=None):
     help='The data bundle to ingest.',
 )
 @click.option(
+    '--assets-version',
+    type=int,
+    multiple=True,
+    help='Version of the assets db to which to downgrade.',
+)
+@click.option(
     '--show-progress/--no-show-progress',
-    is_flag=True,
     default=True,
     help='Print progress information to the terminal.'
 )
-def ingest(bundle, show_progress):
+def ingest(bundle, assets_version, show_progress):
     """Ingest the data for the given bundle.
     """
     bundles_module.ingest(
         bundle,
         os.environ,
         pd.Timestamp.utcnow(),
+        assets_version,
         show_progress,
     )
 
@@ -352,11 +358,8 @@ def bundles():
             # hide the test data
             continue
         try:
-            ingestions = sorted(
-                (str(bundles_module.from_bundle_ingest_dirname(ing))
-                 for ing in os.listdir(pth.data_path([bundle]))
-                 if not pth.hidden(ing)),
-                reverse=True,
+            ingestions = list(
+                map(text_type, bundles_module.ingestions_for_bundle(bundle))
             )
         except OSError as e:
             if e.errno != errno.ENOENT:
@@ -367,7 +370,7 @@ def bundles():
         # because there were no entries, print a single message indicating that
         # no ingestions have yet been made.
         for timestamp in ingestions or ["<no ingestions>"]:
-            print("%s %s" % (bundle, timestamp))
+            click.echo("%s %s" % (bundle, timestamp))
 
 
 if __name__ == '__main__':
