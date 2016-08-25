@@ -43,26 +43,22 @@ def QuartersEstimates(num_qtr):
 
 # 0Q1: 2015-01-05.Q1.e1.2015-01-06, 2015-01-10.Q1.e1.2015-01-11,
 # 0Q2: 2015-01-15.Q2.e1.2015-01-16, 2015-01-20.Q2.e1.2015-01-21,
-# 0Q3: 2015-01-25.Q3.e1.2015-01-26, 2015-01-30.Q3.e1.2015-01-31,
 # 0Q4: 2015-02-05.Q4.e1.2015-02-06, 2015-02-10.Q4.e1.2015-02-11,
+# Skip Q3 to make sure we handle skipped quarter data correctly.
 estimates_timeline = pd.DataFrame({
     TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),
                     pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
-                    pd.Timestamp('2015-01-22'),
                     pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
                     pd.Timestamp('2015-01-22'), pd.Timestamp('2015-02-02')],
     EVENT_DATE_FIELD_NAME:
         [pd.Timestamp('2015-01-10'), pd.Timestamp('2015-01-10'),
          pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20'),
-         pd.Timestamp('2015-01-30'), pd.Timestamp('2015-01-30'),
-         pd.Timestamp('2015-01-30'),
          pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10'),
          pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10')],
-    'estimate': [1.]*2 + [2.] * 2 + [3.] * 3 + [4.] * 4,
-    FISCAL_QUARTER_FIELD_NAME: [1]*2 + [2] * 2 + [3] * 3 + [4] * 4,
-    FISCAL_YEAR_FIELD_NAME: [2015]*11,
-    SID_FIELD_NAME: [0]*11
+    'estimate': [1.]*2 + [2.] * 2 + [4.] * 4,
+    FISCAL_QUARTER_FIELD_NAME: [1]*2 + [2] * 2 + [4] * 4,
+    FISCAL_YEAR_FIELD_NAME: [2015]*8,
+    SID_FIELD_NAME: [0]*8
 })
 
 
@@ -218,7 +214,8 @@ class NextEstimateWindowsTestCase(EstimateTestCase):
 
                 # If we know something about the requested quarter, assert
                 # that all our estimates in the window are about that quarter.
-                if requested_quarter and requested_quarter <= 4:
+                if requested_quarter and requested_quarter <= 4 and \
+                        requested_quarter != 3:
                     assert np.equal(unique_inputs, requested_quarter).all()
                 else:
                     # We don't have any information yet about the next quarter
@@ -275,7 +272,8 @@ class PreviousEstimateWindowsTestCase(EstimateTestCase):
 
                 # If we know something about the requested quarter, assert
                 # that all our estimates in the window are about that quarter.
-                if requested_quarter and requested_quarter >= 0:
+                if requested_quarter and requested_quarter >= 0 and \
+                        requested_quarter != 3:
                     assert np.equal(unique_inputs, requested_quarter).all()
                 else:
                     # We don't have any information yet about the previous
