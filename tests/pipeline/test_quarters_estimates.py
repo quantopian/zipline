@@ -46,12 +46,12 @@ def QuartersEstimates(num_qtr):
 # 0Q3: 2015-01-25.Q3.e1.2015-01-26, 2015-01-30.Q3.e1.2015-01-31,
 # 0Q4: 2015-02-05.Q4.e1.2015-02-06, 2015-02-10.Q4.e1.2015-02-11,
 estimates_timeline = pd.DataFrame({
-    TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),  #Q1
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),  #Q2
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),  #Q3
+    TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
                     pd.Timestamp('2015-01-22'),
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),  #Q3
-                    pd.Timestamp('2015-01-22'), pd.Timestamp('2015-02-02')], #Q4
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
+                    pd.Timestamp('2015-01-22'), pd.Timestamp('2015-02-02')],
     EVENT_DATE_FIELD_NAME:
         [pd.Timestamp('2015-01-10'), pd.Timestamp('2015-01-10'),
          pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20'),
@@ -169,7 +169,20 @@ class EstimateTestCase(WithAssetFinder,
             )
 
 
-class EstimateWindowsTestCase(EstimateTestCase):
+window_test_cases = [
+    (window_len, start_idx, num_quarters_out) for
+    (window_len, start_idx), num_quarters_out in
+    itertools.product(
+        [[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
+         [6, pd.Timestamp('2015-01-12').tz_localize('utc')],
+         [11, pd.Timestamp('2015-01-20').tz_localize('utc')],
+         [19, pd.Timestamp('2015-01-30').tz_localize('utc')],
+         [26, pd.Timestamp('2015-02-10').tz_localize('utc')]],
+        [1, 2, 3, 4])
+]
+
+
+class NextEstimateWindowsTestCase(EstimateTestCase):
     events = estimates_timeline
     START_DATE = pd.Timestamp('2014-12-31')
     END_DATE = pd.Timestamp('2015-02-15')
@@ -178,21 +191,11 @@ class EstimateWindowsTestCase(EstimateTestCase):
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
 
-    @parameterized.expand(
-        (window_len, start_idx, num_quarters_out) for
-        (window_len, start_idx), num_quarters_out in
-        itertools.product(
-            [[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
-             [6, pd.Timestamp('2015-01-12').tz_localize('utc')],
-             [11, pd.Timestamp('2015-01-20').tz_localize('utc')],
-             [19, pd.Timestamp('2015-01-30').tz_localize('utc')],
-             [26, pd.Timestamp('2015-02-10').tz_localize('utc')]],
-            [1, 2, 3, 4])
-    )
-    def test_estimate_windows_at_quarter_boundaries(self,
-                                                    window_len,
-                                                    start_idx,
-                                                    num_quarters_out):
+    @parameterized.expand(window_test_cases)
+    def test_next_estimate_windows_at_quarter_boundaries(self,
+                                                         window_len,
+                                                         start_idx,
+                                                         num_quarters_out):
         dataset = QuartersEstimates(num_quarters_out)
 
         class SomeFactor(CustomFactor):
@@ -231,13 +234,65 @@ class EstimateWindowsTestCase(EstimateTestCase):
         )
 
 
+class PreviousEstimateWindowsTestCase(EstimateTestCase):
+    events = estimates_timeline
+    START_DATE = pd.Timestamp('2014-12-31')
+    END_DATE = pd.Timestamp('2015-02-15')
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return PreviousQuartersEstimatesLoader(events, columns)
+
+    @parameterized.expand(window_test_cases)
+    def test_previous_estimate_windows_at_quarter_boundaries(self,
+                                                             window_len,
+                                                             start_idx,
+                                                             num_quarters_out):
+        dataset = QuartersEstimates(num_quarters_out)
+
+        class SomeFactor(CustomFactor):
+            inputs = [dataset.estimate]
+            window_length = window_len
+
+            def compute(self, today, assets, out, *inputs):
+                unique_inputs = np.unique(inputs).tolist()
+                requested_quarter = None
+                if today >= pd.Timestamp('2015-01-12').tz_localize('utc'):
+                    previous_quarter = estimates_timeline[
+                            estimates_timeline[EVENT_DATE_FIELD_NAME] <= today
+                        ].max()[FISCAL_QUARTER_FIELD_NAME]
+                    requested_quarter = (
+                        previous_quarter - (num_quarters_out - 1)
+                    )
+
+                # If we know something about the requested quarter, assert
+                # that all our estimates in the window are about that quarter.
+                if requested_quarter and requested_quarter >= 0:
+                    assert np.equal(unique_inputs, requested_quarter).all()
+                else:
+                    # We don't have any information yet about the previous
+                    # quarter
+                    # or about the requested quarter; in that case, all our
+                    # estimates in the window should be NaN across time.
+                    assert np.isnan(unique_inputs).all()
+
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        engine.run_pipeline(
+            Pipeline({'est': SomeFactor()}),
+            start_date=start_idx,
+            end_date=self.trading_days[-1],
+        )
+
 class NextEstimateTestCase(EstimateTestCase):
     events = gen_estimates()
 
     @classmethod
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
-
 
     def test_next_estimates(self):
         """
