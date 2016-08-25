@@ -430,9 +430,10 @@ cdef class Float641DArrayOverwrite(ArrayAdjustment):
             last_col=last_col,
         )
         if last_row + 1 - first_row != len(values):
-            raise ValueError("Mismatch: got %d values for rows starting at
-            index %d and ending at index %d." % (len(values), first_row,
-            last_row)
+            raise ValueError(
+                "Mismatch: got %d values for rows starting at index %d and "
+                "ending at index %d." % (len(values), first_row, last_row)
+            )
         self.values = values
 
     cpdef mutate(self, float64_t[:, :] data):
@@ -489,9 +490,10 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
             last_col=last_col,
         )
         if last_row + 1 - first_row != len(values):
-            raise ValueError("Mismatch: got %d values for rows starting at
-            index %d and ending at index %d." % (len(values), first_row,
-            last_row)
+            raise ValueError("Mismatch: got %d values for rows starting at"
+            " index %d and ending at index %d." % (
+                len(values), first_row, last_row)
+            )
         self.values = asarray([datetime_to_int(value) for value in values])
 
     cpdef mutate(self, int64_t[:, :] data):

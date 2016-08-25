@@ -196,6 +196,10 @@ class NextEstimateWindowsTestCase(EstimateTestCase):
                                                          window_len,
                                                          start_idx,
                                                          num_quarters_out):
+        """
+        Tests that we overwrite values with the correct quarter's estimate at
+        the correct dates.
+        """
         dataset = QuartersEstimates(num_quarters_out)
 
         class SomeFactor(CustomFactor):
@@ -248,6 +252,10 @@ class PreviousEstimateWindowsTestCase(EstimateTestCase):
                                                              window_len,
                                                              start_idx,
                                                              num_quarters_out):
+        """
+        Tests that we overwrite values with the correct quarter's estimate at
+        the correct dates.
+        """
         dataset = QuartersEstimates(num_quarters_out)
 
         class SomeFactor(CustomFactor):
