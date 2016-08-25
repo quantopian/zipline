@@ -124,14 +124,15 @@ class QuarterEstimatesLoader(PipelineLoader):
         ]
 
     def get_adjustments(self,
-                        result,
-                        subsequent_qtr_data,
-                        col_result,
-                        last,
+                        zero_qtr_idx,
+                        requested_qtr_idx,
+                        stacked_last_per_qtr,
+                        last_per_qtr,
                         column_name,
                         column,
                         mask,
-                        assets):
+                        assets,
+                        previous):
         adjustments = defaultdict(list)
         if column.dtype == datetime64ns_dtype:
             overwrite = Datetime641DArrayOverwrite
@@ -140,13 +141,14 @@ class QuarterEstimatesLoader(PipelineLoader):
             overwrite = Float641DArrayOverwrite
             missing_value = np.NaN
         for sid_idx, sid in enumerate(assets):
-            sid_result = result[result.index.get_level_values(
-                SID_FIELD_NAME
-            ) == sid]
+            sid_result = stacked_last_per_qtr.xs(sid, axis=1, level=SID_FIELD_NAME)
             # Determine where we think quarters are changing for this sid.
             qtr_shifts = sid_result[
                 sid_result[SHIFTED_NORMALIZED_QTRS] !=
                 sid_result[SHIFTED_NORMALIZED_QTRS].shift(1)
+            ]
+            qtr_shifts = qtr_shifts[
+                qtr_shifts[SHIFTED_NORMALIZED_QTRS].notnull()
             ]
             # For the given sid, determine which quarters we have estimates
             # for.
@@ -155,55 +157,57 @@ class QuarterEstimatesLoader(PipelineLoader):
             ).groupby(axis=1, level=1).first().columns.values
             # Iterate up until the last quarter's event is announced.
             for row_indexer in list(qtr_shifts.index):
-                # Find the requested quarter number for this quarter and add
-                # 1 to get the next requested quarter.
-                requested_quarter = qtr_shifts.loc[
-                    row_indexer
-                ][SHIFTED_NORMALIZED_QTRS] + 1
                 # Find the starting index of the quarter that comes right
                 # after this row. This isn't the starting index of the
                 # requested quarter, but simply the date we cross over into a
-                # new quarter and on which we will begin returning estimates
-                # for the requested quarter.
+                # new quarter.
                 qtr_start_idx = last.index.searchsorted(
-                    subsequent_qtr_data.iloc[
-                        result.index.get_loc(row_indexer)
+                    subsequent_qtr_data.loc[
+                        row_indexer
                     ][EVENT_DATE_FIELD_NAME],
-                    side='right'  # We always want the index of the
+                    side='left' if previous else 'right'  # We always want the
+                    # index of the
                     # next date after the release.
                 )
-                # If a quarter was requested, there are estimates for
-                # it, and the quarter starts somewhere in our date
-                # index, overwrite all values going up to the starting index
-                # of that quarter with estimates for that quarter.
-                if (requested_quarter in quarters_with_estimates_for_sid and
-                        #  Our 'next' quarter can never start at index 0.
-                        0 < qtr_start_idx < len(last.index)):
-                    adjustments[qtr_start_idx] = \
-                        [overwrite(
-                            0,
-                            qtr_start_idx - 1,  # overwrite thru last qtr
-                            sid_idx,
-                            sid_idx,
-                            last[column_name,
-                                 requested_quarter,
-                                 sid][:qtr_start_idx].values)]
-                # If a quarter was requested that starts within our date index
-                # but there are no estimates for it, overwrite all values
-                # going up to the starting index of that quarter with the
-                # missing value for this column. Our 'next' quarter can never
-                # start at index 0. A starting index of 0 means that the next
-                # quarter's event date was NaT.
-                elif 0 < qtr_start_idx < len(last.index):
-                    self.overwrite_with_missing_value(missing_value,
-                                                      last,
-                                                      qtr_start_idx,
-                                                      adjustments,
-                                                      sid_idx,
-                                                      overwrite)
+
+                # Only add adjustments if the next quarter starts somewhere in
+                # our date index for this sid. Our 'next' quarter can never
+                # start at index 0.
+                if 0 < qtr_start_idx < len(last.index):
+                    # Find the requested quarter number for the next quarter.
+                    requested_quarter = sid_result.iloc[
+                        qtr_start_idx
+                    ][SHIFTED_NORMALIZED_QTRS]
+
+                    # If a quarter was requested, there are estimates for
+                    # it, and the quarter starts somewhere in our date
+                    # index, overwrite all values going up to the starting
+                    # index of that quarter with estimates for that quarter.
+                    if requested_quarter in quarters_with_estimates_for_sid:
+                        adjustments[qtr_start_idx] = \
+                            [overwrite(
+                                0,
+                                qtr_start_idx - 1,  # overwrite thru last qtr
+                                sid_idx,
+                                sid_idx,
+                                last[column_name,
+                                     requested_quarter,
+                                     sid][:qtr_start_idx].values)]
+                    # If there are no estimates for the quarter, overwrite all
+                    # values going up to the starting index of that quarter
+                    # with the missing value for this column. Our 'next'
+                    # quarter can never start at index 0. A starting index of 0
+                    # means that the next quarter's event date was NaT.
+                    else:
+                        self.overwrite_with_missing_value(missing_value,
+                                                          last,
+                                                          qtr_start_idx,
+                                                          adjustments,
+                                                          sid_idx,
+                                                          overwrite)
                 # TODO: what is the 'else' case for this?
         return AdjustedArray(
-                col_result.values.astype(column.dtype),
+                result[column_name].values.astype(column.dtype),
                 mask,
                 dict(adjustments),
                 column.missing_value,
@@ -244,9 +248,17 @@ class QuarterEstimatesLoader(PipelineLoader):
             # Determine which quarter is next/previous for each date.
             subsequent_qtr_data = self.load_quarters(num_quarters,
                                                      stacked_last_per_qtr)
-            requested_qtr_data = stacked_last_per_qtr.loc[
-                subsequent_qtr_data.index
-            ]
+            zero_qtr_idx = subsequent_qtr_data.index
+            requested_qtr_idx = subsequent_qtr_data.set_index([
+                    subsequent_qtr_data.index.get_level_values(
+                        SIMULTATION_DATES
+                    ),
+                    subsequent_qtr_data[SHIFTED_NORMALIZED_QTRS],
+                    subsequent_qtr_data.index.get_level_values(
+                        SID_FIELD_NAME
+                    )]
+            ).index
+            requested_qtr_data = stacked_last_per_qtr.loc[requested_qtr_idx]
             if not requested_qtr_data.empty:
                 # We no longer need this in the index, but we do need it as a
                 # column for adjustments.
@@ -258,24 +270,29 @@ class QuarterEstimatesLoader(PipelineLoader):
                     split_normalized_quarters(
                         requested_qtr_data[SHIFTED_NORMALIZED_QTRS]
                     )
+                # Move sids into the columns. Once we're left with just dates
+                # as the index, we can reindex by all dates so that we have a
+                # value for each calendar date.
+                requested_qtr_data = requested_qtr_data.unstack(
+                    SID_FIELD_NAME
+                ).reindex(dates)
                 for c in columns:
                     column_name = name_map[c]
-                    col_result = requested_qtr_data[
-                        column_name
-                    ].unstack(SID_FIELD_NAME).reindex(dates)
-                    adjusted_array = self.get_adjustments(requested_qtr_data,
-                                                          subsequent_qtr_data,
-                                                          col_result,
+                    adjusted_array = self.get_adjustments(zero_qtr_idx,
+                                                          requested_qtr_idx,
+                                                          stacked_last_per_qtr,
                                                           last_per_qtr,
                                                           column_name,
                                                           c,
                                                           mask,
-                                                          assets)
+                                                          assets,
+                                                          self.previous)
                     out[c] = adjusted_array
         return out
 
 
 class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
+    previous = False
 
     def load_quarters(self, num_quarters, stacked_last_per_qtr):
         # Filter for releases that are on or after each simulation date and
@@ -293,21 +310,11 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
         ] = next_releases_per_date.index.get_level_values(
             NORMALIZED_QUARTERS
         ) + (num_quarters - 1)
-        next_releases_per_date = next_releases_per_date.set_index([
-            next_releases_per_date.index.get_level_values(SIMULTATION_DATES),
-            SHIFTED_NORMALIZED_QTRS,
-            next_releases_per_date.index.get_level_values(SID_FIELD_NAME)
-        ])
-
         return next_releases_per_date
 
 
 class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
-    def __init__(self,
-                 estimates,
-                 columns):
-        super(PreviousQuartersEstimatesLoader, self).__init__(estimates,
-                                                              columns)
+    previous = True
 
     def load_quarters(self, num_quarters, stacked_last_per_qtr):
         # Filter for releases that are on or before each simulation date and
@@ -331,4 +338,4 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
             SHIFTED_NORMALIZED_QTRS,
             previous_releases_per_date.index.get_level_values(SID_FIELD_NAME)
         ])
-        return stacked_last_per_qtr.loc[previous_releases_per_date.index]
+        return previous_releases_per_date

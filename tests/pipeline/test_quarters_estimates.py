@@ -287,6 +287,7 @@ class PreviousEstimateWindowsTestCase(EstimateTestCase):
             end_date=self.trading_days[-1],
         )
 
+
 class NextEstimateTestCase(EstimateTestCase):
     events = gen_estimates()
 
