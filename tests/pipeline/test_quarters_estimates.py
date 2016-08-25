@@ -178,39 +178,57 @@ class EstimateWindowsTestCase(EstimateTestCase):
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
 
-    @parameterized.expand([[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
-                           [7, pd.Timestamp('2015-01-12').tz_localize('utc')],
-                           [12, pd.Timestamp('2015-01-20').tz_localize('utc')],
-                           [20, pd.Timestamp('2015-01-30').tz_localize('utc')],
-                           [27, pd.Timestamp('2015-02-10').tz_localize('utc')]])
-    def test_estimate_windows_at_quarter_boundaries(self, window_len,
-                                                    start_idx):
-        dataset = QuartersEstimates(1)
+    @parameterized.expand(
+        (window_len, start_idx, num_quarters_out) for
+        (window_len, start_idx), num_quarters_out in
+        itertools.product(
+            [[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
+             [6, pd.Timestamp('2015-01-12').tz_localize('utc')],
+             [11, pd.Timestamp('2015-01-20').tz_localize('utc')],
+             [19, pd.Timestamp('2015-01-30').tz_localize('utc')],
+             [26, pd.Timestamp('2015-02-10').tz_localize('utc')]],
+            [1, 2, 3, 4])
+    )
+    def test_estimate_windows_at_quarter_boundaries(self,
+                                                    window_len,
+                                                    start_idx,
+                                                    num_quarters_out):
+        dataset = QuartersEstimates(num_quarters_out)
 
         class SomeFactor(CustomFactor):
             inputs = [dataset.estimate]
             window_length = window_len
 
             def compute(self, today, assets, out, *inputs):
-                # Assert here that all our estimates in the window input are
-                # for the current quarter.
-                assert (np.unique(inputs) ==
-                        estimates_timeline[
-                            estimates_timeline[EVENT_DATE_FIELD_NAME] >=
-                            today
-                        ].min()[FISCAL_QUARTER_FIELD_NAME]).all()
+                unique_inputs = np.unique(inputs).tolist()
+                requested_quarter = None
+                if (pd.Timestamp('2015-02-10').tz_localize('utc') >= today >=
+                        pd.Timestamp('2015-01-05').tz_localize('utc')):
+                    next_quarter = estimates_timeline[
+                            estimates_timeline[EVENT_DATE_FIELD_NAME] >= today
+                        ].min()[FISCAL_QUARTER_FIELD_NAME]
+                    requested_quarter = next_quarter + num_quarters_out - 1
+
+                # If we know something about the requested quarter, assert
+                # that all our estimates in the window are about that quarter.
+                if requested_quarter and requested_quarter <= 4:
+                    assert np.equal(unique_inputs, requested_quarter).all()
+                else:
+                    # We don't have any information yet about the next quarter
+                    # or about the requested quarter; in that case, all our
+                    # estimates in the window should be NaN across time.
+                    assert np.isnan(unique_inputs).all()
 
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
             self.asset_finder,
         )
-        result = engine.run_pipeline(
+        engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=start_idx,
             end_date=self.trading_days[-1],
         )
-        print()
 
 
 class NextEstimateTestCase(EstimateTestCase):
