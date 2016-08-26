@@ -263,7 +263,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         )
         self.alpha[dt_loc] = alpha(
             algorithm_returns_series,
-            benchmark_returns_series
+            benchmark_returns_series,
+            _beta=self.beta[dt_loc]
         )
         self.sharpe[dt_loc] = sharpe_ratio(
             algorithm_returns_series,
@@ -275,7 +276,8 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         )
         self.sortino[dt_loc] = sortino_ratio(
             algorithm_returns_series,
-            benchmark_returns_series
+            benchmark_returns_series,
+            _downside_risk=self.downside_risk[dt_loc]
         )
         self.information[dt_loc] = information_ratio(
             algorithm_returns_series,
