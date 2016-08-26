@@ -523,6 +523,10 @@ class MinuteResampleSessionBarReader(SessionBarReader):
             self._minute_bar_reader.last_available_dt
         )
 
+    @property
+    def first_trading_day(self):
+        return self._minute_bar_reader.first_trading_day
+
 
 class ReindexBarReader(with_metaclass(ABCMeta)):
     """

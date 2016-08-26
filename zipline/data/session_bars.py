@@ -19,6 +19,12 @@ class SessionBarReader(with_metaclass(ABCMeta)):
     """
     Reader for OHCLV pricing data at a session frequency.
     """
+    _data_frequency = 'session'
+
+    @property
+    def data_frequency(self):
+        return self._data_frequency
+
     @abstractmethod
     def load_raw_arrays(self, columns, start_date, end_date, assets):
         """
