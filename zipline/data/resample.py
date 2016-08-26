@@ -468,16 +468,37 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         minute_data = self._minute_bar_reader.load_raw_arrays(
             columns, start_dt, end_dt, assets)
         dts = self._calendar.minutes_in_range(start_dt, end_dt)
-        minute_frame = DataFrame(
-            [d.T[0] for d in minute_data], index=columns, columns=dts).T
-        return minute_to_session(minute_frame, self._calendar)
+        frames = []
+        for i, _ in enumerate(assets):
+            minute_frame = DataFrame((d.T[i] for d in minute_data),
+                                     index=columns, columns=dts).T
+            df = minute_to_session(minute_frame, self._calendar)
+            frames.append(df)
+        return frames
 
     @property
     def trading_calendar(self):
         return self._calendar
 
-    def load_raw_arrays(self, columns, start_dt, end_dt, assets):
-        return self._get_resampled(columns, start_dt, end_dt, assets).values
+    def load_raw_arrays(self, columns, start_dt, end_dt, sids):
+        sessions = self._calendar.sessions_in_range(start_dt, end_dt)
+        range_open, _ = self._calendar.open_and_close_for_session(
+            start_dt)
+        _, range_close = self._calendar.open_and_close_for_session(
+            end_dt)
+        shape = len(sessions), len(sids)
+        results = []
+        for col in columns:
+            if col != 'volume':
+                out = np.full(shape, np.nan)
+            else:
+                out = np.zeros(shape, dtype=np.uint32)
+            results.append(out)
+        frames = self._get_resampled(columns, range_open, range_close, sids)
+        for i, result in enumerate(results):
+            for j, frame in enumerate(frames):
+                result[:, j] = frame.values[:, i]
+        return results
 
     def get_value(self, sid, session, colname):
         # WARNING: This will need caching or other optimization if used in a
@@ -485,7 +506,7 @@ class MinuteResampleSessionBarReader(SessionBarReader):
         # This was developed to complete interface, but has not been tuned
         # for real world use.
         start, end = self._calendar.open_and_close_for_session(session)
-        frame = self._get_resampled([colname], start, end, [sid])
+        frame = self._get_resampled([colname], start, end, [sid])[0]
         return frame.loc[session, colname]
 
     @lazyval
@@ -590,8 +611,11 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
 
         outer_results = []
 
-        inner_results = self._reader.load_raw_arrays(
-            fields, inner_dts[0], inner_dts[-1], sids)
+        if len(inner_dts) > 0:
+            inner_results = self._reader.load_raw_arrays(
+                fields, inner_dts[0], inner_dts[-1], sids)
+        else:
+            inner_results = None
 
         for i, field in enumerate(fields):
             if field != 'volume':
@@ -599,7 +623,8 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
             else:
                 out = np.zeros(shape, dtype=np.uint32)
 
-            out[indices] = inner_results[i]
+            if inner_results is not None:
+                out[indices] = inner_results[i]
 
             outer_results.append(out)
 

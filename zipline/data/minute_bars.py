@@ -764,8 +764,8 @@ class BcolzMinuteBarWriter(object):
         table = self._ensure_ctable(sid)
 
         tds = self._session_labels
-        input_first_day = pd.Timestamp(dts[0].astype('datetime64[D]'),
-                                       tz='UTC')
+        input_first_day = self._calendar.minute_to_session_label(
+            pd.Timestamp(dts[0]))
 
         last_date = self.last_date_in_output_for_sid(sid)
 
@@ -887,6 +887,10 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
     def _get_metadata(self):
         return BcolzMinuteBarMetadata.read(self._rootdir)
+
+    @property
+    def trading_calendar(self):
+        return self.calendar
 
     @lazyval
     def last_available_dt(self):

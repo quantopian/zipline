@@ -486,13 +486,16 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
         )
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             case_frame = FUTURE_CASES[sid]
-            first = case_frame.index[0]
-            last = case_frame.index[-1]
+            first = calendar.minute_to_session_label(
+                case_frame.index[0])
+            last = calendar.minute_to_session_label(
+                case_frame.index[-1])
             result = session_bar_reader.load_raw_arrays(
-                ['open', 'high', 'low', 'close', 'volume'],
-                first, last, [sid])
-            assert_almost_equal(result, EXPECTED_SESSIONS[sid],
-                                err_msg="sid={0}".format(sid))
+                OHLCV, first, last, [sid])
+            for i, field in enumerate(OHLCV):
+                assert_almost_equal(
+                    result[i], EXPECTED_SESSIONS[sid][[field]],
+                    err_msg="sid={0} field={1}".format(sid, field))
 
     def test_sessions(self):
         calendar = self.trading_calendar
