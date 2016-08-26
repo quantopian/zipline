@@ -279,9 +279,11 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             risk_adj_returns,
             _downside_risk=self.downside_risk[dt_loc]
         )
+        # 0.0 for the second argument allows the passing of already-adjusted
+        # returns for the first argument.
         self.information[dt_loc] = information_ratio(
-            algorithm_returns_series,
-            benchmark_returns_series
+            risk_adj_returns,
+            0.0
         )
         self.max_drawdown = max_drawdown(
             algorithm_returns_series
