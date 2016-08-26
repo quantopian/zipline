@@ -72,20 +72,20 @@ class AssetDispatchBarReader(with_metaclass(ABCMeta)):
 
     @lazyval
     def last_available_dt(self):
-        return min(r.last_available_dt for r in self._readers.values)
+        return min(r.last_available_dt for r in self._readers.values())
 
     @lazyval
     def first_trading_day(self):
-        return max(r.first_trading_day for r in self._readers.values)
+        return max(r.first_trading_day for r in self._readers.values())
 
     def get_value(self, sid, dt, field):
-        asset = self.asset_finder.retrieve_asset(sid)
+        asset = self._asset_finder.retrieve_asset(sid)
         r = self._readers[type(asset)]
         return r.get_value(sid, dt, field)
 
     def get_last_traded_dt(self, asset, dt):
         r = self._readers[type(asset)]
-        return r.get_value(asset, dt)
+        return r.get_last_traded_dt(asset, dt)
 
     def load_raw_arrays(self, fields, start_dt, end_dt, sids):
         asset_types = self._asset_types
@@ -128,3 +128,9 @@ class AssetDispatchSessionBarReader(AssetDispatchBarReader):
 
     def _dt_window_size(self, start_dt, end_dt):
         return len(self.trading_calendar.sessions_in_range(start_dt, end_dt))
+
+    @lazyval
+    def sessions(self):
+        return self.trading_calendar.sessions_in_range(
+            self.first_trading_day,
+            self.last_available_dt)

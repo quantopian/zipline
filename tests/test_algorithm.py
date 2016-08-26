@@ -1076,6 +1076,7 @@ class TestBeforeTradingStart(WithDataPortal,
 
     DATA_PORTAL_FIRST_TRADING_DAY = pd.Timestamp("2016-01-05", tz='UTC')
     EQUITY_MINUTE_BAR_START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
+    FUTURE_MINUTE_BAR_START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
 
     data_start = ASSET_FINDER_EQUITY_START_DATE = pd.Timestamp(
         '2016-01-05',

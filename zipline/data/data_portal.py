@@ -23,7 +23,15 @@ from six import iteritems
 from six.moves import reduce
 
 from zipline.assets import Asset, Future, Equity
-from zipline.data.resample import DailyHistoryAggregator
+from zipline.data.dispatch_bar_reader import (
+    AssetDispatchMinuteBarReader,
+    AssetDispatchSessionBarReader
+)
+from zipline.data.resample import (
+    DailyHistoryAggregator,
+    ReindexMinuteBarReader,
+    ReindexSessionBarReader,
+)
 from zipline.data.history_loader import (
     DailyHistoryLoader,
     MinuteHistoryLoader,
@@ -124,36 +132,68 @@ class DataPortal(object):
         self._augmented_sources_map = {}
         self._extra_source_df = None
 
-        self._equity_daily_reader = equity_daily_reader
-        if self._equity_daily_reader is not None:
-            self._history_loader = DailyHistoryLoader(
-                self.trading_calendar,
-                self._equity_daily_reader,
-                self._adjustment_reader
-            )
-        self._equity_minute_reader = equity_minute_reader
-        self._future_daily_reader = future_daily_reader
-        self._future_minute_reader = future_minute_reader
+        self._first_trading_session = first_trading_day
+
+        _last_sessions = [r.last_available_dt
+                          for r in [equity_daily_reader, future_daily_reader]
+                          if r is not None]
+        if _last_sessions:
+            self._last_trading_session = min(_last_sessions)
+        else:
+            self._last_trading_session = None
+
+        aligned_equity_minute_reader = self._ensure_reader_aligned(
+            equity_minute_reader)
+        aligned_equity_session_reader = self._ensure_reader_aligned(
+            equity_daily_reader)
+        aligned_future_minute_reader = self._ensure_reader_aligned(
+            future_minute_reader)
+        aligned_future_session_reader = self._ensure_reader_aligned(
+            future_daily_reader)
+
+        aligned_minute_readers = {}
+        aligned_session_readers = {}
+
+        if aligned_equity_minute_reader is not None:
+            aligned_minute_readers[Equity] = aligned_equity_minute_reader
+        if aligned_equity_session_reader is not None:
+            aligned_session_readers[Equity] = aligned_equity_session_reader
+
+        if aligned_future_minute_reader is not None:
+            aligned_minute_readers[Future] = aligned_future_minute_reader
+        if aligned_future_session_reader is not None:
+            aligned_session_readers[Future] = aligned_future_session_reader
+
+        _dispatch_minute_reader = AssetDispatchMinuteBarReader(
+            self.trading_calendar,
+            self.asset_finder,
+            aligned_minute_readers,
+        )
+
+        _dispatch_session_reader = AssetDispatchSessionBarReader(
+            self.trading_calendar,
+            self.asset_finder,
+            aligned_session_readers,
+        )
 
         self._pricing_readers = {
-            Equity: {
-                'minute': equity_minute_reader,
-                'daily': equity_daily_reader,
-            },
-            Future: {
-                'minute': future_minute_reader,
-                'daily': future_daily_reader
-            }
+            'minute': _dispatch_minute_reader,
+            'daily': _dispatch_session_reader,
         }
 
         self._daily_aggregator = DailyHistoryAggregator(
             self.trading_calendar.schedule.market_open,
-            self._equity_minute_reader,
+            _dispatch_minute_reader,
             self.trading_calendar
+        )
+        self._history_loader = DailyHistoryLoader(
+            self.trading_calendar,
+            _dispatch_session_reader,
+            self._adjustment_reader
         )
         self._minute_history_loader = MinuteHistoryLoader(
             self.trading_calendar,
-            self._equity_minute_reader,
+            _dispatch_minute_reader,
             self._adjustment_reader
         )
 
@@ -178,6 +218,27 @@ class DataPortal(object):
             )
             if self._first_trading_minute is not None else None
         )
+
+    def _ensure_reader_aligned(self, reader):
+        if reader is None:
+            return
+
+        if reader.trading_calendar.name == self.trading_calendar.name:
+            return reader
+        elif reader.data_frequency == 'minute':
+            return ReindexMinuteBarReader(
+                self.trading_calendar,
+                reader,
+                self._first_trading_session,
+                self._last_trading_session
+            )
+        elif reader.data_frequency == 'session':
+            return ReindexSessionBarReader(
+                self.trading_calendar,
+                reader,
+                self._first_trading_session,
+                self._last_trading_session
+            )
 
     def _reindex_extra_source(self, df, source_date_index):
         return df.reindex(index=source_date_index, method='ffill')
@@ -263,8 +324,8 @@ class DataPortal(object):
 
         self._extra_source_df = extra_source_df
 
-    def _get_pricing_reader(self, asset, data_frequency):
-        return self._pricing_readers[type(asset)][data_frequency]
+    def _get_pricing_reader(self, data_frequency):
+        return self._pricing_readers[data_frequency]
 
     def get_last_traded_dt(self, asset, dt, data_frequency):
         """
@@ -273,8 +334,8 @@ class DataPortal(object):
 
         If there is a trade on the dt, the answer is dt provided.
         """
-        return self._get_pricing_reader(asset, data_frequency).\
-            get_last_traded_dt(asset, dt)
+        return self._get_pricing_reader(data_frequency).get_last_traded_dt(
+            asset, dt)
 
     @staticmethod
     def _is_extra_source(asset, field, map):
@@ -471,7 +532,7 @@ class DataPortal(object):
         return spot_value
 
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
-        reader = self._get_pricing_reader(asset, 'minute')
+        reader = self._get_pricing_reader('minute')
         result = reader.get_value(
             asset.sid, dt, column
         )
@@ -510,7 +571,7 @@ class DataPortal(object):
         )
 
     def _get_daily_data(self, asset, column, dt):
-        reader = self._pricing_readers[type(asset)]['daily']
+        reader = self._get_pricing_reader('daily')
         if column == "last_traded":
             last_traded_dt = reader.get_last_traded_dt(asset, dt)
 

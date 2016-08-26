@@ -55,6 +55,12 @@ class BcolzMinuteWriterColumnMismatch(Exception):
 
 class MinuteBarReader(with_metaclass(ABCMeta)):
 
+    _data_frequency = 'minute'
+
+    @property
+    def data_frequency(self):
+        return self._data_frequency
+
     @abstractproperty
     def last_available_dt(self):
         """
