@@ -129,7 +129,8 @@ class RiskMetricsPeriod(object):
         )
         self.sortino = sortino_ratio(
             self.algorithm_returns,
-            self.benchmark_returns
+            self.benchmark_returns,
+            _downside_risk=self.downside_risk
         )
         self.information = information_ratio(
             self.algorithm_returns,
@@ -141,7 +142,8 @@ class RiskMetricsPeriod(object):
         )
         self.alpha = alpha(
             self.algorithm_returns,
-            self.benchmark_returns
+            self.benchmark_returns,
+            _beta=self.beta
         )
         self.excess_return = self.algorithm_period_returns - \
             self.treasury_period_return
