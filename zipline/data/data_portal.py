@@ -634,7 +634,8 @@ class DataPortal(object):
         Internal method that returns a dataframe containing history bars
         of daily frequency for the given sids.
         """
-        days_for_window = self._get_days_for_window(end_dt.date(), bar_count)
+        session = self.trading_calendar.minute_to_session_label(end_dt)
+        days_for_window = self._get_days_for_window(session, bar_count)
 
         if len(assets) == 0:
             return pd.DataFrame(None,

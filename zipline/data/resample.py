@@ -107,12 +107,12 @@ class DailyHistoryAggregator(object):
         self._one_min = pd.Timedelta('1 min').value
 
     def _prelude(self, dt, field):
-        date = dt.date()
+        session = self._trading_calendar.minute_to_session_label(dt)
         dt_value = dt.value
         cache = self._caches[field]
-        if cache is None or cache[0] != date:
-            market_open = self._market_opens.loc[date]
-            cache = self._caches[field] = (dt.date(), market_open, {})
+        if cache is None or cache[0] != session:
+            market_open = self._market_opens.loc[session]
+            cache = self._caches[field] = (session, market_open, {})
 
         _, market_open, entries = cache
         market_open = market_open.tz_localize('UTC')
