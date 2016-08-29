@@ -1242,17 +1242,20 @@ class TradingAlgorithm(object):
 
     @api_method
     @preprocess(root_symbol=ensure_upper_case)
-    def future_chain(self, root_symbol, as_of_date=None):
-        """Look up a future chain with the specified parameters.
+    def future_chain(self, root_symbol, as_of_date=None, offset=0):
+        """
+        Look up a future chain.
 
         Parameters
         ----------
         root_symbol : str
             The root symbol of a future chain.
         as_of_date : datetime.datetime or pandas.Timestamp or str, optional
-            Date at which the chain determination is rooted. I.e. the
-            existing contract whose notice date is first after this date is
-            the primary contract, etc.
+            Date at which the chain determination is rooted. If this date is
+            not passed in, the current simulation session (not minute) is used.
+        offset: int
+            Number of sessions to shift `as_of_date`.  Positive values shift
+             forward in time.  Negative values shift backward in time.
 
         Returns
         -------
@@ -1268,13 +1271,35 @@ class TradingAlgorithm(object):
             try:
                 as_of_date = pd.Timestamp(as_of_date, tz='UTC')
             except ValueError:
-                raise UnsupportedDatetimeFormat(input=as_of_date,
-                                                method='future_chain')
+                raise UnsupportedDatetimeFormat(
+                    input=as_of_date,
+                    method='future_chain'
+                )
+        else:
+            as_of_date = self.trading_calendar.minute_to_session_label(
+                self.get_datetime()
+            )
+
+        if offset != 0:
+            # move as_of_date by offset sessions
+            session_window = self.trading_calendar.sessions_window(
+                as_of_date, offset
+            )
+
+            if offset > 0:
+                as_of_date = session_window[-1]
+            else:
+                as_of_date = session_window[0]
+
+        chain_of_contracts = self.asset_finder.lookup_future_chain(
+            root_symbol,
+            as_of_date
+        )
+
         return FutureChain(
-            asset_finder=self.asset_finder,
-            get_datetime=self.get_datetime,
             root_symbol=root_symbol,
-            as_of_date=as_of_date
+            as_of_date=as_of_date,
+            contracts=chain_of_contracts
         )
 
     def _calculate_order_value_amount(self, asset, value):
