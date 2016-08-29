@@ -1008,6 +1008,10 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
         return carray
 
+    def table_len(self, sid):
+        """Returns the length of the underlying table for this sid."""
+        return len(self._open_minute_file('close', sid))
+
     def get_sid_attr(self, sid, name):
         sid_subdir = _sid_subdir_path(sid)
         sid_path = os.path.join(self._rootdir, sid_subdir)
