@@ -312,6 +312,19 @@ class StatelessRulesTests(RuleTestCase):
                 else:
                     self.assertTrue(should_trigger(minute))
 
+    def test_invalid_offset(self):
+        with self.assertRaises(ValueError):
+            AfterOpen(hours=12, minutes=1)
+
+        with self.assertRaises(ValueError):
+            AfterOpen(hours=0, minutes=0)
+
+        with self.assertRaises(ValueError):
+            BeforeClose(hours=12, minutes=1)
+
+        with self.assertRaises(ValueError):
+            BeforeClose(hours=0, minutes=0)
+
     def test_BeforeClose(self):
         minute_groups = minutes_for_days(self.cal, ordered_days=True)
         should_trigger = self.before_close.should_trigger
