@@ -3,6 +3,7 @@ import itertools
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
+from toolz import merge
 
 from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
 from zipline.pipeline.common import (
@@ -137,10 +138,8 @@ class EstimateTestCase(WithAssetFinder,
             Estimates.fiscal_quarter: FISCAL_QUARTER_FIELD_NAME,
             Estimates.fiscal_year: FISCAL_YEAR_FIELD_NAME,
         }
-        cls.loader = cls.make_loader(
-            events=cls.events,
-            columns=cls.columns
-        )
+        cls.loader = cls.make_loader(cls.events, cls.columns)
+
         cls.ASSET_FINDER_EQUITY_SIDS = list(
             cls.events[SID_FIELD_NAME].unique()
         )
@@ -179,9 +178,9 @@ window_test_cases = [
 
 
 class NextEstimateWindowsTestCase(EstimateTestCase):
-    events = estimates_timeline
     START_DATE = pd.Timestamp('2014-12-31')
     END_DATE = pd.Timestamp('2015-02-15')
+    events = estimates_timeline
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -236,9 +235,9 @@ class NextEstimateWindowsTestCase(EstimateTestCase):
 
 
 class PreviousEstimateWindowsTestCase(EstimateTestCase):
-    events = estimates_timeline
     START_DATE = pd.Timestamp('2014-12-31')
     END_DATE = pd.Timestamp('2015-02-15')
+    events = estimates_timeline
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -362,6 +361,151 @@ class NextEstimateTestCase(EstimateTestCase):
 
     def test_wrong_num_quarters_passed(self):
         self._test_wrong_num_quarters_passed()
+
+
+class NextEstimateMultipleQuartersTestCase(EstimateTestCase):
+    events = pd.DataFrame({
+            SID_FIELD_NAME: [0] * 2,
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-01'),
+                            pd.Timestamp('2015-01-06')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
+                                    pd.Timestamp('2015-01-20')],
+            'estimate': [1., 2.],
+            FISCAL_QUARTER_FIELD_NAME: [1, 2],
+            FISCAL_YEAR_FIELD_NAME: [2015, 2015]
+        })
+
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextQuartersEstimatesLoader(events, columns)
+
+    def test_multiple_qtrs_requested(self):
+        """
+        This test asks for datasets that calculate which estimates to
+        return for multiple quarters out and checks that the returned columns
+        contain data for the correct number of quarters out.
+        """
+        dataset1 = QuartersEstimates(1)
+        dataset2 = QuartersEstimates(2)
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+
+        results = engine.run_pipeline(
+            Pipeline(
+                merge([{c.name + '1': c.latest for c in dataset1.columns},
+                       {c.name + '2': c.latest for c in dataset2.columns}])
+            ),
+            start_date=self.trading_days[0],
+            end_date=self.trading_days[-1],
+        )
+        q1_columns = [col.name + '1' for col in self.columns]
+        q2_columns = [col.name + '2' for col in self.columns]
+
+        # We now expect a column for 1 quarter out and a column for 2
+        # quarters out for each of the dataset columns.
+        assert np.array_equal(sorted(np.array(q1_columns + q2_columns)),
+                              sorted(results.columns.values))
+
+        def check_null_range(start_date, stop_date, col_name):
+            # Make sure that values in the given column/range are all null.
+            assert (
+                results.loc[
+                    start_date:stop_date
+                ][col_name].isnull()
+            ).all()
+
+        def check_values(start_date, end_date, col_name, qtr, event_idx):
+            # Make sure that values in the given column/range are all equal
+            # to the value at the given index from the raw data.
+            assert (
+                results.loc[
+                    start_date:end_date
+                ][col_name + qtr] ==
+                self.events[col_name][event_idx]
+            ).all()
+
+        # Although it's painful to check the ranges one by one for different
+        # columns, it's important to do this so that we have a clear
+        # understanding of how knowledge/event dates interact and give us
+        # values for 1Q out and 2Q out.
+        for col in self.columns:
+            # 1Q out cols
+            check_null_range(self.START_DATE,
+                             pd.Timestamp('2014-12-31'),
+                             col.name + '1')
+            check_values(pd.Timestamp('2015-01-02'),
+                         pd.Timestamp('2015-01-10'),
+                         col.name,
+                         '1',
+                         0)  # First event is our 1Q out
+            check_values(pd.Timestamp('2015-01-11'),
+                         pd.Timestamp('2015-01-20'),
+                         col.name,
+                         '1',
+                         1)  # Second event becomes our 1Q out
+            check_null_range(pd.Timestamp('2015-01-21'),
+                             self.END_DATE,
+                             col.name + '1')
+
+        # Fiscal year and quarter are different for 2Q out because even when we
+        # have no data for 2Q out, we still know which fiscal year/quarter we
+        # want data for as long as we have data for 1Q out.
+        for col in set(self.columns.keys()) - {Estimates.fiscal_year,
+                                               Estimates.fiscal_quarter}:
+            # 2Q out cols
+            check_null_range(self.START_DATE,
+                             pd.Timestamp('2015-01-05'),
+                             col.name + '2')
+            # We have data for 2Q out when our knowledge of
+            # the next quarter and the quarter after that
+            # overlaps and before the next quarter's event
+            # happens.
+            check_values(pd.Timestamp('2015-01-06'),
+                         pd.Timestamp('2015-01-10'),
+                         col.name,
+                         '2',
+                         1)
+            check_null_range(pd.Timestamp('2015-01-11'),
+                             self.END_DATE,
+                             col.name + '2')
+
+        # Check fiscal year/quarter for 2Q out.
+        check_null_range(self.START_DATE,
+                         pd.Timestamp('2015-01-01'),
+                         Estimates.fiscal_quarter.name + '2')
+        check_null_range(self.START_DATE,
+                         pd.Timestamp('2015-01-01'),
+                         Estimates.fiscal_year.name + '2')
+        # We have a different quarter number than the quarter numbers we have
+        # in our data for 2Q out, so assert manually.
+        assert (
+                results.loc[
+                    pd.Timestamp('2015-01-02'):pd.Timestamp('2015-01-10')
+                ][Estimates.fiscal_quarter.name + '2'] ==
+                2
+            ).all()
+        assert (
+                results.loc[
+                    pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-20')
+                ][Estimates.fiscal_quarter.name + '2'] ==
+                3
+            ).all()
+        # We have the same fiscal year, 2-15, for 2Q out over the date range of
+        # interest.
+        check_values(pd.Timestamp('2015-01-02'),
+                     pd.Timestamp('2015-01-20'),
+                     Estimates.fiscal_year.name,
+                     '2',
+                     1)
+        check_null_range(pd.Timestamp('2015-01-21'),
+                         self.END_DATE,
+                         Estimates.fiscal_quarter.name + '2')
+        check_null_range(pd.Timestamp('2015-01-21'),
+                         self.END_DATE,
+                         Estimates.fiscal_year.name + '2')
 
 
 class BlazeNextEstimateLoaderTestCase(NextEstimateTestCase):
