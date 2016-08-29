@@ -1,27 +1,29 @@
 package:
   name: empyrical
-  version: "0.1.9"
+  version: "0.1.10"
 
 source:
-  fn: empyrical-0.1.9.tar.gz
-  url: https://pypi.python.org/packages/15/6b/de1d277d4342d2cecc8134f4935248853f32299cdd9b01728b0ec420c350/empyrical-0.1.9.tar.gz
-  md5: 2c8b928cae192fc9cb8b7104608eec56
+  fn: empyrical-0.1.10.tar.gz
+  url: https://pypi.python.org/packages/2c/b4/658f06c8bc05f847e9ccd6b8131e6e4589bbeb875e239d568a821fd1babc/empyrical-0.1.10.tar.gz
+  md5: cf4439bad083150639ae5b27698c64d4
+
 
 requirements:
   build:
     - python
     - setuptools
-    - numpy x.x
+    - numpy >=1.9.2
     - pandas >=0.16.1
     - scipy >=0.15.1
     - bottleneck >=1.0.0
 
   run:
     - python
-    - numpy x.x
+    - numpy >=1.9.2
     - pandas >=0.16.1
     - scipy >=0.15.1
     - bottleneck >=1.0.0
+
 
 about:
   home: https://github.com/quantopian/empyrical
