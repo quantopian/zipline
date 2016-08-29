@@ -478,19 +478,22 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
             frame = FUTURE_CASES[sid]
             yield sid, frame
 
-    def test_resample(self):
-        calendar = self.trading_calendar
-        session_bar_reader = MinuteResampleSessionBarReader(
-            calendar,
+    def init_instance_fixtures(self):
+        super(TestResampleSessionBars, self).init_instance_fixtures()
+        self.session_bar_reader = MinuteResampleSessionBarReader(
+            self.trading_calendar,
             self.bcolz_future_minute_bar_reader
         )
+
+    def test_resample(self):
+        calendar = self.trading_calendar
         for sid in self.ASSET_FINDER_FUTURE_SIDS:
             case_frame = FUTURE_CASES[sid]
             first = calendar.minute_to_session_label(
                 case_frame.index[0])
             last = calendar.minute_to_session_label(
                 case_frame.index[-1])
-            result = session_bar_reader.load_raw_arrays(
+            result = self.session_bar_reader.load_raw_arrays(
                 OHLCV, first, last, [sid])
             for i, field in enumerate(OHLCV):
                 assert_almost_equal(
@@ -498,12 +501,7 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                     err_msg="sid={0} field={1}".format(sid, field))
 
     def test_sessions(self):
-        calendar = self.trading_calendar
-        session_bar_reader = MinuteResampleSessionBarReader(
-            calendar,
-            self.bcolz_future_minute_bar_reader
-        )
-        sessions = session_bar_reader.sessions
+        sessions = self.session_bar_reader.sessions
 
         self.assertEqual(self.NUM_SESSIONS, len(sessions))
         self.assertEqual(self.START_DATE, sessions[0])
@@ -533,6 +531,10 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                     assert_almost_equal(values[col], result,
                                         err_msg="sid={0} col={1} dt={2}".
                                         format(sid, col, dt))
+
+    def test_first_trading_day(self):
+        self.assertEqual(self.START_DATE,
+                         self.session_bar_reader.first_trading_day)
 
 
 class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
