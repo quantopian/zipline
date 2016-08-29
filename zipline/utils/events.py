@@ -321,7 +321,7 @@ class AfterOpen(StatelessRule):
         # given a dt, find that day's open and period end (open + offset)
         self._period_start, self._period_close = \
             self.cal.open_and_close_for_session(
-                self.cal.minute_to_session_label(dt, direction="none")
+                self.cal.minute_to_session_label(dt)
             )
         self._period_end = self._period_start + self.offset - self._one_minute
 
@@ -396,7 +396,7 @@ class NotHalfDay(StatelessRule):
     A rule that only triggers when it is not a half day.
     """
     def should_trigger(self, dt):
-        return self.cal.minute_to_session_label(dt, direction="none") \
+        return self.cal.minute_to_session_label(dt) \
             not in self.cal.early_closes
 
 
@@ -416,7 +416,7 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        return self.cal.minute_to_session_label(dt, direction="none") in \
+        return self.cal.minute_to_session_label(dt) in \
             self.execution_periods
 
 
@@ -448,7 +448,7 @@ class TradingDayOfMonthRule(six.with_metaclass(ABCMeta, StatelessRule)):
 
     def should_trigger(self, dt):
         # is this market minute's period in the list of execution periods?
-        return self.cal.minute_to_session_label(dt, direction="none") in \
+        return self.cal.minute_to_session_label(dt) in \
             self.execution_periods
 
     @lazyval

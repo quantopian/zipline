@@ -35,7 +35,7 @@ from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
 from .core import tmp_asset_finder, make_simple_equity_info
-from zipline.assets import Equity
+from zipline.assets import Equity, Future
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils.calendars import (
@@ -390,11 +390,11 @@ class WithTradingCalendars(object):
     TRADING_CALENDAR_STRS : iterable
         iterable of identifiers of the calendars to use.
     TRADING_CALENDAR_FOR_ASSET_TYPE : dict
-        A dictionay which maps asset type names to the calendar associated
+        A dictionary which maps asset type names to the calendar associated
         with that asset type.
     """
     TRADING_CALENDAR_STRS = ('NYSE',)
-    TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE'}
+    TRADING_CALENDAR_FOR_ASSET_TYPE = {Equity: 'NYSE', Future: 'us_futures'}
     TRADING_CALENDAR_FOR_EXCHANGE = {}
     # For backwards compatibility, exisitng tests and fixtures refer to
     # `trading_calendar` with the assumption that the value is the NYSE
