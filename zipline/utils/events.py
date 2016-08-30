@@ -90,12 +90,12 @@ def _out_of_range_error(a, b=None, var='offset'):
 def _td_check(td):
     seconds = td.total_seconds()
 
-    # 23400 seconds is 6 hours and 30 minutes.
-    if 60 <= seconds <= 23400:
+    # 43200 seconds = 12 hours
+    if 60 <= seconds <= 43200:
         return td
     else:
-        raise ValueError('offset must be in between 1 minute and 6 hours and'
-                         ' 30 minutes inclusive')
+        raise ValueError('offset must be in between 1 minute and 12 hours, '
+                         'inclusive.')
 
 
 def _build_offset(offset, kwargs, default):
