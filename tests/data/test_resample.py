@@ -61,7 +61,7 @@ NYSE_MINUTES = OrderedDict((
 ))
 
 
-CME_MINUTES = OrderedDict((
+FUT_MINUTES = OrderedDict((
     ('day_0_front', pd.date_range('2016-03-15 18:01',
                                   '2016-03-15 18:03',
                                   freq='min',
@@ -141,7 +141,7 @@ FUTURE_CASES = OrderedDict()
 
 for sid, combos in _FUTURE_CASES:
     frames = [DataFrame(SCENARIOS[s], columns=OHLCV).
-              set_index(CME_MINUTES[m])
+              set_index(FUT_MINUTES[m])
               for s, m in combos]
     FUTURE_CASES[sid] = pd.concat(frames)
 
@@ -463,8 +463,8 @@ class TestMinuteToSession(WithEquityMinuteBarData,
 class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
                               ZiplineTestCase):
 
-    TRADING_CALENDAR_STRS = ('CME',)
-    TRADING_CALENDAR_PRIMARY_CAL = 'CME'
+    TRADING_CALENDAR_STRS = ('us_futures',)
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_FUTURE_SIDS = 1001, 1002, 1003
 
@@ -540,8 +540,8 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
 class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
                             ZiplineTestCase):
 
-    TRADING_CALENDAR_STRS = ('CME', 'NYSE')
-    TRADING_CALENDAR_PRIMARY_CAL = 'CME'
+    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
@@ -609,12 +609,13 @@ class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,
 class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
                              ZiplineTestCase):
 
-    TRADING_CALENDAR_STRS = ('CME', 'NYSE')
-    TRADING_CALENDAR_PRIMARY_CAL = 'CME'
+    TRADING_CALENDAR_STRS = ('us_futures', 'NYSE')
+    TRADING_CALENDAR_PRIMARY_CAL = 'us_futures'
 
     ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
 
-    # Dates are chosen to span Thanksgiving, which is not a Holiday on CME.
+    # Dates are chosen to span Thanksgiving, which is not a Holiday on
+    # us_futures.
     START_DATE = pd.Timestamp('2015-11-01', tz='UTC')
     END_DATE = pd.Timestamp('2015-11-30', tz='UTC')
 
@@ -648,7 +649,7 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             "because Thanksgiving is a NYSE holiday.")
 
         # Thanksgiving, 2015-11-26.
-        # Is a holiday in NYSE, but not in CME.
+        # Is a holiday in NYSE, but not in us_futures.
         tday_loc = outer_sessions.get_loc(pd.Timestamp('2015-11-26', tz='UTC'))
 
         assert_almost_equal(
