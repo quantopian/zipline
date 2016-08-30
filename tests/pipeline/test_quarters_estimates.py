@@ -399,7 +399,7 @@ class EstimateMultipleQuartersTestCase(EstimateTestCase):
     def check_cols(self):
         pass
 
-    def test_multiple_qtrs_requested(self):
+    def _test_multiple_qtrs_requested(self):
         """
         This test asks for datasets that calculate which estimates to
         return for multiple quarters out and checks that the returned columns
@@ -429,8 +429,6 @@ class EstimateMultipleQuartersTestCase(EstimateTestCase):
         assert np.array_equal(sorted(np.array(q1_columns + q2_columns)),
                               sorted(results.columns.values))
 
-        self.check_cols(results)
-
 
 class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
 
@@ -438,7 +436,8 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
 
-    def check_cols(self, results):
+    def test_multiple_next_quarters_requested(self):
+        results = self._test_multiple_qtrs_requested()
         # Although it's painful to check the ranges one by one for different
         # columns, it's important to do this so that we have a clear
         # understanding of how knowledge/event dates interact and give us
@@ -540,7 +539,8 @@ class PreviousEstimateMultipleQuartersTestCase(
     def make_loader(cls, events, columns):
         return PreviousQuartersEstimatesLoader(events, columns)
 
-    def check_cols(self, results):
+    def test_multiple_next_quarters_requested(self):
+        results = self._test_multiple_qtrs_requested()
         # Although it's painful to check the ranges one by one for different
         # columns, it's important to do this so that we have a clear
         # understanding of how knowledge/event dates interact and give us

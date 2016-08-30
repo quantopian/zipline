@@ -1102,7 +1102,7 @@ class BlazeLoader(dict):
                                           dates,
                                           assets,
                                           reindex=True)
-        ffill_across_cols(dense_output, columns)
+        ffill_across_cols(dense_output, columns, {c: c.name for c in columns})
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity

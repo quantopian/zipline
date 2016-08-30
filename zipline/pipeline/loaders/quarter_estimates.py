@@ -313,7 +313,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             )
 
             # Forward fill values for each quarter/sid/dataset column.
-            ffill_across_cols(last_per_qtr, columns)
+            ffill_across_cols(last_per_qtr, columns, name_map)
             # Stack quarter and sid into the index.
             stacked_last_per_qtr = last_per_qtr.stack([NORMALIZED_QUARTERS,
                                                        SID_FIELD_NAME])
