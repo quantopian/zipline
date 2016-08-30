@@ -6,7 +6,11 @@ from zipline.pipeline.loaders.utils import (
 )
 
 
-def load_raw_data(assets, dates, data_query_time, data_query_tz, expr,
+def load_raw_data(assets,
+                  dates,
+                  data_query_time,
+                  data_query_tz,
+                  expr,
                   odo_kwargs):
     """
     given an expression representing data to load, perform normalization and
@@ -25,13 +29,14 @@ def load_raw_data(assets, dates, data_query_time, data_query_tz, expr,
         `time`.
     expr : expr
         the expression representing the data to load.
-    odo_kwargs : dict, optional
+    odo_kwargs : dict
         extra keyword arguments to pass to odo when executing the expression.
 
     returns
     -------
     raw : pd.dataframe
-        the data symbolized by `expr` materialized in a dataframe.
+        The result of computing expr and materializing the result as a
+        dataframe.
     """
     lower_dt, upper_dt = normalize_data_query_bounds(
         dates[0],
@@ -45,7 +50,7 @@ def load_raw_data(assets, dates, data_query_time, data_query_tz, expr,
         upper_dt,
         odo_kwargs,
     )
-    sids = raw.loc[:, SID_FIELD_NAME]
+    sids = raw[SID_FIELD_NAME]
     raw.drop(
         sids[~sids.isin(assets)].index,
         inplace=True

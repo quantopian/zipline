@@ -276,7 +276,7 @@ def check_data_query_args(data_query_time, data_query_tz):
         )
 
 
-def last_in_date_group(df, reindex, dates, assets, have_sids=True,
+def last_in_date_group(df, dates, assets, reindex=True, have_sids=True,
                        extra_groupers=[]):
     """
     Determine the last piece of information known on each date in the date
@@ -286,14 +286,14 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
     ----------
     df : pd.DataFrame
         The DataFrame containing the data to be grouped.
-    reindex : bool
-        Whether or not the DataFrame should be reindexed against the date
-        index. This will add back any dates to the index that were grouped
-        away.
     dates : pd.DatetimeIndex
         The dates to use for grouping and reindexing.
     assets : pd.Int64Index
         The assets that should be included in the column multiindex.
+    reindex : bool
+        Whether or not the DataFrame should be reindexed against the date
+        index. This will add back any dates to the index that were grouped
+        away.
     have_sids : bool
         Whether or not the DataFrame has sids. If it does, they will be used
         in the groupby.
@@ -307,11 +307,11 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
         levels of a multiindex of columns.
 
     """
-    idx = dates[dates.searchsorted(
+    idx = [dates[dates.searchsorted(
         df[TS_FIELD_NAME].values.astype('datetime64[D]')
-    )]
+    )]]
     if have_sids:
-        idx = [idx, SID_FIELD_NAME]
+        idx += [SID_FIELD_NAME]
     idx += extra_groupers
 
     last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
@@ -321,7 +321,7 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
 
     # For the number of things that we're grouping by (except TS), unstack
     # the df
-    last_in_group = last_in_group.unstack([-1, -2])
+    last_in_group = last_in_group.unstack(list(range(-1, -len(idx), -1)))
 
     if reindex:
         if have_sids:
@@ -339,7 +339,7 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
     return last_in_group
 
 
-def ffill_across_cols(df, columns):
+def ffill_across_cols(df, columns, name_map):
     """
     Forward fill values in a DataFrame with special logic to handle cases
     that pd.DataFrame.ffill cannot and cast columns to appropriate types.
@@ -351,6 +351,9 @@ def ffill_across_cols(df, columns):
     columns : list of BoundColumn
         The BoundColumns that correspond to columns in the DataFrame to which
         special filling and/or casting logic should be applied.
+    name_map: map of string -> string
+        Mapping from the name of each BoundColumn to the associated column
+        name in `df`.
     """
     df.ffill(inplace=True)
 
@@ -369,18 +372,19 @@ def ffill_across_cols(df, columns):
     #    pandas to replace NaNs in an object column with None using fillna,
     #    so we have to roll our own instead using df.where.
     for column in columns:
+        column_name = name_map[column.name]
         # Special logic for strings since `fillna` doesn't work if the
         # missing value is `None`.
         if column.dtype == categorical_dtype:
-            df[column.name] = df[
+            df[column_name] = df[
                 column.name
-            ].where(pd.notnull(df[column.name]),
+            ].where(pd.notnull(df[column_name]),
                     column.missing_value)
         else:
             # We need to execute `fillna` before `astype` in case the
             # column contains NaNs and needs to be cast to bool or int.
             # This is so that the NaNs are replaced first, since pandas
             # can't convert NaNs for those types.
-            df[column.name] = df[
-                column.name
+            df[column_name] = df[
+                column_name
             ].fillna(column.missing_value).astype(column.dtype)
