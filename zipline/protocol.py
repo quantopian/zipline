@@ -61,16 +61,7 @@ class Event(object):
 
     def __init__(self, initial_values=None):
         if initial_values:
-            self.__dict__ = initial_values
-
-    def __getitem__(self, name):
-        return getattr(self, name)
-
-    def __setitem__(self, name, value):
-        setattr(self, name, value)
-
-    def __delitem__(self, name):
-        delattr(self, name)
+            self.__dict__.update(initial_values)
 
     def keys(self):
         return self.__dict__.keys()
@@ -105,9 +96,6 @@ class Portfolio(object):
         self.start_date = None
         self.positions_value = 0.0
 
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
 
@@ -139,9 +127,6 @@ class Account(object):
         self.net_leverage = 0.0
         self.net_liquidation = 0.0
 
-    def __getitem__(self, key):
-        return self.__dict__[key]
-
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
@@ -154,9 +139,6 @@ class Position(object):
         self.cost_basis = 0.0  # per share
         self.last_sale_price = 0.0
         self.last_sale_date = None
-
-    def __getitem__(self, key):
-        return self.__dict__[key]
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)

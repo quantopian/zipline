@@ -591,11 +591,11 @@ def trades_by_sid_to_dfs(trades_by_sid, index):
         closes = []
         volumes = []
         for trade in trades:
-            opens.append(trade["open_price"])
-            highs.append(trade["high"])
-            lows.append(trade["low"])
-            closes.append(trade["close_price"])
-            volumes.append(trade["volume"])
+            opens.append(trade.open_price)
+            highs.append(trade.high)
+            lows.append(trade.low)
+            closes.append(trade.close_price)
+            volumes.append(trade.volume)
 
         yield sidint, pd.DataFrame(
             {

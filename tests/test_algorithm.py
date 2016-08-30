@@ -1406,9 +1406,10 @@ class TestBeforeTradingStart(WithDataPortal,
                     assert (context.hd_portfolio.__dict__[k]
                             == bts_portfolio.__dict__[k])
             record(pos_value=bts_portfolio.positions_value)
-            record(pos_amount=bts_portfolio.positions[sid(3)]['amount'])
-            record(last_sale_price=bts_portfolio.positions[sid(3)]
-                   ['last_sale_price'])
+            record(pos_amount=bts_portfolio.positions[sid(3)].amount)
+            record(
+                last_sale_price=bts_portfolio.positions[sid(3)].last_sale_price
+            )
         def handle_data(context, data):
             if not context.ordered:
                 order(sid(3), 1)
