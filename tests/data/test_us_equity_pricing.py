@@ -30,7 +30,8 @@ from pandas.util.testing import assert_index_equal
 
 from zipline.data.us_equity_pricing import (
     BcolzDailyBarReader,
-    NoDataOnDate,
+    NoDataBeforeDate,
+    NoDataAfterDate,
 )
 from zipline.pipeline.loaders.synthetic import (
     OHLCV,
@@ -316,11 +317,11 @@ class BcolzDailyBarTestCase(WithBcolzEquityDailyBarReader, ZiplineTestCase):
         table = self.bcolz_daily_bar_ctable
         reader = BcolzDailyBarReader(table)
         # before
-        with self.assertRaises(NoDataOnDate):
+        with self.assertRaises(NoDataBeforeDate):
             reader.get_value(2, Timestamp('2015-06-08', tz='UTC'), 'close')
 
         # after
-        with self.assertRaises(NoDataOnDate):
+        with self.assertRaises(NoDataAfterDate):
             reader.get_value(4, Timestamp('2015-06-16', tz='UTC'), 'close')
 
     def test_unadjusted_get_value_empty_value(self):

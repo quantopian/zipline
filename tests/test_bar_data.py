@@ -15,6 +15,8 @@
 from datetime import timedelta
 from nose_parameterized import parameterized
 import numpy as np
+from numpy import nan
+from numpy.testing import assert_almost_equal
 import pandas as pd
 
 from zipline._protocol import handle_non_market_minutes
@@ -600,7 +602,7 @@ class TestDailyBarData(WithBarDataChecks,
                        ZiplineTestCase):
     START_DATE = pd.Timestamp('2016-01-05', tz='UTC')
     END_DATE = ASSET_FINDER_EQUITY_END_DATE = pd.Timestamp(
-        '2016-01-08',
+        '2016-01-11',
         tz='UTC',
     )
 
@@ -612,6 +614,12 @@ class TestDailyBarData(WithBarDataChecks,
     ILLIQUID_MERGER_ASSET_SID = 6
     DIVIDEND_ASSET_SID = 7
     ILLIQUID_DIVIDEND_ASSET_SID = 8
+
+    @classmethod
+    def make_equity_info(cls):
+        frame = super(TestDailyBarData, cls).make_equity_info()
+        frame.loc[[1, 2], 'end_date'] = pd.Timestamp('2016-01-08', tz='UTC')
+        return frame
 
     @classmethod
     def make_splits_data(cls):
@@ -688,10 +696,11 @@ class TestDailyBarData(WithBarDataChecks,
     @classmethod
     def make_equity_daily_bar_data(cls):
         for sid in cls.sids:
+            asset = cls.asset_finder.retrieve_asset(sid)
             yield sid, create_daily_df_for_asset(
                 cls.trading_calendar,
-                cls.equity_daily_bar_days[0],
-                cls.equity_daily_bar_days[-1],
+                asset.start_date,
+                asset.end_date,
                 interval=2 - sid % 2
             )
 
@@ -829,25 +838,31 @@ class TestDailyBarData(WithBarDataChecks,
         self.check_internal_consistency(bar_data)
 
         for asset in self.ASSETS:
-            self.assertTrue(bar_data.can_trade(asset))
+            if asset in (1, 2):
+                self.assertFalse(bar_data.can_trade(asset))
+            else:
+                self.assertTrue(bar_data.can_trade(asset))
             self.assertFalse(bar_data.is_stale(asset))
 
-            self.assertEqual(6, bar_data.current(asset, "open"))
-            self.assertEqual(7, bar_data.current(asset, "high"))
-            self.assertEqual(4, bar_data.current(asset, "low"))
-            self.assertEqual(5, bar_data.current(asset, "close"))
-            self.assertEqual(500, bar_data.current(asset, "volume"))
-            self.assertEqual(5, bar_data.current(asset, "price"))
+            if asset in (1, 2):
+                assert_almost_equal(nan, bar_data.current(asset, "open"))
+                assert_almost_equal(nan, bar_data.current(asset, "high"))
+                assert_almost_equal(nan, bar_data.current(asset, "low"))
+                assert_almost_equal(nan, bar_data.current(asset, "close"))
+                assert_almost_equal(0, bar_data.current(asset, "volume"))
+                assert_almost_equal(nan, bar_data.current(asset, "price"))
+            else:
+                self.assertEqual(6, bar_data.current(asset, "open"))
+                self.assertEqual(7, bar_data.current(asset, "high"))
+                self.assertEqual(4, bar_data.current(asset, "low"))
+                self.assertEqual(5, bar_data.current(asset, "close"))
+                self.assertEqual(500, bar_data.current(asset, "volume"))
+                self.assertEqual(5, bar_data.current(asset, "price"))
 
     def test_after_assets_dead(self):
-        # both assets end on self.day[-1], so let's try the next day
-        minute = self.get_last_minute_of_session(
-            self.trading_calendar.next_session_label(
-                self.equity_daily_bar_days[-1]
-            )
-        )
+        session = self.END_DATE
 
-        bar_data = BarData(self.data_portal, lambda: minute, "daily")
+        bar_data = BarData(self.data_portal, lambda: session, "daily")
         self.check_internal_consistency(bar_data)
 
         for asset in self.ASSETS:
@@ -861,11 +876,9 @@ class TestDailyBarData(WithBarDataChecks,
 
             last_traded_dt = bar_data.current(asset, "last_traded")
 
-            if asset == self.ASSET1:
-                self.assertEqual(self.equity_daily_bar_days[-2],
+            if asset in (self.ASSET1, self.ASSET2):
+                self.assertEqual(self.equity_daily_bar_days[3],
                                  last_traded_dt)
-            else:
-                self.assertEqual(self.equity_daily_bar_days[1], last_traded_dt)
 
     @parameterized.expand([
         ("split", 2, 3, 3, 1.5),
