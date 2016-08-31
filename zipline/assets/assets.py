@@ -1,4 +1,4 @@
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ from .asset_db_schema import (
     ASSET_DB_VERSION
 )
 from zipline.utils.control_flow import invert
-from zipline.utils.memoize import lazyval
+from zipline.utils.memoize import lazyval, weak_lru_cache
 from zipline.utils.numpy_utils import as_column
 from zipline.utils.preprocess import preprocess
 from zipline.utils.sqlite_utils import group_into_chunks, coerce_string_to_eng
@@ -762,7 +762,6 @@ class AssetFinder(object):
             Raised when a future chain could not be found for the given
             root symbol.
         """
-
         fc_cols = self.futures_contracts.c
 
         if as_of_date is pd.NaT:
@@ -776,60 +775,10 @@ class AssetFinder(object):
                     fc_cols.notice_date.asc(),
                 ).execute().fetchall()))
         else:
-            as_of_date = as_of_date.value
-
-            sids = list(map(
-                itemgetter('sid'),
-                sa.select((fc_cols.sid,)).where(
-                    (fc_cols.root_symbol == root_symbol) &
-
-                    # Filter to contracts that are still valid. If both
-                    # exist, use the one that comes first in time (i.e.
-                    # the lower value). If either notice_date or
-                    # expiration_date is NaT, use the other. If both are
-                    # NaT, the contract cannot be included in any chain.
-                    sa.case(
-                        [
-                            (
-                                fc_cols.notice_date == pd.NaT.value,
-                                fc_cols.expiration_date >= as_of_date
-                            ),
-                            (
-                                fc_cols.expiration_date == pd.NaT.value,
-                                fc_cols.notice_date >= as_of_date
-                            )
-                        ],
-                        else_=(
-                            sa.func.min(
-                                fc_cols.notice_date,
-                                fc_cols.expiration_date
-                            ) >= as_of_date
-                        )
-                    )
-                ).order_by(
-                    # If both dates exist sort using minimum of
-                    # expiration_date and notice_date
-                    # else if one is NaT use the other.
-                    sa.case(
-                        [
-                            (
-                                fc_cols.expiration_date == pd.NaT.value,
-                                fc_cols.notice_date
-                            ),
-                            (
-                                fc_cols.notice_date == pd.NaT.value,
-                                fc_cols.expiration_date
-                            )
-                        ],
-                        else_=(
-                            sa.func.min(
-                                fc_cols.notice_date,
-                                fc_cols.expiration_date
-                            )
-                        )
-                    ).asc()
-                ).execute().fetchall()
-            ))
+            sids = self._get_future_sids_for_root_symbol(
+                root_symbol,
+                as_of_date.value
+            )
 
         if not sids:
             # Check if root symbol exists.
@@ -841,6 +790,63 @@ class AssetFinder(object):
 
         contracts = self.retrieve_futures_contracts(sids)
         return [contracts[sid] for sid in sids]
+
+    @weak_lru_cache(100)
+    def _get_future_sids_for_root_symbol(self, root_symbol, as_of_date_ns):
+        fc_cols = self.futures_contracts.c
+
+        return list(map(
+            itemgetter('sid'),
+            sa.select((fc_cols.sid,)).where(
+                (fc_cols.root_symbol == root_symbol) &
+
+                # Filter to contracts that are still valid. If both
+                # exist, use the one that comes first in time (i.e.
+                # the lower value). If either notice_date or
+                # expiration_date is NaT, use the other. If both are
+                # NaT, the contract cannot be included in any chain.
+                sa.case(
+                    [
+                        (
+                            fc_cols.notice_date == pd.NaT.value,
+                            fc_cols.expiration_date >= as_of_date_ns
+                        ),
+                        (
+                            fc_cols.expiration_date == pd.NaT.value,
+                            fc_cols.notice_date >= as_of_date_ns
+                        )
+                    ],
+                    else_=(
+                        sa.func.min(
+                            fc_cols.notice_date,
+                            fc_cols.expiration_date
+                        ) >= as_of_date_ns
+                    )
+                )
+            ).order_by(
+                # If both dates exist sort using minimum of
+                # expiration_date and notice_date
+                # else if one is NaT use the other.
+                sa.case(
+                    [
+                        (
+                            fc_cols.expiration_date == pd.NaT.value,
+                            fc_cols.notice_date
+                        ),
+                        (
+                            fc_cols.notice_date == pd.NaT.value,
+                            fc_cols.expiration_date
+                        )
+                    ],
+                    else_=(
+                        sa.func.min(
+                            fc_cols.notice_date,
+                            fc_cols.expiration_date
+                        )
+                    )
+                ).asc()
+            ).execute().fetchall()
+        ))
 
     def lookup_expired_futures(self, start, end):
         if not isinstance(start, pd.Timestamp):
