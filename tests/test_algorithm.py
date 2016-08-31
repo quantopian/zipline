@@ -726,9 +726,51 @@ def log_nyse_close(context, data):
         with self.assertRaises(TypeError):
             algo.future_symbol({'foo': 'bar'})
 
+    def test_future_chain_offset(self):
+        # November 2006         December 2006
+        # Su Mo Tu We Th Fr Sa  Su Mo Tu We Th Fr Sa
+        #           1  2  3  4                  1  2
+        #  5  6  7  8  9 10 11   3  4  5  6  7  8  9
+        # 12 13 14 15 16 17 18  10 11 12 13 14 15 16
+        # 19 20 21 22 23 24 25  17 18 19 20 21 22 23
+        # 26 27 28 29 30        24 25 26 27 28 29 30
+        #                       31
+
+        algo = TradingAlgorithm(env=self.env)
+        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
+
+        self.assertEqual(
+            algo.future_chain('CL', offset=1).as_of_date,
+            pd.Timestamp("2006-12-04", tz='UTC')
+        )
+
+        self.assertEqual(
+            algo.future_chain("CL", offset=5).as_of_date,
+            pd.Timestamp("2006-12-08", tz='UTC')
+        )
+
+        self.assertEqual(
+            algo.future_chain("CL", offset=-10).as_of_date,
+            pd.Timestamp("2006-11-16", tz='UTC')
+        )
+
+        # September 2016
+        # Su Mo Tu We Th Fr Sa
+        #              1  2  3
+        #  4  5  6  7  8  9 10
+        # 11 12 13 14 15 16 17
+        # 18 19 20 21 22 23 24
+        # 25 26 27 28 29 30
+        self.assertEqual(
+            algo.future_chain(
+                "CL",
+                as_of_date=pd.Timestamp("2016-08-31", tz='UTC'),
+                offset=10
+            ).as_of_date,
+            pd.Timestamp("2016-09-15", tz='UTC')
+        )
+
     def test_future_chain(self):
-        """ Tests the future_chain API function.
-        """
         algo = TradingAlgorithm(env=self.env)
         algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
 
