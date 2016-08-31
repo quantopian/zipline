@@ -1,12 +1,11 @@
 package:
   name: empyrical
-  version: "0.1.10"
+  version: "0.1.11"
 
 source:
-  fn: empyrical-0.1.10.tar.gz
-  url: https://pypi.python.org/packages/2c/b4/658f06c8bc05f847e9ccd6b8131e6e4589bbeb875e239d568a821fd1babc/empyrical-0.1.10.tar.gz
-  md5: cf4439bad083150639ae5b27698c64d4
-
+  fn: empyrical-0.1.11.tar.gz
+  url: https://pypi.python.org/packages/df/82/c4050b0fe341db97430b2de7ae736d89a2ddb78636d3e0235aef1b7499d5/empyrical-0.1.11.tar.gz
+  md5: fbd543416d204688146f13f325ca8731
 
 requirements:
   build:
