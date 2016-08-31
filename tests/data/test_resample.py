@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from unittest import skip
+
 from collections import OrderedDict
 from numbers import Real
 
@@ -619,18 +621,21 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
     START_DATE = pd.Timestamp('2015-11-01', tz='UTC')
     END_DATE = pd.Timestamp('2015-11-30', tz='UTC')
 
-    def test_load_raw_arrays(self):
-        reindex_reader = ReindexSessionBarReader(
+    def init_instance_fixtures(self):
+        super(TestReindexSessionBars, self).init_instance_fixtures()
+
+        self.reader = ReindexSessionBarReader(
             self.trading_calendar,
             self.bcolz_equity_daily_bar_reader,
             self.START_DATE,
             self.END_DATE,
         )
 
+    def test_load_raw_arrays(self):
         outer_sessions = self.trading_calendar.sessions_in_range(
             self.START_DATE, self.END_DATE)
 
-        result = reindex_reader.load_raw_arrays(
+        result = self.reader.load_raw_arrays(
             OHLCV, self.START_DATE, self.END_DATE, [1, 2])
 
         opens = DataFrame(data=result[0], index=outer_sessions,
@@ -657,3 +662,16 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             opens[1][tday_loc],
             err_msg="2015-11-26 should be `nan`, since Thanksgiving is a "
             "holiday in the reader's calendar.")
+
+    def test_last_availabe_dt(self):
+        self.assertEqual(self.reader.last_available_dt, self.END_DATE)
+
+    @skip("This test revealed a bug in BcolzDailyBarReader.get_last_traded_dt."
+          " When requesting data on the last session of an asset, the date is "
+          "overriden by the previous day. When that errant handling is this "
+          "test should be enabled.")
+    def test_get_last_traded_dt(self):
+        asset = self.asset_finder.retrieve_asset(1)
+        self.assertEqual(self.reader.get_last_traded_dt(asset,
+                                                        self.END_DATE),
+                         self.END_DATE)
