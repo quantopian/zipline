@@ -88,19 +88,20 @@ class SecurityListSet(object):
     # list implementations.
     security_list_type = SecurityList
 
-    def __init__(self, current_date_func, asset_finder):
+    def __init__(self,
+                 current_date_func,
+                 asset_finder,
+                 leveraged_etf_data):
         self.current_date_func = current_date_func
         self.asset_finder = asset_finder
-        self._leveraged_etf = None
+        self._leveraged_etf = self.security_list_type(
+            leveraged_etf_data,
+            self.current_date_func,
+            asset_finder=self.asset_finder
+        )
 
     @property
     def leveraged_etf_list(self):
-        if self._leveraged_etf is None:
-            self._leveraged_etf = self.security_list_type(
-                load_from_directory('leveraged_etf_list'),
-                self.current_date_func,
-                asset_finder=self.asset_finder
-            )
         return self._leveraged_etf
 
 
