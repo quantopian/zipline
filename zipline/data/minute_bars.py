@@ -891,6 +891,14 @@ class BcolzMinuteBarReader(MinuteBarReader):
         self._last_get_value_dt_position = None
         self._last_get_value_dt_value = None
 
+        # This is to avoid any bad data or other performance-killing situation
+        # where there a consecutive streak of 0 (no volume) starting at an
+        # asset's start date.
+        # if asset 1 started on 2015-01-03 but its first trade is 2015-01-06
+        # 10:31 AM US/Eastern, this dict would store {1: 23675971},
+        # which is the minute epoch of that date.
+        self._known_zero_volume_dict = {}
+
     def _get_metadata(self):
         return BcolzMinuteBarMetadata.read(self._rootdir)
 
@@ -1078,20 +1086,40 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
     def _find_last_traded_position(self, asset, dt):
         volumes = self._open_minute_file('volume', asset)
-        start_date_minutes = asset.start_date.value / NANOS_IN_MINUTE
-        dt_minutes = dt.value / NANOS_IN_MINUTE
+        start_date_minute = asset.start_date.value / NANOS_IN_MINUTE
+        dt_minute = dt.value / NANOS_IN_MINUTE
 
-        if dt_minutes < start_date_minutes:
+        try:
+            # if we know of a dt before which this asset has no volume,
+            # don't look before that dt
+            earliest_dt_to_search = self._known_zero_volume_dict[asset.sid]
+        except KeyError:
+            earliest_dt_to_search = start_date_minute
+
+        if dt_minute < earliest_dt_to_search:
             return -1
 
-        return find_last_traded_position_internal(
+        pos = find_last_traded_position_internal(
             self._market_open_values,
             self._market_close_values,
-            dt_minutes,
-            start_date_minutes,
+            dt_minute,
+            earliest_dt_to_search,
             volumes,
             self._minutes_per_day,
         )
+
+        if pos == -1:
+            # if we didn't find any volume before this dt, save it to avoid
+            # work in the future.
+            try:
+                self._known_zero_volume_dict[asset.sid] = max(
+                    dt_minute,
+                    self._known_zero_volume_dict[asset.sid]
+                )
+            except KeyError:
+                self._known_zero_volume_dict[asset.sid] = dt_minute
+
+        return pos
 
     def _pos_to_minute(self, pos):
         minute_epoch = minute_value(
