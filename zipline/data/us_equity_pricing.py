@@ -106,6 +106,14 @@ class NoDataOnDate(Exception):
     pass
 
 
+class NoDataBeforeDate(Exception):
+    pass
+
+
+class NoDataAfterDate(Exception):
+    pass
+
+
 def check_uint32_safe(value, colname):
     if value >= UINT32_MAX:
         raise ValueError(
@@ -631,19 +639,20 @@ class BcolzDailyBarReader(SessionBarReader):
     def get_last_traded_dt(self, asset, day):
         volumes = self._spot_col('volume')
 
-        if day >= asset.end_date:
-            # go back to one day before the asset ended
-            search_day = self.sessions[
-                self.sessions.searchsorted(asset.end_date) - 1
-            ]
-        else:
-            search_day = day
+        search_day = day
 
         while True:
             try:
                 ix = self.sid_day_index(asset, search_day)
             except NoDataOnDate:
                 return None
+            except NoDataBeforeDate:
+                return None
+            except NoDataAfterDate:
+                prev_day_ix = self.sessions.get_loc(search_day) - 1
+                if prev_day_ix > -1:
+                    search_day = self.sessions[prev_day_ix]
+                continue
             if volumes[ix] != 0:
                 return search_day
             prev_day_ix = self.sessions.get_loc(search_day) - 1
@@ -675,12 +684,12 @@ class BcolzDailyBarReader(SessionBarReader):
                 day, self.sessions))
         offset = day_loc - self._calendar_offsets[sid]
         if offset < 0:
-            raise NoDataOnDate(
+            raise NoDataBeforeDate(
                 "No data on or before day={0} for sid={1}".format(
                     day, sid))
         ix = self._first_rows[sid] + offset
         if ix > self._last_rows[sid]:
-            raise NoDataOnDate(
+            raise NoDataAfterDate(
                 "No data on or after day={0} for sid={1}".format(
                     day, sid))
         return ix

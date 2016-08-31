@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unittest import skip
-
 from collections import OrderedDict
 from numbers import Real
 
@@ -666,10 +664,6 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
     def test_last_availabe_dt(self):
         self.assertEqual(self.reader.last_available_dt, self.END_DATE)
 
-    @skip("This test revealed a bug in BcolzDailyBarReader.get_last_traded_dt."
-          " When requesting data on the last session of an asset, the date is "
-          "overriden by the previous day. When that errant handling is this "
-          "test should be enabled.")
     def test_get_last_traded_dt(self):
         asset = self.asset_finder.retrieve_asset(1)
         self.assertEqual(self.reader.get_last_traded_dt(asset,
