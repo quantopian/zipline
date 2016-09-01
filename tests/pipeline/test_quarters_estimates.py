@@ -120,9 +120,7 @@ def gen_estimates():
     return pd.concat(sid_estimates + sid_releases).reset_index(drop=True)
 
 
-class EstimateTestCase(WithAssetFinder,
-                       WithTradingSessions,
-                       ZiplineTestCase):
+class EstimateTestCase(object):
     START_DATE = pd.Timestamp('2014-12-28')
     END_DATE = pd.Timestamp('2015-02-03')
 
@@ -178,7 +176,10 @@ window_test_cases = [
 ]
 
 
-class NextEstimateWindowsTestCase(EstimateTestCase):
+class NextEstimateWindowsTestCase(EstimateTestCase,
+                                  WithAssetFinder,
+                                  WithTradingSessions,
+                                  ZiplineTestCase):
     START_DATE = pd.Timestamp('2014-12-31')
     END_DATE = pd.Timestamp('2015-02-15')
     events = estimates_timeline
@@ -235,7 +236,10 @@ class NextEstimateWindowsTestCase(EstimateTestCase):
         )
 
 
-class PreviousEstimateWindowsTestCase(EstimateTestCase):
+class PreviousEstimateWindowsTestCase(EstimateTestCase,
+                                      WithAssetFinder,
+                                      WithTradingSessions,
+                                      ZiplineTestCase):
     START_DATE = pd.Timestamp('2014-12-31')
     END_DATE = pd.Timestamp('2015-02-15')
     events = estimates_timeline
@@ -294,7 +298,10 @@ class PreviousEstimateWindowsTestCase(EstimateTestCase):
         )
 
 
-class NextEstimateTestCase(EstimateTestCase):
+class NextEstimateTestCase(EstimateTestCase,
+                           WithAssetFinder,
+                           WithTradingSessions,
+                           ZiplineTestCase):
     events = gen_estimates()
 
     @classmethod
@@ -364,7 +371,10 @@ class NextEstimateTestCase(EstimateTestCase):
         self._test_wrong_num_quarters_passed()
 
 
-class EstimateMultipleQuartersTestCase(EstimateTestCase):
+class EstimateMultipleQuartersTestCase(EstimateTestCase,
+                                       WithAssetFinder,
+                                       WithTradingSessions,
+                                       ZiplineTestCase):
     events = pd.DataFrame({
         SID_FIELD_NAME: [0] * 2,
         TS_FIELD_NAME: [pd.Timestamp('2015-01-01'),
@@ -634,7 +644,10 @@ class BlazeNextEstimateLoaderTestCase(NextEstimateTestCase):
         )
 
 
-class PreviousEstimateTestCase(EstimateTestCase):
+class PreviousEstimateTestCase(EstimateTestCase,
+                               WithAssetFinder,
+                               WithTradingSessions,
+                               ZiplineTestCase):
     events = gen_estimates()
 
     @classmethod
