@@ -23,7 +23,6 @@ from six import iteritems
 from six.moves.urllib_error import HTTPError
 
 from .benchmarks import get_benchmark_returns
-from . import treasuries, treasuries_can
 from ..utils.paths import (
     cache_root,
     data_root,
@@ -32,16 +31,6 @@ from ..utils.deprecate import deprecated
 from zipline.utils.calendars import get_calendar
 
 logger = logbook.Logger('Loader')
-
-# Mapping from index symbol to appropriate bond data
-INDEX_MAPPING = {
-    '^GSPC':
-    (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
-    '^GSPTSE':
-    (treasuries_can, 'treasury_curves_can.csv', 'bankofcanada.ca'),
-    '^FTSE':  # use US treasuries until UK bonds implemented
-    (treasuries, 'treasury_curves.csv', 'www.federalreserve.gov'),
-}
 
 ONE_HOUR = pd.Timedelta(hours=1)
 
@@ -125,16 +114,13 @@ def load_market_data(trading_day=trading_day_nyse,
 
     Returns
     -------
-    (benchmark_returns, treasury_curves) : (pd.Series, pd.DataFrame)
+    benchmark_returns : pd.Series
 
     Notes
     -----
 
     Both return values are DatetimeIndexed with values dated to midnight in UTC
-    of each stored date.  The columns of `treasury_curves` are:
-
-    '1month', '3month', '6month',
-    '1year','2year','3year','5year','7year','10year','20year','30year'
+    of each stored date.
     """
     first_date = trading_days[0]
     now = pd.Timestamp.utcnow()
@@ -164,15 +150,8 @@ def load_market_data(trading_day=trading_day_nyse,
         # date so that we can compute returns for the first date.
         trading_day,
     )
-    tc = ensure_treasury_data(
-        bm_symbol,
-        first_date,
-        last_date,
-        now,
-    )
     benchmark_returns = br[br.index.slice_indexer(first_date, last_date)]
-    treasury_curves = tc[tc.index.slice_indexer(first_date, last_date)]
-    return benchmark_returns, treasury_curves
+    return benchmark_returns
 
 
 def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day):
@@ -250,76 +229,6 @@ def ensure_benchmark_data(symbol, first_date, last_date, now, trading_day):
         data.to_csv(path)
     except (OSError, IOError, HTTPError):
         logger.exception('failed to cache the new benchmark returns')
-    if not has_data_for_dates(data, first_date, last_date):
-        logger.warn("Still don't have expected data after redownload!")
-    return data
-
-
-def ensure_treasury_data(bm_symbol, first_date, last_date, now):
-    """
-    Ensure we have treasury data from treasury module associated with
-    `bm_symbol`.
-
-    Parameters
-    ----------
-    bm_symbol : str
-        Benchmark symbol for which we're loading associated treasury curves.
-    first_date : pd.Timestamp
-        First date required to be in the cache.
-    last_date : pd.Timestamp
-        Last date required to be in the cache.
-    now : pd.Timestamp
-        The current time.  This is used to prevent repeated attempts to
-        re-download data that isn't available due to scheduling quirks or other
-        failures.
-
-    We attempt to download data unless we already have data stored in the cache
-    for `module_name` whose first entry is before or on `first_date` and whose
-    last entry is on or after `last_date`.
-
-    If we perform a download and the cache criteria are not satisfied, we wait
-    at least one hour before attempting a redownload.  This is determined by
-    comparing the current time to the result of os.path.getmtime on the cache
-    path.
-    """
-    loader_module, filename, source = INDEX_MAPPING.get(
-        bm_symbol, INDEX_MAPPING['^GSPC']
-    )
-    first_date = max(first_date, loader_module.earliest_possible_date())
-    path = get_data_filepath(filename)
-
-    # If the path does not exist, it means the first download has not happened
-    # yet, so don't try to read from 'path'.
-    if os.path.exists(path):
-        try:
-            data = pd.DataFrame.from_csv(path).tz_localize('UTC')
-            if has_data_for_dates(data, first_date, last_date):
-                return data
-
-            # Don't re-download if we've successfully downloaded and written a
-            # file in the last hour.
-            last_download_time = last_modified_time(path)
-            if (now - last_download_time) <= ONE_HOUR:
-                logger.warn(
-                    "Refusing to download new treasury data because a "
-                    "download succeeded at %s." % last_download_time
-                )
-                return data
-
-        except (OSError, IOError, ValueError) as e:
-            # These can all be raised by various versions of pandas on various
-            # classes of malformed input.  Treat them all as cache misses.
-            logger.info(
-                "Loading data for {path} failed with error [{error}].".format(
-                    path=path, error=e,
-                )
-            )
-
-    try:
-        data = loader_module.get_treasury_data(first_date, last_date)
-        data.to_csv(path)
-    except (OSError, IOError, HTTPError):
-        logger.exception('failed to cache treasury data')
     if not has_data_for_dates(data, first_date, last_date):
         logger.warn("Still don't have expected data after redownload!")
     return data

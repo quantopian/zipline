@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
 import logbook
 import numpy as np
 
@@ -22,10 +21,7 @@ from pandas.tseries.tools import normalize_date
 
 from six import iteritems
 
-from . risk import (
-    check_entry,
-    choose_treasury
-)
+from . risk import check_entry
 
 from empyrical import (
     alpha,
@@ -40,10 +36,6 @@ from empyrical import (
 )
 
 log = logbook.Logger('Risk Cumulative')
-
-
-choose_treasury = functools.partial(choose_treasury, lambda *args: '10year',
-                                    compound=False)
 
 
 class RiskMetricsCumulative(object):
@@ -64,9 +56,8 @@ class RiskMetricsCumulative(object):
         'information',
     )
 
-    def __init__(self, sim_params, treasury_curves, trading_calendar,
+    def __init__(self, sim_params, trading_calendar,
                  create_first_day_stats=False):
-        self.treasury_curves = treasury_curves
         self.trading_calendar = trading_calendar
         self.start_session = sim_params.start_session
         self.end_session = sim_params.end_session
@@ -239,24 +230,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
         self.algorithm_volatility[dt_loc] = annual_volatility(
             algorithm_returns_series
         )
-
-        # caching the treasury rates for the minutely case is a
-        # big speedup, because it avoids searching the treasury
-        # curves on every minute.
-        # In both minutely and daily, the daily curve is always used.
-        treasury_end = dt.replace(hour=0, minute=0)
-        if np.isnan(self.daily_treasury[treasury_end]):
-            treasury_period_return = choose_treasury(
-                self.treasury_curves,
-                self.start_session,
-                treasury_end,
-                self.trading_calendar,
-            )
-            self.daily_treasury[treasury_end] = treasury_period_return
-        self.treasury_period_return = self.daily_treasury[treasury_end]
-        self.excess_returns[dt_loc] = (
-            self.algorithm_cumulative_returns[dt_loc] -
-            self.treasury_period_return)
 
         risk_adj_returns = algorithm_returns_series - benchmark_returns_series
 

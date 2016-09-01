@@ -81,7 +81,6 @@ class PerformanceTracker(object):
         self.sim_params = sim_params
         self.trading_calendar = trading_calendar
         self.asset_finder = env.asset_finder
-        self.treasury_curves = env.treasury_curves
 
         self.period_start = self.sim_params.start_session
         self.period_end = self.sim_params.end_session
@@ -109,7 +108,6 @@ class PerformanceTracker(object):
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(
                     self.sim_params,
-                    self.treasury_curves,
                     self.trading_calendar
                 )
         elif self.emission_rate == 'minute':
@@ -121,7 +119,6 @@ class PerformanceTracker(object):
             self.cumulative_risk_metrics = \
                 risk.RiskMetricsCumulative(
                     self.sim_params,
-                    self.treasury_curves,
                     self.trading_calendar,
                     create_first_day_stats=True
                 )
@@ -469,7 +466,6 @@ class PerformanceTracker(object):
             benchmark_returns=bms,
             algorithm_leverages=acl,
             trading_calendar=self.trading_calendar,
-            treasury_curves=self.treasury_curves,
         )
 
         risk_dict = self.risk_report.to_dict()

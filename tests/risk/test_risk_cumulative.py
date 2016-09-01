@@ -49,7 +49,6 @@ class TestRisk(WithTradingEnvironment, ZiplineTestCase):
         )
         self.cumulative_metrics = risk.RiskMetricsCumulative(
             self.sim_params,
-            treasury_curves=self.env.treasury_curves,
             trading_calendar=self.trading_calendar,
         )
         for dt, returns in self.algo_returns.iteritems():

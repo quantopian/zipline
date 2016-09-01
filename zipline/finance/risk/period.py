@@ -13,15 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import functools
-
 import logbook
 
 from six import iteritems
 
 import pandas as pd
 
-from . import risk
 from . risk import check_entry
 
 from empyrical import (
@@ -38,23 +35,10 @@ from empyrical import (
 
 log = logbook.Logger('Risk Period')
 
-choose_treasury = functools.partial(risk.choose_treasury,
-                                    risk.select_treasury_duration)
-
 
 class RiskMetricsPeriod(object):
     def __init__(self, start_session, end_session, returns, trading_calendar,
-                 treasury_curves, benchmark_returns, algorithm_leverages=None):
-        if treasury_curves.index[-1] >= start_session:
-            mask = ((treasury_curves.index >= start_session) &
-                    (treasury_curves.index <= end_session))
-
-            self.treasury_curves = treasury_curves[mask]
-        else:
-            # our test is beyond the treasury curve history
-            # so we'll use the last available treasury curve
-            self.treasury_curves = treasury_curves[-1:]
-
+                 benchmark_returns, algorithm_leverages=None):
         self._start_session = start_session
         self._end_session = end_session
         self.trading_calendar = trading_calendar
@@ -105,12 +89,6 @@ class RiskMetricsPeriod(object):
         self.benchmark_volatility = annual_volatility(self.benchmark_returns)
         self.algorithm_volatility = annual_volatility(self.algorithm_returns)
 
-        self.treasury_period_return = choose_treasury(
-            self.treasury_curves,
-            self._start_session,
-            self._end_session,
-            self.trading_calendar,
-        )
         self.sharpe = sharpe_ratio(
             self.algorithm_returns,
         )
@@ -146,8 +124,6 @@ class RiskMetricsPeriod(object):
             self.benchmark_returns,
             _beta=self.beta
         )
-        self.excess_return = self.algorithm_period_returns - \
-            self.treasury_period_return
         self.max_drawdown = max_drawdown(self.algorithm_returns)
         self.max_leverage = self.calculate_max_leverage()
 
@@ -161,7 +137,6 @@ class RiskMetricsPeriod(object):
             'trading_days': self.num_trading_days,
             'benchmark_volatility': self.benchmark_volatility,
             'algo_volatility': self.algorithm_volatility,
-            'treasury_period_return': self.treasury_period_return,
             'algorithm_period_return': self.algorithm_period_returns,
             'benchmark_period_return': self.benchmark_period_returns,
             'sharpe': self.sharpe,
@@ -169,7 +144,6 @@ class RiskMetricsPeriod(object):
             'information': self.information,
             'beta': self.beta,
             'alpha': self.alpha,
-            'excess_return': self.excess_return,
             'max_drawdown': self.max_drawdown,
             'max_leverage': self.max_leverage,
             'period_label': period_label
