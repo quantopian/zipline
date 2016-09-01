@@ -2217,7 +2217,7 @@ def order_stuff(context, data):
              'type': 'cash',
              'target': value if change_type == 'target' else None,
              'delta': 50000.0
-            })
+             })
 
         # 1/03: price = 10, place orders
         # 1/04: orders execute at price = 11, place orders
