@@ -858,7 +858,7 @@ class TradingAlgorithm(object):
         if capital_change['type'] == 'target':
             target = capital_change['value']
             capital_change_amount = target - \
-                self.updated_portfolio().portfolio_value
+                self.updated_portfolio().cash
             self.portfolio_needs_update = True
 
             log.info('Processing capital change to target %s at %s. Capital '
