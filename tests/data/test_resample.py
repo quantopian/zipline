@@ -113,11 +113,18 @@ OHLCV = ('open', 'high', 'low', 'close', 'volume')
 
 _EQUITY_CASES = (
     (1, (('none_missing', 'day_0_front'),
-         ('none_missing', 'day_0_back'))),
+         ('missing_last', 'day_0_back'))),
     (2, (('missing_first', 'day_0_front'),
          ('none_missing', 'day_0_back'))),
     (3, (('missing_last', 'day_0_back'),
          ('missing_first', 'day_1_front'))),
+    # Asset 4 has a start date on day 1
+    (4, (('all_missing', 'day_0_back'),
+         ('none_missing', 'day_1_front'))),
+    # Asset 5 has a start date before day_0, but does not have data on that
+    # day.
+    (5, (('all_missing', 'day_0_back'),
+         ('none_missing', 'day_1_front'))),
 )
 
 EQUITY_CASES = OrderedDict()
@@ -149,10 +156,10 @@ for sid, combos in _FUTURE_CASES:
 EXPECTED_AGGREGATION = {
     1: DataFrame({
         'open': [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
-        'high': [101.9, 103.9, 103.9, 103.9, 103.9, 103.9],
+        'high': [101.9, 103.9, 103.9, 107.9, 108.9, 108.9],
         'low': [101.1, 101.1, 101.1, 101.1, 101.1, 101.1],
-        'close': [101.3, 103.3, 102.3, 101.3, 103.3, 102.3],
-        'volume': [1001, 2004, 3006, 4007, 5010, 6012],
+        'close': [101.3, 103.3, 102.3, 107.3, 108.3, 108.3],
+        'volume': [1001, 2004, 3006, 4013, 5021, 5021],
     }, columns=OHLCV),
     2: DataFrame({
         'open': [nan, 103.5, 103.5, 103.5, 103.5, 103.5],
@@ -168,6 +175,22 @@ EXPECTED_AGGREGATION = {
         'low': [107.1, 107.1, 107.1, nan, 103.1, 102.1],
         'close': [107.3, 108.3, 108.3, nan, 103.3, 102.3],
         'volume': [1007, 2015, 2015, 0, 1003, 2005],
+    }, columns=OHLCV),
+    # Equity 4 straddles two days and is not active the first day.
+    4: DataFrame({
+        'open': [nan, nan, nan, 101.5, 101.5, 101.5],
+        'high': [nan, nan, nan, 101.9, 103.9, 103.9],
+        'low': [nan, nan, nan, 101.1, 101.1, 101.1],
+        'close': [nan, nan, nan, 101.3, 103.3, 102.3],
+        'volume': [0, 0, 0, 1001, 2004, 3006],
+    }, columns=OHLCV),
+    # Equity 5 straddles two days and does not have data the first day.
+    5: DataFrame({
+        'open': [nan, nan, nan, 101.5, 101.5, 101.5],
+        'high': [nan, nan, nan, 101.9, 103.9, 103.9],
+        'low': [nan, nan, nan, 101.1, 101.1, 101.1],
+        'close': [nan, nan, nan, 101.3, 103.3, 102.3],
+        'volume': [0, 0, 0, 1001, 2004, 3006],
     }, columns=OHLCV),
     1001: DataFrame({
         'open': [101.5, 101.5, 101.5, 101.5, 101.5, 101.5],
@@ -233,7 +256,15 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
     TRADING_ENV_MAX_DATE = END_DATE = pd.Timestamp(
         '2016-03-31', tz='UTC',
     )
-    ASSET_FINDER_EQUITY_SIDS = 1, 2, 3
+    ASSET_FINDER_EQUITY_SIDS = 1, 2, 3, 4, 5
+
+    @classmethod
+    def make_equity_info(cls):
+        frame = super(MinuteToDailyAggregationTestCase, cls).make_equity_info()
+        # Make equity 4 start a day behind the data start to exercise assets
+        # which not alive for the session.
+        frame.loc[[4], 'start_date'] = pd.Timestamp('2016-03-16', tz='UTC')
+        return frame
 
     @classmethod
     def make_equity_minute_bar_data(cls):
@@ -267,6 +298,11 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         ('low_3', 'low', 3),
         ('close_3', 'close', 3),
         ('volume_3', 'volume', 3),
+        ('open_4', 'open', 4),
+        ('high_4', 'high', 4),
+        ('low_4', 'low', 4),
+        ('close_4', 'close', 4),
+        ('volume_4', 'volume', 4),
     ])
     def test_contiguous_minutes_individual(self, name, field, sid):
         # First test each minute in order.
@@ -312,6 +348,16 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         ('low_3', 'low', 3),
         ('close_3', 'close', 3),
         ('volume_3', 'volume', 3),
+        ('open_4', 'open', 4),
+        ('high_4', 'high', 4),
+        ('low_4', 'low', 4),
+        ('close_4', 'close', 4),
+        ('volume_4', 'volume', 4),
+        ('open_5', 'open', 5),
+        ('high_5', 'high', 5),
+        ('low_5', 'low', 5),
+        ('close_5', 'close', 5),
+        ('volume_5', 'volume', 5),
     ])
     def test_skip_minutes_individual(self, name, field, sid):
         # Test skipping minutes, to exercise backfills.
@@ -319,7 +365,7 @@ class MinuteToDailyAggregationTestCase(WithBcolzEquityMinuteBarReader,
         method_name = field + 's'
         asset = self.asset_finder.retrieve_asset(sid)
         minutes = EQUITY_CASES[asset].index
-        for i in [1, 5]:
+        for i in [0, 2, 3, 5]:
             minute = minutes[i]
             value = getattr(self.equity_daily_aggregator, method_name)(
                 [asset], minute)[0]
