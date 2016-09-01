@@ -307,11 +307,11 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
         levels of a multiindex of columns.
 
     """
-    idx = dates[dates.searchsorted(
+    idx = [dates[dates.searchsorted(
         df[TS_FIELD_NAME].values.astype('datetime64[D]')
-    )]
+    )]]
     if have_sids:
-        idx = [idx, SID_FIELD_NAME]
+        idx += [SID_FIELD_NAME]
     idx += extra_groupers
 
     last_in_group = df.drop(TS_FIELD_NAME, axis=1).groupby(
@@ -321,7 +321,7 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
 
     # For the number of things that we're grouping by (except TS), unstack
     # the df
-    last_in_group = last_in_group.unstack([-1, -2])
+    last_in_group = last_in_group.unstack(list(range(-1, -len(idx), -1)))
 
     if reindex:
         if have_sids:

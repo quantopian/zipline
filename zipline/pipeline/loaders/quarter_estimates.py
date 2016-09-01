@@ -281,11 +281,11 @@ class QuarterEstimatesLoader(PipelineLoader):
                         ]
 
         return AdjustedArray(
-                requested_qtr_data[column_name].values.astype(column.dtype),
-                mask,
-                dict(adjustments),
-                column.missing_value,
-            )
+            requested_qtr_data[column_name].values.astype(column.dtype),
+            mask,
+            dict(adjustments),
+            column.missing_value,
+        )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         # TODO: how can we enforce that datasets have the num_quarters
@@ -303,8 +303,8 @@ class QuarterEstimatesLoader(PipelineLoader):
             # The column's dataset is itself dynamic and the mapping we
             # actually want is to its dataset's parent's column name.
             name_map = {c: self.base_column_name_map[
-                            getattr(c.dataset.__base__, c.name)
-                        ] for c in columns}
+                getattr(c.dataset.__base__, c.name)
+            ] for c in columns}
             # Determine the last piece of information we know for each column
             # on each date in the index for each sid and quarter.
             last_per_qtr = last_in_date_group(
@@ -324,13 +324,13 @@ class QuarterEstimatesLoader(PipelineLoader):
                                                   stacked_last_per_qtr)
             zero_qtr_idx = shifted_qtr_data.index
             requested_qtr_idx = shifted_qtr_data.set_index([
-                    shifted_qtr_data.index.get_level_values(
-                        SIMULTATION_DATES
-                    ),
-                    shifted_qtr_data[SHIFTED_NORMALIZED_QTRS],
-                    shifted_qtr_data.index.get_level_values(
-                        SID_FIELD_NAME
-                    )]
+                shifted_qtr_data.index.get_level_values(
+                    SIMULTATION_DATES
+                ),
+                shifted_qtr_data[SHIFTED_NORMALIZED_QTRS],
+                shifted_qtr_data.index.get_level_values(
+                    SID_FIELD_NAME
+                )]
             ).index
 
             for c in columns:

@@ -208,8 +208,8 @@ class NextEstimateWindowsTestCase(EstimateTestCase):
                 if (pd.Timestamp('2015-02-10').tz_localize('utc') >= today >=
                         pd.Timestamp('2015-01-05').tz_localize('utc')):
                     next_quarter = estimates_timeline[
-                            estimates_timeline[EVENT_DATE_FIELD_NAME] >= today
-                        ].min()[FISCAL_QUARTER_FIELD_NAME]
+                        estimates_timeline[EVENT_DATE_FIELD_NAME] >= today
+                    ].min()[FISCAL_QUARTER_FIELD_NAME]
                     requested_quarter = next_quarter + num_quarters_out - 1
 
                 # If we know something about the requested quarter, assert
@@ -264,8 +264,8 @@ class PreviousEstimateWindowsTestCase(EstimateTestCase):
                 requested_quarter = None
                 if today >= pd.Timestamp('2015-01-12').tz_localize('utc'):
                     previous_quarter = estimates_timeline[
-                            estimates_timeline[EVENT_DATE_FIELD_NAME] <= today
-                        ].max()[FISCAL_QUARTER_FIELD_NAME]
+                        estimates_timeline[EVENT_DATE_FIELD_NAME] <= today
+                    ].max()[FISCAL_QUARTER_FIELD_NAME]
                     requested_quarter = (
                         previous_quarter - (num_quarters_out - 1)
                     )
@@ -366,15 +366,15 @@ class NextEstimateTestCase(EstimateTestCase):
 
 class EstimateMultipleQuartersTestCase(EstimateTestCase):
     events = pd.DataFrame({
-            SID_FIELD_NAME: [0] * 2,
-            TS_FIELD_NAME: [pd.Timestamp('2015-01-01'),
-                            pd.Timestamp('2015-01-06')],
-            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
-                                    pd.Timestamp('2015-01-20')],
-            'estimate': [1., 2.],
-            FISCAL_QUARTER_FIELD_NAME: [1, 2],
-            FISCAL_YEAR_FIELD_NAME: [2015, 2015]
-        })
+        SID_FIELD_NAME: [0] * 2,
+        TS_FIELD_NAME: [pd.Timestamp('2015-01-01'),
+                        pd.Timestamp('2015-01-06')],
+        EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
+                                pd.Timestamp('2015-01-20')],
+        'estimate': [1., 2.],
+        FISCAL_QUARTER_FIELD_NAME: [1, 2],
+        FISCAL_YEAR_FIELD_NAME: [2015, 2015]
+    })
 
     def check_null_range(self, results, start_date, stop_date, col_name):
         # Make sure that values in the given column/range are all null.
@@ -428,6 +428,7 @@ class EstimateMultipleQuartersTestCase(EstimateTestCase):
         # quarters out for each of the dataset columns.
         assert np.array_equal(sorted(np.array(q1_columns + q2_columns)),
                               sorted(results.columns.values))
+        return results
 
 
 class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
@@ -502,17 +503,17 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
         # We have a different quarter number than the quarter numbers we have
         # in our data for 2Q out, so assert manually.
         assert (
-                results.loc[
-                    pd.Timestamp('2015-01-02'):pd.Timestamp('2015-01-10')
-                ][Estimates.fiscal_quarter.name + '2'] ==
-                2
-            ).all()
+            results.loc[
+                pd.Timestamp('2015-01-02'):pd.Timestamp('2015-01-10')
+            ][Estimates.fiscal_quarter.name + '2'] ==
+            2
+        ).all()
         assert (
-                results.loc[
-                    pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-20')
-                ][Estimates.fiscal_quarter.name + '2'] ==
-                3
-            ).all()
+            results.loc[
+                pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-20')
+            ][Estimates.fiscal_quarter.name + '2'] ==
+            3
+        ).all()
         # We have the same fiscal year, 2-15, for 2Q out over the date range of
         # interest.
         self.check_values(results,
@@ -594,29 +595,29 @@ class PreviousEstimateMultipleQuartersTestCase(
         # We have a different quarter number than the quarter numbers we have
         # in our data for 2Q out, so assert manually.
         assert (
-                results.loc[
-                    pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-16')
-                ][Estimates.fiscal_quarter.name + '2'] ==
-                4
-            ).all()
+            results.loc[
+                pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-16')
+            ][Estimates.fiscal_quarter.name + '2'] ==
+            4
+        ).all()
         assert (
-                results.loc[
-                    pd.Timestamp('2015-01-20'):self.END_DATE
-                ][Estimates.fiscal_quarter.name + '2'] ==
-                1
-            ).all()
+            results.loc[
+                pd.Timestamp('2015-01-20'):self.END_DATE
+            ][Estimates.fiscal_quarter.name + '2'] ==
+            1
+        ).all()
 
         assert (
-                results.loc[
-                    pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-16')
-                ][Estimates.fiscal_year.name + '2'] ==
-                2014
-            ).all()
+            results.loc[
+                pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-16')
+            ][Estimates.fiscal_year.name + '2'] ==
+            2014
+        ).all()
         assert (
-                results.loc[
-                    pd.Timestamp('2015-01-20'):self.END_DATE
-                ][Estimates.fiscal_year.name + '2'] ==
-                2015
+            results.loc[
+                pd.Timestamp('2015-01-20'):self.END_DATE
+            ][Estimates.fiscal_year.name + '2'] ==
+            2015
         ).all()
 
 
