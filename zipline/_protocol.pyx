@@ -165,14 +165,12 @@ cdef class BarData:
     cdef object _last_calculated_universe
     cdef object _universe_last_updated_at
     cdef bool _daily_mode
+    cdef object _trading_calendar
 
     cdef bool _adjust_minutes
 
     def __init__(self, data_portal, simulation_dt_func, data_frequency,
-                 universe_func=None):
-        """
-
-        """
+                 trading_calendar, universe_func=None):
         self.data_portal = data_portal
         self.simulation_dt_func = simulation_dt_func
         self.data_frequency = data_frequency
@@ -185,6 +183,8 @@ cdef class BarData:
         self._universe_last_updated_at = None
 
         self._adjust_minutes = False
+
+        self._trading_calendar = trading_calendar
 
     cdef _get_equity_price_view(self, asset):
         """
@@ -428,9 +428,25 @@ cdef class BarData:
         """
         For the given asset or iterable of assets, returns true if all of the
         following are true:
-        - the asset is alive at the current simulation time
-        - the asset's exchange is open at the current simulation time
-        - there is a known last price for the asset.
+        1) the asset is alive for the session of the current simulation time
+          (if current simulation time is not a market minute, we use the next
+          session)
+        2) (if we are in minute mode) the asset's exchange is open at the
+          current simulation time or at the simulation calendar's next market
+          minute
+        3) there is a known last price for the asset.
+
+        Notes
+        -----
+        The second condition above warrants some further explanation.
+        - If the asset's exchange calendar is identical to the simulation
+        calendar, then this condition always returns True.
+        - If there are market minutes in the simulation calendar outside of
+        this asset's exchange's trading hours (for example, if the simulation
+        is running on the CME calendar but the asset is MSFT, which trades on
+        the NYSE), during those minutes, this condition will return false
+        (for example, 3:15 am Eastern on a weekday, during which the CME is
+        open but the NYSE is closed).
 
         Parameters
         ----------
@@ -462,20 +478,26 @@ cdef class BarData:
             })
 
     cdef bool _can_trade_for_asset(self, asset, dt, adjusted_dt, data_portal):
-        session_label = normalize_date(dt) # FIXME
+        cdef object session_label
+        cdef object dt_to_use_for_exchange_check,
+
+        session_label = self._trading_calendar.minute_to_session_label(dt)
+
         if not asset.is_alive_for_session(session_label):
             # asset isn't alive
             return False
 
-        # FIXME temporarily commenting out while we sort out some downstream
-        # dependencies
-        # if not asset.is_exchange_open(dt):
-        #     # exchange isn't open
-        #     return False
+        if not self._daily_mode:
+            # Find the next market minute for this calendar, and check if this
+            # asset's exchange is open at that minute.
+            if self._trading_calendar.is_open_on_minute(dt):
+                dt_to_use_for_exchange_check = dt
+            else:
+                dt_to_use_for_exchange_check = \
+                    self._trading_calendar.next_open(dt)
 
-        if isinstance(asset, Future):
-            # FIXME: this will get removed once we can get prices for futures
-            return True
+            if not asset.is_exchange_open(dt_to_use_for_exchange_check):
+                return False
 
         # is there a last price?
         return not np.isnan(

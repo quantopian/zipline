@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta
+from itertools import chain
+
 from nose_parameterized import parameterized
 import numpy as np
 from numpy import nan
@@ -31,6 +33,7 @@ from zipline.testing.fixtures import (
     WithDataPortal,
     ZiplineTestCase,
 )
+from zipline.utils.calendars import get_calendar
 
 OHLC = ["open", "high", "low", "close"]
 OHLCP = OHLC + ["price"]
@@ -200,7 +203,8 @@ class TestMinuteBarData(WithBarDataChecks,
 
         # this entire day is before either asset has started trading
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, "minute",
+                               self.trading_calendar)
             self.check_internal_consistency(bar_data)
 
             self.assertFalse(bar_data.can_trade(self.ASSET1))
@@ -242,7 +246,8 @@ class TestMinuteBarData(WithBarDataChecks,
             # this test covers the "IPO morning" case, because asset2 only
             # has data starting on the 10th minute.
 
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, "minute",
+                               self.trading_calendar)
             self.check_internal_consistency(bar_data)
             asset2_has_data = (((idx + 1) % 10) == 0)
 
@@ -321,7 +326,8 @@ class TestMinuteBarData(WithBarDataChecks,
 
         # this is the last day the assets exist
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, "minute",
+                               self.trading_calendar)
 
             self.assertTrue(bar_data.can_trade(self.ASSET1))
             self.assertTrue(bar_data.can_trade(self.ASSET2))
@@ -339,7 +345,8 @@ class TestMinuteBarData(WithBarDataChecks,
 
         # this entire day is after both assets have stopped trading
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, "minute",
+                               self.trading_calendar)
 
             self.assertFalse(bar_data.can_trade(self.ASSET1))
             self.assertFalse(bar_data.can_trade(self.ASSET2))
@@ -381,7 +388,8 @@ class TestMinuteBarData(WithBarDataChecks,
         )
 
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, "minute",
+                               self.trading_calendar)
             self.assertEqual(
                 idx + 1,
                 bar_data.current(self.SPLIT_ASSET, "price")
@@ -398,14 +406,16 @@ class TestMinuteBarData(WithBarDataChecks,
         )
 
         for idx, minute in enumerate(day0_minutes[-10:-1]):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, "minute",
+                               self.trading_calendar)
             self.assertEqual(
                 380,
                 bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
             )
 
         bar_data = BarData(
-            self.data_portal, lambda: day0_minutes[-1], "minute"
+            self.data_portal, lambda: day0_minutes[-1], "minute",
+            self.trading_calendar
         )
 
         self.assertEqual(
@@ -414,7 +424,8 @@ class TestMinuteBarData(WithBarDataChecks,
         )
 
         for idx, minute in enumerate(day1_minutes[0:9]):
-            bar_data = BarData(self.data_portal, lambda: minute, "minute")
+            bar_data = BarData(self.data_portal, lambda: minute, "minute",
+                               self.trading_calendar)
 
             # should be half of 390, due to the split
             self.assertEqual(
@@ -433,10 +444,12 @@ class TestMinuteBarData(WithBarDataChecks,
                 tz='US/Eastern'
             )
 
-        bar_data = BarData(self.data_portal, lambda: day, "minute")
+        bar_data = BarData(self.data_portal, lambda: day, "minute",
+                           self.trading_calendar)
         bar_data2 = BarData(self.data_portal,
                             lambda: eight_fortyfive_am_eastern,
-                            "minute")
+                            "minute",
+                            self.trading_calendar)
 
         with handle_non_market_minutes(bar_data), \
                 handle_non_market_minutes(bar_data2):
@@ -464,91 +477,152 @@ class TestMinuteBarData(WithBarDataChecks,
                     bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "volume")
                 )
 
-    # FIXME temporarily commenting out until we restore the new can_trade
-    # functionality that checks exchange status
-    # def test_can_trade_during_non_market_hours(self):
-    #     # make sure that if we use `can_trade` at midnight, we don't pretend
-    #     # we're in the previous day's last minute
-    #     the_day_after = self.trading_calendar.next_session_label(
-    #         self.equity_minute_bar_days[-1]
-    #     )
-    #
-    #     bar_data = BarData(self.data_portal, lambda: the_day_after, "minute")
-    #
-    #     for asset in [self.ASSET1, self.HILARIOUSLY_ILLIQUID_ASSET]:
-    #         self.assertFalse(bar_data.can_trade(asset))
-    #
-    #         with handle_non_market_minutes(bar_data):
-    #             self.assertFalse(bar_data.can_trade(asset))
-    #
-    #     # NYSE is closed at midnight, so even if the asset is alive,
-    #     # can_trade should return False
-    #     bar_data2 = BarData(
-    #         self.data_portal,
-    #         lambda: self.equity_minute_bar_days[1],
-    #         "minute",
-    #     )
-    #     for asset in [self.ASSET1, self.HILARIOUSLY_ILLIQUID_ASSET]:
-    #         self.assertFalse(bar_data2.can_trade(asset))
-    #
-    #         with handle_non_market_minutes(bar_data2):
-    #             self.assertFalse(bar_data2.can_trade(asset))
+    def test_can_trade_equity_same_cal_outside_lifetime(self):
+        cal = get_calendar(self.ASSET1.exchange)
 
-    # FIXME temporarily commenting out until we restore the new can_trade
-    # functionality that checks exchange status
-    # def test_can_trade_exchange_closed(self):
-    #     nyse_asset = self.asset_finder.retrieve_asset(1)
-    #     ice_asset = self.asset_finder.retrieve_asset(6)
-    #
-    #     # minutes we're going to check (to verify that that the same bardata
-    #     # can check multiple exchange calendars, all times Eastern):
-    #     # 2016-01-05:
-    #     # 20:00 (minute before ICE opens)
-    #     # 20:01 (first minute of ICE session)
-    #     # 20:02 (second minute of ICE session)
-    #     # 00:00 (Cinderella's ride becomes a pumpkin)
-    #     # 2016-01-06:
-    #     # 9:30 (minute before NYSE opens)
-    #     # 9:31 (first minute of NYSE session)
-    #     # 9:32 (second minute of NYSE session)
-    #     # 15:59 (second-to-last minute of NYSE session)
-    #     # 16:00 (last minute of NYSE session)
-    #     # 16:01 (minute after NYSE closed)
-    #     # 17:59 (second-to-last minute of ICE session)
-    #     # 18:00 (last minute of ICE session)
-    #     # 18:01 (minute after ICE closed)
-    #
-    #     # each row is dt, whether-nyse-is-open, whether-ice-is-open
-    #     minutes_to_check = [
-    #         (pd.Timestamp("2016-01-05 20:00", tz="US/Eastern"), False,
-    #           False),
-    #         (pd.Timestamp("2016-01-05 20:01", tz="US/Eastern"), False, True),
-    #         (pd.Timestamp("2016-01-05 20:02", tz="US/Eastern"), False, True),
-    #         (pd.Timestamp("2016-01-06 00:00", tz="US/Eastern"), False, True),
-    #         (pd.Timestamp("2016-01-06 9:30", tz="US/Eastern"), False, True),
-    #         (pd.Timestamp("2016-01-06 9:31", tz="US/Eastern"), True, True),
-    #         (pd.Timestamp("2016-01-06 9:32", tz="US/Eastern"), True, True),
-    #         (pd.Timestamp("2016-01-06 15:59", tz="US/Eastern"), True, True),
-    #         (pd.Timestamp("2016-01-06 16:00", tz="US/Eastern"), True, True),
-    #         (pd.Timestamp("2016-01-06 16:01", tz="US/Eastern"), False, True),
-    #         (pd.Timestamp("2016-01-06 17:59", tz="US/Eastern"), False, True),
-    #         (pd.Timestamp("2016-01-06 18:00", tz="US/Eastern"), False, True),
-    #         (pd.Timestamp("2016-01-06 18:01", tz="US/Eastern"), False,
-    #           False),
-    #     ]
-    #
-    #     for info in minutes_to_check:
-    #         bar_data = BarData(self.data_portal, lambda: info[0], "minute")
-    #         series = bar_data.can_trade([nyse_asset, ice_asset])
-    #
-    #         self.assertEqual(info[1], series.loc[nyse_asset])
-    #         self.assertEqual(info[2], series.loc[ice_asset])
+        # verify that can_trade returns False for the session before the
+        # asset's first session
+        session_before_asset1_start = cal.previous_session_label(
+            self.ASSET1.start_date
+        )
+        minutes_for_session = cal.minutes_for_session(
+            session_before_asset1_start
+        )
+
+        # for good measure, check the minute before the session too
+        minutes_to_check = chain(
+            [minutes_for_session[0] - pd.Timedelta(minutes=1)],
+            minutes_for_session
+        )
+
+        for minute in minutes_to_check:
+            bar_data = BarData(
+                self.data_portal, lambda: minute, "minute", cal
+            )
+
+            self.assertFalse(bar_data.can_trade(self.ASSET1))
+
+        # after asset lifetime
+        session_after_asset1_end = cal.next_session_label(
+            self.ASSET1.end_date
+        )
+        bts_after_asset1_end = session_after_asset1_end.replace(
+            hour=8, minute=45
+        ).tz_convert(None).tz_localize("US/Eastern")
+
+        minutes_to_check = chain(
+            cal.minutes_for_session(session_after_asset1_end),
+            [bts_after_asset1_end]
+        )
+
+        for minute in minutes_to_check:
+            bar_data = BarData(
+                self.data_portal, lambda: minute, "minute", cal
+            )
+
+            self.assertFalse(bar_data.can_trade(self.ASSET1))
+
+    def test_can_trade_equity_same_cal_exchange_closed(self):
+        cal = get_calendar(self.ASSET1.exchange)
+
+        # verify that can_trade returns true for minutes that are
+        # outside the asset's calendar (assuming the asset is alive and
+        # there is a last price), because the asset is alive on the
+        # next market minute.
+        minutes = cal.minutes_for_sessions_in_range(
+            self.ASSET1.start_date,
+            self.ASSET1.end_date
+        )
+
+        for minute in minutes:
+            bar_data = BarData(
+                self.data_portal, lambda: minute, "minute", cal
+            )
+
+            self.assertTrue(bar_data.can_trade(self.ASSET1))
+
+    def test_can_trade_equity_same_cal_no_last_price(self):
+        # self.HILARIOUSLY_ILLIQUID_ASSET's first trade is at
+        # 2016-01-05 15:20:00+00:00.  Make sure that can_trade returns false
+        # for all minutes in that session before the first trade, and true
+        # for all minutes afterwards.
+        cal = get_calendar(self.ASSET1.exchange)
+
+        minutes_in_session = cal.minutes_for_session(self.ASSET1.start_date)
+
+        for minute in minutes_in_session[0:49]:
+            bar_data = BarData(
+                self.data_portal, lambda: minute, "minute", cal
+            )
+
+            self.assertFalse(bar_data.can_trade(
+                self.HILARIOUSLY_ILLIQUID_ASSET)
+            )
+
+        for minute in minutes_in_session[50:]:
+            bar_data = BarData(
+                self.data_portal, lambda: minute, "minute", cal
+            )
+
+            self.assertTrue(bar_data.can_trade(
+                self.HILARIOUSLY_ILLIQUID_ASSET)
+            )
+
+    def test_can_trade_multiple_exchange_closed(self):
+        nyse_asset = self.asset_finder.retrieve_asset(1)
+        ice_asset = self.asset_finder.retrieve_asset(6)
+
+        # minutes we're going to check (to verify that that the same bardata
+        # can check multiple exchange calendars, all times Eastern):
+        # 2016-01-05:
+        # 20:00 (minute before ICE opens)
+        # 20:01 (first minute of ICE session)
+        # 20:02 (second minute of ICE session)
+        # 00:00 (Cinderella's ride becomes a pumpkin)
+        # 2016-01-06:
+        # 9:30 (minute before NYSE opens)
+        # 9:31 (first minute of NYSE session)
+        # 9:32 (second minute of NYSE session)
+        # 15:59 (second-to-last minute of NYSE session)
+        # 16:00 (last minute of NYSE session)
+        # 16:01 (minute after NYSE closed)
+        # 17:59 (second-to-last minute of ICE session)
+        # 18:00 (last minute of ICE session)
+        # 18:01 (minute after ICE closed)
+
+        # each row is dt, whether-nyse-is-open, whether-ice-is-open
+        minutes_to_check = [
+            (pd.Timestamp("2016-01-05 20:00", tz="US/Eastern"), False, False),
+            (pd.Timestamp("2016-01-05 20:01", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-05 20:02", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 00:00", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 9:30", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 9:31", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 9:32", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 15:59", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 16:00", tz="US/Eastern"), True, True),
+            (pd.Timestamp("2016-01-06 16:01", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 17:59", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 18:00", tz="US/Eastern"), False, True),
+            (pd.Timestamp("2016-01-06 18:01", tz="US/Eastern"), False, False),
+        ]
+
+        for info in minutes_to_check:
+            # use the CME calendar, which covers 24 hours
+            bar_data = BarData(self.data_portal, lambda: info[0], "minute",
+                               trading_calendar=get_calendar("CME"))
+
+            series = bar_data.can_trade([nyse_asset, ice_asset])
+
+            self.assertEqual(info[1], series.loc[nyse_asset])
+            self.assertEqual(info[2], series.loc[ice_asset])
 
     def test_is_stale_during_non_market_hours(self):
         bar_data = BarData(
             self.data_portal,
             lambda: self.equity_minute_bar_days[1],
             "minute",
+            self.trading_calendar
         )
 
         with handle_non_market_minutes(bar_data):
@@ -578,7 +652,8 @@ class TestMinuteBarData(WithBarDataChecks,
 
         bar_data = BarData(self.data_portal,
                            lambda: eight_fortyfive_am_eastern,
-                           "minute")
+                           "minute",
+                           self.trading_calendar)
 
         expected = {
             'open': 391 / 2.0,
@@ -743,7 +818,8 @@ class TestDailyBarData(WithBarDataChecks,
             )
         )
 
-        bar_data = BarData(self.data_portal, lambda: minute, "daily")
+        bar_data = BarData(self.data_portal, lambda: minute, "daily",
+                           self.trading_calendar)
         self.check_internal_consistency(bar_data)
 
         self.assertFalse(bar_data.can_trade(self.ASSET1))
@@ -771,6 +847,7 @@ class TestDailyBarData(WithBarDataChecks,
                 self.equity_daily_bar_days[0]
             ),
             "daily",
+            self.trading_calendar
         )
         self.check_internal_consistency(bar_data)
 
@@ -808,6 +885,7 @@ class TestDailyBarData(WithBarDataChecks,
                 self.equity_daily_bar_days[1]
             ),
             "daily",
+            self.trading_calendar
         )
         self.check_internal_consistency(bar_data)
 
@@ -834,6 +912,7 @@ class TestDailyBarData(WithBarDataChecks,
                 self.equity_daily_bar_days[-1]
             ),
             "daily",
+            self.trading_calendar
         )
         self.check_internal_consistency(bar_data)
 
@@ -862,7 +941,8 @@ class TestDailyBarData(WithBarDataChecks,
     def test_after_assets_dead(self):
         session = self.END_DATE
 
-        bar_data = BarData(self.data_portal, lambda: session, "daily")
+        bar_data = BarData(self.data_portal, lambda: session, "daily",
+                           self.trading_calendar)
         self.check_internal_consistency(bar_data)
 
         for asset in self.ASSETS:
@@ -916,6 +996,7 @@ class TestDailyBarData(WithBarDataChecks,
             self.data_portal,
             lambda: self.equity_daily_bar_days[0],
             "daily",
+            self.trading_calendar
         )
         self.assertEqual(
             liquid_day_0_price,
@@ -925,6 +1006,7 @@ class TestDailyBarData(WithBarDataChecks,
             self.data_portal,
             lambda: self.equity_daily_bar_days[1],
             "daily",
+            self.trading_calendar
         )
         self.assertEqual(
             liquid_day_1_price,
@@ -937,6 +1019,7 @@ class TestDailyBarData(WithBarDataChecks,
             self.data_portal,
             lambda: self.equity_daily_bar_days[1],
             "daily",
+            self.trading_calendar
         )
         self.assertEqual(
             illiquid_day_0_price, bar_data.current(illiquid_asset, "price")
@@ -946,6 +1029,7 @@ class TestDailyBarData(WithBarDataChecks,
             self.data_portal,
             lambda: self.equity_daily_bar_days[2],
             "daily",
+            self.trading_calendar
         )
 
         # 3 (price from previous day) * 0.5 (split ratio)

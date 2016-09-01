@@ -223,6 +223,7 @@ class BlotterTestCase(WithLogger,
             self.data_portal,
             lambda: self.sim_params.sessions[-1],
             self.sim_params.data_frequency,
+            self.trading_calendar
         )
         txns, _, closed_orders = blotter.get_transactions(bar_data)
         for txn in txns:
@@ -298,6 +299,7 @@ class BlotterTestCase(WithLogger,
                 self.data_portal,
                 lambda: dt,
                 self.sim_params.data_frequency,
+                self.trading_calendar
             )
             txns, _, _ = blotter.get_transactions(bar_data)
             for txn in txns:

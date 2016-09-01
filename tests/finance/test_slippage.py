@@ -112,7 +112,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
             bar_data = BarData(data_portal,
                                lambda: self.minutes[0],
-                               'minute')
+                               'minute',
+                               self.trading_calendar)
 
             orders_txns = list(slippage_model.simulate(
                 bar_data,
@@ -153,7 +154,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
             # Volume share slippage should not execute when there is no trade.
             bar_data = BarData(data_portal,
                                lambda: self.minutes[1],
-                               'minute')
+                               'minute',
+                               self.trading_calendar)
 
             orders_txns = list(slippage_model.simulate(
                 bar_data,
@@ -179,7 +181,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[3],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -201,7 +204,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[3],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -223,7 +227,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[3],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -262,7 +267,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[0],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -284,7 +290,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[0],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -306,7 +313,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[1],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -495,7 +503,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
                 dt = pd.Timestamp('2006-01-05 14:31', tz='UTC')
                 bar_data = BarData(data_portal,
                                    lambda: dt,
-                                   'minute')
+                                   'minute',
+                                   self.trading_calendar)
                 _, txn = next(slippage_model.simulate(
                     bar_data,
                     self.ASSET133,
@@ -529,7 +538,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[2],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -541,7 +551,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[3],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -564,7 +575,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[2],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -576,7 +588,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[3],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -599,7 +612,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[2],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -611,7 +625,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[3],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -647,7 +662,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[0],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -659,7 +675,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[1],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -682,7 +699,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[0],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -694,7 +712,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[1],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -717,7 +736,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[0],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,
@@ -729,7 +749,8 @@ class SlippageTestCase(WithSimParams, WithDataPortal, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: self.minutes[1],
-                           self.sim_params.data_frequency)
+                           self.sim_params.data_frequency,
+                           self.trading_calendar)
 
         orders_txns = list(slippage_model.simulate(
             bar_data,

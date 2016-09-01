@@ -251,7 +251,8 @@ class WithHistory(WithDataPortal):
         fields = fields if fields is not None else ALL_FIELDS
         assets = assets if assets is not None else [self.ASSET2, self.ASSET3]
 
-        bar_data = BarData(self.data_portal, lambda: dt, mode)
+        bar_data = BarData(self.data_portal, lambda: dt, mode,
+                           self.trading_calendar)
         check_internal_consistency(
             bar_data, assets, fields, 10, freq
         )
@@ -703,7 +704,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         )[0:60]
 
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, 'minute')
+            bar_data = BarData(self.data_portal, lambda: minute, 'minute',
+                               self.trading_calendar)
             check_internal_consistency(
                 bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, '1m'
             )
@@ -765,10 +767,12 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         )[1]
 
         midnight_bar_data = \
-            BarData(self.data_portal, lambda: midnight, 'minute')
+            BarData(self.data_portal, lambda: midnight, 'minute',
+                    self.trading_calendar)
 
         yesterday_bar_data = \
-            BarData(self.data_portal, lambda: last_minute, 'minute')
+            BarData(self.data_portal, lambda: last_minute, 'minute',
+                    self.trading_calendar)
 
         with handle_non_market_minutes(midnight_bar_data):
             for field in ALL_FIELDS:
@@ -785,7 +789,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         )[0:60]
 
         for idx, minute in enumerate(minutes):
-            bar_data = BarData(self.data_portal, lambda: minute, 'minute')
+            bar_data = BarData(self.data_portal, lambda: minute, 'minute',
+                               self.trading_calendar)
             check_internal_consistency(
                 bar_data, self.SHORT_ASSET, ALL_FIELDS, 30, '1m'
             )
@@ -794,7 +799,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         data_portal = self.make_data_portal()
 
         # choose a window that contains the last minute of the asset
-        bar_data = BarData(data_portal, lambda: minutes[15], 'minute')
+        bar_data = BarData(data_portal, lambda: minutes[15], 'minute',
+                           self.trading_calendar)
 
         #                             close  high  low  open  price  volume
         # 2015-01-06 20:47:00+00:00    768   770  767   769    768   76800
@@ -1006,7 +1012,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_passing_iterable_to_history_regular_hours(self):
         # regular hours
         current_dt = pd.Timestamp("2015-01-06 9:45", tz='US/Eastern')
-        bar_data = BarData(self.data_portal, lambda: current_dt, "minute")
+        bar_data = BarData(self.data_portal, lambda: current_dt, "minute",
+                           self.trading_calendar)
 
         bar_data.history(pd.Index([self.ASSET1, self.ASSET2]),
                          "high", 5, "1m")
@@ -1014,7 +1021,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_passing_iterable_to_history_bts(self):
         # before market hours
         current_dt = pd.Timestamp("2015-01-07 8:45", tz='US/Eastern')
-        bar_data = BarData(self.data_portal, lambda: current_dt, "minute")
+        bar_data = BarData(self.data_portal, lambda: current_dt, "minute",
+                           self.trading_calendar)
 
         with handle_non_market_minutes(bar_data):
             bar_data.history(pd.Index([self.ASSET1, self.ASSET2]),
@@ -1023,7 +1031,8 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
     def test_overnight_adjustments(self):
         # Should incorporate adjustments on midnight 01/06
         current_dt = pd.Timestamp('2015-01-06 8:45', tz='US/Eastern')
-        bar_data = BarData(self.data_portal, lambda: current_dt, 'minute')
+        bar_data = BarData(self.data_portal, lambda: current_dt, 'minute',
+                           self.trading_calendar)
 
         adj_expected = {
             'open': np.arange(8381, 8391) / 4.0,
@@ -1394,7 +1403,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
         )
 
         for idx, day in enumerate(days):
-            bar_data = BarData(self.data_portal, lambda: day, 'daily')
+            bar_data = BarData(self.data_portal, lambda: day, 'daily',
+                               self.trading_calendar)
             check_internal_consistency(
                 bar_data, [self.ASSET2, self.ASSET3], ALL_FIELDS, 10, '1d'
             )
@@ -1437,7 +1447,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: pd.Timestamp('2016-01-06', tz='UTC'),
-                           'daily')
+                           'daily',
+                           self.trading_calendar)
 
         for field in OHLCP:
             window = bar_data.history(
@@ -1475,7 +1486,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         # days has 1/7, 1/8
         for idx, day in enumerate(days):
-            bar_data = BarData(self.data_portal, lambda: day, 'daily')
+            bar_data = BarData(self.data_portal, lambda: day, 'daily',
+                               self.trading_calendar)
             check_internal_consistency(
                 bar_data, self.SHORT_ASSET, ALL_FIELDS, 2, '1d'
             )
@@ -1629,7 +1641,8 @@ class DailyEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         bar_data = BarData(self.data_portal,
                            lambda: pd.Timestamp('2016-01-06 16:00', tz='UTC'),
-                           'daily')
+                           'daily',
+                           self.trading_calendar)
 
         for field in OHLCP:
             window = bar_data.history(

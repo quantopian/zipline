@@ -188,7 +188,9 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         )[-1]
         bar_data = BarData(
             self.data_portal,
-            lambda: test_end_minute, "minute"
+            lambda: test_end_minute,
+            "minute",
+            self.trading_calendar
         )
         ohlcvp_fields = [
             "open",
