@@ -15,6 +15,21 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from six import with_metaclass
 
 
+class NoDataOnDate(Exception):
+    """
+    Raised when a spot price can be found for the sid and date.
+    """
+    pass
+
+
+class NoDataBeforeDate(Exception):
+    pass
+
+
+class NoDataAfterDate(Exception):
+    pass
+
+
 class SessionBarReader(with_metaclass(ABCMeta)):
     """
     Reader for OHCLV pricing data at a session frequency.
