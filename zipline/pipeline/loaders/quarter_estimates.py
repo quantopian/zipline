@@ -1,7 +1,6 @@
 from abc import abstractmethod
 from collections import defaultdict
 import numpy as np
-import pandas as pd
 from six import viewvalues
 from toolz import groupby
 from zipline.lib.adjusted_array import AdjustedArray
