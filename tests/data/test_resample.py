@@ -616,8 +616,15 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
 
     # Dates are chosen to span Thanksgiving, which is not a Holiday on
     # us_futures.
-    START_DATE = pd.Timestamp('2015-11-01', tz='UTC')
+    START_DATE = pd.Timestamp('2015-11-02', tz='UTC')
     END_DATE = pd.Timestamp('2015-11-30', tz='UTC')
+    #     November 2015
+    # Su Mo Tu We Th Fr Sa
+    #  1  2  3  4  5  6  7
+    #  8  9 10 11 12 13 14
+    # 15 16 17 18 19 20 21
+    # 22 23 24 25 26 27 28
+    # 29 30
 
     def init_instance_fixtures(self):
         super(TestReindexSessionBars, self).init_instance_fixtures()
@@ -651,6 +658,18 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             "The reindexed result after dropping nans should have 20 days, "
             "because Thanksgiving is a NYSE holiday.")
 
+        tday = pd.Timestamp('2015-11-26', tz='UTC')
+
+        # Thanksgiving, 2015-11-26.
+        # Is a holiday in NYSE, but not in us_futures.
+        tday_loc = outer_sessions.get_loc(tday)
+
+        assert_almost_equal(
+            nan,
+            opens[1][tday_loc],
+            err_msg="2015-11-26 should be `nan`, since Thanksgiving is a "
+            "holiday in the reader's calendar.")
+
         # Thanksgiving, 2015-11-26.
         # Is a holiday in NYSE, but not in us_futures.
         tday_loc = outer_sessions.get_loc(pd.Timestamp('2015-11-26', tz='UTC'))
@@ -661,6 +680,65 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
             err_msg="2015-11-26 should be `nan`, since Thanksgiving is a "
             "holiday in the reader's calendar.")
 
+    def test_load_raw_arrays_holiday_start(self):
+        tday = pd.Timestamp('2015-11-26', tz='UTC')
+        outer_sessions = self.trading_calendar.sessions_in_range(
+            tday, self.END_DATE)
+
+        result = self.reader.load_raw_arrays(
+            OHLCV, tday, self.END_DATE, [1, 2])
+
+        opens = DataFrame(data=result[0], index=outer_sessions,
+                          columns=[1, 2])
+        opens_with_price = opens.dropna()
+
+        self.assertEqual(
+            3,
+            len(opens),
+            "The reindexed result should have 3 days, which is the number of "
+            "business days in from Thanksgiving to end of 2015-11.")
+        self.assertEqual(
+            2,
+            len(opens_with_price),
+            "The reindexed result after dropping nans should have 2 days, "
+            "because Thanksgiving is a NYSE holiday.")
+
+    def test_load_raw_arrays_holiday_end(self):
+        tday = pd.Timestamp('2015-11-26', tz='UTC')
+        outer_sessions = self.trading_calendar.sessions_in_range(
+            self.START_DATE, tday)
+
+        result = self.reader.load_raw_arrays(
+            OHLCV, self.START_DATE, tday, [1, 2])
+
+        opens = DataFrame(data=result[0], index=outer_sessions,
+                          columns=[1, 2])
+        opens_with_price = opens.dropna()
+
+        self.assertEqual(
+            19,
+            len(opens),
+            "The reindexed result should have 19 days, which is the number of "
+            "business days in from start of 2015-11 up to Thanksgiving.")
+        self.assertEqual(
+            18,
+            len(opens_with_price),
+            "The reindexed result after dropping nans should have 18 days, "
+            "because Thanksgiving is a NYSE holiday.")
+
+    def test_get_value(self):
+        assert_almost_equal(self.reader.get_value(1, self.START_DATE, 'open'),
+                            10.0,
+                            err_msg="The open of the fixture data on the "
+                            "first session should be 10.")
+        tday = pd.Timestamp('2015-11-26', tz='UTC')
+        assert_almost_equal(self.reader.get_value(1, tday, 'close'), nan,
+                            err_msg="Thanksgiving is a NYSE holiday, but "
+                            "futures trading is open. Result should be nan.")
+        assert_almost_equal(self.reader.get_value(1, tday, 'volume'), 0,
+                            err_msg="Thanksgiving is a NYSE holiday, but "
+                            "futures trading is open. Result should be 0.")
+
     def test_last_availabe_dt(self):
         self.assertEqual(self.reader.last_available_dt, self.END_DATE)
 
@@ -669,3 +747,21 @@ class TestReindexSessionBars(WithBcolzEquityDailyBarReader,
         self.assertEqual(self.reader.get_last_traded_dt(asset,
                                                         self.END_DATE),
                          self.END_DATE)
+
+    def test_sessions(self):
+        sessions = self.reader.sessions
+        self.assertEqual(21, len(sessions),
+                         "There should be 21 sessions in 2015-11.")
+        self.assertEqual(pd.Timestamp('2015-11-02', tz='UTC'),
+                         sessions[0])
+        self.assertEqual(pd.Timestamp('2015-11-30', tz='UTC'),
+                         sessions[-1])
+
+    def test_first_trading_day(self):
+        self.assertEqual(self.reader.first_trading_day, self.START_DATE)
+
+    def test_trading_calendar(self):
+        self.assertEqual('us_futures',
+                         self.reader.trading_calendar.name,
+                         "The calendar for the reindex reader should be the "
+                         "specified futures calendar.")

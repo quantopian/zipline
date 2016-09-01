@@ -49,7 +49,12 @@ from six import (
     string_types,
 )
 
-from zipline.data.session_bars import SessionBarReader
+from zipline.data.session_bars import (
+    SessionBarReader,
+    NoDataAfterDate,
+    NoDataBeforeDate,
+    NoDataOnDate,
+)
 from zipline.utils.calendars import get_calendar
 from zipline.utils.functional import apply
 from zipline.utils.preprocess import call
@@ -97,21 +102,6 @@ SQLITE_STOCK_DIVIDEND_PAYOUT_COLUMN_DTYPES = {
     'ratio': float,
 }
 UINT32_MAX = iinfo(uint32).max
-
-
-class NoDataOnDate(Exception):
-    """
-    Raised when a spot price can be found for the sid and date.
-    """
-    pass
-
-
-class NoDataBeforeDate(Exception):
-    pass
-
-
-class NoDataAfterDate(Exception):
-    pass
 
 
 def check_uint32_safe(value, colname):
