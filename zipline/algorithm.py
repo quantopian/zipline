@@ -825,12 +825,17 @@ class TradingAlgorithm(object):
 
         return daily_stats
 
-    def calculate_capital_changes(self, dt, emission_rate, is_interday):
+    def calculate_capital_changes(self, dt, emission_rate, is_interday,
+                                  portfolio_value_adjustment=0.0):
         """
         If there is a capital change for a given dt, this means the the change
         occurs before `handle_data` on the given dt. In the case of the
         change being a target value, the change will be computed on the
         portfolio value according to prices at the given dt
+
+        `portfolio_value_adjustment`, if specified, will be removed from the
+        portfolio_value of the cumulative performance when calculating deltas
+        from target capital changes.
         """
         try:
             capital_change = self.capital_changes[dt]
@@ -852,13 +857,12 @@ class TradingAlgorithm(object):
                 False,
                 self.data_portal
             )
-
         self.perf_tracker.prepare_capital_change(is_interday)
 
         if capital_change['type'] == 'target':
             target = capital_change['value']
             capital_change_amount = target - \
-                self.updated_portfolio().portfolio_value
+                (self.updated_portfolio().cash - portfolio_value_adjustment)
             self.portfolio_needs_update = True
 
             log.info('Processing capital change to target %s at %s. Capital '

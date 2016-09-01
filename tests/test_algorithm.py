@@ -2167,7 +2167,7 @@ class TestCapitalChanges(WithLogger,
         )
 
     @parameterized.expand([
-        ('target', 153000.0), ('delta', 50000.0)
+        ('target', 127000.0), ('delta', 50000.0)
     ])
     def test_capital_changes_daily_mode(self, change_type, value):
         sim_params = factory.create_simulation_parameters(
@@ -2215,8 +2215,9 @@ def order_stuff(context, data):
             capital_change_packets[0],
             {'date': pd.Timestamp('2006-01-06', tz='UTC'),
              'type': 'cash',
-             'target': 153000.0 if change_type == 'target' else None,
-             'delta': 50000.0})
+             'target': value if change_type == 'target' else None,
+             'delta': 50000.0
+             })
 
         # 1/03: price = 10, place orders
         # 1/04: orders execute at price = 11, place orders
@@ -2320,10 +2321,10 @@ def order_stuff(context, data):
         )
 
     @parameterized.expand([
-        ('interday_target', [('2006-01-04', 2388.0)]),
+        ('interday_target', [('2006-01-04', 1899.0)]),
         ('interday_delta', [('2006-01-04', 1000.0)]),
-        ('intraday_target', [('2006-01-04 17:00', 2186.0),
-                             ('2006-01-04 18:00', 2806.0)]),
+        ('intraday_target', [('2006-01-04 17:00', 908.0),
+                             ('2006-01-04 18:00', 1408.0)]),
         ('intraday_delta', [('2006-01-04 17:00', 500.0),
                             ('2006-01-04 18:00', 500.0)]),
     ])
@@ -2486,10 +2487,10 @@ def order_stuff(context, data):
             )
 
     @parameterized.expand([
-        ('interday_target', [('2006-01-04', 2388.0)]),
+        ('interday_target', [('2006-01-04', 1899.0)]),
         ('interday_delta', [('2006-01-04', 1000.0)]),
-        ('intraday_target', [('2006-01-04 17:00', 2186.0),
-                             ('2006-01-04 18:00', 2806.0)]),
+        ('intraday_target', [('2006-01-04 17:00', 908.0),
+                             ('2006-01-04 18:00', 1408.0)]),
         ('intraday_delta', [('2006-01-04 17:00', 500.0),
                             ('2006-01-04 18:00', 500.0)]),
     ])
