@@ -720,6 +720,43 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
                 self.assertEqual(results, expected)
                 self.assertEqual(missing, [])
 
+    def test_lookup_none_raises(self):
+        """
+        If lookup_symbol is vectorized across multiple symbols, and one of them
+        is None, want to raise a TypeError.
+        """
+
+        with self.assertRaises(TypeError):
+            self.asset_finder.lookup_symbol(None, pd.Timestamp('2013-01-01'))
+
+    def test_lookup_mult_are_one(self):
+        """
+        Ensure that multiple symbols that return the same sid are collapsed to
+        a single returned asset.
+        """
+
+        date = pd.Timestamp('2013-01-01', tz='UTC')
+
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 1,
+                    'symbol': symbol,
+                    'start_date': date.value,
+                    'end_date': (date + timedelta(days=30)).value,
+                    'exchange': 'NYSE',
+                }
+                for symbol in ('FOOB', 'FOO_B')
+            ]
+        )
+        self.write_assets(equities=df)
+        finder = self.asset_finder
+
+        # If we are able to resolve this with any result, means that we did not
+        # raise a MultipleSymbolError.
+        result = finder.lookup_symbol('FOO/B', date + timedelta(1), fuzzy=True)
+        self.assertEqual(result.sid, 1)
+
     def test_lookup_generic_handle_missing(self):
         data = pd.DataFrame.from_records(
             [

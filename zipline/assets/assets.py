@@ -640,21 +640,23 @@ class AssetFinder(object):
                 options=set(options),
             )
 
-        options = []
+        options = {}
         for start, end, sid, sym in owners:
             if start <= as_of_date < end:
                 # see which fuzzy symbols were owned on the asof date.
-                options.append((sid, sym))
+                options[sid] = sym
 
         if not options:
             # no equity owned the fuzzy symbol on the date requested
             raise SymbolNotFound(symbol=symbol)
 
+        sid_keys = options.keys()
+        # If there was only one owner, or there is a fuzzy and non-fuzzy which
+        # map to the same sid, return it.
         if len(options) == 1:
-            # there was only one owner, return it
-            return self.retrieve_asset(options[0][0])
+            return self.retrieve_asset(sid_keys[0])
 
-        for sid, sym in options:
+        for sid, sym in options.items():
             if sym == symbol:
                 # look for an exact match on the asof date
                 return self.retrieve_asset(sid)
@@ -663,10 +665,7 @@ class AssetFinder(object):
         # there are no exact matches
         raise MultipleSymbolsFound(
             symbol=symbol,
-            options=set(map(
-                compose(self.retrieve_asset, itemgetter(0)),
-                options,
-            )),
+            options=[self.retrieve_asset(s) for s in sid_keys],
         )
 
     def lookup_symbol(self, symbol, as_of_date, fuzzy=False):
@@ -704,8 +703,8 @@ class AssetFinder(object):
             ``as_of_date``.
         """
         if symbol is None:
-            raise TypeError("Cannot lookup symbol of type NoneType for "
-                            "as of date %s" % as_of_date)
+            raise TypeError("Cannot lookup asset for symbol of None for "
+                            "as of date %s." % as_of_date)
 
         if fuzzy:
             return self._lookup_symbol_fuzzy(symbol, as_of_date)
