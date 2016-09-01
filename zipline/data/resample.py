@@ -248,7 +248,7 @@ class DailyHistoryAggregator(object):
                             dt,
                             [asset],
                         )[0].T
-                        val = max(last_max, np.nanmax(window))
+                        val = np.nanmax(np.append(window, last_max))
                         entries[asset] = (dt_value, val)
                         highs.append(val)
                         continue
@@ -312,11 +312,7 @@ class DailyHistoryAggregator(object):
                             dt,
                             [asset],
                         )[0].T
-                        window_min = np.nanmin(window)
-                        if pd.isnull(window_min):
-                            val = last_min
-                        else:
-                            val = min(last_min, window_min)
+                        val = np.nanmin(np.append(window, last_min))
                         entries[asset] = (dt_value, val)
                         lows.append(val)
                         continue
