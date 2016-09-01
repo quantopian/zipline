@@ -648,7 +648,7 @@ class AssetFinder(object):
 
         if not options:
             # no equity owned the fuzzy symbol on the date requested
-            SymbolNotFound(symbol=symbol)
+            raise SymbolNotFound(symbol=symbol)
 
         if len(options) == 1:
             # there was only one owner, return it
@@ -703,6 +703,10 @@ class AssetFinder(object):
             there are multiple candidates for the given ``symbol`` on the
             ``as_of_date``.
         """
+        if symbol is None:
+            raise TypeError("Cannot lookup symbol of type NoneType for "
+                            "as of date %s" % as_of_date)
+
         if fuzzy:
             return self._lookup_symbol_fuzzy(symbol, as_of_date)
         return self._lookup_symbol_strict(symbol, as_of_date)
