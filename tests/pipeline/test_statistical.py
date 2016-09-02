@@ -373,14 +373,14 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
             )
 
         with self.assertRaises(ValueError):
-            spearman_factor = RollingSpearmanOfReturns(
+            RollingSpearmanOfReturns(
                 target=my_asset,
                 returns_length=3,
                 correlation_length=1,
             )
 
         with self.assertRaises(ValueError):
-            regression_factor = RollingLinearRegressionOfReturns(
+            RollingLinearRegressionOfReturns(
                 target=my_asset,
                 returns_length=3,
                 regression_length=1,
