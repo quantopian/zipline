@@ -362,6 +362,30 @@ class StatisticalBuiltInsTestCase(WithTradingEnvironment, ZiplineTestCase):
                     end_date,
                 )
 
+    def test_require_length_greater_than_one(self):
+        my_asset = Equity(0, exchange="TEST")
+
+        with self.assertRaises(ValueError):
+            RollingPearsonOfReturns(
+                target=my_asset,
+                returns_length=3,
+                correlation_length=1,
+            )
+
+        with self.assertRaises(ValueError):
+            RollingSpearmanOfReturns(
+                target=my_asset,
+                returns_length=3,
+                correlation_length=1,
+            )
+
+        with self.assertRaises(ValueError):
+            RollingLinearRegressionOfReturns(
+                target=my_asset,
+                returns_length=3,
+                regression_length=1,
+            )
+
 
 class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
                                  ZiplineTestCase):
@@ -581,7 +605,7 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
                 regression_length=regression_length,
             )
 
-    @parameter_space(correlation_length=[1, 2, 3, 4])
+    @parameter_space(correlation_length=[2, 3, 4])
     def test_factor_correlation_methods_two_factors(self, correlation_length):
         """
         Tests for `Factor.pearsonr` and `Factor.spearmanr` when passed another
@@ -682,7 +706,7 @@ class StatisticalMethodsTestCase(WithSeededRandomPipelineEngine,
         )
         assert_frame_equal(spearman_results, expected_spearman_results)
 
-    @parameter_space(regression_length=[1, 2, 3, 4])
+    @parameter_space(regression_length=[2, 3, 4])
     def test_factor_regression_method_two_factors(self, regression_length):
         """
         Tests for `Factor.linear_regression` when passed another 2D factor

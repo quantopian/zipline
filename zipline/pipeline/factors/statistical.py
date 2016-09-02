@@ -12,7 +12,7 @@ from zipline.pipeline.filters import SingleAsset
 from zipline.pipeline.mixins import SingleInputMixin
 from zipline.pipeline.sentinels import NotSpecified
 from zipline.pipeline.term import AssetExists
-from zipline.utils.input_validation import expect_dtypes
+from zipline.utils.input_validation import expect_bounded, expect_dtypes
 from zipline.utils.numpy_utils import float64_dtype, int64_dtype
 
 from .technical import Returns
@@ -24,6 +24,7 @@ ALLOWED_DTYPES = (float64_dtype, int64_dtype)
 class _RollingCorrelation(CustomFactor, SingleInputMixin):
 
     @expect_dtypes(base_factor=ALLOWED_DTYPES, target=ALLOWED_DTYPES)
+    @expect_bounded(correlation_length=(2, None))
     def __new__(cls,
                 base_factor,
                 target,
@@ -31,6 +32,7 @@ class _RollingCorrelation(CustomFactor, SingleInputMixin):
                 mask=NotSpecified):
         if target.ndim == 2 and base_factor.mask is not target.mask:
             raise IncompatibleTerms(term_1=base_factor, term_2=target)
+
         return super(_RollingCorrelation, cls).__new__(
             cls,
             inputs=[base_factor, target],
@@ -167,6 +169,7 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
     outputs = ['alpha', 'beta', 'r_value', 'p_value', 'stderr']
 
     @expect_dtypes(dependent=ALLOWED_DTYPES, independent=ALLOWED_DTYPES)
+    @expect_bounded(regression_length=(2, None))
     def __new__(cls,
                 dependent,
                 independent,
@@ -174,6 +177,7 @@ class RollingLinearRegression(CustomFactor, SingleInputMixin):
                 mask=NotSpecified):
         if independent.ndim == 2 and dependent.mask is not independent.mask:
             raise IncompatibleTerms(term_1=dependent, term_2=independent)
+
         return super(RollingLinearRegression, cls).__new__(
             cls,
             inputs=[dependent, independent],
