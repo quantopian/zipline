@@ -42,8 +42,9 @@ class Order(object):
     # Order objects and we keep them all in memory, so it's worthwhile trying
     # to cut down on the memory footprint of this object.
     __slots__ = ["id", "dt", "reason", "created", "sid", "amount", "filled",
-                 "commission", "_status", "stop", "limit", "stop_reached",
-                 "limit_reached", "direction", "type", "broker_order_id"]
+                 "commission", "_status", "stop", "stop_ghost", "limit",
+                 "stop_reached", "limit_reached", "direction", "type",
+                 "broker_order_id"]
 
     def __init__(self, dt, sid, amount, stop=None, limit=None, filled=0,
                  commission=0, id=None):
@@ -68,6 +69,7 @@ class Order(object):
         self.commission = commission
         self._status = ORDER_STATUS.OPEN
         self.stop = stop
+        self.stop_ghost = None
         self.limit = limit
         self.stop_reached = False
         self.limit_reached = False
@@ -107,6 +109,8 @@ class Order(object):
         self.stop_reached = stop_reached
         self.limit_reached = limit_reached
         if sl_stop_reached:
+            # limit can execute at stop_ghost in the same bar
+            self.stop_ghost = self.stop
             # Change the STOP LIMIT order into a LIMIT order
             self.stop = None
 

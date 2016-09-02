@@ -38,6 +38,13 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
     """
     def __init__(self):
         self._volume_for_bar = 0
+        self.set_price_fields('close', True)
+
+    def set_price_fields(self, market_field, limits_enhance):
+        self.market_field = market_field
+        # whether to chase price enhancement for limit orders (and miss some
+        # trades), or execute at limit without misses
+        self.limits_enhance = limits_enhance
 
     @property
     def volume_for_bar(self):
@@ -65,6 +72,19 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
         """
         pass
 
+    def get_trigger_field(self, order):
+        'Determine which price field to use for deciding order triggered state'
+        if self.limits_enhance:
+            return self.market_field
+        else:
+            if order.stop is None:
+                if order.limit is None:
+                    return self.market_field
+                else:
+                    return 'low' if order.direction > 0 else 'high'
+            else:
+                return 'high' if order.direction > 0 else 'low'
+
     def simulate(self, data, asset, orders_for_asset):
         self._volume_for_bar = 0
         volume = data.current(asset, "volume")
@@ -74,14 +94,19 @@ class SlippageModel(with_metaclass(abc.ABCMeta)):
 
         # can use the close price, since we verified there's volume in this
         # bar.
-        price = data.current(asset, "close")
         dt = data.current_dt
 
         for order in orders_for_asset:
             if order.open_amount == 0:
                 continue
 
+            price = data.current(asset, self.get_trigger_field(order))
             order.check_triggers(price, dt)
+            # try to conservatively execute limit in the bar that
+            # triggered stop
+            if not self.limits_enhance and order.stop_ghost is not None:
+                order.check_triggers(order.stop_ghost, dt)
+
             if not order.triggered:
                 continue
 
@@ -157,14 +182,18 @@ class VolumeShareSlippage(SlippageModel):
         volume_share = min(total_volume / volume,
                            self.volume_limit)
 
-        price = data.current(order.asset, "close")
+        impact_field = self.get_trigger_field(order)
+        impact_base = \
+            not self.limits_enhance and (order.stop or order.stop_ghost) \
+            or data.current(order.asset, impact_field)
 
         simulated_impact = volume_share ** 2 \
             * math.copysign(self.price_impact, order.direction) \
-            * price
-        impacted_price = price + simulated_impact
+            * impact_base
+        impacted_price = impact_base + simulated_impact
 
         if order.limit:
+            order.stop_ghost = None  # ignore for later bars
             # this is tricky! if an order with a limit price has reached
             # the limit price, we will try to fill the order. do not fill
             # these shares if the impacted price is worse than the limit
@@ -173,14 +202,52 @@ class VolumeShareSlippage(SlippageModel):
             # buy order is worse if the impacted price is greater than
             # the limit price. sell order is worse if the impacted price
             # is less than the limit price
+            # We can get here not because limit was reached, but because stop
+            # was reached, so the check is not only for slippage, but also
+            # for triggered limit
+
             if (order.direction > 0 and impacted_price > order.limit) or \
                     (order.direction < 0 and impacted_price < order.limit):
+                # TODO: if impacted_price is worse than limit, solve the
+                # impacted_price equation for impacted_price = limit and find
+                # the volume that can be fulfilled within the limit and
+                # return it
                 return None, None
 
+        use_limit_price = order.limit and not self.limits_enhance
         return (
-            impacted_price,
+            order.limit if use_limit_price else impacted_price,
             math.copysign(cur_volume, order.direction)
         )
+
+AggressiveCloseSlippage = VolumeShareSlippage
+
+
+class ConservativeCloseSlippage(VolumeShareSlippage):
+    """Configure VolumeShareSlippage to execute limit orders at limit price
+    instead of close price"""
+
+    def __init__(self):
+        super(ConservativeCloseSlippage, self).__init__()
+        self.set_price_fields('close', False)
+
+
+class ConservativeOpenSlippage(VolumeShareSlippage):
+    """Configure VolumeShareSlippage to use open price for market orders and prefer
+    limit price for limit orders"""
+
+    def __init__(self):
+        super(ConservativeCloseSlippage, self).__init__()
+        self.set_price_fields('open', False)
+
+
+class AggressiveOpenSlippage(VolumeShareSlippage):
+    """Configure VolumeShareSlippage to use open price for market orders and prefer
+    open price for limit orders """
+
+    def __init__(self):
+        super(ConservativeCloseSlippage, self).__init__()
+        self.set_price_fields('open', True)
 
 
 class FixedSlippage(SlippageModel):
@@ -194,6 +261,7 @@ class FixedSlippage(SlippageModel):
 
     def __init__(self, spread=0.0):
         self.spread = spread
+        super(FixedSlippage, self).__init__()
 
     def process_order(self, data, order):
         price = data.current(order.asset, "close")
