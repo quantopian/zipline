@@ -25,7 +25,7 @@ import toolz
 from logbook import TestHandler, WARNING
 from mock import MagicMock
 from nose_parameterized import parameterized
-from six import iteritems, itervalues
+from six import iteritems, itervalues, string_types
 from six.moves import range
 from testfixtures import TempDirectory
 
@@ -37,7 +37,7 @@ from pandas.io.common import PerformanceWarning
 from zipline import run_algorithm
 from zipline import TradingAlgorithm
 from zipline.api import FixedSlippage
-from zipline.assets import Equity, Future
+from zipline.assets import Equity, Future, Asset
 from zipline.assets.synthetic import (
     make_jagged_equity_info,
     make_simple_equity_info,
@@ -1522,29 +1522,46 @@ class TestAlgoScript(WithLogger,
     DATA_PORTAL_USE_MINUTE_DATA = False
     EQUITY_DAILY_BAR_LOOKBACK_DAYS = 5  # max history window length
 
+    STRING_TYPE_NAMES = [s.__name__ for s in string_types]
+    STRING_TYPE_NAMES_STRING = ', '.join(STRING_TYPE_NAMES)
+    ASSET_TYPE_NAME = Asset.__name__
+    ASSET_OR_STRING_TYPE_NAMES = ', '.join([ASSET_TYPE_NAME] +
+                                           STRING_TYPE_NAMES)
     ARG_TYPE_TEST_CASES = (
-        ('history__assets', (bad_type_history_assets, 'Asset, str', True)),
-        ('history__fields', (bad_type_history_fields, 'str', True)),
+        ('history__assets', (bad_type_history_assets,
+                             ASSET_OR_STRING_TYPE_NAMES,
+                             True)),
+        ('history__fields', (bad_type_history_fields,
+                             STRING_TYPE_NAMES_STRING,
+                             True)),
         ('history__bar_count', (bad_type_history_bar_count, 'int', False)),
-        ('history__frequency', (bad_type_history_frequency, 'str', False)),
-        ('current__assets', (bad_type_current_assets, 'Asset, str', True)),
-        ('current__fields', (bad_type_current_fields, 'str', True)),
+        ('history__frequency', (bad_type_history_frequency,
+                                STRING_TYPE_NAMES_STRING,
+                                False)),
+        ('current__assets', (bad_type_current_assets,
+                             ASSET_OR_STRING_TYPE_NAMES,
+                             True)),
+        ('current__fields', (bad_type_current_fields,
+                             STRING_TYPE_NAMES_STRING,
+                             True)),
         ('is_stale__assets', (bad_type_is_stale_assets, 'Asset', True)),
         ('can_trade__assets', (bad_type_can_trade_assets, 'Asset', True)),
         ('history_kwarg__assets',
-         (bad_type_history_assets_kwarg, 'Asset, str', True)),
+         (bad_type_history_assets_kwarg, ASSET_OR_STRING_TYPE_NAMES, True)),
         ('history_kwarg_bad_list__assets',
-         (bad_type_history_assets_kwarg_list, 'Asset, str', True)),
+         (bad_type_history_assets_kwarg_list,
+          ASSET_OR_STRING_TYPE_NAMES,
+          True)),
         ('history_kwarg__fields',
-         (bad_type_history_fields_kwarg, 'str', True)),
+         (bad_type_history_fields_kwarg, STRING_TYPE_NAMES_STRING, True)),
         ('history_kwarg__bar_count',
          (bad_type_history_bar_count_kwarg, 'int', False)),
         ('history_kwarg__frequency',
-         (bad_type_history_frequency_kwarg, 'str', False)),
+         (bad_type_history_frequency_kwarg, STRING_TYPE_NAMES_STRING, False)),
         ('current_kwarg__assets',
-         (bad_type_current_assets_kwarg, 'Asset, str', True)),
+         (bad_type_current_assets_kwarg, ASSET_OR_STRING_TYPE_NAMES, True)),
         ('current_kwarg__fields',
-         (bad_type_current_fields_kwarg, 'str', True)),
+         (bad_type_current_fields_kwarg, STRING_TYPE_NAMES_STRING, True)),
     )
 
     sids = 0, 1, 3, 133

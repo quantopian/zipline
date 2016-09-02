@@ -247,7 +247,8 @@ cdef class BarData:
 
         return dt
 
-    @check_parameters(('assets', 'fields'), ((Asset, string_types), string_types))
+    @check_parameters(('assets', 'fields'),
+                      ((Asset,) + string_types, string_types))
     def current(self, assets, fields):
         """
         Returns the current value of the given assets for the given fields
@@ -568,8 +569,10 @@ cdef class BarData:
 
             return not (last_traded_dt is pd.NaT)
 
-    @check_parameters(('assets', 'fields', 'bar_count', 'frequency'),
-                      ((Asset, string_types), string_types, int, string_types))
+    @check_parameters(('assets', 'fields', 'bar_count',
+                       'frequency'),
+                      ((Asset,) + string_types, string_types, int,
+                       string_types))
     def history(self, assets, fields, bar_count, frequency):
         """
         Returns a window of data for the given assets and fields.
