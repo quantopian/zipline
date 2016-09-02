@@ -1,3 +1,3 @@
 #!/bin/bash
-find zipline tests -name "*.so" | xargs rm || true
+find zipline tests -regex '.*\.\(c\|so\)' -exec rm {} +
 python setup.py build_ext --inplace
