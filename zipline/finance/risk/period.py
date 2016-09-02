@@ -123,19 +123,16 @@ class RiskMetricsPeriod(object):
         # In the meantime, convert nan values to 0.0
         if pd.isnull(self.sharpe):
             self.sharpe = 0.0
-        risk_adj_returns = self.algorithm_returns - self.benchmark_returns
         self.downside_risk = downside_risk(
-            risk_adj_returns
+            self.algorithm_returns
         )
         self.sortino = sortino_ratio(
-            risk_adj_returns,
+            self.algorithm_returns,
             _downside_risk=self.downside_risk
         )
-        # 0.0 for the second argument allows the passing of already-adjusted
-        # returns for the first argument.
         self.information = information_ratio(
-            risk_adj_returns,
-            0.0
+            self.algorithm_returns,
+            self.benchmark_returns
         )
         self.beta = beta(
             self.algorithm_returns,

@@ -258,8 +258,6 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.algorithm_cumulative_returns[dt_loc] -
             self.treasury_period_return)
 
-        risk_adj_returns = algorithm_returns_series - benchmark_returns_series
-
         self.beta[dt_loc] = beta(
             algorithm_returns_series,
             benchmark_returns_series
@@ -270,20 +268,18 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             _beta=self.beta[dt_loc]
         )
         self.sharpe[dt_loc] = sharpe_ratio(
-            risk_adj_returns
+            algorithm_returns_series
         )
         self.downside_risk[dt_loc] = downside_risk(
-            risk_adj_returns
+            algorithm_returns_series
         )
         self.sortino[dt_loc] = sortino_ratio(
-            risk_adj_returns,
+            algorithm_returns_series,
             _downside_risk=self.downside_risk[dt_loc]
         )
-        # 0.0 for the second argument allows the passing of already-adjusted
-        # returns for the first argument.
         self.information[dt_loc] = information_ratio(
-            risk_adj_returns,
-            0.0
+            algorithm_returns_series,
+            benchmark_returns_series
         )
         self.max_drawdown = max_drawdown(
             algorithm_returns_series
