@@ -858,73 +858,6 @@ class DataPortal(object):
                                                    field,
                                                    False)
 
-    def _apply_all_adjustments(self, data, asset, dts, field,
-                               price_adj_factor=1.0):
-        """
-        Internal method that applies all the necessary adjustments on the
-        given data array.
-
-        The adjustments are:
-        - splits
-        - if field != "volume":
-            - mergers
-            - dividends
-            - * 0.001
-            - any zero fields replaced with NaN
-        - all values rounded to 3 digits after the decimal point.
-
-        Parameters
-        ----------
-        data : np.array
-            The data to be adjusted.
-
-        asset: Asset
-            The asset whose data is being adjusted.
-
-        dts: pd.DateTimeIndex
-            The list of minutes or days representing the desired window.
-
-        field: string
-            The field whose values are in the data array.
-
-        price_adj_factor: float
-            Factor with which to adjust OHLC values.
-        Returns
-        -------
-        None.  The data array is modified in place.
-        """
-        self._apply_adjustments_to_window(
-            self._get_adjustment_list(
-                asset, self._splits_dict, "SPLITS"
-            ),
-            data,
-            dts,
-            field != 'volume'
-        )
-
-        if field != 'volume':
-            self._apply_adjustments_to_window(
-                self._get_adjustment_list(
-                    asset, self._mergers_dict, "MERGERS"
-                ),
-                data,
-                dts,
-                True
-            )
-
-            self._apply_adjustments_to_window(
-                self._get_adjustment_list(
-                    asset, self._dividends_dict, "DIVIDENDS"
-                ),
-                data,
-                dts,
-                True
-            )
-
-            if price_adj_factor is not None:
-                data *= price_adj_factor
-                np.around(data, 3, out=data)
-
     def _get_daily_window_for_sids(
             self, assets, field, days_in_window, extra_slot=True):
         """
@@ -979,39 +912,6 @@ class DataPortal(object):
             else:
                 return_array[:len(data)] = data
         return return_array
-
-    @staticmethod
-    def _apply_adjustments_to_window(adjustments_list, window_data,
-                                     dts_in_window, multiply):
-        if len(adjustments_list) == 0:
-            return
-
-        # advance idx to the correct spot in the adjustments list, based on
-        # when the window starts
-        idx = 0
-
-        while idx < len(adjustments_list) and dts_in_window[0] >\
-                adjustments_list[idx][0]:
-            idx += 1
-
-        # if we've advanced through all the adjustments, then there's nothing
-        # to do.
-        if idx == len(adjustments_list):
-            return
-
-        while idx < len(adjustments_list):
-            adjustment_to_apply = adjustments_list[idx]
-
-            if adjustment_to_apply[0] > dts_in_window[-1]:
-                break
-
-            range_end = dts_in_window.searchsorted(adjustment_to_apply[0])
-            if multiply:
-                window_data[0:range_end] *= adjustment_to_apply[1]
-            else:
-                window_data[0:range_end] /= adjustment_to_apply[1]
-
-            idx += 1
 
     def _get_adjustment_list(self, asset, adjustments_dict, table_name):
         """
