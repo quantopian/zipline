@@ -505,8 +505,13 @@ def expect_element(*_pos, **named):
 
 def expect_bounded(**named):
     """
-    Preprocessing decorator that verifies inputs fall between upper and lower
-    bounds.
+    Preprocessing decorator verifying that inputs fall between bounds.
+
+    Bounds should be passed as a pair of ``(min_value, max_value)``. Both
+    bounds are checked inclusively.
+
+    ``None`` may be passed as ``min_value`` or ``max_value`` to signify that
+    the input is only bounded above or below.
 
     Usage
     -----
@@ -523,11 +528,6 @@ def expect_bounded(**named):
        ...
     ValueError: ...foo() expected a value between 1 and 5 for argument 'x',
     but got 6 instead.
-
-    Notes
-    -----
-    None can be passed as the lower or upper bound to signify that a value only
-    has an upper or lower bound.
 
     >>> @expect_bounded(x=(2, None))
     ... def foo(x):
