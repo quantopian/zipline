@@ -45,10 +45,6 @@ INDEX_MAPPING = {
 
 ONE_HOUR = pd.Timedelta(hours=1)
 
-nyse_cal = get_calendar('NYSE')
-trading_day_nyse = nyse_cal.day
-trading_days_nyse = nyse_cal.all_sessions
-
 
 def last_modified_time(path):
     """
@@ -95,9 +91,7 @@ def has_data_for_dates(series_or_df, first_date, last_date):
     return (first <= first_date) and (last >= last_date)
 
 
-def load_market_data(trading_day=trading_day_nyse,
-                     trading_days=trading_days_nyse,
-                     bm_symbol='^GSPC'):
+def load_market_data(trading_day=None, trading_days=None, bm_symbol='^GSPC'):
     """
     Load benchmark returns and treasury yield curves for the given calendar and
     benchmark symbol.
@@ -136,6 +130,11 @@ def load_market_data(trading_day=trading_day_nyse,
     '1month', '3month', '6month',
     '1year','2year','3year','5year','7year','10year','20year','30year'
     """
+    if trading_day is None:
+        trading_day = get_calendar('NYSE').trading_day
+    if trading_days is None:
+        trading_days = get_calendar('NYSE').all_sessions
+
     first_date = trading_days[0]
     now = pd.Timestamp.utcnow()
 
