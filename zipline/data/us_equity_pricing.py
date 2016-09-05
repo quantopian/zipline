@@ -1080,6 +1080,7 @@ class SQLiteAdjustmentWriter(object):
         ----------
         splits : pandas.DataFrame, optional
             Dataframe containing split data. The format of this dataframe is:
+
               effective_date : int
                   The date, represented as seconds since Unix epoch, on which
                   the adjustment should be applied.
@@ -1089,8 +1090,10 @@ class SQLiteAdjustmentWriter(object):
                   the ratio. Volume is divided by this value.
               sid : int
                   The asset id associated with this adjustment.
+
         mergers : pandas.DataFrame, optional
             DataFrame containing merger data. The format of this dataframe is:
+
               effective_date : int
                   The date, represented as seconds since Unix epoch, on which
                   the adjustment should be applied.
@@ -1100,8 +1103,10 @@ class SQLiteAdjustmentWriter(object):
                   the ratio. Volume is unaffected.
               sid : int
                   The asset id associated with this adjustment.
+
         dividends : pandas.DataFrame, optional
             DataFrame containing dividend data. The format of the dataframe is:
+
               sid : int
                   The asset id associated with this adjustment.
               ex_date : datetime64
@@ -1122,6 +1127,7 @@ class SQLiteAdjustmentWriter(object):
         stock_dividends : pandas.DataFrame, optional
             DataFrame containing stock dividend data. The format of the
             dataframe is:
+
               sid : int
                   The asset id associated with this adjustment.
               ex_date : datetime64

@@ -13,8 +13,8 @@ Zipline
 |appveyor status|
 |Coverage Status|
 
-Zipline is a Pythonic algorithmic trading library. It is an event-driven
-system that supports both backtesting and live-trading.
+Zipline is a Pythonic algorithmic trading library. It is an event-driven system
+that supports backtesting and can be extended to support live trading.
 
 Zipline is currently used in production as the backtesting and live-trading
 engine powering `Quantopian <https://www.quantopian.com>`_ -- a free,
@@ -101,11 +101,6 @@ Currently supported platforms include:
 -  GNU/Linux 64-bit
 -  OSX 64-bit
 -  Windows 64-bit
-
-.. note::
-
-   Windows 32-bit may work; however, it is not currently included in
-   continuous integration tests.
 
 Quickstart
 ==========

@@ -174,48 +174,31 @@ Pipeline API
    :members:
    :member-order: groupwise
 
-.. autoclass:: zipline.pipeline.CustomFactor
+.. autoclass:: zipline.pipeline.CustomFactor()
    :members:
    :member-order: groupwise
 
-.. autoclass:: zipline.pipeline.factors.Factor
-   :members: top, bottom, rank, percentile_between, isnan, notnan, isfinite,
-             eq, __add__, __sub__, __mul__, __div__, __mod__, __pow__, __lt__,
-             __le__, __ne__, __ge__, __gt__
+.. autoclass:: zipline.pipeline.factors.Factor()
+   :members: rank, top, bottom, isnan, notnan, isfinite, percentile_between,
+             eq, demean, zscore, quantiles, quartiles, quintiles, deciles,
+             pearsonr, spearmanr, linear_regression
    :exclude-members: dtype
    :member-order: bysource
 
-.. autoclass:: zipline.pipeline.factors.Latest
-   :members:
+**Notes:**
 
-.. autoclass:: zipline.pipeline.factors.MaxDrawdown
-   :members:
+- In addition to its named methods,
+  :class:`~zipline.pipeline.factors.Factor` implements the following binary
+  operators producing new factors: ``+``, ``-``, ``*``, ``/``, ``**``, ``%``.
 
-.. autoclass:: zipline.pipeline.factors.Returns
-   :members:
+- :class:`~zipline.pipeline.factors.Factor` also implements the following
+  comparison operators producing filters: ``<``, ``<=``, ``!=``, ``>=``, ``>``.
+  For internal technical reasons, :class:`~quantopian.pipeline.factors.Factor`
+  does **not** override ``==``. The ``eq`` method can be used to produce a
+  :class:`~zipline.pipeline.filters.Filter` that performs a direct equality
+  comparison against the output of a factor.
 
-.. autoclass:: zipline.pipeline.factors.RSI
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.BusinessDaysUntilNextEarnings
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.BusinessDaysSincePreviousEarnings
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.SimpleMovingAverage
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.VWAP
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.WeightedAverageValue
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
-   :members:
-
-.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
+.. autoclass:: zipline.pipeline.factors.Aroon
    :members:
 
 .. autoclass:: zipline.pipeline.factors.AverageDollarVolume
@@ -224,22 +207,88 @@ Pipeline API
 .. autoclass:: zipline.pipeline.factors.BollingerBands
    :members:
 
+.. autoclass:: zipline.pipeline.factors.BusinessDaysSincePreviousEvent
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.BusinessDaysUntilNextEvent
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.CustomFactor
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.EWMA
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.EWMSTD
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingAverage
+
+   **Alternate Constructors:**
+
+   .. automethod:: zipline.pipeline.factors.ExponentialWeightedMovingAverage.from_span
+   .. automethod:: zipline.pipeline.factors.ExponentialWeightedMovingAverage.from_center_of_mass
+   .. automethod:: zipline.pipeline.factors.ExponentialWeightedMovingAverage.from_halflife
+
+.. autoclass:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev
+
+   **Alternate Constructors:**
+
+   .. automethod:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev.from_span
+   .. automethod:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev.from_center_of_mass
+   .. automethod:: zipline.pipeline.factors.ExponentialWeightedMovingStdDev.from_halflife
+
+.. autoclass:: zipline.pipeline.factors.FastStochasticOscillator
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.IchimokuKinkoHyo
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.Latest
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.LinearWeightedMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.MaxDrawdown
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RateOfChangePercentage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RecarrayField
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.Returns
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.RollingLinearRegressionOfReturns
+   :members:
+
 .. autoclass:: zipline.pipeline.factors.RollingPearsonOfReturns
    :members:
 
 .. autoclass:: zipline.pipeline.factors.RollingSpearmanOfReturns
    :members:
 
-.. autoclass:: zipline.pipeline.factors.RollingLinearRegressionOfReturns
+.. autoclass:: zipline.pipeline.factors.RSI
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.SimpleMovingAverage
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.TrueRange
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.VWAP
+   :members:
+
+.. autoclass:: zipline.pipeline.factors.WeightedAverageValue
    :members:
 
 .. autoclass:: zipline.pipeline.filters.Filter
    :members: __and__, __or__
    :exclude-members: dtype
-
-.. autoclass:: zipline.pipeline.data.EarningsCalendar
-   :members: next_announcement, previous_announcement
-   :undoc-members:
 
 .. autoclass:: zipline.pipeline.data.USEquityPricing
    :members: open, high, low, close, volume
@@ -274,6 +323,8 @@ Trading Calendar API
 
 .. autofunction:: zipline.utils.calendars.register_calendar_type
 
+.. autofunction:: zipline.utils.calendars.register_calendar_alias
+
 .. autofunction:: zipline.utils.calendars.deregister_calendar
 
 .. autofunction:: zipline.utils.calendars.clear_calendars
@@ -286,6 +337,7 @@ Writers
 ```````
 .. autoclass:: zipline.data.minute_bars.BcolzMinuteBarWriter
    :members:
+   :member-order: bysource
 
 .. autoclass:: zipline.data.us_equity_pricing.BcolzDailyBarWriter
    :members:
@@ -308,9 +360,6 @@ Readers
    :members:
 
 .. autoclass:: zipline.assets.AssetFinder
-   :members:
-
-.. autoclass:: zipline.assets.AssetFinderCachedEquities
    :members:
 
 .. autoclass:: zipline.data.data_portal.DataPortal

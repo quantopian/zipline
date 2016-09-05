@@ -998,8 +998,7 @@ class DataPortal(object):
         sids : container
             Sids for which we want splits.
         dt : pd.Timestamp
-            The date for which we are checking for splits. Note: this is
-            expected to be midnight UTC.
+            Midnight UTC of the date for which we are checking for splits.
 
         Returns
         -------

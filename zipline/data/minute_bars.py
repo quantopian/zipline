@@ -660,15 +660,18 @@ class BcolzMinuteBarWriter(object):
         Parameters
         ----------
         data : iterable[(int, pd.DataFrame)]
-            The data to write. Each element should be a tuple of sid, data
-            where data has the following format:
+            The data to write. Each element should be a tuple of (sid, data)
+            where data has the following format::
+
               columns : ('open', 'high', 'low', 'close', 'volume')
                   open : float64
                   high : float64
                   low  : float64
                   close : float64
                   volume : float64|int64
+
               index : DatetimeIndex of market minutes.
+
             A given sid may appear more than once in ``data``; however,
             the dates must be strictly increasing.
         show_progress : bool, optional
@@ -688,6 +691,7 @@ class BcolzMinuteBarWriter(object):
     def write_sid(self, sid, df):
         """
         Write the OHLCV data for the given sid.
+
         If there is no bcolz ctable yet created for the sid, create it.
         If the length of the bcolz ctable is not exactly to the date before
         the first day provided, fill the ctable with 0s up to that date.
@@ -697,14 +701,15 @@ class BcolzMinuteBarWriter(object):
         sid : int
             The asset identifer for the data being written.
         df : pd.DataFrame
-            DataFrame of market data with the following characteristics.
-            columns : ('open', 'high', 'low', 'close', 'volume')
-                open : float64
-                high : float64
-                low  : float64
-                close : float64
-                volume : float64|int64
-            index : DatetimeIndex of market minutes.
+            DataFrame of market data in the following form::
+
+                columns : ('open', 'high', 'low', 'close', 'volume')
+                    open : float64
+                    high : float64
+                    low  : float64
+                    close : float64
+                    volume : float64|int64
+                index : DatetimeIndex of market minutes.
         """
         cols = {
             'open': df.open.values,
@@ -721,6 +726,7 @@ class BcolzMinuteBarWriter(object):
     def write_cols(self, sid, dts, cols):
         """
         Write the OHLCV data for the given sid.
+
         If there is no bcolz ctable yet created for the sid, create it.
         If the length of the bcolz ctable is not exactly to the date before
         the first day provided, fill the ctable with 0s up to that date.
