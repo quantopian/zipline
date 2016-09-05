@@ -566,6 +566,7 @@ class IchimokuKinkoHyo(CustomFactor):
     **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`
                         :data:`zipline.pipeline.data.USEquityPricing.low`
                         :data:`zipline.pipeline.data.USEquityPricing.close`
+
     **Default Window Length:** 52
 
     Parameters
