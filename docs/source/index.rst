@@ -4,7 +4,7 @@
    :maxdepth: 2
 
    install
-   beginner-tutorial
+   getting-started
    bundles
    releases
    appendix
