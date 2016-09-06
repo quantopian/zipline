@@ -111,26 +111,26 @@ def check_account(account,
     # so net and gross leverage are equal.
 
     np.testing.assert_allclose(settled_cash,
-                               account['settled_cash'], rtol=1e-3)
+                               account.settled_cash, rtol=1e-3)
     np.testing.assert_allclose(equity_with_loan,
-                               account['equity_with_loan'], rtol=1e-3)
+                               account.equity_with_loan, rtol=1e-3)
     np.testing.assert_allclose(total_positions_value,
-                               account['total_positions_value'], rtol=1e-3)
+                               account.total_positions_value, rtol=1e-3)
     np.testing.assert_allclose(total_positions_exposure,
-                               account['total_positions_exposure'], rtol=1e-3)
+                               account.total_positions_exposure, rtol=1e-3)
     np.testing.assert_allclose(regt_equity,
-                               account['regt_equity'], rtol=1e-3)
+                               account.regt_equity, rtol=1e-3)
     np.testing.assert_allclose(available_funds,
-                               account['available_funds'], rtol=1e-3)
+                               account.available_funds, rtol=1e-3)
     np.testing.assert_allclose(excess_liquidity,
-                               account['excess_liquidity'], rtol=1e-3)
+                               account.excess_liquidity, rtol=1e-3)
     np.testing.assert_allclose(cushion,
-                               account['cushion'], rtol=1e-3)
-    np.testing.assert_allclose(leverage, account['leverage'], rtol=1e-3)
+                               account.cushion, rtol=1e-3)
+    np.testing.assert_allclose(leverage, account.leverage, rtol=1e-3)
     np.testing.assert_allclose(net_leverage,
-                               account['net_leverage'], rtol=1e-3)
+                               account.net_leverage, rtol=1e-3)
     np.testing.assert_allclose(net_liquidation,
-                               account['net_liquidation'], rtol=1e-3)
+                               account.net_liquidation, rtol=1e-3)
 
 
 def create_txn(asset, dt, price, amount):
@@ -368,28 +368,28 @@ class TestSplitPerformance(WithSimParams, WithTmpDir, ZiplineTestCase):
 
         # Validate that the account attributes were updated.
         account = results[1]['account']
-        self.assertEqual(float('inf'), account['day_trades_remaining'])
+        self.assertEqual(float('inf'), account.day_trades_remaining)
         # this is a long only portfolio that is only partially invested
         # so net and gross leverage are equal.
-        np.testing.assert_allclose(0.198, account['leverage'], rtol=1e-3)
-        np.testing.assert_allclose(0.198, account['net_leverage'], rtol=1e-3)
-        np.testing.assert_allclose(8020, account['regt_equity'], rtol=1e-3)
-        self.assertEqual(float('inf'), account['regt_margin'])
-        np.testing.assert_allclose(8020, account['available_funds'], rtol=1e-3)
-        self.assertEqual(0, account['maintenance_margin_requirement'])
+        np.testing.assert_allclose(0.198, account.leverage, rtol=1e-3)
+        np.testing.assert_allclose(0.198, account.net_leverage, rtol=1e-3)
+        np.testing.assert_allclose(8020, account.regt_equity, rtol=1e-3)
+        self.assertEqual(float('inf'), account.regt_margin)
+        np.testing.assert_allclose(8020, account.available_funds, rtol=1e-3)
+        self.assertEqual(0, account.maintenance_margin_requirement)
         np.testing.assert_allclose(10000,
-                                   account['equity_with_loan'], rtol=1e-3)
-        self.assertEqual(float('inf'), account['buying_power'])
-        self.assertEqual(0, account['initial_margin_requirement'])
-        np.testing.assert_allclose(8020, account['excess_liquidity'],
+                                   account.equity_with_loan, rtol=1e-3)
+        self.assertEqual(float('inf'), account.buying_power)
+        self.assertEqual(0, account.initial_margin_requirement)
+        np.testing.assert_allclose(8020, account.excess_liquidity,
                                    rtol=1e-3)
-        np.testing.assert_allclose(8020, account['settled_cash'], rtol=1e-3)
-        np.testing.assert_allclose(10000, account['net_liquidation'],
+        np.testing.assert_allclose(8020, account.settled_cash, rtol=1e-3)
+        np.testing.assert_allclose(10000, account.net_liquidation,
                                    rtol=1e-3)
-        np.testing.assert_allclose(0.802, account['cushion'], rtol=1e-3)
-        np.testing.assert_allclose(1980, account['total_positions_value'],
+        np.testing.assert_allclose(0.802, account.cushion, rtol=1e-3)
+        np.testing.assert_allclose(1980, account.total_positions_value,
                                    rtol=1e-3)
-        self.assertEqual(0, account['accrued_interest'])
+        self.assertEqual(0, account.accrued_interest)
 
         for i, result in enumerate(results):
             for perf_kind in ('daily_perf', 'cumulative_perf'):
@@ -1346,10 +1346,10 @@ class TestPositionPerformance(WithInstanceTmpDir, WithTradingCalendars,
 
         self.assertEqual(
             pp.positions[1].last_sale_price,
-            trades[-1]['price'],
+            trades[-1].price,
             "last sale should be same as last trade. \
             expected {exp} actual {act}".format(
-                exp=trades[-1]['price'],
+                exp=trades[-1].price,
                 act=pp.positions[1].last_sale_price)
         )
 
@@ -1456,7 +1456,7 @@ single short-sale transaction"""
 
         self.assertEqual(
             pp.positions[1].last_sale_price,
-            trades_1[-1]['price'],
+            trades_1[-1].price,
             "last sale should be price of last trade"
         )
 
