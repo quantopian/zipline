@@ -14,19 +14,23 @@ from zipline.pipeline.common import (
     SID_FIELD_NAME,
     TS_FIELD_NAME,
 )
-from zipline.pipeline.data import DataSet, Column
+from zipline.pipeline.data import DataSet
+from zipline.pipeline.data import Column
 from zipline.pipeline.loaders.blaze.estimates import (
     BlazeNextEstimatesLoader,
     BlazePreviousEstimatesLoader
 )
 from zipline.pipeline.loaders.quarter_estimates import (
     NextQuartersEstimatesLoader,
+    normalize_quarters,
     PreviousQuartersEstimatesLoader,
-    split_normalized_quarters, normalize_quarters)
-from zipline.testing import ZiplineTestCase
-from zipline.testing.fixtures import WithAssetFinder, WithTradingSessions
+    split_normalized_quarters,
+)
+from zipline.testing.fixtures import ZiplineTestCase, WithTradingSessions, \
+    WithAssetFinder
 from zipline.testing.predicates import assert_equal
-from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
+from zipline.utils.numpy_utils import datetime64ns_dtype
+from zipline.utils.numpy_utils import float64_dtype
 
 
 class Estimates(DataSet):
@@ -43,94 +47,17 @@ def QuartersEstimates(num_qtr):
     return QtrEstimates
 
 
-# 0Q1: 2015-01-05.Q1.e1.2015-01-06, 2015-01-10.Q1.e1.2015-01-11,
-# 0Q2: 2015-01-15.Q2.e1.2015-01-16, 2015-01-20.Q2.e1.2015-01-21,
-# 0Q4: 2015-02-05.Q4.e1.2015-02-06, 2015-02-10.Q4.e1.2015-02-11,
-# Skip Q3 to make sure we handle skipped quarter data correctly.
-estimates_timeline = pd.DataFrame({
-    TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
-                    pd.Timestamp('2015-01-22'), pd.Timestamp('2015-02-02')],
-    EVENT_DATE_FIELD_NAME:
-        [pd.Timestamp('2015-01-10'), pd.Timestamp('2015-01-10'),
-         pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20'),
-         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10'),
-         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10')],
-    'estimate': [1.]*2 + [2.] * 2 + [4.] * 4,
-    FISCAL_QUARTER_FIELD_NAME: [1]*2 + [2] * 2 + [4] * 4,
-    FISCAL_YEAR_FIELD_NAME: [2015]*8,
-    SID_FIELD_NAME: [0]*8
-})
-
-
-# Final release dates never change. The quarters have very tight date ranges
-# in order to reduce the number of dates we need to iterate through when
-# testing.
-releases = pd.DataFrame({
-    TS_FIELD_NAME: [pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-31')],
-    EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-15'),
-                            pd.Timestamp('2015-01-31')],
-    'estimate': [0.5, 0.8],
-    FISCAL_QUARTER_FIELD_NAME: [1.0, 2.0],
-    FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0]
-})
-
-q1_knowledge_dates = [pd.Timestamp('2015-01-01'), pd.Timestamp('2015-01-04'),
-                      pd.Timestamp('2015-01-08'), pd.Timestamp('2015-01-12')]
-q2_knowledge_dates = [pd.Timestamp('2015-01-16'), pd.Timestamp('2015-01-20'),
-                      pd.Timestamp('2015-01-24'), pd.Timestamp('2015-01-28')]
-# We want to model the possibility of an estimate predicting a release date
-# that doesn't match the actual release. This could be done by dynamically
-# generating more combinations with different release dates, but that
-# significantly increases the amount of time it takes to run the tests. These
-# hard-coded cases are sufficient to know that we can update our beliefs when
-# we get new information.
-q1_release_dates = [pd.Timestamp('2015-01-15'),
-                    pd.Timestamp('2015-01-16')]  # One day late
-q2_release_dates = [pd.Timestamp('2015-01-30'),  # One day early
-                    pd.Timestamp('2015-01-31')]
-estimates = pd.DataFrame({
-    EVENT_DATE_FIELD_NAME: q1_release_dates + q2_release_dates,
-    'estimate': [.1, .2, .3, .4],
-    FISCAL_QUARTER_FIELD_NAME: [1.0, 1.0, 2.0, 2.0],
-    FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0, 2015.0, 2015.0]
-})
-
-
-def gen_estimates():
-    sid_estimates = []
-    sid_releases = []
-    for sid, (q1e1, q1e2, q2e1, q2e2) in enumerate(
-            itertools.permutations(q1_knowledge_dates + q2_knowledge_dates,
-                                   4)
-    ):
-        # We're assuming that estimates must come before the relevant release.
-        if (q1e1 < q1e2 and
-                q2e1 < q2e2 and
-                q1e1 < q1_release_dates[0] and
-                q1e2 < q1_release_dates[1]):
-            sid_estimate = estimates.copy(True)
-            sid_estimate[TS_FIELD_NAME] = [q1e1, q1e2, q2e1, q2e2]
-            sid_estimate[SID_FIELD_NAME] = sid
-            sid_estimates += [sid_estimate]
-            sid_release = releases.copy(True)
-            sid_release[SID_FIELD_NAME] = sid_estimate[SID_FIELD_NAME]
-            sid_releases += [sid_release]
-    return pd.concat(sid_estimates + sid_releases).reset_index(drop=True)
-
-
-class EstimateTestCase(object):
+class WithEstimates(WithTradingSessions, WithAssetFinder):
     START_DATE = pd.Timestamp('2014-12-28')
     END_DATE = pd.Timestamp('2015-02-03')
 
     @classmethod
     def make_loader(cls, events, columns):
-        pass
+        return None
 
     @classmethod
     def init_class_fixtures(cls):
-        cls.sids = cls.events['sid'].unique()
+        cls.sids = cls.events[SID_FIELD_NAME].unique()
         cls.columns = {
             Estimates.estimate: 'estimate',
             Estimates.event_date: EVENT_DATE_FIELD_NAME,
@@ -138,16 +65,15 @@ class EstimateTestCase(object):
             Estimates.fiscal_year: FISCAL_YEAR_FIELD_NAME,
         }
         cls.loader = cls.make_loader(cls.events, cls.columns)
-
         cls.ASSET_FINDER_EQUITY_SIDS = list(
             cls.events[SID_FIELD_NAME].unique()
         )
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
-        super(EstimateTestCase, cls).init_class_fixtures()
+        super(WithEstimates, cls).init_class_fixtures()
 
-    def _test_wrong_num_quarters_passed(self):
+    def test_wrong_num_quarters_passed(self):
         with self.assertRaises(ValueError):
             dataset = QuartersEstimates(-1)
             engine = SimplePipelineEngine(
@@ -163,26 +89,149 @@ class EstimateTestCase(object):
             )
 
 
+q1_knowledge_dates = [pd.Timestamp('2015-01-01'), pd.Timestamp('2015-01-04'),
+                      pd.Timestamp('2015-01-08'), pd.Timestamp('2015-01-12')]
+q2_knowledge_dates = [pd.Timestamp('2015-01-16'), pd.Timestamp('2015-01-20'),
+                      pd.Timestamp('2015-01-24'), pd.Timestamp('2015-01-28')]
+# We want to model the possibility of an estimate predicting a release date
+# that doesn't match the actual release. This could be done by dynamically
+# generating more combinations with different release dates, but that
+# significantly increases the amount of time it takes to run the tests. These
+# hard-coded cases are sufficient to know that we can update our beliefs when
+# we get new information.
+q1_release_dates = [pd.Timestamp('2015-01-15'),
+                    pd.Timestamp('2015-01-16')]  # One day late
+q2_release_dates = [pd.Timestamp('2015-01-30'),  # One day early
+                    pd.Timestamp('2015-01-31')]
+
+
+def gen_estimates():
+    sid_estimates = []
+    sid_releases = []
+    it = enumerate(
+        itertools.permutations(q1_knowledge_dates + q2_knowledge_dates, 4)
+    )
+    for sid, (q1e1, q1e2, q2e1, q2e2) in it:
+        # We're assuming that estimates must come before the relevant release.
+        if (q1e1 < q1e2 and
+                q2e1 < q2e2 and
+                q1e1 < q1_release_dates[0] and
+                q1e2 < q1_release_dates[1]):
+            sid_estimates.append(create_estimates_df(q1e1,
+                                                     q1e2,
+                                                     q2e1,
+                                                     q2e2,
+                                                     sid))
+            sid_releases.append(create_releases_df(sid))
+
+    return pd.concat(sid_estimates + sid_releases).reset_index(drop=True)
+
+
+def create_releases_df(sid):
+    # Final release dates never change. The quarters have very tight date ranges
+    # in order to reduce the number of dates we need to iterate through when
+    # testing.
+    return pd.DataFrame({
+        TS_FIELD_NAME: [pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-31')],
+        EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-15'),
+                                pd.Timestamp('2015-01-31')],
+        'estimate': [0.5, 0.8],
+        FISCAL_QUARTER_FIELD_NAME: [1.0, 2.0],
+        FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0],
+        SID_FIELD_NAME: sid
+    })
+
+
+def create_estimates_df(q1e1,
+                        q1e2,
+                        q2e1,
+                        q2e2,
+                        sid):
+    return pd.DataFrame({
+        EVENT_DATE_FIELD_NAME: q1_release_dates + q2_release_dates,
+        'estimate': [.1, .2, .3, .4],
+        FISCAL_QUARTER_FIELD_NAME: [1.0, 1.0, 2.0, 2.0],
+        FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0, 2015.0, 2015.0],
+        TS_FIELD_NAME: [q1e1, q1e2, q2e1, q2e2],
+        SID_FIELD_NAME: sid,
+    })
+
+# 0Q1: 2015-01-05.Q1.e1.2015-01-06, 2015-01-10.Q1.e1.2015-01-11,
+# 0Q2: 2015-01-15.Q2.e1.2015-01-16, 2015-01-20.Q2.e1.2015-01-21,
+# 0Q4: 2015-02-05.Q4.e1.2015-02-06, 2015-02-10.Q4.e1.2015-02-11,
+# Skip Q3 to make sure we handle skipped quarter data correctly.
+estimates_timeline = pd.DataFrame({
+    TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
+                    pd.Timestamp('2015-01-22'), pd.Timestamp('2015-02-02')],
+    EVENT_DATE_FIELD_NAME:
+        [pd.Timestamp('2015-01-10'), pd.Timestamp('2015-01-10'),
+         pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20'),
+         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10'),
+         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10')],
+    'estimate': [1.] * 2 + [2.] * 2 + [4.] * 4,
+    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2 + [4] * 4,
+    FISCAL_YEAR_FIELD_NAME: [2015] * 8,
+    SID_FIELD_NAME: [0] * 8
+})
+
+window_start = pd.Timestamp('2014-12-31')
+window_end = pd.Timestamp('2015-02-15')
+# ranges don't include end date
+expected_next_ranges_1q_out = (
+    (pd.date_range(window_start, '2015-01-04'), np.NaN),
+    (pd.date_range('2015-01-05', '2015-01-10'), 1),
+    (pd.date_range('2015-01-11', '2015-01-20'), 2),
+    (pd.date_range('2015-01-21', '2015-02-10'), 4),  # Q3 no estimates,
+    # so 1Q out will be Q4
+    (pd.date_range('2015-02-11', window_end), np.NaN),
+)
+
+expected_next_ranges_2q_out = (
+    (pd.date_range(window_start, '2015-01-04'), np.NaN),
+    (pd.date_range('2015-01-05', '2015-01-10'), 2),
+    (pd.date_range('2015-01-11', window_end), np.NaN),  # 1Q out will be Q4,
+    #  since no data for Q3, so 2Q out is Q5, but we don't have data for Q5.
+)
+
+expected_next_ranges_3q_out = (
+    (pd.date_range(window_start, '2015-01-04'), np.NaN),
+    (pd.date_range('2015-01-05', '2015-01-10'), np.NaN),  # 1Q out is Q1,
+    #  and 3Q out will be Q3, but there's no data for it.
+    (pd.date_range('2015-01-11', '2015-01-20'), 4),
+    (pd.date_range('2015-01-21', window_end), np.NaN),
+)
+
+expected_next_ranges_4q_out = (
+    (pd.date_range(window_start, '2015-01-04'), np.NaN),
+    (pd.date_range('2015-01-05', '2015-01-10'), 4),  # 1Q out is Q1,
+    # 4Q out is Q4.
+    (pd.date_range('2015-01-11', window_end), np.NaN),
+)
+
 window_test_cases = [
-    (window_len, start_idx, num_quarters_out) for
-    (window_len, start_idx), num_quarters_out in
+    (window_len, start_idx, num_quarters_out, expected) for
+    (window_len, start_idx), (num_quarters_out, expected) in
     itertools.product(
         [[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
          [6, pd.Timestamp('2015-01-12').tz_localize('utc')],
          [11, pd.Timestamp('2015-01-20').tz_localize('utc')],
          [19, pd.Timestamp('2015-01-30').tz_localize('utc')],
          [26, pd.Timestamp('2015-02-10').tz_localize('utc')]],
-        [1, 2, 3, 4])
+        [(1, expected_next_ranges_1q_out),
+         (2, expected_next_ranges_2q_out),
+         (3, expected_next_ranges_3q_out),
+         (4, expected_next_ranges_4q_out)])
 ]
 
 
-class NextEstimateWindowsTestCase(EstimateTestCase,
-                                  WithAssetFinder,
-                                  WithTradingSessions,
+class NextEstimateWindowsTestCase(WithEstimates,
                                   ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-12-31')
-    END_DATE = pd.Timestamp('2015-02-15')
+    START_DATE = window_start
+    END_DATE = window_end
     events = estimates_timeline
+
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -192,7 +241,8 @@ class NextEstimateWindowsTestCase(EstimateTestCase,
     def test_next_estimate_windows_at_quarter_boundaries(self,
                                                          window_len,
                                                          start_idx,
-                                                         num_quarters_out):
+                                                         num_quarters_out,
+                                                         expected):
         """
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates.
@@ -203,26 +253,11 @@ class NextEstimateWindowsTestCase(EstimateTestCase,
             inputs = [dataset.estimate]
             window_length = window_len
 
-            def compute(self, today, assets, out, *inputs):
-                unique_inputs = np.unique(inputs).tolist()
-                requested_quarter = None
-                if (pd.Timestamp('2015-02-10').tz_localize('utc') >= today >=
-                        pd.Timestamp('2015-01-05').tz_localize('utc')):
-                    next_quarter = estimates_timeline[
-                        estimates_timeline[EVENT_DATE_FIELD_NAME] >= today
-                    ].min()[FISCAL_QUARTER_FIELD_NAME]
-                    requested_quarter = next_quarter + num_quarters_out - 1
-
-                # If we know something about the requested quarter, assert
-                # that all our estimates in the window are about that quarter.
-                if requested_quarter and requested_quarter <= 4 and \
-                        requested_quarter != 3:
-                    assert np.equal(unique_inputs, requested_quarter).all()
-                else:
-                    # We don't have any information yet about the next quarter
-                    # or about the requested quarter; in that case, all our
-                    # estimates in the window should be NaN across time.
-                    assert np.isnan(unique_inputs).all()
+            def compute(self, today, assets, out, estimate):
+                today_range, value = filter(lambda x: today in x[0],
+                                            expected)[0]
+                expected_values = np.array([[value]] * window_len)
+                assert_equal(expected_values, estimate)
 
         engine = SimplePipelineEngine(
             lambda x: self.loader,
@@ -236,9 +271,7 @@ class NextEstimateWindowsTestCase(EstimateTestCase,
         )
 
 
-class PreviousEstimateWindowsTestCase(EstimateTestCase,
-                                      WithAssetFinder,
-                                      WithTradingSessions,
+class PreviousEstimateWindowsTestCase(WithEstimates,
                                       ZiplineTestCase):
     START_DATE = pd.Timestamp('2014-12-31')
     END_DATE = pd.Timestamp('2015-02-15')
@@ -258,15 +291,21 @@ class PreviousEstimateWindowsTestCase(EstimateTestCase,
         the correct dates.
         """
         dataset = QuartersEstimates(num_quarters_out)
+        trading_days = self.trading_days
+        event1_idx = trading_days.searchsorted(
+            pd.Timestamp('2015-01-12').tz_localize('utc')
+        )
 
         class SomeFactor(CustomFactor):
             inputs = [dataset.estimate]
             window_length = window_len
 
-            def compute(self, today, assets, out, *inputs):
-                unique_inputs = np.unique(inputs).tolist()
+            def compute(self, today, assets, out, estimate):
+                unique_inputs = np.unique(estimate).tolist()
                 requested_quarter = None
-                if today >= pd.Timestamp('2015-01-12').tz_localize('utc'):
+                today_idx = trading_days.searchsorted(today)
+                num_nan_days = today_idx - event1_idx
+                if num_nan_days > 0:
                     previous_quarter = estimates_timeline[
                         estimates_timeline[EVENT_DATE_FIELD_NAME] <= today
                     ].max()[FISCAL_QUARTER_FIELD_NAME]
@@ -298,9 +337,7 @@ class PreviousEstimateWindowsTestCase(EstimateTestCase,
         )
 
 
-class NextEstimateTestCase(EstimateTestCase,
-                           WithAssetFinder,
-                           WithTradingSessions,
+class NextEstimateTestCase(WithEstimates,
                            ZiplineTestCase):
     events = gen_estimates()
 
@@ -367,14 +404,8 @@ class NextEstimateTestCase(EstimateTestCase,
                 else:
                     assert sid_estimates.iloc[i].isnull().all()
 
-    def test_wrong_num_quarters_passed(self):
-        self._test_wrong_num_quarters_passed()
 
-
-class EstimateMultipleQuartersTestCase(EstimateTestCase,
-                                       WithAssetFinder,
-                                       WithTradingSessions,
-                                       ZiplineTestCase):
+class EstimateMultipleQuartersTestCase(WithEstimates):
     events = pd.DataFrame({
         SID_FIELD_NAME: [0] * 2,
         TS_FIELD_NAME: [pd.Timestamp('2015-01-01'),
@@ -441,7 +472,8 @@ class EstimateMultipleQuartersTestCase(EstimateTestCase,
         return results
 
 
-class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
+class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase,
+                                           ZiplineTestCase):
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -479,8 +511,11 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
         # Fiscal year and quarter are different for 2Q out because even when we
         # have no data for 2Q out, we still know which fiscal year/quarter we
         # want data for as long as we have data for 1Q out.
-        for col in set(self.columns.keys()) - {Estimates.fiscal_year,
-                                               Estimates.fiscal_quarter}:
+        for col in filter(
+                lambda x: x.name not in [
+                    FISCAL_QUARTER_FIELD_NAME,
+                    FISCAL_YEAR_FIELD_NAME], self.columns.keys()
+        ):
             # 2Q out cols
             self.check_null_range(results,
                                   self.START_DATE,
@@ -505,23 +540,23 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
         self.check_null_range(results,
                               self.START_DATE,
                               pd.Timestamp('2015-01-01'),
-                              Estimates.fiscal_quarter.name + '2')
+                              FISCAL_QUARTER_FIELD_NAME + '2')
         self.check_null_range(results,
                               self.START_DATE,
                               pd.Timestamp('2015-01-01'),
-                              Estimates.fiscal_year.name + '2')
+                              FISCAL_YEAR_FIELD_NAME + '2')
         # We have a different quarter number than the quarter numbers we have
         # in our data for 2Q out, so assert manually.
         assert (
             results.loc[
                 pd.Timestamp('2015-01-02'):pd.Timestamp('2015-01-10')
-            ][Estimates.fiscal_quarter.name + '2'] ==
+            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             2
         ).all()
         assert (
             results.loc[
                 pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-20')
-            ][Estimates.fiscal_quarter.name + '2'] ==
+            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             3
         ).all()
         # We have the same fiscal year, 2-15, for 2Q out over the date range of
@@ -529,21 +564,22 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase):
         self.check_values(results,
                           pd.Timestamp('2015-01-02'),
                           pd.Timestamp('2015-01-20'),
-                          Estimates.fiscal_year.name,
+                          FISCAL_YEAR_FIELD_NAME,
                           '2',
                           1)
         self.check_null_range(results,
                               pd.Timestamp('2015-01-21'),
                               self.END_DATE,
-                              Estimates.fiscal_quarter.name + '2')
+                              FISCAL_YEAR_FIELD_NAME + '2')
         self.check_null_range(results,
                               pd.Timestamp('2015-01-21'),
                               self.END_DATE,
-                              Estimates.fiscal_year.name + '2')
+                              FISCAL_YEAR_FIELD_NAME + '2')
 
 
 class PreviousEstimateMultipleQuartersTestCase(
-    EstimateMultipleQuartersTestCase
+    EstimateMultipleQuartersTestCase,
+    ZiplineTestCase
 ):
 
     @classmethod
@@ -578,8 +614,11 @@ class PreviousEstimateMultipleQuartersTestCase(
         # Fiscal year and quarter are different for 2Q out because even when we
         # have no data for 2Q out, we still know which fiscal year/quarter we
         # want data for as long as we have data for 1Q out.
-        for col in set(self.columns.keys()) - {Estimates.fiscal_year,
-                                               Estimates.fiscal_quarter}:
+        for col in filter(
+                lambda x: x.name not in [
+                    FISCAL_QUARTER_FIELD_NAME,
+                    FISCAL_YEAR_FIELD_NAME], self.columns.keys()
+        ):
             # 2Q out cols
             self.check_null_range(results,
                                   self.START_DATE,
@@ -597,36 +636,36 @@ class PreviousEstimateMultipleQuartersTestCase(
         self.check_null_range(results,
                               self.START_DATE,
                               pd.Timestamp('2015-01-09'),
-                              Estimates.fiscal_quarter.name + '2')
+                              FISCAL_QUARTER_FIELD_NAME + '2')
         self.check_null_range(results,
                               self.START_DATE,
                               pd.Timestamp('2015-01-09'),
-                              Estimates.fiscal_year.name + '2')
+                              FISCAL_YEAR_FIELD_NAME + '2')
         # We have a different quarter number than the quarter numbers we have
         # in our data for 2Q out, so assert manually.
         assert (
             results.loc[
                 pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-16')
-            ][Estimates.fiscal_quarter.name + '2'] ==
+            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             4
         ).all()
         assert (
             results.loc[
                 pd.Timestamp('2015-01-20'):self.END_DATE
-            ][Estimates.fiscal_quarter.name + '2'] ==
+            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             1
         ).all()
 
         assert (
             results.loc[
                 pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-16')
-            ][Estimates.fiscal_year.name + '2'] ==
+            ][FISCAL_YEAR_FIELD_NAME + '2'] ==
             2014
         ).all()
         assert (
             results.loc[
                 pd.Timestamp('2015-01-20'):self.END_DATE
-            ][Estimates.fiscal_year.name + '2'] ==
+            ][FISCAL_YEAR_FIELD_NAME + '2'] ==
             2015
         ).all()
 
@@ -644,9 +683,7 @@ class BlazeNextEstimateLoaderTestCase(NextEstimateTestCase):
         )
 
 
-class PreviousEstimateTestCase(EstimateTestCase,
-                               WithAssetFinder,
-                               WithTradingSessions,
+class PreviousEstimateTestCase(WithEstimates,
                                ZiplineTestCase):
     events = gen_estimates()
 
@@ -712,9 +749,6 @@ class PreviousEstimateTestCase(EstimateTestCase,
                         assert_equal(expected_value, computed_value)
                 else:
                     assert sid_estimates.iloc[i].isnull().all()
-
-    def test_wrong_num_quarters_passed(self):
-        self._test_wrong_num_quarters_passed()
 
 
 class BlazePreviousEstimateLoaderTestCase(PreviousEstimateTestCase):
