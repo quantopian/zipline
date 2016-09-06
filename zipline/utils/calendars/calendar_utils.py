@@ -25,7 +25,7 @@ _default_calendar_factories = {
     'TSX': TSXExchangeCalendar,
     'us_futures': QuantopianUSFuturesCalendar,
 }
-_default_aliases = {
+_default_calendar_aliases = {
     'NASDAQ': 'NYSE',
     'BATS': 'NYSE',
     'CBOT': 'CME',
@@ -254,7 +254,7 @@ class TradingCalendarDispatcher(object):
 global_calendar_dispatcher = TradingCalendarDispatcher(
     calendars={},
     calendar_factories=_default_calendar_factories,
-    aliases=_default_aliases,
+    aliases=_default_calendar_aliases,
 )
 
 get_calendar = global_calendar_dispatcher.get_calendar
