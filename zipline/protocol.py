@@ -12,10 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from warnings import warn
+
 import pandas as pd
 
 from .utils.enum import enum
-
 from zipline._protocol import BarData  # noqa
 
 
@@ -79,8 +80,52 @@ class Event(object):
         return pd.Series(self.__dict__, index=index)
 
 
+def _deprecated_getitem_method(name, attrs):
+    """Create a deprecated ``__getitem__`` method that tells users to use
+    getattr instead.
+
+    Parameters
+    ----------
+    name : str
+        The name of the object in the warning message.
+    attrs : iterable[str]
+        The set of allowed attributes.
+
+    Returns
+    -------
+    __getitem__ : callable[any, str]
+        The ``__getitem__`` method to put in the class dict.
+    """
+    attrs = frozenset(attrs)
+    msg = "'{0}[attr]' is deprecated, please use '{0}.attr' instead".format(
+        name,
+    )
+
+    def __getitem__(self, key):
+        """``__getitem__`` is deprecated, please use attribute access instead.
+        """
+        warn(msg, DeprecationWarning, stacklevel=1)
+        if key in attrs:
+            return self.__dict__[key]
+        raise KeyError(key)
+
+    return __getitem__
+
+
 class Order(Event):
-    pass
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'order', {
+            'dt',
+            'sid',
+            'amount',
+            'stop',
+            'limit',
+            'id',
+        },
+    )
 
 
 class Portfolio(object):
@@ -98,6 +143,23 @@ class Portfolio(object):
 
     def __repr__(self):
         return "Portfolio({0})".format(self.__dict__)
+
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'portfolio', {
+            'capital_used',
+            'starting_cash',
+            'portfolio_value',
+            'pnl',
+            'returns',
+            'cash',
+            'positions',
+            'start_date',
+            'positions_value',
+        },
+    )
 
 
 class Account(object):
@@ -130,6 +192,31 @@ class Account(object):
     def __repr__(self):
         return "Account({0})".format(self.__dict__)
 
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'account', {
+            'settled_cash',
+            'accrued_interest',
+            'buying_power',
+            'equity_with_loan',
+            'total_positions_value',
+            'total_positions_exposure',
+            'regt_equity',
+            'regt_margin',
+            'initial_margin_requirement',
+            'maintenance_margin_requirement',
+            'available_funds',
+            'excess_liquidity',
+            'cushion',
+            'day_trades_remaining',
+            'leverage',
+            'net_leverage',
+            'net_liquidation',
+        },
+    )
+
 
 class Position(object):
 
@@ -142,6 +229,19 @@ class Position(object):
 
     def __repr__(self):
         return "Position({0})".format(self.__dict__)
+
+    # If you are adding new attributes, don't update this set. This method
+    # is deprecated to normal attribute access so we don't want to encourage
+    # new usages.
+    __getitem__ = _deprecated_getitem_method(
+        'position', {
+            'sid',
+            'amount',
+            'cost_basis',
+            'last_sale_price',
+            'last_sale_date',
+        },
+    )
 
 
 class Positions(dict):
