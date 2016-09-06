@@ -248,23 +248,15 @@ class QuarterEstimatesLoader(PipelineLoader):
                     requested_quarter = requested_qtr_data[
                         SHIFTED_NORMALIZED_QTRS
                     ][sid].iloc[next_qtr_start_idx]
-                    starting_idx = dates.searchsorted(
-                        requested_qtr_data[
-                            EVENT_DATE_FIELD_NAME
-                        ][sid].loc[row_indexer[0]],
-                        side='left'
-                    ) if isinstance(self,
-                                    PreviousQuartersEstimatesLoader) else 0
 
                     # If there are estimates for the requested quarter,
                     # overwrite all values going up to the starting index of
                     # that quarter with estimates for that quarter.
                     if requested_quarter in quarters_with_estimates_for_sid:
-                        # We can only create overwrites for ranges of len > 0.
-                        if starting_idx < next_qtr_start_idx:
+                        if isinstance(self, NextQuartersEstimatesLoader):
                             adjustments[next_qtr_start_idx] = \
                                 [overwrite(
-                                    starting_idx,
+                                    0,
                                     # overwrite thru last qtr
                                     next_qtr_start_idx - 1,
                                     sid_idx,
@@ -273,25 +265,21 @@ class QuarterEstimatesLoader(PipelineLoader):
                                         column_name,
                                         requested_quarter,
                                         sid
-                                    ][starting_idx:next_qtr_start_idx].values)]
+                                    ][0:next_qtr_start_idx].values)]
+                        else:
+                            self.overwrite_with_null(adjustments, column,
+                                                     last_per_qtr,
+                                                     next_qtr_start_idx,
+                                                     overwrite,
+                                                     sid_idx)
                     # There are no estimates for the quarter. Overwrite all
                     # values going up to the starting index of that quarter
                     # with the missing value for this column.
                     else:
-                        adjustments[next_qtr_start_idx] = [
-                            overwrite(
-                                0,
-                                next_qtr_start_idx - 1,
-                                sid_idx,
-                                sid_idx,
-                                np.full(
-                                    len(
-                                        last_per_qtr.index[:next_qtr_start_idx]
-                                    ),
-                                    column.missing_value,
-                                )
-                            )
-                        ]
+                        self.overwrite_with_null(adjustments, column,
+                                                 last_per_qtr,
+                                                 next_qtr_start_idx, overwrite,
+                                                 sid_idx)
 
         return AdjustedArray(
             requested_qtr_data[column_name].values.astype(column.dtype),
@@ -299,6 +287,25 @@ class QuarterEstimatesLoader(PipelineLoader):
             dict(adjustments),
             column.missing_value,
         )
+
+
+    def overwrite_with_null(self, adjustments, column, last_per_qtr,
+                            next_qtr_start_idx, overwrite, sid_idx):
+        adjustments[next_qtr_start_idx] = [
+            overwrite(
+                0,
+                next_qtr_start_idx - 1,
+                sid_idx,
+                sid_idx,
+                np.full(
+                    len(
+                        last_per_qtr.index[:next_qtr_start_idx]
+                    ),
+                    column.missing_value,
+                )
+            )
+        ]
+
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         groups = groupby(lambda x: x.dataset.num_quarters, columns)

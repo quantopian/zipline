@@ -194,35 +194,36 @@ estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
 
 # critical dates are dates on which the timeline changes. In between each
 # pair of critical dates, the first entry is the one that should be chosen.
-critical_dates_windows_1 = {
-    pd.Timestamp('2015-01-09', tz='utc'): np.array([[10, np.NaN],
-                                                    [10, np.NaN],
-                                                    [11, np.NaN],
-                                                    [11, np.NaN],
-                                                    [11, 10]]),
-    pd.Timestamp('2015-01-12', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                   [[20, 10],
-                                                    [20, 11]]),
-    pd.Timestamp('2015-01-13', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                   [[20, 30]] * 3),
-    pd.Timestamp('2015-01-14', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                   [[20, 30]] * 4),
-    pd.Timestamp('2015-01-15', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                   [[20, 30]] * 4 +
-                                                   [[20, 31]]),
-    pd.Timestamp('2015-01-16', tz='utc'): np.array([[20, np.NaN]] * 10),
-    pd.Timestamp('2015-01-20', tz='utc'): np.array([[20, np.NaN]] * 10 +
-                                                   [[21, np.NaN]])
-}
-
-critical_dates_windows_2 = {
-    pd.Timestamp('2015-01-09', tz='utc'): np.array([[20, np.NaN]] * 5),
-    pd.Timestamp('2015-01-12', tz='utc'): np.array([[np.NaN, np.NaN]] * 6),
-    pd.Timestamp('2015-01-13', tz='utc'): np.array([[np.NaN, np.NaN]] * 7),
-    pd.Timestamp('2015-01-14', tz='utc'): np.array([[np.NaN, np.NaN]] * 8),
-    pd.Timestamp('2015-01-15', tz='utc'): np.array([[np.NaN, np.NaN]] * 9),
-    pd.Timestamp('2015-01-16', tz='utc'): np.array([[np.NaN, np.NaN]] * 10),
-    pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] * 11)
+critical_next_timelines = {
+    1: {
+        pd.Timestamp('2015-01-09', tz='utc'): np.array([[10, np.NaN],
+                                                        [10, np.NaN],
+                                                        [11, np.NaN],
+                                                        [11, np.NaN],
+                                                        [11, 10]]),
+        pd.Timestamp('2015-01-12', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                       [[20, 10],
+                                                        [20, 11]]),
+        pd.Timestamp('2015-01-13', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                       [[20, 30]] * 3),
+        pd.Timestamp('2015-01-14', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                       [[20, 30]] * 4),
+        pd.Timestamp('2015-01-15', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                       [[20, 30]] * 4 +
+                                                       [[20, 31]]),
+        pd.Timestamp('2015-01-16', tz='utc'): np.array([[20, np.NaN]] * 10),
+        pd.Timestamp('2015-01-20', tz='utc'): np.array([[20, np.NaN]] * 10 +
+                                                       [[21, np.NaN]])
+    },
+    2: {
+        pd.Timestamp('2015-01-09', tz='utc'): np.array([[20, np.NaN]] * 5),
+        pd.Timestamp('2015-01-12', tz='utc'): np.array([[np.NaN, np.NaN]] * 6),
+        pd.Timestamp('2015-01-13', tz='utc'): np.array([[np.NaN, np.NaN]] * 7),
+        pd.Timestamp('2015-01-14', tz='utc'): np.array([[np.NaN, np.NaN]] * 8),
+        pd.Timestamp('2015-01-15', tz='utc'): np.array([[np.NaN, np.NaN]] * 9),
+        pd.Timestamp('2015-01-16', tz='utc'): np.array([[np.NaN, np.NaN]] * 10),
+        pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] * 11)
+    }
 }
 
 # window length, starting date, num quarters out, timeline. Parameterizes
@@ -230,36 +231,28 @@ critical_dates_windows_2 = {
 window_test_cases = [
     (5,
      pd.Timestamp('2015-01-09', tz='utc'),
-     1,
-     critical_dates_windows_1),
+     1),
     (6,
      pd.Timestamp('2015-01-12', tz='utc'),
-     1,
-     critical_dates_windows_1),
+     1),
     (9,
      pd.Timestamp('2015-01-15', tz='utc'),
-     1,
-     critical_dates_windows_1),
+     1),
     (11,
      pd.Timestamp('2015-01-20', tz='utc'),
-     1,
-     critical_dates_windows_1),
+     1),
     (5,
      pd.Timestamp('2015-01-09', tz='utc'),
-     2,
-     critical_dates_windows_2),
+     2),
     (6,
      pd.Timestamp('2015-01-12', tz='utc'),
-     2,
-     critical_dates_windows_2),
+     2),
     (9,
      pd.Timestamp('2015-01-15', tz='utc'),
-     2,
-     critical_dates_windows_2),
+     2),
     (11,
      pd.Timestamp('2015-01-20', tz='utc'),
-     2,
-     critical_dates_windows_2)
+     2)
 ]
 
 
@@ -278,8 +271,7 @@ class NextEstimateWindowsTestCase(WithEstimates,
     def test_next_estimate_windows_at_quarter_boundaries(self,
                                                          window_len,
                                                          start_idx,
-                                                         num_quarters_out,
-                                                         timeline):
+                                                         num_quarters_out):
         """
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates.
@@ -293,7 +285,9 @@ class NextEstimateWindowsTestCase(WithEstimates,
             date_index = trading_days
 
             def compute(self, today, assets, out, estimate):
-                today_timeline = timeline[today]
+                today_timeline = critical_next_timelines[
+                    num_quarters_out
+                ][today]
                 timeline_start_idx = (len(today_timeline) - window_len)
                 assert_equal(estimate, today_timeline[
                                             timeline_start_idx:
@@ -311,11 +305,53 @@ class NextEstimateWindowsTestCase(WithEstimates,
         )
 
 
+critical_previous_timelines = {
+    1: {pd.Timestamp('2015-01-09', tz='utc'): np.array([[np.NaN, np.NaN]] * 5),
+        pd.Timestamp('2015-01-12', tz='utc'): np.array(
+            [[np.NaN, np.NaN]] * 5 +
+            [[11, 11]]
+        ),
+        pd.Timestamp('2015-01-13', tz='utc'): np.array(
+            [[np.NaN, np.NaN]] * 5 +
+            [[11, 11]] * 2
+        ),
+        pd.Timestamp('2015-01-14', tz='utc'): np.array(
+            [[np.NaN, np.NaN]] * 5 +
+            [[11, 11]] * 3
+        ),
+        pd.Timestamp('2015-01-15', tz='utc'): np.array(
+            [[np.NaN, np.NaN]] * 5 +
+            [[11, np.NaN]] * 3 +
+            [[11, 31]]
+        ),
+        pd.Timestamp('2015-01-16', tz='utc'): np.array(
+            [[np.NaN, np.NaN]] * 5 +
+            [[11, np.NaN]] * 3 +
+            [[11, 31]] * 2
+        ),
+        pd.Timestamp('2015-01-20', tz='utc'): np.array(
+            [[np.NaN, np.NaN]] * 8 +
+            [[np.NaN, 31]] * 2 +
+            [[21, 31]]
+        )
+        },
+    2: {pd.Timestamp('2015-01-09', tz='utc'): np.array([[20, np.NaN]] * 5),
+        pd.Timestamp('2015-01-12', tz='utc'): np.array([[np.NaN, np.NaN]] * 6),
+        pd.Timestamp('2015-01-13', tz='utc'): np.array([[np.NaN, np.NaN]] * 7),
+        pd.Timestamp('2015-01-14', tz='utc'): np.array([[np.NaN, np.NaN]] * 8),
+        pd.Timestamp('2015-01-15', tz='utc'): np.array([[np.NaN, np.NaN]] * 9),
+        pd.Timestamp('2015-01-16', tz='utc'): np.array([[np.NaN, np.NaN]] * 10),
+        pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] * 11)
+    }
+}
+
+
 class PreviousEstimateWindowsTestCase(WithEstimates,
                                       ZiplineTestCase):
-    START_DATE = pd.Timestamp('2014-12-31')
-    END_DATE = pd.Timestamp('2015-02-15')
+    START_DATE = window_start
+    END_DATE = window_end
     events = estimates_timeline
+
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -332,39 +368,20 @@ class PreviousEstimateWindowsTestCase(WithEstimates,
         """
         dataset = QuartersEstimates(num_quarters_out)
         trading_days = self.trading_days
-        event1_idx = trading_days.searchsorted(
-            pd.Timestamp('2015-01-12').tz_localize('utc')
-        )
 
         class SomeFactor(CustomFactor):
             inputs = [dataset.estimate]
             window_length = window_len
+            date_index = trading_days
 
             def compute(self, today, assets, out, estimate):
-                unique_inputs = np.unique(estimate).tolist()
-                requested_quarter = None
-                today_idx = trading_days.searchsorted(today)
-                num_nan_days = today_idx - event1_idx
-                if num_nan_days > 0:
-                    previous_quarter = estimates_timeline[
-                        estimates_timeline[EVENT_DATE_FIELD_NAME] <= today
-                    ].max()[FISCAL_QUARTER_FIELD_NAME]
-                    requested_quarter = (
-                        previous_quarter - (num_quarters_out - 1)
-                    )
-
-                # If we know something about the requested quarter, assert
-                # that all our estimates in the window are about that quarter.
-                if requested_quarter and requested_quarter >= 0 and \
-                        requested_quarter != 3:
-                    assert np.equal(unique_inputs, requested_quarter).all()
-                else:
-                    # We don't have any information yet about the previous
-                    # quarter
-                    # or about the requested quarter; in that case, all our
-                    # estimates in the window should be NaN across time.
-                    assert np.isnan(unique_inputs).all()
-
+                today_timeline = critical_previous_timelines[
+                    num_quarters_out
+                ][today]
+                timeline_start_idx = (len(today_timeline) - window_len)
+                assert_equal(estimate, today_timeline[
+                                            timeline_start_idx:
+                                       ])
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
@@ -373,7 +390,8 @@ class PreviousEstimateWindowsTestCase(WithEstimates,
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=start_idx,
-            end_date=self.trading_days[-1],
+            end_date=pd.Timestamp('2015-01-20', tz='utc'),  # last event date
+            # we have
         )
 
 
