@@ -307,7 +307,6 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
         levels of a multiindex of columns.
 
     """
-    import pdb; pdb.set_trace()
     idx = [dates[dates.searchsorted(
         df[TS_FIELD_NAME].values.astype('datetime64[D]')
     )]]

@@ -191,68 +191,75 @@ sid_1_timeline = pd.DataFrame({
 
 
 estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
-critical_dates = [pd.Timestamp('2015-01-09'),
-                  pd.Timestamp('2015-01-12'),
-                  pd.Timestamp('2015-01-15'),
-                  pd.Timestamp('2015-01-20')]
+
+# critical dates are dates on which the timeline changes. In between each
+# pair of critical dates, the first entry is the one that should be chosen.
 critical_dates_windows_1 = {
-    pd.Timestamp('2015-01-09'): np.array([[20, np.NaN],
-                                          [11, np.NaN],
-                                          [11, np.NaN],
-                                          [11, np.NaN],
-                                          [11, 10]]),
-    pd.Timestamp('2015-01-12'):      np.array([[20, np.NaN]] * 4 +
-                                              [[20, 10] +
-                                               [20, 11]]),
-    pd.Timestamp('2015-01-15'): np.array([[20, 30]] * 7 +
-                                         [[20, 31]]),
-    pd.Timestamp('2015-01-20'): np.array([[20, np.NaN]] * 10 +
-                                         [[21, np.NaN]])
+    pd.Timestamp('2015-01-09', tz='utc'): np.array([[10, np.NaN],
+                                                    [10, np.NaN],
+                                                    [11, np.NaN],
+                                                    [11, np.NaN],
+                                                    [11, 10]]),
+    pd.Timestamp('2015-01-12', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                   [[20, 10],
+                                                    [20, 11]]),
+    pd.Timestamp('2015-01-13', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                   [[20, 30]] * 3),
+    pd.Timestamp('2015-01-14', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                   [[20, 30]] * 4),
+    pd.Timestamp('2015-01-15', tz='utc'): np.array([[20, np.NaN]] * 4 +
+                                                   [[20, 30]] * 4 +
+                                                   [[20, 31]]),
+    pd.Timestamp('2015-01-16', tz='utc'): np.array([[20, np.NaN]] * 10),
+    pd.Timestamp('2015-01-20', tz='utc'): np.array([[20, np.NaN]] * 10 +
+                                                   [[21, np.NaN]])
 }
 
-# window length, starting date, num quarters out, expected array
+critical_dates_windows_2 = {
+    pd.Timestamp('2015-01-09', tz='utc'): np.array([[20, np.NaN]] * 5),
+    pd.Timestamp('2015-01-12', tz='utc'): np.array([[np.NaN, np.NaN]] * 6),
+    pd.Timestamp('2015-01-13', tz='utc'): np.array([[np.NaN, np.NaN]] * 7),
+    pd.Timestamp('2015-01-14', tz='utc'): np.array([[np.NaN, np.NaN]] * 8),
+    pd.Timestamp('2015-01-15', tz='utc'): np.array([[np.NaN, np.NaN]] * 9),
+    pd.Timestamp('2015-01-16', tz='utc'): np.array([[np.NaN, np.NaN]] * 10),
+    pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] * 11)
+}
+
+# window length, starting date, num quarters out, timeline. Parameterizes
+# over number of quarters out.
 window_test_cases = [
     (5,
-     pd.Timestamp('2015-01-09').tz_localize('utc'),
+     pd.Timestamp('2015-01-09', tz='utc'),
      1,
-     np.array([[20, np.NaN],
-              [11, np.NaN],
-              [11, np.NaN],
-              [11, np.NaN],
-              [11, 10]])),
+     critical_dates_windows_1),
     (6,
-     pd.Timestamp('2015-01-12').tz_localize('utc'),
+     pd.Timestamp('2015-01-12', tz='utc'),
      1,
-     np.array([[20, np.NaN]] * 4 +
-              [[20, 10] +
-               [20, 11]])),
+     critical_dates_windows_1),
     (9,
-
-     pd.Timestamp('2015-01-15').tz_localize('utc'),
+     pd.Timestamp('2015-01-15', tz='utc'),
      1,
-     np.array([[20, 30]] * 7 +
-              [[20, 31]])),
+     critical_dates_windows_1),
     (11,
-     pd.Timestamp('2015-01-20').tz_localize('utc'),
+     pd.Timestamp('2015-01-20', tz='utc'),
      1,
-     np.array([[20, np.NaN]] * 10 +
-              [[21, np.NaN]])),
+     critical_dates_windows_1),
     (5,
-     pd.Timestamp('2015-01-09').tz_localize('utc'),
+     pd.Timestamp('2015-01-09', tz='utc'),
      2,
-     np.array([[20, np.NaN]] * 5)),
+     critical_dates_windows_2),
     (6,
-     pd.Timestamp('2015-01-12').tz_localize('utc'),
+     pd.Timestamp('2015-01-12', tz='utc'),
      2,
-     np.array([[np.NaN, np.NaN]] * 6)),
+     critical_dates_windows_2),
     (9,
-     pd.Timestamp('2015-01-15').tz_localize('utc'),
+     pd.Timestamp('2015-01-15', tz='utc'),
      2,
-     np.array([[np.NaN, np.NaN]] * 9)),
+     critical_dates_windows_2),
     (11,
-     pd.Timestamp('2015-01-20').tz_localize('utc'),
+     pd.Timestamp('2015-01-20', tz='utc'),
      2,
-     np.array([[np.NaN, np.NaN]] * 11))
+     critical_dates_windows_2)
 ]
 
 
@@ -272,7 +279,7 @@ class NextEstimateWindowsTestCase(WithEstimates,
                                                          window_len,
                                                          start_idx,
                                                          num_quarters_out,
-                                                         expected):
+                                                         timeline):
         """
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates.
@@ -286,9 +293,11 @@ class NextEstimateWindowsTestCase(WithEstimates,
             date_index = trading_days
 
             def compute(self, today, assets, out, estimate):
-                import pdb; pdb.set_trace()
-                assert_equal(estimate, expected)
-
+                today_timeline = timeline[today]
+                timeline_start_idx = (len(today_timeline) - window_len)
+                assert_equal(estimate, today_timeline[
+                                            timeline_start_idx:
+                                       ])
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
@@ -297,7 +306,8 @@ class NextEstimateWindowsTestCase(WithEstimates,
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=start_idx,
-            end_date=pd.Timestamp('2015-01-20'),  # last event date
+            end_date=pd.Timestamp('2015-01-20', tz='utc'),  # last event date
+            # we have
         )
 
 
