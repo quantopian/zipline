@@ -97,14 +97,15 @@ def _deprecated_getitem_method(name, attrs):
         The ``__getitem__`` method to put in the class dict.
     """
     attrs = frozenset(attrs)
-    msg = "'{0}[attr]' is deprecated, please use '{0}.attr' instead".format(
-        name,
+    msg = (
+        "'{name}[{attr!r}]' is deprecated, please use"
+        " '{name}.{attr}' instead"
     )
 
     def __getitem__(self, key):
         """``__getitem__`` is deprecated, please use attribute access instead.
         """
-        warn(msg, DeprecationWarning, stacklevel=1)
+        warn(msg.format(name=name, attr=key), DeprecationWarning, stacklevel=2)
         if key in attrs:
             return self.__dict__[key]
         raise KeyError(key)
