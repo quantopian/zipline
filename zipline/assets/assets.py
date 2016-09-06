@@ -650,7 +650,7 @@ class AssetFinder(object):
             # no equity owned the fuzzy symbol on the date requested
             raise SymbolNotFound(symbol=symbol)
 
-        sid_keys = options.keys()
+        sid_keys = list(options.keys())
         # If there was only one owner, or there is a fuzzy and non-fuzzy which
         # map to the same sid, return it.
         if len(options) == 1:
