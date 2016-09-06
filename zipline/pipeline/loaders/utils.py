@@ -307,6 +307,7 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
         levels of a multiindex of columns.
 
     """
+    import pdb; pdb.set_trace()
     idx = [dates[dates.searchsorted(
         df[TS_FIELD_NAME].values.astype('datetime64[D]')
     )]]
@@ -371,7 +372,7 @@ def ffill_across_cols(df, columns, name_map):
     #    pandas to replace NaNs in an object column with None using fillna,
     #    so we have to roll our own instead using df.where.
     for column in columns:
-        column_name = name_map[column]
+        column_name = name_map[column.name]
         # Special logic for strings since `fillna` doesn't work if the
         # missing value is `None`.
         if column.dtype == categorical_dtype:

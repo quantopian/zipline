@@ -65,10 +65,10 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
     def init_class_fixtures(cls):
         cls.sids = cls.events[SID_FIELD_NAME].unique()
         cls.columns = {
-            Estimates.estimate: 'estimate',
-            Estimates.event_date: EVENT_DATE_FIELD_NAME,
-            Estimates.fiscal_quarter: FISCAL_QUARTER_FIELD_NAME,
-            Estimates.fiscal_year: FISCAL_YEAR_FIELD_NAME,
+            'event_date': 'event_date',
+            'fiscal_quarter': 'fiscal_quarter',
+            'fiscal_year': 'fiscal_year',
+            'estimate': 'estimate'
         }
         cls.loader = cls.make_loader(cls.events, cls.columns)
         cls.ASSET_FINDER_EQUITY_SIDS = list(
@@ -162,125 +162,97 @@ def create_estimates_df(q1e1,
         SID_FIELD_NAME: sid,
     })
 
-# 0Q1: 2015-01-05.Q1.e1.2015-01-06, 2015-01-10.Q1.e1.2015-01-11,
-# 0Q2: 2015-01-15.Q2.e1.2015-01-16, 2015-01-20.Q2.e1.2015-01-21,
-# 0Q4: 2015-02-05.Q4.e1.2015-02-06, 2015-02-10.Q4.e1.2015-02-11,
-# Skip Q3 to make sure we handle skipped quarter data correctly.
 sid_0_timeline = pd.DataFrame({
     TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
-                    pd.Timestamp('2015-01-22'), pd.Timestamp('2015-02-02')],
+                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17')],
     EVENT_DATE_FIELD_NAME:
         [pd.Timestamp('2015-01-10'), pd.Timestamp('2015-01-10'),
-         pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20'),
-         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10'),
-         pd.Timestamp('2015-02-10'), pd.Timestamp('2015-02-10')],
-    'estimate': [1.] * 2 + [2.] * 2 + [4.] * 4,
-    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2 + [4] * 4,
-    FISCAL_YEAR_FIELD_NAME: [2015] * 8,
-    SID_FIELD_NAME: [0] * 8
+         pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20')],
+    'estimate': [10., 11.] + [20., 21.],
+    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
+    FISCAL_YEAR_FIELD_NAME: 2015,
+    SID_FIELD_NAME: 0,
 })
 
 window_start = pd.Timestamp('2014-12-31')
 window_end = pd.Timestamp('2015-02-15')
-# ranges don't include end date
-s0_expected_next_ranges_1q_out = (
-    (pd.date_range(window_start, '2015-01-04'), np.NaN),
-    (pd.date_range('2015-01-05', '2015-01-10'), 1),
-    (pd.date_range('2015-01-11', '2015-01-20'), 2),
-    (pd.date_range('2015-01-21', '2015-02-10'), 4),  # Q3 no estimates,
-    # so 1Q out will be Q4
-    (pd.date_range('2015-02-11', window_end), np.NaN),
-)
-
-s0_expected_next_ranges_2q_out = (
-    (pd.date_range(window_start, '2015-01-04'), np.NaN),
-    (pd.date_range('2015-01-05', '2015-01-10'), 2),
-    (pd.date_range('2015-01-11', window_end), np.NaN),  # 1Q out will be Q4,
-    #  since no data for Q3, so 2Q out is Q5, but we don't have data for Q5.
-)
-
-s0_expected_next_ranges_3q_out = (
-    (pd.date_range(window_start, '2015-01-04'), np.NaN),
-    (pd.date_range('2015-01-05', '2015-01-10'), np.NaN),  # 1Q out is Q1,
-    #  and 3Q out will be Q3, but there's no data for it.
-    (pd.date_range('2015-01-11', '2015-01-20'), 4),
-    (pd.date_range('2015-01-21', window_end), np.NaN),
-)
-
-s0_expected_next_ranges_4q_out = (
-    (pd.date_range(window_start, '2015-01-04'), np.NaN),
-    (pd.date_range('2015-01-05', '2015-01-10'), 4),  # 1Q out is Q1,
-    # 4Q out is Q4.
-    (pd.date_range('2015-01-11', window_end), np.NaN),
-)
 
 sid_1_timeline = pd.DataFrame({
     TS_FIELD_NAME: [pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-12'),
-                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-15'),
-                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-22'),
-                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-02-06')],
+                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-15')],
     EVENT_DATE_FIELD_NAME:
         [pd.Timestamp('2015-01-12'), pd.Timestamp('2015-01-12'),
-         pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15'),
-         pd.Timestamp('2015-01-22'), pd.Timestamp('2015-01-22'),
-         pd.Timestamp('2015-01-26'), pd.Timestamp('2015-02-06')],
-    'estimate': [1.] * 2 + [2.] * 2 + [3.] * 2 + [4.] * 2,
-    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2 + [3] * 2 + [4] * 2,
-    FISCAL_YEAR_FIELD_NAME: [2015] * 8,
-    SID_FIELD_NAME: [1] * 8
+         pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15')],
+    'estimate': [10., 11.] + [30., 31.],
+    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [3] * 2,
+    FISCAL_YEAR_FIELD_NAME: 2015,
+    SID_FIELD_NAME: 1
 })
-
-s1_expected_next_ranges_1q_out = (
-    (pd.date_range(window_start, '2015-01-08'), np.NaN),
-    (pd.date_range('2015-01-09', '2015-01-12'), 1),
-    (pd.date_range('2015-01-13', '2015-01-15'), 2),
-    (pd.date_range('2015-01-15', '2015-01-22'), 3),
-    (pd.date_range('2015-01-23', '2015-02-06'), 4),
-    (pd.date_range('2015-02-07', window_end), np.NaN),
-)
-
-s1_expected_next_ranges_2q_out = (
-    (pd.date_range(window_start, '2015-01-08'), np.NaN),
-    (pd.date_range('2015-01-09', '2015-01-12'), 2),
-    (pd.date_range('2015-01-13', '2015-01-22'), 4),
-    (pd.date_range('2015-01-23', window_end), np.NaN),
-)
-
-s1_expected_next_ranges_3q_out = (
-    (pd.date_range(window_start, '2015-01-08'), np.NaN),
-    (pd.date_range('2015-01-09', '2015-01-12'), 3),
-    (pd.date_range('2015-01-13', '2015-01-15'), 4),
-    (pd.date_range('2015-01-15', window_end), np.NaN)
-)
-
-s1_expected_next_ranges_4q_out = (
-    (pd.date_range(window_start, '2015-01-08'), np.NaN),
-    (pd.date_range('2015-01-09', '2015-01-12'), 4),
-    (pd.date_range('2015-01-13', window_end), np.NaN)
-)
 
 
 estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
+critical_dates = [pd.Timestamp('2015-01-09'),
+                  pd.Timestamp('2015-01-12'),
+                  pd.Timestamp('2015-01-15'),
+                  pd.Timestamp('2015-01-20')]
+critical_dates_windows_1 = {
+    pd.Timestamp('2015-01-09'): np.array([[20, np.NaN],
+                                          [11, np.NaN],
+                                          [11, np.NaN],
+                                          [11, np.NaN],
+                                          [11, 10]]),
+    pd.Timestamp('2015-01-12'):      np.array([[20, np.NaN]] * 4 +
+                                              [[20, 10] +
+                                               [20, 11]]),
+    pd.Timestamp('2015-01-15'): np.array([[20, 30]] * 7 +
+                                         [[20, 31]]),
+    pd.Timestamp('2015-01-20'): np.array([[20, np.NaN]] * 10 +
+                                         [[21, np.NaN]])
+}
 
-
+# window length, starting date, num quarters out, expected array
 window_test_cases = [
-    (window_len, start_idx, num_quarters_out, s1_expected, s2_expected) for
-    (window_len, start_idx), (num_quarters_out, s1_expected, s2_expected) in
-    itertools.product(
-        [[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
-         [6, pd.Timestamp('2015-01-12').tz_localize('utc')],
-         [9, pd.Timestamp('2015-01-15').tz_localize('utc')],
-         [11, pd.Timestamp('2015-01-20').tz_localize('utc')],
-         [13, pd.Timestamp('2015-01-22').tz_localize('utc')],
-         [19, pd.Timestamp('2015-01-30').tz_localize('utc')],
-         [24, pd.Timestamp('2015-02-06').tz_localize('utc')],
-         [26, pd.Timestamp('2015-02-10').tz_localize('utc')]],
-        [(1, s0_expected_next_ranges_1q_out, s1_expected_next_ranges_1q_out),
-         (2, s0_expected_next_ranges_2q_out, s1_expected_next_ranges_2q_out),
-         (3, s0_expected_next_ranges_3q_out, s1_expected_next_ranges_3q_out),
-         (4, s0_expected_next_ranges_4q_out, s1_expected_next_ranges_4q_out)])
+    (5,
+     pd.Timestamp('2015-01-09').tz_localize('utc'),
+     1,
+     np.array([[20, np.NaN],
+              [11, np.NaN],
+              [11, np.NaN],
+              [11, np.NaN],
+              [11, 10]])),
+    (6,
+     pd.Timestamp('2015-01-12').tz_localize('utc'),
+     1,
+     np.array([[20, np.NaN]] * 4 +
+              [[20, 10] +
+               [20, 11]])),
+    (9,
+
+     pd.Timestamp('2015-01-15').tz_localize('utc'),
+     1,
+     np.array([[20, 30]] * 7 +
+              [[20, 31]])),
+    (11,
+     pd.Timestamp('2015-01-20').tz_localize('utc'),
+     1,
+     np.array([[20, np.NaN]] * 10 +
+              [[21, np.NaN]])),
+    (5,
+     pd.Timestamp('2015-01-09').tz_localize('utc'),
+     2,
+     np.array([[20, np.NaN]] * 5)),
+    (6,
+     pd.Timestamp('2015-01-12').tz_localize('utc'),
+     2,
+     np.array([[np.NaN, np.NaN]] * 6)),
+    (9,
+     pd.Timestamp('2015-01-15').tz_localize('utc'),
+     2,
+     np.array([[np.NaN, np.NaN]] * 9)),
+    (11,
+     pd.Timestamp('2015-01-20').tz_localize('utc'),
+     2,
+     np.array([[np.NaN, np.NaN]] * 11))
 ]
 
 
@@ -300,8 +272,7 @@ class NextEstimateWindowsTestCase(WithEstimates,
                                                          window_len,
                                                          start_idx,
                                                          num_quarters_out,
-                                                         s0_expected,
-                                                         s1_expected):
+                                                         expected):
         """
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates.
@@ -314,31 +285,9 @@ class NextEstimateWindowsTestCase(WithEstimates,
             window_length = window_len
             date_index = trading_days
 
-            def get_expected_window_values_from_ranges(self, today, expected):
-                today_range, value = filter(lambda x: today in x[0],
-                                            expected)[0]
-                today_idx = self.date_index.searchsorted(today)
-                start_date_idx = self.date_index.searchsorted(today_range[0])
-                in_window_range = today_idx - start_date_idx + 1
-                if in_window_range >= window_len:
-                    return np.array([value] * window_len)
-                else:
-                    return np.array(
-                        [np.NaN] * (window_len - in_window_range) +
-                        [value] * in_window_range)
-
             def compute(self, today, assets, out, estimate):
-                expected_s0_values =\
-                    self.get_expected_window_values_from_ranges(
-                        today, s0_expected
-                    )
-                assert_equal(expected_s0_values, estimate[:, 0])
-
-                expected_s1_values =\
-                    self.get_expected_window_values_from_ranges(
-                        today, s1_expected
-                    )
-                assert_equal(expected_s1_values, estimate[:, 1])
+                import pdb; pdb.set_trace()
+                assert_equal(estimate, expected)
 
         engine = SimplePipelineEngine(
             lambda x: self.loader,
@@ -348,7 +297,7 @@ class NextEstimateWindowsTestCase(WithEstimates,
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=start_idx,
-            end_date=self.trading_days[-1],
+            end_date=pd.Timestamp('2015-01-20'),  # last event date
         )
 
 

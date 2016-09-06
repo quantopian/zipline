@@ -84,10 +84,10 @@ def validate_column_specs(events, columns):
 class QuarterEstimatesLoader(PipelineLoader):
     def __init__(self,
                  estimates,
-                 base_column_name_map):
+                 name_map):
         validate_column_specs(
             estimates,
-            base_column_name_map
+            name_map
         )
 
         self.estimates = estimates[
@@ -100,7 +100,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             self.estimates[FISCAL_QUARTER_FIELD_NAME],
         )
 
-        self.base_column_name_map = base_column_name_map
+        self.name_map = name_map
 
     @abstractmethod
     def load_quarters(self, num_quarters, last, dates):
@@ -209,10 +209,10 @@ class QuarterEstimatesLoader(PipelineLoader):
                 zero_qtr_data.index.get_level_values(SID_FIELD_NAME) == sid
             ]
             # Determine where quarters are changing for this sid.
-            qtr_shifts = zero_qtr_sid_data.diff(
-                zero_qtr_sid_data[NORMALIZED_QUARTERS],
+            qtr_shifts = zero_qtr_sid_data[
+                zero_qtr_sid_data[NORMALIZED_QUARTERS] !=
                 zero_qtr_sid_data[NORMALIZED_QUARTERS].shift(1)
-            )
+            ]
             # On dates where we don't have any information about quarters,
             # we will get nulls, and each of these will be interpreted as
             # quarter shifts. We need to remove these here.
@@ -287,8 +287,9 @@ class QuarterEstimatesLoader(PipelineLoader):
                                 np.full(
                                     len(
                                         last_per_qtr.index[:next_qtr_start_idx]
-                                    )
-                                ), column.missing_value
+                                    ),
+                                    column.missing_value,
+                                )
                             )
                         ]
 
@@ -300,24 +301,18 @@ class QuarterEstimatesLoader(PipelineLoader):
         )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        # TODO: how can we enforce that datasets have the num_quarters
-        # attribute, given that they're created dynamically?
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
-        if (np.array(list(groups.keys())) < 0).any():  # use any
-            raise ValueError("Must pass a number of quarters >= 0")  # TODO:
-            # include the wrong thing that was passed instead.
+        if any(num_qtr < 0 for num_qtr in groups):  # use any
+            raise ValueError(
+                "Passed invalid number of quarters %s; "
+                "must pass a number of quarters >= 0" % ','.join(
+                    qtr for qtr in groups if qtr < 0
+                )
+
+            )
         out = {}
 
         for num_quarters, columns in groups.items():
-            # The column's dataset is itself dynamic and the mapping we
-            # actually want is to its dataset's parent's column name.
-            name_map = {c: self.base_column_name_map[
-                getattr(c.dataset.__base__, c.name)
-            ] for c in columns}  # TODO: make the mapping from name to name
-            # rather than column to name so that we don't enforce a class
-            # hierarchy
-
-
             # Determine the last piece of information we know for each column
             # on each date in the index for each sid and quarter.
             last_per_qtr = last_in_date_group(
@@ -327,7 +322,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             )
 
             # Forward fill values for each quarter/sid/dataset column.
-            ffill_across_cols(last_per_qtr, columns, name_map)
+            ffill_across_cols(last_per_qtr, columns, self.name_map)
             # Stack quarter and sid into the index.
             stacked_last_per_qtr = last_per_qtr.stack([SID_FIELD_NAME,
                                                        NORMALIZED_QUARTERS])
@@ -349,7 +344,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             ]).index
 
             for c in columns:
-                column_name = name_map[c]
+                column_name = self.name_map[c.name]
                 adjusted_array = self.get_adjustments(zero_qtr_idx,
                                                       requested_qtr_idx,
                                                       stacked_last_per_qtr,
@@ -380,7 +375,7 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
             stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
         ].reset_index(NORMALIZED_QUARTERS).groupby(
             level=[SIMULTATION_DATES, SID_FIELD_NAME]
-        ).nth(0).set_index(NORMALIZED_QUARTERS, append=True).swap
+        ).nth(0).set_index(NORMALIZED_QUARTERS, append=True)
         next_releases_per_date[
             SHIFTED_NORMALIZED_QTRS
         ] = next_releases_per_date.index.get_level_values(
