@@ -304,7 +304,8 @@ class QuarterEstimatesLoader(PipelineLoader):
         # attribute, given that they're created dynamically?
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
         if (np.array(list(groups.keys())) < 0).any():  # use any
-            raise ValueError("Must pass a number of quarters >= 0")
+            raise ValueError("Must pass a number of quarters >= 0")  # TODO:
+            # include the wrong thing that was passed instead.
         out = {}
 
         for num_quarters, columns in groups.items():
@@ -331,6 +332,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             stacked_last_per_qtr = last_per_qtr.stack([SID_FIELD_NAME,
                                                        NORMALIZED_QUARTERS])
             # Set date index name for ease of reference
+            # TODO: pass bool by keyword
             stacked_last_per_qtr.index.set_names(SIMULTATION_DATES, 0, True)
             # Determine which quarter is next/previous for each date.
             shifted_qtr_data = self.load_quarters(num_quarters,

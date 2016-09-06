@@ -49,7 +49,9 @@ from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils import security_list
 from zipline.utils.calendars import get_calendar
 from zipline.utils.input_validation import expect_dimensions
-from zipline.utils.numpy_utils import as_column
+from zipline.utils.numpy_utils import (
+    as_column,
+)
 from zipline.utils.sentinel import sentinel
 
 import numpy as np

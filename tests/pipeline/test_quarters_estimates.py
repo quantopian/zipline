@@ -33,6 +33,12 @@ from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.numpy_utils import float64_dtype
 
 
+#  TODO: use different values for each day in range; the tens digit reflects
+# something and the ones digit reflects something else.
+#  TODO: don't use assert statements in zipline
+#  add docstrings
+#  refactor code
+# Get rid of obvious comments 
 class Estimates(DataSet):
     event_date = Column(dtype=datetime64ns_dtype)
     fiscal_quarter = Column(dtype=float64_dtype)
@@ -160,7 +166,7 @@ def create_estimates_df(q1e1,
 # 0Q2: 2015-01-15.Q2.e1.2015-01-16, 2015-01-20.Q2.e1.2015-01-21,
 # 0Q4: 2015-02-05.Q4.e1.2015-02-06, 2015-02-10.Q4.e1.2015-02-11,
 # Skip Q3 to make sure we handle skipped quarter data correctly.
-estimates_timeline = pd.DataFrame({
+sid_0_timeline = pd.DataFrame({
     TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),
                     pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
                     pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17'),
@@ -179,7 +185,7 @@ estimates_timeline = pd.DataFrame({
 window_start = pd.Timestamp('2014-12-31')
 window_end = pd.Timestamp('2015-02-15')
 # ranges don't include end date
-expected_next_ranges_1q_out = (
+s0_expected_next_ranges_1q_out = (
     (pd.date_range(window_start, '2015-01-04'), np.NaN),
     (pd.date_range('2015-01-05', '2015-01-10'), 1),
     (pd.date_range('2015-01-11', '2015-01-20'), 2),
@@ -188,14 +194,14 @@ expected_next_ranges_1q_out = (
     (pd.date_range('2015-02-11', window_end), np.NaN),
 )
 
-expected_next_ranges_2q_out = (
+s0_expected_next_ranges_2q_out = (
     (pd.date_range(window_start, '2015-01-04'), np.NaN),
     (pd.date_range('2015-01-05', '2015-01-10'), 2),
     (pd.date_range('2015-01-11', window_end), np.NaN),  # 1Q out will be Q4,
     #  since no data for Q3, so 2Q out is Q5, but we don't have data for Q5.
 )
 
-expected_next_ranges_3q_out = (
+s0_expected_next_ranges_3q_out = (
     (pd.date_range(window_start, '2015-01-04'), np.NaN),
     (pd.date_range('2015-01-05', '2015-01-10'), np.NaN),  # 1Q out is Q1,
     #  and 3Q out will be Q3, but there's no data for it.
@@ -203,26 +209,78 @@ expected_next_ranges_3q_out = (
     (pd.date_range('2015-01-21', window_end), np.NaN),
 )
 
-expected_next_ranges_4q_out = (
+s0_expected_next_ranges_4q_out = (
     (pd.date_range(window_start, '2015-01-04'), np.NaN),
     (pd.date_range('2015-01-05', '2015-01-10'), 4),  # 1Q out is Q1,
     # 4Q out is Q4.
     (pd.date_range('2015-01-11', window_end), np.NaN),
 )
 
+sid_1_timeline = pd.DataFrame({
+    TS_FIELD_NAME: [pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-12'),
+                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-15'),
+                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-22'),
+                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-02-06')],
+    EVENT_DATE_FIELD_NAME:
+        [pd.Timestamp('2015-01-12'), pd.Timestamp('2015-01-12'),
+         pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15'),
+         pd.Timestamp('2015-01-22'), pd.Timestamp('2015-01-22'),
+         pd.Timestamp('2015-01-26'), pd.Timestamp('2015-02-06')],
+    'estimate': [1.] * 2 + [2.] * 2 + [3.] * 2 + [4.] * 2,
+    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2 + [3] * 2 + [4] * 2,
+    FISCAL_YEAR_FIELD_NAME: [2015] * 8,
+    SID_FIELD_NAME: [1] * 8
+})
+
+s1_expected_next_ranges_1q_out = (
+    (pd.date_range(window_start, '2015-01-08'), np.NaN),
+    (pd.date_range('2015-01-09', '2015-01-12'), 1),
+    (pd.date_range('2015-01-13', '2015-01-15'), 2),
+    (pd.date_range('2015-01-15', '2015-01-22'), 3),
+    (pd.date_range('2015-01-23', '2015-02-06'), 4),
+    (pd.date_range('2015-02-07', window_end), np.NaN),
+)
+
+s1_expected_next_ranges_2q_out = (
+    (pd.date_range(window_start, '2015-01-08'), np.NaN),
+    (pd.date_range('2015-01-09', '2015-01-12'), 2),
+    (pd.date_range('2015-01-13', '2015-01-22'), 4),
+    (pd.date_range('2015-01-23', window_end), np.NaN),
+)
+
+s1_expected_next_ranges_3q_out = (
+    (pd.date_range(window_start, '2015-01-08'), np.NaN),
+    (pd.date_range('2015-01-09', '2015-01-12'), 3),
+    (pd.date_range('2015-01-13', '2015-01-15'), 4),
+    (pd.date_range('2015-01-15', window_end), np.NaN)
+)
+
+s1_expected_next_ranges_4q_out = (
+    (pd.date_range(window_start, '2015-01-08'), np.NaN),
+    (pd.date_range('2015-01-09', '2015-01-12'), 4),
+    (pd.date_range('2015-01-13', window_end), np.NaN)
+)
+
+
+estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
+
+
 window_test_cases = [
-    (window_len, start_idx, num_quarters_out, expected) for
-    (window_len, start_idx), (num_quarters_out, expected) in
+    (window_len, start_idx, num_quarters_out, s1_expected, s2_expected) for
+    (window_len, start_idx), (num_quarters_out, s1_expected, s2_expected) in
     itertools.product(
         [[5, pd.Timestamp('2015-01-09').tz_localize('utc')],
          [6, pd.Timestamp('2015-01-12').tz_localize('utc')],
+         [9, pd.Timestamp('2015-01-15').tz_localize('utc')],
          [11, pd.Timestamp('2015-01-20').tz_localize('utc')],
+         [13, pd.Timestamp('2015-01-22').tz_localize('utc')],
          [19, pd.Timestamp('2015-01-30').tz_localize('utc')],
+         [24, pd.Timestamp('2015-02-06').tz_localize('utc')],
          [26, pd.Timestamp('2015-02-10').tz_localize('utc')]],
-        [(1, expected_next_ranges_1q_out),
-         (2, expected_next_ranges_2q_out),
-         (3, expected_next_ranges_3q_out),
-         (4, expected_next_ranges_4q_out)])
+        [(1, s0_expected_next_ranges_1q_out, s1_expected_next_ranges_1q_out),
+         (2, s0_expected_next_ranges_2q_out, s1_expected_next_ranges_2q_out),
+         (3, s0_expected_next_ranges_3q_out, s1_expected_next_ranges_3q_out),
+         (4, s0_expected_next_ranges_4q_out, s1_expected_next_ranges_4q_out)])
 ]
 
 
@@ -242,22 +300,45 @@ class NextEstimateWindowsTestCase(WithEstimates,
                                                          window_len,
                                                          start_idx,
                                                          num_quarters_out,
-                                                         expected):
+                                                         s0_expected,
+                                                         s1_expected):
         """
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates.
         """
         dataset = QuartersEstimates(num_quarters_out)
+        trading_days = self.trading_days
 
         class SomeFactor(CustomFactor):
             inputs = [dataset.estimate]
             window_length = window_len
+            date_index = trading_days
 
-            def compute(self, today, assets, out, estimate):
+            def get_expected_window_values_from_ranges(self, today, expected):
                 today_range, value = filter(lambda x: today in x[0],
                                             expected)[0]
-                expected_values = np.array([[value]] * window_len)
-                assert_equal(expected_values, estimate)
+                today_idx = self.date_index.searchsorted(today)
+                start_date_idx = self.date_index.searchsorted(today_range[0])
+                in_window_range = today_idx - start_date_idx + 1
+                if in_window_range >= window_len:
+                    return np.array([value] * window_len)
+                else:
+                    return np.array(
+                        [np.NaN] * (window_len - in_window_range) +
+                        [value] * in_window_range)
+
+            def compute(self, today, assets, out, estimate):
+                expected_s0_values =\
+                    self.get_expected_window_values_from_ranges(
+                        today, s0_expected
+                    )
+                assert_equal(expected_s0_values, estimate[:, 0])
+
+                expected_s1_values =\
+                    self.get_expected_window_values_from_ranges(
+                        today, s1_expected
+                    )
+                assert_equal(expected_s1_values, estimate[:, 1])
 
         engine = SimplePipelineEngine(
             lambda x: self.loader,

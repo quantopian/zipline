@@ -34,13 +34,24 @@ from ..finance.trading import TradingEnvironment
 from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
-from .core import tmp_asset_finder, make_simple_equity_info
+from .core import (tmp_asset_finder, make_simple_equity_info)
 from zipline.assets import Equity, Future
-from zipline.pipeline import SimplePipelineEngine
+from zipline.pipeline import SimplePipelineEngine, Pipeline
+from zipline.pipeline.common import (
+    EVENT_DATE_FIELD_NAME,
+    FISCAL_QUARTER_FIELD_NAME,
+    FISCAL_YEAR_FIELD_NAME,
+    SID_FIELD_NAME,
+)
+from zipline.pipeline.data import DataSet
+from zipline.pipeline.data import Column
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils.calendars import (
     get_calendar,
-    register_calendar)
+    register_calendar
+)
+from zipline.utils.numpy_utils import datetime64ns_dtype
+from zipline.utils.numpy_utils import float64_dtype
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
@@ -1319,3 +1330,5 @@ class WithResponses(object):
         self.responses = self.enter_instance_context(
             responses.RequestsMock(),
         )
+
+
