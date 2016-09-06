@@ -36,9 +36,9 @@ from zipline.utils.numpy_utils import float64_dtype
 #  TODO: use different values for each day in range; the tens digit reflects
 # something and the ones digit reflects something else.
 #  TODO: don't use assert statements in zipline
-#  add docstrings
-#  refactor code
-# Get rid of obvious comments 
+#  TODO add docstrings
+#  TODO refactor code in quarter loader - free functions
+# TODO Get rid of obvious comments
 class Estimates(DataSet):
     event_date = Column(dtype=datetime64ns_dtype)
     fiscal_quarter = Column(dtype=float64_dtype)
