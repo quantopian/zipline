@@ -174,9 +174,6 @@ sid_0_timeline = pd.DataFrame({
     SID_FIELD_NAME: 0,
 })
 
-window_start = pd.Timestamp('2014-12-31')
-window_end = pd.Timestamp('2015-02-15')
-
 sid_1_timeline = pd.DataFrame({
     TS_FIELD_NAME: [pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-12'),
                     pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-15')],
@@ -192,6 +189,65 @@ sid_1_timeline = pd.DataFrame({
 
 estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
 window_test_start_date = pd.Timestamp('2015-01-05')
+
+# window length, starting date, num quarters out, timeline. Parameterizes
+# over number of quarters out.
+window_test_cases = [
+    (5, pd.Timestamp('2015-01-09', tz='utc'), 1),
+    (6, pd.Timestamp('2015-01-12', tz='utc'), 1),
+    (9, pd.Timestamp('2015-01-15', tz='utc'), 1),
+    (11, pd.Timestamp('2015-01-20', tz='utc'), 1),
+    (5, pd.Timestamp('2015-01-09', tz='utc'), 2),
+    (6, pd.Timestamp('2015-01-12', tz='utc'), 2),
+    (9, pd.Timestamp('2015-01-15', tz='utc'), 2),
+    (11, pd.Timestamp('2015-01-20', tz='utc'), 2)
+]
+
+
+class WithEstimateWindowsTestCase(WithEstimates):
+    """
+    Must define a timelines attribute which contains the expected timelines
+    accross each date.
+    """
+    events = estimates_timeline
+
+    @parameterized.expand(window_test_cases)
+    def test_estimate_windows_at_quarter_boundaries(self,
+                                                    window_len,
+                                                    start_idx,
+                                                    num_quarters_out):
+        """
+        Tests that we overwrite values with the correct quarter's estimate at
+        the correct dates.
+        """
+        dataset = QuartersEstimates(num_quarters_out)
+        trading_days = self.trading_days
+        timelines = self.timelines
+
+        class SomeFactor(CustomFactor):
+            inputs = [dataset.estimate]
+            window_length = window_len
+
+            def compute(self, today, assets, out, estimate):
+                today_idx = trading_days.get_loc(today)
+                today_timeline = timelines[
+                    num_quarters_out
+                ].loc[today].reindex(trading_days[:today_idx + 1]).values
+                timeline_start_idx = (len(today_timeline) - window_len)
+                assert_equal(estimate, today_timeline[
+                                            timeline_start_idx:
+                                       ])
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        engine.run_pipeline(
+            Pipeline({'est': SomeFactor()}),
+            start_date=start_idx,
+            end_date=pd.Timestamp('2015-01-20', tz='utc'),  # last event date
+            # we have
+        )
 
 
 def create_expected_df(tuples, end_date):
@@ -277,160 +333,79 @@ next_timelines = {
     2: twoq_next
 }
 
-# window length, starting date, num quarters out, timeline. Parameterizes
-# over number of quarters out.
-window_test_cases = [
-    (5, pd.Timestamp('2015-01-09', tz='utc'), 1),
-    (6, pd.Timestamp('2015-01-12', tz='utc'), 1),
-    (9, pd.Timestamp('2015-01-15', tz='utc'), 1),
-    (11, pd.Timestamp('2015-01-20', tz='utc'), 1),
-    (5, pd.Timestamp('2015-01-09', tz='utc'), 2),
-    (6, pd.Timestamp('2015-01-12', tz='utc'), 2),
-    (9, pd.Timestamp('2015-01-15', tz='utc'), 2),
-    (11, pd.Timestamp('2015-01-20', tz='utc'), 2)
-]
+oneq_previous = pd.concat([
+    create_expected_df(
+        [(0, np.NaN, window_test_start_date),
+         (1, np.NaN, window_test_start_date)],
+        pd.Timestamp('2015-01-09')
+    ),
+    create_expected_df(
+        [(0, 11, pd.Timestamp('2015-01-10')),
+         (1, 11, pd.Timestamp('2015-01-12'))],
+        pd.Timestamp('2015-01-12')
+    ),
+    create_expected_df(
+        [(0, 11, pd.Timestamp('2015-01-10')),
+         (1, 11, pd.Timestamp('2015-01-12'))],
+        pd.Timestamp('2015-01-13')
+    ),
+    create_expected_df(
+        [(0, 11, pd.Timestamp('2015-01-10')),
+         (1, 11, pd.Timestamp('2015-01-12'))],
+        pd.Timestamp('2015-01-14')
+    ),
+    create_expected_df(
+        [(0, 11, pd.Timestamp('2015-01-10')),
+         (1, 31, pd.Timestamp('2015-01-15'))],
+        pd.Timestamp('2015-01-15')
+    ),
+    create_expected_df(
+        [(0, 11, pd.Timestamp('2015-01-10')),
+         (1, 31, pd.Timestamp('2015-01-15'))],
+        pd.Timestamp('2015-01-16')
+    ),
+    create_expected_df(
+        [(0, 21, pd.Timestamp('2015-01-17')),
+         (1, 31, pd.Timestamp('2015-01-15'))],
+        pd.Timestamp('2015-01-20')
+    ),
+])
 
-
-class NextEstimateWindowsTestCase(WithEstimates,
-                                  ZiplineTestCase):
-    START_DATE = window_start
-    END_DATE = window_end
-    events = estimates_timeline
-
-
-    @classmethod
-    def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
-
-    @parameterized.expand(window_test_cases)
-    def test_next_estimate_windows_at_quarter_boundaries(self,
-                                                         window_len,
-                                                         start_idx,
-                                                         num_quarters_out):
-        """
-        Tests that we overwrite values with the correct quarter's estimate at
-        the correct dates.
-        """
-        dataset = QuartersEstimates(num_quarters_out)
-        trading_days = self.trading_days
-
-        class SomeFactor(CustomFactor):
-            inputs = [dataset.estimate]
-            window_length = window_len
-            date_index = trading_days
-
-            def compute(self, today, assets, out, estimate):
-                today_idx = self.date_index.get_loc(today)
-                today_timeline = next_timelines[
-                    num_quarters_out
-                ].loc[today].reindex(self.date_index[:today_idx + 1]).values
-                timeline_start_idx = (len(today_timeline) - window_len)
-                assert_equal(estimate, today_timeline[
-                                            timeline_start_idx:
-                                       ])
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
-        engine.run_pipeline(
-            Pipeline({'est': SomeFactor()}),
-            start_date=start_idx,
-            end_date=pd.Timestamp('2015-01-20', tz='utc'),  # last event date
-            # we have
-        )
-
-
-critical_previous_timelines = {
-    1: {pd.Timestamp('2015-01-09', tz='utc'): np.array([[np.NaN, np.NaN]] * 5),
-        pd.Timestamp('2015-01-12', tz='utc'): np.array(
-            [[np.NaN, np.NaN]] * 5 +
-            [[11, 11]]
-        ),
-        pd.Timestamp('2015-01-13', tz='utc'): np.array(
-            [[np.NaN, np.NaN]] * 5 +
-            [[11, 11]] * 2
-        ),
-        pd.Timestamp('2015-01-14', tz='utc'): np.array(
-            [[np.NaN, np.NaN]] * 5 +
-            [[11, 11]] * 3
-        ),
-        pd.Timestamp('2015-01-15', tz='utc'): np.array(
-            [[np.NaN, np.NaN]] * 5 +
-            [[11, np.NaN]] * 3 +
-            [[11, 31]]
-        ),
-        pd.Timestamp('2015-01-16', tz='utc'): np.array(
-            [[np.NaN, np.NaN]] * 5 +
-            [[11, np.NaN]] * 3 +
-            [[11, 31]] * 2
-        ),
-        pd.Timestamp('2015-01-20', tz='utc'): np.array(
-            [[np.NaN, np.NaN]] * 8 +
-            [[np.NaN, 31]] * 2 +
-            [[21, 31]]
-        )
-        },
-    2: {pd.Timestamp('2015-01-09', tz='utc'): np.array([[np.NaN, np.NaN]] * 5),
-        pd.Timestamp('2015-01-12', tz='utc'): np.array([[np.NaN, np.NaN]] * 6),
-        pd.Timestamp('2015-01-13', tz='utc'): np.array([[np.NaN, np.NaN]] * 7),
-        pd.Timestamp('2015-01-14', tz='utc'): np.array([[np.NaN, np.NaN]] * 8),
-        pd.Timestamp('2015-01-15', tz='utc'): np.array([[np.NaN, np.NaN]] * 9),
-        pd.Timestamp('2015-01-16', tz='utc'): np.array([[np.NaN, np.NaN]] * 10),
-        pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] *
-                                                       10 + [[11, np.NaN]])
-        }
+twoq_previous = pd.concat(
+    [create_expected_df(
+        [(0, np.NaN, window_test_start_date),
+         (1, np.NaN, window_test_start_date)],
+        end_date
+    ) for end_date in
+     pd.date_range('2015-01-09', '2015-01-19')] +
+    [create_expected_df(
+        [(0, 11, pd.Timestamp('2015-01-20')),
+         (1, np.NaN, window_test_start_date)],
+        pd.Timestamp('2015-01-20')
+    )]
+)
+previous_timelines = {
+    1: oneq_previous,
+    2: twoq_previous
 }
 
 
-class PreviousEstimateWindowsTestCase(WithEstimates,
+class PreviousEstimateWindowsTestCase(WithEstimateWindowsTestCase,
                                       ZiplineTestCase):
-    START_DATE = window_start
-    END_DATE = window_end
-    events = estimates_timeline
-
-
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousQuartersEstimatesLoader(events, columns)
 
-    @parameterized.expand(window_test_cases)
-    def test_previous_estimate_windows_at_quarter_boundaries(self,
-                                                             window_len,
-                                                             start_idx,
-                                                             num_quarters_out):
-        """
-        Tests that we overwrite values with the correct quarter's estimate at
-        the correct dates.
-        """
-        dataset = QuartersEstimates(num_quarters_out)
-        trading_days = self.trading_days
+    timelines = previous_timelines
 
-        class SomeFactor(CustomFactor):
-            inputs = [dataset.estimate]
-            window_length = window_len
-            date_index = trading_days
 
-            def compute(self, today, assets, out, estimate):
-                today_timeline = critical_previous_timelines[
-                    num_quarters_out
-                ][today]
-                timeline_start_idx = (len(today_timeline) - window_len)
-                assert_equal(estimate, today_timeline[
-                                            timeline_start_idx:
-                                       ])
-        import pdb; pdb.set_trace()
-        engine = SimplePipelineEngine(
-            lambda x: self.loader,
-            self.trading_days,
-            self.asset_finder,
-        )
-        engine.run_pipeline(
-            Pipeline({'est': SomeFactor()}),
-            start_date=start_idx,
-            end_date=pd.Timestamp('2015-01-20', tz='utc'),  # last event date
-            # we have
-        )
+class NextEstimateWindowsTestCase(WithEstimateWindowsTestCase,
+                                  ZiplineTestCase):
+    @classmethod
+    def make_loader(cls, events, columns):
+        return NextQuartersEstimatesLoader(events, columns)
+
+    timelines = next_timelines
 
 
 class NextEstimateTestCase(WithEstimates,
