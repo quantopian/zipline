@@ -222,7 +222,7 @@ cdef class BarData:
             self.data_frequency
         )
 
-    cdef _get_current_minute(self):
+    cpdef _get_current_minute(self):
         """
         Internal utility method to get the current simulation time.
 
@@ -237,8 +237,10 @@ cdef class BarData:
         dt = self.simulation_dt_func()
 
         if self._adjust_minutes:
-            dt = \
-                self.data_portal.trading_calendar.previous_minute(dt)
+            # if the calendar is not open on the current minute, go to the
+            # previous minute
+            if not self.data_portal.trading_calendar.is_open_on_minute(dt):
+                dt = self.data_portal.trading_calendar.previous_minute(dt)
 
         if self._daily_mode:
             # if we're in daily mode, take the given dt (which is the last

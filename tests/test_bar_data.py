@@ -22,6 +22,8 @@ from numpy.testing import assert_almost_equal
 import pandas as pd
 
 from zipline._protocol import handle_non_market_minutes
+
+from zipline.data.data_portal import DataPortal
 from zipline.protocol import BarData
 from zipline.testing import (
     MockDailyBarReader,
@@ -433,7 +435,7 @@ class TestMinuteBarData(WithBarDataChecks,
                 bar_data.current(self.ILLIQUID_SPLIT_ASSET, "price")
             )
 
-    def test_get_value_at_midnight(self):
+    def test_get_value_at_non_market_minute(self):
         # make sure that if we try to get a minute price at a non-market
         # minute, we use the previous market close's timestamp
         day = self.equity_minute_bar_days[1]
@@ -476,6 +478,57 @@ class TestMinuteBarData(WithBarDataChecks,
                     0,
                     bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "volume")
                 )
+
+    def test_handle_market_minute_inside_bts(self):
+        # make sure that in before_trading_start, if we are on a market minute,
+        # we don't adjust the time when getting market data
+        day = self.equity_minute_bar_days[1]
+
+        eight_fortyfive_am_eastern = \
+            pd.Timestamp("{0}-{1}-{2} 8:45".format(
+                day.year, day.month, day.day),
+                tz='US/Eastern'
+            )
+
+        futures_calendar = get_calendar("us_futures")
+
+        data_portal = DataPortal(
+            self.env.asset_finder,
+            futures_calendar,
+            first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,
+            equity_daily_reader=(
+                self.bcolz_equity_daily_bar_reader
+                if self.DATA_PORTAL_USE_DAILY_DATA else
+                None
+            ),
+            equity_minute_reader=(
+                self.bcolz_equity_minute_bar_reader
+                if self.DATA_PORTAL_USE_MINUTE_DATA else
+                None
+            ),
+            adjustment_reader=(
+                self.adjustment_reader
+                if self.DATA_PORTAL_USE_ADJUSTMENTS else
+                None
+            ),
+            future_minute_reader=(
+                self.bcolz_future_minute_bar_reader
+                if self.DATA_PORTAL_USE_MINUTE_DATA else
+                None
+            ),
+        )
+
+        bar_data = BarData(
+            data_portal,
+            lambda: eight_fortyfive_am_eastern,
+            "minute",
+            futures_calendar
+        )
+
+        with handle_non_market_minutes(bar_data):
+            import pdb; pdb.set_trace()
+            bar_data.current(self.ASSET1, "high")
+
 
     def test_can_trade_equity_same_cal_outside_lifetime(self):
         cal = get_calendar(self.ASSET1.exchange)
