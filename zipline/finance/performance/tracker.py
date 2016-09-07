@@ -463,7 +463,7 @@ class PerformanceTracker(object):
             data=self.cumulative_risk_metrics.algorithm_returns_cont)
         acl = self.cumulative_risk_metrics.algorithm_cumulative_leverages
 
-        self.risk_report = risk.RiskReport(
+        risk_report = risk.RiskReport(
             ars,
             self.sim_params,
             benchmark_returns=bms,
@@ -472,5 +472,4 @@ class PerformanceTracker(object):
             treasury_curves=self.treasury_curves,
         )
 
-        risk_dict = self.risk_report.to_dict()
-        return risk_dict
+        return risk_report.to_dict()
