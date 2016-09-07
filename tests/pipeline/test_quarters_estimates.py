@@ -191,68 +191,103 @@ sid_1_timeline = pd.DataFrame({
 
 
 estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
+window_test_start_date = pd.Timestamp('2015-01-05')
 
-# critical dates are dates on which the timeline changes. In between each
-# pair of critical dates, the first entry is the one that should be chosen.
-critical_next_timelines = {
-    1: {
-        pd.Timestamp('2015-01-09', tz='utc'): np.array([[10, np.NaN],
-                                                        [10, np.NaN],
-                                                        [11, np.NaN],
-                                                        [11, np.NaN],
-                                                        [11, 10]]),
-        pd.Timestamp('2015-01-12', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                       [[20, 10],
-                                                        [20, 11]]),
-        pd.Timestamp('2015-01-13', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                       [[20, 30]] * 3),
-        pd.Timestamp('2015-01-14', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                       [[20, 30]] * 4),
-        pd.Timestamp('2015-01-15', tz='utc'): np.array([[20, np.NaN]] * 4 +
-                                                       [[20, 30]] * 4 +
-                                                       [[20, 31]]),
-        pd.Timestamp('2015-01-16', tz='utc'): np.array([[20, np.NaN]] * 10),
-        pd.Timestamp('2015-01-20', tz='utc'): np.array([[20, np.NaN]] * 10 +
-                                                       [[21, np.NaN]])
-    },
-    2: {
-        pd.Timestamp('2015-01-09', tz='utc'): np.array([[20, np.NaN]] * 5),
-        pd.Timestamp('2015-01-12', tz='utc'): np.array([[np.NaN, np.NaN]] * 6),
-        pd.Timestamp('2015-01-13', tz='utc'): np.array([[np.NaN, np.NaN]] * 7),
-        pd.Timestamp('2015-01-14', tz='utc'): np.array([[np.NaN, np.NaN]] * 8),
-        pd.Timestamp('2015-01-15', tz='utc'): np.array([[np.NaN, np.NaN]] * 9),
-        pd.Timestamp('2015-01-16', tz='utc'): np.array([[np.NaN, np.NaN]] * 10),
-        pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] * 11)
-    }
+
+def create_expected_df(tuples, end_date):
+    """
+    Given a list of tuples of new data we get for each sid on each critical
+    date (when information changes), create a DataFrame that fills that data
+    through a date range ending at `end_date`.
+    """
+    df = pd.DataFrame(tuples,
+                      columns=[SID_FIELD_NAME,
+                               'estimate',
+                               'knowledge_date'])
+    df = df.pivot_table(columns='sid',
+                        values='estimate',
+                        index='knowledge_date')
+    df = df.reindex(
+        pd.date_range(window_test_start_date, end_date, tz='utc')
+    )
+    # Index name is lost during reindex.
+    df.index = df.index.rename('knowledge_date')
+    df['at_date'] = end_date
+    df = df.set_index(['at_date', df.index]).ffill()
+    return df
+
+oneq_next = pd.concat([
+    create_expected_df(
+        [(0, 10, window_test_start_date),
+         (0, 11, pd.Timestamp('2015-01-07')),
+         (1, 10, pd.Timestamp('2015-01-09'))],
+        pd.Timestamp('2015-01-09')
+    ),
+    create_expected_df(
+        [(0, 20, window_test_start_date),
+         (1, 10, pd.Timestamp('2015-01-09')),
+         (1, 11, pd.Timestamp('2015-01-12'))],
+        pd.Timestamp('2015-01-12')
+    ),
+    create_expected_df(
+        [(0, 20, window_test_start_date),
+         (1, 30, pd.Timestamp('2015-01-09'))],
+        pd.Timestamp('2015-01-13')
+    ),
+    create_expected_df(
+        [(0, 20, window_test_start_date),
+         (1, 30, pd.Timestamp('2015-01-09'))],
+        pd.Timestamp('2015-01-14')
+    ),
+    create_expected_df(
+        [(0, 20, window_test_start_date),
+         (1, 30, pd.Timestamp('2015-01-09')),
+         (1, 31, pd.Timestamp('2015-01-15'))],
+        pd.Timestamp('2015-01-15')
+    ),
+    create_expected_df(
+        [(0, 20, window_test_start_date),
+         (1, np.NaN, window_test_start_date)],
+        pd.Timestamp('2015-01-16')
+    ),
+    create_expected_df(
+        [(0, 20, window_test_start_date),
+         (0, 21, pd.Timestamp('2015-01-17')),
+         (1, np.NaN, window_test_start_date)],
+        pd.Timestamp('2015-01-20')
+    ),
+])
+
+twoq_next = pd.concat(
+    [create_expected_df(
+        [(0, 20, pd.Timestamp(window_test_start_date)),
+         (1, np.NaN, pd.Timestamp(window_test_start_date))],
+        pd.Timestamp('2015-01-09')
+    )] +
+    [create_expected_df(
+        [(0, np.NaN, pd.Timestamp(window_test_start_date)),
+         (1, np.NaN, pd.Timestamp(window_test_start_date))],
+        end_date
+    ) for end_date in
+     pd.date_range('2015-01-12', '2015-01-20')]
+)
+
+next_timelines = {
+    1: oneq_next,
+    2: twoq_next
 }
 
 # window length, starting date, num quarters out, timeline. Parameterizes
 # over number of quarters out.
 window_test_cases = [
-    (5,
-     pd.Timestamp('2015-01-09', tz='utc'),
-     1),
-    (6,
-     pd.Timestamp('2015-01-12', tz='utc'),
-     1),
-    (9,
-     pd.Timestamp('2015-01-15', tz='utc'),
-     1),
-    (11,
-     pd.Timestamp('2015-01-20', tz='utc'),
-     1),
-    (5,
-     pd.Timestamp('2015-01-09', tz='utc'),
-     2),
-    (6,
-     pd.Timestamp('2015-01-12', tz='utc'),
-     2),
-    (9,
-     pd.Timestamp('2015-01-15', tz='utc'),
-     2),
-    (11,
-     pd.Timestamp('2015-01-20', tz='utc'),
-     2)
+    (5, pd.Timestamp('2015-01-09', tz='utc'), 1),
+    (6, pd.Timestamp('2015-01-12', tz='utc'), 1),
+    (9, pd.Timestamp('2015-01-15', tz='utc'), 1),
+    (11, pd.Timestamp('2015-01-20', tz='utc'), 1),
+    (5, pd.Timestamp('2015-01-09', tz='utc'), 2),
+    (6, pd.Timestamp('2015-01-12', tz='utc'), 2),
+    (9, pd.Timestamp('2015-01-15', tz='utc'), 2),
+    (11, pd.Timestamp('2015-01-20', tz='utc'), 2)
 ]
 
 
@@ -285,9 +320,10 @@ class NextEstimateWindowsTestCase(WithEstimates,
             date_index = trading_days
 
             def compute(self, today, assets, out, estimate):
-                today_timeline = critical_next_timelines[
+                today_idx = self.date_index.get_loc(today)
+                today_timeline = next_timelines[
                     num_quarters_out
-                ][today]
+                ].loc[today].reindex(self.date_index[:today_idx + 1]).values
                 timeline_start_idx = (len(today_timeline) - window_len)
                 assert_equal(estimate, today_timeline[
                                             timeline_start_idx:
