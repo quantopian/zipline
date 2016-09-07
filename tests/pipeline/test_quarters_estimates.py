@@ -92,7 +92,6 @@ class WrongNumQuartersTestCase(WithEstimates):
                                    'estimate'],
                           index=[0])
 
-
     def test_wrong_num_quarters_passed(self):
         with self.assertRaises(ValueError):
             dataset = QuartersEstimates(-1)
@@ -204,7 +203,12 @@ class WithEstimatesT0TestCase(WithEstimates):
             TS_FIELD_NAME: [q1e1, q1e2, q2e1, q2e2],
             SID_FIELD_NAME: sid,
         })
-    events = gen_estimates()
+
+    @classmethod
+    def init_class_fixtures(cls):
+        # Must be generated before call to super since super uses `events`.
+        cls.events = cls.gen_estimates()
+        super(WithEstimatesT0TestCase, cls).init_class_fixtures()
 
     def test_estimates(self):
         dataset = QuartersEstimates(1)
@@ -668,12 +672,12 @@ class WithEstimateWindowsTestCase(WithEstimates):
                             values='estimate',
                             index='knowledge_date')
         df = df.reindex(
-            pd.date_range(cls.window_test_start_date, end_date, tz='utc')
+            pd.date_range(cls.window_test_start_date, end_date)
         )
         # Index name is lost during reindex.
         df.index = df.index.rename('knowledge_date')
-        df['at_date'] = end_date
-        df = df.set_index(['at_date', df.index]).ffill()
+        df['at_date'] = end_date.tz_localize('utc')
+        df = df.set_index(['at_date', df.index.tz_localize('utc')]).ffill()
         return df
 
     @parameterized.expand(window_test_cases)
@@ -704,7 +708,9 @@ class WithEstimateWindowsTestCase(WithEstimates):
                 today_idx = trading_days.get_loc(today)
                 today_timeline = timelines[
                     num_quarters_out
-                ].loc[today].reindex(trading_days[:today_idx + 1]).values
+                ].loc[today].reindex(
+                    trading_days[:today_idx + 1]
+                ).values
                 timeline_start_idx = (len(today_timeline) - window_len)
                 assert_equal(estimate,
                              today_timeline[timeline_start_idx:])
