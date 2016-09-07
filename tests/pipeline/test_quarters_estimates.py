@@ -1,6 +1,7 @@
 from abc import abstractmethod
 import blaze as bz
 import itertools
+from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
@@ -26,15 +27,16 @@ from zipline.pipeline.loaders.quarter_estimates import (
     PreviousQuartersEstimatesLoader,
     split_normalized_quarters,
 )
-from zipline.testing.fixtures import ZiplineTestCase, WithTradingSessions, \
-    WithAssetFinder
+from zipline.testing.fixtures import (
+    WithAssetFinder,
+    WithTradingSessions,
+    ZiplineTestCase,
+)
 from zipline.testing.predicates import assert_equal
 from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.numpy_utils import float64_dtype
 
 
-#  TODO: use different values for each day in range; the tens digit reflects
-# something and the ones digit reflects something else.
 #  TODO: don't use assert statements in zipline
 #  TODO add docstrings
 #  TODO refactor code in quarter loader - free functions
@@ -134,11 +136,12 @@ def gen_estimates():
 
 
 def create_releases_df(sid):
-    # Final release dates never change. The quarters have very tight date ranges
-    # in order to reduce the number of dates we need to iterate through when
-    # testing.
+    # Final release dates never change. The quarters have very tight date
+    # ranges in order to reduce the number of dates we need to iterate through
+    # when testing.
     return pd.DataFrame({
-        TS_FIELD_NAME: [pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-31')],
+        TS_FIELD_NAME: [pd.Timestamp('2015-01-15'),
+                        pd.Timestamp('2015-01-31')],
         EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-15'),
                                 pd.Timestamp('2015-01-31')],
         'estimate': [0.5, 0.8],
@@ -162,58 +165,87 @@ def create_estimates_df(q1e1,
         SID_FIELD_NAME: sid,
     })
 
-sid_0_timeline = pd.DataFrame({
-    TS_FIELD_NAME: [pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-07'),
-                    pd.Timestamp('2015-01-05'), pd.Timestamp('2015-01-17')],
-    EVENT_DATE_FIELD_NAME:
-        [pd.Timestamp('2015-01-10'), pd.Timestamp('2015-01-10'),
-         pd.Timestamp('2015-01-20'), pd.Timestamp('2015-01-20')],
-    'estimate': [10., 11.] + [20., 21.],
-    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
-    FISCAL_YEAR_FIELD_NAME: 2015,
-    SID_FIELD_NAME: 0,
-})
-
-sid_1_timeline = pd.DataFrame({
-    TS_FIELD_NAME: [pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-12'),
-                    pd.Timestamp('2015-01-09'), pd.Timestamp('2015-01-15')],
-    EVENT_DATE_FIELD_NAME:
-        [pd.Timestamp('2015-01-12'), pd.Timestamp('2015-01-12'),
-         pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15')],
-    'estimate': [10., 11.] + [30., 31.],
-    FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [3] * 2,
-    FISCAL_YEAR_FIELD_NAME: 2015,
-    SID_FIELD_NAME: 1
-})
-
-
-estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
-window_test_start_date = pd.Timestamp('2015-01-05')
-
-# window length, starting date, num quarters out, timeline. Parameterizes
-# over number of quarters out.
-window_test_cases = [
-    (5, pd.Timestamp('2015-01-09', tz='utc'), 1),
-    (6, pd.Timestamp('2015-01-12', tz='utc'), 1),
-    (9, pd.Timestamp('2015-01-15', tz='utc'), 1),
-    (11, pd.Timestamp('2015-01-20', tz='utc'), 1),
-    (5, pd.Timestamp('2015-01-09', tz='utc'), 2),
-    (6, pd.Timestamp('2015-01-12', tz='utc'), 2),
-    (9, pd.Timestamp('2015-01-15', tz='utc'), 2),
-    (11, pd.Timestamp('2015-01-20', tz='utc'), 2)
-]
-
 
 class WithEstimateWindowsTestCase(WithEstimates):
     """
     Must define a timelines attribute which contains the expected timelines
     accross each date.
     """
+    sid_0_timeline = pd.DataFrame({
+        TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
+                        pd.Timestamp('2015-01-07'),
+                        pd.Timestamp('2015-01-05'),
+                        pd.Timestamp('2015-01-17')],
+        EVENT_DATE_FIELD_NAME:
+            [pd.Timestamp('2015-01-10'),
+             pd.Timestamp('2015-01-10'),
+             pd.Timestamp('2015-01-20'),
+             pd.Timestamp('2015-01-20')],
+        'estimate': [10., 11.] + [20., 21.],
+        FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
+        FISCAL_YEAR_FIELD_NAME: 2015,
+        SID_FIELD_NAME: 0,
+    })
+
+    sid_1_timeline = pd.DataFrame({
+        TS_FIELD_NAME: [pd.Timestamp('2015-01-09'),
+                        pd.Timestamp('2015-01-12'),
+                        pd.Timestamp('2015-01-09'),
+                        pd.Timestamp('2015-01-15')],
+        EVENT_DATE_FIELD_NAME:
+            [pd.Timestamp('2015-01-12'), pd.Timestamp('2015-01-12'),
+             pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15')],
+        'estimate': [10., 11.] + [30., 31.],
+        FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [3] * 2,
+        FISCAL_YEAR_FIELD_NAME: 2015,
+        SID_FIELD_NAME: 1
+    })
+
+    estimates_timeline = pd.concat([sid_0_timeline, sid_1_timeline])
+    window_test_start_date = pd.Timestamp('2015-01-05')
+    critical_dates = [pd.Timestamp('2015-01-09', tz='utc'),
+                      pd.Timestamp('2015-01-12', tz='utc'),
+                      pd.Timestamp('2015-01-15', tz='utc'),
+                      pd.Timestamp('2015-01-20', tz='utc')]
+    # window length, starting date, num quarters out, timeline. Parameterizes
+    # over number of quarters out.
+    window_test_cases = list(itertools.product(critical_dates, (1, 2)))
     events = estimates_timeline
+
+    @classmethod
+    def make_timelines(cls):
+        return {}
+
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithEstimateWindowsTestCase, cls).init_class_fixtures()
+        cls.timelines = cls.make_timelines()
+
+    @classmethod
+    def create_expected_df(cls, tuples, end_date):
+        """
+        Given a list of tuples of new data we get for each sid on each critical
+        date (when information changes), create a DataFrame that fills that
+        data through a date range ending at `end_date`.
+        """
+        df = pd.DataFrame(tuples,
+                          columns=[SID_FIELD_NAME,
+                                   'estimate',
+                                   'knowledge_date'])
+        df = df.pivot_table(columns='sid',
+                            values='estimate',
+                            index='knowledge_date')
+        df = df.reindex(
+            pd.date_range(cls.window_test_start_date, end_date, tz='utc')
+        )
+        # Index name is lost during reindex.
+        df.index = df.index.rename('knowledge_date')
+        df['at_date'] = end_date
+        df = df.set_index(['at_date', df.index]).ffill()
+        return df
 
     @parameterized.expand(window_test_cases)
     def test_estimate_windows_at_quarter_boundaries(self,
-                                                    window_len,
                                                     start_idx,
                                                     num_quarters_out):
         """
@@ -223,6 +255,14 @@ class WithEstimateWindowsTestCase(WithEstimates):
         dataset = QuartersEstimates(num_quarters_out)
         trading_days = self.trading_days
         timelines = self.timelines
+        # The window length should be from the starting index back to the first
+        # date on which we got data. The goal is to ensure that as we
+        # progress through the timeline, all data we got, starting from that
+        # first date, is correctly overwritten.
+        window_len = (
+            self.trading_days.get_loc(start_idx) -
+            self.trading_days.get_loc(self.window_test_start_date) + 1
+        )
 
         class SomeFactor(CustomFactor):
             inputs = [dataset.estimate]
@@ -234,9 +274,8 @@ class WithEstimateWindowsTestCase(WithEstimates):
                     num_quarters_out
                 ].loc[today].reindex(trading_days[:today_idx + 1]).values
                 timeline_start_idx = (len(today_timeline) - window_len)
-                assert_equal(estimate, today_timeline[
-                                            timeline_start_idx:
-                                       ])
+                assert_equal(estimate,
+                             today_timeline[timeline_start_idx:])
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
@@ -250,153 +289,68 @@ class WithEstimateWindowsTestCase(WithEstimates):
         )
 
 
-def create_expected_df(tuples, end_date):
-    """
-    Given a list of tuples of new data we get for each sid on each critical
-    date (when information changes), create a DataFrame that fills that data
-    through a date range ending at `end_date`.
-    """
-    df = pd.DataFrame(tuples,
-                      columns=[SID_FIELD_NAME,
-                               'estimate',
-                               'knowledge_date'])
-    df = df.pivot_table(columns='sid',
-                        values='estimate',
-                        index='knowledge_date')
-    df = df.reindex(
-        pd.date_range(window_test_start_date, end_date, tz='utc')
-    )
-    # Index name is lost during reindex.
-    df.index = df.index.rename('knowledge_date')
-    df['at_date'] = end_date
-    df = df.set_index(['at_date', df.index]).ffill()
-    return df
-
-oneq_next = pd.concat([
-    create_expected_df(
-        [(0, 10, window_test_start_date),
-         (0, 11, pd.Timestamp('2015-01-07')),
-         (1, 10, pd.Timestamp('2015-01-09'))],
-        pd.Timestamp('2015-01-09')
-    ),
-    create_expected_df(
-        [(0, 20, window_test_start_date),
-         (1, 10, pd.Timestamp('2015-01-09')),
-         (1, 11, pd.Timestamp('2015-01-12'))],
-        pd.Timestamp('2015-01-12')
-    ),
-    create_expected_df(
-        [(0, 20, window_test_start_date),
-         (1, 30, pd.Timestamp('2015-01-09'))],
-        pd.Timestamp('2015-01-13')
-    ),
-    create_expected_df(
-        [(0, 20, window_test_start_date),
-         (1, 30, pd.Timestamp('2015-01-09'))],
-        pd.Timestamp('2015-01-14')
-    ),
-    create_expected_df(
-        [(0, 20, window_test_start_date),
-         (1, 30, pd.Timestamp('2015-01-09')),
-         (1, 31, pd.Timestamp('2015-01-15'))],
-        pd.Timestamp('2015-01-15')
-    ),
-    create_expected_df(
-        [(0, 20, window_test_start_date),
-         (1, np.NaN, window_test_start_date)],
-        pd.Timestamp('2015-01-16')
-    ),
-    create_expected_df(
-        [(0, 20, window_test_start_date),
-         (0, 21, pd.Timestamp('2015-01-17')),
-         (1, np.NaN, window_test_start_date)],
-        pd.Timestamp('2015-01-20')
-    ),
-])
-
-twoq_next = pd.concat(
-    [create_expected_df(
-        [(0, 20, pd.Timestamp(window_test_start_date)),
-         (1, np.NaN, pd.Timestamp(window_test_start_date))],
-        pd.Timestamp('2015-01-09')
-    )] +
-    [create_expected_df(
-        [(0, np.NaN, pd.Timestamp(window_test_start_date)),
-         (1, np.NaN, pd.Timestamp(window_test_start_date))],
-        end_date
-    ) for end_date in
-     pd.date_range('2015-01-12', '2015-01-20')]
-)
-
-next_timelines = {
-    1: oneq_next,
-    2: twoq_next
-}
-
-oneq_previous = pd.concat([
-    create_expected_df(
-        [(0, np.NaN, window_test_start_date),
-         (1, np.NaN, window_test_start_date)],
-        pd.Timestamp('2015-01-09')
-    ),
-    create_expected_df(
-        [(0, 11, pd.Timestamp('2015-01-10')),
-         (1, 11, pd.Timestamp('2015-01-12'))],
-        pd.Timestamp('2015-01-12')
-    ),
-    create_expected_df(
-        [(0, 11, pd.Timestamp('2015-01-10')),
-         (1, 11, pd.Timestamp('2015-01-12'))],
-        pd.Timestamp('2015-01-13')
-    ),
-    create_expected_df(
-        [(0, 11, pd.Timestamp('2015-01-10')),
-         (1, 11, pd.Timestamp('2015-01-12'))],
-        pd.Timestamp('2015-01-14')
-    ),
-    create_expected_df(
-        [(0, 11, pd.Timestamp('2015-01-10')),
-         (1, 31, pd.Timestamp('2015-01-15'))],
-        pd.Timestamp('2015-01-15')
-    ),
-    create_expected_df(
-        [(0, 11, pd.Timestamp('2015-01-10')),
-         (1, 31, pd.Timestamp('2015-01-15'))],
-        pd.Timestamp('2015-01-16')
-    ),
-    create_expected_df(
-        [(0, 21, pd.Timestamp('2015-01-17')),
-         (1, 31, pd.Timestamp('2015-01-15'))],
-        pd.Timestamp('2015-01-20')
-    ),
-])
-
-twoq_previous = pd.concat(
-    [create_expected_df(
-        [(0, np.NaN, window_test_start_date),
-         (1, np.NaN, window_test_start_date)],
-        end_date
-    ) for end_date in
-     pd.date_range('2015-01-09', '2015-01-19')] +
-    [create_expected_df(
-        [(0, 11, pd.Timestamp('2015-01-20')),
-         (1, np.NaN, window_test_start_date)],
-        pd.Timestamp('2015-01-20')
-    )]
-)
-previous_timelines = {
-    1: oneq_previous,
-    2: twoq_previous
-}
-
-
 class PreviousEstimateWindowsTestCase(WithEstimateWindowsTestCase,
                                       ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousQuartersEstimatesLoader(events, columns)
 
-    timelines = previous_timelines
+    @classmethod
+    def make_timelines(cls):
+        oneq_previous = pd.concat([
+            cls.create_expected_df(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (1, np.NaN, cls.window_test_start_date)],
+                pd.Timestamp('2015-01-09')
+            ),
+            cls.create_expected_df(
+                [(0, 11, pd.Timestamp('2015-01-10')),
+                 (1, 11, pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-12')
+            ),
+            cls.create_expected_df(
+                [(0, 11, pd.Timestamp('2015-01-10')),
+                 (1, 11, pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-13')
+            ),
+            cls.create_expected_df(
+                [(0, 11, pd.Timestamp('2015-01-10')),
+                 (1, 11, pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-14')
+            ),
+            cls.create_expected_df(
+                [(0, 11, pd.Timestamp('2015-01-10')),
+                 (1, 31, pd.Timestamp('2015-01-15'))],
+                pd.Timestamp('2015-01-15')
+            ),
+            cls.create_expected_df(
+                [(0, 11, pd.Timestamp('2015-01-10')),
+                 (1, 31, pd.Timestamp('2015-01-15'))],
+                pd.Timestamp('2015-01-16')
+            ),
+            cls.create_expected_df(
+                [(0, 21, pd.Timestamp('2015-01-17')),
+                 (1, 31, pd.Timestamp('2015-01-15'))],
+                pd.Timestamp('2015-01-20')
+            ),
+        ])
+
+        twoq_previous = pd.concat(
+            [cls.create_expected_df(
+                [(0, np.NaN, cls.window_test_start_date),
+                 (1, np.NaN, cls.window_test_start_date)],
+                end_date
+            ) for end_date in pd.date_range('2015-01-09', '2015-01-19')] +
+            [cls.create_expected_df(
+                [(0, 11, pd.Timestamp('2015-01-20')),
+                 (1, np.NaN, cls.window_test_start_date)],
+                pd.Timestamp('2015-01-20')
+            )]
+        )
+        return {
+            1: oneq_previous,
+            2: twoq_previous
+        }
 
 
 class NextEstimateWindowsTestCase(WithEstimateWindowsTestCase,
@@ -405,7 +359,67 @@ class NextEstimateWindowsTestCase(WithEstimateWindowsTestCase,
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
 
-    timelines = next_timelines
+    @classmethod
+    def make_timelines(cls):
+        oneq_next = pd.concat([
+            cls.create_expected_df(
+                [(0, 10, cls.window_test_start_date),
+                 (0, 11, pd.Timestamp('2015-01-07')),
+                 (1, 10, pd.Timestamp('2015-01-09'))],
+                pd.Timestamp('2015-01-09')
+            ),
+            cls.create_expected_df(
+                [(0, 20, cls.window_test_start_date),
+                 (1, 10, pd.Timestamp('2015-01-09')),
+                 (1, 11, pd.Timestamp('2015-01-12'))],
+                pd.Timestamp('2015-01-12')
+            ),
+            cls.create_expected_df(
+                [(0, 20, cls.window_test_start_date),
+                 (1, 30, pd.Timestamp('2015-01-09'))],
+                pd.Timestamp('2015-01-13')
+            ),
+            cls.create_expected_df(
+                [(0, 20, cls.window_test_start_date),
+                 (1, 30, pd.Timestamp('2015-01-09'))],
+                pd.Timestamp('2015-01-14')
+            ),
+            cls.create_expected_df(
+                [(0, 20, cls.window_test_start_date),
+                 (1, 30, pd.Timestamp('2015-01-09')),
+                 (1, 31, pd.Timestamp('2015-01-15'))],
+                pd.Timestamp('2015-01-15')
+            ),
+            cls.create_expected_df(
+                [(0, 20, cls.window_test_start_date),
+                 (1, np.NaN, cls.window_test_start_date)],
+                pd.Timestamp('2015-01-16')
+            ),
+            cls.create_expected_df(
+                [(0, 20, cls.window_test_start_date),
+                 (0, 21, pd.Timestamp('2015-01-17')),
+                 (1, np.NaN, cls.window_test_start_date)],
+                pd.Timestamp('2015-01-20')
+            ),
+        ])
+
+        twoq_next = pd.concat(
+            [cls.create_expected_df(
+                [(0, 20, pd.Timestamp(cls.window_test_start_date)),
+                 (1, np.NaN, pd.Timestamp(cls.window_test_start_date))],
+                pd.Timestamp('2015-01-09')
+            )] +
+            [cls.create_expected_df(
+                [(0, np.NaN, pd.Timestamp(cls.window_test_start_date)),
+                 (1, np.NaN, pd.Timestamp(cls.window_test_start_date))],
+                end_date
+            ) for end_date in pd.date_range('2015-01-12', '2015-01-20')]
+        )
+
+        return {
+            1: oneq_next,
+            2: twoq_next
+        }
 
 
 class NextEstimateTestCase(WithEstimates,
@@ -473,7 +487,7 @@ class NextEstimateTestCase(WithEstimates,
                         computed_value = sid_estimates.iloc[i][colname]
                         assert_equal(expected_value, computed_value)
                 else:
-                    assert sid_estimates.iloc[i].isnull().all()
+                    assert_true(sid_estimates.iloc[i].isnull().all())
 
 
 class EstimateMultipleQuartersTestCase(WithEstimates):
@@ -490,22 +504,22 @@ class EstimateMultipleQuartersTestCase(WithEstimates):
 
     def check_null_range(self, results, start_date, stop_date, col_name):
         # Make sure that values in the given column/range are all null.
-        assert (
+        assert_true((
             results.loc[
                 start_date:stop_date
             ][col_name].isnull()
-        ).all()
+        ).all())
 
     def check_values(self, results, start_date, end_date, col_name, qtr,
                      event_idx):
         # Make sure that values in the given column/range are all equal
         # to the value at the given index from the raw data.
-        assert (
+        assert_true((
             results.loc[
                 start_date:end_date
             ][col_name + qtr] ==
             self.events[col_name][event_idx]
-        ).all()
+        ).all())
 
     @abstractmethod
     def check_cols(self):
@@ -533,13 +547,13 @@ class EstimateMultipleQuartersTestCase(WithEstimates):
             start_date=self.trading_days[0],
             end_date=self.trading_days[-1],
         )
-        q1_columns = [col.name + '1' for col in self.columns]
-        q2_columns = [col.name + '2' for col in self.columns]
+        q1_columns = [col + '1' for col in self.columns]
+        q2_columns = [col + '2' for col in self.columns]
 
         # We now expect a column for 1 quarter out and a column for 2
         # quarters out for each of the dataset columns.
-        assert np.array_equal(sorted(np.array(q1_columns + q2_columns)),
-                              sorted(results.columns.values))
+        assert_equal(sorted(np.array(q1_columns + q2_columns)),
+                     sorted(results.columns.values))
         return results
 
 
@@ -561,29 +575,29 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase,
             self.check_null_range(results,
                                   self.START_DATE,
                                   pd.Timestamp('2014-12-31'),
-                                  col.name + '1')
+                                  col + '1')
             self.check_values(results,
                               pd.Timestamp('2015-01-02'),
                               pd.Timestamp('2015-01-10'),
-                              col.name,
+                              col,
                               '1',
                               0)  # First event is our 1Q out
             self.check_values(results,
                               pd.Timestamp('2015-01-11'),
                               pd.Timestamp('2015-01-20'),
-                              col.name,
+                              col,
                               '1',
                               1)  # Second event becomes our 1Q out
             self.check_null_range(results,
                                   pd.Timestamp('2015-01-21'),
                                   self.END_DATE,
-                                  col.name + '1')
+                                  col + '1')
 
         # Fiscal year and quarter are different for 2Q out because even when we
         # have no data for 2Q out, we still know which fiscal year/quarter we
         # want data for as long as we have data for 1Q out.
         for col in filter(
-                lambda x: x.name not in [
+                lambda x: x not in [
                     FISCAL_QUARTER_FIELD_NAME,
                     FISCAL_YEAR_FIELD_NAME], self.columns.keys()
         ):
@@ -591,7 +605,7 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase,
             self.check_null_range(results,
                                   self.START_DATE,
                                   pd.Timestamp('2015-01-05'),
-                                  col.name + '2')
+                                  col + '2')
             # We have data for 2Q out when our knowledge of
             # the next quarter and the quarter after that
             # overlaps and before the next quarter's event
@@ -599,13 +613,13 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase,
             self.check_values(results,
                               pd.Timestamp('2015-01-06'),
                               pd.Timestamp('2015-01-10'),
-                              col.name,
+                              col,
                               '2',
                               1)
             self.check_null_range(results,
                                   pd.Timestamp('2015-01-11'),
                                   self.END_DATE,
-                                  col.name + '2')
+                                  col + '2')
 
         # Check fiscal year/quarter for 2Q out.
         self.check_null_range(results,
@@ -618,18 +632,18 @@ class NextEstimateMultipleQuartersTestCase(EstimateMultipleQuartersTestCase,
                               FISCAL_YEAR_FIELD_NAME + '2')
         # We have a different quarter number than the quarter numbers we have
         # in our data for 2Q out, so assert manually.
-        assert (
+        assert_true((
             results.loc[
                 pd.Timestamp('2015-01-02'):pd.Timestamp('2015-01-10')
             ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             2
-        ).all()
-        assert (
+        ).all())
+        assert_true((
             results.loc[
                 pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-20')
             ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             3
-        ).all()
+        ).all())
         # We have the same fiscal year, 2-15, for 2Q out over the date range of
         # interest.
         self.check_values(results,
@@ -668,17 +682,17 @@ class PreviousEstimateMultipleQuartersTestCase(
             self.check_null_range(results,
                                   self.START_DATE,
                                   pd.Timestamp('2015-01-09'),
-                                  col.name + '1')
+                                  col + '1')
             self.check_values(results,
                               pd.Timestamp('2015-01-12'),
                               pd.Timestamp('2015-01-16'),
-                              col.name,
+                              col,
                               '1',
                               0)  # First event is our 1Q out
             self.check_values(results,
                               pd.Timestamp('2015-01-20'),
                               self.END_DATE,
-                              col.name,
+                              col,
                               '1',
                               1)  # Second event becomes our 1Q out
 
@@ -686,7 +700,7 @@ class PreviousEstimateMultipleQuartersTestCase(
         # have no data for 2Q out, we still know which fiscal year/quarter we
         # want data for as long as we have data for 1Q out.
         for col in filter(
-                lambda x: x.name not in [
+                lambda x: x not in [
                     FISCAL_QUARTER_FIELD_NAME,
                     FISCAL_YEAR_FIELD_NAME], self.columns.keys()
         ):
@@ -694,12 +708,12 @@ class PreviousEstimateMultipleQuartersTestCase(
             self.check_null_range(results,
                                   self.START_DATE,
                                   pd.Timestamp('2015-01-16'),
-                                  col.name + '2')
+                                  col + '2')
             # We don't have 2Q out until Q1 and Q2 events happen.
             self.check_values(results,
                               pd.Timestamp('2015-01-20'),
                               self.END_DATE,
-                              col.name,
+                              col,
                               '2',
                               0)
 
@@ -714,31 +728,31 @@ class PreviousEstimateMultipleQuartersTestCase(
                               FISCAL_YEAR_FIELD_NAME + '2')
         # We have a different quarter number than the quarter numbers we have
         # in our data for 2Q out, so assert manually.
-        assert (
+        assert_true((
             results.loc[
                 pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-16')
             ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             4
-        ).all()
-        assert (
+        ).all())
+        assert_true((
             results.loc[
                 pd.Timestamp('2015-01-20'):self.END_DATE
             ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
             1
-        ).all()
+        ).all())
 
-        assert (
+        assert_true((
             results.loc[
                 pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-16')
             ][FISCAL_YEAR_FIELD_NAME + '2'] ==
             2014
-        ).all()
-        assert (
+        ).all())
+        assert_true((
             results.loc[
                 pd.Timestamp('2015-01-20'):self.END_DATE
             ][FISCAL_YEAR_FIELD_NAME + '2'] ==
             2015
-        ).all()
+        ).all())
 
 
 class BlazeNextEstimateLoaderTestCase(NextEstimateTestCase):
@@ -819,7 +833,7 @@ class PreviousEstimateTestCase(WithEstimates,
                         computed_value = sid_estimates.iloc[i][colname]
                         assert_equal(expected_value, computed_value)
                 else:
-                    assert sid_estimates.iloc[i].isnull().all()
+                    assert_true(sid_estimates.iloc[i].isnull().all())
 
 
 class BlazePreviousEstimateLoaderTestCase(PreviousEstimateTestCase):
@@ -848,5 +862,5 @@ class QuarterShiftTestCase(ZiplineTestCase):
         )
         # Can't use assert_series_equal here with check_names=False
         # because that still fails due to name differences.
-        assert input_yrs.equals(result_years)
-        assert input_qtrs.equals(result_quarters)
+        assert_equal(input_yrs, result_years)
+        assert_equal(input_qtrs, result_quarters)
