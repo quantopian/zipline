@@ -657,8 +657,11 @@ class AssetFinder(object):
             return self.retrieve_asset(sid_keys[0])
 
         for sid, sym in options.items():
-            if sym == symbol:
-                # look for an exact match on the asof date
+            # Possible to have a scenario where multiple fuzzy matches have the
+            # same date. Want to find the one where symbol and share class
+            # match.
+            op_cs, op_sc = split_delimited_symbol(sym)
+            if company_symbol == op_cs and share_class_symbol == op_sc:
                 return self.retrieve_asset(sid)
 
         # multiple equities held tickers matching the fuzzy ticker but
