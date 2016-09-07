@@ -288,7 +288,6 @@ class QuarterEstimatesLoader(PipelineLoader):
             column.missing_value,
         )
 
-
     def overwrite_with_null(self, adjustments, column, last_per_qtr,
                             next_qtr_start_idx, overwrite, sid_idx):
         adjustments[next_qtr_start_idx] = [
@@ -306,7 +305,6 @@ class QuarterEstimatesLoader(PipelineLoader):
                 )
             )
         ]
-
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         groups = groupby(lambda x: x.dataset.num_quarters, columns)
@@ -406,7 +404,7 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
             stacked_last_per_qtr.index.get_level_values(
                 SIMULTATION_DATES
-        )].reset_index(NORMALIZED_QUARTERS).groupby(
+            )].reset_index(NORMALIZED_QUARTERS).groupby(
             level=[SIMULTATION_DATES, SID_FIELD_NAME]
         ).nth(-1).set_index(NORMALIZED_QUARTERS, append=True)
         previous_releases_per_date[
