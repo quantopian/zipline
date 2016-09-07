@@ -83,27 +83,30 @@ def fetch_csv(url, pre_func=None, post_func=None, date_column='date', date_forma
         A requests source that will pull data from the url specified.
     """
 
-def future_chain(root_symbol, as_of_date=None):
-    """Look up a future chain with the specified parameters.
+def future_chain(root_symbol, as_of_date=None, offset=0):
+    """
+Look up a future chain.
 
-    Parameters
-    ----------
-    root_symbol : str
-        The root symbol of a future chain.
-    as_of_date : datetime.datetime or pandas.Timestamp or str, optional
-        Date at which the chain determination is rooted. I.e. the
-        existing contract whose notice date is first after this date is
-        the primary contract, etc.
+Parameters
+----------
+root_symbol : str
+    The root symbol of a future chain.
+as_of_date : datetime.datetime or pandas.Timestamp or str, optional
+    Date at which the chain determination is rooted. If this date is
+    not passed in, the current simulation session (not minute) is used.
+offset: int
+    Number of sessions to shift `as_of_date`.  Positive values shift
+     forward in time.  Negative values shift backward in time.
 
-    Returns
-    -------
-    chain : FutureChain
-        The future chain matching the specified parameters.
+Returns
+-------
+chain : FutureChain
+    The future chain matching the specified parameters.
 
-    Raises
-    ------
-    RootSymbolNotFound
-        If a future chain could not be found for the given root symbol.
+Raises
+------
+RootSymbolNotFound
+    If a future chain could not be found for the given root symbol.
     """
 
 def future_symbol(symbol):
@@ -126,17 +129,18 @@ def future_symbol(symbol):
     """
 
 def get_datetime(tz=None):
-    """Returns the current simulation datetime.
+    """
+Returns the current simulation datetime.
 
-    Parameters
-    ----------
-    tz : tzinfo or str, optional
-        The timezone to return the datetime in. This defaults to utc.
+Parameters
+----------
+tz : tzinfo or str, optional
+    The timezone to return the datetime in. This defaults to utc.
 
-    Returns
-    -------
-    dt : datetime
-        The current simulation datetime converted to ``tz``.
+Returns
+-------
+dt : datetime
+    The current simulation datetime converted to ``tz``.
     """
 
 def get_environment(field='platform'):
@@ -508,7 +512,7 @@ def record(*args, **kwargs):
     :func:`~zipline.run_algorithm`.
     """
 
-def schedule_function(func, date_rule=None, time_rule=None, half_days=True):
+def schedule_function(func, date_rule=None, time_rule=None, half_days=True, calendar=None):
     """Schedules a function to be called according to some timed rules.
 
     Parameters
