@@ -335,14 +335,15 @@ critical_previous_timelines = {
             [[21, 31]]
         )
         },
-    2: {pd.Timestamp('2015-01-09', tz='utc'): np.array([[20, np.NaN]] * 5),
+    2: {pd.Timestamp('2015-01-09', tz='utc'): np.array([[np.NaN, np.NaN]] * 5),
         pd.Timestamp('2015-01-12', tz='utc'): np.array([[np.NaN, np.NaN]] * 6),
         pd.Timestamp('2015-01-13', tz='utc'): np.array([[np.NaN, np.NaN]] * 7),
         pd.Timestamp('2015-01-14', tz='utc'): np.array([[np.NaN, np.NaN]] * 8),
         pd.Timestamp('2015-01-15', tz='utc'): np.array([[np.NaN, np.NaN]] * 9),
         pd.Timestamp('2015-01-16', tz='utc'): np.array([[np.NaN, np.NaN]] * 10),
-        pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] * 11)
-    }
+        pd.Timestamp('2015-01-20', tz='utc'): np.array([[np.NaN, np.NaN]] *
+                                                       10 + [[11, np.NaN]])
+        }
 }
 
 
@@ -382,6 +383,7 @@ class PreviousEstimateWindowsTestCase(WithEstimates,
                 assert_equal(estimate, today_timeline[
                                             timeline_start_idx:
                                        ])
+        import pdb; pdb.set_trace()
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
