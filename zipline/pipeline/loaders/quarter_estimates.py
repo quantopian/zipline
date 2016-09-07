@@ -302,6 +302,7 @@ class QuarterEstimatesLoader(PipelineLoader):
                         last_per_qtr.index[:next_qtr_start_idx]
                     ),
                     column.missing_value,
+                    dtype=column.dtype
                 )
             )
         ]
@@ -313,7 +314,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             raise ValueError(
                 "Passed invalid number of quarters %s; "
                 "must pass a number of quarters >= 0" % ','.join(
-                    qtr for qtr in groups if qtr < 0
+                    str(qtr) for qtr in groups if qtr < 0
                 )
 
             )
