@@ -154,7 +154,7 @@ create a new virtualenv, ``cd`` into a clean directory and then run:
 
 .. code-block:: bash
 
-   $ pip install -i https://testpypi.python.org/pypi zipline
+   $ pip install --extra-index-url https://testpypi.python.org/pypi zipline
    $ python -c 'import zipline;print(zipline.__version__)'
 
 
