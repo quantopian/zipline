@@ -532,12 +532,6 @@ class DataPortal(object):
         return spot_value
 
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
-        if not ffill and not asset.is_exchange_open(dt):
-            if column == "volume":
-                return 0
-            else:
-                return np.nan
-
         reader = self._get_pricing_reader('minute')
 
         result = reader.get_value(

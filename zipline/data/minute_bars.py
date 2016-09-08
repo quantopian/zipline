@@ -33,6 +33,7 @@ from zipline.data._minute_bar_internal import (
 )
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
+
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
@@ -1154,6 +1155,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
             self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
             self._minutes_per_day,
+            True
         )
 
     def load_raw_arrays(self, fields, start_dt, end_dt, sids):

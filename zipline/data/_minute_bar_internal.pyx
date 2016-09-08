@@ -3,6 +3,8 @@ from numpy import searchsorted
 from cpython cimport bool
 cimport cython
 
+from zipline.data.session_bars import NoDataOnDate
+
 cdef inline int int_min(int a, int b): return a if a <= b else b
 
 @cython.cdivision(True)
@@ -37,8 +39,9 @@ def minute_value(ndarray[long_t, ndim=1] market_opens,
 
 def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
                             ndarray[long_t, ndim=1] market_closes,
-                            long_t minute_val,
-                            short minutes_per_day):
+                            int minute_val,
+                            int minutes_per_day,
+                            bool raise_if_no_data_on_date):
     """
     Finds the position of a given minute in the given array of market opens.
     If not a market minute, adjusts to the last market minute.
@@ -57,9 +60,18 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
     minutes_per_day: int
         The number of minutes per day (e.g. 390 for NYSE).
 
+    raise_if_no_data_on_date: bool
+        Whether to raise NoDataOnDate if `minute_val` is not between a market
+        open and a market close.
+
     Returns
     -------
     int: The position of the given minute in the market opens array.
+
+    Raises
+    ------
+    NoDataOnDate
+        If `minute_val` is not between a market open and a market close.
     """
     cdef Py_ssize_t market_open_loc, market_open, delta
 
@@ -67,6 +79,9 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
         searchsorted(market_opens, minute_val, side='right') - 1
     market_open = market_opens[market_open_loc]
     market_close = market_closes[market_open_loc]
+
+    if raise_if_no_data_on_date and minute_val > market_close:
+        raise NoDataOnDate()
 
     delta = int_min(minute_val - market_open, market_close - market_open)
 
@@ -111,8 +126,13 @@ def find_last_traded_position_internal(
     cdef Py_ssize_t minute_pos, current_minute
 
     minute_pos = int_min(
-        find_position_of_minute(market_opens, market_closes, end_minute,
-                                minutes_per_day),
+        find_position_of_minute(
+            market_opens,
+            market_closes,
+            end_minute,
+            minutes_per_day,
+            False
+        ),
         len(volumes) - 1
     )
 
