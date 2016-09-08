@@ -28,15 +28,14 @@ from . risk import (
 )
 
 from empyrical import (
-    alpha,
+    alpha_beta_aligned,
     annual_volatility,
-    beta,
     cum_returns,
     downside_risk,
     information_ratio,
     max_drawdown,
     sharpe_ratio,
-    sortino_ratio
+    sortino_ratio,
 )
 
 log = logbook.Logger('Risk Cumulative')
@@ -152,7 +151,6 @@ class RiskMetricsCumulative(object):
 
         self.algorithm_returns_cont[dt_loc] = algorithm_returns
         self.algorithm_returns = self.algorithm_returns_cont[:dt_loc + 1]
-        algorithm_returns_series = pd.Series(self.algorithm_returns)
 
         self.num_trading_days = len(self.algorithm_returns)
 
@@ -161,8 +159,8 @@ class RiskMetricsCumulative(object):
                 self.algorithm_returns = np.append(0.0, self.algorithm_returns)
 
         self.algorithm_cumulative_returns[dt_loc] = cum_returns(
-            algorithm_returns_series
-        ).iloc[-1]
+            self.algorithm_returns
+        )[-1]
 
         algo_cumulative_returns_to_date = \
             self.algorithm_cumulative_returns[:dt_loc + 1]
@@ -186,14 +184,14 @@ class RiskMetricsCumulative(object):
 
         self.benchmark_returns_cont[dt_loc] = benchmark_returns
         self.benchmark_returns = self.benchmark_returns_cont[:dt_loc + 1]
-        benchmark_returns_series = pd.Series(self.benchmark_returns)
+
         if self.create_first_day_stats:
             if len(self.benchmark_returns) == 1:
                 self.benchmark_returns = np.append(0.0, self.benchmark_returns)
 
         self.benchmark_cumulative_returns[dt_loc] = cum_returns(
-            benchmark_returns_series
-        ).iloc[-1]
+            self.benchmark_returns
+        )[-1]
 
         benchmark_cumulative_returns_to_date = \
             self.benchmark_cumulative_returns[:dt_loc + 1]
@@ -234,10 +232,10 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
 
         self.update_current_max()
         self.benchmark_volatility[dt_loc] = annual_volatility(
-            benchmark_returns_series
+            self.benchmark_returns
         )
         self.algorithm_volatility[dt_loc] = annual_volatility(
-            algorithm_returns_series
+            self.algorithm_returns
         )
 
         # caching the treasury rates for the minutely case is a
@@ -258,31 +256,26 @@ algorithm_returns ({algo_count}) in range {start} : {end} on {dt}"
             self.algorithm_cumulative_returns[dt_loc] -
             self.treasury_period_return)
 
-        self.beta[dt_loc] = beta(
-            algorithm_returns_series,
-            benchmark_returns_series
-        )
-        self.alpha[dt_loc] = alpha(
-            algorithm_returns_series,
-            benchmark_returns_series,
-            _beta=self.beta[dt_loc]
+        self.alpha[dt_loc], self.beta[dt_loc] = alpha_beta_aligned(
+            self.algorithm_returns,
+            self.benchmark_returns,
         )
         self.sharpe[dt_loc] = sharpe_ratio(
-            algorithm_returns_series
+            self.algorithm_returns,
         )
         self.downside_risk[dt_loc] = downside_risk(
-            algorithm_returns_series
+            self.algorithm_returns
         )
         self.sortino[dt_loc] = sortino_ratio(
-            algorithm_returns_series,
+            self.algorithm_returns,
             _downside_risk=self.downside_risk[dt_loc]
         )
         self.information[dt_loc] = information_ratio(
-            algorithm_returns_series,
-            benchmark_returns_series
+            self.algorithm_returns,
+            self.benchmark_returns,
         )
         self.max_drawdown = max_drawdown(
-            algorithm_returns_series
+            self.algorithm_returns
         )
         self.max_drawdowns[dt_loc] = self.max_drawdown
         self.max_leverage = self.calculate_max_leverage()

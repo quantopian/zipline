@@ -1,11 +1,30 @@
 package:
   name: empyrical
-  version: "0.1.11"
+  version: "0.2.0"
 
 source:
-  fn: empyrical-0.1.11.tar.gz
-  url: https://pypi.python.org/packages/df/82/c4050b0fe341db97430b2de7ae736d89a2ddb78636d3e0235aef1b7499d5/empyrical-0.1.11.tar.gz
-  md5: fbd543416d204688146f13f325ca8731
+  fn: empyrical-0.2.0.tar.gz
+  url: https://pypi.python.org/packages/e0/e7/e6bf883c009993677f2f283d93c3efcf910c7e42ce0dcd4cf8abd465b070/empyrical-0.2.0.tar.gz
+  md5: 32a360c6a151b32872e5b6f56dfbe3e4
+#  patches:
+   # List any patch files here
+   # - fix.patch
+
+# build:
+  # noarch_python: True
+  # preserve_egg_dir: True
+  # entry_points:
+    # Put any entry points (scripts to be generated automatically) here. The
+    # syntax is module:function.  For example
+    #
+    # - empyrical = empyrical:main
+    #
+    # Would create an entry point called empyrical that calls empyrical.main()
+
+
+  # If this is a new build for the same version, increment the build
+  # number. If you do not include this key, it defaults to 0.
+  # number: 1
 
 requirements:
   build:
@@ -23,6 +42,21 @@ requirements:
     - scipy >=0.15.1
     - bottleneck >=1.0.0
 
+test:
+  # Python imports
+  imports:
+    - empyrical
+    - empyrical.tests
+
+  # commands:
+  #   - nosetests
+
+  # You can also put a file called run_test.py in the recipe that will be run
+  # at test time.
+
+  requires:
+    - nose >=1.3.7
+  #  - nose_parameterized >=0.5.0
 
 about:
   home: https://github.com/quantopian/empyrical

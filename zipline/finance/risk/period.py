@@ -25,9 +25,8 @@ from . import risk
 from . risk import check_entry
 
 from empyrical import (
-    alpha,
+    alpha_beta_aligned,
     annual_volatility,
-    beta,
     cum_returns,
     downside_risk,
     information_ratio,
@@ -124,28 +123,23 @@ class RiskMetricsPeriod(object):
         if pd.isnull(self.sharpe):
             self.sharpe = 0.0
         self.downside_risk = downside_risk(
-            self.algorithm_returns
+            self.algorithm_returns.values
         )
         self.sortino = sortino_ratio(
-            self.algorithm_returns,
-            _downside_risk=self.downside_risk
+            self.algorithm_returns.values,
+            _downside_risk=self.downside_risk,
         )
         self.information = information_ratio(
-            self.algorithm_returns,
-            self.benchmark_returns
+            self.algorithm_returns.values,
+            self.benchmark_returns.values,
         )
-        self.beta = beta(
-            self.algorithm_returns,
-            self.benchmark_returns
-        )
-        self.alpha = alpha(
-            self.algorithm_returns,
-            self.benchmark_returns,
-            _beta=self.beta
+        self.alpha, self.beta = alpha_beta_aligned(
+            self.algorithm_returns.values,
+            self.benchmark_returns.values,
         )
         self.excess_return = self.algorithm_period_returns - \
             self.treasury_period_return
-        self.max_drawdown = max_drawdown(self.algorithm_returns)
+        self.max_drawdown = max_drawdown(self.algorithm_returns.values)
         self.max_leverage = self.calculate_max_leverage()
 
     def to_dict(self):
