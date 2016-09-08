@@ -15,13 +15,17 @@
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 import six
+import warnings
 
 import datetime
 import numpy as np
 import pandas as pd
 import pytz
+from toolz import curry
 
+from zipline.utils.input_validation import preprocess
 from zipline.utils.memoize import lazyval
+
 from .context_tricks import nop_context
 
 
@@ -146,6 +150,31 @@ def _build_time(time, kwargs):
         raise ValueError('Must pass a time or kwargs')
     else:
         return datetime.time(**kwargs)
+
+
+@curry
+def lossless_float_to_int(funcname, func, argname, arg):
+    """
+    A preprocessor that coerces integral floats to ints.
+
+    Receipt of non-integral floats raises a TypeError.
+    """
+    if not isinstance(arg, float):
+        return arg
+
+    arg_as_int = int(arg)
+    if arg == arg_as_int:
+        warnings.warn(
+            "{f} expected an int for argument {name!r}, but got float {arg}."
+            " Coercing to int.".format(
+                f=funcname,
+                name=argname,
+                arg=arg,
+            ),
+        )
+        return arg_as_int
+
+    raise TypeError(arg)
 
 
 class EventManager(object):
@@ -402,8 +431,10 @@ class NotHalfDay(StatelessRule):
 
 
 class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
+    @preprocess(n=lossless_float_to_int('TradingDayOfWeekRule'))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_WEEK_RANGE:
+            import nose.tools; nose.tools.set_trace()
             raise _out_of_range_error(MAX_WEEK_RANGE)
 
         self.td_delta = (-n - 1) if invert else n
@@ -443,6 +474,8 @@ class NDaysBeforeLastTradingDayOfWeek(TradingDayOfWeekRule):
 
 
 class TradingDayOfMonthRule(six.with_metaclass(ABCMeta, StatelessRule)):
+
+    @preprocess(n=lossless_float_to_int('TradingDayOfMonthRule'))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_MONTH_RANGE:
             raise _out_of_range_error(MAX_MONTH_RANGE)

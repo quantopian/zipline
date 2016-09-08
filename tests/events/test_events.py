@@ -16,12 +16,14 @@ import datetime
 from inspect import isabstract
 import random
 from unittest import TestCase
+import warnings
 
 from nose_parameterized import parameterized
 import pandas as pd
 from six import iteritems
 from six.moves import range, map
 
+from zipline.testing import parameter_space
 import zipline.utils.events
 from zipline.utils.calendars import get_calendar
 from zipline.utils.events import (
@@ -438,6 +440,26 @@ class StatelessRulesTests(RuleTestCase):
             self.assertIs(composed.first, rule1)
             self.assertIs(composed.second, rule2)
             self.assertFalse(any(map(should_trigger, minute)))
+
+    @parameterized.expand([
+        ('month_start', NthTradingDayOfMonth),
+        ('month_end', NDaysBeforeLastTradingDayOfMonth),
+        ('week_start', NthTradingDayOfWeek),
+        ('week_end', NthTradingDayOfWeek),
+    ])
+    def test_pass_float_to_day_of_period_rule(self, name, rule_type):
+        with warnings.catch_warnings(record=True) as raised_warnings:
+            warnings.simplefilter('always')
+            rule_type(n=3)    # Shouldn't trigger a warning.
+            rule_type(n=3.0)  # Should trigger a warning about float coercion.
+
+        self.assertEqual(len(raised_warnings), 1)
+        warning_str = raised_warnings[0].message.message
+
+        # We only implicitly convert from float to int when there's no loss of
+        # precision.
+        with self.assertRaises(TypeError):
+            rule_type(3.1)
 
 
 class StatefulRulesTests(RuleTestCase):
