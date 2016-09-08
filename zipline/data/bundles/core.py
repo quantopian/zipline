@@ -7,7 +7,6 @@ import warnings
 from contextlib2 import ExitStack
 import click
 import pandas as pd
-from six import string_types
 from toolz import curry, complement, take
 
 from ..us_equity_pricing import (
@@ -31,7 +30,7 @@ from zipline.utils.compat import mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
-from zipline.utils.calendars import get_calendar, register_calendar
+from zipline.utils.calendars import get_calendar
 
 
 def asset_db_path(bundle_name, timestr, environ=None, db_version=None):
@@ -133,9 +132,14 @@ def ingestions_for_bundle(bundle, environ=None):
     )
 
 
-_BundlePayload = namedtuple(
-    '_BundlePayload',
-    'calendar start_session end_session minutes_per_day ingest create_writers',
+RegisteredBundle = namedtuple(
+    'RegisteredBundle',
+    ['calendar_name',
+     'start_session',
+     'end_session',
+     'minutes_per_day',
+     'ingest',
+     'create_writers']
 )
 
 BundleData = namedtuple(
@@ -220,7 +224,7 @@ def _make_bundle_core():
     @curry
     def register(name,
                  f,
-                 calendar='NYSE',
+                 calendar_name='NYSE',
                  start_session=None,
                  end_session=None,
                  minutes_per_day=390,
@@ -257,10 +261,9 @@ def _make_bundle_core():
                   successful load.
               show_progress : bool
                   Show the progress for the current load where possible.
-        calendar : zipline.utils.calendars.TradingCalendar or str, optional
-            The trading calendar to align the data to, or the name of a trading
-            calendar. This defaults to 'NYSE', in which case we use the NYSE
-            calendar.
+        calendar_name : str, optional
+            The name of a calendar used to align bundle data.
+            Default is 'NYSE'.
         start_session : pd.Timestamp, optional
             The first session for which we want data. If not provided,
             or if the date lies outside the range supported by the
@@ -296,24 +299,17 @@ def _make_bundle_core():
                 stacklevel=3,
             )
 
-        if isinstance(calendar, string_types):
-            calendar = get_calendar(calendar)
-
-        # If the start and end sessions are not provided or lie outside
-        # the bounds of the calendar being used, set them to the first
-        # and last sessions of the calendar.
-        if start_session is None or start_session < calendar.first_session:
-            start_session = calendar.first_session
-        if end_session is None or end_session > calendar.last_session:
-            end_session = calendar.last_session
-
-        _bundles[name] = _BundlePayload(
-            calendar,
-            start_session,
-            end_session,
-            minutes_per_day,
-            f,
-            create_writers,
+        # NOTE: We don't eagerly compute calendar values here because
+        # `register` is called at module scope in zipline, and creating a
+        # calendar currently takes between 0.5 and 1 seconds, which causes a
+        # noticeable delay on the zipline CLI.
+        _bundles[name] = RegisteredBundle(
+            calendar_name=calendar_name,
+            start_session=start_session,
+            end_session=end_session,
+            minutes_per_day=minutes_per_day,
+            ingest=f,
+            create_writers=create_writers,
         )
         return f
 
@@ -365,9 +361,21 @@ def _make_bundle_core():
         except KeyError:
             raise UnknownBundle(name)
 
+        calendar = get_calendar(bundle.calendar_name)
+
+        start_session = bundle.start_session
+        end_session = bundle.end_session
+
+        if start_session is None or start_session < calendar.first_session:
+            start_session = calendar.first_session
+
+        if end_session is None or end_session > calendar.last_session:
+            end_session = calendar.last_session
+
         if timestamp is None:
             timestamp = pd.Timestamp.utcnow()
         timestamp = timestamp.tz_convert('utc').tz_localize(None)
+
         timestr = to_bundle_ingest_dirname(timestamp)
         cachepath = cache_path(name, environ=environ)
         pth.ensure_directory(pth.data_path([name, timestr], environ=environ))
@@ -387,9 +395,9 @@ def _make_bundle_core():
                 )
                 daily_bar_writer = BcolzDailyBarWriter(
                     daily_bars_path,
-                    bundle.calendar,
-                    bundle.start_session,
-                    bundle.end_session,
+                    calendar,
+                    start_session,
+                    end_session,
                 )
                 # Do an empty write to ensure that the daily ctables exist
                 # when we create the SQLiteAdjustmentWriter below. The
@@ -401,9 +409,9 @@ def _make_bundle_core():
                     wd.ensure_dir(*minute_equity_relative(
                         name, timestr, environ=environ)
                     ),
-                    bundle.calendar,
-                    bundle.start_session,
-                    bundle.end_session,
+                    calendar,
+                    start_session,
+                    end_session,
                     minutes_per_day=bundle.minutes_per_day,
                 )
                 assets_db_path = wd.getpath(*asset_db_relative(
@@ -416,7 +424,7 @@ def _make_bundle_core():
                         wd.getpath(*adjustment_db_relative(
                             name, timestr, environ=environ)),
                         BcolzDailyBarReader(daily_bars_path),
-                        bundle.calendar.all_sessions,
+                        calendar.all_sessions,
                         overwrite=True,
                     )
                 )
@@ -435,9 +443,9 @@ def _make_bundle_core():
                 minute_bar_writer,
                 daily_bar_writer,
                 adjustment_db_writer,
-                bundle.calendar,
-                bundle.start_session,
-                bundle.end_session,
+                calendar,
+                start_session,
+                end_session,
                 cache,
                 show_progress,
                 pth.data_path([name, timestr], environ=environ),
@@ -611,6 +619,3 @@ def _make_bundle_core():
     return BundleCore(bundles, register, unregister, ingest, load, clean)
 
 bundles, register, unregister, ingest, load, clean = _make_bundle_core()
-
-register_calendar("YAHOO", get_calendar("NYSE"))
-register_calendar("QUANDL", get_calendar("NYSE"))

@@ -39,8 +39,12 @@ from zipline.utils.calendars import(
     deregister_calendar,
     get_calendar,
 )
-from zipline.utils.calendars.calendar_utils import register_calendar_type, \
-    _default_calendar_factories
+from zipline.utils.calendars.calendar_utils import (
+    _default_calendar_aliases,
+    _default_calendar_factories,
+    register_calendar_type,
+
+)
 from zipline.utils.calendars.trading_calendar import days_at_time, \
     TradingCalendar
 
@@ -123,7 +127,8 @@ class CalendarRegistrationTestCase(TestCase):
 
 class DefaultsTestCase(TestCase):
     def test_default_calendars(self):
-        for name in concat(_default_calendar_factories):
+        for name in concat([_default_calendar_factories,
+                            _default_calendar_aliases]):
             self.assertIsNotNone(get_calendar(name),
                                  "get_calendar(%r) returned None" % name)
 

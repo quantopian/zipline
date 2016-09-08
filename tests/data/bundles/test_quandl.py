@@ -5,6 +5,7 @@ import pandas as pd
 from toolz import merge
 import toolz.curried.operator as op
 
+from zipline import get_calendar
 from zipline.data.bundles import ingest, load, bundles
 from zipline.data.bundles.quandl import (
     format_wiki_url,
@@ -28,9 +29,9 @@ class QuandlBundleTestCase(ZiplineTestCase):
     asset_start = pd.Timestamp('2014-01', tz='utc')
     asset_end = pd.Timestamp('2015-01', tz='utc')
     bundle = bundles['quandl']
-    calendar = bundle.calendar
-    start_date = bundle.start_session
-    end_date = bundle.end_session
+    calendar = get_calendar(bundle.calendar_name)
+    start_date = calendar.first_session
+    end_date = calendar.last_session
     api_key = 'ayylmao'
     columns = 'open', 'high', 'low', 'close', 'volume'
 

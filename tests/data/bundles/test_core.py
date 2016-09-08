@@ -155,7 +155,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
 
         @self.register(
             'bundle',
-            calendar=calendar,
+            calendar_name='NYSE',
             start_session=self.START_DATE,
             end_session=self.END_DATE,
         )
@@ -369,7 +369,7 @@ class BundleCoreTestCase(WithInstanceTmpDir,
         """
         if not self.bundles:
             @self.register('bundle',
-                           calendar=get_calendar('NYSE'),
+                           calendar_name='NYSE',
                            start_session=pd.Timestamp('2014', tz='UTC'),
                            end_session=pd.Timestamp('2014', tz='UTC'))
             def _(environ,
