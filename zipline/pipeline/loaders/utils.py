@@ -276,7 +276,7 @@ def check_data_query_args(data_query_time, data_query_tz):
         )
 
 
-def last_in_date_group(df, reindex, dates, assets, have_sids=True,
+def last_in_date_group(df, dates, assets, reindex=True, have_sids=True,
                        extra_groupers=[]):
     """
     Determine the last piece of information known on each date in the date
@@ -286,14 +286,14 @@ def last_in_date_group(df, reindex, dates, assets, have_sids=True,
     ----------
     df : pd.DataFrame
         The DataFrame containing the data to be grouped.
-    reindex : bool
-        Whether or not the DataFrame should be reindexed against the date
-        index. This will add back any dates to the index that were grouped
-        away.
     dates : pd.DatetimeIndex
         The dates to use for grouping and reindexing.
     assets : pd.Int64Index
         The assets that should be included in the column multiindex.
+    reindex : bool
+        Whether or not the DataFrame should be reindexed against the date
+        index. This will add back any dates to the index that were grouped
+        away.
     have_sids : bool
         Whether or not the DataFrame has sids. If it does, they will be used
         in the groupby.

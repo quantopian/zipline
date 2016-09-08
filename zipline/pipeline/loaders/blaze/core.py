@@ -1095,15 +1095,15 @@ class BlazeLoader(dict):
         sparse_output.drop(AD_FIELD_NAME, axis=1, inplace=True)
 
         sparse_deltas = last_in_date_group(non_novel_deltas,
-                                           False,
                                            dates,
                                            assets,
-                                           have_sids)
+                                           reindex=False,
+                                           have_sids=have_sids)
         dense_output = last_in_date_group(sparse_output,
-                                          True,
                                           dates,
                                           assets,
-                                          have_sids)
+                                          reindex=True,
+                                          have_sids=have_sids)
         ffill_across_cols(dense_output, columns, {c: c.name for c in columns})
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids

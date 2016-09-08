@@ -37,9 +37,6 @@ from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.numpy_utils import float64_dtype
 
 
-#  TODO add docstrings
-#  TODO refactor code in quarter loader - free functions
-# TODO Get rid of obvious comments
 class Estimates(DataSet):
     event_date = Column(dtype=datetime64ns_dtype)
     fiscal_quarter = Column(dtype=float64_dtype)
