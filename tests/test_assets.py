@@ -757,6 +757,56 @@ class AssetFinderTestCase(WithTradingCalendars, ZiplineTestCase):
         result = finder.lookup_symbol('FOO/B', date + timedelta(1), fuzzy=True)
         self.assertEqual(result.sid, 1)
 
+    def test_endless_multiple_resolves(self):
+        """
+        Situation:
+        1. Asset 1 w/ symbol FOOB changes to FOO_B, and then is delisted.
+        2. Asset 2 is listed with symbol FOO_B.
+
+        If someone asks for FOO_B with fuzzy matching after 2 has been listed,
+        they should be able to correctly get 2.
+        """
+
+        date = pd.Timestamp('2013-01-01', tz='UTC')
+
+        df = pd.DataFrame.from_records(
+            [
+                {
+                    'sid': 1,
+                    'symbol': 'FOOB',
+                    'start_date': date.value,
+                    'end_date': date.max.value,
+                    'exchange': 'NYSE',
+                },
+                {
+                    'sid': 1,
+                    'symbol': 'FOO_B',
+                    'start_date': (date + timedelta(days=31)).value,
+                    'end_date': (date + timedelta(days=60)).value,
+                    'exchange': 'NYSE',
+                },
+                {
+                    'sid': 2,
+                    'symbol': 'FOO_B',
+                    'start_date': (date + timedelta(days=61)).value,
+                    'end_date': date.max.value,
+                    'exchange': 'NYSE',
+                },
+
+            ]
+        )
+        self.write_assets(equities=df)
+        finder = self.asset_finder
+
+        # If we are able to resolve this with any result, means that we did not
+        # raise a MultipleSymbolError.
+        result = finder.lookup_symbol(
+            'FOO/B',
+            date + timedelta(days=90),
+            fuzzy=True
+        )
+        self.assertEqual(result.sid, 2)
+
     def test_lookup_generic_handle_missing(self):
         data = pd.DataFrame.from_records(
             [
