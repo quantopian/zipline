@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.data.equity_pricing &mdash; Zipline 1.0.2 documentation</title>
+  <title>zipline.utils.calendars.calendar_utils &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -295,7 +295,7 @@
       
           <li><a href="../../../index.html">Module code</a> &raquo;</li>
       
-    <li>zipline.pipeline.data.equity_pricing</li>
+    <li>zipline.utils.calendars.calendar_utils</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -306,24 +306,183 @@
 </div>
           <div role="main" class="document">
             
-  <h1>Source code for zipline.pipeline.data.equity_pricing</h1><div class="highlight"><pre>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Dataset representing OHLCV data.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">float64_dtype</span>
+  <h1>Source code for zipline.utils.calendars.calendar_utils</h1><div class="highlight"><pre>
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">InvalidCalendarName</span><span class="p">,</span>
+    <span class="n">CalendarNameCollision</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.exchange_calendar_cfe</span> <span class="kn">import</span> <span class="n">CFEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.exchange_calendar_ice</span> <span class="kn">import</span> <span class="n">ICEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.exchange_calendar_nyse</span> <span class="kn">import</span> <span class="n">NYSEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.exchange_calendar_cme</span> <span class="kn">import</span> <span class="n">CMEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.exchange_calendar_bmf</span> <span class="kn">import</span> <span class="n">BMFExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.exchange_calendar_lse</span> <span class="kn">import</span> <span class="n">LSEExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.exchange_calendar_tsx</span> <span class="kn">import</span> <span class="n">TSXExchangeCalendar</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.us_futures_calendar</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">QuantopianUSFuturesCalendar</span><span class="p">,</span>
+<span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">.dataset</span> <span class="kn">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">DataSet</span>
+
+<span class="n">NYSE_CALENDAR_EXCHANGE_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
+    <span class="s">&quot;NYSE&quot;</span><span class="p">,</span>
+    <span class="s">&quot;NASDAQ&quot;</span><span class="p">,</span>
+    <span class="s">&quot;BATS&quot;</span><span class="p">,</span>
+<span class="p">])</span>
+<span class="n">CME_CALENDAR_EXCHANGE_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
+    <span class="s">&quot;CBOT&quot;</span><span class="p">,</span>
+    <span class="s">&quot;CME&quot;</span><span class="p">,</span>
+    <span class="s">&quot;COMEX&quot;</span><span class="p">,</span>
+    <span class="s">&quot;NYMEX&quot;</span><span class="p">,</span>
+<span class="p">])</span>
+<span class="n">ICE_CALENDAR_EXCHANGE_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span>
+    <span class="s">&quot;ICEUS&quot;</span><span class="p">,</span>
+    <span class="s">&quot;NYFE&quot;</span><span class="p">,</span>
+<span class="p">])</span>
+<span class="n">CFE_CALENDAR_EXCHANGE_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s">&quot;CFE&quot;</span><span class="p">])</span>
+<span class="n">BMF_CALENDAR_EXCHANGE_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s">&quot;BMF&quot;</span><span class="p">])</span>
+<span class="n">LSE_CALENDAR_EXCHANGE_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s">&quot;LSE&quot;</span><span class="p">])</span>
+<span class="n">TSX_CALENDAR_EXCHANGE_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s">&quot;TSX&quot;</span><span class="p">])</span>
+
+<span class="n">US_FUTURES_CALENDAR_NAMES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="s">&quot;us_futures&quot;</span><span class="p">])</span>
+
+<span class="n">_default_calendar_factories</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">NYSE_CALENDAR_EXCHANGE_NAMES</span><span class="p">:</span> <span class="n">NYSEExchangeCalendar</span><span class="p">,</span>
+    <span class="n">CME_CALENDAR_EXCHANGE_NAMES</span><span class="p">:</span> <span class="n">CMEExchangeCalendar</span><span class="p">,</span>
+    <span class="n">ICE_CALENDAR_EXCHANGE_NAMES</span><span class="p">:</span> <span class="n">ICEExchangeCalendar</span><span class="p">,</span>
+    <span class="n">CFE_CALENDAR_EXCHANGE_NAMES</span><span class="p">:</span> <span class="n">CFEExchangeCalendar</span><span class="p">,</span>
+    <span class="n">BMF_CALENDAR_EXCHANGE_NAMES</span><span class="p">:</span> <span class="n">BMFExchangeCalendar</span><span class="p">,</span>
+    <span class="n">LSE_CALENDAR_EXCHANGE_NAMES</span><span class="p">:</span> <span class="n">LSEExchangeCalendar</span><span class="p">,</span>
+    <span class="n">TSX_CALENDAR_EXCHANGE_NAMES</span><span class="p">:</span> <span class="n">TSXExchangeCalendar</span><span class="p">,</span>
+    <span class="n">US_FUTURES_CALENDAR_NAMES</span><span class="p">:</span> <span class="n">QuantopianUSFuturesCalendar</span><span class="p">,</span>
+<span class="p">}</span>
 
 
-<div class="viewcode-block" id="USEquityPricing"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.data.USEquityPricing">[docs]</a><span class="k">class</span> <span class="nc">USEquityPricing</span><span class="p">(</span><span class="n">DataSet</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">TradingCalendarDispatcher</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Dataset representing daily trading prices and volumes.</span>
+<span class="sd">    A class for dispatching and caching trading calendars.</span>
+
+<span class="sd">    Methods of a global instance of this class are provided by</span>
+<span class="sd">    zipline.utils.calendar_utils.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">open</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">high</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">low</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">close</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span>
-    <span class="n">volume</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">float64_dtype</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">calendar_factories</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span> <span class="o">=</span> <span class="n">calendar_factories</span>
+
+    <span class="k">def</span> <span class="nf">get_calendar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves an instance of an TradingCalendar whose name is given.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the TradingCalendar to be retrieved.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        TradingCalendar</span>
+<span class="sd">            The desired calendar.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+        <span class="k">for</span> <span class="n">names</span><span class="p">,</span> <span class="n">factory</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                <span class="c"># Use the same calendar for all exchanges that share the same</span>
+                <span class="c"># factory.</span>
+                <span class="n">calendar</span> <span class="o">=</span> <span class="n">factory</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">n</span><span class="p">:</span> <span class="n">calendar</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">names</span><span class="p">})</span>
+                <span class="k">return</span> <span class="n">calendar</span>
+
+        <span class="k">raise</span> <span class="n">InvalidCalendarName</span><span class="p">(</span><span class="n">calendar_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">register_calendar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">calendar</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Registers a calendar for retrieval by the get_calendar method.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name: str</span>
+<span class="sd">            The key with which to register this calendar.</span>
+<span class="sd">        calendar: TradingCalendar</span>
+<span class="sd">            The calendar to be registered for retrieval.</span>
+<span class="sd">        force : bool, optional</span>
+<span class="sd">            If True, old calendars will be overwritten on a name collision.</span>
+<span class="sd">            If False, name collisions will raise an exception. Default: False.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        CalendarNameCollision</span>
+<span class="sd">            If a calendar is already registered with the given calendar&#39;s name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">force</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">deregister_calendar</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CalendarNameCollision</span><span class="p">(</span><span class="n">calendar_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">calendar</span>
+
+    <span class="k">def</span> <span class="nf">register_calendar_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">calendar_type</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Registers a calendar by type.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name: str</span>
+<span class="sd">            The key with which to register this calendar.</span>
+<span class="sd">        calendar_type: type</span>
+<span class="sd">            The type of the calendar to register.</span>
+<span class="sd">        force : bool, optional</span>
+<span class="sd">            If True, old calendars will be overwritten on a name collision.</span>
+<span class="sd">            If False, name collisions will raise an exception. Default: False.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        CalendarNameCollision</span>
+<span class="sd">            If a calendar is already registered with the given calendar&#39;s name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">force</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CalendarNameCollision</span><span class="p">(</span><span class="n">calendar_name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">calendar_type</span>
+
+    <span class="k">def</span> <span class="nf">deregister_calendar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If a calendar is registered with the given name, it is de-registered.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cal_name : str</span>
+<span class="sd">            The name of the calendar to be deregistered.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">clear_calendars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deregisters all current registered calendars</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendars</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar_factories</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+
+<span class="c"># We maintain a global calendar dispatcher so that users can just do</span>
+<span class="c"># `register_calendar(&#39;my_calendar&#39;, calendar) and then use `get_calendar`</span>
+<span class="c"># without having to thread around a dispatcher.</span>
+<span class="n">global_calendar_dispatcher</span> <span class="o">=</span> <span class="n">TradingCalendarDispatcher</span><span class="p">(</span>
+    <span class="n">_default_calendar_factories</span>
+<span class="p">)</span>
+
+<span class="n">get_calendar</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">get_calendar</span>
+<span class="n">clear_calendars</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">clear_calendars</span>
+<span class="n">deregister_calendar</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">deregister_calendar</span>
+<span class="n">register_calendar</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">register_calendar</span>
+<span class="n">register_calendar_type</span> <span class="o">=</span> <span class="n">global_calendar_dispatcher</span><span class="o">.</span><span class="n">register_calendar_type</span>
 </pre></div>
 
           </div>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.utils.events &mdash; Zipline 1.0.1 documentation</title>
+  <title>zipline.utils.events &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -116,6 +117,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -124,10 +127,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -138,70 +151,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +241,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#readers">Readers</a></li>
@@ -294,7 +308,7 @@
             
   <h1>Source code for zipline.utils.events</h1><div class="highlight"><pre>
 <span class="c">#</span>
-<span class="c"># Copyright 2014 Quantopian, Inc.</span>
+<span class="c"># Copyright 2016 Quantopian, Inc.</span>
 <span class="c">#</span>
 <span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c"># you may not use this file except in compliance with the License.</span>
@@ -315,6 +329,7 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">pytz</span>
 
+<span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">lazyval</span>
 <span class="kn">from</span> <span class="nn">.context_tricks</span> <span class="kn">import</span> <span class="n">nop_context</span>
 
 
@@ -343,7 +358,7 @@
 <span class="p">]</span>
 
 
-<span class="n">MAX_MONTH_RANGE</span> <span class="o">=</span> <span class="mi">26</span>
+<span class="n">MAX_MONTH_RANGE</span> <span class="o">=</span> <span class="mi">23</span>
 <span class="n">MAX_WEEK_RANGE</span> <span class="o">=</span> <span class="mi">5</span>
 
 
@@ -365,29 +380,6 @@
     <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_coerce_datetime</span><span class="p">(</span><span class="n">maybe_dt</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_dt</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">maybe_dt</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_dt</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
-            <span class="n">year</span><span class="o">=</span><span class="n">maybe_dt</span><span class="o">.</span><span class="n">year</span><span class="p">,</span>
-            <span class="n">month</span><span class="o">=</span><span class="n">maybe_dt</span><span class="o">.</span><span class="n">month</span><span class="p">,</span>
-            <span class="n">day</span><span class="o">=</span><span class="n">maybe_dt</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
-            <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">maybe_dt</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">maybe_dt</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-        <span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span> <span class="o">=</span> <span class="n">maybe_dt</span>
-        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span>
-            <span class="n">year</span><span class="o">=</span><span class="n">year</span><span class="p">,</span>
-            <span class="n">month</span><span class="o">=</span><span class="n">month</span><span class="p">,</span>
-            <span class="n">day</span><span class="o">=</span><span class="n">day</span><span class="p">,</span>
-            <span class="n">tzinfo</span><span class="o">=</span><span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&#39;Cannot coerce </span><span class="si">%s</span><span class="s"> into a datetime.datetime&#39;</span>
-                        <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">maybe_dt</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">)</span>
-
-
 <span class="k">def</span> <span class="nf">_out_of_range_error</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s">&#39;offset&#39;</span><span class="p">):</span>
     <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -407,12 +399,12 @@
 <span class="k">def</span> <span class="nf">_td_check</span><span class="p">(</span><span class="n">td</span><span class="p">):</span>
     <span class="n">seconds</span> <span class="o">=</span> <span class="n">td</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
 
-    <span class="c"># 23400 seconds is 6 hours and 30 minutes.</span>
-    <span class="k">if</span> <span class="mi">60</span> <span class="o">&lt;=</span> <span class="n">seconds</span> <span class="o">&lt;=</span> <span class="mi">23400</span><span class="p">:</span>
+    <span class="c"># 43200 seconds = 12 hours</span>
+    <span class="k">if</span> <span class="mi">60</span> <span class="o">&lt;=</span> <span class="n">seconds</span> <span class="o">&lt;=</span> <span class="mi">43200</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">td</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;offset must be in between 1 minute and 6 hours and&#39;</span>
-                         <span class="s">&#39; 30 minutes inclusive&#39;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;offset must be in between 1 minute and 12 hours, &#39;</span>
+                         <span class="s">&#39;inclusive.&#39;</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_build_offset</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="n">default</span><span class="p">):</span>
@@ -499,7 +491,6 @@
                     <span class="n">context</span><span class="p">,</span>
                     <span class="n">data</span><span class="p">,</span>
                     <span class="n">dt</span><span class="p">,</span>
-                    <span class="n">context</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">,</span>
                 <span class="p">)</span>
 
 
@@ -513,17 +504,17 @@
         <span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="bp">None</span><span class="p">)</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">rule</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">handle_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calls the callable only when the rule is triggered.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">EventRule</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Checks if the rule should trigger with its current state.</span>
 <span class="sd">        This method should be pure and NOT mutate any state on the object.</span>
@@ -569,24 +560,23 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">second</span> <span class="o">=</span> <span class="n">second</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">composer</span> <span class="o">=</span> <span class="n">composer</span>
 
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Composes the two rules with a lazy composer.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">composer</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">should_trigger</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">second</span><span class="o">.</span><span class="n">should_trigger</span><span class="p">,</span>
-            <span class="n">dt</span><span class="p">,</span>
-            <span class="n">env</span>
+            <span class="n">dt</span>
         <span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">lazy_and</span><span class="p">(</span><span class="n">first_should_trigger</span><span class="p">,</span> <span class="n">second_should_trigger</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">lazy_and</span><span class="p">(</span><span class="n">first_should_trigger</span><span class="p">,</span> <span class="n">second_should_trigger</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Lazily ands the two rules. This will NOT call the should_trigger of the</span>
 <span class="sd">        second rule if the first one returns False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">first_should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span> <span class="ow">and</span> <span class="n">second_should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">first_should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">and</span> <span class="n">second_should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">Always</span><span class="p">(</span><span class="n">StatelessRule</span><span class="p">):</span>
@@ -594,7 +584,7 @@
 <span class="sd">    A rule that always triggers.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">always_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">always_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        A should_trigger implementation that will always trigger.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -607,7 +597,7 @@
 <span class="sd">    A rule that never triggers.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">never_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">never_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        A should_trigger implementation that will never trigger.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -620,7 +610,8 @@
 <span class="sd">    A rule that triggers for some offset after the market opens.</span>
 <span class="sd">    Example that triggers after 30 minutes of the market opening:</span>
 
-<span class="sd">    &gt;&gt;&gt; AfterOpen(minutes=30)</span>
+<span class="sd">    &gt;&gt;&gt; AfterOpen(minutes=30)  # doctest: +ELLIPSIS</span>
+<span class="sd">    &lt;zipline.utils.events.AfterOpen object at ...&gt;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">_build_offset</span><span class="p">(</span>
@@ -635,13 +626,15 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_one_minute</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">calculate_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">calculate_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="c"># given a dt, find that day&#39;s open and period end (open + offset)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_close</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_open_and_close</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span> <span class="o">=</span> \
-            <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_minute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_close</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">open_and_close_for_session</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_minute</span>
 
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="c"># There are two reasons why we might want to recalculate the dates.</span>
         <span class="c"># One is the first time we ever call should_trigger, when</span>
         <span class="c"># self._period_start is none. The second is when we&#39;re on a new day,</span>
@@ -649,13 +642,13 @@
         <span class="c"># on the fact that our clock only ever ticks forward, since it&#39;s</span>
         <span class="c"># cheaper to do dt1 &lt;= dt2 than dt1.date() != dt2.date(). This means</span>
         <span class="c"># that we will NOT correctly recognize a new date if we go backwards</span>
-        <span class="c"># in time(which should never happen in a simulation, or in a live</span>
-        <span class="c"># trading environment)</span>
+        <span class="c"># in time(which should never happen in a simulation, or in live</span>
+        <span class="c"># trading)</span>
         <span class="k">if</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_period_close</span> <span class="o">&lt;=</span> <span class="n">dt</span>
         <span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_dates</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_dates</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">dt</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span>
 
@@ -665,7 +658,8 @@
 <span class="sd">    A rule that triggers for some offset time before the market closes.</span>
 <span class="sd">    Example that triggers for the last 30 minutes every day:</span>
 
-<span class="sd">    &gt;&gt;&gt; BeforeClose(minutes=30)</span>
+<span class="sd">    &gt;&gt;&gt; BeforeClose(minutes=30)  # doctest: +ELLIPSIS</span>
+<span class="sd">    &lt;zipline.utils.events.BeforeClose object at ...&gt;</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">_build_offset</span><span class="p">(</span>
@@ -675,18 +669,22 @@
         <span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_period_close</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_one_minute</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">calculate_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">calculate_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="c"># given a dt, find that day&#39;s close and period start (close - offset)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_open_and_close</span><span class="p">(</span><span class="n">dt</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="o">=</span> \
-            <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">open_and_close_for_session</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+            <span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_period_close</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_end</span>
 
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="c"># There are two reasons why we might want to recalculate the dates.</span>
         <span class="c"># One is the first time we ever call should_trigger, when</span>
         <span class="c"># self._period_start is none. The second is when we&#39;re on a new day,</span>
@@ -694,13 +692,10 @@
         <span class="c"># on the fact that our clock only ever ticks forward, since it&#39;s</span>
         <span class="c"># cheaper to do dt1 &lt;= dt2 than dt1.date() != dt2.date(). This means</span>
         <span class="c"># that we will NOT correctly recognize a new date if we go backwards</span>
-        <span class="c"># in time(which should never happen in a simulation, or in a live</span>
-        <span class="c"># trading environment)</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_period_close</span> <span class="o">&lt;=</span> <span class="n">dt</span>
-        <span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_dates</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
+        <span class="c"># in time(which should never happen in a simulation, or in live</span>
+        <span class="c"># trading)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_close</span> <span class="o">&lt;=</span> <span class="n">dt</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_dates</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period_start</span> <span class="o">==</span> <span class="n">dt</span>
 
@@ -709,68 +704,29 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A rule that only triggers when it is not a half day.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">env</span><span class="o">.</span><span class="n">early_closes</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> \
+            <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">early_closes</span>
 
 
 <span class="k">class</span> <span class="nc">TradingDayOfWeekRule</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">,</span> <span class="n">StatelessRule</span><span class="p">)):</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">MAX_WEEK_RANGE</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">invert</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">MAX_WEEK_RANGE</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">_out_of_range_error</span><span class="p">(</span><span class="n">MAX_WEEK_RANGE</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span> <span class="o">=</span> <span class="n">n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">invert</span> <span class="k">else</span> <span class="n">n</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_date_start</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_date_end</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_midnight_timestamp</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">execution_periods</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># calculate the list of periods that match the given criteria</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">Grouper</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s">&quot;W&quot;</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">nth</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">))</span><span class="o">.</span><span class="n">index</span>
 
-    <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">date_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
-
-    <span class="k">def</span> <span class="nf">calculate_start_and_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="n">next_trading_day</span> <span class="o">=</span> <span class="n">_coerce_datetime</span><span class="p">(</span>
-            <span class="n">env</span><span class="o">.</span><span class="n">add_trading_days</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">date_func</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">),</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="c"># If after applying the offset to the start/end day of the week, we get</span>
-        <span class="c"># day in a different week, skip this week and go on to the next</span>
-        <span class="k">while</span> <span class="n">next_trading_day</span><span class="o">.</span><span class="n">isocalendar</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">dt</span><span class="o">.</span><span class="n">isocalendar</span><span class="p">()[</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="n">dt</span> <span class="o">+=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
-            <span class="n">next_trading_day</span> <span class="o">=</span> <span class="n">_coerce_datetime</span><span class="p">(</span>
-                <span class="n">env</span><span class="o">.</span><span class="n">add_trading_days</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">date_func</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">),</span>
-                <span class="p">)</span>
-            <span class="p">)</span>
-
-        <span class="n">next_open</span><span class="p">,</span> <span class="n">next_close</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">get_open_and_close</span><span class="p">(</span><span class="n">next_trading_day</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_date_start</span> <span class="o">=</span> <span class="n">next_open</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_date_end</span> <span class="o">=</span> <span class="n">next_close</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">next_midnight_timestamp</span> <span class="o">=</span> <span class="n">next_trading_day</span>
-
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_date_start</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="c"># First time this method has been called. Calculate the midnight,</span>
-            <span class="c"># open, and close for the first trigger, which occurs on the week</span>
-            <span class="c"># of the simulation start</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_start_and_end</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
-
-        <span class="c"># If we&#39;ve passed the trigger, calculate the next one</span>
-        <span class="k">if</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_date_end</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">calculate_start_and_end</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">next_date_end</span> <span class="o">+</span>
-                                         <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">),</span>
-                                         <span class="n">env</span><span class="p">)</span>
-
-        <span class="c"># if the given dt is within the next matching day, return true.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_date_start</span> <span class="o">&lt;=</span> <span class="n">dt</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_date_end</span> <span class="ow">or</span> \
-                <span class="n">dt</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_midnight_timestamp</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">True</span>
-
-        <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="c"># is this market minute&#39;s period in the list of execution periods?</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">in</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">execution_periods</span>
 
 
 <span class="k">class</span> <span class="nc">NthTradingDayOfWeek</span><span class="p">(</span><span class="n">TradingDayOfWeekRule</span><span class="p">):</span>
@@ -778,30 +734,8 @@
 <span class="sd">    A rule that triggers on the nth trading day of the week.</span>
 <span class="sd">    This is zero-indexed, n=0 is the first trading day of the week.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">get_first_trading_day_of_week</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="n">prev</span> <span class="o">=</span> <span class="n">dt</span>
-        <span class="n">dt</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">previous_trading_day</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-        <span class="c"># If we&#39;re on the first trading day of the TradingEnvironment,</span>
-        <span class="c"># calling previous_trading_day on it will return None, which</span>
-        <span class="c"># will blow up when we try and call .date() on it. The first</span>
-        <span class="c"># trading day of the env is also the first trading day of the</span>
-        <span class="c"># week(in the TradingEnvironment, at least), so just return</span>
-        <span class="c"># that date.</span>
-        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">prev</span>
-        <span class="k">while</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">prev</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">weekday</span><span class="p">():</span>
-            <span class="n">prev</span> <span class="o">=</span> <span class="n">dt</span>
-            <span class="n">dt</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">previous_trading_day</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">prev</span>
-
-        <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">is_trading_day</span><span class="p">(</span><span class="n">prev</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">prev</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">env</span><span class="o">.</span><span class="n">next_trading_day</span><span class="p">(</span><span class="n">prev</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-    <span class="n">date_func</span> <span class="o">=</span> <span class="n">get_first_trading_day_of_week</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NthTradingDayOfWeek</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 
 
 <span class="k">class</span> <span class="nc">NDaysBeforeLastTradingDayOfWeek</span><span class="p">(</span><span class="n">TradingDayOfWeekRule</span><span class="p">):</span>
@@ -809,110 +743,46 @@
 <span class="sd">    A rule that triggers n days before the last trading day of the week.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">NDaysBeforeLastTradingDayOfWeek</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">-</span><span class="n">n</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NDaysBeforeLastTradingDayOfWeek</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">get_last_trading_day_of_week</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="n">prev</span> <span class="o">=</span> <span class="n">dt</span>
-        <span class="n">dt</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">next_trading_day</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-        <span class="c"># Traverse forward until we hit a week border, then jump back to the</span>
-        <span class="c"># previous trading day.</span>
-        <span class="k">while</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">prev</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">weekday</span><span class="p">():</span>
-            <span class="n">prev</span> <span class="o">=</span> <span class="n">dt</span>
-            <span class="n">dt</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">next_trading_day</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">is_trading_day</span><span class="p">(</span><span class="n">prev</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">prev</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+<span class="k">class</span> <span class="nc">TradingDayOfMonthRule</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">,</span> <span class="n">StatelessRule</span><span class="p">)):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">invert</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">MAX_MONTH_RANGE</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">_out_of_range_error</span><span class="p">(</span><span class="n">MAX_MONTH_RANGE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">invert</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span> <span class="o">=</span> <span class="o">-</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">env</span><span class="o">.</span><span class="n">previous_trading_day</span><span class="p">(</span><span class="n">prev</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span> <span class="o">=</span> <span class="n">n</span>
 
-    <span class="n">date_func</span> <span class="o">=</span> <span class="n">get_last_trading_day_of_week</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="c"># is this market minute&#39;s period in the list of execution periods?</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">in</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">execution_periods</span>
+
+    <span class="nd">@lazyval</span>
+    <span class="k">def</span> <span class="nf">execution_periods</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># calculate the list of periods that match the given criteria</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">Grouper</span><span class="p">(</span><span class="n">freq</span><span class="o">=</span><span class="s">&quot;M&quot;</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">nth</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">))</span><span class="o">.</span><span class="n">index</span>
 
 
-<span class="k">class</span> <span class="nc">NthTradingDayOfMonth</span><span class="p">(</span><span class="n">StatelessRule</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">NthTradingDayOfMonth</span><span class="p">(</span><span class="n">TradingDayOfMonthRule</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A rule that triggers on the nth trading day of the month.</span>
 <span class="sd">    This is zero-indexed, n=0 is the first trading day of the month.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">MAX_MONTH_RANGE</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">_out_of_range_error</span><span class="p">(</span><span class="n">MAX_MONTH_RANGE</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span> <span class="o">=</span> <span class="n">n</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">month</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">day</span> <span class="o">=</span> <span class="bp">None</span>
-
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nth_trading_day_of_month</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span> <span class="o">==</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">get_nth_trading_day_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span> <span class="o">==</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">:</span>
-            <span class="c"># We already computed the day for this month.</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">day</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">day</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_first_trading_day_of_month</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">day</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">add_trading_days</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">get_first_trading_day_of_month</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">),</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">day</span>
-
-    <span class="k">def</span> <span class="nf">get_first_trading_day_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">month</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span>
-
-        <span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">first_day</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt</span> <span class="k">if</span> <span class="n">env</span><span class="o">.</span><span class="n">is_trading_day</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-                          <span class="k">else</span> <span class="n">env</span><span class="o">.</span><span class="n">next_trading_day</span><span class="p">(</span><span class="n">dt</span><span class="p">))</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_day</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NthTradingDayOfMonth</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
 
 
-<span class="k">class</span> <span class="nc">NDaysBeforeLastTradingDayOfMonth</span><span class="p">(</span><span class="n">StatelessRule</span><span class="p">):</span>
+<span class="k">class</span> <span class="nc">NDaysBeforeLastTradingDayOfMonth</span><span class="p">(</span><span class="n">TradingDayOfMonthRule</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A rule that triggers n days before the last trading day of the month.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="n">MAX_MONTH_RANGE</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">_out_of_range_error</span><span class="p">(</span><span class="n">MAX_MONTH_RANGE</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span> <span class="o">=</span> <span class="o">-</span><span class="n">n</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">month</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">day</span> <span class="o">=</span> <span class="bp">None</span>
-
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_nth_to_last_trading_day_of_month</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span> <span class="o">==</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">get_nth_to_last_trading_day_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">month</span> <span class="o">==</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span><span class="p">:</span>
-            <span class="c"># We already computed the last day for this month.</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">day</span>
-
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">day</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_trading_day_of_month</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">day</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">add_trading_days</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">td_delta</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">get_last_trading_day_of_month</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">),</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">day</span>
-
-    <span class="k">def</span> <span class="nf">get_last_trading_day_of_month</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">month</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span>
-
-        <span class="k">if</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span> <span class="o">==</span> <span class="mi">12</span><span class="p">:</span>
-            <span class="c"># Roll the year forward and start in January.</span>
-            <span class="n">year</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">year</span> <span class="o">+</span> <span class="mi">1</span>
-            <span class="n">month</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c"># Increment the month in the same year.</span>
-            <span class="n">year</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">year</span>
-            <span class="n">month</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span> <span class="o">+</span> <span class="mi">1</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">last_day</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">previous_trading_day</span><span class="p">(</span>
-            <span class="n">dt</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_day</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">NDaysBeforeLastTradingDayOfMonth</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">invert</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
 
 <span class="c"># Stateful rules</span>
@@ -944,7 +814,7 @@
 
         <span class="nb">super</span><span class="p">(</span><span class="n">OncePerDay</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">rule</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">should_trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">date</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">dt</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_date</span><span class="p">:</span>
             <span class="c"># initialize or reset for new date</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">triggered</span> <span class="o">=</span> <span class="bp">False</span>
@@ -954,7 +824,7 @@
             <span class="c"># to know if we&#39;ve moved to the next day</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">next_date</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">+</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;d&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">triggered</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="n">env</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">triggered</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">should_trigger</span><span class="p">(</span><span class="n">dt</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">triggered</span> <span class="o">=</span> <span class="bp">True</span>
             <span class="k">return</span> <span class="bp">True</span>
 
@@ -983,17 +853,25 @@
 
 <div class="viewcode-block" id="time_rules"><a class="viewcode-back" href="../../../appendix.html#zipline.api.time_rules">[docs]</a><span class="k">class</span> <span class="nc">time_rules</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="n">market_open</span> <span class="o">=</span> <span class="n">AfterOpen</span>
-    <span class="n">market_close</span> <span class="o">=</span> <span class="n">BeforeClose</span></div>
+    <span class="n">market_close</span> <span class="o">=</span> <span class="n">BeforeClose</span>
+    <span class="n">every_minute</span> <span class="o">=</span> <span class="n">Always</span></div>
 
 
-<span class="k">def</span> <span class="nf">make_eventrule</span><span class="p">(</span><span class="n">date_rule</span><span class="p">,</span> <span class="n">time_rule</span><span class="p">,</span> <span class="n">half_days</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">make_eventrule</span><span class="p">(</span><span class="n">date_rule</span><span class="p">,</span> <span class="n">time_rule</span><span class="p">,</span> <span class="n">cal</span><span class="p">,</span> <span class="n">half_days</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Constructs an event rule from the factory api.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># Insert the calendar in to the individual rules</span>
+    <span class="n">date_rule</span><span class="o">.</span><span class="n">cal</span> <span class="o">=</span> <span class="n">cal</span>
+    <span class="n">time_rule</span><span class="o">.</span><span class="n">cal</span> <span class="o">=</span> <span class="n">cal</span>
+
     <span class="k">if</span> <span class="n">half_days</span><span class="p">:</span>
         <span class="n">inner_rule</span> <span class="o">=</span> <span class="n">date_rule</span> <span class="o">&amp;</span> <span class="n">time_rule</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">inner_rule</span> <span class="o">=</span> <span class="n">date_rule</span> <span class="o">&amp;</span> <span class="n">time_rule</span> <span class="o">&amp;</span> <span class="n">NotHalfDay</span><span class="p">()</span>
+        <span class="n">nhd_rule</span> <span class="o">=</span> <span class="n">NotHalfDay</span><span class="p">()</span>
+        <span class="n">nhd_rule</span><span class="o">.</span><span class="n">cal</span> <span class="o">=</span> <span class="n">cal</span>
+        <span class="n">inner_rule</span> <span class="o">=</span> <span class="n">date_rule</span> <span class="o">&amp;</span> <span class="n">time_rule</span> <span class="o">&amp;</span> <span class="n">nhd_rule</span>
 
     <span class="k">return</span> <span class="n">OncePerDay</span><span class="p">(</span><span class="n">rule</span><span class="o">=</span><span class="n">inner_rule</span><span class="p">)</span>
 </pre></div>
@@ -1027,7 +905,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

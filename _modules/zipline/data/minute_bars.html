@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.data.minute_bars &mdash; Zipline 1.0.1 documentation</title>
+  <title>zipline.data.minute_bars &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -116,6 +117,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -124,10 +127,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -138,70 +151,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +241,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#readers">Readers</a></li>
@@ -306,6 +320,7 @@
 <span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
 <span class="c"># See the License for the specific language governing permissions and</span>
 <span class="c"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABCMeta</span><span class="p">,</span> <span class="n">abstractmethod</span><span class="p">,</span> <span class="n">abstractproperty</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">os.path</span> <span class="kn">import</span> <span class="n">join</span>
@@ -317,6 +332,8 @@
 <span class="kn">from</span> <span class="nn">intervaltree</span> <span class="kn">import</span> <span class="n">IntervalTree</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">six</span> <span class="kn">import</span> <span class="n">with_metaclass</span>
+<span class="kn">from</span> <span class="nn">toolz</span> <span class="kn">import</span> <span class="n">keymap</span><span class="p">,</span> <span class="n">valmap</span>
 
 <span class="kn">from</span> <span class="nn">zipline.data._minute_bar_internal</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">minute_value</span><span class="p">,</span>
@@ -325,10 +342,12 @@
 <span class="p">)</span>
 
 <span class="kn">from</span> <span class="nn">zipline.gens.sim_engine</span> <span class="kn">import</span> <span class="n">NANOS_IN_MINUTE</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.cli</span> <span class="kn">import</span> <span class="n">maybe_show_progress</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">lazyval</span>
 
 <span class="n">US_EQUITIES_MINUTES_PER_DAY</span> <span class="o">=</span> <span class="mi">390</span>
+<span class="n">FUTURES_MINUTES_PER_DAY</span> <span class="o">=</span> <span class="mi">1440</span>
 
 <span class="n">DEFAULT_EXPECTEDLEN</span> <span class="o">=</span> <span class="n">US_EQUITIES_MINUTES_PER_DAY</span> <span class="o">*</span> <span class="mi">252</span> <span class="o">*</span> <span class="mi">15</span>
 
@@ -341,6 +360,108 @@
 
 <span class="k">class</span> <span class="nc">BcolzMinuteWriterColumnMismatch</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">MinuteBarReader</span><span class="p">(</span><span class="n">with_metaclass</span><span class="p">(</span><span class="n">ABCMeta</span><span class="p">)):</span>
+
+    <span class="n">_data_frequency</span> <span class="o">=</span> <span class="s">&#39;minute&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_frequency</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_frequency</span>
+
+    <span class="nd">@abstractproperty</span>
+    <span class="k">def</span> <span class="nf">last_available_dt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dt : pd.Timestamp</span>
+<span class="sd">            The last minute for which the reader can provide data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractproperty</span>
+    <span class="k">def</span> <span class="nf">first_trading_day</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dt : pd.Timestamp</span>
+<span class="sd">            The first trading day (session) for which the reader can provide</span>
+<span class="sd">            data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve the value at the given coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        sid : int</span>
+<span class="sd">            The asset identifier.</span>
+<span class="sd">        dt : pd.Timestamp</span>
+<span class="sd">            The minute label for the desired data point.</span>
+<span class="sd">        field : string</span>
+<span class="sd">            The OHLVC name for the desired data point.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        value : float|int</span>
+<span class="sd">            The value at the given coordinates, ``float`` for OHLC, ``int``</span>
+<span class="sd">            for &#39;volume&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">get_last_traded_dt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the latest minute on or before ``dt`` in which ``asset`` traded.</span>
+
+<span class="sd">        If there are no trades on or before ``dt`` returns ``pd.NaT``</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        asset : zipline.asset.Asset</span>
+<span class="sd">            The asset for which to get the last traded minute.</span>
+<span class="sd">        dt : pd.Timestamp</span>
+<span class="sd">            The minute at which to start searching for the last traded minute.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        last_traded : pd.Timestamp</span>
+<span class="sd">            The minute of the last trade for the given asset, using the input</span>
+<span class="sd">            dt as a vantage point.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">load_raw_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">start_dt</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve the arrays of pricing data for the given coordinates of</span>
+<span class="sd">        ``fields`` (OHLCV), minute range [``start_dt``, ``end_dt``] and sids.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fields : iterable of str</span>
+<span class="sd">            The OHLCV fields (&#39;open&#39;, &#39;high&#39;, &#39;low&#39;, &#39;close&#39;, &#39;volume&#39;) for</span>
+<span class="sd">            which to read data.</span>
+<span class="sd">        start_dt : pd.Timestamp</span>
+<span class="sd">            The first minute of the date range for which to read data.</span>
+<span class="sd">        end_dt : pd.Timestamp</span>
+<span class="sd">            The last minute of the date range for which to read data.</span>
+<span class="sd">        sids : iterable of int</span>
+<span class="sd">            The sid identifiers for which to retrieve data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        raw_arrays : list of ndarray</span>
+<span class="sd">            A list where each item corresponds with the fields in the order</span>
+<span class="sd">            the fields are given.</span>
+<span class="sd">            Each item is a 2D array with a shape of (minutes_in_range, sids)</span>
+<span class="sd">            The OHLC arrays are floats; the &#39;volume&#39; array is ints.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
 
 
 <span class="k">def</span> <span class="nf">_calc_minute_index</span><span class="p">(</span><span class="n">market_opens</span><span class="p">,</span> <span class="n">minutes_per_day</span><span class="p">):</span>
@@ -391,19 +512,19 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    first_trading_day : datetime-like</span>
-<span class="sd">        UTC midnight of the first day available in the dataset.</span>
-<span class="sd">    minute_index : pd.DatetimeIndex</span>
-<span class="sd">        The minutes which act as an index into the corresponding values</span>
-<span class="sd">        written into each sid&#39;s ctable.</span>
-<span class="sd">    market_opens : pd.DatetimeIndex</span>
-<span class="sd">        The market opens for each day in the data set. (Not yet required.)</span>
-<span class="sd">    market_closes : pd.DatetimeIndex</span>
-<span class="sd">        The market closes for each day in the data set. (Not yet required.)</span>
 <span class="sd">    ohlc_ratio : int</span>
 <span class="sd">         The factor by which the pricing data is multiplied so that the</span>
 <span class="sd">         float data can be stored as an integer.</span>
+<span class="sd">    calendar :  zipline.utils.calendars.trading_calendar.TradingCalendar</span>
+<span class="sd">        The TradingCalendar on which the minute bars are based.</span>
+<span class="sd">    start_session : datetime</span>
+<span class="sd">        The first trading session in the data set.</span>
+<span class="sd">    end_session : datetime</span>
+<span class="sd">        The last trading session in the data set.</span>
+<span class="sd">    minutes_per_day : int</span>
+<span class="sd">        The number of minutes per each period.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">FORMAT_VERSION</span> <span class="o">=</span> <span class="mi">3</span>
 
     <span class="n">METADATA_FILENAME</span> <span class="o">=</span> <span class="s">&#39;metadata.json&#39;</span>
 
@@ -417,53 +538,140 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="n">raw_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">fp</span><span class="p">)</span>
 
-            <span class="n">first_trading_day</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
-                <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;first_trading_day&#39;</span><span class="p">],</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
-            <span class="n">market_opens</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;market_opens&#39;</span><span class="p">],</span>
-                                          <span class="n">unit</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">,</span>
-                                          <span class="n">utc</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-            <span class="n">market_closes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;market_closes&#39;</span><span class="p">],</span>
-                                           <span class="n">unit</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">,</span>
-                                           <span class="n">utc</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-            <span class="n">ohlc_ratio</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;ohlc_ratio&#39;</span><span class="p">]</span>
-            <span class="k">return</span> <span class="n">cls</span><span class="p">(</span><span class="n">first_trading_day</span><span class="p">,</span>
-                       <span class="n">market_opens</span><span class="p">,</span>
-                       <span class="n">market_closes</span><span class="p">,</span>
-                       <span class="n">ohlc_ratio</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;version&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="c"># Version was first written with version 1, assume 0,</span>
+                <span class="c"># if version does not match.</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first_trading_day</span><span class="p">,</span>
-                 <span class="n">market_opens</span><span class="p">,</span>
-                 <span class="n">market_closes</span><span class="p">,</span>
-                 <span class="n">ohlc_ratio</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">first_trading_day</span> <span class="o">=</span> <span class="n">first_trading_day</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">market_opens</span> <span class="o">=</span> <span class="n">market_opens</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">market_closes</span> <span class="o">=</span> <span class="n">market_closes</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ohlc_ratio</span> <span class="o">=</span> <span class="n">ohlc_ratio</span>
+            <span class="n">default_ohlc_ratio</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;ohlc_ratio&#39;</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">version</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">minutes_per_day</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;minutes_per_day&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># version 0 always assumed US equities.</span>
+                <span class="n">minutes_per_day</span> <span class="o">=</span> <span class="n">US_EQUITIES_MINUTES_PER_DAY</span>
+
+            <span class="k">if</span> <span class="n">version</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">calendar</span> <span class="o">=</span> <span class="n">get_calendar</span><span class="p">(</span><span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;calendar_name&#39;</span><span class="p">])</span>
+                <span class="n">start_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
+                    <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;start_session&#39;</span><span class="p">],</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+                <span class="n">end_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;end_session&#39;</span><span class="p">],</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># No calendar info included in older versions, so</span>
+                <span class="c"># default to NYSE.</span>
+                <span class="n">calendar</span> <span class="o">=</span> <span class="n">get_calendar</span><span class="p">(</span><span class="s">&#39;NYSE&#39;</span><span class="p">)</span>
+
+                <span class="n">start_session</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
+                    <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;first_trading_day&#39;</span><span class="p">],</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+                <span class="n">end_session</span> <span class="o">=</span> <span class="n">calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span>
+                    <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
+                        <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;market_closes&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">version</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">ohlc_ratios_per_sid</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="s">&#39;ohlc_ratios_per_sid&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">ohlc_ratios_per_sid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">ohlc_ratios_per_sid</span> <span class="o">=</span> <span class="n">keymap</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">ohlc_ratios_per_sid</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ohlc_ratios_per_sid</span> <span class="o">=</span> <span class="bp">None</span>
+
+            <span class="k">return</span> <span class="n">cls</span><span class="p">(</span>
+                <span class="n">default_ohlc_ratio</span><span class="p">,</span>
+                <span class="n">ohlc_ratios_per_sid</span><span class="p">,</span>
+                <span class="n">calendar</span><span class="p">,</span>
+                <span class="n">start_session</span><span class="p">,</span>
+                <span class="n">end_session</span><span class="p">,</span>
+                <span class="n">minutes_per_day</span><span class="p">,</span>
+                <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">default_ohlc_ratio</span><span class="p">,</span>
+        <span class="n">ohlc_ratios_per_sid</span><span class="p">,</span>
+        <span class="n">calendar</span><span class="p">,</span>
+        <span class="n">start_session</span><span class="p">,</span>
+        <span class="n">end_session</span><span class="p">,</span>
+        <span class="n">minutes_per_day</span><span class="p">,</span>
+        <span class="n">version</span><span class="o">=</span><span class="n">FORMAT_VERSION</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span> <span class="o">=</span> <span class="n">calendar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_session</span> <span class="o">=</span> <span class="n">start_session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_session</span> <span class="o">=</span> <span class="n">end_session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_ohlc_ratio</span> <span class="o">=</span> <span class="n">default_ohlc_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ohlc_ratios_per_sid</span> <span class="o">=</span> <span class="n">ohlc_ratios_per_sid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">minutes_per_day</span> <span class="o">=</span> <span class="n">minutes_per_day</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
 
     <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rootdir</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Write the metadata to a JSON file in the rootdir.</span>
 
 <span class="sd">        Values contained in the metadata are:</span>
+
+<span class="sd">        version : int</span>
+<span class="sd">            The value of FORMAT_VERSION of this class.</span>
+<span class="sd">        ohlc_ratio : int</span>
+<span class="sd">            The default ratio by which to multiply the pricing data to</span>
+<span class="sd">            convert the floats from floats to an integer to fit within</span>
+<span class="sd">            the np.uint32. If ohlc_ratios_per_sid is None or does not</span>
+<span class="sd">            contain a mapping for a given sid, this ratio is used.</span>
+<span class="sd">        ohlc_ratios_per_sid : dict</span>
+<span class="sd">             A dict mapping each sid in the output to the factor by</span>
+<span class="sd">             which the pricing data is multiplied so that the float data</span>
+<span class="sd">             can be stored as an integer.</span>
+<span class="sd">        minutes_per_day : int</span>
+<span class="sd">            The number of minutes per each period.</span>
+<span class="sd">        calendar_name : str</span>
+<span class="sd">            The name of the TradingCalendar on which the minute bars are</span>
+<span class="sd">            based.</span>
+<span class="sd">        start_session : datetime</span>
+<span class="sd">            &#39;YYYY-MM-DD&#39; formatted representation of the first trading</span>
+<span class="sd">            session in the data set.</span>
+<span class="sd">        end_session : datetime</span>
+<span class="sd">            &#39;YYYY-MM-DD&#39; formatted representation of the last trading</span>
+<span class="sd">            session in the data set.</span>
+
+<span class="sd">        Deprecated, but included for backwards compatibility:</span>
+
 <span class="sd">        first_trading_day : string</span>
 <span class="sd">            &#39;YYYY-MM-DD&#39; formatted representation of the first trading day</span>
 <span class="sd">             available in the dataset.</span>
-<span class="sd">        minute_index : list of integers</span>
-<span class="sd">             nanosecond integer representation of the minutes, the enumeration</span>
-<span class="sd">             of which corresponds to the values in each bcolz carray.</span>
-<span class="sd">        ohlc_ratio : int</span>
-<span class="sd">             The factor by which the pricing data is multiplied so that the</span>
-<span class="sd">             float data can be stored as an integer.</span>
+<span class="sd">        market_opens : list</span>
+<span class="sd">            List of int64 values representing UTC market opens as</span>
+<span class="sd">            minutes since epoch.</span>
+<span class="sd">        market_closes : list</span>
+<span class="sd">            List of int64 values representing UTC market closes as</span>
+<span class="sd">            minutes since epoch.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">calendar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span>
+        <span class="n">slicer</span> <span class="o">=</span> <span class="n">calendar</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">slice_indexer</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_session</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_session</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">schedule</span> <span class="o">=</span> <span class="n">calendar</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">slicer</span><span class="p">]</span>
+        <span class="n">market_opens</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">market_open</span>
+        <span class="n">market_closes</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">market_close</span>
+
         <span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s">&#39;first_trading_day&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first_trading_day</span><span class="o">.</span><span class="n">date</span><span class="p">()),</span>
-            <span class="s">&#39;market_opens&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">market_opens</span><span class="o">.</span><span class="n">values</span><span class="o">.</span>
-            <span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[m]&#39;</span><span class="p">)</span><span class="o">.</span>
-            <span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s">&#39;market_closes&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">market_closes</span><span class="o">.</span><span class="n">values</span><span class="o">.</span>
-            <span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[m]&#39;</span><span class="p">)</span><span class="o">.</span>
-            <span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="s">&#39;ohlc_ratio&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ohlc_ratio</span><span class="p">,</span>
+            <span class="s">&#39;version&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+            <span class="s">&#39;ohlc_ratio&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_ohlc_ratio</span><span class="p">,</span>
+            <span class="s">&#39;ohlc_ratios_per_sid&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ohlc_ratios_per_sid</span><span class="p">,</span>
+            <span class="s">&#39;minutes_per_day&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">minutes_per_day</span><span class="p">,</span>
+            <span class="s">&#39;calendar_name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s">&#39;start_session&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_session</span><span class="o">.</span><span class="n">date</span><span class="p">()),</span>
+            <span class="s">&#39;end_session&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">end_session</span><span class="o">.</span><span class="n">date</span><span class="p">()),</span>
+            <span class="c"># Write these values for backwards compatibility</span>
+            <span class="s">&#39;first_trading_day&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_session</span><span class="o">.</span><span class="n">date</span><span class="p">()),</span>
+            <span class="s">&#39;market_opens&#39;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">market_opens</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[m]&#39;</span><span class="p">)</span><span class="o">.</span>
+                <span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
+            <span class="s">&#39;market_closes&#39;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">market_closes</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[m]&#39;</span><span class="p">)</span><span class="o">.</span>
+                <span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()),</span>
         <span class="p">}</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata_path</span><span class="p">(</span><span class="n">rootdir</span><span class="p">),</span> <span class="s">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">metadata</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span>
@@ -475,41 +683,30 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    first_trading_day : datetime</span>
-<span class="sd">        The first trading day in the data set.</span>
 <span class="sd">    rootdir : string</span>
 <span class="sd">        Path to the root directory into which to write the metadata and</span>
 <span class="sd">        bcolz subdirectories.</span>
-<span class="sd">    market_opens : pd.Series</span>
-<span class="sd">        The market opens used as a starting point for each periodic span of</span>
-<span class="sd">        minutes in the index.</span>
-
-<span class="sd">        The index of the series is expected to be a DatetimeIndex of the</span>
-<span class="sd">        UTC midnight of each trading day.</span>
-
-<span class="sd">        The values are datetime64-like UTC market opens for each day in the</span>
-<span class="sd">        index.</span>
-<span class="sd">    market_closes : pd.Series</span>
-<span class="sd">        The market closes that correspond with the market opens,</span>
-
-<span class="sd">        The index of the series is expected to be a DatetimeIndex of the</span>
-<span class="sd">        UTC midnight of each trading day.</span>
-
-<span class="sd">        The values are datetime64-like UTC market opens for each day in the</span>
-<span class="sd">        index.</span>
-
-<span class="sd">        The closes are written so that the reader can filter out non-market</span>
-<span class="sd">        minutes even though the tail end of early closes are written in</span>
-<span class="sd">        the data arrays to keep a regular shape.</span>
+<span class="sd">    calendar : zipline.utils.calendars.trading_calendar.TradingCalendar</span>
+<span class="sd">        The trading calendar on which to base the minute bars. Used to</span>
+<span class="sd">        get the market opens used as a starting point for each periodic</span>
+<span class="sd">        span of minutes in the index, and the market closes that</span>
+<span class="sd">        correspond with the market opens.</span>
 <span class="sd">    minutes_per_day : int</span>
 <span class="sd">        The number of minutes per each period. Defaults to 390, the mode</span>
 <span class="sd">        of minutes in NYSE trading days.</span>
-<span class="sd">    ohlc_ratio : int, optional</span>
-<span class="sd">        The ratio by which to multiply the pricing data to convert the</span>
-<span class="sd">        floats from floats to an integer to fit within the np.uint32.</span>
-
-<span class="sd">        The default is 1000 to support pricing data which comes in to the</span>
-<span class="sd">        thousands place.</span>
+<span class="sd">    start_session : datetime</span>
+<span class="sd">        The first trading session in the data set.</span>
+<span class="sd">    end_session : datetime</span>
+<span class="sd">        The last trading session in the data set.</span>
+<span class="sd">    default_ohlc_ratio : int, optional</span>
+<span class="sd">        The default ratio by which to multiply the pricing data to</span>
+<span class="sd">        convert from floats to integers that fit within np.uint32. If</span>
+<span class="sd">        ohlc_ratios_per_sid is None or does not contain a mapping for a</span>
+<span class="sd">        given sid, this ratio is used. Default is OHLC_RATIO (1000).</span>
+<span class="sd">    ohlc_ratios_per_sid : dict, optional</span>
+<span class="sd">        A dict mapping each sid in the output to the ratio by which to</span>
+<span class="sd">        multiply the pricing data to convert the floats from floats to</span>
+<span class="sd">        an integer to fit within the np.uint32.</span>
 <span class="sd">    expectedlen : int, optional</span>
 <span class="sd">        The expected length of the dataset, used when creating the initial</span>
 <span class="sd">        bcolz ctable.</span>
@@ -568,38 +765,55 @@
     <span class="n">COL_NAMES</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;open&#39;</span><span class="p">,</span> <span class="s">&#39;high&#39;</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">,</span> <span class="s">&#39;volume&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                 <span class="n">first_trading_day</span><span class="p">,</span>
                  <span class="n">rootdir</span><span class="p">,</span>
-                 <span class="n">market_opens</span><span class="p">,</span>
-                 <span class="n">market_closes</span><span class="p">,</span>
+                 <span class="n">calendar</span><span class="p">,</span>
+                 <span class="n">start_session</span><span class="p">,</span>
+                 <span class="n">end_session</span><span class="p">,</span>
                  <span class="n">minutes_per_day</span><span class="p">,</span>
-                 <span class="n">ohlc_ratio</span><span class="o">=</span><span class="n">OHLC_RATIO</span><span class="p">,</span>
+                 <span class="n">default_ohlc_ratio</span><span class="o">=</span><span class="n">OHLC_RATIO</span><span class="p">,</span>
+                 <span class="n">ohlc_ratios_per_sid</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">expectedlen</span><span class="o">=</span><span class="n">DEFAULT_EXPECTEDLEN</span><span class="p">):</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_rootdir</span> <span class="o">=</span> <span class="n">rootdir</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="o">=</span> <span class="n">first_trading_day</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span> <span class="o">=</span> <span class="n">market_opens</span><span class="p">[</span>
-            <span class="n">market_opens</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">slice_indexer</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span><span class="p">)]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span> <span class="o">=</span> <span class="n">market_closes</span><span class="p">[</span>
-            <span class="n">market_closes</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">slice_indexer</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span><span class="p">)]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trading_days</span> <span class="o">=</span> <span class="n">market_opens</span><span class="o">.</span><span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_session</span> <span class="o">=</span> <span class="n">start_session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_session</span> <span class="o">=</span> <span class="n">end_session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span> <span class="o">=</span> <span class="n">calendar</span>
+        <span class="n">slicer</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">calendar</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">slice_indexer</span><span class="p">(</span><span class="n">start_session</span><span class="p">,</span> <span class="n">end_session</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schedule</span> <span class="o">=</span> <span class="n">calendar</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">slicer</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_session_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schedule</span><span class="o">.</span><span class="n">index</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span> <span class="o">=</span> <span class="n">minutes_per_day</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_expectedlen</span> <span class="o">=</span> <span class="n">expectedlen</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratio</span> <span class="o">=</span> <span class="n">ohlc_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_ohlc_ratio</span> <span class="o">=</span> <span class="n">default_ohlc_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratios_per_sid</span> <span class="o">=</span> <span class="n">ohlc_ratios_per_sid</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_minute_index</span> <span class="o">=</span> <span class="n">_calc_minute_index</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_schedule</span><span class="o">.</span><span class="n">market_open</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span><span class="p">)</span>
 
         <span class="n">metadata</span> <span class="o">=</span> <span class="n">BcolzMinuteBarMetadata</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratio</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_default_ohlc_ratio</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratios_per_sid</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_session</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_end_session</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">metadata</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rootdir</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">first_trading_day</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_session</span>
+
+    <span class="k">def</span> <span class="nf">ohlc_ratio_for_sid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratios_per_sid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratios_per_sid</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c"># If no ohlc_ratios_per_sid dict is passed, or if the specified</span>
+        <span class="c"># sid is not in the dict, fallback to the general ohlc_ratio.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_ohlc_ratio</span>
 
 <div class="viewcode-block" id="BcolzMinuteBarWriter.sidpath"><a class="viewcode-back" href="../../../appendix.html#zipline.data.minute_bars.BcolzMinuteBarWriter.sidpath">[docs]</a>    <span class="k">def</span> <span class="nf">sidpath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -639,7 +853,7 @@
         <span class="k">if</span> <span class="n">num_days</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c"># empty container</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trading_days</span><span class="p">[</span><span class="n">num_days</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_labels</span><span class="p">[</span><span class="n">num_days</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span></div>
 
     <span class="k">def</span> <span class="nf">_init_ctable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -721,7 +935,7 @@
 
         <span class="n">last_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_date_in_output_for_sid</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
 
-        <span class="n">tds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trading_days</span>
+        <span class="n">tds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_labels</span>
 
         <span class="k">if</span> <span class="n">date</span> <span class="o">&lt;=</span> <span class="n">last_date</span> <span class="ow">or</span> <span class="n">date</span> <span class="o">&lt;</span> <span class="n">tds</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
             <span class="c"># No need to pad.</span>
@@ -864,9 +1078,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_ctable</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
 
-        <span class="n">tds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trading_days</span>
-        <span class="n">input_first_day</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[D]&#39;</span><span class="p">),</span>
-                                       <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+        <span class="n">tds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_labels</span>
+        <span class="n">input_first_day</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">dts</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
 
         <span class="n">last_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_date_in_output_for_sid</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
 
@@ -908,7 +1122,7 @@
         <span class="n">dt_ixs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">all_minutes_in_window</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
                                  <span class="n">dts</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[ns]&#39;</span><span class="p">))</span>
 
-        <span class="n">ohlc_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratio</span>
+        <span class="n">ohlc_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ohlc_ratio_for_sid</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">convert_col</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
             <span class="sd">&quot;&quot;&quot;Adapt float column into a uint32 column.</span>
@@ -931,7 +1145,7 @@
         <span class="n">table</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="BcolzMinuteBarReader"><a class="viewcode-back" href="../../../appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader">[docs]</a><span class="k">class</span> <span class="nc">BcolzMinuteBarReader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="BcolzMinuteBarReader"><a class="viewcode-back" href="../../../appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader">[docs]</a><span class="k">class</span> <span class="nc">BcolzMinuteBarReader</span><span class="p">(</span><span class="n">MinuteBarReader</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reader for data written by BcolzMinuteBarWriter</span>
 
@@ -952,16 +1166,31 @@
 
         <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">first_trading_day</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start_session</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">start_session</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_end_session</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">end_session</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">market_opens</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_market_open_values</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">market_opens</span><span class="o">.</span><span class="n">values</span><span class="o">.</span>\
+        <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">calendar</span>
+        <span class="n">slicer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">slice_indexer</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_session</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_end_session</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="o">.</span><span class="n">schedule</span><span class="p">[</span><span class="n">slicer</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schedule</span><span class="o">.</span><span class="n">market_open</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_market_open_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span><span class="o">.</span><span class="n">values</span><span class="o">.</span>\
             <span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[m]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">market_closes</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_market_close_values</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">market_closes</span><span class="o">.</span><span class="n">values</span><span class="o">.</span>\
+        <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schedule</span><span class="o">.</span><span class="n">market_close</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_market_close_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span><span class="o">.</span><span class="n">values</span><span class="o">.</span>\
             <span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[m]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_inverse</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">metadata</span><span class="o">.</span><span class="n">ohlc_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_default_ohlc_inverse</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">metadata</span><span class="o">.</span><span class="n">default_ohlc_ratio</span>
+        <span class="n">ohlc_ratios</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">ohlc_ratios_per_sid</span>
+        <span class="k">if</span> <span class="n">ohlc_ratios</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_inverses_per_sid</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">valmap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">x</span><span class="p">,</span> <span class="n">ohlc_ratios</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_inverses_per_sid</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">minutes_per_day</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_carrays</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">field</span><span class="p">:</span> <span class="n">LRUCache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="n">sid_cache_size</span><span class="p">)</span>
@@ -971,16 +1200,40 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_get_value_dt_position</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_get_value_dt_value</span> <span class="o">=</span> <span class="bp">None</span>
 
+        <span class="c"># This is to avoid any bad data or other performance-killing situation</span>
+        <span class="c"># where there a consecutive streak of 0 (no volume) starting at an</span>
+        <span class="c"># asset&#39;s start date.</span>
+        <span class="c"># if asset 1 started on 2015-01-03 but its first trade is 2015-01-06</span>
+        <span class="c"># 10:31 AM US/Eastern, this dict would store {1: 23675971},</span>
+        <span class="c"># which is the minute epoch of that date.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_known_zero_volume_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
     <span class="k">def</span> <span class="nf">_get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">BcolzMinuteBarMetadata</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rootdir</span><span class="p">)</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">trading_calendar</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span>
+
     <span class="nd">@lazyval</span>
     <span class="k">def</span> <span class="nf">last_available_dt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">close</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calendar</span><span class="o">.</span><span class="n">open_and_close_for_session</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_end_session</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">close</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">first_trading_day</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_session</span>
+
+    <span class="k">def</span> <span class="nf">_ohlc_ratio_inverse_for_sid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_inverses_per_sid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_inverses_per_sid</span><span class="p">[</span><span class="n">sid</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="c"># If we can not get a sid-specific OHLC inverse for this sid,</span>
+        <span class="c"># fallback to the default.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_ohlc_inverse</span>
 
     <span class="k">def</span> <span class="nf">_minutes_to_exclude</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -998,7 +1251,7 @@
         <span class="n">market_closes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[m]&#39;</span><span class="p">)</span>
         <span class="n">minutes_per_day</span> <span class="o">=</span> <span class="p">(</span><span class="n">market_closes</span> <span class="o">-</span> <span class="n">market_opens</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="n">early_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-            <span class="n">minutes_per_day</span> <span class="o">!=</span> <span class="n">US_EQUITIES_MINUTES_PER_DAY</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">minutes_per_day</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">early_opens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span><span class="p">[</span><span class="n">early_indices</span><span class="p">]</span>
         <span class="n">early_closes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_market_closes</span><span class="p">[</span><span class="n">early_indices</span><span class="p">]</span>
         <span class="n">minutes</span> <span class="o">=</span> <span class="p">[(</span><span class="n">market_open</span><span class="p">,</span> <span class="n">early_close</span><span class="p">)</span>
@@ -1030,7 +1283,7 @@
             <span class="n">end_pos</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_find_position_of_minute</span><span class="p">(</span><span class="n">market_open</span><span class="p">)</span>
                 <span class="o">+</span>
-                <span class="n">US_EQUITIES_MINUTES_PER_DAY</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span>
                 <span class="o">-</span>
                 <span class="mi">1</span>
             <span class="p">)</span>
@@ -1071,6 +1324,10 @@
                              <span class="n">mode</span><span class="o">=</span><span class="s">&#39;r&#39;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">carray</span>
+
+<div class="viewcode-block" id="BcolzMinuteBarReader.table_len"><a class="viewcode-back" href="../../../appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader.table_len">[docs]</a>    <span class="k">def</span> <span class="nf">table_len</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the length of the underlying table for this sid.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_open_minute_file</span><span class="p">(</span><span class="s">&#39;close&#39;</span><span class="p">,</span> <span class="n">sid</span><span class="p">))</span></div>
 
     <span class="k">def</span> <span class="nf">get_sid_attr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sid</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="n">sid_subdir</span> <span class="o">=</span> <span class="n">_sid_subdir_path</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
@@ -1125,8 +1382,9 @@
                 <span class="k">return</span> <span class="mi">0</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
         <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
-            <span class="n">value</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_inverse</span>
+            <span class="n">value</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratio_inverse_for_sid</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">value</span></div>
 
     <span class="k">def</span> <span class="nf">get_last_traded_dt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
@@ -1137,26 +1395,46 @@
 
     <span class="k">def</span> <span class="nf">_find_last_traded_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
         <span class="n">volumes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_minute_file</span><span class="p">(</span><span class="s">&#39;volume&#39;</span><span class="p">,</span> <span class="n">asset</span><span class="p">)</span>
-        <span class="n">start_date_minutes</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="n">NANOS_IN_MINUTE</span>
-        <span class="n">dt_minutes</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="n">NANOS_IN_MINUTE</span>
+        <span class="n">start_date_minute</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="n">NANOS_IN_MINUTE</span>
+        <span class="n">dt_minute</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="n">NANOS_IN_MINUTE</span>
 
-        <span class="k">if</span> <span class="n">dt_minutes</span> <span class="o">&lt;</span> <span class="n">start_date_minutes</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c"># if we know of a dt before which this asset has no volume,</span>
+            <span class="c"># don&#39;t look before that dt</span>
+            <span class="n">earliest_dt_to_search</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_known_zero_volume_dict</span><span class="p">[</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">earliest_dt_to_search</span> <span class="o">=</span> <span class="n">start_date_minute</span>
+
+        <span class="k">if</span> <span class="n">dt_minute</span> <span class="o">&lt;</span> <span class="n">earliest_dt_to_search</span><span class="p">:</span>
             <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
 
-        <span class="k">return</span> <span class="n">find_last_traded_position_internal</span><span class="p">(</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">find_last_traded_position_internal</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_market_open_values</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_market_close_values</span><span class="p">,</span>
-            <span class="n">dt_minutes</span><span class="p">,</span>
-            <span class="n">start_date_minutes</span><span class="p">,</span>
+            <span class="n">dt_minute</span><span class="p">,</span>
+            <span class="n">earliest_dt_to_search</span><span class="p">,</span>
             <span class="n">volumes</span><span class="p">,</span>
-            <span class="n">US_EQUITIES_MINUTES_PER_DAY</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span><span class="p">,</span>
         <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">pos</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c"># if we didn&#39;t find any volume before this dt, save it to avoid</span>
+            <span class="c"># work in the future.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_known_zero_volume_dict</span><span class="p">[</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
+                    <span class="n">dt_minute</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_known_zero_volume_dict</span><span class="p">[</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_known_zero_volume_dict</span><span class="p">[</span><span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">]</span> <span class="o">=</span> <span class="n">dt_minute</span>
+
+        <span class="k">return</span> <span class="n">pos</span>
 
     <span class="k">def</span> <span class="nf">_pos_to_minute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
         <span class="n">minute_epoch</span> <span class="o">=</span> <span class="n">minute_value</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_market_open_values</span><span class="p">,</span>
             <span class="n">pos</span><span class="p">,</span>
-            <span class="n">US_EQUITIES_MINUTES_PER_DAY</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span>
         <span class="p">)</span>
 
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">minute_epoch</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&quot;m&quot;</span><span class="p">)</span>
@@ -1184,7 +1462,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_market_open_values</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_market_close_values</span><span class="p">,</span>
             <span class="n">minute_dt</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="n">NANOS_IN_MINUTE</span><span class="p">,</span>
-            <span class="n">US_EQUITIES_MINUTES_PER_DAY</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_minutes_per_day</span><span class="p">,</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="BcolzMinuteBarReader.load_raw_arrays"><a class="viewcode-back" href="../../../appendix.html#zipline.data.minute_bars.BcolzMinuteBarReader.load_raw_arrays">[docs]</a>    <span class="k">def</span> <span class="nf">load_raw_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">start_dt</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">sids</span><span class="p">):</span>
@@ -1237,12 +1515,16 @@
                         <span class="n">excl_slice</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">s_</span><span class="p">[</span>
                             <span class="n">excl_start</span> <span class="o">-</span> <span class="n">start_idx</span><span class="p">:</span><span class="n">excl_stop</span> <span class="o">-</span> <span class="n">start_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
                         <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">excl_slice</span><span class="p">)</span>
+
                 <span class="n">where</span> <span class="o">=</span> <span class="n">values</span> <span class="o">!=</span> <span class="mi">0</span>
                 <span class="c"># first slice down to len(where) because we might not have</span>
                 <span class="c"># written data for all the minutes requested</span>
-                <span class="n">out</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">where</span><span class="p">),</span> <span class="n">i</span><span class="p">][</span><span class="n">where</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">where</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
-                <span class="n">out</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_inverse</span>
+                <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">where</span><span class="p">),</span> <span class="n">i</span><span class="p">][</span><span class="n">where</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">values</span><span class="p">[</span><span class="n">where</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ohlc_ratio_inverse_for_sid</span><span class="p">(</span><span class="n">sid</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">where</span><span class="p">),</span> <span class="n">i</span><span class="p">][</span><span class="n">where</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">where</span><span class="p">]</span>
+
             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">results</span></div></div>
 </pre></div>
@@ -1276,7 +1558,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

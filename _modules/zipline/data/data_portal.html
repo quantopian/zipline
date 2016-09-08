@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.data.data_portal &mdash; Zipline 1.0.1 documentation</title>
+  <title>zipline.data.data_portal &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -116,6 +117,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -124,10 +127,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -138,70 +151,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +241,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#readers">Readers</a></li>
@@ -309,7 +323,6 @@
 <span class="c"># limitations under the License.</span>
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">mul</span>
 
-<span class="kn">import</span> <span class="nn">bcolz</span>
 <span class="kn">from</span> <span class="nn">logbook</span> <span class="kn">import</span> <span class="n">Logger</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
@@ -319,13 +332,21 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">reduce</span>
 
 <span class="kn">from</span> <span class="nn">zipline.assets</span> <span class="kn">import</span> <span class="n">Asset</span><span class="p">,</span> <span class="n">Future</span><span class="p">,</span> <span class="n">Equity</span>
-<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="n">NoDataOnDate</span>
-<span class="kn">from</span> <span class="nn">zipline.data.us_equity_loader</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">USEquityDailyHistoryLoader</span><span class="p">,</span>
-    <span class="n">USEquityMinuteHistoryLoader</span><span class="p">,</span>
+<span class="kn">from</span> <span class="nn">zipline.data.dispatch_bar_reader</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AssetDispatchMinuteBarReader</span><span class="p">,</span>
+    <span class="n">AssetDispatchSessionBarReader</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.data.resample</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DailyHistoryAggregator</span><span class="p">,</span>
+    <span class="n">ReindexMinuteBarReader</span><span class="p">,</span>
+    <span class="n">ReindexSessionBarReader</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.data.history_loader</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DailyHistoryLoader</span><span class="p">,</span>
+    <span class="n">MinuteHistoryLoader</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="n">NoDataOnDate</span>
 
-<span class="kn">from</span> <span class="nn">zipline.utils</span> <span class="kn">import</span> <span class="n">tradingcalendar</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">nansum</span><span class="p">,</span>
     <span class="n">nanmean</span><span class="p">,</span>
@@ -355,404 +376,6 @@
 <span class="n">HISTORY_FREQUENCIES</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="s">&quot;1m&quot;</span><span class="p">,</span> <span class="s">&quot;1d&quot;</span><span class="p">])</span>
 
 
-<span class="k">class</span> <span class="nc">DailyHistoryAggregator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Converts minute pricing data into a daily summary, to be used for the</span>
-<span class="sd">    last slot in a call to history with a frequency of `1d`.</span>
-
-<span class="sd">    This summary is the same as a daily bar rollup of minute data, with the</span>
-<span class="sd">    distinction that the summary is truncated to the `dt` requested.</span>
-<span class="sd">    i.e. the aggregation slides forward during a the course of simulation day.</span>
-
-<span class="sd">    Provides aggregation for `open`, `high`, `low`, `close`, and `volume`.</span>
-<span class="sd">    The aggregation rules for each price type is documented in their respective</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">market_opens</span><span class="p">,</span> <span class="n">minute_reader</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span> <span class="o">=</span> <span class="n">market_opens</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span> <span class="o">=</span> <span class="n">minute_reader</span>
-
-        <span class="c"># The caches are structured as (date, market_open, entries), where</span>
-        <span class="c"># entries is a dict of asset -&gt; (last_visited_dt, value)</span>
-        <span class="c">#</span>
-        <span class="c"># Whenever an aggregation method determines the current value,</span>
-        <span class="c"># the entry for the respective asset should be overwritten with a new</span>
-        <span class="c"># entry for the current dt.value (int) and aggregation value.</span>
-        <span class="c">#</span>
-        <span class="c"># When the requested dt&#39;s date is different from date the cache is</span>
-        <span class="c"># flushed, so that the cache entries do not grow unbounded.</span>
-        <span class="c">#</span>
-        <span class="c"># Example cache:</span>
-        <span class="c"># cache = (date(2016, 3, 17),</span>
-        <span class="c">#          pd.Timestamp(&#39;2016-03-17 13:31&#39;, tz=&#39;UTC&#39;),</span>
-        <span class="c">#          {</span>
-        <span class="c">#              1: (1458221460000000000, np.nan),</span>
-        <span class="c">#              2: (1458221460000000000, 42.0),</span>
-        <span class="c">#         })</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s">&#39;open&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-            <span class="s">&#39;high&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-            <span class="s">&#39;low&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-            <span class="s">&#39;close&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
-            <span class="s">&#39;volume&#39;</span><span class="p">:</span> <span class="bp">None</span>
-        <span class="p">}</span>
-
-        <span class="c"># The int value is used for deltas to avoid extra computation from</span>
-        <span class="c"># creating new Timestamps.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_one_min</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="s">&#39;1 min&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
-
-    <span class="k">def</span> <span class="nf">_prelude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
-        <span class="n">date</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-        <span class="n">dt_value</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">value</span>
-        <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">cache</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">date</span><span class="p">:</span>
-            <span class="n">market_open</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_market_opens</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">date</span><span class="p">]</span>
-            <span class="n">cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caches</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span> <span class="n">market_open</span><span class="p">,</span> <span class="p">{})</span>
-
-        <span class="n">_</span><span class="p">,</span> <span class="n">market_open</span><span class="p">,</span> <span class="n">entries</span> <span class="o">=</span> <span class="n">cache</span>
-        <span class="k">if</span> <span class="n">dt</span> <span class="o">!=</span> <span class="n">market_open</span><span class="p">:</span>
-            <span class="n">prev_dt</span> <span class="o">=</span> <span class="n">dt_value</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_min</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">prev_dt</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="k">return</span> <span class="n">market_open</span><span class="p">,</span> <span class="n">prev_dt</span><span class="p">,</span> <span class="n">dt_value</span><span class="p">,</span> <span class="n">entries</span>
-
-    <span class="k">def</span> <span class="nf">opens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The open field&#39;s aggregation returns the first value that occurs</span>
-<span class="sd">        for the day, if there has been no data on or before the `dt` the open</span>
-<span class="sd">        is `nan`.</span>
-
-<span class="sd">        Once the first non-nan open is seen, that value remains constant per</span>
-<span class="sd">        asset for the remainder of the day.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        np.array with dtype=float64, in order of assets parameter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">market_open</span><span class="p">,</span> <span class="n">prev_dt</span><span class="p">,</span> <span class="n">dt_value</span><span class="p">,</span> <span class="n">entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prelude</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s">&#39;open&#39;</span><span class="p">)</span>
-
-        <span class="n">opens</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">normalized_date</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">asset</span><span class="o">.</span><span class="n">_is_alive</span><span class="p">(</span><span class="n">normalized_date</span><span class="p">,</span> <span class="bp">True</span><span class="p">):</span>
-                <span class="n">opens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">)</span>
-                <span class="k">continue</span>
-
-            <span class="k">if</span> <span class="n">prev_dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;open&#39;</span><span class="p">)</span>
-                <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                <span class="n">opens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">last_visited_dt</span><span class="p">,</span> <span class="n">first_open</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">dt_value</span><span class="p">:</span>
-                        <span class="n">opens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">first_open</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">elif</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">first_open</span><span class="p">):</span>
-                        <span class="n">opens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">first_open</span><span class="p">)</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">first_open</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">after_last</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
-                            <span class="n">last_visited_dt</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_min</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
-                        <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                            <span class="p">[</span><span class="s">&#39;open&#39;</span><span class="p">],</span>
-                            <span class="n">after_last</span><span class="p">,</span>
-                            <span class="n">dt</span><span class="p">,</span>
-                            <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="n">nonnan</span> <span class="o">=</span> <span class="n">window</span><span class="p">[</span><span class="o">~</span><span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">window</span><span class="p">)]</span>
-                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonnan</span><span class="p">):</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="n">nonnan</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">opens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                    <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                        <span class="p">[</span><span class="s">&#39;open&#39;</span><span class="p">],</span>
-                        <span class="n">market_open</span><span class="p">,</span>
-                        <span class="n">dt</span><span class="p">,</span>
-                        <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="n">nonnan</span> <span class="o">=</span> <span class="n">window</span><span class="p">[</span><span class="o">~</span><span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">window</span><span class="p">)]</span>
-                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nonnan</span><span class="p">):</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="n">nonnan</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-                    <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                    <span class="n">opens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                    <span class="k">continue</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">opens</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">highs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The high field&#39;s aggregation returns the largest high seen between</span>
-<span class="sd">        the market open and the current dt.</span>
-<span class="sd">        If there has been no data on or before the `dt` the high is `nan`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        np.array with dtype=float64, in order of assets parameter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">market_open</span><span class="p">,</span> <span class="n">prev_dt</span><span class="p">,</span> <span class="n">dt_value</span><span class="p">,</span> <span class="n">entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prelude</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s">&#39;high&#39;</span><span class="p">)</span>
-
-        <span class="n">highs</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">normalized_date</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">asset</span><span class="o">.</span><span class="n">_is_alive</span><span class="p">(</span><span class="n">normalized_date</span><span class="p">,</span> <span class="bp">True</span><span class="p">):</span>
-                <span class="n">highs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">)</span>
-                <span class="k">continue</span>
-
-            <span class="k">if</span> <span class="n">prev_dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;high&#39;</span><span class="p">)</span>
-                <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                <span class="n">highs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">last_visited_dt</span><span class="p">,</span> <span class="n">last_max</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">dt_value</span><span class="p">:</span>
-                        <span class="n">highs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_max</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">elif</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">prev_dt</span><span class="p">:</span>
-                        <span class="n">curr_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
-                            <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;high&#39;</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">curr_val</span><span class="p">):</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="n">last_max</span>
-                        <span class="k">elif</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">last_max</span><span class="p">):</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="n">curr_val</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">last_max</span><span class="p">,</span> <span class="n">curr_val</span><span class="p">)</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">highs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">after_last</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
-                            <span class="n">last_visited_dt</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_min</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
-                        <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                            <span class="p">[</span><span class="s">&#39;high&#39;</span><span class="p">],</span>
-                            <span class="n">after_last</span><span class="p">,</span>
-                            <span class="n">dt</span><span class="p">,</span>
-                            <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">last_max</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">window</span><span class="p">))</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">highs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                    <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                        <span class="p">[</span><span class="s">&#39;high&#39;</span><span class="p">],</span>
-                        <span class="n">market_open</span><span class="p">,</span>
-                        <span class="n">dt</span><span class="p">,</span>
-                        <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-                    <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
-                    <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                    <span class="n">highs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                    <span class="k">continue</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">highs</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">lows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The low field&#39;s aggregation returns the smallest low seen between</span>
-<span class="sd">        the market open and the current dt.</span>
-<span class="sd">        If there has been no data on or before the `dt` the low is `nan`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        np.array with dtype=float64, in order of assets parameter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">market_open</span><span class="p">,</span> <span class="n">prev_dt</span><span class="p">,</span> <span class="n">dt_value</span><span class="p">,</span> <span class="n">entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prelude</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">)</span>
-
-        <span class="n">lows</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">normalized_date</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">asset</span><span class="o">.</span><span class="n">_is_alive</span><span class="p">(</span><span class="n">normalized_date</span><span class="p">,</span> <span class="bp">True</span><span class="p">):</span>
-                <span class="n">lows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">)</span>
-                <span class="k">continue</span>
-
-            <span class="k">if</span> <span class="n">prev_dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">)</span>
-                <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                <span class="n">lows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">last_visited_dt</span><span class="p">,</span> <span class="n">last_min</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">dt_value</span><span class="p">:</span>
-                        <span class="n">lows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_min</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">elif</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">prev_dt</span><span class="p">:</span>
-                        <span class="n">curr_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
-                            <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;low&#39;</span><span class="p">)</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">([</span><span class="n">last_min</span><span class="p">,</span> <span class="n">curr_val</span><span class="p">])</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">lows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">after_last</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
-                            <span class="n">last_visited_dt</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_min</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
-                        <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                            <span class="p">[</span><span class="s">&#39;low&#39;</span><span class="p">],</span>
-                            <span class="n">after_last</span><span class="p">,</span>
-                            <span class="n">dt</span><span class="p">,</span>
-                            <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-                        <span class="n">window_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">window_min</span><span class="p">):</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="n">last_min</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">last_min</span><span class="p">,</span> <span class="n">window_min</span><span class="p">)</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">lows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                    <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                        <span class="p">[</span><span class="s">&#39;low&#39;</span><span class="p">],</span>
-                        <span class="n">market_open</span><span class="p">,</span>
-                        <span class="n">dt</span><span class="p">,</span>
-                        <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
-                    <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
-                    <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                    <span class="n">lows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                    <span class="k">continue</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lows</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">closes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The close field&#39;s aggregation returns the latest close at the given</span>
-<span class="sd">        dt.</span>
-<span class="sd">        If the close for the given dt is `nan`, the most recent non-nan</span>
-<span class="sd">        `close` is used.</span>
-<span class="sd">        If there has been no data on or before the `dt` the close is `nan`.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        np.array with dtype=float64, in order of assets parameter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">market_open</span><span class="p">,</span> <span class="n">prev_dt</span><span class="p">,</span> <span class="n">dt_value</span><span class="p">,</span> <span class="n">entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prelude</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">)</span>
-
-        <span class="n">closes</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">normalized_dt</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">asset</span><span class="o">.</span><span class="n">_is_alive</span><span class="p">(</span><span class="n">normalized_dt</span><span class="p">,</span> <span class="bp">True</span><span class="p">):</span>
-                <span class="n">closes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">NaN</span><span class="p">)</span>
-                <span class="k">continue</span>
-
-            <span class="k">if</span> <span class="n">prev_dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">)</span>
-                <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                <span class="n">closes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">last_visited_dt</span><span class="p">,</span> <span class="n">last_close</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">dt_value</span><span class="p">:</span>
-                        <span class="n">closes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_close</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">elif</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">prev_dt</span><span class="p">:</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
-                            <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="n">last_close</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">closes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
-                            <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
-                            <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closes</span><span class="p">(</span>
-                                <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                                <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">prev_dt</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">closes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                    <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
-                        <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closes</span><span class="p">([</span><span class="n">asset</span><span class="p">],</span>
-                                          <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">prev_dt</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                    <span class="n">closes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                    <span class="k">continue</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">closes</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">volumes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        The volume field&#39;s aggregation returns the sum of all volumes</span>
-<span class="sd">        between the market open and the `dt`</span>
-<span class="sd">        If there has been no data on or before the `dt` the volume is 0.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        np.array with dtype=int64, in order of assets parameter.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">market_open</span><span class="p">,</span> <span class="n">prev_dt</span><span class="p">,</span> <span class="n">dt_value</span><span class="p">,</span> <span class="n">entries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prelude</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s">&#39;volume&#39;</span><span class="p">)</span>
-
-        <span class="n">volumes</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">normalized_date</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">asset</span><span class="o">.</span><span class="n">_is_alive</span><span class="p">(</span><span class="n">normalized_date</span><span class="p">,</span> <span class="bp">True</span><span class="p">):</span>
-                <span class="n">volumes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                <span class="k">continue</span>
-
-            <span class="k">if</span> <span class="n">prev_dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;volume&#39;</span><span class="p">)</span>
-                <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                <span class="n">volumes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                <span class="k">continue</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">last_visited_dt</span><span class="p">,</span> <span class="n">last_total</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span>
-                    <span class="k">if</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">dt_value</span><span class="p">:</span>
-                        <span class="n">volumes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_total</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">elif</span> <span class="n">last_visited_dt</span> <span class="o">==</span> <span class="n">prev_dt</span><span class="p">:</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
-                            <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;volume&#39;</span><span class="p">)</span>
-                        <span class="n">val</span> <span class="o">+=</span> <span class="n">last_total</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">volumes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">after_last</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span>
-                            <span class="n">last_visited_dt</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_one_min</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
-                        <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                            <span class="p">[</span><span class="s">&#39;volume&#39;</span><span class="p">],</span>
-                            <span class="n">after_last</span><span class="p">,</span>
-                            <span class="n">dt</span><span class="p">,</span>
-                            <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                        <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">window</span><span class="p">)</span> <span class="o">+</span> <span class="n">last_total</span>
-                        <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                        <span class="n">volumes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                        <span class="k">continue</span>
-                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                    <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_reader</span><span class="o">.</span><span class="n">load_raw_arrays</span><span class="p">(</span>
-                        <span class="p">[</span><span class="s">&#39;volume&#39;</span><span class="p">],</span>
-                        <span class="n">market_open</span><span class="p">,</span>
-                        <span class="n">dt</span><span class="p">,</span>
-                        <span class="p">[</span><span class="n">asset</span><span class="p">],</span>
-                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="n">val</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">window</span><span class="p">)</span>
-                    <span class="n">entries</span><span class="p">[</span><span class="n">asset</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">dt_value</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-                    <span class="n">volumes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
-                    <span class="k">continue</span>
-        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">volumes</span><span class="p">)</span>
-
-
 <div class="viewcode-block" id="DataPortal"><a class="viewcode-back" href="../../../appendix.html#zipline.data.data_portal.DataPortal">[docs]</a><span class="k">class</span> <span class="nc">DataPortal</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Interface to all of the data that a zipline simulation needs.</span>
 
@@ -762,11 +385,14 @@
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    env : TradingEnvironment</span>
-<span class="sd">        The trading environment for the simulation. This includes the trading</span>
-<span class="sd">        calendar and benchmark data.</span>
+<span class="sd">    asset_finder : zipline.assets.assets.AssetFinder</span>
+<span class="sd">        The AssetFinder instance used to resolve assets.</span>
+<span class="sd">    trading_calendar: zipline.utils.calendar.exchange_calendar.TradingCalendar</span>
+<span class="sd">        The calendar instance used to provide minute-&gt;session information.</span>
+<span class="sd">    first_trading_day : pd.Timestamp</span>
+<span class="sd">        The first trading day for the simulation.</span>
 <span class="sd">    equity_daily_reader : BcolzDailyBarReader, optional</span>
-<span class="sd">        The daily bar ready for equities. This will be used to service</span>
+<span class="sd">        The daily bar reader for equities. This will be used to service</span>
 <span class="sd">        daily data backtests or daily history calls in a minute backetest.</span>
 <span class="sd">        If a daily bar reader is not provided but a minute bar reader is,</span>
 <span class="sd">        the minutes will be rolled up to serve the daily requests.</span>
@@ -779,7 +405,7 @@
 <span class="sd">        daily data backtests or daily history calls in a minute backetest.</span>
 <span class="sd">        If a daily bar reader is not provided but a minute bar reader is,</span>
 <span class="sd">        the minutes will be rolled up to serve the daily requests.</span>
-<span class="sd">    future_minute_reader : BcolzMinuteBarReader, optional</span>
+<span class="sd">    future_minute_reader : BcolzFutureMinuteBarReader, optional</span>
 <span class="sd">        The minute bar reader for futures. This will be used to service</span>
 <span class="sd">        minute data backtests or minute history calls. This can be used</span>
 <span class="sd">        to serve daily calls if no daily bar reader is provided.</span>
@@ -788,26 +414,17 @@
 <span class="sd">        other adjustment data to the raw data from the readers.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                 <span class="n">env</span><span class="p">,</span>
+                 <span class="n">asset_finder</span><span class="p">,</span>
+                 <span class="n">trading_calendar</span><span class="p">,</span>
+                 <span class="n">first_trading_day</span><span class="p">,</span>
                  <span class="n">equity_daily_reader</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">equity_minute_reader</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">future_daily_reader</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">future_minute_reader</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">adjustment_reader</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">env</span> <span class="o">=</span> <span class="n">env</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">views</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_asset_finder</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">asset_finder</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_carrays</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s">&#39;open&#39;</span><span class="p">:</span> <span class="p">{},</span>
-            <span class="s">&#39;high&#39;</span><span class="p">:</span> <span class="p">{},</span>
-            <span class="s">&#39;low&#39;</span><span class="p">:</span> <span class="p">{},</span>
-            <span class="s">&#39;close&#39;</span><span class="p">:</span> <span class="p">{},</span>
-            <span class="s">&#39;volume&#39;</span><span class="p">:</span> <span class="p">{},</span>
-            <span class="s">&#39;sid&#39;</span><span class="p">:</span> <span class="p">{},</span>
-        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span> <span class="o">=</span> <span class="n">trading_calendar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span> <span class="o">=</span> <span class="n">asset_finder</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span> <span class="o">=</span> <span class="n">adjustment_reader</span>
 
@@ -824,38 +441,113 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_augmented_sources_map</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span> <span class="o">=</span> <span class="bp">None</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span> <span class="o">=</span> <span class="n">equity_daily_reader</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_equity_history_loader</span> <span class="o">=</span> <span class="n">USEquityDailyHistoryLoader</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_session</span> <span class="o">=</span> <span class="n">first_trading_day</span>
+
+        <span class="n">_last_sessions</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">last_available_dt</span>
+                          <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="p">[</span><span class="n">equity_daily_reader</span><span class="p">,</span> <span class="n">future_daily_reader</span><span class="p">]</span>
+                          <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">_last_sessions</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last_trading_session</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">_last_sessions</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last_trading_session</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="n">aligned_equity_minute_reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_reader_aligned</span><span class="p">(</span>
+            <span class="n">equity_minute_reader</span><span class="p">)</span>
+        <span class="n">aligned_equity_session_reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_reader_aligned</span><span class="p">(</span>
+            <span class="n">equity_daily_reader</span><span class="p">)</span>
+        <span class="n">aligned_future_minute_reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_reader_aligned</span><span class="p">(</span>
+            <span class="n">future_minute_reader</span><span class="p">)</span>
+        <span class="n">aligned_future_session_reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_reader_aligned</span><span class="p">(</span>
+            <span class="n">future_daily_reader</span><span class="p">)</span>
+
+        <span class="n">aligned_minute_readers</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">aligned_session_readers</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="n">aligned_equity_minute_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">aligned_minute_readers</span><span class="p">[</span><span class="n">Equity</span><span class="p">]</span> <span class="o">=</span> <span class="n">aligned_equity_minute_reader</span>
+        <span class="k">if</span> <span class="n">aligned_equity_session_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">aligned_session_readers</span><span class="p">[</span><span class="n">Equity</span><span class="p">]</span> <span class="o">=</span> <span class="n">aligned_equity_session_reader</span>
+
+        <span class="k">if</span> <span class="n">aligned_future_minute_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">aligned_minute_readers</span><span class="p">[</span><span class="n">Future</span><span class="p">]</span> <span class="o">=</span> <span class="n">aligned_future_minute_reader</span>
+        <span class="k">if</span> <span class="n">aligned_future_session_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">aligned_session_readers</span><span class="p">[</span><span class="n">Future</span><span class="p">]</span> <span class="o">=</span> <span class="n">aligned_future_session_reader</span>
+
+        <span class="n">_dispatch_minute_reader</span> <span class="o">=</span> <span class="n">AssetDispatchMinuteBarReader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
+            <span class="n">aligned_minute_readers</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">_dispatch_session_reader</span> <span class="o">=</span> <span class="n">AssetDispatchSessionBarReader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
+            <span class="n">aligned_session_readers</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pricing_readers</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s">&#39;minute&#39;</span><span class="p">:</span> <span class="n">_dispatch_minute_reader</span><span class="p">,</span>
+            <span class="s">&#39;daily&#39;</span><span class="p">:</span> <span class="n">_dispatch_session_reader</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span> <span class="o">=</span> <span class="n">DailyHistoryAggregator</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">market_open</span><span class="p">,</span>
+            <span class="n">_dispatch_minute_reader</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_history_loader</span> <span class="o">=</span> <span class="n">DailyHistoryLoader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+            <span class="n">_dispatch_session_reader</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_minute_history_loader</span> <span class="o">=</span> <span class="n">MinuteHistoryLoader</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+            <span class="n">_dispatch_minute_reader</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="o">=</span> <span class="n">first_trading_day</span>
+
+        <span class="c"># Get the first trading minute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_minute</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">open_and_close_for_session</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span>
             <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span> <span class="o">=</span> <span class="n">equity_minute_reader</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_future_daily_reader</span> <span class="o">=</span> <span class="n">future_daily_reader</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_future_minute_reader</span> <span class="o">=</span> <span class="n">future_minute_reader</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="o">=</span> <span class="bp">None</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_aggregator</span> <span class="o">=</span> <span class="n">DailyHistoryAggregator</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">open_and_closes</span><span class="o">.</span><span class="n">market_open</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_history_loader</span> <span class="o">=</span> <span class="n">USEquityMinuteHistoryLoader</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_adjustment_reader</span>
+        <span class="c"># Store the locs of the first day and first minute</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day_loc</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">all_sessions</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_minute_loc</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">all_minutes</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_minute</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">MINUTE_PRICE_ADJUSTMENT_FACTOR</span> <span class="o">=</span> \
-                <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">_ohlc_inverse</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_minute</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="p">)</span>
 
-        <span class="c"># get the first trading day from our readers.</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="o">=</span> \
-                <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span><span class="o">.</span><span class="n">first_trading_day</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span> <span class="o">=</span> \
-                <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">first_trading_day</span>
+    <span class="k">def</span> <span class="nf">_ensure_reader_aligned</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reader</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">reader</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">reader</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">reader</span>
+        <span class="k">elif</span> <span class="n">reader</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ReindexMinuteBarReader</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+                <span class="n">reader</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_session</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_last_trading_session</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">reader</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;session&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ReindexSessionBarReader</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+                <span class="n">reader</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_session</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_last_trading_session</span>
+            <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_reindex_extra_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">source_date_index</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">source_date_index</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;ffill&#39;</span><span class="p">)</span>
@@ -891,9 +583,9 @@
         <span class="c"># asset -&gt; df.  In other words,</span>
         <span class="c"># self.augmented_sources_map[&#39;days_to_cover&#39;][&#39;AAPL&#39;] gives us the df</span>
         <span class="c"># holding that data.</span>
-        <span class="n">source_date_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">days_in_range</span><span class="p">(</span>
-            <span class="n">start</span><span class="o">=</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span><span class="p">,</span>
-            <span class="n">end</span><span class="o">=</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span>
+        <span class="n">source_date_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">sessions_in_range</span><span class="p">(</span>
+            <span class="n">sim_params</span><span class="o">.</span><span class="n">start_session</span><span class="p">,</span>
+            <span class="n">sim_params</span><span class="o">.</span><span class="n">end_session</span>
         <span class="p">)</span>
 
         <span class="c"># Break the source_df up into one dataframe per sid.  This lets</span>
@@ -941,49 +633,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_extra_source_df</span> <span class="o">=</span> <span class="n">extra_source_df</span></div>
 
-    <span class="k">def</span> <span class="nf">_open_minute_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">asset</span><span class="p">):</span>
-        <span class="n">sid_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">asset</span><span class="p">))</span>
-
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_carrays</span><span class="p">[</span><span class="n">field</span><span class="p">][</span><span class="n">sid_str</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="n">carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_carrays</span><span class="p">[</span><span class="n">field</span><span class="p">][</span><span class="n">sid_str</span><span class="p">]</span> <span class="o">=</span> \
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_ctable</span><span class="p">(</span><span class="n">asset</span><span class="p">)[</span><span class="n">field</span><span class="p">]</span>
-
-        <span class="k">return</span> <span class="n">carray</span>
-
-    <span class="k">def</span> <span class="nf">_get_ctable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">):</span>
-        <span class="n">sid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">Future</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_future_minute_reader</span><span class="o">.</span><span class="n">sid_path_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_future_minute_reader</span><span class="o">.</span><span class="n">sid_path_func</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_future_minute_reader</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">sid</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">path</span> <span class="o">=</span> <span class="s">&quot;{0}/{1}.bcolz&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_future_minute_reader</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">sid</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">Equity</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">sid_path_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">sid_path_func</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">sid</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">path</span> <span class="o">=</span> <span class="s">&quot;{0}/{1}.bcolz&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">sid</span><span class="p">)</span>
-
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c"># TODO: Figure out if assets should be allowed if neither, and</span>
-            <span class="c"># why this code path is being hit.</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">sid_path_func</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">sid_path_func</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">sid</span>
-                <span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">path</span> <span class="o">=</span> <span class="s">&quot;{0}/{1}.bcolz&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">rootdir</span><span class="p">,</span> <span class="n">sid</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">bcolz</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s">&#39;r&#39;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_get_pricing_reader</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_frequency</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pricing_readers</span><span class="p">[</span><span class="n">data_frequency</span><span class="p">]</span>
 
 <div class="viewcode-block" id="DataPortal.get_last_traded_dt"><a class="viewcode-back" href="../../../appendix.html#zipline.data.data_portal.DataPortal.get_last_traded_dt">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_traded_dt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">data_frequency</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -992,10 +643,8 @@
 
 <span class="sd">        If there is a trade on the dt, the answer is dt provided.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pricing_reader</span><span class="p">(</span><span class="n">data_frequency</span><span class="p">)</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span>
+            <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span></div>
 
     <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">_is_extra_source</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="nb">map</span><span class="p">):</span>
@@ -1051,33 +700,28 @@
         <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">BASE_FIELDS</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&quot;Invalid column: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">field</span><span class="p">))</span>
 
+        <span class="n">session_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">dt</span> <span class="o">&lt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">start_date</span> <span class="ow">or</span> \
-                <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;daily&quot;</span> <span class="ow">and</span> <span class="n">dt</span> <span class="o">&gt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">)</span> <span class="ow">or</span> \
+                <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;daily&quot;</span> <span class="ow">and</span>
+                    <span class="n">session_label</span> <span class="o">&gt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">)</span> <span class="ow">or</span> \
                 <span class="p">(</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;minute&quot;</span> <span class="ow">and</span>
-                 <span class="n">normalize_date</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">):</span>
+                 <span class="n">session_label</span> <span class="o">&gt;</span> <span class="n">asset</span><span class="o">.</span><span class="n">end_date</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;volume&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="mi">0</span>
             <span class="k">elif</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&quot;last_traded&quot;</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">NaN</span>
 
         <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;daily&quot;</span><span class="p">:</span>
-            <span class="n">day_to_use</span> <span class="o">=</span> <span class="n">dt</span>
-            <span class="n">day_to_use</span> <span class="o">=</span> <span class="n">normalize_date</span><span class="p">(</span><span class="n">day_to_use</span><span class="p">)</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_daily_data</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">day_to_use</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_daily_data</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">session_label</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">Future</span><span class="p">):</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value_future</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;last_traded&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="s">&#39;minute&#39;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;price&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span>
+                                                   <span class="n">ffill</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;last_traded&quot;</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span>
-                        <span class="n">asset</span><span class="p">,</span> <span class="n">dt</span>
-                    <span class="p">)</span>
-                <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s">&quot;price&quot;</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="s">&quot;close&quot;</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span>
-                                                       <span class="bp">True</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span></div>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DataPortal.get_adjustments"><a class="viewcode-back" href="../../../appendix.html#zipline.data.data_portal.DataPortal.get_adjustments">[docs]</a>    <span class="k">def</span> <span class="nf">get_adjustments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">perspective_dt</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1196,59 +840,27 @@
 
         <span class="k">return</span> <span class="n">spot_value</span></div>
 
-    <span class="k">def</span> <span class="nf">_get_minute_spot_value_future</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
-        <span class="c"># Futures bcolz files have 1440 bars per day (24 hours), 7 days a week.</span>
-        <span class="c"># The file attributes contain the &quot;start_dt&quot; and &quot;last_dt&quot; fields,</span>
-        <span class="c"># which represent the time period for this bcolz file.</span>
-
-        <span class="c"># The start_dt is midnight of the first day that this future started</span>
-        <span class="c"># trading.</span>
-
-        <span class="c"># figure out the # of minutes between dt and this asset&#39;s start_dt</span>
-        <span class="n">start_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_asset_start_date</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
-        <span class="n">minute_offset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">dt</span> <span class="o">-</span> <span class="n">start_date</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">/</span> <span class="mi">60</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">minute_offset</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="c"># asking for a date that is before the asset&#39;s start date, no dice</span>
-            <span class="k">return</span> <span class="mf">0.0</span>
-
-        <span class="c"># then just index into the bcolz carray at that offset</span>
-        <span class="n">carray</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_open_minute_file</span><span class="p">(</span><span class="n">column</span><span class="p">,</span> <span class="n">asset</span><span class="p">)</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">carray</span><span class="p">[</span><span class="n">minute_offset</span><span class="p">]</span>
-
-        <span class="c"># if there&#39;s missing data, go backwards until we run out of file</span>
-        <span class="k">while</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">minute_offset</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">minute_offset</span> <span class="o">-=</span> <span class="mi">1</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="n">carray</span><span class="p">[</span><span class="n">minute_offset</span><span class="p">]</span>
-
-        <span class="k">if</span> <span class="n">column</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
-            <span class="c"># FIXME switch to a futures reader</span>
-            <span class="k">return</span> <span class="n">result</span> <span class="o">*</span> <span class="mf">0.001</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">result</span>
-
     <span class="k">def</span> <span class="nf">_get_minute_spot_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">ffill</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pricing_reader</span><span class="p">(</span><span class="s">&#39;minute&#39;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
             <span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">column</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&quot;volume&quot;</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">return</span> <span class="mi">0</span>
-        <span class="k">elif</span> <span class="ow">not</span> <span class="n">ffill</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-            <span class="c"># if we&#39;re not forward filling, or we found a result, return it</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ffill</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">result</span>
 
         <span class="c"># we are looking for price, and didn&#39;t find one. have to go hunting.</span>
-        <span class="n">last_traded_dt</span> <span class="o">=</span> \
-            <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">last_traded_dt</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">last_traded_dt</span> <span class="ow">is</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span><span class="p">:</span>
             <span class="c"># no last traded dt, bail</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
 
         <span class="c"># get the value as of the last traded dt</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
             <span class="n">asset</span><span class="o">.</span><span class="n">sid</span><span class="p">,</span>
             <span class="n">last_traded_dt</span><span class="p">,</span>
             <span class="n">column</span>
@@ -1268,9 +880,9 @@
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_daily_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_pricing_reader</span><span class="p">(</span><span class="s">&#39;daily&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&quot;last_traded&quot;</span><span class="p">:</span>
-            <span class="n">last_traded_dt</span> <span class="o">=</span> \
-                <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+            <span class="n">last_traded_dt</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_last_traded_dt</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">last_traded_dt</span><span class="p">):</span>
                 <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">NaT</span>
@@ -1279,7 +891,7 @@
         <span class="k">elif</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">OHLCV_FIELDS</span><span class="p">:</span>
             <span class="c"># don&#39;t forward fill</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span><span class="o">.</span><span class="n">spot_price</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">column</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&quot;volume&quot;</span><span class="p">:</span>
                         <span class="k">return</span> <span class="mi">0</span>
@@ -1293,7 +905,7 @@
             <span class="n">found_dt</span> <span class="o">=</span> <span class="n">dt</span>
             <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_reader</span><span class="o">.</span><span class="n">spot_price</span><span class="p">(</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_value</span><span class="p">(</span>
                         <span class="n">asset</span><span class="p">,</span> <span class="n">found_dt</span><span class="p">,</span> <span class="s">&quot;close&quot;</span>
                     <span class="p">)</span>
                     <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
@@ -1306,20 +918,22 @@
                                 <span class="n">spot_value</span><span class="o">=</span><span class="n">value</span>
                             <span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
-                        <span class="n">found_dt</span> <span class="o">-=</span> <span class="n">tradingcalendar</span><span class="o">.</span><span class="n">trading_day</span>
+                        <span class="n">found_dt</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">day</span>
                 <span class="k">except</span> <span class="n">NoDataOnDate</span><span class="p">:</span>
                     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
 
     <span class="nd">@remember_last</span>
     <span class="k">def</span> <span class="nf">_get_days_for_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">end_date</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">):</span>
-        <span class="n">tds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">trading_days</span>
-        <span class="n">end_loc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">trading_days</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">end_date</span><span class="p">)</span>
+        <span class="n">tds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">all_sessions</span>
+        <span class="n">end_loc</span> <span class="o">=</span> <span class="n">tds</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">end_date</span><span class="p">)</span>
         <span class="n">start_loc</span> <span class="o">=</span> <span class="n">end_loc</span> <span class="o">-</span> <span class="n">bar_count</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">start_loc</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">start_loc</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day_loc</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HistoryWindowStartsBeforeData</span><span class="p">(</span>
-                <span class="n">first_trading_day</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">first_trading_day</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+                <span class="n">first_trading_day</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
                 <span class="n">bar_count</span><span class="o">=</span><span class="n">bar_count</span><span class="p">,</span>
-                <span class="n">suggested_start_day</span><span class="o">=</span><span class="n">tds</span><span class="p">[</span><span class="n">bar_count</span><span class="p">]</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+                <span class="n">suggested_start_day</span><span class="o">=</span><span class="n">tds</span><span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day_loc</span> <span class="o">+</span> <span class="n">bar_count</span>
+                <span class="p">]</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">tds</span><span class="p">[</span><span class="n">start_loc</span><span class="p">:</span><span class="n">end_loc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
@@ -1329,95 +943,24 @@
 <span class="sd">        Internal method that returns a dataframe containing history bars</span>
 <span class="sd">        of daily frequency for the given sids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">days_for_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_days_for_window</span><span class="p">(</span><span class="n">end_dt</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span> <span class="n">bar_count</span><span class="p">)</span>
+        <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span><span class="n">end_dt</span><span class="p">)</span>
+        <span class="n">days_for_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_days_for_window</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">assets</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span>
                                 <span class="n">index</span><span class="o">=</span><span class="n">days_for_window</span><span class="p">,</span>
                                 <span class="n">columns</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
 
-        <span class="n">future_data</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">eq_assets</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">Future</span><span class="p">):</span>
-                <span class="n">future_data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_history_daily_window_future</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="n">days_for_window</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">field_to_use</span>
-                <span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">eq_assets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
-        <span class="n">eq_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_history_daily_window_equities</span><span class="p">(</span>
-            <span class="n">eq_assets</span><span class="p">,</span> <span class="n">days_for_window</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">field_to_use</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_history_daily_window_data</span><span class="p">(</span>
+            <span class="n">assets</span><span class="p">,</span> <span class="n">days_for_window</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">field_to_use</span>
         <span class="p">)</span>
-        <span class="k">if</span> <span class="n">future_data</span><span class="p">:</span>
-            <span class="c"># TODO: This case appears to be uncovered by testing.</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">eq_data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">future_data</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="n">eq_data</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
             <span class="n">data</span><span class="p">,</span>
             <span class="n">index</span><span class="o">=</span><span class="n">days_for_window</span><span class="p">,</span>
             <span class="n">columns</span><span class="o">=</span><span class="n">assets</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_history_daily_window_future</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">days_for_window</span><span class="p">,</span>
-                                         <span class="n">end_dt</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
-        <span class="c"># Since we don&#39;t have daily bcolz files for futures (yet), use minute</span>
-        <span class="c"># bars to calculate the daily values.</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">data_groups</span> <span class="o">=</span> <span class="p">[]</span>
-
-        <span class="c"># get all the minutes for the days NOT including today</span>
-        <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">days_for_window</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-            <span class="n">minutes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">market_minutes_for_day</span><span class="p">(</span><span class="n">day</span><span class="p">)</span>
-
-            <span class="n">values_for_day</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">minutes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-
-            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">minute</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">minutes</span><span class="p">):</span>
-                <span class="n">minute_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value_future</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">minute</span>
-                <span class="p">)</span>
-
-                <span class="n">values_for_day</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">minute_val</span>
-
-            <span class="n">data_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">values_for_day</span><span class="p">)</span>
-
-        <span class="c"># get the minutes for today</span>
-        <span class="n">last_day_minutes</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span>
-            <span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_open_and_close</span><span class="p">(</span><span class="n">end_dt</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">end</span><span class="o">=</span><span class="n">end_dt</span><span class="p">,</span>
-            <span class="n">freq</span><span class="o">=</span><span class="s">&quot;T&quot;</span>
-        <span class="p">)</span>
-
-        <span class="n">values_for_last_day</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">last_day_minutes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">minute</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">last_day_minutes</span><span class="p">):</span>
-            <span class="n">minute_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value_future</span><span class="p">(</span>
-                <span class="n">asset</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">minute</span>
-            <span class="p">)</span>
-
-            <span class="n">values_for_last_day</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">minute_val</span>
-
-        <span class="n">data_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">values_for_last_day</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">data_groups</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="k">continue</span>
-
-            <span class="k">if</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
-            <span class="k">elif</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&#39;open&#39;</span><span class="p">:</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">elif</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&#39;close&#39;</span><span class="p">:</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-            <span class="k">elif</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&#39;high&#39;</span><span class="p">:</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
-            <span class="k">elif</span> <span class="n">column</span> <span class="o">==</span> <span class="s">&#39;low&#39;</span><span class="p">:</span>
-                <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="n">data</span>
-
-    <span class="k">def</span> <span class="nf">_get_history_daily_window_equities</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_get_history_daily_window_data</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">days_for_window</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">field_to_use</span><span class="p">):</span>
         <span class="n">ends_at_midnight</span> <span class="o">=</span> <span class="n">end_dt</span><span class="o">.</span><span class="n">hour</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">end_dt</span><span class="o">.</span><span class="n">minute</span> <span class="o">==</span> <span class="mi">0</span>
 
@@ -1441,25 +984,38 @@
             <span class="p">)</span>
 
             <span class="k">if</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;open&#39;</span><span class="p">:</span>
-                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_aggregator</span><span class="o">.</span><span class="n">opens</span><span class="p">(</span>
+                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">opens</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;high&#39;</span><span class="p">:</span>
-                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_aggregator</span><span class="o">.</span><span class="n">highs</span><span class="p">(</span>
+                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">highs</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;low&#39;</span><span class="p">:</span>
-                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_aggregator</span><span class="o">.</span><span class="n">lows</span><span class="p">(</span>
+                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">lows</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;close&#39;</span><span class="p">:</span>
-                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_aggregator</span><span class="o">.</span><span class="n">closes</span><span class="p">(</span>
+                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">closes</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">field_to_use</span> <span class="o">==</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
-                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_daily_aggregator</span><span class="o">.</span><span class="n">volumes</span><span class="p">(</span>
+                <span class="n">minute_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_daily_aggregator</span><span class="o">.</span><span class="n">volumes</span><span class="p">(</span>
                     <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">)</span>
 
             <span class="c"># append the partial day.</span>
             <span class="n">daily_data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">minute_value</span>
 
             <span class="k">return</span> <span class="n">daily_data</span>
+
+    <span class="k">def</span> <span class="nf">_handle_history_out_of_bounds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">):</span>
+        <span class="n">suggested_start_day</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">all_minutes</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_minute_loc</span> <span class="o">+</span> <span class="n">bar_count</span>
+            <span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">day</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+        <span class="k">raise</span> <span class="n">HistoryWindowStartsBeforeData</span><span class="p">(</span>
+            <span class="n">first_trading_day</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_day</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
+            <span class="n">bar_count</span><span class="o">=</span><span class="n">bar_count</span><span class="p">,</span>
+            <span class="n">suggested_start_day</span><span class="o">=</span><span class="n">suggested_start_day</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_history_minute_window</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">end_dt</span><span class="p">,</span> <span class="n">bar_count</span><span class="p">,</span>
                                    <span class="n">field_to_use</span><span class="p">):</span>
@@ -1468,17 +1024,15 @@
 <span class="sd">        of minute frequency for the given sids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c"># get all the minutes for this window</span>
-        <span class="n">mm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">market_minutes</span>
-        <span class="n">end_loc</span> <span class="o">=</span> <span class="n">mm</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">end_dt</span><span class="p">)</span>
-        <span class="n">start_loc</span> <span class="o">=</span> <span class="n">end_loc</span> <span class="o">-</span> <span class="n">bar_count</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="k">if</span> <span class="n">start_loc</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">suggested_start_day</span> <span class="o">=</span> <span class="p">(</span><span class="n">mm</span><span class="p">[</span><span class="n">bar_count</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">trading_day</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-            <span class="k">raise</span> <span class="n">HistoryWindowStartsBeforeData</span><span class="p">(</span>
-                <span class="n">first_trading_day</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">first_trading_day</span><span class="o">.</span><span class="n">date</span><span class="p">(),</span>
-                <span class="n">bar_count</span><span class="o">=</span><span class="n">bar_count</span><span class="p">,</span>
-                <span class="n">suggested_start_day</span><span class="o">=</span><span class="n">suggested_start_day</span><span class="p">,</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">minutes_for_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minutes_window</span><span class="p">(</span>
+                <span class="n">end_dt</span><span class="p">,</span> <span class="o">-</span><span class="n">bar_count</span>
             <span class="p">)</span>
-        <span class="n">minutes_for_window</span> <span class="o">=</span> <span class="n">mm</span><span class="p">[</span><span class="n">start_loc</span><span class="p">:</span><span class="n">end_loc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_history_out_of_bounds</span><span class="p">(</span><span class="n">bar_count</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">minutes_for_window</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_first_trading_minute</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_history_out_of_bounds</span><span class="p">(</span><span class="n">bar_count</span><span class="p">)</span>
 
         <span class="n">asset_minute_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_window_for_assets</span><span class="p">(</span>
             <span class="n">assets</span><span class="p">,</span>
@@ -1604,106 +1158,14 @@
 <span class="sd">        -------</span>
 <span class="sd">        A numpy array with requested values.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">Future</span><span class="p">):</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_window_for_future</span><span class="p">([</span><span class="n">assets</span><span class="p">],</span> <span class="n">field</span><span class="p">,</span>
-                                                      <span class="n">minutes_for_window</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c"># TODO: Make caller accept assets.</span>
-            <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_window_for_equities</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span>
-                                                          <span class="n">minutes_for_window</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">window</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_window_data</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">minutes_for_window</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_minute_window_for_future</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">minutes_for_window</span><span class="p">):</span>
-        <span class="c"># THIS IS TEMPORARY.  For now, we are only exposing futures within</span>
-        <span class="c"># equity trading hours (9:30 am to 4pm, Eastern).  The easiest way to</span>
-        <span class="c"># do this is to simply do a spot lookup for each desired minute.</span>
-        <span class="n">return_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">minutes_for_window</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">minute</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">minutes_for_window</span><span class="p">):</span>
-            <span class="n">return_data</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> \
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_spot_value_future</span><span class="p">(</span><span class="n">asset</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">minute</span><span class="p">)</span>
-
-        <span class="c"># Note: an improvement could be to find the consecutive runs within</span>
-        <span class="c"># minutes_for_window, and use them to read the underlying ctable</span>
-        <span class="c"># more efficiently.</span>
-
-        <span class="c"># Once futures are on 24-hour clock, then we can just grab all the</span>
-        <span class="c"># requested minutes in one shot from the ctable.</span>
-
-        <span class="c"># no adjustments for futures, yay.</span>
-        <span class="k">return</span> <span class="n">return_data</span>
-
-    <span class="k">def</span> <span class="nf">_get_minute_window_for_equities</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_get_minute_window_data</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">minutes_for_window</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_minute_history_loader</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span>
-                                                          <span class="n">minutes_for_window</span><span class="p">,</span>
-                                                          <span class="n">field</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_apply_all_adjustments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">dts</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span>
-                               <span class="n">price_adj_factor</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Internal method that applies all the necessary adjustments on the</span>
-<span class="sd">        given data array.</span>
-
-<span class="sd">        The adjustments are:</span>
-<span class="sd">        - splits</span>
-<span class="sd">        - if field != &quot;volume&quot;:</span>
-<span class="sd">            - mergers</span>
-<span class="sd">            - dividends</span>
-<span class="sd">            - * 0.001</span>
-<span class="sd">            - any zero fields replaced with NaN</span>
-<span class="sd">        - all values rounded to 3 digits after the decimal point.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        data : np.array</span>
-<span class="sd">            The data to be adjusted.</span>
-
-<span class="sd">        asset: Asset</span>
-<span class="sd">            The asset whose data is being adjusted.</span>
-
-<span class="sd">        dts: pd.DateTimeIndex</span>
-<span class="sd">            The list of minutes or days representing the desired window.</span>
-
-<span class="sd">        field: string</span>
-<span class="sd">            The field whose values are in the data array.</span>
-
-<span class="sd">        price_adj_factor: float</span>
-<span class="sd">            Factor with which to adjust OHLC values.</span>
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        None.  The data array is modified in place.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_apply_adjustments_to_window</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_get_adjustment_list</span><span class="p">(</span>
-                <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_splits_dict</span><span class="p">,</span> <span class="s">&quot;SPLITS&quot;</span>
-            <span class="p">),</span>
-            <span class="n">data</span><span class="p">,</span>
-            <span class="n">dts</span><span class="p">,</span>
-            <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">field</span> <span class="o">!=</span> <span class="s">&#39;volume&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_adjustments_to_window</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_adjustment_list</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mergers_dict</span><span class="p">,</span> <span class="s">&quot;MERGERS&quot;</span>
-                <span class="p">),</span>
-                <span class="n">data</span><span class="p">,</span>
-                <span class="n">dts</span><span class="p">,</span>
-                <span class="bp">True</span>
-            <span class="p">)</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_adjustments_to_window</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_adjustment_list</span><span class="p">(</span>
-                    <span class="n">asset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dividends_dict</span><span class="p">,</span> <span class="s">&quot;DIVIDENDS&quot;</span>
-                <span class="p">),</span>
-                <span class="n">data</span><span class="p">,</span>
-                <span class="n">dts</span><span class="p">,</span>
-                <span class="bp">True</span>
-            <span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">price_adj_factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-                <span class="n">data</span> <span class="o">*=</span> <span class="n">price_adj_factor</span>
-                <span class="n">np</span><span class="o">.</span><span class="n">around</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minute_history_loader</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span>
+                                                   <span class="n">minutes_for_window</span><span class="p">,</span>
+                                                   <span class="n">field</span><span class="p">,</span>
+                                                   <span class="bp">False</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_daily_window_for_sids</span><span class="p">(</span>
             <span class="bp">self</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">days_in_window</span><span class="p">,</span> <span class="n">extra_slot</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
@@ -1750,47 +1212,15 @@
             <span class="n">return_array</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">NAN</span>
 
         <span class="k">if</span> <span class="n">bar_count</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_equity_history_loader</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span>
-                                                       <span class="n">days_in_window</span><span class="p">,</span>
-                                                       <span class="n">field</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_history_loader</span><span class="o">.</span><span class="n">history</span><span class="p">(</span><span class="n">assets</span><span class="p">,</span>
+                                                <span class="n">days_in_window</span><span class="p">,</span>
+                                                <span class="n">field</span><span class="p">,</span>
+                                                <span class="n">extra_slot</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">extra_slot</span><span class="p">:</span>
                 <span class="n">return_array</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">return_array</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">data</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">return_array</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)]</span> <span class="o">=</span> <span class="n">data</span>
         <span class="k">return</span> <span class="n">return_array</span>
-
-    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_apply_adjustments_to_window</span><span class="p">(</span><span class="n">adjustments_list</span><span class="p">,</span> <span class="n">window_data</span><span class="p">,</span>
-                                     <span class="n">dts_in_window</span><span class="p">,</span> <span class="n">multiply</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">adjustments_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span>
-
-        <span class="c"># advance idx to the correct spot in the adjustments list, based on</span>
-        <span class="c"># when the window starts</span>
-        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
-
-        <span class="k">while</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">adjustments_list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dts_in_window</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span>\
-                <span class="n">adjustments_list</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
-            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="c"># if we&#39;ve advanced through all the adjustments, then there&#39;s nothing</span>
-        <span class="c"># to do.</span>
-        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">adjustments_list</span><span class="p">):</span>
-            <span class="k">return</span>
-
-        <span class="k">while</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">adjustments_list</span><span class="p">):</span>
-            <span class="n">adjustment_to_apply</span> <span class="o">=</span> <span class="n">adjustments_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-
-            <span class="k">if</span> <span class="n">adjustment_to_apply</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">dts_in_window</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
-                <span class="k">break</span>
-
-            <span class="n">range_end</span> <span class="o">=</span> <span class="n">dts_in_window</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="n">adjustment_to_apply</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">multiply</span><span class="p">:</span>
-                <span class="n">window_data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">range_end</span><span class="p">]</span> <span class="o">*=</span> <span class="n">adjustment_to_apply</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">window_data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">range_end</span><span class="p">]</span> <span class="o">/=</span> <span class="n">adjustment_to_apply</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-
-            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
 
     <span class="k">def</span> <span class="nf">_get_adjustment_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">adjustments_dict</span><span class="p">,</span> <span class="n">table_name</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1988,17 +1418,29 @@
         <span class="c"># we get all the minutes for the last (bars - 1) days, then add</span>
         <span class="c"># all the minutes so far today.  the +2 is to account for ignoring</span>
         <span class="c"># today, and the previous day, in doing the math.</span>
-        <span class="n">previous_day</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">previous_trading_day</span><span class="p">(</span><span class="n">ending_minute</span><span class="p">)</span>
-        <span class="n">days</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">days_in_range</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">add_trading_days</span><span class="p">(</span><span class="o">-</span><span class="n">days_count</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">previous_day</span><span class="p">),</span>
-            <span class="n">previous_day</span><span class="p">,</span>
+        <span class="n">session_for_minute</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span>
+            <span class="n">ending_minute</span>
+        <span class="p">)</span>
+        <span class="n">previous_session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">previous_session_label</span><span class="p">(</span>
+            <span class="n">session_for_minute</span>
         <span class="p">)</span>
 
-        <span class="n">minutes_count</span> <span class="o">=</span> \
-            <span class="nb">sum</span><span class="p">(</span><span class="mi">210</span> <span class="k">if</span> <span class="n">day</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">early_closes</span> <span class="k">else</span> <span class="mi">390</span> <span class="k">for</span> <span class="n">day</span> <span class="ow">in</span> <span class="n">days</span><span class="p">)</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">sessions_in_range</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">sessions_window</span><span class="p">(</span><span class="n">previous_session</span><span class="p">,</span>
+                                                  <span class="o">-</span><span class="n">days_count</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="n">previous_session</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">minutes_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minutes_for_session</span><span class="p">(</span><span class="n">session</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">session</span> <span class="ow">in</span> <span class="n">sessions</span>
+        <span class="p">)</span>
 
         <span class="c"># add the minutes for today</span>
-        <span class="n">today_open</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">get_open_and_close</span><span class="p">(</span><span class="n">ending_minute</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">today_open</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">open_and_close_for_session</span><span class="p">(</span>
+            <span class="n">session_for_minute</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
         <span class="n">minutes_count</span> <span class="o">+=</span> \
             <span class="p">((</span><span class="n">ending_minute</span> <span class="o">-</span> <span class="n">today_open</span><span class="p">)</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span> <span class="o">//</span> <span class="mi">60</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
 
@@ -2020,9 +1462,9 @@
 
         <span class="k">if</span> <span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&quot;minute&quot;</span><span class="p">:</span>
             <span class="n">freq_str</span> <span class="o">=</span> <span class="s">&quot;1m&quot;</span>
-            <span class="n">calculated_bar_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_count_for_transform</span><span class="p">(</span>
+            <span class="n">calculated_bar_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_minute_count_for_transform</span><span class="p">(</span>
                 <span class="n">dt</span><span class="p">,</span> <span class="n">bars</span>
-            <span class="p">)</span>
+            <span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">freq_str</span> <span class="o">=</span> <span class="s">&quot;1d&quot;</span>
             <span class="n">calculated_bar_count</span> <span class="o">=</span> <span class="n">bars</span>
@@ -2080,7 +1522,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

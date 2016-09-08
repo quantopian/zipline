@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.assets.asset_writer &mdash; Zipline 1.0.1 documentation</title>
+  <title>zipline.assets.asset_writer &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../index.html"/>
         <link rel="up" title="Module code" href="../../index.html"/> 
 
   
@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -116,6 +117,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -124,10 +127,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -138,70 +151,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +241,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../appendix.html#readers">Readers</a></li>
@@ -318,15 +332,41 @@
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">AssetDBVersionError</span>
 <span class="kn">from</span> <span class="nn">zipline.assets.asset_db_schema</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">generate_asset_db_metadata</span><span class="p">,</span>
-    <span class="n">asset_db_table_names</span><span class="p">,</span>
     <span class="n">ASSET_DB_VERSION</span><span class="p">,</span>
+    <span class="n">asset_db_table_names</span><span class="p">,</span>
+    <span class="n">asset_router</span><span class="p">,</span>
+    <span class="n">equities</span> <span class="k">as</span> <span class="n">equities_table</span><span class="p">,</span>
+    <span class="n">equity_symbol_mappings</span><span class="p">,</span>
+    <span class="n">futures_contracts</span> <span class="k">as</span> <span class="n">futures_contracts_table</span><span class="p">,</span>
+    <span class="n">futures_exchanges</span><span class="p">,</span>
+    <span class="n">futures_root_symbols</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">,</span>
+    <span class="n">version_info</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="kn">from</span> <span class="nn">zipline.utils.preprocess</span> <span class="kn">import</span> <span class="n">preprocess</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.range</span> <span class="kn">import</span> <span class="n">from_tuple</span><span class="p">,</span> <span class="n">intersecting_ranges</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.sqlite_utils</span> <span class="kn">import</span> <span class="n">coerce_string_to_eng</span>
+
 <span class="c"># Define a namedtuple for use with the load_data and _load_data methods</span>
-<span class="n">AssetData</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s">&#39;AssetData&#39;</span><span class="p">,</span> <span class="s">&#39;equities futures exchanges root_symbols&#39;</span><span class="p">)</span>
+<span class="n">AssetData</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s">&#39;AssetData&#39;</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s">&#39;equities&#39;</span><span class="p">,</span>
+        <span class="s">&#39;equities_mappings&#39;</span><span class="p">,</span>
+        <span class="s">&#39;futures&#39;</span><span class="p">,</span>
+        <span class="s">&#39;exchanges&#39;</span><span class="p">,</span>
+        <span class="s">&#39;root_symbols&#39;</span><span class="p">,</span>
+    <span class="p">),</span>
+<span class="p">)</span>
 
 <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span> <span class="o">=</span> <span class="mi">999</span>
+
+<span class="n">symbol_columns</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
+    <span class="s">&#39;symbol&#39;</span><span class="p">,</span>
+    <span class="s">&#39;company_symbol&#39;</span><span class="p">,</span>
+    <span class="s">&#39;share_class_symbol&#39;</span><span class="p">,</span>
+<span class="p">})</span>
+<span class="n">mapping_columns</span> <span class="o">=</span> <span class="n">symbol_columns</span> <span class="o">|</span> <span class="p">{</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;end_date&#39;</span><span class="p">}</span>
 
 <span class="c"># Default values for the equities DataFrame</span>
 <span class="n">_equities_defaults</span> <span class="o">=</span> <span class="p">{</span>
@@ -336,7 +376,10 @@
     <span class="s">&#39;end_date&#39;</span><span class="p">:</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">62</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
     <span class="s">&#39;first_traded&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
     <span class="s">&#39;auto_close_date&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="c"># the canonical exchange name, like &quot;NYSE&quot;</span>
     <span class="s">&#39;exchange&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
+    <span class="c"># optional, something like &quot;New York Stock Exchange&quot;</span>
+    <span class="s">&#39;exchange_full&#39;</span><span class="p">:</span> <span class="bp">None</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="c"># Default values for the futures DataFrame</span>
@@ -369,7 +412,7 @@
 <span class="p">}</span>
 
 <span class="c"># Fuzzy symbol delimiters that may break up a company symbol and share class</span>
-<span class="n">_delimited_symbol_delimiter_regex</span> <span class="o">=</span> <span class="s">r&#39;[./\-_]&#39;</span>
+<span class="n">_delimited_symbol_delimiters_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s">r&#39;[./\-_]&#39;</span><span class="p">)</span>
 <span class="n">_delimited_symbol_default_triggers</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">})</span>
 
 
@@ -386,16 +429,22 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    ( str, str , str )</span>
-<span class="sd">        A tuple of ( company_symbol, share_class_symbol, fuzzy_symbol)</span>
+<span class="sd">    company_symbol : str</span>
+<span class="sd">        The company part of the symbol.</span>
+<span class="sd">    share_class_symbol : str</span>
+<span class="sd">        The share class part of a symbol.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c"># return blank strings for any bad fuzzy symbols, like NaN or None</span>
     <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">_delimited_symbol_default_triggers</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span>
 
-    <span class="n">split_list</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">_delimited_symbol_delimiter_regex</span><span class="p">,</span>
-                          <span class="n">string</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
-                          <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbol</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="n">split_list</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+        <span class="n">pattern</span><span class="o">=</span><span class="n">_delimited_symbol_delimiters_regex</span><span class="p">,</span>
+        <span class="n">string</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
+        <span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="c"># Break the list up in to its two components, the company symbol and the</span>
     <span class="c"># share class symbol</span>
@@ -405,12 +454,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">share_class_symbol</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
 
-    <span class="c"># Strip all fuzzy characters from the symbol to get the fuzzy symbol</span>
-    <span class="n">fuzzy_symbol</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">pattern</span><span class="o">=</span><span class="n">_delimited_symbol_delimiter_regex</span><span class="p">,</span>
-                          <span class="n">repl</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span>
-                          <span class="n">string</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="p">(</span><span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span><span class="p">,</span> <span class="n">fuzzy_symbol</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">company_symbol</span><span class="p">,</span> <span class="n">share_class_symbol</span>
 
 
 <span class="k">def</span> <span class="nf">_generate_output_dataframe</span><span class="p">(</span><span class="n">data_subset</span><span class="p">,</span> <span class="n">defaults</span><span class="p">):</span>
@@ -446,19 +490,83 @@
 
     <span class="c"># Get those columns which we need but</span>
     <span class="c"># for which no data has been supplied.</span>
-    <span class="n">need</span> <span class="o">=</span> <span class="n">desired_cols</span> <span class="o">-</span> <span class="n">cols</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">desired_cols</span> <span class="o">-</span> <span class="n">cols</span><span class="p">:</span>
+        <span class="c"># write the default value for any missing columns</span>
+        <span class="n">data_subset</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaults</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
 
-    <span class="c"># Combine the users supplied data with our required columns.</span>
-    <span class="n">output</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-        <span class="p">(</span><span class="n">data_subset</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-            <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">defaults</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">need</span><span class="p">},</span>
-            <span class="n">data_subset</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
-        <span class="p">)),</span>
-        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">copy</span><span class="o">=</span><span class="bp">False</span>
+    <span class="k">return</span> <span class="n">data_subset</span>
+
+
+<span class="k">def</span> <span class="nf">_check_asset_group</span><span class="p">(</span><span class="n">group</span><span class="p">):</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="s">&#39;end_date&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">row</span><span class="o">.</span><span class="n">start_date</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">start_date</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+    <span class="n">row</span><span class="o">.</span><span class="n">end_date</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">end_date</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+    <span class="n">row</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">symbol_columns</span><span class="p">),</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">row</span>
+
+
+<span class="k">def</span> <span class="nf">_format_range</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;ns&#39;</span><span class="p">)),</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">stop</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s">&#39;ns&#39;</span><span class="p">)),</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">output</span>
+
+<span class="k">def</span> <span class="nf">_split_symbol_mappings</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Split out the symbol: sid mappings from the raw data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : pd.DataFrame</span>
+<span class="sd">        The dataframe with multiple rows for each symbol: sid pair.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    asset_info : pd.DataFrame</span>
+<span class="sd">        The asset info with one row per asset.</span>
+<span class="sd">    symbol_mappings : pd.DataFrame</span>
+<span class="sd">        The dataframe of just symbol: sid mappings. The index will be</span>
+<span class="sd">        the sid, then there will be three columns: symbol, start_date, and</span>
+<span class="sd">        end_date.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mappings</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">mapping_columns</span><span class="p">)]</span>
+    <span class="n">ambigious</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">mappings</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">unique</span><span class="p">():</span>
+        <span class="n">persymbol</span> <span class="o">=</span> <span class="n">mappings</span><span class="p">[</span><span class="n">mappings</span><span class="o">.</span><span class="n">symbol</span> <span class="o">==</span> <span class="n">symbol</span><span class="p">]</span>
+        <span class="n">intersections</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">intersecting_ranges</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+            <span class="n">from_tuple</span><span class="p">,</span>
+            <span class="nb">zip</span><span class="p">(</span><span class="n">persymbol</span><span class="o">.</span><span class="n">start_date</span><span class="p">,</span> <span class="n">persymbol</span><span class="o">.</span><span class="n">end_date</span><span class="p">),</span>
+        <span class="p">)))</span>
+        <span class="k">if</span> <span class="n">intersections</span><span class="p">:</span>
+            <span class="n">ambigious</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">intersections</span><span class="p">,</span>
+                <span class="n">persymbol</span><span class="p">[[</span><span class="s">&#39;start_date&#39;</span><span class="p">,</span> <span class="s">&#39;end_date&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;datetime64[ns]&#39;</span><span class="p">),</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">ambigious</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s">&#39;Ambiguous ownership for </span><span class="si">%d</span><span class="s"> symbol</span><span class="si">%s</span><span class="s">, multiple assets held the&#39;</span>
+            <span class="s">&#39; following symbols:</span><span class="se">\n</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">ambigious</span><span class="p">),</span>
+                <span class="s">&#39;&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ambigious</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s">&#39;s&#39;</span><span class="p">,</span>
+                <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="s">&#39;</span><span class="si">%s</span><span class="s">:</span><span class="se">\n</span><span class="s">  intersections: </span><span class="si">%s</span><span class="se">\n</span><span class="s">  </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">symbol</span><span class="p">,</span>
+                        <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">_format_range</span><span class="p">,</span> <span class="n">intersections</span><span class="p">)),</span>
+                        <span class="c"># indent the dataframe string</span>
+                        <span class="s">&#39;</span><span class="se">\n</span><span class="s">  &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">df</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()),</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="p">(</span><span class="n">intersections</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                        <span class="n">ambigious</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+                        <span class="n">key</span><span class="o">=</span><span class="n">first</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_check_asset_group</span><span class="p">),</span>
+        <span class="n">df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">mapping_columns</span><span class="p">)],</span>
+    <span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_dt_to_epoch_ns</span><span class="p">(</span><span class="n">dt_series</span><span class="p">):</span>
@@ -482,12 +590,14 @@
     <span class="k">return</span> <span class="n">index</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">check_version_info</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">expected_version</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">check_version_info</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">version_table</span><span class="p">,</span> <span class="n">expected_version</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checks for a version value in the version table.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
+<span class="sd">    conn : sa.Connection</span>
+<span class="sd">        The connection to use to perform the check.</span>
 <span class="sd">    version_table : sa.Table</span>
 <span class="sd">        The version table of the asset database</span>
 <span class="sd">    expected_version : int</span>
@@ -500,7 +610,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c"># Read the version out of the table</span>
-    <span class="n">version_from_table</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="n">version_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">version</span><span class="p">,))</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
+    <span class="n">version_from_table</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+        <span class="n">sa</span><span class="o">.</span><span class="n">select</span><span class="p">((</span><span class="n">version_table</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">version</span><span class="p">,)),</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
 
     <span class="c"># A db without a version is considered v0</span>
     <span class="k">if</span> <span class="n">version_from_table</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
@@ -512,19 +624,21 @@
                                   <span class="n">expected_version</span><span class="o">=</span><span class="n">expected_version</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">write_version_info</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">version_value</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">write_version_info</span><span class="p">(</span><span class="n">conn</span><span class="p">,</span> <span class="n">version_table</span><span class="p">,</span> <span class="n">version_value</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Inserts the version value in to the version table.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
+<span class="sd">    conn : sa.Connection</span>
+<span class="sd">        The connection to use to execute the insert.</span>
 <span class="sd">    version_table : sa.Table</span>
 <span class="sd">        The version table of the asset database</span>
 <span class="sd">    version_value : int</span>
 <span class="sd">        The version to write in to the database</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">sa</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;version&#39;</span><span class="p">:</span> <span class="n">version_value</span><span class="p">})</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sa</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">version_table</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;version&#39;</span><span class="p">:</span> <span class="n">version_value</span><span class="p">}))</span>
 
 
 <span class="k">class</span> <span class="nc">_empty</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -541,9 +655,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">DEFAULT_CHUNK_SIZE</span> <span class="o">=</span> <span class="n">SQLITE_MAX_VARIABLE_NUMBER</span>
 
+    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">engine</span><span class="o">=</span><span class="n">coerce_string_to_eng</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">engine</span> <span class="o">=</span> <span class="n">sa</span><span class="o">.</span><span class="n">create_engine</span><span class="p">(</span><span class="s">&#39;sqlite:///&#39;</span> <span class="o">+</span> <span class="n">engine</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
 
 <div class="viewcode-block" id="AssetDBWriter.write"><a class="viewcode-back" href="../../../appendix.html#zipline.assets.AssetDBWriter.write">[docs]</a>    <span class="k">def</span> <span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -561,9 +674,6 @@
 
 <span class="sd">              symbol : str</span>
 <span class="sd">                  The ticker symbol for this equity.</span>
-<span class="sd">              fuzzy_symbol : str, optional</span>
-<span class="sd">                  The fuzzy symbol for this equity. This is the symbol</span>
-<span class="sd">                  without any delimiting characters like &#39;.&#39; or &#39;_&#39;.</span>
 <span class="sd">              asset_name : str</span>
 <span class="sd">                  The full name for this asset.</span>
 <span class="sd">              start_date : datetime</span>
@@ -641,10 +751,9 @@
 <span class="sd">        --------</span>
 <span class="sd">        zipline.assets.asset_finder</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span> <span class="k">as</span> <span class="n">txn</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
             <span class="c"># Create SQL tables if they do not exist.</span>
-            <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_db</span><span class="p">(</span><span class="n">txn</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_db</span><span class="p">(</span><span class="n">conn</span><span class="p">)</span>
 
             <span class="c"># Get the data to add to SQL.</span>
             <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_data</span><span class="p">(</span>
@@ -653,54 +762,76 @@
                 <span class="n">exchanges</span> <span class="k">if</span> <span class="n">exchanges</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
                 <span class="n">root_symbols</span> <span class="k">if</span> <span class="n">root_symbols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
             <span class="p">)</span>
-
             <span class="c"># Write the data to SQL.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
-                <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="s">&#39;futures_exchanges&#39;</span><span class="p">],</span>
+                <span class="n">futures_exchanges</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">.</span><span class="n">exchanges</span><span class="p">,</span>
-                <span class="n">txn</span><span class="p">,</span>
+                <span class="n">conn</span><span class="p">,</span>
                 <span class="n">chunk_size</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
-                <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="s">&#39;futures_root_symbols&#39;</span><span class="p">],</span>
+                <span class="n">futures_root_symbols</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">.</span><span class="n">root_symbols</span><span class="p">,</span>
-                <span class="n">txn</span><span class="p">,</span>
+                <span class="n">conn</span><span class="p">,</span>
                 <span class="n">chunk_size</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="n">asset_router</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="s">&#39;asset_router&#39;</span><span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_write_assets</span><span class="p">(</span>
-                <span class="n">asset_router</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="s">&#39;futures_contracts&#39;</span><span class="p">],</span>
                 <span class="s">&#39;future&#39;</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">.</span><span class="n">futures</span><span class="p">,</span>
-                <span class="n">txn</span><span class="p">,</span>
+                <span class="n">conn</span><span class="p">,</span>
                 <span class="n">chunk_size</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_write_assets</span><span class="p">(</span>
-                <span class="n">asset_router</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="s">&#39;equities&#39;</span><span class="p">],</span>
                 <span class="s">&#39;equity&#39;</span><span class="p">,</span>
                 <span class="n">data</span><span class="o">.</span><span class="n">equities</span><span class="p">,</span>
-                <span class="n">txn</span><span class="p">,</span>
+                <span class="n">conn</span><span class="p">,</span>
                 <span class="n">chunk_size</span><span class="p">,</span>
+                <span class="n">mapping_data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">equities_mappings</span><span class="p">,</span>
             <span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">_write_df_to_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tbl</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">txn</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_write_df_to_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tbl</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">txn</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">idx_label</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="n">df</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span>
             <span class="n">tbl</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
             <span class="n">txn</span><span class="o">.</span><span class="n">connection</span><span class="p">,</span>
-            <span class="n">index_label</span><span class="o">=</span><span class="n">first</span><span class="p">(</span><span class="n">tbl</span><span class="o">.</span><span class="n">primary_key</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">index_label</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">idx_label</span>
+                <span class="k">if</span> <span class="n">idx_label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span>
+                <span class="n">first</span><span class="p">(</span><span class="n">tbl</span><span class="o">.</span><span class="n">primary_key</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+            <span class="p">),</span>
             <span class="n">if_exists</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
             <span class="n">chunksize</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_write_assets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                      <span class="n">asset_router</span><span class="p">,</span>
-                      <span class="n">tbl</span><span class="p">,</span>
                       <span class="n">asset_type</span><span class="p">,</span>
                       <span class="n">assets</span><span class="p">,</span>
                       <span class="n">txn</span><span class="p">,</span>
-                      <span class="n">chunk_size</span><span class="p">):</span>
+                      <span class="n">chunk_size</span><span class="p">,</span>
+                      <span class="n">mapping_data</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">asset_type</span> <span class="o">==</span> <span class="s">&#39;future&#39;</span><span class="p">:</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="n">futures_contracts_table</span>
+            <span class="k">if</span> <span class="n">mapping_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&#39;no mapping data expected for futures&#39;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">asset_type</span> <span class="o">==</span> <span class="s">&#39;equity&#39;</span><span class="p">:</span>
+            <span class="n">tbl</span> <span class="o">=</span> <span class="n">equities_table</span>
+            <span class="k">if</span> <span class="n">mapping_data</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&#39;mapping data required for equities&#39;</span><span class="p">)</span>
+            <span class="c"># write the symbol mapping data.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span>
+                <span class="n">equity_symbol_mappings</span><span class="p">,</span>
+                <span class="n">mapping_data</span><span class="p">,</span>
+                <span class="n">txn</span><span class="p">,</span>
+                <span class="n">chunk_size</span><span class="p">,</span>
+                <span class="n">idx_label</span><span class="o">=</span><span class="s">&#39;sid&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s">&quot;asset_type must be in {&#39;future&#39;, &#39;equity&#39;}, got: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span>
+                <span class="n">asset_type</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_write_df_to_table</span><span class="p">(</span><span class="n">tbl</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">txn</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">)</span>
 
         <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
@@ -753,18 +884,14 @@
                 <span class="n">txn</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">())</span>
 
             <span class="n">tables_already_exist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_tables_present</span><span class="p">(</span><span class="n">txn</span><span class="p">)</span>
-            <span class="n">metadata</span> <span class="o">=</span> <span class="n">generate_asset_db_metadata</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">txn</span><span class="p">)</span>
 
             <span class="c"># Create the SQL tables if they do not already exist.</span>
-            <span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="n">checkfirst</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="n">txn</span><span class="p">,</span> <span class="n">checkfirst</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-            <span class="n">version_info</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="s">&#39;version_info&#39;</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">tables_already_exist</span><span class="p">:</span>
-                <span class="n">check_version_info</span><span class="p">(</span><span class="n">version_info</span><span class="p">,</span> <span class="n">ASSET_DB_VERSION</span><span class="p">)</span>
+                <span class="n">check_version_info</span><span class="p">(</span><span class="n">txn</span><span class="p">,</span> <span class="n">version_info</span><span class="p">,</span> <span class="n">ASSET_DB_VERSION</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">write_version_info</span><span class="p">(</span><span class="n">version_info</span><span class="p">,</span> <span class="n">ASSET_DB_VERSION</span><span class="p">)</span>
-
-            <span class="k">return</span> <span class="n">metadata</span></div>
+                <span class="n">write_version_info</span><span class="p">(</span><span class="n">txn</span><span class="p">,</span> <span class="n">version_info</span><span class="p">,</span> <span class="n">ASSET_DB_VERSION</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_normalize_equities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">equities</span><span class="p">):</span>
         <span class="c"># HACK: If &#39;company_name&#39; is provided, map it to asset_name</span>
@@ -785,16 +912,13 @@
         <span class="n">tuple_series</span> <span class="o">=</span> <span class="n">equities_output</span><span class="p">[</span><span class="s">&#39;symbol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">split_delimited_symbol</span><span class="p">)</span>
         <span class="n">split_symbols</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
             <span class="n">tuple_series</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
-            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;company_symbol&#39;</span><span class="p">,</span> <span class="s">&#39;share_class_symbol&#39;</span><span class="p">,</span> <span class="s">&#39;fuzzy_symbol&#39;</span><span class="p">],</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;company_symbol&#39;</span><span class="p">,</span> <span class="s">&#39;share_class_symbol&#39;</span><span class="p">],</span>
             <span class="n">index</span><span class="o">=</span><span class="n">tuple_series</span><span class="o">.</span><span class="n">index</span>
         <span class="p">)</span>
-        <span class="n">equities_output</span> <span class="o">=</span> <span class="n">equities_output</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">split_symbols</span><span class="p">)</span>
+        <span class="n">equities_output</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">((</span><span class="n">equities_output</span><span class="p">,</span> <span class="n">split_symbols</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="c"># Upper-case all symbol data</span>
-        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;symbol&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;company_symbol&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;share_class_symbol&#39;</span><span class="p">,</span>
-                    <span class="s">&#39;fuzzy_symbol&#39;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">symbol_columns</span><span class="p">:</span>
             <span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
 
         <span class="c"># Convert date columns to UNIX Epoch integers (nanoseconds)</span>
@@ -804,7 +928,7 @@
                     <span class="s">&#39;auto_close_date&#39;</span><span class="p">):</span>
             <span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">_dt_to_epoch_ns</span><span class="p">(</span><span class="n">equities_output</span><span class="p">[</span><span class="n">col</span><span class="p">])</span>
 
-        <span class="k">return</span> <span class="n">equities_output</span>
+        <span class="k">return</span> <span class="n">_split_symbol_mappings</span><span class="p">(</span><span class="n">equities_output</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_normalize_futures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">futures</span><span class="p">):</span>
         <span class="n">futures_output</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
@@ -839,7 +963,7 @@
             <span class="k">if</span> <span class="n">id_col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
                 <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="n">id_col</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
-        <span class="n">equities_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_equities</span><span class="p">(</span><span class="n">equities</span><span class="p">)</span>
+        <span class="n">equities_output</span><span class="p">,</span> <span class="n">equities_mappings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_equities</span><span class="p">(</span><span class="n">equities</span><span class="p">)</span>
         <span class="n">futures_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_futures</span><span class="p">(</span><span class="n">futures</span><span class="p">)</span>
 
         <span class="n">exchanges_output</span> <span class="o">=</span> <span class="n">_generate_output_dataframe</span><span class="p">(</span>
@@ -854,6 +978,7 @@
 
         <span class="k">return</span> <span class="n">AssetData</span><span class="p">(</span>
             <span class="n">equities</span><span class="o">=</span><span class="n">equities_output</span><span class="p">,</span>
+            <span class="n">equities_mappings</span><span class="o">=</span><span class="n">equities_mappings</span><span class="p">,</span>
             <span class="n">futures</span><span class="o">=</span><span class="n">futures_output</span><span class="p">,</span>
             <span class="n">exchanges</span><span class="o">=</span><span class="n">exchanges_output</span><span class="p">,</span>
             <span class="n">root_symbols</span><span class="o">=</span><span class="n">root_symbols_output</span><span class="p">,</span>
@@ -889,7 +1014,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.technical &mdash; Zipline 1.0.1 documentation</title>
+  <title>zipline.pipeline.factors.technical &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -116,6 +117,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -124,10 +127,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -138,70 +151,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +241,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#readers">Readers</a></li>
@@ -297,6 +311,8 @@
 <span class="sd">Technical Analysis Factors</span>
 <span class="sd">--------------------------</span>
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 <span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="nb">abs</span><span class="p">,</span>
@@ -304,6 +320,7 @@
     <span class="n">average</span><span class="p">,</span>
     <span class="n">clip</span><span class="p">,</span>
     <span class="n">diff</span><span class="p">,</span>
+    <span class="n">dstack</span><span class="p">,</span>
     <span class="n">exp</span><span class="p">,</span>
     <span class="n">fmax</span><span class="p">,</span>
     <span class="n">full</span><span class="p">,</span>
@@ -311,25 +328,23 @@
     <span class="n">isnan</span><span class="p">,</span>
     <span class="n">log</span><span class="p">,</span>
     <span class="n">NINF</span><span class="p">,</span>
-    <span class="n">searchsorted</span><span class="p">,</span>
     <span class="n">sqrt</span><span class="p">,</span>
     <span class="nb">sum</span> <span class="k">as</span> <span class="n">np_sum</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">numexpr</span> <span class="kn">import</span> <span class="n">evaluate</span>
-<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">linregress</span><span class="p">,</span> <span class="n">pearsonr</span><span class="p">,</span> <span class="n">spearmanr</span>
 
 <span class="kn">from</span> <span class="nn">zipline.pipeline.data</span> <span class="kn">import</span> <span class="n">USEquityPricing</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">SingleAsset</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">AssetExists</span><span class="p">,</span> <span class="n">NotSpecified</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">ignore_nanwarnings</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">nanargmax</span><span class="p">,</span>
+    <span class="n">nanargmin</span><span class="p">,</span>
     <span class="n">nanmax</span><span class="p">,</span>
     <span class="n">nanmean</span><span class="p">,</span>
     <span class="n">nanstd</span><span class="p">,</span>
     <span class="n">nansum</span><span class="p">,</span>
+    <span class="n">nanmin</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">.factor</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
 
@@ -451,306 +466,7 @@
     <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">volume</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">,</span> <span class="n">volume</span><span class="p">):</span>
-        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">close</span> <span class="o">*</span> <span class="n">volume</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
-
-
-<span class="k">class</span> <span class="nc">_RollingCorrelationOfReturns</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Base class for factors computing a rolling correlation over a window of</span>
-<span class="sd">    Returns.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    target : zipline.assets.Asset</span>
-<span class="sd">        The asset to correlate with all other assets.</span>
-<span class="sd">    returns_length : int &gt;= 2</span>
-<span class="sd">        Length of the lookback window over which to compute returns. Daily</span>
-<span class="sd">        returns require a window length of 2.</span>
-<span class="sd">    correlation_length : int &gt;= 1</span>
-<span class="sd">        Length of the lookback window over which to compute each correlation</span>
-<span class="sd">        coefficient.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
-                <span class="n">target</span><span class="p">,</span>
-                <span class="n">returns_length</span><span class="p">,</span>
-                <span class="n">correlation_length</span><span class="p">,</span>
-                <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="n">NotSpecified</span><span class="p">:</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">AssetExists</span><span class="p">()</span>
-
-        <span class="c"># Make sure we do not filter out the asset of interest.</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">_RollingCorrelationOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">Returns</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">)],</span>
-            <span class="n">window_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
-            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span>
-
-
-<div class="viewcode-block" id="RollingPearsonOfReturns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RollingPearsonOfReturns">[docs]</a><span class="k">class</span> <span class="nc">RollingPearsonOfReturns</span><span class="p">(</span><span class="n">_RollingCorrelationOfReturns</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Calculates the Pearson product-moment correlation coefficient of the</span>
-<span class="sd">    returns of the given asset with the returns of all other assets.</span>
-
-<span class="sd">    Pearson correlation is what most people mean when they say &quot;correlation</span>
-<span class="sd">    coefficient&quot; or &quot;R-value&quot;.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    target : zipline.assets.Asset</span>
-<span class="sd">        The asset to correlate with all other assets.</span>
-<span class="sd">    returns_length : int &gt;= 2</span>
-<span class="sd">        Length of the lookback window over which to compute returns. Daily</span>
-<span class="sd">        returns require a window length of 2.</span>
-<span class="sd">    correlation_length : int &gt;= 1</span>
-<span class="sd">        Length of the lookback window over which to compute each correlation</span>
-<span class="sd">        coefficient.</span>
-<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
-<span class="sd">        A Filter describing which assets should have their correlation with the</span>
-<span class="sd">        target asset computed each day.</span>
-
-<span class="sd">    Note</span>
-<span class="sd">    ----</span>
-<span class="sd">    Computing this factor over many assets can be time consuming. It is</span>
-<span class="sd">    recommended that a mask be used in order to limit the number of assets over</span>
-<span class="sd">    which correlations are computed.</span>
-
-<span class="sd">    Example</span>
-<span class="sd">    -------</span>
-<span class="sd">    Let the following be example 10-day returns for three different assets::</span>
-
-<span class="sd">                       SPY    MSFT     FB</span>
-<span class="sd">        2017-03-13    -.03     .03    .04</span>
-<span class="sd">        2017-03-14    -.02    -.03    .02</span>
-<span class="sd">        2017-03-15    -.01     .02    .01</span>
-<span class="sd">        2017-03-16       0    -.02    .01</span>
-<span class="sd">        2017-03-17     .01     .04   -.01</span>
-<span class="sd">        2017-03-20     .02    -.03   -.02</span>
-<span class="sd">        2017-03-21     .03     .01   -.02</span>
-<span class="sd">        2017-03-22     .04    -.02   -.02</span>
-
-<span class="sd">    Suppose we are interested in SPY&#39;s rolling returns correlation with each</span>
-<span class="sd">    stock from 2017-03-17 to 2017-03-22, using a 5-day look back window (that</span>
-<span class="sd">    is, we calculate each correlation coefficient over 5 days of data). We can</span>
-<span class="sd">    achieve this by doing::</span>
-
-<span class="sd">        rolling_correlations = RollingPearsonOfReturns(</span>
-<span class="sd">            target=Equity(8554),</span>
-<span class="sd">            returns_length=10,</span>
-<span class="sd">            correlation_length=5,</span>
-<span class="sd">        )</span>
-
-<span class="sd">    The result of computing ``rolling_correlations`` from 2017-03-17 to</span>
-<span class="sd">    2017-03-22 gives::</span>
-
-<span class="sd">                       SPY   MSFT     FB</span>
-<span class="sd">        2017-03-17       1    .15   -.96</span>
-<span class="sd">        2017-03-20       1    .10   -.96</span>
-<span class="sd">        2017-03-21       1   -.16   -.94</span>
-<span class="sd">        2017-03-22       1   -.16   -.85</span>
-
-<span class="sd">    Note that the column for SPY is all 1&#39;s, as the correlation of any data</span>
-<span class="sd">    series with itself is always 1. To understand how each of the other values</span>
-<span class="sd">    were calculated, take for example the .15 in MSFT&#39;s column. This is the</span>
-<span class="sd">    correlation coefficient between SPY&#39;s returns looking back from 2017-03-17</span>
-<span class="sd">    (-.03, -.02, -.01, 0, .01) and MSFT&#39;s returns (.03, -.03, .02, -.02, .04).</span>
-
-<span class="sd">    See Also</span>
-<span class="sd">    --------</span>
-<span class="sd">    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`</span>
-<span class="sd">    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-        <span class="n">target_col</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="n">searchsorted</span><span class="p">(</span><span class="n">assets</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">sid</span><span class="p">)]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
-            <span class="c"># pearsonr returns the R-value and the P-value.</span>
-            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">target_col</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="RollingSpearmanOfReturns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RollingSpearmanOfReturns">[docs]</a><span class="k">class</span> <span class="nc">RollingSpearmanOfReturns</span><span class="p">(</span><span class="n">_RollingCorrelationOfReturns</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Calculates the Spearman rank correlation coefficient of the returns of the</span>
-<span class="sd">    given asset with the returns of all other assets.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    target : zipline.assets.Asset</span>
-<span class="sd">        The asset to correlate with all other assets.</span>
-<span class="sd">    returns_length : int &gt;= 2</span>
-<span class="sd">        Length of the lookback window over which to compute returns. Daily</span>
-<span class="sd">        returns require a window length of 2.</span>
-<span class="sd">    correlation_length : int &gt;= 1</span>
-<span class="sd">        Length of the lookback window over which to compute each correlation</span>
-<span class="sd">        coefficient.</span>
-<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
-<span class="sd">        A Filter describing which assets should have their correlation with the</span>
-<span class="sd">        target asset computed each day.</span>
-
-<span class="sd">    Note</span>
-<span class="sd">    ----</span>
-<span class="sd">    Computing this factor over many assets can be time consuming. It is</span>
-<span class="sd">    recommended that a mask be used in order to limit the number of assets over</span>
-<span class="sd">    which correlations are computed.</span>
-
-<span class="sd">    See Also</span>
-<span class="sd">    --------</span>
-<span class="sd">    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`</span>
-<span class="sd">    :class:`zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-        <span class="n">target_col</span> <span class="o">=</span> <span class="n">data</span><span class="p">[:,</span> <span class="n">searchsorted</span><span class="p">(</span><span class="n">assets</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">sid</span><span class="p">)]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
-            <span class="c"># spearmanr returns the R-value and the P-value.</span>
-            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">spearmanr</span><span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">target_col</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="RollingLinearRegressionOfReturns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RollingLinearRegressionOfReturns">[docs]</a><span class="k">class</span> <span class="nc">RollingLinearRegressionOfReturns</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Perform an ordinary least-squares regression predicting the returns of all</span>
-<span class="sd">    other assets on the given asset.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    target : zipline.assets.Asset</span>
-<span class="sd">        The asset to regress against all other assets.</span>
-<span class="sd">    returns_length : int &gt;= 2</span>
-<span class="sd">        Length of the lookback window over which to compute returns. Daily</span>
-<span class="sd">        returns require a window length of 2.</span>
-<span class="sd">    regression_length : int &gt;= 1</span>
-<span class="sd">        Length of the lookback window over which to compute each regression.</span>
-<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
-<span class="sd">        A Filter describing which assets should be regressed against the target</span>
-<span class="sd">        asset each day.</span>
-
-<span class="sd">    Notes</span>
-<span class="sd">    -----</span>
-<span class="sd">    Computing this factor over many assets can be time consuming. It is</span>
-<span class="sd">    recommended that a mask be used in order to limit the number of assets over</span>
-<span class="sd">    which regressions are computed.</span>
-
-<span class="sd">    This factor is designed to return five outputs:</span>
-
-<span class="sd">    - alpha, a factor that computes the intercepts of each regression.</span>
-<span class="sd">    - beta, a factor that computes the slopes of each regression.</span>
-<span class="sd">    - r_value, a factor that computes the correlation coefficient of each</span>
-<span class="sd">      regression.</span>
-<span class="sd">    - p_value, a factor that computes, for each regression, the two-sided</span>
-<span class="sd">      p-value for a hypothesis test whose null hypothesis is that the slope is</span>
-<span class="sd">      zero.</span>
-<span class="sd">    - stderr, a factor that computes the standard error of the estimate of each</span>
-<span class="sd">      regression.</span>
-
-<span class="sd">    For more help on factors with multiple outputs, see</span>
-<span class="sd">    :class:`zipline.pipeline.factors.CustomFactor`.</span>
-
-<span class="sd">    Example</span>
-<span class="sd">    -------</span>
-<span class="sd">    Let the following be example 10-day returns for three different assets::</span>
-
-<span class="sd">                       SPY    MSFT     FB</span>
-<span class="sd">        2017-03-13    -.03     .03    .04</span>
-<span class="sd">        2017-03-14    -.02    -.03    .02</span>
-<span class="sd">        2017-03-15    -.01     .02    .01</span>
-<span class="sd">        2017-03-16       0    -.02    .01</span>
-<span class="sd">        2017-03-17     .01     .04   -.01</span>
-<span class="sd">        2017-03-20     .02    -.03   -.02</span>
-<span class="sd">        2017-03-21     .03     .01   -.02</span>
-<span class="sd">        2017-03-22     .04    -.02   -.02</span>
-
-<span class="sd">    Suppose we are interested in predicting each stock&#39;s returns from SPY&#39;s</span>
-<span class="sd">    over rolling 5-day look back windows. We can compute rolling regression</span>
-<span class="sd">    coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::</span>
-
-<span class="sd">        regression_factor = RollingRegressionOfReturns(</span>
-<span class="sd">            target=Equity(8554),</span>
-<span class="sd">            returns_length=10,</span>
-<span class="sd">            regression_length=5,</span>
-<span class="sd">        )</span>
-<span class="sd">        alpha = regression_factor.alpha</span>
-<span class="sd">        beta = regression_factor.beta</span>
-
-<span class="sd">    The result of computing ``alpha`` from 2017-03-17 to 2017-03-22 gives::</span>
-
-<span class="sd">                       SPY    MSFT     FB</span>
-<span class="sd">        2017-03-17       0    .011   .003</span>
-<span class="sd">        2017-03-20       0   -.004   .004</span>
-<span class="sd">        2017-03-21       0    .007   .006</span>
-<span class="sd">        2017-03-22       0    .002   .008</span>
-
-<span class="sd">    And the result of computing ``beta`` from 2017-03-17 to 2017-03-22 gives::</span>
-
-<span class="sd">                       SPY    MSFT     FB</span>
-<span class="sd">        2017-03-17       1      .3   -1.1</span>
-<span class="sd">        2017-03-20       1      .2     -1</span>
-<span class="sd">        2017-03-21       1     -.3     -1</span>
-<span class="sd">        2017-03-22       1     -.3    -.9</span>
-
-<span class="sd">    Note that SPY&#39;s column for alpha is all 0&#39;s and for beta is all 1&#39;s, as the</span>
-<span class="sd">    regression line of SPY with itself is simply the function y = x.</span>
-
-<span class="sd">    To understand how each of the other values were calculated, take for</span>
-<span class="sd">    example MSFT&#39;s ``alpha`` and ``beta`` values on 2017-03-17 (.011 and .3,</span>
-<span class="sd">    respectively). These values are the result of running a linear regression</span>
-<span class="sd">    predicting MSFT&#39;s returns from SPY&#39;s returns, using values starting at</span>
-<span class="sd">    2017-03-17 and looking back 5 days. That is, the regression was run with</span>
-<span class="sd">    x = [-.03, -.02, -.01, 0, .01] and y = [.03, -.03, .02, -.02, .04], and it</span>
-<span class="sd">    produced a slope of .3 and an intercept of .011.</span>
-
-<span class="sd">    See Also</span>
-<span class="sd">    --------</span>
-<span class="sd">    :class:`zipline.pipeline.factors.technical.RollingPearsonOfReturns`</span>
-<span class="sd">    :class:`zipline.pipeline.factors.technical.RollingSpearmanOfReturns`</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">,</span> <span class="s">&#39;beta&#39;</span><span class="p">,</span> <span class="s">&#39;r_value&#39;</span><span class="p">,</span> <span class="s">&#39;p_value&#39;</span><span class="p">,</span> <span class="s">&#39;stderr&#39;</span><span class="p">]</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;target&#39;</span><span class="p">]</span>
-
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
-                <span class="n">target</span><span class="p">,</span>
-                <span class="n">returns_length</span><span class="p">,</span>
-                <span class="n">regression_length</span><span class="p">,</span>
-                <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span>
-                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="n">NotSpecified</span><span class="p">:</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">AssetExists</span><span class="p">()</span>
-
-        <span class="c"># Make sure we do not filter out the asset of interest.</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingLinearRegressionOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
-            <span class="n">cls</span><span class="p">,</span>
-            <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">Returns</span><span class="p">(</span><span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">)],</span>
-            <span class="n">window_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
-            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">returns</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-        <span class="n">asset_col</span> <span class="o">=</span> <span class="n">searchsorted</span><span class="p">(</span><span class="n">assets</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">sid</span><span class="p">)</span>
-        <span class="n">my_asset</span> <span class="o">=</span> <span class="n">returns</span><span class="p">[:,</span> <span class="n">asset_col</span><span class="p">]</span>
-
-        <span class="n">alpha</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">alpha</span>
-        <span class="n">beta</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">beta</span>
-        <span class="n">r_value</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">r_value</span>
-        <span class="n">p_value</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">p_value</span>
-        <span class="n">stderr</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">stderr</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
-            <span class="n">other_asset</span> <span class="o">=</span> <span class="n">returns</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>
-            <span class="n">regr_results</span> <span class="o">=</span> <span class="n">linregress</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">other_asset</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">my_asset</span><span class="p">)</span>
-            <span class="c"># `linregress` returns its results in the following order:</span>
-            <span class="c"># slope, intercept, r-value, p-value, stderr</span>
-            <span class="n">alpha</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">beta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">r_value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-            <span class="n">p_value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-            <span class="n">stderr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span></div>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nansum</span><span class="p">(</span><span class="n">close</span> <span class="o">*</span> <span class="n">volume</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">close</span><span class="p">)</span></div>
 
 
 <span class="k">class</span> <span class="nc">_ExponentialWeightedFactor</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">CustomFactor</span><span class="p">):</span>
@@ -794,7 +510,7 @@
 
     <span class="nd">@classmethod</span>
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">span</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">from_span</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">span</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">from_span</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">span</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience constructor for passing `decay_rate` in terms of `span`.</span>
 
@@ -835,11 +551,12 @@
             <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
             <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">halflife</span><span class="o">=</span><span class="n">Number</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">from_halflife</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">halflife</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">from_halflife</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">halflife</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience constructor for passing ``decay_rate`` in terms of half</span>
 <span class="sd">        life.</span>
@@ -880,10 +597,15 @@
             <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
             <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_center_of_mass</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">window_length</span><span class="p">,</span> <span class="n">center_of_mass</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">from_center_of_mass</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                            <span class="n">inputs</span><span class="p">,</span>
+                            <span class="n">window_length</span><span class="p">,</span>
+                            <span class="n">center_of_mass</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Convenience constructor for passing `decay_rate` in terms of center of</span>
 <span class="sd">        mass.</span>
@@ -917,6 +639,7 @@
             <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
             <span class="n">window_length</span><span class="o">=</span><span class="n">window_length</span><span class="p">,</span>
             <span class="n">decay_rate</span><span class="o">=</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">center_of_mass</span><span class="p">))),</span>
+            <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
 
@@ -956,6 +679,35 @@
             <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="n">weights</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">decay_rate</span><span class="p">),</span>
         <span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">LinearWeightedMovingAverage</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Weighted Average Value of an arbitrary column</span>
+
+<span class="sd">    **Default Inputs**: None</span>
+
+<span class="sd">    **Default Window Length**: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># numpy&#39;s nan functions throw warnings when passed an array containing only</span>
+    <span class="c"># nans, but they still returns the desired value (nan), so we ignore the</span>
+    <span class="c"># warning.</span>
+    <span class="n">ctx</span> <span class="o">=</span> <span class="n">ignore_nanwarnings</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="n">num_days</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c"># Initialize weights array</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_days</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_days</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c"># Compute normalizer</span>
+        <span class="n">normalizer</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_days</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_days</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+
+        <span class="c"># Weight the data</span>
+        <span class="n">weighted_data</span> <span class="o">=</span> <span class="n">data</span> <span class="o">*</span> <span class="n">weights</span>
+
+        <span class="c"># Compute weighted averages</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nansum</span><span class="p">(</span><span class="n">weighted_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">normalizer</span>
 
 
 <div class="viewcode-block" id="ExponentialWeightedMovingStdDev"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.ExponentialWeightedMovingStdDev">[docs]</a><span class="k">class</span> <span class="nc">ExponentialWeightedMovingStdDev</span><span class="p">(</span><span class="n">_ExponentialWeightedFactor</span><span class="p">):</span>
@@ -1034,6 +786,212 @@
         <span class="n">out</span><span class="o">.</span><span class="n">middle</span> <span class="o">=</span> <span class="n">middle</span> <span class="o">=</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">close</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">out</span><span class="o">.</span><span class="n">upper</span> <span class="o">=</span> <span class="n">middle</span> <span class="o">+</span> <span class="n">difference</span>
         <span class="n">out</span><span class="o">.</span><span class="n">lower</span> <span class="o">=</span> <span class="n">middle</span> <span class="o">-</span> <span class="n">difference</span></div>
+
+
+<span class="k">class</span> <span class="nc">Aroon</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Aroon technical indicator.</span>
+<span class="sd">    https://www.fidelity.com/learning-center/trading-investing/technical-analysis/technical-indicator-guide/aroon-indicator  # noqa</span>
+
+<span class="sd">    **Defaults Inputs:** USEquityPricing.low, USEquityPricing.high</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        Length of the lookback window over which to compute the Aroon</span>
+<span class="sd">        indicator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;down&#39;</span><span class="p">,</span> <span class="s">&#39;up&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">lows</span><span class="p">,</span> <span class="n">highs</span><span class="p">):</span>
+        <span class="n">wl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span>
+        <span class="n">high_date_index</span> <span class="o">=</span> <span class="n">nanargmax</span><span class="p">(</span><span class="n">highs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">low_date_index</span> <span class="o">=</span> <span class="n">nanargmin</span><span class="p">(</span><span class="n">lows</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">evaluate</span><span class="p">(</span>
+            <span class="s">&#39;(100 * high_date_index) / (wl - 1)&#39;</span><span class="p">,</span>
+            <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;high_date_index&#39;</span><span class="p">:</span> <span class="n">high_date_index</span><span class="p">,</span>
+                <span class="s">&#39;wl&#39;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="o">.</span><span class="n">up</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">evaluate</span><span class="p">(</span>
+            <span class="s">&#39;(100 * low_date_index) / (wl - 1)&#39;</span><span class="p">,</span>
+            <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;low_date_index&#39;</span><span class="p">:</span> <span class="n">low_date_index</span><span class="p">,</span>
+                <span class="s">&#39;wl&#39;</span><span class="p">:</span> <span class="n">wl</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="o">.</span><span class="n">down</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">FastStochasticOscillator</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fast Stochastic Oscillator Indicator [%K, Momentum Indicator]</span>
+<span class="sd">    https://wiki.timetotrade.eu/Stochastic</span>
+
+<span class="sd">    This stochastic is considered volatile, and varies a lot when used in</span>
+<span class="sd">    market analysis. It is recommended to use the slow stochastic oscillator</span>
+<span class="sd">    or a moving average of the %K [%D].</span>
+
+<span class="sd">    **Default Inputs:** :data: `zipline.pipeline.data.USEquityPricing.close`</span>
+<span class="sd">                        :data: `zipline.pipeline.data.USEquityPricing.low`</span>
+<span class="sd">                        :data: `zipline.pipeline.data.USEquityPricing.high`</span>
+
+<span class="sd">    **Default Window Length:** 14</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out: %K oscillator</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">)</span>
+    <span class="n">window_safe</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">14</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">closes</span><span class="p">,</span> <span class="n">lows</span><span class="p">,</span> <span class="n">highs</span><span class="p">):</span>
+
+        <span class="n">highest_highs</span> <span class="o">=</span> <span class="n">nanmax</span><span class="p">(</span><span class="n">highs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">lowest_lows</span> <span class="o">=</span> <span class="n">nanmin</span><span class="p">(</span><span class="n">lows</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">today_closes</span> <span class="o">=</span> <span class="n">closes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">evaluate</span><span class="p">(</span>
+            <span class="s">&#39;((tc - ll) / (hh - ll)) * 100&#39;</span><span class="p">,</span>
+            <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
+                <span class="s">&#39;tc&#39;</span><span class="p">:</span> <span class="n">today_closes</span><span class="p">,</span>
+                <span class="s">&#39;ll&#39;</span><span class="p">:</span> <span class="n">lowest_lows</span><span class="p">,</span>
+                <span class="s">&#39;hh&#39;</span><span class="p">:</span> <span class="n">highest_highs</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">global_dict</span><span class="o">=</span><span class="p">{},</span>
+            <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">IchimokuKinkoHyo</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the various metrics for the Ichimoku Kinko Hyo (Ichimoku Cloud).</span>
+<span class="sd">    http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:ichimoku_cloud  # noqa</span>
+
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`</span>
+<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.low`</span>
+<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.close`</span>
+<span class="sd">    **Default Window Length:** 52</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    window_length : int &gt; 0</span>
+<span class="sd">        The length the the window for the senkou span b.</span>
+<span class="sd">    tenkan_sen_length : int &gt;= 0, &lt;= window_length</span>
+<span class="sd">        The length of the window for the tenkan-sen.</span>
+<span class="sd">    kijun_sen_length : int &gt;= 0, &lt;= window_length</span>
+<span class="sd">        The length of the window for the kijou-sen.</span>
+<span class="sd">    chikou_span_length : int &gt;= 0, &lt;= window_length</span>
+<span class="sd">        The lag for the chikou span.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s">&#39;tenkan_sen_length&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+        <span class="s">&#39;kijun_sen_length&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
+        <span class="s">&#39;chikou_span_length&#39;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">,</span> <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s">&#39;tenkan_sen&#39;</span><span class="p">,</span>
+        <span class="s">&#39;kijun_sen&#39;</span><span class="p">,</span>
+        <span class="s">&#39;senkou_span_a&#39;</span><span class="p">,</span>
+        <span class="s">&#39;senkou_span_b&#39;</span><span class="p">,</span>
+        <span class="s">&#39;chikou_span&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">52</span>
+
+    <span class="k">def</span> <span class="nf">_validate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">IchimokuKinkoHyo</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_validate</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s">&#39;</span><span class="si">%s</span><span class="s"> must be &lt;= the window_length: </span><span class="si">%s</span><span class="s"> &gt; </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">window_length</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">today</span><span class="p">,</span>
+                <span class="n">assets</span><span class="p">,</span>
+                <span class="n">out</span><span class="p">,</span>
+                <span class="n">high</span><span class="p">,</span>
+                <span class="n">low</span><span class="p">,</span>
+                <span class="n">close</span><span class="p">,</span>
+                <span class="n">tenkan_sen_length</span><span class="p">,</span>
+                <span class="n">kijun_sen_length</span><span class="p">,</span>
+                <span class="n">chikou_span_length</span><span class="p">):</span>
+
+        <span class="n">out</span><span class="o">.</span><span class="n">tenkan_sen</span> <span class="o">=</span> <span class="n">tenkan_sen</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">high</span><span class="p">[</span><span class="o">-</span><span class="n">tenkan_sen_length</span><span class="p">:]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span>
+            <span class="n">low</span><span class="p">[</span><span class="o">-</span><span class="n">tenkan_sen_length</span><span class="p">:]</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">kijun_sen</span> <span class="o">=</span> <span class="n">kijun_sen</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">high</span><span class="p">[</span><span class="o">-</span><span class="n">kijun_sen_length</span><span class="p">:]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span>
+            <span class="n">low</span><span class="p">[</span><span class="o">-</span><span class="n">kijun_sen_length</span><span class="p">:]</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">senkou_span_a</span> <span class="o">=</span> <span class="p">(</span><span class="n">tenkan_sen</span> <span class="o">+</span> <span class="n">kijun_sen</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">senkou_span_b</span> <span class="o">=</span> <span class="p">(</span><span class="n">high</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">low</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">chikou_span</span> <span class="o">=</span> <span class="n">close</span><span class="p">[</span><span class="n">chikou_span_length</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">RateOfChangePercentage</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rate of change Percentage</span>
+<span class="sd">    ROC measures the percentage change in price from one period to the next.</span>
+<span class="sd">    The ROC calculation compares the current price with the price `n`</span>
+<span class="sd">    periods ago.</span>
+<span class="sd">    Formula for calculation: ((price - prevPrice) / prevPrice) * 100</span>
+<span class="sd">    price - the current price</span>
+<span class="sd">    prevPrice - the price n days ago, equals window length</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">close</span><span class="p">):</span>
+        <span class="n">today_close</span> <span class="o">=</span> <span class="n">close</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">prev_close</span> <span class="o">=</span> <span class="n">close</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">evaluate</span><span class="p">(</span><span class="s">&#39;((tc - pc) / pc) * 100&#39;</span><span class="p">,</span>
+                 <span class="n">local_dict</span><span class="o">=</span><span class="p">{</span>
+                     <span class="s">&#39;tc&#39;</span><span class="p">:</span> <span class="n">today_close</span><span class="p">,</span>
+                     <span class="s">&#39;pc&#39;</span><span class="p">:</span> <span class="n">prev_close</span>
+                 <span class="p">},</span>
+                 <span class="n">global_dict</span><span class="o">=</span><span class="p">{},</span>
+                 <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">,</span>
+                 <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TrueRange</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    True Range</span>
+
+<span class="sd">    A technical indicator originally developed by J. Welles Wilder, Jr.</span>
+<span class="sd">    Indicates the true degree of daily price change in an underlying.</span>
+
+<span class="sd">    **Default Inputs:** :data:`zipline.pipeline.data.USEquityPricing.high`</span>
+<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.low`</span>
+<span class="sd">                        :data:`zipline.pipeline.data.USEquityPricing.close`</span>
+<span class="sd">    **Default Window Length:** 2</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">high</span><span class="p">,</span>
+        <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">low</span><span class="p">,</span>
+        <span class="n">USEquityPricing</span><span class="o">.</span><span class="n">close</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">window_length</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">highs</span><span class="p">,</span> <span class="n">lows</span><span class="p">,</span> <span class="n">closes</span><span class="p">):</span>
+        <span class="n">high_to_low</span> <span class="o">=</span> <span class="n">highs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">lows</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">high_to_prev_close</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">highs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">closes</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">low_to_prev_close</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">lows</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">closes</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">nanmax</span><span class="p">(</span>
+            <span class="n">dstack</span><span class="p">((</span>
+                <span class="n">high_to_low</span><span class="p">,</span>
+                <span class="n">high_to_prev_close</span><span class="p">,</span>
+                <span class="n">low_to_prev_close</span><span class="p">,</span>
+            <span class="p">)),</span>
+            <span class="mi">2</span>
+        <span class="p">)</span>
 </pre></div>
 
           </div>
@@ -1065,7 +1023,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

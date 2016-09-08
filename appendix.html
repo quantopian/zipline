@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>API Reference &mdash; Zipline 1.0.1 documentation</title>
+  <title>API Reference &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="index.html"/>
         <link rel="next" title="Zipline Release Process" href="release-process.html"/>
         <link rel="prev" title="Release Notes" href="releases.html"/> 
 
@@ -86,6 +86,7 @@
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -117,6 +118,8 @@
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -125,10 +128,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -139,70 +152,70 @@
 <li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -229,6 +242,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#readers">Readers</a></li>
@@ -449,9 +463,21 @@ backwards compatibility with older API concepts.</p>
 <dl class="method">
 <dt id="zipline.protocol.BarData.can_trade">
 <code class="descname">can_trade</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#zipline.protocol.BarData.can_trade" title="Permalink to this definition">¶</a></dt>
-<dd><p>For the given asset or iterable of assets, returns true if the asset
-is alive at the current simulation time and there is a known last
-price.</p>
+<dd><p>For the given asset or iterable of assets, returns true if all of the
+following are true:
+1) the asset is alive for the session of the current simulation time</p>
+<blockquote>
+<div>(if current simulation time is not a market minute, we use the next
+session)</div></blockquote>
+<ol class="arabic simple" start="2">
+<li>(if we are in minute mode) the asset&#8217;s exchange is open at the</li>
+</ol>
+<blockquote>
+<div>current simulation time or at the simulation calendar&#8217;s next market
+minute</div></blockquote>
+<ol class="arabic simple" start="3">
+<li>there is a known last price for the asset.</li>
+</ol>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -462,6 +488,16 @@ price.</p>
 </tr>
 </tbody>
 </table>
+<p class="rubric">Notes</p>
+<p>The second condition above warrants some further explanation.
+- If the asset&#8217;s exchange calendar is identical to the simulation
+calendar, then this condition always returns True.
+- If there are market minutes in the simulation calendar outside of
+this asset&#8217;s exchange&#8217;s trading hours (for example, if the simulation
+is running on the CME calendar but the asset is MSFT, which trades on
+the NYSE), during those minutes, this condition will return false
+(for example, 3:15 am Eastern on a weekday, during which the CME is
+open but the NYSE is closed).</p>
 </dd></dl>
 
 <dl class="method">
@@ -593,7 +629,7 @@ market minute/day for the trade data check.</p>
 <h3>Scheduling Functions<a class="headerlink" href="#scheduling-functions" title="Permalink to this headline">¶</a></h3>
 <dl class="function">
 <dt id="zipline.api.schedule_function">
-<code class="descclassname">zipline.api.</code><code class="descname">schedule_function</code><span class="sig-paren">(</span><em>self</em>, <em>func</em>, <em>date_rule=None</em>, <em>time_rule=None</em>, <em>half_days=True</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.schedule_function" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">zipline.api.</code><code class="descname">schedule_function</code><span class="sig-paren">(</span><em>self</em>, <em>func</em>, <em>date_rule=None</em>, <em>time_rule=None</em>, <em>half_days=True</em>, <em>calendar=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.schedule_function" title="Permalink to this definition">¶</a></dt>
 <dd><p>Schedules a function to be called according to some timed rules.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -660,6 +696,12 @@ market minute/day for the trade data check.</p>
 <dt id="zipline.api.time_rules">
 <em class="property">class </em><code class="descclassname">zipline.api.</code><code class="descname">time_rules</code><a class="reference internal" href="_modules/zipline/utils/events.html#time_rules"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.api.time_rules" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
+<dt id="zipline.api.time_rules.every_minute">
+<code class="descname">every_minute</code><a class="headerlink" href="#zipline.api.time_rules.every_minute" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">Always</span></code></p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="zipline.api.time_rules.market_close">
 <code class="descname">market_close</code><a class="headerlink" href="#zipline.api.time_rules.market_close" title="Permalink to this definition">¶</a></dt>
 <dd><p>alias of <code class="xref py py-class docutils literal"><span class="pre">BeforeClose</span></code></p>
@@ -1335,8 +1377,8 @@ lookup date.</p>
 
 <dl class="function">
 <dt id="zipline.api.future_chain">
-<code class="descclassname">zipline.api.</code><code class="descname">future_chain</code><span class="sig-paren">(</span><em>self</em>, <em>root_symbol</em>, <em>as_of_date=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_chain" title="Permalink to this definition">¶</a></dt>
-<dd><p>Look up a future chain with the specified parameters.</p>
+<code class="descclassname">zipline.api.</code><code class="descname">future_chain</code><span class="sig-paren">(</span><em>self</em>, <em>root_symbol</em>, <em>as_of_date=None</em>, <em>offset=0</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.api.future_chain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look up a future chain.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -1347,9 +1389,16 @@ lookup date.</p>
 </div></blockquote>
 <p><strong>as_of_date</strong> : datetime.datetime or pandas.Timestamp or str, optional</p>
 <blockquote>
-<div><p>Date at which the chain determination is rooted. I.e. the
-existing contract whose notice date is first after this date is
-the primary contract, etc.</p>
+<div><p>Date at which the chain determination is rooted. If this date is
+not passed in, the current simulation session (not minute) is used.</p>
+</div></blockquote>
+<p><strong>offset: int</strong></p>
+<blockquote>
+<div><dl class="docutils">
+<dt>Number of sessions to shift <cite>as_of_date</cite>.  Positive values shift</dt>
+<dd><p class="first last">forward in time.  Negative values shift backward in time.</p>
+</dd>
+</dl>
 </div></blockquote>
 </td>
 </tr>
@@ -2172,9 +2221,44 @@ and self.screen is not None, we raise an error.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="zipline.pipeline.Pipeline.to_graph">
-<code class="descname">to_graph</code><span class="sig-paren">(</span><em>screen_name</em>, <em>default_screen</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/pipeline.html#Pipeline.to_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.Pipeline.to_graph" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compile into a TermGraph.</p>
+<dt id="zipline.pipeline.Pipeline.to_execution_plan">
+<code class="descname">to_execution_plan</code><span class="sig-paren">(</span><em>screen_name</em>, <em>default_screen</em>, <em>all_dates</em>, <em>start_date</em>, <em>end_date</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/pipeline.html#Pipeline.to_execution_plan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.Pipeline.to_execution_plan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compile into an ExecutionPlan.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>screen_name</strong> : str</p>
+<blockquote>
+<div><p>Name to supply for self.screen.</p>
+</div></blockquote>
+<p><strong>default_screen</strong> : zipline.pipeline.term.Term</p>
+<blockquote>
+<div><p>Term to use as a screen if self.screen is None.</p>
+</div></blockquote>
+<p><strong>all_dates</strong> : pd.DatetimeIndex</p>
+<blockquote>
+<div><p>A calendar of dates to use to calculate starts and ends for each
+term.</p>
+</div></blockquote>
+<p><strong>start_date</strong> : pd.Timestamp</p>
+<blockquote>
+<div><p>The first date of requested output.</p>
+</div></blockquote>
+<p><strong>end_date</strong> : pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The last date of requested output.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.pipeline.Pipeline.to_simple_graph">
+<code class="descname">to_simple_graph</code><span class="sig-paren">(</span><em>screen_name</em>, <em>default_screen</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/pipeline.html#Pipeline.to_simple_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.Pipeline.to_simple_graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compile into a simple TermGraph with no extra row metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2360,9 +2444,9 @@ via any of the builtin mathematical operators (<code class="docutils literal"><s
 This makes it easy to write complex expressions that combine multiple
 Factors.  For example, constructing a Factor that computes the average of
 two other Factors is simply:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span> <span class="o">=</span> <span class="n">SomeFactor</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">f2</span> <span class="o">=</span> <span class="n">SomeOtherFactor</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">average</span> <span class="o">=</span> <span class="p">(</span><span class="n">f1</span> <span class="o">+</span> <span class="n">f2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">f1</span> <span class="o">=</span> <span class="n">SomeFactor</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f2</span> <span class="o">=</span> <span class="n">SomeOtherFactor</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  
+<span class="gp">&gt;&gt;&gt; </span><span class="n">average</span> <span class="o">=</span> <span class="p">(</span><span class="n">f1</span> <span class="o">+</span> <span class="n">f2</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>  
 </pre></div>
 </div>
 <p>Factors can also be converted into <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.Filter</span></code> objects
@@ -2381,7 +2465,7 @@ percentile_between).</p>
 
 <dl class="method">
 <dt id="zipline.pipeline.factors.Factor.rank">
-<code class="descname">rank</code><span class="sig-paren">(</span><em>method='ordinal'</em>, <em>ascending=True</em>, <em>mask=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.rank" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rank</code><span class="sig-paren">(</span><em>method='ordinal'</em>, <em>ascending=True</em>, <em>mask=sentinel('NotSpecified')</em>, <em>groupby=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.rank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.rank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a new Factor representing the sorted rank of each column
 within each row.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2405,6 +2489,10 @@ Default is True.</p>
 If mask is supplied, ranks are computed ignoring any asset/date
 pairs for which <cite>mask</cite> produces a value of False.</p>
 </div></blockquote>
+<p><strong>groupby</strong> : zipline.pipeline.Classifier, optional</p>
+<blockquote>
+<div><p>A classifier defining partitions over which to perform ranking.</p>
+</div></blockquote>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>ranks</strong> : zipline.pipeline.factors.Rank</p>
@@ -2418,7 +2506,7 @@ pairs for which <cite>mask</cite> produces a value of False.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v0.17.1)"><code class="xref py py-func docutils literal"><span class="pre">scipy.stats.rankdata()</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.factor.Rank</span></code></p>
+<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.rankdata.html#scipy.stats.rankdata" title="(in SciPy v0.18.0)"><code class="xref py py-func docutils literal"><span class="pre">scipy.stats.rankdata()</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.factor.Rank</span></code></p>
 </div>
 <p class="rubric">Notes</p>
 <p>The default value for <cite>method</cite> is different from the default for
@@ -2430,8 +2518,10 @@ given a rank of NaN for that day.</p>
 
 <dl class="method">
 <dt id="zipline.pipeline.factors.Factor.top">
-<code class="descname">top</code><span class="sig-paren">(</span><em>N</em>, <em>mask=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.top" title="Permalink to this definition">¶</a></dt>
+<code class="descname">top</code><span class="sig-paren">(</span><em>N</em>, <em>mask=sentinel('NotSpecified')</em>, <em>groupby=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.top"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.top" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a Filter matching the top N asset values of self each day.</p>
+<p>If <code class="docutils literal"><span class="pre">groupby</span></code> is supplied, returns a Filter matching the top N asset
+values for each group.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2446,6 +2536,10 @@ given a rank of NaN for that day.</p>
 If mask is supplied, top values are computed ignoring any
 asset/date pairs for which <cite>mask</cite> produces a value of False.</p>
 </div></blockquote>
+<p><strong>groupby</strong> : zipline.pipeline.Classifier, optional</p>
+<blockquote>
+<div><p>A classifier defining partitions over which to perform ranking.</p>
+</div></blockquote>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>filter</strong> : zipline.pipeline.filters.Filter</p>
@@ -2457,8 +2551,10 @@ asset/date pairs for which <cite>mask</cite> produces a value of False.</p>
 
 <dl class="method">
 <dt id="zipline.pipeline.factors.Factor.bottom">
-<code class="descname">bottom</code><span class="sig-paren">(</span><em>N</em>, <em>mask=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.bottom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.bottom" title="Permalink to this definition">¶</a></dt>
+<code class="descname">bottom</code><span class="sig-paren">(</span><em>N</em>, <em>mask=sentinel('NotSpecified')</em>, <em>groupby=sentinel('NotSpecified')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/factor.html#Factor.bottom"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.Factor.bottom" title="Permalink to this definition">¶</a></dt>
 <dd><p>Construct a Filter matching the bottom N asset values of self each day.</p>
+<p>If <code class="docutils literal"><span class="pre">groupby</span></code> is supplied, returns a Filter matching the bottom N
+asset values for each group.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -2472,6 +2568,10 @@ asset/date pairs for which <cite>mask</cite> produces a value of False.</p>
 <div><p>A Filter representing assets to consider when computing ranks.
 If mask is supplied, bottom values are computed ignoring any
 asset/date pairs for which <cite>mask</cite> produces a value of False.</p>
+</div></blockquote>
+<p><strong>groupby</strong> : zipline.pipeline.Classifier, optional</p>
+<blockquote>
+<div><p>A classifier defining partitions over which to perform ranking.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -2659,44 +2759,6 @@ Factor.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="zipline.pipeline.factors.BusinessDaysUntilNextEarnings">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">BusinessDaysUntilNextEarnings</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/events.html#BusinessDaysUntilNextEarnings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.BusinessDaysUntilNextEarnings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Factor returning the number of <strong>business days</strong> (not trading days!) until
-the next known earnings date for each asset.</p>
-<p>Assets that announced or will announce earnings on the day of <code class="docutils literal"><span class="pre">compute</span></code>
-will produce a value of 0.0.  Assets that will announce the event on the
-next upcoming business day will produce a value of 1.0.</p>
-<p>Assets for which the date of the next earnings announcement is <code class="docutils literal"><span class="pre">NaT</span></code> will
-produce a value of <code class="docutils literal"><span class="pre">NaN</span></code>.  This most commonly occurs because many
-companies do not publish the exact date of their upcoming earnings
-announcements until a few weeks before the announcement.</p>
-<div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">BusinessDaysSincePreviousEarnings</span></code></p>
-</div>
-</dd></dl>
-
-<dl class="class">
-<dt id="zipline.pipeline.factors.BusinessDaysSincePreviousEarnings">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">BusinessDaysSincePreviousEarnings</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/events.html#BusinessDaysSincePreviousEarnings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.BusinessDaysSincePreviousEarnings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Factor returning the number of <strong>business days</strong> (not trading days!) since
-the most recent earnings date for each asset.</p>
-<p>Assets that announced or will announce earnings on the day of <code class="docutils literal"><span class="pre">compute</span></code>
-will produce a value of 0.0.  Assets that will announce the event on the
-next upcoming business day will produce a value of 1.0.</p>
-<p>Assets which announced or will announce the earnings today will produce a
-value of 0.0. Assets that announced the on the previous business day will
-produce a value of 1.0.</p>
-<p>Assets for which the previous earnings date is <cite>NaT</cite> will produce a value
-of <cite>NaN</cite>.  This will happen in the interval between IPO and first earnings
-for most companies.</p>
-<div class="admonition seealso">
-<p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-obj docutils literal"><span class="pre">BusinessDaysUntilNextEarnings</span></code></p>
-</div>
-</dd></dl>
-
-<dl class="class">
 <dt id="zipline.pipeline.factors.SimpleMovingAverage">
 <em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">SimpleMovingAverage</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#SimpleMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.SimpleMovingAverage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Average Value of an arbitrary column</p>
@@ -2842,7 +2904,7 @@ upper and lower bands.</p>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.RollingPearsonOfReturns">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RollingPearsonOfReturns</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#RollingPearsonOfReturns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RollingPearsonOfReturns</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/statistical.html#RollingPearsonOfReturns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the Pearson product-moment correlation coefficient of the
 returns of the given asset with the returns of all other assets.</p>
 <p>Pearson correlation is what most people mean when they say &#8220;correlation
@@ -2876,13 +2938,13 @@ target asset computed each day.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.technical.RollingSpearmanOfReturns</span></code>, <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns</span></code></p>
+<p class="last"><a class="reference internal" href="#zipline.pipeline.factors.RollingSpearmanOfReturns" title="zipline.pipeline.factors.RollingSpearmanOfReturns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.RollingSpearmanOfReturns</span></code></a>, <a class="reference internal" href="#zipline.pipeline.factors.RollingLinearRegressionOfReturns" title="zipline.pipeline.factors.RollingLinearRegressionOfReturns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.RollingLinearRegressionOfReturns</span></code></a></p>
 </div>
 </dd></dl>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.RollingSpearmanOfReturns">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RollingSpearmanOfReturns</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#RollingSpearmanOfReturns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RollingSpearmanOfReturns" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RollingSpearmanOfReturns</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/statistical.html#RollingSpearmanOfReturns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RollingSpearmanOfReturns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculates the Spearman rank correlation coefficient of the returns of the
 given asset with the returns of all other assets.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2914,13 +2976,13 @@ target asset computed each day.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.technical.RollingPearsonOfReturns</span></code>, <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.technical.RollingLinearRegressionOfReturns</span></code></p>
+<p class="last"><a class="reference internal" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="zipline.pipeline.factors.RollingPearsonOfReturns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.RollingPearsonOfReturns</span></code></a>, <a class="reference internal" href="#zipline.pipeline.factors.RollingLinearRegressionOfReturns" title="zipline.pipeline.factors.RollingLinearRegressionOfReturns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.RollingLinearRegressionOfReturns</span></code></a></p>
 </div>
 </dd></dl>
 
 <dl class="class">
 <dt id="zipline.pipeline.factors.RollingLinearRegressionOfReturns">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RollingLinearRegressionOfReturns</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/technical.html#RollingLinearRegressionOfReturns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RollingLinearRegressionOfReturns" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.pipeline.factors.</code><code class="descname">RollingLinearRegressionOfReturns</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/pipeline/factors/statistical.html#RollingLinearRegressionOfReturns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.factors.RollingLinearRegressionOfReturns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform an ordinary least-squares regression predicting the returns of all
 other assets on the given asset.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -2951,7 +3013,7 @@ asset each day.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.technical.RollingPearsonOfReturns</span></code>, <code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.technical.RollingSpearmanOfReturns</span></code></p>
+<p class="last"><a class="reference internal" href="#zipline.pipeline.factors.RollingPearsonOfReturns" title="zipline.pipeline.factors.RollingPearsonOfReturns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.RollingPearsonOfReturns</span></code></a>, <a class="reference internal" href="#zipline.pipeline.factors.RollingSpearmanOfReturns" title="zipline.pipeline.factors.RollingSpearmanOfReturns"><code class="xref py py-class docutils literal"><span class="pre">zipline.pipeline.factors.RollingSpearmanOfReturns</span></code></a></p>
 </div>
 <p class="rubric">Notes</p>
 <p>Computing this factor over many assets can be time consuming. It is
@@ -3030,22 +3092,6 @@ results.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="zipline.pipeline.data.EarningsCalendar">
-<em class="property">class </em><code class="descclassname">zipline.pipeline.data.</code><code class="descname">EarningsCalendar</code><a class="reference internal" href="_modules/zipline/pipeline/data/earnings.html#EarningsCalendar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.data.EarningsCalendar" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dataset representing dates of upcoming or recently announced earnings.</p>
-<dl class="attribute">
-<dt id="zipline.pipeline.data.EarningsCalendar.next_announcement">
-<code class="descname">next_announcement</code><em class="property"> = EarningsCalendar.next_announcement::datetime64[ns]</em><a class="headerlink" href="#zipline.pipeline.data.EarningsCalendar.next_announcement" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="zipline.pipeline.data.EarningsCalendar.previous_announcement">
-<code class="descname">previous_announcement</code><em class="property"> = EarningsCalendar.previous_announcement::datetime64[ns]</em><a class="headerlink" href="#zipline.pipeline.data.EarningsCalendar.previous_announcement" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="zipline.pipeline.data.USEquityPricing">
 <em class="property">class </em><code class="descclassname">zipline.pipeline.data.</code><code class="descname">USEquityPricing</code><a class="reference internal" href="_modules/zipline/pipeline/data/equity_pricing.html#USEquityPricing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.pipeline.data.USEquityPricing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Dataset representing daily trading prices and volumes.</p>
@@ -3081,7 +3127,7 @@ results.</p>
 <h2>Asset Metadata<a class="headerlink" href="#asset-metadata" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="zipline.assets.Asset">
-<em class="property">class </em><code class="descclassname">zipline.assets.</code><code class="descname">Asset</code><a class="headerlink" href="#zipline.assets.Asset" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.assets.</code><code class="descname">Asset</code><span class="sig-paren">(</span><em>int sid</em>, <em>exchange</em>, <em>symbol=''</em>, <em>asset_name=''</em>, <em>start_date=None</em>, <em>end_date=None</em>, <em>first_traded=None</em>, <em>auto_close_date=None</em>, <em>exchange_full=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.assets.Asset" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
 <dt id="zipline.assets.Asset.first_traded">
 <code class="descname">first_traded</code><a class="headerlink" href="#zipline.assets.Asset.first_traded" title="Permalink to this definition">¶</a></dt>
@@ -3092,6 +3138,47 @@ results.</p>
 <dt id="zipline.assets.Asset.from_dict">
 <code class="descname">from_dict</code><span class="sig-paren">(</span><em>type cls</em>, <em>dict_</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.assets.Asset.from_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build an Asset instance from a dict.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.assets.Asset.is_alive_for_session">
+<code class="descname">is_alive_for_session</code><span class="sig-paren">(</span><em>self</em>, <em>session_label</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.assets.Asset.is_alive_for_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether the asset is alive at the given dt.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The desired session label to check. (midnight UTC)</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">boolean: whether the asset is alive at the given dt.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.assets.Asset.is_exchange_open">
+<code class="descname">is_exchange_open</code><span class="sig-paren">(</span><em>self</em>, <em>dt_minute</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.assets.Asset.is_exchange_open" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt_minute: pd.Timestamp (UTC, tz-aware)</strong></p>
+<blockquote>
+<div><p>The minute to check.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">boolean: whether the asset&#8217;s exchange is open at the given minute.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -3130,7 +3217,7 @@ backwards compatibility</p>
 
 <dl class="class">
 <dt id="zipline.assets.Future">
-<em class="property">class </em><code class="descclassname">zipline.assets.</code><code class="descname">Future</code><a class="headerlink" href="#zipline.assets.Future" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.assets.</code><code class="descname">Future</code><span class="sig-paren">(</span><em>int sid</em>, <em>exchange</em>, <em>symbol=''</em>, <em>root_symbol=''</em>, <em>asset_name=''</em>, <em>start_date=None</em>, <em>end_date=None</em>, <em>notice_date=None</em>, <em>expiration_date=None</em>, <em>auto_close_date=None</em>, <em>first_traded=None</em>, <em>tick_size=''</em>, <em>float multiplier=1.0</em>, <em>exchange_full=None</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.assets.Future" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="zipline.assets.Future.to_dict">
 <code class="descname">to_dict</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.assets.Future.to_dict" title="Permalink to this definition">¶</a></dt>
@@ -3148,58 +3235,768 @@ Assets.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="trading-calendar-api">
+<h2>Trading Calendar API<a class="headerlink" href="#trading-calendar-api" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zipline.utils.calendars.get_calendar">
+<code class="descclassname">zipline.utils.calendars.</code><code class="descname">get_calendar</code><span class="sig-paren">(</span><em>self</em>, <em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.utils.calendars.get_calendar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves an instance of an TradingCalendar whose name is given.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name</strong> : str</p>
+<blockquote>
+<div><p>The name of the TradingCalendar to be retrieved.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">TradingCalendar</p>
+<blockquote class="last">
+<div><p>The desired calendar.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="zipline.utils.calendars.TradingCalendar">
+<em class="property">class </em><code class="descclassname">zipline.utils.calendars.</code><code class="descname">TradingCalendar</code><span class="sig-paren">(</span><em>start=Timestamp('1990-01-01 00:00:00+0000'</em>, <em>tz='UTC')</em>, <em>end=Timestamp('2017-09-08 17:47:02.261654+0000'</em>, <em>tz='UTC')</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar" title="Permalink to this definition">¶</a></dt>
+<dd><p>An TradingCalendar represents the timing information of a single market
+exchange.</p>
+<p>The timing information is made up of two parts: sessions, and opens/closes.</p>
+<p>A session represents a contiguous set of minutes, and has a label that is
+midnight UTC. It is important to note that a session label should not be
+considered a specific point in time, and that midnight UTC is just being
+used for convenience.</p>
+<p>For each session, we store the open and close time in UTC time.</p>
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.is_open_on_minute">
+<code class="descname">is_open_on_minute</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.is_open_on_minute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.is_open_on_minute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, return whether this exchange is open at the given dt.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt for which to check if this exchange is open.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">bool</p>
+<blockquote class="last">
+<div><p>Whether the exchange is open on this dt.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.is_session">
+<code class="descname">is_session</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.is_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.is_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, returns whether it&#8217;s a valid session label.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt that is being tested.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">bool</p>
+<blockquote class="last">
+<div><p>Whether the given dt is a valid session label.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.minute_index_to_session_labels">
+<code class="descname">minute_index_to_session_labels</code><span class="sig-paren">(</span><em>index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.minute_index_to_session_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.minute_index_to_session_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a sorted DatetimeIndex of market minutes, return a
+DatetimeIndex of the corresponding session labels.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>index: pd.DatetimeIndex or pd.Series</strong></p>
+<blockquote>
+<div><p>The ordered list of market minutes we want session labels for.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.DatetimeIndex (UTC)</p>
+<blockquote class="last">
+<div><p>The list of session labels corresponding to the given minutes.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.minute_to_session_label">
+<code class="descname">minute_to_session_label</code><span class="sig-paren">(</span><em>dt</em>, <em>direction='next'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.minute_to_session_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.minute_to_session_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a minute, get the label of its containing session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt</strong> : pd.Timestamp or nanosecond offset</p>
+<blockquote>
+<div><p>The dt for which to get the containing session.</p>
+</div></blockquote>
+<p><strong>direction: str</strong></p>
+<blockquote>
+<div><p>&#8220;next&#8221; (default) means that if the given dt is not part of a
+session, return the label of the next session.</p>
+<p>&#8220;previous&#8221; means that if the given dt is not part of a session,
+return the label of the previous session.</p>
+<p>&#8220;none&#8221; means that a KeyError will be raised if the given
+dt is not part of a session.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp (midnight UTC)</p>
+<blockquote class="last">
+<div><p>The label of the containing session.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.minutes_for_session">
+<code class="descname">minutes_for_session</code><span class="sig-paren">(</span><em>session_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.minutes_for_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.minutes_for_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a session label, return the minutes for that session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>session_label: pd.Timestamp (midnight UTC)</strong></p>
+<blockquote>
+<div><p>A session label whose session&#8217;s minutes are desired.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.DateTimeIndex</p>
+<blockquote class="last">
+<div><p>All the minutes for the given session.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.minutes_for_sessions_in_range">
+<code class="descname">minutes_for_sessions_in_range</code><span class="sig-paren">(</span><em>start_session_label</em>, <em>end_session_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.minutes_for_sessions_in_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.minutes_for_sessions_in_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the minutes for all the sessions from the given start
+session label to the given end session label, inclusive.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>start_session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The label of the first session in the range.</p>
+</div></blockquote>
+<p><strong>end_session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The label of the last session in the range.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.DatetimeIndex</p>
+<blockquote class="last">
+<div><p>The minutes in the desired range.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.minutes_in_range">
+<code class="descname">minutes_in_range</code><span class="sig-paren">(</span><em>start_minute</em>, <em>end_minute</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.minutes_in_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.minutes_in_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given start and end minutes, return all the calendar minutes
+in that range, inclusive.</p>
+<p>Given minutes don&#8217;t need to be calendar minutes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>start_minute: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The minute representing the start of the desired range.</p>
+</div></blockquote>
+<p><strong>end_minute: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The minute representing the end of the desired range.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.DatetimeIndex</p>
+<blockquote class="last">
+<div><p>The minutes in the desired range.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.next_close">
+<code class="descname">next_close</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.next_close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.next_close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, returns the next close.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt for which to get the next close.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The UTC timestamp of the next close.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.next_minute">
+<code class="descname">next_minute</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.next_minute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.next_minute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, return the next exchange minute.  If the given dt is not
+an exchange minute, returns the next exchange open.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt for which to get the next exchange minute.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The next exchange minute.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.next_open">
+<code class="descname">next_open</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.next_open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.next_open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, returns the next open.</p>
+<p>If the given dt happens to be a session open, the next session&#8217;s open
+will be returned.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt for which to get the next open.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The UTC timestamp of the next open.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.next_session_label">
+<code class="descname">next_session_label</code><span class="sig-paren">(</span><em>session_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.next_session_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.next_session_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a session label, returns the label of the next session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>A session whose next session is desired.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The next session label (midnight UTC).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Raises ValueError if the given session is the last session in this
+calendar.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.open_and_close_for_session">
+<code class="descname">open_and_close_for_session</code><span class="sig-paren">(</span><em>session_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.open_and_close_for_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.open_and_close_for_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a tuple of timestamps of the open and close of the session
+represented by the given label.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The session whose open and close are desired.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">(Timestamp, Timestamp)</p>
+<blockquote class="last">
+<div><p>The open and close for the given session.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.previous_close">
+<code class="descname">previous_close</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.previous_close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.previous_close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, returns the previous close.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt for which to get the previous close.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The UTC timestamp of the previous close.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.previous_minute">
+<code class="descname">previous_minute</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.previous_minute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.previous_minute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, return the previous exchange minute.</p>
+<p>Raises KeyError if the given timestamp is not an exchange minute.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt for which to get the previous exchange minute.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The previous exchange minute.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.previous_open">
+<code class="descname">previous_open</code><span class="sig-paren">(</span><em>dt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.previous_open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.previous_open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a dt, returns the previous open.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>dt: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The dt for which to get the previous open.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The UTC imestamp of the previous open.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.previous_session_label">
+<code class="descname">previous_session_label</code><span class="sig-paren">(</span><em>session_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.previous_session_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.previous_session_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a session label, returns the label of the previous session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>A session whose previous session is desired.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.Timestamp</p>
+<blockquote class="last">
+<div><p>The previous session label (midnight UTC).</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Raises ValueError if the given session is the first session in this
+calendar.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.utils.calendars.TradingCalendar.regular_holidays">
+<code class="descname">regular_holidays</code><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.regular_holidays" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.AbstractHolidayCalendar: a calendar containing the regular holidays</p>
+<p class="last">for this calendar</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.session_distance">
+<code class="descname">session_distance</code><span class="sig-paren">(</span><em>start_session_label</em>, <em>end_session_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.session_distance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.session_distance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a start and end session label, returns the distance between
+them.  For example, for three consecutive sessions Mon., Tues., and
+Wed, <cite>session_distance(Mon, Wed)</cite> would return 2.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>start_session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The label of the start session.</p>
+</div></blockquote>
+<p><strong>end_session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The label of the ending session.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">int</p>
+<blockquote class="last">
+<div><p>The distance between the two sessions.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.sessions_in_range">
+<code class="descname">sessions_in_range</code><span class="sig-paren">(</span><em>start_session_label</em>, <em>end_session_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.sessions_in_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.sessions_in_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given start and end session labels, return all the sessions in that
+range, inclusive.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>start_session_label: pd.Timestamp (midnight UTC)</strong></p>
+<blockquote>
+<div><p>The label representing the first session of the desired range.</p>
+</div></blockquote>
+<p><strong>end_session_label: pd.Timestamp (midnight UTC)</strong></p>
+<blockquote>
+<div><p>The label representing the last session of the desired range.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.DatetimeIndex</p>
+<blockquote class="last">
+<div><p>The desired sessions.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.utils.calendars.TradingCalendar.sessions_window">
+<code class="descname">sessions_window</code><span class="sig-paren">(</span><em>session_label</em>, <em>count</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/utils/calendars/trading_calendar.html#TradingCalendar.sessions_window"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.sessions_window" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a session label and a window size, returns a list of sessions
+of size <cite>count</cite> + 1, that either starts with the given session
+(if <cite>count</cite> is positive) or ends with the given session (if <cite>count</cite> is
+negative).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>session_label: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>The label of the initial session.</p>
+</div></blockquote>
+<p><strong>count: int</strong></p>
+<blockquote>
+<div><p>Defines the length and the direction of the window.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">pd.DatetimeIndex</p>
+<blockquote class="last">
+<div><p>The desired sessions.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.utils.calendars.TradingCalendar.special_closes">
+<code class="descname">special_closes</code><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.special_closes" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of special close times and corresponding HolidayCalendars.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list: List of (time, AbstractHolidayCalendar) tuples</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.utils.calendars.TradingCalendar.special_closes_adhoc">
+<code class="descname">special_closes_adhoc</code><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.special_closes_adhoc" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list: List of (time, DatetimeIndex) tuples that represent special</p>
+<blockquote class="last">
+<div><p>closes that cannot be codified into rules.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.utils.calendars.TradingCalendar.special_opens">
+<code class="descname">special_opens</code><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.special_opens" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of special open times and corresponding HolidayCalendars.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list: List of (time, AbstractHolidayCalendar) tuples</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="zipline.utils.calendars.TradingCalendar.special_opens_adhoc">
+<code class="descname">special_opens_adhoc</code><a class="headerlink" href="#zipline.utils.calendars.TradingCalendar.special_opens_adhoc" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">list: List of (time, DatetimeIndex) tuples that represent special</p>
+<blockquote class="last">
+<div><p>closes that cannot be codified into rules.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.calendars.register_calendar">
+<code class="descclassname">zipline.utils.calendars.</code><code class="descname">register_calendar</code><span class="sig-paren">(</span><em>self</em>, <em>name</em>, <em>calendar</em>, <em>force=False</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.utils.calendars.register_calendar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a calendar for retrieval by the get_calendar method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name: str</strong></p>
+<blockquote>
+<div><p>The key with which to register this calendar.</p>
+</div></blockquote>
+<p><strong>calendar: TradingCalendar</strong></p>
+<blockquote>
+<div><p>The calendar to be registered for retrieval.</p>
+</div></blockquote>
+<p><strong>force</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True, old calendars will be overwritten on a name collision.
+If False, name collisions will raise an exception. Default: False.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>CalendarNameCollision</strong></p>
+<blockquote class="last">
+<div><p>If a calendar is already registered with the given calendar&#8217;s name.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.calendars.register_calendar_type">
+<code class="descclassname">zipline.utils.calendars.</code><code class="descname">register_calendar_type</code><span class="sig-paren">(</span><em>self</em>, <em>name</em>, <em>calendar_type</em>, <em>force=False</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.utils.calendars.register_calendar_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a calendar by type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>name: str</strong></p>
+<blockquote>
+<div><p>The key with which to register this calendar.</p>
+</div></blockquote>
+<p><strong>calendar_type: type</strong></p>
+<blockquote>
+<div><p>The type of the calendar to register.</p>
+</div></blockquote>
+<p><strong>force</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True, old calendars will be overwritten on a name collision.
+If False, name collisions will raise an exception. Default: False.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>CalendarNameCollision</strong></p>
+<blockquote class="last">
+<div><p>If a calendar is already registered with the given calendar&#8217;s name.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.calendars.deregister_calendar">
+<code class="descclassname">zipline.utils.calendars.</code><code class="descname">deregister_calendar</code><span class="sig-paren">(</span><em>self</em>, <em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.utils.calendars.deregister_calendar" title="Permalink to this definition">¶</a></dt>
+<dd><p>If a calendar is registered with the given name, it is de-registered.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>cal_name</strong> : str</p>
+<blockquote class="last">
+<div><p>The name of the calendar to be deregistered.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="zipline.utils.calendars.clear_calendars">
+<code class="descclassname">zipline.utils.calendars.</code><code class="descname">clear_calendars</code><span class="sig-paren">(</span><em>self</em><span class="sig-paren">)</span><a class="headerlink" href="#zipline.utils.calendars.clear_calendars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deregisters all current registered calendars</p>
+</dd></dl>
+
+</div>
 <div class="section" id="data-api">
 <h2>Data API<a class="headerlink" href="#data-api" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="writers">
 <h3>Writers<a class="headerlink" href="#writers" title="Permalink to this headline">¶</a></h3>
 <dl class="class">
 <dt id="zipline.data.minute_bars.BcolzMinuteBarWriter">
-<em class="property">class </em><code class="descclassname">zipline.data.minute_bars.</code><code class="descname">BcolzMinuteBarWriter</code><span class="sig-paren">(</span><em>first_trading_day</em>, <em>rootdir</em>, <em>market_opens</em>, <em>market_closes</em>, <em>minutes_per_day</em>, <em>ohlc_ratio=1000</em>, <em>expectedlen=1474200</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.data.minute_bars.</code><code class="descname">BcolzMinuteBarWriter</code><span class="sig-paren">(</span><em>rootdir</em>, <em>calendar</em>, <em>start_session</em>, <em>end_session</em>, <em>minutes_per_day</em>, <em>default_ohlc_ratio=1000</em>, <em>ohlc_ratios_per_sid=None</em>, <em>expectedlen=1474200</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarWriter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class capable of writing minute OHLCV data to disk into bcolz format.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>first_trading_day</strong> : datetime</p>
-<blockquote>
-<div><p>The first trading day in the data set.</p>
-</div></blockquote>
-<p><strong>rootdir</strong> : string</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>rootdir</strong> : string</p>
 <blockquote>
 <div><p>Path to the root directory into which to write the metadata and
 bcolz subdirectories.</p>
 </div></blockquote>
-<p><strong>market_opens</strong> : pd.Series</p>
+<p><strong>calendar</strong> : zipline.utils.calendars.trading_calendar.TradingCalendar</p>
 <blockquote>
-<div><p>The market opens used as a starting point for each periodic span of
-minutes in the index.</p>
-<p>The index of the series is expected to be a DatetimeIndex of the
-UTC midnight of each trading day.</p>
-<p>The values are datetime64-like UTC market opens for each day in the
-index.</p>
-</div></blockquote>
-<p><strong>market_closes</strong> : pd.Series</p>
-<blockquote>
-<div><p>The market closes that correspond with the market opens,</p>
-<p>The index of the series is expected to be a DatetimeIndex of the
-UTC midnight of each trading day.</p>
-<p>The values are datetime64-like UTC market opens for each day in the
-index.</p>
-<p>The closes are written so that the reader can filter out non-market
-minutes even though the tail end of early closes are written in
-the data arrays to keep a regular shape.</p>
+<div><p>The trading calendar on which to base the minute bars. Used to
+get the market opens used as a starting point for each periodic
+span of minutes in the index, and the market closes that
+correspond with the market opens.</p>
 </div></blockquote>
 <p><strong>minutes_per_day</strong> : int</p>
 <blockquote>
 <div><p>The number of minutes per each period. Defaults to 390, the mode
 of minutes in NYSE trading days.</p>
 </div></blockquote>
-<p><strong>ohlc_ratio</strong> : int, optional</p>
+<p><strong>start_session</strong> : datetime</p>
 <blockquote>
-<div><p>The ratio by which to multiply the pricing data to convert the
-floats from floats to an integer to fit within the np.uint32.</p>
-<p>The default is 1000 to support pricing data which comes in to the
-thousands place.</p>
+<div><p>The first trading session in the data set.</p>
+</div></blockquote>
+<p><strong>end_session</strong> : datetime</p>
+<blockquote>
+<div><p>The last trading session in the data set.</p>
+</div></blockquote>
+<p><strong>default_ohlc_ratio</strong> : int, optional</p>
+<blockquote>
+<div><p>The default ratio by which to multiply the pricing data to
+convert from floats to integers that fit within np.uint32. If
+ohlc_ratios_per_sid is None or does not contain a mapping for a
+given sid, this ratio is used. Default is OHLC_RATIO (1000).</p>
+</div></blockquote>
+<p><strong>ohlc_ratios_per_sid</strong> : dict, optional</p>
+<blockquote>
+<div><p>A dict mapping each sid in the output to the ratio by which to
+multiply the pricing data to convert the floats from floats to
+an integer to fit within the np.uint32.</p>
 </div></blockquote>
 <p><strong>expectedlen</strong> : int, optional</p>
 <blockquote class="last">
@@ -3335,9 +4132,9 @@ the first day provided, fill the ctable with 0s up to that date.</p>
 
 <dl class="class">
 <dt id="zipline.data.us_equity_pricing.BcolzDailyBarWriter">
-<em class="property">class </em><code class="descclassname">zipline.data.us_equity_pricing.</code><code class="descname">BcolzDailyBarWriter</code><span class="sig-paren">(</span><em>filename</em>, <em>calendar</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#BcolzDailyBarWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.BcolzDailyBarWriter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Class capable of writing daily OHLCV data to disk in a format that can be
-read efficiently by BcolzDailyOHLCVReader.</p>
+<em class="property">class </em><code class="descclassname">zipline.data.us_equity_pricing.</code><code class="descname">BcolzDailyBarWriter</code><span class="sig-paren">(</span><em>filename</em>, <em>calendar</em>, <em>start_session</em>, <em>end_session</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#BcolzDailyBarWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.BcolzDailyBarWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class capable of writing daily OHLCV data to disk in a format that can
+be read efficiently by BcolzDailyOHLCVReader.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -3346,9 +4143,17 @@ read efficiently by BcolzDailyOHLCVReader.</p>
 <blockquote>
 <div><p>The location at which we should write our output.</p>
 </div></blockquote>
-<p><strong>calendar</strong> : pandas.DatetimeIndex</p>
-<blockquote class="last">
+<p><strong>calendar</strong> : zipline.utils.calendar.trading_calendar</p>
+<blockquote>
 <div><p>Calendar to use to compute asset calendar offsets.</p>
+</div></blockquote>
+<p><strong>start_session: pd.Timestamp</strong></p>
+<blockquote>
+<div><p>Midnight UTC session label.</p>
+</div></blockquote>
+<p><strong>end_session: pd.Timestamp</strong></p>
+<blockquote class="last">
+<div><p>Midnight UTC session label.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -3429,7 +4234,7 @@ a uint32.</p>
 
 <dl class="class">
 <dt id="zipline.data.us_equity_pricing.SQLiteAdjustmentWriter">
-<em class="property">class </em><code class="descclassname">zipline.data.us_equity_pricing.</code><code class="descname">SQLiteAdjustmentWriter</code><span class="sig-paren">(</span><em>conn_or_path</em>, <em>daily_bar_reader</em>, <em>calendar</em>, <em>overwrite=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#SQLiteAdjustmentWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.data.us_equity_pricing.</code><code class="descname">SQLiteAdjustmentWriter</code><span class="sig-paren">(</span><em>conn_or_path</em>, <em>equity_daily_bar_reader</em>, <em>calendar</em>, <em>overwrite=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#SQLiteAdjustmentWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.SQLiteAdjustmentWriter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writer for data to be read by SQLiteAdjustmentReader</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -3439,7 +4244,7 @@ a uint32.</p>
 <blockquote>
 <div><p>A handle to the target sqlite database.</p>
 </div></blockquote>
-<p><strong>daily_bar_reader</strong> : BcolzDailyBarReader</p>
+<p><strong>equity_daily_bar_reader</strong> : BcolzDailyBarReader</p>
 <blockquote>
 <div><p>Daily bar reader to use for dividend writes.</p>
 </div></blockquote>
@@ -3675,10 +4480,6 @@ transaction will be started with the engine provided.</p>
 <dt>symbol <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">The ticker symbol for this equity.</p>
 </dd>
-<dt>fuzzy_symbol <span class="classifier-delimiter">:</span> <span class="classifier">str, optional</span></dt>
-<dd><p class="first last">The fuzzy symbol for this equity. This is the symbol
-without any delimiting characters like &#8216;.&#8217; or &#8216;_&#8217;.</p>
-</dd>
 <dt>asset_name <span class="classifier-delimiter">:</span> <span class="classifier">str</span></dt>
 <dd><p class="first last">The full name for this asset.</p>
 </dd>
@@ -3861,6 +4662,12 @@ values for the respective field over start and end dt range.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="zipline.data.minute_bars.BcolzMinuteBarReader.table_len">
+<code class="descname">table_len</code><span class="sig-paren">(</span><em>sid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/minute_bars.html#BcolzMinuteBarReader.table_len"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.minute_bars.BcolzMinuteBarReader.table_len" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the length of the underlying table for this sid.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -3916,8 +4723,8 @@ index should represent the same asset and day.</p>
 <p class="rubric">Attributes</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="47%" />
-<col width="53%" />
+<col width="49%" />
+<col width="51%" />
 </colgroup>
 <tbody valign="top">
 <tr class="row-odd"><td>The table with which this loader interacts contains the following</td>
@@ -3935,8 +4742,14 @@ index should represent the same asset and day.</p>
 <tr class="row-odd"><td>calendar_offset</td>
 <td>(dict) Map from asset_id -&gt; calendar index of first row.</td>
 </tr>
-<tr class="row-even"><td>calendar</td>
-<td>(list[int64]) Calendar used to compute offsets, in asi8 format (ns since EPOCH).</td>
+<tr class="row-even"><td>start_session_ns: int</td>
+<td>Epoch ns of the first session used in this dataset.</td>
+</tr>
+<tr class="row-odd"><td>end_session_ns: int</td>
+<td>Epoch ns of the last session used in this dataset.</td>
+</tr>
+<tr class="row-even"><td>calendar_name: str</td>
+<td>String identifier of trading calendar used (ie, &#8220;NYSE&#8221;).</td>
 </tr>
 <tr class="row-odd"><td>We use first_row and last_row together to quickly find ranges of rows to</td>
 <td>&nbsp;</td>
@@ -3953,37 +4766,8 @@ index should represent the same asset and day.</p>
 </tbody>
 </table>
 <dl class="method">
-<dt id="zipline.data.us_equity_pricing.BcolzDailyBarReader.sid_day_index">
-<code class="descname">sid_day_index</code><span class="sig-paren">(</span><em>sid</em>, <em>day</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#BcolzDailyBarReader.sid_day_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.BcolzDailyBarReader.sid_day_index" title="Permalink to this definition">¶</a></dt>
-<dd><table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sid</strong> : int</p>
-<blockquote>
-<div><p>The asset identifier.</p>
-</div></blockquote>
-<p><strong>day</strong> : datetime64-like</p>
-<blockquote>
-<div><p>Midnight of the day for which data is requested.</p>
-</div></blockquote>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">int</p>
-<blockquote class="last">
-<div><p>Index into the data tape for the given sid and day.
-Raises a NoDataOnDate exception if the given day and sid is before
-or after the date range of the equity.</p>
-</div></blockquote>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="zipline.data.us_equity_pricing.BcolzDailyBarReader.spot_price">
-<code class="descname">spot_price</code><span class="sig-paren">(</span><em>sid</em>, <em>day</em>, <em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#BcolzDailyBarReader.spot_price"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.BcolzDailyBarReader.spot_price" title="Permalink to this definition">¶</a></dt>
+<dt id="zipline.data.us_equity_pricing.BcolzDailyBarReader.get_value">
+<code class="descname">get_value</code><span class="sig-paren">(</span><em>sid</em>, <em>day</em>, <em>colname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#BcolzDailyBarReader.get_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.BcolzDailyBarReader.get_value" title="Permalink to this definition">¶</a></dt>
 <dd><table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -4009,6 +4793,35 @@ Raises a NoDataOnDate exception if the given day and sid is before
 or after the date range of the equity.
 Returns -1 if the day is within the date range, but the price is
 0.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.data.us_equity_pricing.BcolzDailyBarReader.sid_day_index">
+<code class="descname">sid_day_index</code><span class="sig-paren">(</span><em>sid</em>, <em>day</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/us_equity_pricing.html#BcolzDailyBarReader.sid_day_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.us_equity_pricing.BcolzDailyBarReader.sid_day_index" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>sid</strong> : int</p>
+<blockquote>
+<div><p>The asset identifier.</p>
+</div></blockquote>
+<p><strong>day</strong> : datetime64-like</p>
+<blockquote>
+<div><p>Midnight of the day for which data is requested.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">int</p>
+<blockquote class="last">
+<div><p>Index into the data tape for the given sid and day.
+Raises a NoDataOnDate exception if the given day and sid is before
+or after the date range of the equity.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -4137,7 +4950,7 @@ asset.start_date.</p>
 </table>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/numpy/reference/generated/numpy.putmask.html#numpy.putmask" title="(in NumPy v1.10)"><code class="xref py py-obj docutils literal"><span class="pre">numpy.putmask</span></code></a>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.engine.SimplePipelineEngine._compute_root_mask</span></code></p>
+<p class="last"><a class="reference external" href="http://docs.scipy.org/doc/numpy/reference/generated/numpy.putmask.html#numpy.putmask" title="(in NumPy v1.11)"><code class="xref py py-obj docutils literal"><span class="pre">numpy.putmask</span></code></a>, <code class="xref py py-obj docutils literal"><span class="pre">zipline.pipeline.engine.SimplePipelineEngine._compute_root_mask</span></code></p>
 </div>
 </dd></dl>
 
@@ -4205,7 +5018,7 @@ root symbol.</p>
 <dl class="method">
 <dt id="zipline.assets.AssetFinder.lookup_future_symbol">
 <code class="descname">lookup_future_symbol</code><span class="sig-paren">(</span><em>symbol</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/assets/assets.html#AssetFinder.lookup_future_symbol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.assets.AssetFinder.lookup_future_symbol" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the Future object for a given symbol.</p>
+<dd><p>Lookup a future contract by symbol.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -4216,9 +5029,9 @@ root symbol.</p>
 </div></blockquote>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Future</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>future</strong> : Future</p>
 <blockquote>
-<div><p>A Future object.</p>
+<div><p>The future contract referenced by <code class="docutils literal"><span class="pre">symbol</span></code>.</p>
 </div></blockquote>
 </td>
 </tr>
@@ -4249,10 +5062,53 @@ that couldn&#8217;t be resolved.</p>
 <dl class="method">
 <dt id="zipline.assets.AssetFinder.lookup_symbol">
 <code class="descname">lookup_symbol</code><span class="sig-paren">(</span><em>symbol</em>, <em>as_of_date</em>, <em>fuzzy=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/assets/assets.html#AssetFinder.lookup_symbol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.assets.AssetFinder.lookup_symbol" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return matching Equity of name symbol in database.</p>
-<p>If multiple Equities are found and as_of_date is not set,
-raises MultipleSymbolsFound.</p>
-<p>If no Equity was active at as_of_date raises SymbolNotFound.</p>
+<dd><p>Lookup an equity by symbol.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>symbol</strong> : str</p>
+<blockquote>
+<div><p>The ticker symbol to resolve.</p>
+</div></blockquote>
+<p><strong>as_of_date</strong> : datetime or None</p>
+<blockquote>
+<div><p>Look up the last owner of this symbol as of this datetime.
+If <code class="docutils literal"><span class="pre">as_of_date</span></code> is None, then this can only resolve the equity
+if exactly one equity has ever owned the ticker.</p>
+</div></blockquote>
+<p><strong>fuzzy</strong> : bool, optional</p>
+<blockquote>
+<div><p>Should fuzzy symbol matching be used? Fuzzy symbol matching
+attempts to resolve differences in representations for
+shareclasses. For example, some people may represent the <code class="docutils literal"><span class="pre">A</span></code>
+shareclass of <code class="docutils literal"><span class="pre">BRK</span></code> as <code class="docutils literal"><span class="pre">BRK.A</span></code>, where others could write
+<code class="docutils literal"><span class="pre">BRK_A</span></code>.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>equity</strong> : Equity</p>
+<blockquote>
+<div><p>The equity that held <code class="docutils literal"><span class="pre">symbol</span></code> on the given <code class="docutils literal"><span class="pre">as_of_date</span></code>, or the
+only equity to hold <code class="docutils literal"><span class="pre">symbol</span></code> if <code class="docutils literal"><span class="pre">as_of_date</span></code> is None.</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first"><strong>SymbolNotFound</strong></p>
+<blockquote>
+<div><p>Raised when no equity has ever held the given symbol.</p>
+</div></blockquote>
+<p><strong>MultipleSymbolsFound</strong></p>
+<blockquote class="last">
+<div><p>Raised when no <code class="docutils literal"><span class="pre">as_of_date</span></code> is given and more than one equity
+has held <code class="docutils literal"><span class="pre">symbol</span></code>. This is also raised when <code class="docutils literal"><span class="pre">fuzzy=True</span></code> and
+there are multiple candidates for the given <code class="docutils literal"><span class="pre">symbol</span></code> on the
+<code class="docutils literal"><span class="pre">as_of_date</span></code>.</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -4285,6 +5141,14 @@ input index.</p>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zipline.assets.AssetFinder.reload_symbol_maps">
+<code class="descname">reload_symbol_maps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/assets/assets.html#AssetFinder.reload_symbol_maps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.assets.AssetFinder.reload_symbol_maps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clear the in memory symbol lookup maps.</p>
+<p>This will make any changes to the underlying db available to the
+symbol maps.</p>
 </dd></dl>
 
 <dl class="method">
@@ -4392,23 +5256,8 @@ documented interface and tests because it&#8217;s used upstream.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="zipline.assets.AssetFinderCachedEquities">
-<em class="property">class </em><code class="descclassname">zipline.assets.</code><code class="descname">AssetFinderCachedEquities</code><span class="sig-paren">(</span><em>engine</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/assets/assets.html#AssetFinderCachedEquities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.assets.AssetFinderCachedEquities" title="Permalink to this definition">¶</a></dt>
-<dd><p>An extension to AssetFinder that preloads all equities from equities table
-into memory and does lookups from there.</p>
-<p>To have any changes in the underlying assets db reflected by this asset
-finder one must manually call the <code class="docutils literal"><span class="pre">rehash_equities</span></code> method.</p>
-<dl class="method">
-<dt id="zipline.assets.AssetFinderCachedEquities.rehash_equities">
-<code class="descname">rehash_equities</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/assets/assets.html#AssetFinderCachedEquities.rehash_equities"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.assets.AssetFinderCachedEquities.rehash_equities" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reload the underlying assets db into the in memory cache.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="zipline.data.data_portal.DataPortal">
-<em class="property">class </em><code class="descclassname">zipline.data.data_portal.</code><code class="descname">DataPortal</code><span class="sig-paren">(</span><em>env</em>, <em>equity_daily_reader=None</em>, <em>equity_minute_reader=None</em>, <em>future_daily_reader=None</em>, <em>future_minute_reader=None</em>, <em>adjustment_reader=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/data_portal.html#DataPortal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.data_portal.DataPortal" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">zipline.data.data_portal.</code><code class="descname">DataPortal</code><span class="sig-paren">(</span><em>asset_finder</em>, <em>trading_calendar</em>, <em>first_trading_day</em>, <em>equity_daily_reader=None</em>, <em>equity_minute_reader=None</em>, <em>future_daily_reader=None</em>, <em>future_minute_reader=None</em>, <em>adjustment_reader=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zipline/data/data_portal.html#DataPortal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zipline.data.data_portal.DataPortal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interface to all of the data that a zipline simulation needs.</p>
 <p>This is used by the simulation runner to answer questions about the data,
 like getting the prices of assets on a given day or to service history
@@ -4417,14 +5266,21 @@ calls.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>env</strong> : TradingEnvironment</p>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>asset_finder</strong> : zipline.assets.assets.AssetFinder</p>
 <blockquote>
-<div><p>The trading environment for the simulation. This includes the trading
-calendar and benchmark data.</p>
+<div><p>The AssetFinder instance used to resolve assets.</p>
+</div></blockquote>
+<p><strong>trading_calendar: zipline.utils.calendar.exchange_calendar.TradingCalendar</strong></p>
+<blockquote>
+<div><p>The calendar instance used to provide minute-&gt;session information.</p>
+</div></blockquote>
+<p><strong>first_trading_day</strong> : pd.Timestamp</p>
+<blockquote>
+<div><p>The first trading day for the simulation.</p>
 </div></blockquote>
 <p><strong>equity_daily_reader</strong> : BcolzDailyBarReader, optional</p>
 <blockquote>
-<div><p>The daily bar ready for equities. This will be used to service
+<div><p>The daily bar reader for equities. This will be used to service
 daily data backtests or daily history calls in a minute backetest.
 If a daily bar reader is not provided but a minute bar reader is,
 the minutes will be rolled up to serve the daily requests.</p>
@@ -4442,7 +5298,7 @@ daily data backtests or daily history calls in a minute backetest.
 If a daily bar reader is not provided but a minute bar reader is,
 the minutes will be rolled up to serve the daily requests.</p>
 </div></blockquote>
-<p><strong>future_minute_reader</strong> : BcolzMinuteBarReader, optional</p>
+<p><strong>future_minute_reader</strong> : BcolzFutureMinuteBarReader, optional</p>
 <blockquote>
 <div><p>The minute bar reader for futures. This will be used to service
 minute data backtests or minute history calls. This can be used
@@ -4754,8 +5610,14 @@ the simulation dates, so that lookup is fast during simulation.</p>
 <dt>adjustment_writer <span class="classifier-delimiter">:</span> <span class="classifier">SQLiteAdjustmentWriter</span></dt>
 <dd><p class="first last">The adjustment db writer to write into.</p>
 </dd>
-<dt>calendar <span class="classifier-delimiter">:</span> <span class="classifier">pd.DatetimeIndex</span></dt>
+<dt>calendar <span class="classifier-delimiter">:</span> <span class="classifier">zipline.utils.calendars.TradingCalendar</span></dt>
 <dd><p class="first last">The trading calendar to ingest for.</p>
+</dd>
+<dt>start_session <span class="classifier-delimiter">:</span> <span class="classifier">pd.Timestamp</span></dt>
+<dd><p class="first last">The first session of data to ingest.</p>
+</dd>
+<dt>end_session <span class="classifier-delimiter">:</span> <span class="classifier">pd.Timestamp</span></dt>
+<dd><p class="first last">The last session of data to ingest.</p>
 </dd>
 <dt>cache <span class="classifier-delimiter">:</span> <span class="classifier">DataFrameCache</span></dt>
 <dd><p class="first last">A mapping object to temporarily store dataframes.
@@ -4769,20 +5631,23 @@ successful load.</p>
 </dl>
 </div></blockquote>
 </div></blockquote>
-<p><strong>calendar</strong> : pd.DatetimeIndex, optional</p>
+<p><strong>calendar</strong> : zipline.utils.calendars.TradingCalendar or str, optional</p>
 <blockquote>
-<div><p>The exchange calendar to align the data to. This defaults to the
-NYSE calendar.</p>
+<div><p>The trading calendar to align the data to, or the name of a trading
+calendar. This defaults to &#8216;NYSE&#8217;, in which case we use the NYSE
+calendar.</p>
 </div></blockquote>
-<p><strong>market_open</strong> : pd.DatetimeIndex, optional</p>
+<p><strong>start_session</strong> : pd.Timestamp, optional</p>
 <blockquote>
-<div><p>The minute when the market opens each day. This defaults to the
-NYSE calendar.</p>
+<div><p>The first session for which we want data. If not provided,
+or if the date lies outside the range supported by the
+calendar, the first_session of the calendar is used.</p>
 </div></blockquote>
-<p><strong>market_close</strong> : pd.DatetimeIndex, optional</p>
+<p><strong>end_session</strong> : pd.Timestamp, optional</p>
 <blockquote>
-<div><p>The minute when the market closes each day. This defaults to the
-NYSE calendar.</p>
+<div><p>The last session for which we want data. If not provided,
+or if the date lies outside the range supported by the
+calendar, the last_session of the calendar is used.</p>
 </div></blockquote>
 <p><strong>minutes_per_day</strong> : int, optional</p>
 <blockquote>
@@ -4831,6 +5696,10 @@ they are not needed, like the <code class="docutils literal"><span class="pre">q
 <blockquote>
 <div><p>The timestamp to use for the load.
 By default this is the current time.</p>
+</div></blockquote>
+<p><strong>assets_versions</strong> : Iterable[int], optional</p>
+<blockquote>
+<div><p>Versions of the assets db to which to downgrade.</p>
 </div></blockquote>
 <p><strong>show_progress</strong> : bool, optional</p>
 <blockquote class="last">
@@ -5078,8 +5947,8 @@ to a non-temporary location if no exceptions are raised in the context.</p>
 </table>
 <p class="rubric">Notes</p>
 <p>The file is moved on __exit__ if there are no exceptions.
-<code class="docutils literal"><span class="pre">working_file</span></code> uses <a class="reference external" href="http://docs.python.org/dev/library/shutil.html#shutil.copyfile" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">shutil.copyfile()</span></code></a> to move the actual files,
-meaning it has as strong of guarantees as <a class="reference external" href="http://docs.python.org/dev/library/shutil.html#shutil.copyfile" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">shutil.copyfile()</span></code></a>.</p>
+<code class="docutils literal"><span class="pre">working_file</span></code> uses <a class="reference external" href="http://docs.python.org/dev/library/shutil.html#shutil.move" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">shutil.move()</span></code></a> to move the actual files,
+meaning it has as strong of guarantees as <a class="reference external" href="http://docs.python.org/dev/library/shutil.html#shutil.move" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">shutil.move()</span></code></a>.</p>
 </dd></dl>
 
 <dl class="class">
@@ -5105,8 +5974,8 @@ to a non-temporary location if no exceptions are raised in the context.</p>
 </table>
 <p class="rubric">Notes</p>
 <p>The file is moved on __exit__ if there are no exceptions.
-<code class="docutils literal"><span class="pre">working_dir</span></code> uses <a class="reference external" href="http://docs.python.org/dev/library/shutil.html#shutil.copytree" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">shutil.copytree()</span></code></a> to move the actual files,
-meaning it has as strong of guarantees as <a class="reference external" href="http://docs.python.org/dev/library/shutil.html#shutil.copytree" title="(in Python v3.6)"><code class="xref py py-func docutils literal"><span class="pre">shutil.copytree()</span></code></a>.</p>
+<code class="docutils literal"><span class="pre">working_dir</span></code> uses <code class="xref py py-func docutils literal"><span class="pre">dir_util.copy_tree()</span></code> to move the actual files,
+meaning it has as strong of guarantees as <code class="xref py py-func docutils literal"><span class="pre">dir_util.copy_tree()</span></code>.</p>
 </dd></dl>
 
 </div>
@@ -5193,7 +6062,7 @@ meaning it has as strong of guarantees as <a class="reference external" href="ht
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

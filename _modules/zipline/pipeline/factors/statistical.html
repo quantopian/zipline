@@ -1,0 +1,839 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>zipline.pipeline.factors.statistical &mdash; Zipline 1.0.2 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../../index.html"/>
+        <link rel="up" title="Module code" href="../../../index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-nav-search">
+        
+
+        
+          <a href="../../../../index.html" class="icon icon-home"> Zipline
+        
+
+        
+        </a>
+
+        
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+        
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        
+          
+          
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-pip">Installing with <code class="docutils literal"><span class="pre">pip</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#gnu-linux">GNU/Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#osx">OSX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../install.html#windows">Windows</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../install.html#installing-with-conda">Installing with <code class="docutils literal"><span class="pre">conda</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../beginner-tutorial.html">Zipline beginner tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#ipython-notebook">IPython Notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#access-to-previous-prices-using-history">Access to previous prices using <code class="docutils literal"><span class="pre">history</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#working-example-dual-moving-average-cross-over">Working example: Dual Moving Average Cross-Over</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#conclusions">Conclusions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../bundles.html">Data Bundles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#discovering-available-bundles">Discovering Available Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#ingesting-data">Ingesting Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#old-data">Old Data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#running-backtests-with-data-bundles">Running Backtests with Data Bundles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#default-data-bundles">Default Data Bundles</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#quandl-wiki-bundle">Quandl WIKI Bundle</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../bundles.html#quantopian-quandl-wiki-mirror">Quantopian Quandl WIKI Mirror</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#yahoo-bundle-factories">Yahoo Bundle Factories</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../bundles.html#writing-a-new-bundle">Writing a New Bundle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#environ"><code class="docutils literal"><span class="pre">environ</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#asset-db-writer"><code class="docutils literal"><span class="pre">asset_db_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#minute-bar-writer"><code class="docutils literal"><span class="pre">minute_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental">Experimental</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#highlights">Highlights</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#zipline-1-0-rewrite-1105">Zipline 1.0 Rewrite (#1105)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#new-entry-points-1173-and-1178">New Entry Points (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#data-bundles-1173-and-1178">Data Bundles (#1173 and #1178)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Documentation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id36">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id37">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id38">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id39">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id40">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id41">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id48">Contributors</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../appendix.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#running-a-backtest">Running a Backtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#algorithm-api">Algorithm API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#data-object">Data Object</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#scheduling-functions">Scheduling Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#orders">Orders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../appendix.html#order-cancellation-policies">Order Cancellation Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#assets">Assets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#trading-controls">Trading Controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#simulation-parameters">Simulation Parameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../../appendix.html#commission-models">Commission Models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../../appendix.html#slippage-models">Slippage Models</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#pipeline">Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#writers">Writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#readers">Readers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#bundles">Bundles</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#utilities">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#caching">Caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#command-line">Command Line</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../release-process.html">Zipline Release Process</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-release-notes">Updating the Release Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-python-stub-files">Updating the Python stub files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#updating-the-version">Updating the <code class="docutils literal"><span class="pre">__version__</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-pypi-packages">Uploading PyPI packages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#sdist"><code class="docutils literal"><span class="pre">sdist</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../release-process.html#bdist"><code class="docutils literal"><span class="pre">bdist</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#documentation">Documentation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#uploading-conda-packages">Uploading conda packages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../release-process.html#next-commit">Next Commit</a></li>
+</ul>
+</li>
+</ul>
+
+          
+        
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="../../../../index.html">Zipline</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      
+    <li>zipline.pipeline.factors.statistical</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document">
+            
+  <h1>Source code for zipline.pipeline.factors.statistical</h1><div class="highlight"><pre>
+
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">broadcast_arrays</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">linregress</span><span class="p">,</span>
+    <span class="n">pearsonr</span><span class="p">,</span>
+    <span class="n">spearmanr</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">IncompatibleTerms</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.factors</span> <span class="kn">import</span> <span class="n">CustomFactor</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.filters</span> <span class="kn">import</span> <span class="n">SingleAsset</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="n">SingleInputMixin</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">AssetExists</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_bounded</span><span class="p">,</span> <span class="n">expect_dtypes</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="n">float64_dtype</span><span class="p">,</span> <span class="n">int64_dtype</span>
+
+<span class="kn">from</span> <span class="nn">.technical</span> <span class="kn">import</span> <span class="n">Returns</span>
+
+
+<span class="n">ALLOWED_DTYPES</span> <span class="o">=</span> <span class="p">(</span><span class="n">float64_dtype</span><span class="p">,</span> <span class="n">int64_dtype</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_RollingCorrelation</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+
+    <span class="nd">@expect_dtypes</span><span class="p">(</span><span class="n">base_factor</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">)</span>
+    <span class="nd">@expect_bounded</span><span class="p">(</span><span class="n">correlation_length</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                <span class="n">base_factor</span><span class="p">,</span>
+                <span class="n">target</span><span class="p">,</span>
+                <span class="n">correlation_length</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">base_factor</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">target</span><span class="o">.</span><span class="n">mask</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IncompatibleTerms</span><span class="p">(</span><span class="n">term_1</span><span class="o">=</span><span class="n">base_factor</span><span class="p">,</span> <span class="n">term_2</span><span class="o">=</span><span class="n">target</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">_RollingCorrelation</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">base_factor</span><span class="p">,</span> <span class="n">target</span><span class="p">],</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">RollingPearson</span><span class="p">(</span><span class="n">_RollingCorrelation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Factor that computes pearson correlation coefficients between the columns</span>
+<span class="sd">    of a given Factor and either the columns of another Factor/BoundColumn or a</span>
+<span class="sd">    slice/single column of data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    base_factor : zipline.pipeline.factors.Factor</span>
+<span class="sd">        The factor for which to compute correlations of each of its columns</span>
+<span class="sd">        with `target`.</span>
+<span class="sd">    target : zipline.pipeline.Term with a numeric dtype</span>
+<span class="sd">        The term with which to compute correlations against each column of data</span>
+<span class="sd">        produced by `base_factor`. This term may be a Factor, a BoundColumn or</span>
+<span class="sd">        a Slice. If `target` is two-dimensional, correlations are computed</span>
+<span class="sd">        asset-wise.</span>
+<span class="sd">    correlation_length : int</span>
+<span class="sd">        Length of the lookback window over which to compute each correlation</span>
+<span class="sd">        coefficient.</span>
+<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">        A Filter describing which assets (columns) of `base_factor` should have</span>
+<span class="sd">        their correlation with `target` computed each day.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`scipy.stats.pearsonr`</span>
+<span class="sd">    :meth:`Factor.pearsonr`</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Most users should call Factor.pearsonr rather than directly construct an</span>
+<span class="sd">    instance of this class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">base_data</span><span class="p">,</span> <span class="n">target_data</span><span class="p">):</span>
+        <span class="c"># If `target_data` is a Slice or single column of data, broadcast it</span>
+        <span class="c"># out to the same shape as `base_data`, then compute column-wise. This</span>
+        <span class="c"># is efficient because each column of the broadcasted array only refers</span>
+        <span class="c"># to a single memory location.</span>
+        <span class="n">target_data</span> <span class="o">=</span> <span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">target_data</span><span class="p">,</span> <span class="n">base_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">pearsonr</span><span class="p">(</span><span class="n">base_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">target_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">RollingSpearman</span><span class="p">(</span><span class="n">_RollingCorrelation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Factor that computes spearman rank correlation coefficients between the</span>
+<span class="sd">    columns of a given Factor and either the columns of another</span>
+<span class="sd">    Factor/BoundColumn or a slice/single column of data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    base_factor : zipline.pipeline.factors.Factor</span>
+<span class="sd">        The factor for which to compute correlations of each of its columns</span>
+<span class="sd">        with `target`.</span>
+<span class="sd">    target : zipline.pipeline.Term with a numeric dtype</span>
+<span class="sd">        The term with which to compute correlations against each column of data</span>
+<span class="sd">        produced by `base_factor`. This term may be a Factor, a BoundColumn or</span>
+<span class="sd">        a Slice. If `target` is two-dimensional, correlations are computed</span>
+<span class="sd">        asset-wise.</span>
+<span class="sd">    correlation_length : int</span>
+<span class="sd">        Length of the lookback window over which to compute each correlation</span>
+<span class="sd">        coefficient.</span>
+<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">        A Filter describing which assets (columns) of `base_factor` should have</span>
+<span class="sd">        their correlation with `target` computed each day.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`scipy.stats.spearmanr`</span>
+<span class="sd">    :meth:`Factor.spearmanr`</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Most users should call Factor.spearmanr rather than directly construct an</span>
+<span class="sd">    instance of this class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">base_data</span><span class="p">,</span> <span class="n">target_data</span><span class="p">):</span>
+        <span class="c"># If `target_data` is a Slice or single column of data, broadcast it</span>
+        <span class="c"># out to the same shape as `base_data`, then compute column-wise. This</span>
+        <span class="c"># is efficient because each column of the broadcasted array only refers</span>
+        <span class="c"># to a single memory location.</span>
+        <span class="n">target_data</span> <span class="o">=</span> <span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">target_data</span><span class="p">,</span> <span class="n">base_data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">spearmanr</span><span class="p">(</span><span class="n">base_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">target_data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">RollingLinearRegression</span><span class="p">(</span><span class="n">CustomFactor</span><span class="p">,</span> <span class="n">SingleInputMixin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Factor that performs an ordinary least-squares regression predicting the</span>
+<span class="sd">    columns of a given Factor from either the columns of another</span>
+<span class="sd">    Factor/BoundColumn or a slice/single column of data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dependent : zipline.pipeline.factors.Factor</span>
+<span class="sd">        The factor whose columns are the predicted/dependent variable of each</span>
+<span class="sd">        regression with `independent`.</span>
+<span class="sd">    independent : zipline.pipeline.slice.Slice or zipline.pipeline.Factor</span>
+<span class="sd">        The factor/slice whose columns are the predictor/independent variable</span>
+<span class="sd">        of each regression with `dependent`. If `independent` is a Factor,</span>
+<span class="sd">        regressions are computed asset-wise.</span>
+<span class="sd">    independent : zipline.pipeline.Term with a numeric dtype</span>
+<span class="sd">        The term to use as the predictor/independent variable in each</span>
+<span class="sd">        regression with `dependent`. This term may be a Factor, a BoundColumn</span>
+<span class="sd">        or a Slice. If `independent` is two-dimensional, regressions are</span>
+<span class="sd">        computed asset-wise.</span>
+<span class="sd">    regression_length : int</span>
+<span class="sd">        Length of the lookback window over which to compute each regression.</span>
+<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">        A Filter describing which assets (columns) of `dependent` should be</span>
+<span class="sd">        regressed against `independent` each day.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :func:`scipy.stats.linregress`</span>
+<span class="sd">    :meth:`Factor.linear_regression`</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Most users should call Factor.linear_regression rather than directly</span>
+<span class="sd">    construct an instance of this class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;alpha&#39;</span><span class="p">,</span> <span class="s">&#39;beta&#39;</span><span class="p">,</span> <span class="s">&#39;r_value&#39;</span><span class="p">,</span> <span class="s">&#39;p_value&#39;</span><span class="p">,</span> <span class="s">&#39;stderr&#39;</span><span class="p">]</span>
+
+    <span class="nd">@expect_dtypes</span><span class="p">(</span><span class="n">dependent</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">,</span> <span class="n">independent</span><span class="o">=</span><span class="n">ALLOWED_DTYPES</span><span class="p">)</span>
+    <span class="nd">@expect_bounded</span><span class="p">(</span><span class="n">regression_length</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                <span class="n">dependent</span><span class="p">,</span>
+                <span class="n">independent</span><span class="p">,</span>
+                <span class="n">regression_length</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">independent</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">dependent</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">independent</span><span class="o">.</span><span class="n">mask</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IncompatibleTerms</span><span class="p">(</span><span class="n">term_1</span><span class="o">=</span><span class="n">dependent</span><span class="p">,</span> <span class="n">term_2</span><span class="o">=</span><span class="n">independent</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingLinearRegression</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">dependent</span><span class="p">,</span> <span class="n">independent</span><span class="p">],</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">dependent</span><span class="p">,</span> <span class="n">independent</span><span class="p">):</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">alpha</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">beta</span>
+        <span class="n">r_value</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">r_value</span>
+        <span class="n">p_value</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">p_value</span>
+        <span class="n">stderr</span> <span class="o">=</span> <span class="n">out</span><span class="o">.</span><span class="n">stderr</span>
+
+        <span class="k">def</span> <span class="nf">regress</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+            <span class="n">regr_results</span> <span class="o">=</span> <span class="n">linregress</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
+            <span class="c"># `linregress` returns its results in the following order:</span>
+            <span class="c"># slope, intercept, r-value, p-value, stderr</span>
+            <span class="n">alpha</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">beta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">r_value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">p_value</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">stderr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">regr_results</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+        <span class="c"># If `independent` is a Slice or single column of data, broadcast it</span>
+        <span class="c"># out to the same shape as `dependent`, then compute column-wise. This</span>
+        <span class="c"># is efficient because each column of the broadcasted array only refers</span>
+        <span class="c"># to a single memory location.</span>
+        <span class="n">independent</span> <span class="o">=</span> <span class="n">broadcast_arrays</span><span class="p">(</span><span class="n">independent</span><span class="p">,</span> <span class="n">dependent</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
+            <span class="n">regress</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="n">dependent</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">independent</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="RollingPearsonOfReturns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RollingPearsonOfReturns">[docs]</a><span class="k">class</span> <span class="nc">RollingPearsonOfReturns</span><span class="p">(</span><span class="n">RollingPearson</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the Pearson product-moment correlation coefficient of the</span>
+<span class="sd">    returns of the given asset with the returns of all other assets.</span>
+
+<span class="sd">    Pearson correlation is what most people mean when they say &quot;correlation</span>
+<span class="sd">    coefficient&quot; or &quot;R-value&quot;.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : zipline.assets.Asset</span>
+<span class="sd">        The asset to correlate with all other assets.</span>
+<span class="sd">    returns_length : int &gt;= 2</span>
+<span class="sd">        Length of the lookback window over which to compute returns. Daily</span>
+<span class="sd">        returns require a window length of 2.</span>
+<span class="sd">    correlation_length : int &gt;= 1</span>
+<span class="sd">        Length of the lookback window over which to compute each correlation</span>
+<span class="sd">        coefficient.</span>
+<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">        A Filter describing which assets should have their correlation with the</span>
+<span class="sd">        target asset computed each day.</span>
+
+<span class="sd">    Note</span>
+<span class="sd">    ----</span>
+<span class="sd">    Computing this factor over many assets can be time consuming. It is</span>
+<span class="sd">    recommended that a mask be used in order to limit the number of assets over</span>
+<span class="sd">    which correlations are computed.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    Let the following be example 10-day returns for three different assets::</span>
+
+<span class="sd">                       SPY    MSFT     FB</span>
+<span class="sd">        2017-03-13    -.03     .03    .04</span>
+<span class="sd">        2017-03-14    -.02    -.03    .02</span>
+<span class="sd">        2017-03-15    -.01     .02    .01</span>
+<span class="sd">        2017-03-16       0    -.02    .01</span>
+<span class="sd">        2017-03-17     .01     .04   -.01</span>
+<span class="sd">        2017-03-20     .02    -.03   -.02</span>
+<span class="sd">        2017-03-21     .03     .01   -.02</span>
+<span class="sd">        2017-03-22     .04    -.02   -.02</span>
+
+<span class="sd">    Suppose we are interested in SPY&#39;s rolling returns correlation with each</span>
+<span class="sd">    stock from 2017-03-17 to 2017-03-22, using a 5-day look back window (that</span>
+<span class="sd">    is, we calculate each correlation coefficient over 5 days of data). We can</span>
+<span class="sd">    achieve this by doing::</span>
+
+<span class="sd">        rolling_correlations = RollingPearsonOfReturns(</span>
+<span class="sd">            target=sid(8554),</span>
+<span class="sd">            returns_length=10,</span>
+<span class="sd">            correlation_length=5,</span>
+<span class="sd">        )</span>
+
+<span class="sd">    The result of computing ``rolling_correlations`` from 2017-03-17 to</span>
+<span class="sd">    2017-03-22 gives::</span>
+
+<span class="sd">                       SPY   MSFT     FB</span>
+<span class="sd">        2017-03-17       1    .15   -.96</span>
+<span class="sd">        2017-03-20       1    .10   -.96</span>
+<span class="sd">        2017-03-21       1   -.16   -.94</span>
+<span class="sd">        2017-03-22       1   -.16   -.85</span>
+
+<span class="sd">    Note that the column for SPY is all 1&#39;s, as the correlation of any data</span>
+<span class="sd">    series with itself is always 1. To understand how each of the other values</span>
+<span class="sd">    were calculated, take for example the .15 in MSFT&#39;s column. This is the</span>
+<span class="sd">    correlation coefficient between SPY&#39;s returns looking back from 2017-03-17</span>
+<span class="sd">    (-.03, -.02, -.01, 0, .01) and MSFT&#39;s returns (.03, -.03, .02, -.02, .04).</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                <span class="n">target</span><span class="p">,</span>
+                <span class="n">returns_length</span><span class="p">,</span>
+                <span class="n">correlation_length</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="c"># Use the `SingleAsset` filter here because it protects against</span>
+        <span class="c"># inputting a non-existent target asset.</span>
+        <span class="n">returns</span> <span class="o">=</span> <span class="n">Returns</span><span class="p">(</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">()</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingPearsonOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">base_factor</span><span class="o">=</span><span class="n">returns</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">returns</span><span class="p">[</span><span class="n">target</span><span class="p">],</span>
+            <span class="n">correlation_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RollingSpearmanOfReturns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RollingSpearmanOfReturns">[docs]</a><span class="k">class</span> <span class="nc">RollingSpearmanOfReturns</span><span class="p">(</span><span class="n">RollingSpearman</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the Spearman rank correlation coefficient of the returns of the</span>
+<span class="sd">    given asset with the returns of all other assets.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : zipline.assets.Asset</span>
+<span class="sd">        The asset to correlate with all other assets.</span>
+<span class="sd">    returns_length : int &gt;= 2</span>
+<span class="sd">        Length of the lookback window over which to compute returns. Daily</span>
+<span class="sd">        returns require a window length of 2.</span>
+<span class="sd">    correlation_length : int &gt;= 1</span>
+<span class="sd">        Length of the lookback window over which to compute each correlation</span>
+<span class="sd">        coefficient.</span>
+<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">        A Filter describing which assets should have their correlation with the</span>
+<span class="sd">        target asset computed each day.</span>
+
+<span class="sd">    Note</span>
+<span class="sd">    ----</span>
+<span class="sd">    Computing this factor over many assets can be time consuming. It is</span>
+<span class="sd">    recommended that a mask be used in order to limit the number of assets over</span>
+<span class="sd">    which correlations are computed.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                <span class="n">target</span><span class="p">,</span>
+                <span class="n">returns_length</span><span class="p">,</span>
+                <span class="n">correlation_length</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="c"># Use the `SingleAsset` filter here because it protects against</span>
+        <span class="c"># inputting a non-existent target asset.</span>
+        <span class="n">returns</span> <span class="o">=</span> <span class="n">Returns</span><span class="p">(</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">()</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingSpearmanOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">base_factor</span><span class="o">=</span><span class="n">returns</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">returns</span><span class="p">[</span><span class="n">target</span><span class="p">],</span>
+            <span class="n">correlation_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RollingLinearRegressionOfReturns"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.factors.RollingLinearRegressionOfReturns">[docs]</a><span class="k">class</span> <span class="nc">RollingLinearRegressionOfReturns</span><span class="p">(</span><span class="n">RollingLinearRegression</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform an ordinary least-squares regression predicting the returns of all</span>
+<span class="sd">    other assets on the given asset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    target : zipline.assets.Asset</span>
+<span class="sd">        The asset to regress against all other assets.</span>
+<span class="sd">    returns_length : int &gt;= 2</span>
+<span class="sd">        Length of the lookback window over which to compute returns. Daily</span>
+<span class="sd">        returns require a window length of 2.</span>
+<span class="sd">    regression_length : int &gt;= 1</span>
+<span class="sd">        Length of the lookback window over which to compute each regression.</span>
+<span class="sd">    mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">        A Filter describing which assets should be regressed against the target</span>
+<span class="sd">        asset each day.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Computing this factor over many assets can be time consuming. It is</span>
+<span class="sd">    recommended that a mask be used in order to limit the number of assets over</span>
+<span class="sd">    which regressions are computed.</span>
+
+<span class="sd">    This factor is designed to return five outputs:</span>
+
+<span class="sd">    - alpha, a factor that computes the intercepts of each regression.</span>
+<span class="sd">    - beta, a factor that computes the slopes of each regression.</span>
+<span class="sd">    - r_value, a factor that computes the correlation coefficient of each</span>
+<span class="sd">      regression.</span>
+<span class="sd">    - p_value, a factor that computes, for each regression, the two-sided</span>
+<span class="sd">      p-value for a hypothesis test whose null hypothesis is that the slope is</span>
+<span class="sd">      zero.</span>
+<span class="sd">    - stderr, a factor that computes the standard error of the estimate of each</span>
+<span class="sd">      regression.</span>
+
+<span class="sd">    For more help on factors with multiple outputs, see</span>
+<span class="sd">    :class:`zipline.pipeline.factors.CustomFactor`.</span>
+
+<span class="sd">    Example</span>
+<span class="sd">    -------</span>
+<span class="sd">    Let the following be example 10-day returns for three different assets::</span>
+
+<span class="sd">                       SPY    MSFT     FB</span>
+<span class="sd">        2017-03-13    -.03     .03    .04</span>
+<span class="sd">        2017-03-14    -.02    -.03    .02</span>
+<span class="sd">        2017-03-15    -.01     .02    .01</span>
+<span class="sd">        2017-03-16       0    -.02    .01</span>
+<span class="sd">        2017-03-17     .01     .04   -.01</span>
+<span class="sd">        2017-03-20     .02    -.03   -.02</span>
+<span class="sd">        2017-03-21     .03     .01   -.02</span>
+<span class="sd">        2017-03-22     .04    -.02   -.02</span>
+
+<span class="sd">    Suppose we are interested in predicting each stock&#39;s returns from SPY&#39;s</span>
+<span class="sd">    over rolling 5-day look back windows. We can compute rolling regression</span>
+<span class="sd">    coefficients (alpha and beta) from 2017-03-17 to 2017-03-22 by doing::</span>
+
+<span class="sd">        regression_factor = RollingRegressionOfReturns(</span>
+<span class="sd">            target=sid(8554),</span>
+<span class="sd">            returns_length=10,</span>
+<span class="sd">            regression_length=5,</span>
+<span class="sd">        )</span>
+<span class="sd">        alpha = regression_factor.alpha</span>
+<span class="sd">        beta = regression_factor.beta</span>
+
+<span class="sd">    The result of computing ``alpha`` from 2017-03-17 to 2017-03-22 gives::</span>
+
+<span class="sd">                       SPY    MSFT     FB</span>
+<span class="sd">        2017-03-17       0    .011   .003</span>
+<span class="sd">        2017-03-20       0   -.004   .004</span>
+<span class="sd">        2017-03-21       0    .007   .006</span>
+<span class="sd">        2017-03-22       0    .002   .008</span>
+
+<span class="sd">    And the result of computing ``beta`` from 2017-03-17 to 2017-03-22 gives::</span>
+
+<span class="sd">                       SPY    MSFT     FB</span>
+<span class="sd">        2017-03-17       1      .3   -1.1</span>
+<span class="sd">        2017-03-20       1      .2     -1</span>
+<span class="sd">        2017-03-21       1     -.3     -1</span>
+<span class="sd">        2017-03-22       1     -.3    -.9</span>
+
+<span class="sd">    Note that SPY&#39;s column for alpha is all 0&#39;s and for beta is all 1&#39;s, as the</span>
+<span class="sd">    regression line of SPY with itself is simply the function y = x.</span>
+
+<span class="sd">    To understand how each of the other values were calculated, take for</span>
+<span class="sd">    example MSFT&#39;s ``alpha`` and ``beta`` values on 2017-03-17 (.011 and .3,</span>
+<span class="sd">    respectively). These values are the result of running a linear regression</span>
+<span class="sd">    predicting MSFT&#39;s returns from SPY&#39;s returns, using values starting at</span>
+<span class="sd">    2017-03-17 and looking back 5 days. That is, the regression was run with</span>
+<span class="sd">    x = [-.03, -.02, -.01, 0, .01] and y = [.03, -.03, .02, -.02, .04], and it</span>
+<span class="sd">    produced a slope of .3 and an intercept of .011.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingPearsonOfReturns`</span>
+<span class="sd">    :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                <span class="n">target</span><span class="p">,</span>
+                <span class="n">returns_length</span><span class="p">,</span>
+                <span class="n">regression_length</span><span class="p">,</span>
+                <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="c"># Use the `SingleAsset` filter here because it protects against</span>
+        <span class="c"># inputting a non-existent target asset.</span>
+        <span class="n">returns</span> <span class="o">=</span> <span class="n">Returns</span><span class="p">(</span>
+            <span class="n">window_length</span><span class="o">=</span><span class="n">returns_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">AssetExists</span><span class="p">()</span> <span class="o">|</span> <span class="n">SingleAsset</span><span class="p">(</span><span class="n">asset</span><span class="o">=</span><span class="n">target</span><span class="p">)),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RollingLinearRegressionOfReturns</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
+            <span class="n">cls</span><span class="p">,</span>
+            <span class="n">dependent</span><span class="o">=</span><span class="n">returns</span><span class="p">,</span>
+            <span class="n">independent</span><span class="o">=</span><span class="n">returns</span><span class="p">[</span><span class="n">target</span><span class="p">],</span>
+            <span class="n">regression_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Quantopian Inc..
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'1.0.2',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

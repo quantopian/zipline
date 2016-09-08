@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Zipline beginner tutorial &mdash; Zipline 1.0.1 documentation</title>
+  <title>Zipline beginner tutorial &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="index.html"/>
         <link rel="next" title="Data Bundles" href="bundles.html"/>
         <link rel="prev" title="Install" href="install.html"/> 
 
@@ -86,6 +86,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -117,6 +118,8 @@
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -125,10 +128,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -139,70 +152,70 @@
 <li class="toctree-l4"><a class="reference internal" href="releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -229,6 +242,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="appendix.html#readers">Readers</a></li>
@@ -320,7 +334,11 @@ Quantopian. If you instead want to get started on Quantopian, see
 instructions</a> if
 you haven&#8217;t set up zipline yet.</p>
 <p>Every <code class="docutils literal"><span class="pre">zipline</span></code> algorithm consists of two functions you have to
-define: * <code class="docutils literal"><span class="pre">initialize(context)</span></code> * <code class="docutils literal"><span class="pre">handle_data(context,</span> <span class="pre">data)</span></code></p>
+define:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">initialize(context)</span></code></li>
+<li><code class="docutils literal"><span class="pre">handle_data(context,</span> <span class="pre">data)</span></code></li>
+</ul>
 <p>Before the start of the algorithm, <code class="docutils literal"><span class="pre">zipline</span></code> calls the
 <code class="docutils literal"><span class="pre">initialize()</span></code> function and passes in a <code class="docutils literal"><span class="pre">context</span></code> variable.
 <code class="docutils literal"><span class="pre">context</span></code> is a persistent namespace for you to store variables you
@@ -374,15 +392,26 @@ AAPL stock in the <code class="docutils literal"><span class="pre">data</span></
 <p>To now test this algorithm on financial data, <code class="docutils literal"><span class="pre">zipline</span></code> provides three
 interfaces: A command-line interface, <code class="docutils literal"><span class="pre">IPython</span> <span class="pre">Notebook</span></code> magic, and
 <a class="reference internal" href="appendix.html#zipline.run_algorithm" title="zipline.run_algorithm"><code class="xref py py-func docutils literal"><span class="pre">run_algorithm()</span></code></a>.</p>
+<div class="section" id="ingesting-data">
+<h3>Ingesting Data<a class="headerlink" href="#ingesting-data" title="Permalink to this headline">¶</a></h3>
+<p>If you haven&#8217;t ingested the data, run:</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline ingest <span class="o">[</span>-b &lt;bundle&gt;<span class="o">]</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">&lt;bundle&gt;</span></code> is the name of the bundle to ingest, defaulting to
+<a class="reference internal" href="bundles.html#quantopian-quandl-mirror"><span>quantopian-quandl</span></a>.</p>
+<p>you can check out the <a class="reference internal" href="bundles.html#ingesting-data"><span>ingesting data</span></a> section for
+more detail.</p>
+</div>
 <div class="section" id="command-line-interface">
 <h3>Command line interface<a class="headerlink" href="#command-line-interface" title="Permalink to this headline">¶</a></h3>
 <p>After you installed zipline you should be able to execute the following
 from your command line (e.g. <code class="docutils literal"><span class="pre">cmd.exe</span></code> on Windows, or the Terminal app
 on OSX):</p>
-<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>python -m zipline run --help
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>zipline run --help
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre>Usage: __main__.py run [OPTIONS]
+<div class="highlight-python"><div class="highlight"><pre>Usage: zipline run [OPTIONS]
 
   Run a backtest for the given algorithm.
 
@@ -424,8 +453,8 @@ you can then conveniently pass to the <code class="docutils literal"><span class
 supply the command line args all the time (see the .conf files in the examples
 directory).</p>
 <p>Thus, to execute our algorithm from above and save the results to
-<code class="docutils literal"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">zipline</span> <span class="pre">run</span></code> as follows:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">symbols</span> <span class="n">AAPL</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
+<code class="docutils literal"><span class="pre">buyapple_out.pickle</span></code> we would call <code class="docutils literal"><span class="pre">zipline</span> <span class="pre">run</span></code> as follows:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">zipline</span> <span class="n">run</span> <span class="o">-</span><span class="n">f</span> <span class="o">../../</span><span class="n">zipline</span><span class="o">/</span><span class="n">examples</span><span class="o">/</span><span class="n">buyapple</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">buyapple_out</span><span class="o">.</span><span class="n">pickle</span>
 </pre></div>
 </div>
 <div class="highlight-python"><div class="highlight"><pre>AAPL
@@ -659,7 +688,7 @@ magic.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="o">%</span><span class="n">load_ext</span> <span class="n">zipline</span>
 </pre></div>
 </div>
-<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">symbols</span> <span class="n">AAPL</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span>
 <span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">record</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
@@ -851,23 +880,15 @@ data for you. The first argument is the number of bars you want to
 collect, the second argument is the unit (either <code class="docutils literal"><span class="pre">'1d'</span></code> for <code class="docutils literal"><span class="pre">'1m'</span></code>
 but note that you need to have minute-level data for using <code class="docutils literal"><span class="pre">1m</span></code>). For
 a more detailed description <code class="docutils literal"><span class="pre">history()</span></code>&#8216;s features, see the
-<a class="reference external" href="https://www.quantopian.com/help#ide-history">Quantopian docs</a>. While
-you can directly use the <code class="docutils literal"><span class="pre">history()</span></code> function on Quantopian, in
-<code class="docutils literal"><span class="pre">zipline</span></code> you have to register each history container you want to use
-with <code class="docutils literal"><span class="pre">add_history()</span></code> and pass it the same arguments as the history
-function below. Lets look at the strategy which should make this clear:</p>
+<a class="reference external" href="https://www.quantopian.com/help#ide-history">Quantopian docs</a>.
+Let&#8217;s look at the strategy which should make this clear:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="o">%%</span><span class="n">zipline</span> <span class="o">--</span><span class="n">start</span> <span class="mi">2000</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">--</span><span class="n">end</span> <span class="mi">2014</span><span class="o">-</span><span class="mi">1</span><span class="o">-</span><span class="mi">1</span> <span class="o">-</span><span class="n">o</span> <span class="n">perf_dma</span>
 
 
-<span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">history</span><span class="p">,</span> <span class="n">add_history</span>
+<span class="kn">from</span> <span class="nn">zipline.api</span> <span class="kn">import</span> <span class="n">order_target</span><span class="p">,</span> <span class="n">record</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">history</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
 
 <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
-    <span class="c"># Register 2 histories that track daily prices,</span>
-    <span class="c"># one with a 100 window and one with a 300 day window</span>
-    <span class="n">add_history</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span>
-    <span class="n">add_history</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="s">&#39;1d&#39;</span><span class="p">,</span> <span class="s">&#39;price&#39;</span><span class="p">)</span>
-
     <span class="n">context</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
 
 
@@ -995,7 +1016,7 @@ and <a class="reference external" href="https://quantopian.com">checkout Quantop
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'./',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

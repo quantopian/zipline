@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.algorithm &mdash; Zipline 1.0.1 documentation</title>
+  <title>zipline.algorithm &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="../../index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../index.html"/>
         <link rel="up" title="Module code" href="../index.html"/> 
 
   
@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -116,6 +117,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -124,10 +127,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -138,70 +151,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +241,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../appendix.html#readers">Readers</a></li>
@@ -310,7 +324,7 @@
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">import</span> <span class="nn">operator</span> <span class="kn">as</span> <span class="nn">op</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">tzinfo</span><span class="p">,</span> <span class="n">time</span>
 <span class="kn">import</span> <span class="nn">logbook</span>
 <span class="kn">import</span> <span class="nn">pytz</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
@@ -332,7 +346,7 @@
 <span class="kn">from</span> <span class="nn">zipline._protocol</span> <span class="kn">import</span> <span class="n">handle_non_market_minutes</span>
 <span class="kn">from</span> <span class="nn">zipline.assets.synthetic</span> <span class="kn">import</span> <span class="n">make_simple_equity_info</span>
 <span class="kn">from</span> <span class="nn">zipline.data.data_portal</span> <span class="kn">import</span> <span class="n">DataPortal</span>
-<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="n">PanelDailyBarReader</span>
+<span class="kn">from</span> <span class="nn">zipline.data.us_equity_pricing</span> <span class="kn">import</span> <span class="n">PanelBarReader</span>
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">AttachPipelineAfterInitialize</span><span class="p">,</span>
     <span class="n">HistoryInInitialize</span><span class="p">,</span>
@@ -348,8 +362,11 @@
     <span class="n">UnsupportedDatetimeFormat</span><span class="p">,</span>
     <span class="n">UnsupportedOrderParameters</span><span class="p">,</span>
     <span class="n">UnsupportedSlippageModel</span><span class="p">,</span>
-    <span class="n">CannotOrderDelistedAsset</span><span class="p">,</span> <span class="n">UnsupportedCancelPolicy</span><span class="p">,</span> <span class="n">SetCancelPolicyPostInit</span><span class="p">,</span>
-    <span class="n">OrderInBeforeTradingStart</span><span class="p">)</span>
+    <span class="n">CannotOrderDelistedAsset</span><span class="p">,</span>
+    <span class="n">UnsupportedCancelPolicy</span><span class="p">,</span>
+    <span class="n">SetCancelPolicyPostInit</span><span class="p">,</span>
+    <span class="n">OrderInBeforeTradingStart</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.finance.trading</span> <span class="kn">import</span> <span class="n">TradingEnvironment</span>
 <span class="kn">from</span> <span class="nn">zipline.finance.blotter</span> <span class="kn">import</span> <span class="n">Blotter</span>
 <span class="kn">from</span> <span class="nn">zipline.finance.commission</span> <span class="kn">import</span> <span class="n">PerShare</span><span class="p">,</span> <span class="n">CommissionModel</span>
@@ -376,6 +393,7 @@
 <span class="kn">from</span> <span class="nn">zipline.assets</span> <span class="kn">import</span> <span class="n">Asset</span><span class="p">,</span> <span class="n">Future</span>
 <span class="kn">from</span> <span class="nn">zipline.assets.futures</span> <span class="kn">import</span> <span class="n">FutureChain</span>
 <span class="kn">from</span> <span class="nn">zipline.gens.tradesimulation</span> <span class="kn">import</span> <span class="n">AlgorithmSimulator</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline</span> <span class="kn">import</span> <span class="n">Pipeline</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.engine</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ExplodingPipelineEngine</span><span class="p">,</span>
     <span class="n">SimplePipelineEngine</span><span class="p">,</span>
@@ -386,15 +404,25 @@
     <span class="n">require_not_initialized</span><span class="p">,</span>
     <span class="n">ZiplineAPI</span><span class="p">,</span>
     <span class="n">disallowed_in_before_trading_start</span><span class="p">)</span>
-
-<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">ensure_upper_case</span><span class="p">,</span> <span class="n">error_keywords</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">coerce_string</span><span class="p">,</span>
+    <span class="n">ensure_upper_case</span><span class="p">,</span>
+    <span class="n">error_keywords</span><span class="p">,</span>
+    <span class="n">expect_types</span><span class="p">,</span>
+    <span class="n">optional</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars.trading_calendar</span> <span class="kn">import</span> <span class="n">days_at_time</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.cache</span> <span class="kn">import</span> <span class="n">CachedObject</span><span class="p">,</span> <span class="n">Expired</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.calendars</span> <span class="kn">import</span> <span class="n">get_calendar</span>
+
 <span class="kn">import</span> <span class="nn">zipline.utils.events</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.events</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">EventManager</span><span class="p">,</span>
     <span class="n">make_eventrule</span><span class="p">,</span>
     <span class="n">date_rules</span><span class="p">,</span>
     <span class="n">time_rules</span><span class="p">,</span>
+    <span class="n">AfterOpen</span><span class="p">,</span>
+    <span class="n">BeforeClose</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.factory</span> <span class="kn">import</span> <span class="n">create_simulation_parameters</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="p">(</span>
@@ -406,10 +434,7 @@
 <span class="kn">import</span> <span class="nn">zipline.protocol</span>
 <span class="kn">from</span> <span class="nn">zipline.sources.requests_csv</span> <span class="kn">import</span> <span class="n">PandasRequestsCSV</span>
 
-<span class="kn">from</span> <span class="nn">zipline.gens.sim_engine</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">MinuteSimulationClock</span><span class="p">,</span>
-    <span class="n">DailySimulationClock</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.gens.sim_engine</span> <span class="kn">import</span> <span class="n">MinuteSimulationClock</span>
 <span class="kn">from</span> <span class="nn">zipline.sources.benchmark_source</span> <span class="kn">import</span> <span class="n">BenchmarkSource</span>
 <span class="kn">from</span> <span class="nn">zipline.zipline_warnings</span> <span class="kn">import</span> <span class="n">ZiplineDeprecationWarning</span>
 
@@ -566,6 +591,12 @@
                 <span class="n">futures</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;futures_metadata&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
             <span class="p">)</span>
 
+        <span class="c"># If a schedule has been provided, pop it. Otherwise, use NYSE.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
+            <span class="s">&#39;trading_calendar&#39;</span><span class="p">,</span>
+            <span class="n">get_calendar</span><span class="p">(</span><span class="s">&quot;NYSE&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+
         <span class="c"># set the capital base</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">capital_base</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;capital_base&#39;</span><span class="p">,</span> <span class="n">DEFAULT_CAPITAL_BASE</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;sim_params&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
@@ -574,10 +605,8 @@
                 <span class="n">capital_base</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">capital_base</span><span class="p">,</span>
                 <span class="n">start</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;start&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
                 <span class="n">end</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;end&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">),</span>
-                <span class="n">env</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">,</span>
+                <span class="n">trading_calendar</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">update_internal_from_env</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="c"># Pull in the environment&#39;s new AssetFinder for quick reference</span>
@@ -692,8 +721,12 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_sid</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;benchmark_sid&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
 
-        <span class="c"># A dictionary of capital change values keyed by timestamp</span>
+        <span class="c"># A dictionary of capital changes, keyed by timestamp, indicating the</span>
+        <span class="c"># target/delta of the capital changes, along with values</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">capital_changes</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;capital_changes&#39;</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="c"># A dictionary of the actual capital change deltas, keyed by timestamp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capital_change_deltas</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span> <span class="nf">init_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">get_loader</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -704,7 +737,7 @@
         <span class="k">if</span> <span class="n">get_loader</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">SimplePipelineEngine</span><span class="p">(</span>
                 <span class="n">get_loader</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="o">.</span><span class="n">trading_days</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">all_sessions</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -776,33 +809,42 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        If the clock property is not set, then create one based on frequency.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">trading_o_and_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">schedule</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">sessions</span><span class="p">]</span>
+        <span class="n">market_closes</span> <span class="o">=</span> <span class="n">trading_o_and_c</span><span class="p">[</span><span class="s">&#39;market_close&#39;</span><span class="p">]</span>
+        <span class="n">minutely_emission</span> <span class="o">=</span> <span class="bp">False</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
-            <span class="n">env</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span>
-            <span class="n">trading_o_and_c</span> <span class="o">=</span> <span class="n">env</span><span class="o">.</span><span class="n">open_and_closes</span><span class="o">.</span><span class="n">ix</span><span class="p">[</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">trading_days</span><span class="p">]</span>
-            <span class="n">market_opens</span> <span class="o">=</span> <span class="n">trading_o_and_c</span><span class="p">[</span><span class="s">&#39;market_open&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
-                <span class="s">&#39;datetime64[ns]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-            <span class="n">market_closes</span> <span class="o">=</span> <span class="n">trading_o_and_c</span><span class="p">[</span><span class="s">&#39;market_close&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
-                <span class="s">&#39;datetime64[ns]&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">market_opens</span> <span class="o">=</span> <span class="n">trading_o_and_c</span><span class="p">[</span><span class="s">&#39;market_open&#39;</span><span class="p">]</span>
 
             <span class="n">minutely_emission</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&quot;minute&quot;</span>
-
-            <span class="n">clock</span> <span class="o">=</span> <span class="n">MinuteSimulationClock</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">trading_days</span><span class="p">,</span>
-                <span class="n">market_opens</span><span class="p">,</span>
-                <span class="n">market_closes</span><span class="p">,</span>
-                <span class="n">minutely_emission</span>
-            <span class="p">)</span>
-            <span class="k">return</span> <span class="n">clock</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">DailySimulationClock</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">trading_days</span><span class="p">)</span>
+            <span class="c"># in daily mode, we want to have one bar per session, timestamped</span>
+            <span class="c"># as the last minute of the session.</span>
+            <span class="n">market_opens</span> <span class="o">=</span> <span class="n">market_closes</span>
+
+        <span class="c"># FIXME generalize these values</span>
+        <span class="n">before_trading_start_minutes</span> <span class="o">=</span> <span class="n">days_at_time</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">sessions</span><span class="p">,</span>
+            <span class="n">time</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">45</span><span class="p">),</span>
+            <span class="s">&quot;US/Eastern&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">MinuteSimulationClock</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">sessions</span><span class="p">,</span>
+            <span class="n">market_opens</span><span class="p">,</span>
+            <span class="n">market_closes</span><span class="p">,</span>
+            <span class="n">before_trading_start_minutes</span><span class="p">,</span>
+            <span class="n">minute_emission</span><span class="o">=</span><span class="n">minutely_emission</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_create_benchmark_source</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">BenchmarkSource</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">benchmark_sid</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">trading_days</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span><span class="p">,</span>
+            <span class="n">benchmark_sid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">benchmark_sid</span><span class="p">,</span>
+            <span class="n">env</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">,</span>
+            <span class="n">trading_calendar</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+            <span class="n">sessions</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">sessions</span><span class="p">,</span>
+            <span class="n">data_portal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span><span class="p">,</span>
             <span class="n">emission_rate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">emission_rate</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -815,11 +857,12 @@
             <span class="c"># None so that it will be overwritten here.</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span> <span class="o">=</span> <span class="n">PerformanceTracker</span><span class="p">(</span>
                 <span class="n">sim_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="p">,</span>
+                <span class="n">trading_calendar</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
                 <span class="n">env</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">,</span>
             <span class="p">)</span>
 
             <span class="c"># Set the dt initially to the period start by forcing it to change.</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">on_dt_changed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">on_dt_changed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">start_session</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">initialized</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">initialize</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_args</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_kwargs</span><span class="p">)</span>
@@ -886,16 +929,29 @@
                 <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Panel</span><span class="p">):</span>
+                <span class="c"># Guard against tz-naive index.</span>
+                <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="o">.</span><span class="n">tz</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
+
                 <span class="c"># For compatibility with existing examples allow start/end</span>
                 <span class="c"># to be inferred.</span>
                 <span class="k">if</span> <span class="n">overwrite_sim_params</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                    <span class="c"># Changing period_start and period_close might require</span>
-                    <span class="c"># updating of first_open and last_close.</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">update_internal_from_env</span><span class="p">(</span>
-                        <span class="n">env</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">create_new</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span>
+                            <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">),</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span>
+                            <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                        <span class="p">),</span>
                     <span class="p">)</span>
+
+                    <span class="c"># Assume data is daily if timestamp times are</span>
+                    <span class="c"># standardized, otherwise assume minute bars.</span>
+                    <span class="n">times</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">major_axis</span><span class="o">.</span><span class="n">time</span>
+                    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">times</span> <span class="o">==</span> <span class="n">times</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">=</span> <span class="s">&#39;daily&#39;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">=</span> <span class="s">&#39;minute&#39;</span>
 
                 <span class="n">copy_panel</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span>
                     <span class="c"># These were the old names for the close/open columns.  We</span>
@@ -908,16 +964,26 @@
                     <span class="n">copy_panel</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">copy_panel</span><span class="o">.</span><span class="n">major_axis</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_assets_from_source</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">retrieve_all</span><span class="p">(</span>
                         <span class="n">copy_panel</span><span class="o">.</span><span class="n">items</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
+                    <span class="n">equity_reader_arg</span> <span class="o">=</span> <span class="s">&#39;equity_daily_reader&#39;</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span><span class="p">:</span>
+                    <span class="n">equity_reader_arg</span> <span class="o">=</span> <span class="s">&#39;equity_minute_reader&#39;</span>
+                <span class="n">equity_reader</span> <span class="o">=</span> <span class="n">PanelBarReader</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+                    <span class="n">copy_panel</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span><span class="p">,</span>
+                <span class="p">)</span>
+
                 <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span> <span class="o">=</span> <span class="n">DataPortal</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">,</span>
-                    <span class="n">equity_daily_reader</span><span class="o">=</span><span class="n">PanelDailyBarReader</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="o">.</span><span class="n">trading_days</span><span class="p">,</span>
-                        <span class="n">copy_panel</span><span class="p">,</span>
-                    <span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="p">,</span>
+                    <span class="n">first_trading_day</span><span class="o">=</span><span class="n">equity_reader</span><span class="o">.</span><span class="n">first_trading_day</span><span class="p">,</span>
+                    <span class="o">**</span><span class="p">{</span><span class="n">equity_reader_arg</span><span class="p">:</span> <span class="n">equity_reader</span><span class="p">}</span>
                 <span class="p">)</span>
 
         <span class="c"># Force a reset of the performance tracker, in case</span>
@@ -1016,8 +1082,8 @@
         <span class="k">elif</span> <span class="n">new_sids</span><span class="p">:</span>
             <span class="n">frame_to_write</span> <span class="o">=</span> <span class="n">make_simple_equity_info</span><span class="p">(</span>
                 <span class="n">new_sids</span><span class="p">,</span>
-                <span class="n">start_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span><span class="p">,</span>
-                <span class="n">end_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span><span class="p">,</span>
+                <span class="n">start_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">start_session</span><span class="p">,</span>
+                <span class="n">end_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">end_session</span><span class="p">,</span>
                 <span class="n">symbols</span><span class="o">=</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">new_sids</span><span class="p">),</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">new_symbols</span><span class="p">:</span>
@@ -1026,8 +1092,8 @@
             <span class="n">fake_sids</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">first_sid</span><span class="p">,</span> <span class="n">first_sid</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_symbols</span><span class="p">))</span>
             <span class="n">frame_to_write</span> <span class="o">=</span> <span class="n">make_simple_equity_info</span><span class="p">(</span>
                 <span class="n">sids</span><span class="o">=</span><span class="n">fake_sids</span><span class="p">,</span>
-                <span class="n">start_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span><span class="p">,</span>
-                <span class="n">end_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span><span class="p">,</span>
+                <span class="n">start_date</span><span class="o">=</span><span class="n">as_of_date</span><span class="p">,</span>
+                <span class="n">end_date</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">end_session</span><span class="p">,</span>
                 <span class="n">symbols</span><span class="o">=</span><span class="n">new_symbols</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1067,6 +1133,72 @@
         <span class="n">daily_stats</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">daily_perfs</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">daily_dts</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">daily_stats</span>
+
+    <span class="k">def</span> <span class="nf">calculate_capital_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">emission_rate</span><span class="p">,</span> <span class="n">is_interday</span><span class="p">,</span>
+                                  <span class="n">portfolio_value_adjustment</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If there is a capital change for a given dt, this means the the change</span>
+<span class="sd">        occurs before `handle_data` on the given dt. In the case of the</span>
+<span class="sd">        change being a target value, the change will be computed on the</span>
+<span class="sd">        portfolio value according to prices at the given dt</span>
+
+<span class="sd">        `portfolio_value_adjustment`, if specified, will be removed from the</span>
+<span class="sd">        portfolio_value of the cumulative performance when calculating deltas</span>
+<span class="sd">        from target capital changes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">capital_change</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">capital_changes</span><span class="p">[</span><span class="n">dt</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">emission_rate</span> <span class="o">==</span> <span class="s">&#39;daily&#39;</span><span class="p">:</span>
+            <span class="c"># If we are running daily emission, prices won&#39;t</span>
+            <span class="c"># necessarily be synced at the end of every minute, and we</span>
+            <span class="c"># need the up-to-date prices for capital change</span>
+            <span class="c"># calculations. We want to sync the prices as of the</span>
+            <span class="c"># last market minute, and this is okay from a data portal</span>
+            <span class="c"># perspective as we have technically not &quot;advanced&quot; to the</span>
+            <span class="c"># current dt yet.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">position_tracker</span><span class="o">.</span><span class="n">sync_last_sale_prices</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">previous_minute</span><span class="p">(</span>
+                    <span class="n">dt</span>
+                <span class="p">),</span>
+                <span class="bp">False</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">prepare_capital_change</span><span class="p">(</span><span class="n">is_interday</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">capital_change</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;target&#39;</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">capital_change</span><span class="p">[</span><span class="s">&#39;value&#39;</span><span class="p">]</span>
+            <span class="n">capital_change_amount</span> <span class="o">=</span> <span class="n">target</span> <span class="o">-</span> \
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">updated_portfolio</span><span class="p">()</span><span class="o">.</span><span class="n">portfolio_value</span> <span class="o">-</span>
+                 <span class="n">portfolio_value_adjustment</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">portfolio_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
+
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Processing capital change to target </span><span class="si">%s</span><span class="s"> at </span><span class="si">%s</span><span class="s">. Capital &#39;</span>
+                     <span class="s">&#39;change delta is </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span>
+                                             <span class="n">capital_change_amount</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">capital_change</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;delta&#39;</span><span class="p">:</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">capital_change_amount</span> <span class="o">=</span> <span class="n">capital_change</span><span class="p">[</span><span class="s">&#39;value&#39;</span><span class="p">]</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&#39;Processing capital change of delta </span><span class="si">%s</span><span class="s"> at </span><span class="si">%s</span><span class="s">&#39;</span>
+                     <span class="o">%</span> <span class="p">(</span><span class="n">capital_change_amount</span><span class="p">,</span> <span class="n">dt</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Capital change </span><span class="si">%s</span><span class="s"> does not indicate a valid type &quot;</span>
+                      <span class="s">&quot;(&#39;target&#39; or &#39;delta&#39;)&quot;</span> <span class="o">%</span> <span class="n">capital_change</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">capital_change_deltas</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">dt</span><span class="p">:</span> <span class="n">capital_change_amount</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">process_capital_change</span><span class="p">(</span><span class="n">capital_change_amount</span><span class="p">,</span>
+                                                 <span class="n">is_interday</span><span class="p">)</span>
+
+        <span class="k">yield</span> <span class="p">{</span>
+            <span class="s">&#39;capital_change&#39;</span><span class="p">:</span>
+                <span class="p">{</span><span class="s">&#39;date&#39;</span><span class="p">:</span> <span class="n">dt</span><span class="p">,</span>
+                 <span class="s">&#39;type&#39;</span><span class="p">:</span> <span class="s">&#39;cash&#39;</span><span class="p">,</span>
+                 <span class="s">&#39;target&#39;</span><span class="p">:</span> <span class="n">target</span><span class="p">,</span>
+                 <span class="s">&#39;delta&#39;</span><span class="p">:</span> <span class="n">capital_change_amount</span><span class="p">}</span>
+        <span class="p">}</span>
 
     <span class="nd">@api_method</span>
     <span class="k">def</span> <span class="nf">get_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="o">=</span><span class="s">&#39;platform&#39;</span><span class="p">):</span>
@@ -1186,9 +1318,10 @@
             <span class="n">url</span><span class="p">,</span>
             <span class="n">pre_func</span><span class="p">,</span>
             <span class="n">post_func</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_start</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">day</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">start_session</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">end_session</span><span class="p">,</span>
             <span class="n">date_column</span><span class="p">,</span>
             <span class="n">date_format</span><span class="p">,</span>
             <span class="n">timezone</span><span class="p">,</span>
@@ -1225,7 +1358,8 @@
                           <span class="n">func</span><span class="p">,</span>
                           <span class="n">date_rule</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                           <span class="n">time_rule</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                          <span class="n">half_days</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+                          <span class="n">half_days</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                          <span class="n">calendar</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Schedules a function to be called according to some timed rules.</span>
 
 <span class="sd">        Parameters</span>
@@ -1244,14 +1378,29 @@
 <span class="sd">        :class:`zipline.api.date_rules`</span>
 <span class="sd">        :class:`zipline.api.time_rules`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c"># When the user calls schedule_function(func, &lt;time_rule&gt;), assume that</span>
+        <span class="c"># the user meant to specify a time rule but no date rule, instead of</span>
+        <span class="c"># a date rule and no time rule as the signature suggests</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">date_rule</span><span class="p">,</span> <span class="p">(</span><span class="n">AfterOpen</span><span class="p">,</span> <span class="n">BeforeClose</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">time_rule</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&#39;Got a time rule for the second positional argument &#39;</span>
+                          <span class="s">&#39;date_rule. You should use keyword argument &#39;</span>
+                          <span class="s">&#39;time_rule= when calling schedule_function without &#39;</span>
+                          <span class="s">&#39;specifying a date_rule&#39;</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
         <span class="n">date_rule</span> <span class="o">=</span> <span class="n">date_rule</span> <span class="ow">or</span> <span class="n">date_rules</span><span class="o">.</span><span class="n">every_day</span><span class="p">()</span>
-        <span class="n">time_rule</span> <span class="o">=</span> <span class="p">((</span><span class="n">time_rule</span> <span class="ow">or</span> <span class="n">time_rules</span><span class="o">.</span><span class="n">market_open</span><span class="p">())</span>
+        <span class="n">time_rule</span> <span class="o">=</span> <span class="p">((</span><span class="n">time_rule</span> <span class="ow">or</span> <span class="n">time_rules</span><span class="o">.</span><span class="n">every_minute</span><span class="p">())</span>
                      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">data_frequency</span> <span class="o">==</span> <span class="s">&#39;minute&#39;</span> <span class="k">else</span>
                      <span class="c"># If we are in daily mode the time_rule is ignored.</span>
-                     <span class="n">zipline</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">Always</span><span class="p">())</span>
+                     <span class="n">time_rules</span><span class="o">.</span><span class="n">every_minute</span><span class="p">())</span>
+
+        <span class="c"># Check the type of the algorithm&#39;s schedule before pulling calendar</span>
+        <span class="c"># Note that the ExchangeTradingSchedule is currently the only</span>
+        <span class="c"># TradingSchedule class, so this is unlikely to be hit</span>
+        <span class="n">cal</span> <span class="o">=</span> <span class="n">calendar</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">add_event</span><span class="p">(</span>
-            <span class="n">make_eventrule</span><span class="p">(</span><span class="n">date_rule</span><span class="p">,</span> <span class="n">time_rule</span><span class="p">,</span> <span class="n">half_days</span><span class="p">),</span>
+            <span class="n">make_eventrule</span><span class="p">(</span><span class="n">date_rule</span><span class="p">,</span> <span class="n">time_rule</span><span class="p">,</span> <span class="n">cal</span><span class="p">,</span> <span class="n">half_days</span><span class="p">),</span>
             <span class="n">func</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -1326,9 +1475,9 @@
 <span class="sd">        :func:`zipline.api.set_symbol_lookup_date`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c"># If the user has not set the symbol lookup date,</span>
-        <span class="c"># use the period_end as the date for sybmol-&gt;sid resolution.</span>
+        <span class="c"># use the end_session as the date for sybmol-&gt;sid resolution.</span>
         <span class="n">_lookup_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_symbol_lookup_date</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_symbol_lookup_date</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> \
-            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">period_end</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">end_session</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">lookup_symbol</span><span class="p">(</span>
             <span class="n">symbol_str</span><span class="p">,</span>
@@ -1407,17 +1556,20 @@
 
     <span class="nd">@api_method</span>
     <span class="nd">@preprocess</span><span class="p">(</span><span class="n">root_symbol</span><span class="o">=</span><span class="n">ensure_upper_case</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">future_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Look up a future chain with the specified parameters.</span>
+    <span class="k">def</span> <span class="nf">future_chain</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root_symbol</span><span class="p">,</span> <span class="n">as_of_date</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Look up a future chain.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        root_symbol : str</span>
 <span class="sd">            The root symbol of a future chain.</span>
 <span class="sd">        as_of_date : datetime.datetime or pandas.Timestamp or str, optional</span>
-<span class="sd">            Date at which the chain determination is rooted. I.e. the</span>
-<span class="sd">            existing contract whose notice date is first after this date is</span>
-<span class="sd">            the primary contract, etc.</span>
+<span class="sd">            Date at which the chain determination is rooted. If this date is</span>
+<span class="sd">            not passed in, the current simulation session (not minute) is used.</span>
+<span class="sd">        offset: int</span>
+<span class="sd">            Number of sessions to shift `as_of_date`.  Positive values shift</span>
+<span class="sd">             forward in time.  Negative values shift backward in time.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1433,13 +1585,35 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">as_of_date</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="n">as_of_date</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s">&#39;UTC&#39;</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">UnsupportedDatetimeFormat</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">as_of_date</span><span class="p">,</span>
-                                                <span class="n">method</span><span class="o">=</span><span class="s">&#39;future_chain&#39;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">UnsupportedDatetimeFormat</span><span class="p">(</span>
+                    <span class="nb">input</span><span class="o">=</span><span class="n">as_of_date</span><span class="p">,</span>
+                    <span class="n">method</span><span class="o">=</span><span class="s">&#39;future_chain&#39;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">as_of_date</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">minute_to_session_label</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_datetime</span><span class="p">()</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">offset</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c"># move as_of_date by offset sessions</span>
+            <span class="n">session_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">sessions_window</span><span class="p">(</span>
+                <span class="n">as_of_date</span><span class="p">,</span> <span class="n">offset</span>
+            <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">offset</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">as_of_date</span> <span class="o">=</span> <span class="n">session_window</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">as_of_date</span> <span class="o">=</span> <span class="n">session_window</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="n">chain_of_contracts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="o">.</span><span class="n">lookup_future_chain</span><span class="p">(</span>
+            <span class="n">root_symbol</span><span class="p">,</span>
+            <span class="n">as_of_date</span>
+        <span class="p">)</span>
+
         <span class="k">return</span> <span class="n">FutureChain</span><span class="p">(</span>
-            <span class="n">asset_finder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">asset_finder</span><span class="p">,</span>
-            <span class="n">get_datetime</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_datetime</span><span class="p">,</span>
             <span class="n">root_symbol</span><span class="o">=</span><span class="n">root_symbol</span><span class="p">,</span>
-            <span class="n">as_of_date</span><span class="o">=</span><span class="n">as_of_date</span>
+            <span class="n">as_of_date</span><span class="o">=</span><span class="n">as_of_date</span><span class="p">,</span>
+            <span class="n">contracts</span><span class="o">=</span><span class="n">chain_of_contracts</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_calculate_order_value_amount</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">asset</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
@@ -1719,6 +1893,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_in_before_trading_start</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_account</span> <span class="o">=</span> \
                 <span class="bp">self</span><span class="o">.</span><span class="n">perf_tracker</span><span class="o">.</span><span class="n">get_account</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span><span class="p">)</span>
+
             <span class="bp">self</span><span class="o">.</span><span class="n">account_needs_update</span> <span class="o">=</span> <span class="bp">False</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span> <span class="o">=</span> <span class="bp">False</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_account</span>
@@ -1743,8 +1918,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">performance_needs_update</span> <span class="o">=</span> <span class="bp">True</span>
 
     <span class="nd">@api_method</span>
+    <span class="nd">@preprocess</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">coerce_string</span><span class="p">(</span><span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">))</span>
+    <span class="nd">@expect_types</span><span class="p">(</span><span class="n">tz</span><span class="o">=</span><span class="n">optional</span><span class="p">(</span><span class="n">tzinfo</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">get_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the current simulation datetime.</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the current simulation datetime.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1758,14 +1936,9 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span>
         <span class="k">assert</span> <span class="n">dt</span><span class="o">.</span><span class="n">tzinfo</span> <span class="o">==</span> <span class="n">pytz</span><span class="o">.</span><span class="n">utc</span><span class="p">,</span> <span class="s">&quot;Algorithm should have a utc datetime&quot;</span>
-
         <span class="k">if</span> <span class="n">tz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-            <span class="c"># Convert to the given timezone passed as a string or tzinfo.</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tz</span><span class="p">,</span> <span class="n">string_types</span><span class="p">):</span>
-                <span class="n">tz</span> <span class="o">=</span> <span class="n">pytz</span><span class="o">.</span><span class="n">timezone</span><span class="p">(</span><span class="n">tz</span><span class="p">)</span>
             <span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">astimezone</span><span class="p">(</span><span class="n">tz</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">dt</span>  <span class="c"># datetime.datetime objects are immutable.</span>
+        <span class="k">return</span> <span class="n">dt</span>
 
     <span class="k">def</span> <span class="nf">update_dividends</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dividend_frame</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -2215,7 +2388,9 @@
             <span class="c"># If we are in before_trading_start, we need to get the window</span>
             <span class="c"># as of the previous market minute</span>
             <span class="n">adjusted_dt</span> <span class="o">=</span> \
-                <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span><span class="o">.</span><span class="n">env</span><span class="o">.</span><span class="n">previous_market_minute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">previous_minute</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">datetime</span>
+                <span class="p">)</span>
 
             <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_portal</span><span class="o">.</span><span class="n">get_history_window</span><span class="p">(</span>
                 <span class="n">assets</span><span class="p">,</span>
@@ -2377,6 +2552,11 @@
     <span class="c">##############</span>
     <span class="nd">@api_method</span>
     <span class="nd">@require_not_initialized</span><span class="p">(</span><span class="n">AttachPipelineAfterInitialize</span><span class="p">())</span>
+    <span class="nd">@expect_types</span><span class="p">(</span>
+        <span class="n">pipeline</span><span class="o">=</span><span class="n">Pipeline</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">string_types</span><span class="p">,</span>
+        <span class="n">chunksize</span><span class="o">=</span><span class="n">optional</span><span class="p">(</span><span class="nb">int</span><span class="p">),</span>
+    <span class="p">)</span>
     <span class="k">def</span> <span class="nf">attach_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Register a pipeline to be computed at the start of each day.</span>
 
@@ -2473,7 +2653,7 @@
             <span class="c"># day.</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="p">[],</span> <span class="n">columns</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">chunksize</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_run_pipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pipeline</span><span class="p">,</span> <span class="n">start_session</span><span class="p">,</span> <span class="n">chunksize</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Compute `pipeline`, providing values for at least `start_date`.</span>
 
@@ -2491,19 +2671,25 @@
 <span class="sd">        --------</span>
 <span class="sd">        PipelineEngine.run_pipeline</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">days</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_environment</span><span class="o">.</span><span class="n">trading_days</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trading_calendar</span><span class="o">.</span><span class="n">all_sessions</span>
 
         <span class="c"># Load data starting from the previous trading day...</span>
-        <span class="n">start_date_loc</span> <span class="o">=</span> <span class="n">days</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span>
+        <span class="n">start_date_loc</span> <span class="o">=</span> <span class="n">sessions</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">start_session</span><span class="p">)</span>
 
         <span class="c"># ...continuing until either the day before the simulation end, or</span>
         <span class="c"># until chunksize days of data have been loaded.</span>
-        <span class="n">sim_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">last_close</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
-        <span class="n">end_loc</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">start_date_loc</span> <span class="o">+</span> <span class="n">chunksize</span><span class="p">,</span> <span class="n">days</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">sim_end</span><span class="p">))</span>
-        <span class="n">end_date</span> <span class="o">=</span> <span class="n">days</span><span class="p">[</span><span class="n">end_loc</span><span class="p">]</span>
+        <span class="n">sim_end_session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sim_params</span><span class="o">.</span><span class="n">end_session</span>
+
+        <span class="n">end_loc</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="n">start_date_loc</span> <span class="o">+</span> <span class="n">chunksize</span><span class="p">,</span>
+            <span class="n">sessions</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">sim_end_session</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">end_session</span> <span class="o">=</span> <span class="n">sessions</span><span class="p">[</span><span class="n">end_loc</span><span class="p">]</span>
 
         <span class="k">return</span> \
-            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">run_pipeline</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="n">start_date</span><span class="p">,</span> <span class="n">end_date</span><span class="p">),</span> <span class="n">end_date</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">run_pipeline</span><span class="p">(</span><span class="n">pipeline</span><span class="p">,</span> <span class="n">start_session</span><span class="p">,</span> <span class="n">end_session</span><span class="p">),</span> \
+            <span class="n">end_session</span>
 
     <span class="c">##################</span>
     <span class="c"># End Pipeline API</span>
@@ -2549,7 +2735,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true

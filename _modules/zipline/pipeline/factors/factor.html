@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>zipline.pipeline.factors.factor &mdash; Zipline 1.0.1 documentation</title>
+  <title>zipline.pipeline.factors.factor &mdash; Zipline 1.0.2 documentation</title>
   
 
   
@@ -30,7 +30,7 @@
   
 
   
-    <link rel="top" title="Zipline 1.0.1 documentation" href="../../../../index.html"/>
+    <link rel="top" title="Zipline 1.0.2 documentation" href="../../../../index.html"/>
         <link rel="up" title="Module code" href="../../../index.html"/> 
 
   
@@ -85,6 +85,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#basics">Basics</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#my-first-algorithm">My first algorithm</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../beginner-tutorial.html#running-the-algorithm">Running the algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#ingesting-data">Ingesting Data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../beginner-tutorial.html#command-line-interface">Command line interface</a></li>
 </ul>
 </li>
@@ -116,6 +117,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#daily-bar-writer"><code class="docutils literal"><span class="pre">daily_bar_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#adjustment-writer"><code class="docutils literal"><span class="pre">adjustment_writer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#calendar"><code class="docutils literal"><span class="pre">calendar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#start-session"><code class="docutils literal"><span class="pre">start_session</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#end-session"><code class="docutils literal"><span class="pre">end_session</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#cache"><code class="docutils literal"><span class="pre">cache</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#show-progress"><code class="docutils literal"><span class="pre">show_progress</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../bundles.html#output-dir"><code class="docutils literal"><span class="pre">output_dir</span></code></a></li>
@@ -124,10 +127,20 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../releases.html">Release Notes</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-2">Release 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#enhancements">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental">Experimental</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#bug-fixes">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#testing">Testing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#data-format-changes">Data Format Changes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-1">Release 1.0.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-1-0-0">Release 1.0.0</a><ul>
@@ -138,70 +151,70 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../../releases.html#string-support-in-pipeline-1174">String Support in Pipeline (#1174)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id1">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#experimental-features">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id2">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#performance">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#maintenance-and-refactorings">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#build">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id3">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Documentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#miscellaneous">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-9-0">Release 0.9.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id4">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id5">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id6">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id7">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id8">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id9">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id10">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id11">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id12">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-4">Release 0.8.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id13">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id14">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id15">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id16">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id17">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id18">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Documentation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Miscellaneous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id19">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id20">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id21">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Miscellaneous</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-3">Release 0.8.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-8-0">Release 0.8.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id22">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id23">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id24">Experimental Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id25">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id26">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id27">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id28">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id29">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Experimental Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Documentation</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-7-0">Release 0.7.0</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id30">Highlights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id31">Enhancements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id32">Bug Fixes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id33">Performance</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id34">Maintenance and Refactorings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id35">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id36">Highlights</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id37">Enhancements</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id38">Bug Fixes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id39">Performance</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id40">Maintenance and Refactorings</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id41">Build</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Contributors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../releases.html#release-0-6-1">Release 0.6.1</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id42">Highlights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id43">Enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id44">Bug Fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id45">Performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id46">Maintenance and Refactorings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id47">Build</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../../releases.html#id48">Contributors</a></li>
 </ul>
 </li>
 </ul>
@@ -228,6 +241,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#pipeline-api">Pipeline API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#asset-metadata">Asset Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#trading-calendar-api">Trading Calendar API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../../appendix.html#data-api">Data API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#writers">Writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../../appendix.html#readers">Readers</a></li>
@@ -300,26 +314,14 @@
 <span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">attrgetter</span>
 <span class="kn">from</span> <span class="nn">numbers</span> <span class="kn">import</span> <span class="n">Number</span>
 
-<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">inf</span><span class="p">,</span> <span class="n">where</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">empty_like</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">nan</span><span class="p">,</span> <span class="n">where</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">rankdata</span>
 
 <span class="kn">from</span> <span class="nn">zipline.errors</span> <span class="kn">import</span> <span class="n">UnknownRankMethod</span>
 <span class="kn">from</span> <span class="nn">zipline.lib.normalize</span> <span class="kn">import</span> <span class="n">naive_grouped_rowwise_apply</span>
-<span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">masked_rankdata_2d</span>
+<span class="kn">from</span> <span class="nn">zipline.lib.rank</span> <span class="kn">import</span> <span class="n">masked_rankdata_2d</span><span class="p">,</span> <span class="n">rankdata_1d_descending</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.api_utils</span> <span class="kn">import</span> <span class="n">restrict_to_dtype</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.classifiers</span> <span class="kn">import</span> <span class="n">Classifier</span><span class="p">,</span> <span class="n">Everything</span><span class="p">,</span> <span class="n">Quantiles</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CustomTermMixin</span><span class="p">,</span>
-    <span class="n">LatestMixin</span><span class="p">,</span>
-    <span class="n">PositiveWindowLengthMixin</span><span class="p">,</span>
-    <span class="n">RestrictedDTypeMixin</span><span class="p">,</span>
-    <span class="n">SingleInputMixin</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ComputableTerm</span><span class="p">,</span>
-    <span class="n">NotSpecified</span><span class="p">,</span>
-    <span class="n">NotSpecifiedType</span><span class="p">,</span>
-    <span class="n">Term</span><span class="p">,</span>
-<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">zipline.pipeline.expression</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">BadBinaryOperator</span><span class="p">,</span>
     <span class="n">COMPARISONS</span><span class="p">,</span>
@@ -335,11 +337,23 @@
     <span class="n">Filter</span><span class="p">,</span>
     <span class="n">NumExprFilter</span><span class="p">,</span>
     <span class="n">PercentileFilter</span><span class="p">,</span>
+    <span class="n">NotNullFilter</span><span class="p">,</span>
     <span class="n">NullFilter</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.mixins</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CustomTermMixin</span><span class="p">,</span>
+    <span class="n">DownsampledMixin</span><span class="p">,</span>
+    <span class="n">LatestMixin</span><span class="p">,</span>
+    <span class="n">PositiveWindowLengthMixin</span><span class="p">,</span>
+    <span class="n">RestrictedDTypeMixin</span><span class="p">,</span>
+    <span class="n">SingleInputMixin</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.sentinels</span> <span class="kn">import</span> <span class="n">NotSpecified</span><span class="p">,</span> <span class="n">NotSpecifiedType</span>
+<span class="kn">from</span> <span class="nn">zipline.pipeline.term</span> <span class="kn">import</span> <span class="n">ComputableTerm</span><span class="p">,</span> <span class="n">Term</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.functional</span> <span class="kn">import</span> <span class="n">with_doc</span><span class="p">,</span> <span class="n">with_name</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.input_validation</span> <span class="kn">import</span> <span class="n">expect_types</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.math_utils</span> <span class="kn">import</span> <span class="n">nanmean</span><span class="p">,</span> <span class="n">nanstd</span>
+<span class="kn">from</span> <span class="nn">zipline.utils.memoize</span> <span class="kn">import</span> <span class="n">classlazyval</span>
 <span class="kn">from</span> <span class="nn">zipline.utils.numpy_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">bool_dtype</span><span class="p">,</span>
     <span class="n">categorical_dtype</span><span class="p">,</span>
@@ -611,7 +625,6 @@
     <span class="p">)</span>
 <span class="p">)</span>
 
-
 <span class="n">FACTOR_DTYPES</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">([</span><span class="n">datetime64ns_dtype</span><span class="p">,</span> <span class="n">float64_dtype</span><span class="p">,</span> <span class="n">int64_dtype</span><span class="p">])</span>
 
 
@@ -628,9 +641,9 @@
 <span class="sd">    Factors.  For example, constructing a Factor that computes the average of</span>
 <span class="sd">    two other Factors is simply::</span>
 
-<span class="sd">        &gt;&gt;&gt; f1 = SomeFactor(...)</span>
-<span class="sd">        &gt;&gt;&gt; f2 = SomeOtherFactor(...)</span>
-<span class="sd">        &gt;&gt;&gt; average = (f1 + f2) / 2.0</span>
+<span class="sd">        &gt;&gt;&gt; f1 = SomeFactor(...)  # doctest: +SKIP</span>
+<span class="sd">        &gt;&gt;&gt; f2 = SomeOtherFactor(...)  # doctest: +SKIP</span>
+<span class="sd">        &gt;&gt;&gt; average = (f1 + f2) / 2.0  # doctest: +SKIP</span>
 
 <span class="sd">    Factors can also be converted into :class:`zipline.pipeline.Filter` objects</span>
 <span class="sd">    via comparison operators: (``&lt;``, ``&lt;=``, ``!=``, ``eq``, ``&gt;``, ``&gt;=``).</span>
@@ -787,8 +800,10 @@
 <span class="sd">        to use the ``mask`` parameter to discard values at the extremes of the</span>
 <span class="sd">        distribution::</span>
 
-<span class="sd">            &gt;&gt;&gt; base = MyFactor(...)</span>
-<span class="sd">            &gt;&gt;&gt; normalized = base.demean(mask=base.percentile_between(1, 99))</span>
+<span class="sd">            &gt;&gt;&gt; base = MyFactor(...)  # doctest: +SKIP</span>
+<span class="sd">            &gt;&gt;&gt; normalized = base.demean(</span>
+<span class="sd">            ...     mask=base.percentile_between(1, 99),</span>
+<span class="sd">            ... )  # doctest: +SKIP</span>
 
 <span class="sd">        ``demean()`` is only supported on Factors of dtype float64.</span>
 
@@ -796,16 +811,14 @@
 <span class="sd">        --------</span>
 <span class="sd">        :meth:`pandas.DataFrame.groupby`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># This is a named function so that it has a __name__ for use in the</span>
-        <span class="c"># graph repr of GroupedRowTransform.</span>
-        <span class="k">def</span> <span class="nf">demean</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">row</span> <span class="o">-</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-
         <span class="k">return</span> <span class="n">GroupedRowTransform</span><span class="p">(</span>
             <span class="n">transform</span><span class="o">=</span><span class="n">demean</span><span class="p">,</span>
+            <span class="n">transform_args</span><span class="o">=</span><span class="p">(),</span>
             <span class="n">factor</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
-            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
             <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="nd">@expect_types</span><span class="p">(</span>
@@ -848,8 +861,10 @@
 <span class="sd">        outliers, it is often useful to use the ``mask`` parameter to discard</span>
 <span class="sd">        values at the extremes of the distribution::</span>
 
-<span class="sd">            &gt;&gt;&gt; base = MyFactor(...)</span>
-<span class="sd">            &gt;&gt;&gt; normalized = base.zscore(mask=base.percentile_between(1, 99))</span>
+<span class="sd">            &gt;&gt;&gt; base = MyFactor(...)  # doctest: +SKIP</span>
+<span class="sd">            &gt;&gt;&gt; normalized = base.zscore(</span>
+<span class="sd">            ...    mask=base.percentile_between(1, 99),</span>
+<span class="sd">            ... )  # doctest: +SKIP</span>
 
 <span class="sd">        ``zscore()`` is only supported on Factors of dtype float64.</span>
 
@@ -862,20 +877,22 @@
 <span class="sd">        --------</span>
 <span class="sd">        :meth:`pandas.DataFrame.groupby`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c"># This is a named function so that it has a __name__ for use in the</span>
-        <span class="c"># graph repr of GroupedRowTransform.</span>
-        <span class="k">def</span> <span class="nf">zscore</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">(</span><span class="n">row</span> <span class="o">-</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">row</span><span class="p">))</span> <span class="o">/</span> <span class="n">nanstd</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
-
         <span class="k">return</span> <span class="n">GroupedRowTransform</span><span class="p">(</span>
             <span class="n">transform</span><span class="o">=</span><span class="n">zscore</span><span class="p">,</span>
+            <span class="n">transform_args</span><span class="o">=</span><span class="p">(),</span>
             <span class="n">factor</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
-            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
             <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
             <span class="n">window_safe</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="Factor.rank"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.rank">[docs]</a>    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s">&#39;ordinal&#39;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+<div class="viewcode-block" id="Factor.rank"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.rank">[docs]</a>    <span class="k">def</span> <span class="nf">rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="n">method</span><span class="o">=</span><span class="s">&#39;ordinal&#39;</span><span class="p">,</span>
+             <span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+             <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span>
+             <span class="n">groupby</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct a new Factor representing the sorted rank of each column</span>
 <span class="sd">        within each row.</span>
@@ -893,6 +910,8 @@
 <span class="sd">            A Filter representing assets to consider when computing ranks.</span>
 <span class="sd">            If mask is supplied, ranks are computed ignoring any asset/date</span>
 <span class="sd">            pairs for which `mask` produces a value of False.</span>
+<span class="sd">        groupby : zipline.pipeline.Classifier, optional</span>
+<span class="sd">            A classifier defining partitions over which to perform ranking.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -914,7 +933,212 @@
 <span class="sd">        :func:`scipy.stats.rankdata`</span>
 <span class="sd">        :class:`zipline.pipeline.factors.factor.Rank`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">Rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="n">ascending</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span></div>
+
+        <span class="k">if</span> <span class="n">groupby</span> <span class="ow">is</span> <span class="n">NotSpecified</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Rank</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="n">ascending</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">GroupedRowTransform</span><span class="p">(</span>
+            <span class="n">transform</span><span class="o">=</span><span class="n">rankdata</span> <span class="k">if</span> <span class="n">ascending</span> <span class="k">else</span> <span class="n">rankdata_1d_descending</span><span class="p">,</span>
+            <span class="n">transform_args</span><span class="o">=</span><span class="p">(</span><span class="n">method</span><span class="p">,),</span>
+            <span class="n">factor</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">float64_dtype</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+            <span class="n">window_safe</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    <span class="nd">@expect_types</span><span class="p">(</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">correlation_length</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">Filter</span><span class="p">,</span> <span class="n">NotSpecifiedType</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">pearsonr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">correlation_length</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a new Factor that computes rolling pearson correlation</span>
+<span class="sd">        coefficients between `target` and the columns of `self`.</span>
+
+<span class="sd">        This method can only be called on factors which are deemed safe for use</span>
+<span class="sd">        as inputs to other factors. This includes `Returns` and any factors</span>
+<span class="sd">        created from `Factor.rank` or `Factor.zscore`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target : zipline.pipeline.Term with a numeric dtype</span>
+<span class="sd">            The term used to compute correlations against each column of data</span>
+<span class="sd">            produced by `self`. This may be a Factor, a BoundColumn or a Slice.</span>
+<span class="sd">            If `target` is two-dimensional, correlations are computed</span>
+<span class="sd">            asset-wise.</span>
+<span class="sd">        correlation_length : int</span>
+<span class="sd">            Length of the lookback window over which to compute each</span>
+<span class="sd">            correlation coefficient.</span>
+<span class="sd">        mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">            A Filter describing which assets should have their correlation with</span>
+<span class="sd">            the target slice computed each day.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correlations : zipline.pipeline.factors.RollingPearson</span>
+<span class="sd">            A new Factor that will compute correlations between `target` and</span>
+<span class="sd">            the columns of `self`.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        -------</span>
+<span class="sd">        Suppose we want to create a factor that computes the correlation</span>
+<span class="sd">        between AAPL&#39;s 10-day returns and the 10-day returns of all other</span>
+<span class="sd">        assets, computing each correlation over 30 days. This can be achieved</span>
+<span class="sd">        by doing the following::</span>
+
+<span class="sd">            returns = Returns(window_length=10)</span>
+<span class="sd">            returns_slice = returns[sid(24)]</span>
+<span class="sd">            aapl_correlations = returns.pearsonr(</span>
+<span class="sd">                target=returns_slice, correlation_length=30,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        This is equivalent to doing::</span>
+
+<span class="sd">            aapl_correlations = RollingPearsonOfReturns(</span>
+<span class="sd">                target=sid(24), returns_length=10, correlation_length=30,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`scipy.stats.pearsonr`</span>
+<span class="sd">        :class:`zipline.pipeline.factors.RollingPearsonOfReturns`</span>
+<span class="sd">        :meth:`Factor.spearmanr`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.statistical</span> <span class="kn">import</span> <span class="n">RollingPearson</span>
+        <span class="k">return</span> <span class="n">RollingPearson</span><span class="p">(</span>
+            <span class="n">base_factor</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+            <span class="n">correlation_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@expect_types</span><span class="p">(</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">correlation_length</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">Filter</span><span class="p">,</span> <span class="n">NotSpecifiedType</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">spearmanr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">correlation_length</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a new Factor that computes rolling spearman rank correlation</span>
+<span class="sd">        coefficients between `target` and the columns of `self`.</span>
+
+<span class="sd">        This method can only be called on factors which are deemed safe for use</span>
+<span class="sd">        as inputs to other factors. This includes `Returns` and any factors</span>
+<span class="sd">        created from `Factor.rank` or `Factor.zscore`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target : zipline.pipeline.Term with a numeric dtype</span>
+<span class="sd">            The term used to compute correlations against each column of data</span>
+<span class="sd">            produced by `self`. This may be a Factor, a BoundColumn or a Slice.</span>
+<span class="sd">            If `target` is two-dimensional, correlations are computed</span>
+<span class="sd">            asset-wise.</span>
+<span class="sd">        correlation_length : int</span>
+<span class="sd">            Length of the lookback window over which to compute each</span>
+<span class="sd">            correlation coefficient.</span>
+<span class="sd">        mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">            A Filter describing which assets should have their correlation with</span>
+<span class="sd">            the target slice computed each day.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        correlations : zipline.pipeline.factors.RollingSpearman</span>
+<span class="sd">            A new Factor that will compute correlations between `target` and</span>
+<span class="sd">            the columns of `self`.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        -------</span>
+<span class="sd">        Suppose we want to create a factor that computes the correlation</span>
+<span class="sd">        between AAPL&#39;s 10-day returns and the 10-day returns of all other</span>
+<span class="sd">        assets, computing each correlation over 30 days. This can be achieved</span>
+<span class="sd">        by doing the following::</span>
+
+<span class="sd">            returns = Returns(window_length=10)</span>
+<span class="sd">            returns_slice = returns[sid(24)]</span>
+<span class="sd">            aapl_correlations = returns.spearmanr(</span>
+<span class="sd">                target=returns_slice, correlation_length=30,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        This is equivalent to doing::</span>
+
+<span class="sd">            aapl_correlations = RollingSpearmanOfReturns(</span>
+<span class="sd">                target=sid(24), returns_length=10, correlation_length=30,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`scipy.stats.spearmanr`</span>
+<span class="sd">        :class:`zipline.pipeline.factors.RollingSpearmanOfReturns`</span>
+<span class="sd">        :meth:`Factor.pearsonr`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.statistical</span> <span class="kn">import</span> <span class="n">RollingSpearman</span>
+        <span class="k">return</span> <span class="n">RollingSpearman</span><span class="p">(</span>
+            <span class="n">base_factor</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+            <span class="n">correlation_length</span><span class="o">=</span><span class="n">correlation_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="nd">@expect_types</span><span class="p">(</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">Term</span><span class="p">,</span> <span class="n">regression_length</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">Filter</span><span class="p">,</span> <span class="n">NotSpecifiedType</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="k">def</span> <span class="nf">linear_regression</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">regression_length</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Construct a new Factor that performs an ordinary least-squares</span>
+<span class="sd">        regression predicting the columns of `self` from `target`.</span>
+
+<span class="sd">        This method can only be called on factors which are deemed safe for use</span>
+<span class="sd">        as inputs to other factors. This includes `Returns` and any factors</span>
+<span class="sd">        created from `Factor.rank` or `Factor.zscore`.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target : zipline.pipeline.Term with a numeric dtype</span>
+<span class="sd">            The term to use as the predictor/independent variable in each</span>
+<span class="sd">            regression. This may be a Factor, a BoundColumn or a Slice. If</span>
+<span class="sd">            `target` is two-dimensional, regressions are computed asset-wise.</span>
+<span class="sd">        regression_length : int</span>
+<span class="sd">            Length of the lookback window over which to compute each</span>
+<span class="sd">            regression.</span>
+<span class="sd">        mask : zipline.pipeline.Filter, optional</span>
+<span class="sd">            A Filter describing which assets should be regressed with the</span>
+<span class="sd">            target slice each day.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        regressions : zipline.pipeline.factors.RollingLinearRegression</span>
+<span class="sd">            A new Factor that will compute linear regressions of `target`</span>
+<span class="sd">            against the columns of `self`.</span>
+
+<span class="sd">        Example</span>
+<span class="sd">        -------</span>
+<span class="sd">        Suppose we want to create a factor that regresses AAPL&#39;s 10-day returns</span>
+<span class="sd">        against the 10-day returns of all other assets, computing each</span>
+<span class="sd">        regression over 30 days. This can be achieved by doing the following::</span>
+
+<span class="sd">            returns = Returns(window_length=10)</span>
+<span class="sd">            returns_slice = returns[sid(24)]</span>
+<span class="sd">            aapl_regressions = returns.linear_regression(</span>
+<span class="sd">                target=returns_slice, regression_length=30,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        This is equivalent to doing::</span>
+
+<span class="sd">            aapl_regressions = RollingLinearRegressionOfReturns(</span>
+<span class="sd">                target=sid(24), returns_length=10, regression_length=30,</span>
+<span class="sd">            )</span>
+
+<span class="sd">        See Also</span>
+<span class="sd">        --------</span>
+<span class="sd">        :func:`scipy.stats.linregress`</span>
+<span class="sd">        :class:`zipline.pipeline.factors.RollingLinearRegressionOfReturns`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span> <span class="nn">.statistical</span> <span class="kn">import</span> <span class="n">RollingLinearRegression</span>
+        <span class="k">return</span> <span class="n">RollingLinearRegression</span><span class="p">(</span>
+            <span class="n">dependent</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">independent</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+            <span class="n">regression_length</span><span class="o">=</span><span class="n">regression_length</span><span class="p">,</span>
+            <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="nd">@expect_types</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="p">(</span><span class="n">Filter</span><span class="p">,</span> <span class="n">NotSpecifiedType</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">quantiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
@@ -1015,9 +1239,12 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">quantiles</span><span class="p">(</span><span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Factor.top"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.top">[docs]</a>    <span class="k">def</span> <span class="nf">top</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+<div class="viewcode-block" id="Factor.top"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.top">[docs]</a>    <span class="k">def</span> <span class="nf">top</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct a Filter matching the top N asset values of self each day.</span>
+
+<span class="sd">        If ``groupby`` is supplied, returns a Filter matching the top N asset</span>
+<span class="sd">        values for each group.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1027,16 +1254,21 @@
 <span class="sd">            A Filter representing assets to consider when computing ranks.</span>
 <span class="sd">            If mask is supplied, top values are computed ignoring any</span>
 <span class="sd">            asset/date pairs for which `mask` produces a value of False.</span>
+<span class="sd">        groupby : zipline.pipeline.Classifier, optional</span>
+<span class="sd">            A classifier defining partitions over which to perform ranking.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        filter : zipline.pipeline.filters.Filter</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span></div>
 
-<div class="viewcode-block" id="Factor.bottom"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.bottom">[docs]</a>    <span class="k">def</span> <span class="nf">bottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
+<div class="viewcode-block" id="Factor.bottom"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.bottom">[docs]</a>    <span class="k">def</span> <span class="nf">bottom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">NotSpecified</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Construct a Filter matching the bottom N asset values of self each day.</span>
+
+<span class="sd">        If ``groupby`` is supplied, returns a Filter matching the bottom N</span>
+<span class="sd">        asset values for each group.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1046,12 +1278,14 @@
 <span class="sd">            A Filter representing assets to consider when computing ranks.</span>
 <span class="sd">            If mask is supplied, bottom values are computed ignoring any</span>
 <span class="sd">            asset/date pairs for which `mask` produces a value of False.</span>
+<span class="sd">        groupby : zipline.pipeline.Classifier, optional</span>
+<span class="sd">            A classifier defining partitions over which to perform ranking.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        filter : zipline.pipeline.Filter</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">groupby</span><span class="o">=</span><span class="n">groupby</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">N</span></div>
 
 <div class="viewcode-block" id="Factor.percentile_between"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.percentile_between">[docs]</a>    <span class="k">def</span> <span class="nf">percentile_between</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                            <span class="n">min_percentile</span><span class="p">,</span>
@@ -1116,7 +1350,7 @@
 <span class="sd">        Equivalent to ``~self.isnan()` when ``self.dtype`` is float64.</span>
 <span class="sd">        Otherwise equivalent to ``(self != self.missing_value)``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">NotNullFilter</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@if_not_float64_tell_caller_to_use_isnull</span>
 <div class="viewcode-block" id="Factor.isnan"><a class="viewcode-back" href="../../../../appendix.html#zipline.pipeline.Factor.isnan">[docs]</a>    <span class="k">def</span> <span class="nf">isnan</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1146,7 +1380,11 @@
 <span class="sd">        A Filter producing True for values where this Factor is anything but</span>
 <span class="sd">        NaN, inf, or -inf.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="n">inf</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span> <span class="o">&lt;</span> <span class="n">inf</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="p">(</span><span class="o">-</span><span class="n">inf</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span> <span class="o">&lt;</span> <span class="n">inf</span><span class="p">)</span></div>
+
+    <span class="nd">@classlazyval</span>
+    <span class="k">def</span> <span class="nf">_downsampled_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DownsampledMixin</span><span class="o">.</span><span class="n">make_downsampled_type</span><span class="p">(</span><span class="n">Factor</span><span class="p">)</span></div>
 
 
 <span class="k">class</span> <span class="nc">NumExprFactor</span><span class="p">(</span><span class="n">NumericalExpression</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
@@ -1177,7 +1415,7 @@
 <span class="sd">    Factor.</span>
 
 <span class="sd">    This is most often useful for normalization operators like ``zscore`` or</span>
-<span class="sd">    ``demean``.</span>
+<span class="sd">    ``demean`` or for performing ranking using ``rank``.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1190,21 +1428,32 @@
 <span class="sd">    groupby : zipline.pipeline.Classifier</span>
 <span class="sd">        Classifier partitioning ``factor`` into groups to use when calculating</span>
 <span class="sd">        means.</span>
+<span class="sd">    transform_args : tuple[hashable]</span>
+<span class="sd">        Additional positional arguments to forward to ``transform``.</span>
 
 <span class="sd">    Notes</span>
 <span class="sd">    -----</span>
 <span class="sd">    Users should rarely construct instances of this factor directly.  Instead,</span>
 <span class="sd">    they should construct instances via factor normalization methods like</span>
-<span class="sd">    ``zscore`` and ``demean``.</span>
+<span class="sd">    ``zscore`` and ``demean`` or using ``rank`` with ``groupby``.</span>
 
 <span class="sd">    See Also</span>
 <span class="sd">    --------</span>
 <span class="sd">    zipline.pipeline.factors.Factor.zscore</span>
 <span class="sd">    zipline.pipeline.factors.Factor.demean</span>
+<span class="sd">    zipline.pipeline.factors.Factor.rank</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">window_length</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">groupby</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span>
+                <span class="n">transform</span><span class="p">,</span>
+                <span class="n">transform_args</span><span class="p">,</span>
+                <span class="n">factor</span><span class="p">,</span>
+                <span class="n">groupby</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="p">,</span>
+                <span class="n">missing_value</span><span class="p">,</span>
+                <span class="n">mask</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
         <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="n">NotSpecified</span><span class="p">:</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">factor</span><span class="o">.</span><span class="n">mask</span>
@@ -1217,22 +1466,25 @@
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">GroupedRowTransform</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
             <span class="n">GroupedRowTransform</span><span class="p">,</span>
             <span class="n">transform</span><span class="o">=</span><span class="n">transform</span><span class="p">,</span>
+            <span class="n">transform_args</span><span class="o">=</span><span class="n">transform_args</span><span class="p">,</span>
             <span class="n">inputs</span><span class="o">=</span><span class="p">(</span><span class="n">factor</span><span class="p">,</span> <span class="n">groupby</span><span class="p">),</span>
-            <span class="n">missing_value</span><span class="o">=</span><span class="n">factor</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
+            <span class="n">missing_value</span><span class="o">=</span><span class="n">missing_value</span><span class="p">,</span>
             <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">factor</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">transform_args</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform_args</span> <span class="o">=</span> <span class="n">transform_args</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">GroupedRowTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_static_identity</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">transform_args</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="nb">super</span><span class="p">(</span><span class="n">GroupedRowTransform</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">_static_identity</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
             <span class="n">transform</span><span class="p">,</span>
+            <span class="n">transform_args</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">,</span> <span class="n">dates</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
@@ -1254,13 +1506,14 @@
 
         <span class="c"># Make a copy with the null code written to masked locations.</span>
         <span class="n">group_labels</span> <span class="o">=</span> <span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">group_labels</span><span class="p">,</span> <span class="n">null_label</span><span class="p">)</span>
-
         <span class="k">return</span> <span class="n">where</span><span class="p">(</span>
             <span class="n">group_labels</span> <span class="o">!=</span> <span class="n">null_label</span><span class="p">,</span>
             <span class="n">naive_grouped_rowwise_apply</span><span class="p">(</span>
                 <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
                 <span class="n">group_labels</span><span class="o">=</span><span class="n">group_labels</span><span class="p">,</span>
                 <span class="n">func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transform</span><span class="p">,</span>
+                <span class="n">func_args</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transform_args</span><span class="p">,</span>
+                <span class="n">out</span><span class="o">=</span><span class="n">empty_like</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
             <span class="p">),</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">missing_value</span><span class="p">,</span>
         <span class="p">)</span>
@@ -1530,7 +1783,9 @@
 
 
 <span class="k">class</span> <span class="nc">RecarrayField</span><span class="p">(</span><span class="n">SingleInputMixin</span><span class="p">,</span> <span class="n">Factor</span><span class="p">):</span>
-
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A single field from a multi-output factor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">attribute</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RecarrayField</span><span class="p">,</span> <span class="n">cls</span><span class="p">)</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span>
             <span class="n">cls</span><span class="p">,</span>
@@ -1568,6 +1823,16 @@
 
     <span class="k">def</span> <span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">assets</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
         <span class="n">out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<span class="c"># Functions to be passed to GroupedRowTransform.  These aren&#39;t defined inline</span>
+<span class="c"># because the transformation function is part of the instance hash key.</span>
+<span class="k">def</span> <span class="nf">demean</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">row</span> <span class="o">-</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">zscore</span><span class="p">(</span><span class="n">row</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">row</span> <span class="o">-</span> <span class="n">nanmean</span><span class="p">(</span><span class="n">row</span><span class="p">))</span> <span class="o">/</span> <span class="n">nanstd</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
 </pre></div>
 
           </div>
@@ -1599,7 +1864,7 @@
     <script type="text/javascript">
         var DOCUMENTATION_OPTIONS = {
             URL_ROOT:'../../../../',
-            VERSION:'1.0.1',
+            VERSION:'1.0.2',
             COLLAPSE_INDEX:false,
             FILE_SUFFIX:'.html',
             HAS_SOURCE:  true
