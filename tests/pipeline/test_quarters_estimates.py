@@ -4,6 +4,7 @@ from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
+from pandas.util.testing import assert_frame_equal
 from toolz import merge
 
 from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
@@ -36,7 +37,6 @@ from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.numpy_utils import float64_dtype
 
 
-#  TODO: don't use assert statements in zipline
 #  TODO add docstrings
 #  TODO refactor code in quarter loader - free functions
 # TODO Get rid of obvious comments
@@ -353,26 +353,12 @@ class WithEstimateMultipleQuarters(WithEstimates):
         FISCAL_YEAR_FIELD_NAME: [2015, 2015]
     })
 
-    def check_null_range(self, results, start_date, stop_date, col_name):
-        # Make sure that values in the given column/range are all null.
-        assert_true((
-            results.loc[
-                start_date:stop_date
-            ][col_name].isnull()
-        ).all())
+    @classmethod
+    def init_class_fixtures(cls):
+        super(WithEstimateMultipleQuarters, cls).init_class_fixtures()
+        cls.expected_out = cls.make_expected_out()
 
-    def check_values(self, results, start_date, end_date, col_name, qtr,
-                     event_idx):
-        # Make sure that values in the given column/range are all equal
-        # to the value at the given index from the raw data.
-        assert_true((
-            results.loc[
-                start_date:end_date
-            ][col_name + qtr] ==
-            self.events[col_name][event_idx]
-        ).all())
-
-    def _test_multiple_qtrs_requested(self):
+    def test_multiple_qtrs_requested(self):
         """
         This test asks for datasets that calculate which estimates to
         return for multiple quarters out and checks that the returned columns
@@ -401,7 +387,9 @@ class WithEstimateMultipleQuarters(WithEstimates):
         # quarters out for each of the dataset columns.
         assert_equal(sorted(np.array(q1_columns + q2_columns)),
                      sorted(results.columns.values))
-        return results
+        import pdb; pdb.set_trace()
+        assert_frame_equal(self.expected_out.sort(axis=1),
+                           results.xs(0, level=1).sort(axis=1))
 
 
 class NextEstimateMultipleQuarters(
@@ -411,102 +399,48 @@ class NextEstimateMultipleQuarters(
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
 
-    def test_multiple_next_quarters_requested(self):
-        results = self._test_multiple_qtrs_requested()
-        # Although it's painful to check the ranges one by one for different
-        # columns, it's important to do this so that we have a clear
-        # understanding of how knowledge/event dates interact and give us
-        # values for 1Q out and 2Q out.
-        for col in self.columns:
-            # 1Q out cols
-            self.check_null_range(results,
-                                  self.START_DATE,
-                                  pd.Timestamp('2014-12-31'),
-                                  col + '1')
-            self.check_values(results,
-                              pd.Timestamp('2015-01-02'),
-                              pd.Timestamp('2015-01-10'),
-                              col,
-                              '1',
-                              0)  # First event is our 1Q out
-            self.check_values(results,
-                              pd.Timestamp('2015-01-11'),
-                              pd.Timestamp('2015-01-20'),
-                              col,
-                              '1',
-                              1)  # Second event becomes our 1Q out
-            self.check_null_range(results,
-                                  pd.Timestamp('2015-01-21'),
-                                  self.END_DATE,
-                                  col + '1')
+    @classmethod
+    def make_expected_out(cls):
+        expected = pd.DataFrame(columns=[col + '1' for col in cls.columns] +
+                                        [col + '2' for col in cls.columns],
+                                index=cls.trading_days)
+        expected[[col + '1' for col in cls.columns]].loc[pd.Timestamp(
+            '2015-01-01'):pd.Timestamp('2015-01-11')] = [cls.events[col].iloc[0] for col in cls.columns]
+        expected_1q_out_df = pd.DataFrame(
+            [[pd.Timestamp('2015-01-01')] +
+             [cls.events[col].iloc[0] for col in cls.columns],
+             [pd.Timestamp('2015-01-11')] +
+             [cls.events[col].iloc[1] for col in cls.columns]],
+            columns=['date'] + [col + '1' for col in cls.columns]
+        ).set_index('date')
+        expected_1q_out_df.index = expected_1q_out_df.index.tz_localize('utc')
+        df1_all_dates = expected_1q_out_df.reindex(
+            pd.date_range(cls.trading_days[0],
+                          '2015-01-20')
+        ).ffill()
 
-        # Fiscal year and quarter are different for 2Q out because even when we
-        # have no data for 2Q out, we still know which fiscal year/quarter we
-        # want data for as long as we have data for 1Q out.
-        for col in filter(
-                lambda x: x not in [
-                    FISCAL_QUARTER_FIELD_NAME,
-                    FISCAL_YEAR_FIELD_NAME], self.columns.keys()
-        ):
-            # 2Q out cols
-            self.check_null_range(results,
-                                  self.START_DATE,
-                                  pd.Timestamp('2015-01-05'),
-                                  col + '2')
-            # We have data for 2Q out when our knowledge of
-            # the next quarter and the quarter after that
-            # overlaps and before the next quarter's event
-            # happens.
-            self.check_values(results,
-                              pd.Timestamp('2015-01-06'),
-                              pd.Timestamp('2015-01-10'),
-                              col,
-                              '2',
-                              1)
-            self.check_null_range(results,
-                                  pd.Timestamp('2015-01-11'),
-                                  self.END_DATE,
-                                  col + '2')
-
-        # Check fiscal year/quarter for 2Q out.
-        self.check_null_range(results,
-                              self.START_DATE,
-                              pd.Timestamp('2015-01-01'),
-                              FISCAL_QUARTER_FIELD_NAME + '2')
-        self.check_null_range(results,
-                              self.START_DATE,
-                              pd.Timestamp('2015-01-01'),
-                              FISCAL_YEAR_FIELD_NAME + '2')
-        # We have a different quarter number than the quarter numbers we have
-        # in our data for 2Q out, so assert manually.
-        assert_true((
-            results.loc[
-                pd.Timestamp('2015-01-02'):pd.Timestamp('2015-01-10')
-            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
-            2
-        ).all())
-        assert_true((
-            results.loc[
-                pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-20')
-            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
-            3
-        ).all())
-        # We have the same fiscal year, 2-15, for 2Q out over the date range of
-        # interest.
-        self.check_values(results,
-                          pd.Timestamp('2015-01-02'),
-                          pd.Timestamp('2015-01-20'),
-                          FISCAL_YEAR_FIELD_NAME,
-                          '2',
-                          1)
-        self.check_null_range(results,
-                              pd.Timestamp('2015-01-21'),
-                              self.END_DATE,
-                              FISCAL_YEAR_FIELD_NAME + '2')
-        self.check_null_range(results,
-                              pd.Timestamp('2015-01-21'),
-                              self.END_DATE,
-                              FISCAL_YEAR_FIELD_NAME + '2')
+        expected_2q_out_df = pd.DataFrame([
+            [pd.Timestamp('2015-01-06')] +
+            [cls.events[col].iloc[1] for col in ['estimate', 'event_date']] +
+            [3, 2015]
+        ], columns=['date'] + [col + '2' for col in ['estimate',
+                                                     'event_date']] + [
+            FISCAL_QUARTER_FIELD_NAME + '2', FISCAL_YEAR_FIELD_NAME + '2']
+        ).set_index('date')
+        expected_2q_out_df.index = expected_2q_out_df.index.tz_localize('utc')
+        # First, reindex for all columns until the event happens and forward
+        # fill.
+        df2_all_dates = expected_2q_out_df.reindex(
+            pd.date_range(cls.trading_days[0], '2015-01-09')
+        ).ffill()
+        import pdb; pdb.set_trace()
+        df2_all_dates[FISCAL_QUARTER_FIELD_NAME + '2'].loc[pd.Timestamp(
+            '2015-01-12'):pd.Timestamp('2015-01-20')] = 3
+        df2_all_dates[FISCAL_YEAR_FIELD_NAME + '2'].loc[pd.Timestamp(
+            '2015-01-12'):pd.Timestamp('2015-01-20')] = 2015
+        return pd.concat([df1_all_dates, df2_all_dates], axis=1).reindex(
+            cls.trading_days
+        )
 
 
 class PreviousEstimateMultipleQuarters(
@@ -518,88 +452,41 @@ class PreviousEstimateMultipleQuarters(
     def make_loader(cls, events, columns):
         return PreviousQuartersEstimatesLoader(events, columns)
 
-    def test_multiple_next_quarters_requested(self):
-        results = self._test_multiple_qtrs_requested()
-        # Although it's painful to check the ranges one by one for different
-        # columns, it's important to do this so that we have a clear
-        # understanding of how knowledge/event dates interact and give us
-        # values for 1Q out and 2Q out.
-        for col in self.columns:
-            # 1Q out cols
-            self.check_null_range(results,
-                                  self.START_DATE,
-                                  pd.Timestamp('2015-01-09'),
-                                  col + '1')
-            self.check_values(results,
-                              pd.Timestamp('2015-01-12'),
-                              pd.Timestamp('2015-01-16'),
-                              col,
-                              '1',
-                              0)  # First event is our 1Q out
-            self.check_values(results,
-                              pd.Timestamp('2015-01-20'),
-                              self.END_DATE,
-                              col,
-                              '1',
-                              1)  # Second event becomes our 1Q out
+    @classmethod
+    def make_expected_out(cls):
+        expected_1q_out_df = pd.DataFrame(
+            [[pd.Timestamp('2015-01-12')] +
+             [cls.events[col].iloc[0] for col in cls.columns],
+             [pd.Timestamp('2015-01-20')] +
+             [cls.events[col].iloc[1] for col in cls.columns]],
+            columns=['date'] + [col + '1' for col in cls.columns]
+        ).set_index('date')
+        expected_1q_out_df.index = expected_1q_out_df.index.tz_localize('utc')
+        df1_all_dates = expected_1q_out_df.reindex(
+            pd.date_range(cls.trading_days[0], cls.trading_days[-1])
+        ).ffill()
 
-        # Fiscal year and quarter are different for 2Q out because even when we
-        # have no data for 2Q out, we still know which fiscal year/quarter we
-        # want data for as long as we have data for 1Q out.
-        for col in filter(
-                lambda x: x not in [
-                    FISCAL_QUARTER_FIELD_NAME,
-                    FISCAL_YEAR_FIELD_NAME], self.columns.keys()
-        ):
-            # 2Q out cols
-            self.check_null_range(results,
-                                  self.START_DATE,
-                                  pd.Timestamp('2015-01-16'),
-                                  col + '2')
-            # We don't have 2Q out until Q1 and Q2 events happen.
-            self.check_values(results,
-                              pd.Timestamp('2015-01-20'),
-                              self.END_DATE,
-                              col,
-                              '2',
-                              0)
-
-        # Check fiscal year/quarter for 2Q out.
-        self.check_null_range(results,
-                              self.START_DATE,
-                              pd.Timestamp('2015-01-09'),
-                              FISCAL_QUARTER_FIELD_NAME + '2')
-        self.check_null_range(results,
-                              self.START_DATE,
-                              pd.Timestamp('2015-01-09'),
-                              FISCAL_YEAR_FIELD_NAME + '2')
-        # We have a different quarter number than the quarter numbers we have
-        # in our data for 2Q out, so assert manually.
-        assert_true((
-            results.loc[
-                pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-16')
-            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
-            4
-        ).all())
-        assert_true((
-            results.loc[
-                pd.Timestamp('2015-01-20'):self.END_DATE
-            ][FISCAL_QUARTER_FIELD_NAME + '2'] ==
-            1
-        ).all())
-
-        assert_true((
-            results.loc[
-                pd.Timestamp('2015-01-10'):pd.Timestamp('2015-01-16')
-            ][FISCAL_YEAR_FIELD_NAME + '2'] ==
-            2014
-        ).all())
-        assert_true((
-            results.loc[
-                pd.Timestamp('2015-01-20'):self.END_DATE
-            ][FISCAL_YEAR_FIELD_NAME + '2'] ==
-            2015
-        ).all())
+        expected_2q_out_df = pd.DataFrame([
+            [pd.Timestamp('2015-01-12')] +
+            [cls.events[col].iloc[1] for col in ['estimate', 'event_date']] +
+            [4, 2014],
+            [pd.Timestamp('2015-01-20')] +
+            [cls.events[col].iloc[1] for col in ['estimate', 'event_date']] +
+            [1, 2015]
+        ], columns=['date'] +
+                   [col + '2' for col in ['estimate', 'event_date']] +
+                   [FISCAL_QUARTER_FIELD_NAME + '2',
+                    FISCAL_YEAR_FIELD_NAME + '2']
+        ).set_index('date')
+        expected_2q_out_df.index = expected_2q_out_df.index.tz_localize('utc')
+        # First, reindex for all columns until the event happens and forward
+        # fill.
+        df2_all_dates = expected_2q_out_df.reindex(
+            pd.date_range(cls.trading_days[0], cls.trading_days[-1])
+        ).ffill()
+        return pd.concat([df1_all_dates, df2_all_dates], axis=1).reindex(
+            cls.trading_days
+        )
 
 
 class WithEstimateWindowsTestCase(WithEstimates):
