@@ -351,8 +351,9 @@ def ffill_across_cols(df, columns, name_map):
     columns : list of BoundColumn
         The BoundColumns that correspond to columns in the DataFrame to which
         special filling and/or casting logic should be applied.
-    name_map: map of BoundColumn -> string
-        Mapping from each BoundColumn to the associated column name in `df`.
+    name_map: map of string -> string
+        Mapping from the name of each BoundColumn to the associated column
+        name in `df`.
     """
     df.ffill(inplace=True)
 

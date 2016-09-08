@@ -1104,7 +1104,8 @@ class BlazeLoader(dict):
                                           assets,
                                           reindex=True,
                                           have_sids=have_sids)
-        ffill_across_cols(dense_output, columns, {c: c.name for c in columns})
+        ffill_across_cols(dense_output, columns, {c.name: c.name
+                                                  for c in columns})
         if have_sids:
             adjustments_from_deltas = adjustments_from_deltas_with_sids
             column_view = identity
