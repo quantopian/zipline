@@ -30,7 +30,7 @@ from zipline.utils.compat import mappingproxy
 from zipline.utils.input_validation import ensure_timestamp, optionally
 import zipline.utils.paths as pth
 from zipline.utils.preprocess import preprocess
-from zipline.utils.calendars import get_calendar, register_calendar_alias
+from zipline.utils.calendars import get_calendar
 
 
 def asset_db_path(bundle_name, timestr, environ=None, db_version=None):

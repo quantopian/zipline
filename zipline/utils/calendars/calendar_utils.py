@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from zipline.errors import (
     CalendarNameCollision,
     CyclicCalendarAlias,
