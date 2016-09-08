@@ -37,12 +37,12 @@ class CalendarAliasTestCase(ZiplineTestCase):
 
     def test_follow_alias_chain(self):
         self.assertIs(
-            self.dispatcher.get_calendar('ICE'),
             self.dispatcher.get_calendar('ICE_ALIAS'),
+            self.dispatcher.get_calendar('ICE'),
         )
         self.assertIs(
-            self.dispatcher.get_calendar('ICE'),
             self.dispatcher.get_calendar('ICE_ALIAS_ALIAS'),
+            self.dispatcher.get_calendar('ICE'),
         )
 
     def test_add_new_aliases(self):
@@ -52,8 +52,8 @@ class CalendarAliasTestCase(ZiplineTestCase):
         self.dispatcher.register_calendar_alias('NOT_ICE', 'ICE')
 
         self.assertIs(
-            self.dispatcher.get_calendar('ICE'),
             self.dispatcher.get_calendar('NOT_ICE'),
+            self.dispatcher.get_calendar('ICE'),
         )
 
         self.dispatcher.register_calendar_alias(
@@ -61,8 +61,8 @@ class CalendarAliasTestCase(ZiplineTestCase):
             'ICE_ALIAS_ALIAS'
         )
         self.assertIs(
-            self.dispatcher.get_calendar('ICE'),
             self.dispatcher.get_calendar('ICE_ALIAS_ALIAS_ALIAS'),
+            self.dispatcher.get_calendar('ICE'),
         )
 
     def test_remove_aliases(self):

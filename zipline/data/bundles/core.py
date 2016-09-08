@@ -619,6 +619,3 @@ def _make_bundle_core():
     return BundleCore(bundles, register, unregister, ingest, load, clean)
 
 bundles, register, unregister, ingest, load, clean = _make_bundle_core()
-
-register_calendar_alias("YAHOO", "NYSE")
-register_calendar_alias("QUANDL", "NYSE")

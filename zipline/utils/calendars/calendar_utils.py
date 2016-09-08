@@ -48,8 +48,9 @@ class TradingCalendarDispatcher(object):
     calendars : dict[str -> TradingCalendar]
         Initial set of calendars.
     calendar_factories : dict[str -> function]
-        Factories for lazy
+        Factories for lazy calendar creation.
     aliases : dict[str -> str]
+        Calendar name aliases.
     """
     def __init__(self, calendars, calendar_factories, aliases):
         self._calendars = calendars
@@ -211,17 +212,18 @@ class TradingCalendarDispatcher(object):
         """
         # Use an OrderedDict as an ordered set so that we can return the order
         # of aliases in the event of a cycle.
-        seen = OrderedDict({name: None})
+        seen = []
 
         while name in self._aliases:
-            seen[name] = None
+            seen.append(name)
             name = self._aliases[name]
 
+            # This is O(N ** 2), but if there's an alias chain longer than 2,
+            # something strange has happened.
             if name in seen:
-                cycle = seen.keys()
-                cycle.append(name)
+                seen.append(name)
                 raise CyclicCalendarAlias(
-                    cycle=" -> ".join([repr(k) for k in cycle])
+                    cycle=" -> ".join(repr(k) for k in seen)
                 )
 
         return name

@@ -41,12 +41,14 @@ from . import utils
 from .utils.calendars import get_calendar
 from .utils.run_algo import run_algorithm
 from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
 
 # These need to happen after the other imports.
 from . algorithm import TradingAlgorithm
 from . import api
+
+
+__version__ = get_versions()['version']
+del get_versions
 
 
 def load_ipython_extension(ipython):
