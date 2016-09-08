@@ -660,8 +660,8 @@ class AssetFinder(object):
             # Possible to have a scenario where multiple fuzzy matches have the
             # same date. Want to find the one where symbol and share class
             # match.
-            op_cs, op_sc = split_delimited_symbol(sym)
-            if company_symbol == op_cs and share_class_symbol == op_sc:
+            if (company_symbol, share_class_symbol) == \
+                    split_delimited_symbol(sym):
                 return self.retrieve_asset(sid)
 
         # multiple equities held tickers matching the fuzzy ticker but
