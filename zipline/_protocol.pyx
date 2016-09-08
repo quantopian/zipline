@@ -20,7 +20,7 @@ from pandas.tslib import normalize_date
 import pandas as pd
 import numpy as np
 
-from six import iteritems, PY2
+from six import iteritems, PY2, string_types
 from cpython cimport bool
 from collections import Iterable
 
@@ -29,7 +29,7 @@ from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
 cdef bool _is_iterable(obj):
-    return isinstance(obj, Iterable) and not isinstance(obj, str)
+    return isinstance(obj, Iterable) and not isinstance(obj, string_types)
 
 
 # Wraps doesn't work for method objects in python2. Docs should be generated
@@ -247,7 +247,8 @@ cdef class BarData:
 
         return dt
 
-    @check_parameters(('assets', 'fields'), ((Asset, str), str))
+    @check_parameters(('assets', 'fields'),
+                      ((Asset,) + string_types, string_types))
     def current(self, assets, fields):
         """
         Returns the current value of the given assets for the given fields
@@ -568,8 +569,10 @@ cdef class BarData:
 
             return not (last_traded_dt is pd.NaT)
 
-    @check_parameters(('assets', 'fields', 'bar_count', 'frequency'),
-                      ((Asset, str), str, int, str))
+    @check_parameters(('assets', 'fields', 'bar_count',
+                       'frequency'),
+                      ((Asset,) + string_types, string_types, int,
+                       string_types))
     def history(self, assets, fields, bar_count, frequency):
         """
         Returns a window of data for the given assets and fields.
@@ -615,7 +618,7 @@ cdef class BarData:
         If the current simulation time is not a valid market time, we use the
         last market close instead.
         """
-        if isinstance(fields, str):
+        if isinstance(fields, string_types):
             single_asset = isinstance(assets, Asset)
 
             if single_asset:
