@@ -451,28 +451,32 @@ cdef class Datetime641DArrayOverwrite(ArrayAdjustment):
     Example
     -------
 
-    >>> import numpy as np
-    >>> arr = np.arange(25, dtype=float).reshape(5, 5)
-    >>> arr
-    array([[  0.,   1.,   2.,   3.,   4.],
-           [  5.,   6.,   7.,   8.,   9.],
-           [ 10.,  11.,  12.,  13.,  14.],
-           [ 15.,  16.,  17.,  18.,  19.],
-           [ 20.,  21.,  22.,  23.,  24.]])
+    >>> import numpy as np; import pandas as pd
+    >>> dts = pd.date_range('2014', freq='D', periods=9, tz='UTC')
+    >>> arr = dts.values.reshape(3, 3)
+    >>> arr == np.datetime64(0, 'ns')
+    array([[False, False, False],
+       [False, False, False],
+       [False, False, False]], dtype=bool)
     >>> adj = Datetime641DArrayOverwrite(
-    ...     row_start=0,
-    ...     row_end=3,
-    ...     column_start=0,
-    ...     column_end=0,
-    ...     values=np.array([1, 2, 3, 4]),
-    )
-    >>> adj.mutate(arr)
-    >>> arr
-    array([[  1.,   1.,   2.,   3.,   4.],
-           [  2.,   6.,   7.,   8.,   9.],
-           [ 3.,  11.,  12.,  13.,  14.],
-           [ 4.,  16.,  17.,  18.,  19.],
-           [ 20.,  21.,  22.,  23.,  24.]])
+    ...           first_row=1,
+    ...           last_row=2,
+    ...           first_col=1,
+    ...           last_col=2,
+    ...           values=np.array([
+    ...               np.datetime64(0, 'ns'),
+    ...               np.datetime64(1, 'ns')
+    ...           ])
+    ...       )
+    >>> adj.mutate(arr.view(np.int64))
+    >>> arr == np.datetime64(0, 'ns')
+    array([[False, False, False],
+       [False,  True,  True],
+       [False, False, False]], dtype=bool)
+    >>> arr == np.datetime64(1, 'ns')
+    array([[False, False, False],
+       [False, False, False],
+       [False,  True,  True]], dtype=bool)
     """
     cdef:
         readonly int64_t[:] values
