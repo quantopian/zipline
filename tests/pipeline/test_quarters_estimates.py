@@ -887,8 +887,8 @@ class QuarterShiftTestCase(ZiplineTestCase):
     backwards/forwards from a starting point.
     """
     def test_quarter_normalization(self):
-        input_yrs = pd.Series([0] * 4)
-        input_qtrs = pd.Series(range(1, 5))
+        input_yrs = pd.Series([0] * 4, dtype=np.int64)
+        input_qtrs = pd.Series(range(1, 5), dtype=np.int64)
         result_years, result_quarters = split_normalized_quarters(
             normalize_quarters(input_yrs, input_qtrs)
         )
