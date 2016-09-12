@@ -24,6 +24,10 @@ class BlazeEventsLoader(PipelineLoader):
     ----------
     expr : Expr
         The expression representing the data to load.
+    next_value_columns : dict[BoundColumn -> raw column name]
+        A dict mapping 'next' BoundColumns to their column names in `expr`.
+    previous_value_columns : dict[BoundColumn -> raw column name]
+        A dict mapping 'previous' BoundColumns to their column names in `expr`.
     resources : dict, optional
         Mapping from the loadable terms of ``expr`` to actual data resources.
     odo_kwargs : dict, optional
@@ -32,8 +36,6 @@ class BlazeEventsLoader(PipelineLoader):
         The time to use for the data query cutoff.
     data_query_tz : tzinfo or str
         The timezone to use for the data query cutoff.
-    dataset : DataSet
-        The DataSet object for which this loader loads data.
 
     Notes
     -----
@@ -42,12 +44,12 @@ class BlazeEventsLoader(PipelineLoader):
        Dim * {{
            {SID_FIELD_NAME}: int64,
            {TS_FIELD_NAME}: datetime,
+           {EVENT_DATE_FIELD_NAME}: datetime,
        }}
 
     And other dataset-specific fields, where each row of the table is a
     record including the sid to identify the company, the timestamp where we
-    learned about the announcement, and the date when the earnings will be z
-    announced.
+    learned about the announcement, and the event date.
 
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
     start the backtest with knowledge of all announcements.
@@ -84,8 +86,12 @@ class BlazeEventsLoader(PipelineLoader):
         self._data_query_tz = data_query_tz
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        raw = load_raw_data(assets, dates, self._data_query_time,
-                            self._data_query_tz, self._expr, self._odo_kwargs)
+        raw = load_raw_data(assets,
+                            dates,
+                            self._data_query_time,
+                            self._data_query_tz,
+                            self._expr,
+                            self._odo_kwargs)
 
         return EventsLoader(
             events=raw,
