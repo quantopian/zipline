@@ -59,8 +59,14 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
 
     Methods
     -------
-    make_loader() -> PipelineLoader
+    make_loader(events, columns) -> PipelineLoader
         Method which returns the loader to be used throughout tests.
+
+        events : pd.DataFrame
+            The raw events to be used as input to the pipeline loader.
+        columns : dict[str -> str]
+            The dictionary mapping the names of BoundColumns to the
+            associated column name in the events DataFrame.
     """
 
     # Short window defined in order for test to run faster.
@@ -69,7 +75,7 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
 
     @classmethod
     def make_loader(cls, events, columns):
-        return None
+        raise NotImplementedError('make_loader')
 
     @classmethod
     def init_class_fixtures(cls):
@@ -118,16 +124,17 @@ class WithWrongNumQuarters(WithEstimates):
                           index=[0])
 
     def test_wrong_num_quarters_passed(self):
-        with self.assertRaises(ValueError):
-            dataset = QuartersEstimates(-1)
-            engine = SimplePipelineEngine(
-                lambda x: self.loader,
-                self.trading_days,
-                self.asset_finder,
-            )
+        dataset = QuartersEstimates(-1)
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        p = Pipeline({c.name: c.latest for c in dataset.columns})
 
+        with self.assertRaises(ValueError):
             engine.run_pipeline(
-                Pipeline({c.name: c.latest for c in dataset.columns}),
+                p,
                 start_date=self.trading_days[0],
                 end_date=self.trading_days[-1],
             )
