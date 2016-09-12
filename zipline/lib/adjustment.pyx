@@ -3,7 +3,7 @@ from cpython cimport Py_EQ
 
 from pandas import isnull, Timestamp
 from numpy cimport float64_t, uint8_t, int64_t
-from numpy import asarray, datetime64, float64
+from numpy import asarray, datetime64, float64, int64
 # Purely for readability. There aren't C-level declarations for these types.
 ctypedef object Int64Index_t
 ctypedef object DatetimeIndex_t
@@ -602,7 +602,7 @@ cdef datetime_to_int(object datetimelike):
             datetimelike.dtype.name,
         )
 
-    return datetimelike.astype(int)
+    return datetimelike.astype(int64)
 
 
 cdef class Datetime64Adjustment(_Int64Adjustment):
