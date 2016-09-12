@@ -25,6 +25,8 @@ class BlazeEstimatesLoader(PipelineLoader):
     ----------
     expr : Expr
         The expression representing the data to load.
+    columns : dict[str -> str]
+        A dict mapping BoundColumn names to the associated names in `expr`.
     resources : dict, optional
         Mapping from the loadable terms of ``expr`` to actual data resources.
     odo_kwargs : dict, optional
@@ -33,8 +35,6 @@ class BlazeEstimatesLoader(PipelineLoader):
         The time to use for the data query cutoff.
     data_query_tz : tzinfo or str
         The timezeone to use for the data query cutoff.
-    dataset : DataSet
-        The DataSet object for which this loader loads data.
 
     Notes
     -----
@@ -43,12 +43,14 @@ class BlazeEstimatesLoader(PipelineLoader):
        Dim * {{
            {SID_FIELD_NAME}: int64,
            {TS_FIELD_NAME}: datetime,
+           {FISCAL_YEAR_FIELD_NAME}: float64,
+           {FISCAL_QUARTER_FIELD_NAME}: float64,
+           {EVENT_DATE_FIELD_NAME}: datetime,
        }}
 
     And other dataset-specific fields, where each row of the table is a
     record including the sid to identify the company, the timestamp where we
-    learned about the announcement, and the date when the earnings will be
-    announced.
+    learned about the announcement, and the date of the event.
 
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
     start the backtest with knowledge of all announcements.
