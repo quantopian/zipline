@@ -4,7 +4,7 @@ from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_frame_equal
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 from toolz import merge
 
 from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
@@ -389,8 +389,11 @@ class WithEstimatesTimeZero(WithEstimates):
                     # Have to explicitly check for None because
                     # `expected_estimate` might be a DataFrame.
                     if expected_estimate is not None:
-                        assert_equal(sid_estimates.iloc[i],
-                                     expected_estimate[sid_estimates.columns])
+                        assert_series_equal(
+                            sid_estimates.iloc[i],
+                            expected_estimate[sid_estimates.columns],
+                            check_names=False
+                        )
                     else:
                         # There are no eligible 'next'/'previous' estimates on
                         # this day; everything should be null.
