@@ -125,6 +125,11 @@ class Order(Event):
             'stop',
             'limit',
             'id',
+            'filled',
+            'commission',
+            'stop_reached',
+            'limit_reached',
+            'created',
         },
     )
 
