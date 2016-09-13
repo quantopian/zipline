@@ -22,6 +22,7 @@ from zipline.pipeline.loaders.blaze.estimates import (
     BlazePreviousEstimatesLoader
 )
 from zipline.pipeline.loaders.quarter_estimates import (
+    INVALID_NUM_QTRS_MESSAGE,
     NextQuartersEstimatesLoader,
     normalize_quarters,
     PreviousQuartersEstimatesLoader,
@@ -32,7 +33,7 @@ from zipline.testing.fixtures import (
     WithTradingSessions,
     ZiplineTestCase,
 )
-from zipline.testing.predicates import assert_equal
+from zipline.testing.predicates import assert_equal, assert_raises_regex
 from zipline.utils.numpy_utils import datetime64ns_dtype
 from zipline.utils.numpy_utils import float64_dtype
 
@@ -47,6 +48,12 @@ class Estimates(DataSet):
 def QuartersEstimates(num_qtr):
     class QtrEstimates(Estimates):
         num_quarters = num_qtr
+        name = Estimates
+    return QtrEstimates
+
+
+def QuartersEstimatesNoNumQuartersAttr(num_qtr):
+    class QtrEstimates(Estimates):
         name = Estimates
     return QtrEstimates
 
@@ -78,7 +85,12 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         raise NotImplementedError('make_loader')
 
     @classmethod
+    def make_events(cls):
+        raise NotImplementedError('make_events')
+
+    @classmethod
     def init_class_fixtures(cls):
+        cls.events = cls.make_events()
         cls.sids = cls.events[SID_FIELD_NAME].unique()
         cls.columns = {
             Estimates.event_date: 'event_date',
@@ -98,7 +110,7 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         super(WithEstimates, cls).init_class_fixtures()
 
 
-class WithWrongNumQuarters(WithEstimates):
+class WithWrongLoaderDefinition(WithEstimates):
     """
     ZiplineTestCase mixin providing cls.events as a class level fixture and
     defining a test for all inheritors to use.
@@ -113,18 +125,48 @@ class WithWrongNumQuarters(WithEstimates):
     ------
     test_wrong_num_quarters_passed()
         Tests that loading with an incorrect quarter number raises an error.
+    test_no_num_quarters_attr()
+        Tests that the loader throws an AssertionError if the dataset being
+        loaded has no `num_quarters` attribute.
     """
-    events = pd.DataFrame({SID_FIELD_NAME: 0},
-                          columns=[SID_FIELD_NAME,
-                                   TS_FIELD_NAME,
-                                   EVENT_DATE_FIELD_NAME,
-                                   FISCAL_QUARTER_FIELD_NAME,
-                                   FISCAL_YEAR_FIELD_NAME,
-                                   'estimate'],
-                          index=[0])
+
+    @classmethod
+    def make_events(cls):
+        return pd.DataFrame({SID_FIELD_NAME: 0},
+                            columns=[SID_FIELD_NAME,
+                                     TS_FIELD_NAME,
+                                     EVENT_DATE_FIELD_NAME,
+                                     FISCAL_QUARTER_FIELD_NAME,
+                                     FISCAL_YEAR_FIELD_NAME,
+                                     'estimate'],
+                            index=[0])
 
     def test_wrong_num_quarters_passed(self):
-        dataset = QuartersEstimates(-1)
+        bad_dataset1 = QuartersEstimates(-1)
+        bad_dataset2 = QuartersEstimates(-2)
+        good_dataset = QuartersEstimates(1)
+        engine = SimplePipelineEngine(
+            lambda x: self.loader,
+            self.trading_days,
+            self.asset_finder,
+        )
+        columns = {c.name + str(dataset.num_quarters): c.latest
+                   for dataset in (bad_dataset1,
+                                   bad_dataset2,
+                                   good_dataset)
+                   for c in dataset.columns}
+        p = Pipeline(columns)
+
+        with self.assertRaises(ValueError) as e:
+            engine.run_pipeline(
+                p,
+                start_date=self.trading_days[0],
+                end_date=self.trading_days[-1],
+            )
+            assert_raises_regex(e, INVALID_NUM_QTRS_MESSAGE % "-1,-2")
+
+    def test_no_num_quarters_attr(self):
+        dataset = QuartersEstimatesNoNumQuartersAttr(1)
         engine = SimplePipelineEngine(
             lambda x: self.loader,
             self.trading_days,
@@ -132,7 +174,7 @@ class WithWrongNumQuarters(WithEstimates):
         )
         p = Pipeline({c.name: c.latest for c in dataset.columns})
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AttributeError):
             engine.run_pipeline(
                 p,
                 start_date=self.trading_days[0],
@@ -140,7 +182,7 @@ class WithWrongNumQuarters(WithEstimates):
             )
 
 
-class PreviousWithWrongNumQuarters(WithWrongNumQuarters,
+class PreviousWithWrongNumQuarters(WithWrongLoaderDefinition,
                                    ZiplineTestCase):
     """
     Tests that previous quarter loader correctly breaks if an incorrect
@@ -151,7 +193,7 @@ class PreviousWithWrongNumQuarters(WithWrongNumQuarters,
         return PreviousQuartersEstimatesLoader(events, columns)
 
 
-class NextWithWrongNumQuarters(WithWrongNumQuarters,
+class NextWithWrongNumQuarters(WithWrongLoaderDefinition,
                                ZiplineTestCase):
     """
     Tests that next quarter loader correctly breaks if an incorrect
@@ -162,7 +204,7 @@ class NextWithWrongNumQuarters(WithWrongNumQuarters,
         return NextQuartersEstimatesLoader(events, columns)
 
 
-class WithEstimatesT0(WithEstimates):
+class WithEstimatesTimeZero(WithEstimates):
     """
     ZiplineTestCase mixin providing cls.events as a class level fixture and
     defining a test for all inheritors to use.
@@ -173,9 +215,9 @@ class WithEstimatesT0(WithEstimates):
         Generated dynamically in order to test inter-leavings of estimates and
         event dates for multiple quarters to make sure that we select the
         right immediate 'next' or 'previous' quarter relative to each date -
-        i.e., the right 't0' on the timeline. We care about selecting the
-        right 't0' because we use that to calculate which quarter's data needs
-        to be returned for each day.
+        i.e., the right 'time zero' on the timeline. We care about selecting
+        the right 'time zero' because we use that to calculate which quarter's
+        data needs to be returned for each day.
 
     Methods
     -------
@@ -189,8 +231,8 @@ class WithEstimatesT0(WithEstimates):
     Tests
     ------
     test_estimates()
-        Tests that we get the right 't0' value on each day for each sid and
-        for each column.
+        Tests that we get the right 'time zero' value on each day for each
+        sid and for each column.
     """
     q1_knowledge_dates = [pd.Timestamp('2015-01-01'),
                           pd.Timestamp('2015-01-04'),
@@ -212,7 +254,7 @@ class WithEstimatesT0(WithEstimates):
                         pd.Timestamp('2015-01-31')]
 
     @classmethod
-    def gen_estimates(cls):
+    def make_events(cls):
         """
         In order to determine which estimate we care about for a particular
         sid, we need to look at all estimates that we have for that sid and
@@ -296,8 +338,8 @@ class WithEstimatesT0(WithEstimates):
     @classmethod
     def init_class_fixtures(cls):
         # Must be generated before call to super since super uses `events`.
-        cls.events = cls.gen_estimates()
-        super(WithEstimatesT0, cls).init_class_fixtures()
+        cls.events = cls.make_events()
+        super(WithEstimatesTimeZero, cls).init_class_fixtures()
 
     def get_expected_estimate(self,
                               q1_knowledge,
@@ -344,14 +386,14 @@ class WithEstimatesT0(WithEstimates):
                         q2_knowledge,
                         comparable_date,
                     )
-                    if not expected_estimate.empty:
-                        for colname in sid_estimates.columns:
-                            expected_value = expected_estimate[colname]
-                            computed_value = sid_estimates.iloc[i][colname]
-                            assert_equal(expected_value, computed_value)
+                    # Have to explicitly check for None because
+                    # `expected_estimate` might be a DataFrame.
+                    if expected_estimate is not None:
+                        assert_equal(sid_estimates.iloc[i],
+                                     expected_estimate[sid_estimates.columns])
                     else:
-                        # There are no eligible 'next' estimates on this day;
-                        #  everything should be null.
+                        # There are no eligible 'next'/'previous' estimates on
+                        # this day; everything should be null.
                         assert_true(sid_estimates.iloc[i].isnull().all())
                 else:
                     # We don't know about any estimates on this day;
@@ -359,7 +401,7 @@ class WithEstimatesT0(WithEstimates):
                     assert_true(sid_estimates.iloc[i].isnull().all())
 
 
-class NextEstimate(WithEstimatesT0, ZiplineTestCase):
+class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return NextQuartersEstimatesLoader(events, columns)
@@ -372,17 +414,17 @@ class NextEstimate(WithEstimatesT0, ZiplineTestCase):
         # happening on this simulation date or later, then that's
         # the estimate we want to use.
         if (not q1_knowledge.empty and
-            q1_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] >=
+            q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
             return q1_knowledge.iloc[-1]
         # If q1 has already happened or we don't know about it
         # yet and our latest knowledge indicates that q2 hasn't
         # happened yet, then that's the estimate we want to use.
         elif (not q2_knowledge.empty and
-              q2_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] >=
+              q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
             return q2_knowledge.iloc[-1]
-        return pd.DataFrame()
+        return None
 
 
 class BlazeNextEstimateLoaderTestCase(NextEstimate):
@@ -398,7 +440,7 @@ class BlazeNextEstimateLoaderTestCase(NextEstimate):
         )
 
 
-class PreviousEstimate(WithEstimatesT0, ZiplineTestCase):
+class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
         return PreviousQuartersEstimatesLoader(events, columns)
@@ -413,14 +455,14 @@ class PreviousEstimate(WithEstimatesT0, ZiplineTestCase):
         # Otherwise, it'll be for q1, as long as the release date
         # for q1 has already happened.
         if (not q2_knowledge.empty and
-            q2_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] <=
+            q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
             return q2_knowledge.iloc[-1]
         elif (not q1_knowledge.empty and
-              q1_knowledge.iloc[-1][EVENT_DATE_FIELD_NAME] <=
+              q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
             return q1_knowledge.iloc[-1]
-        return pd.DataFrame()
+        return None
 
 
 class BlazePreviousEstimateLoaderTestCase(PreviousEstimate):
@@ -461,16 +503,19 @@ class WithEstimateMultipleQuarters(WithEstimates):
         out and checks that the returned columns contain data for the correct
         number of quarters out.
     """
-    events = pd.DataFrame({
-        SID_FIELD_NAME: [0] * 2,
-        TS_FIELD_NAME: [pd.Timestamp('2015-01-01'),
-                        pd.Timestamp('2015-01-06')],
-        EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
-                                pd.Timestamp('2015-01-20')],
-        'estimate': [1., 2.],
-        FISCAL_QUARTER_FIELD_NAME: [1, 2],
-        FISCAL_YEAR_FIELD_NAME: [2015, 2015]
-    })
+
+    @classmethod
+    def make_events(cls):
+        return pd.DataFrame({
+            SID_FIELD_NAME: [0] * 2,
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-01'),
+                            pd.Timestamp('2015-01-06')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-10'),
+                                    pd.Timestamp('2015-01-20')],
+            'estimate': [1., 2.],
+            FISCAL_QUARTER_FIELD_NAME: [1, 2],
+            FISCAL_YEAR_FIELD_NAME: [2015, 2015]
+        })
 
     @classmethod
     def init_class_fixtures(cls):
@@ -635,35 +680,6 @@ class WithEstimateWindows(WithEstimates):
         Tests that we overwrite values with the correct quarter's estimate at
         the correct dates when we have a factor that asks for a window of data.
     """
-    sid_0_timeline = pd.DataFrame({
-        TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
-                        pd.Timestamp('2015-01-07'),
-                        pd.Timestamp('2015-01-05'),
-                        pd.Timestamp('2015-01-17')],
-        EVENT_DATE_FIELD_NAME:
-            [pd.Timestamp('2015-01-10'),
-             pd.Timestamp('2015-01-10'),
-             pd.Timestamp('2015-01-20'),
-             pd.Timestamp('2015-01-20')],
-        'estimate': [10., 11.] + [20., 21.],
-        FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
-        FISCAL_YEAR_FIELD_NAME: 2015,
-        SID_FIELD_NAME: 0,
-    })
-
-    sid_1_timeline = pd.DataFrame({
-        TS_FIELD_NAME: [pd.Timestamp('2015-01-09'),
-                        pd.Timestamp('2015-01-12'),
-                        pd.Timestamp('2015-01-09'),
-                        pd.Timestamp('2015-01-15')],
-        EVENT_DATE_FIELD_NAME:
-            [pd.Timestamp('2015-01-12'), pd.Timestamp('2015-01-12'),
-             pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15')],
-        'estimate': [10., 11.] + [30., 31.],
-        FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [3] * 2,
-        FISCAL_YEAR_FIELD_NAME: 2015,
-        SID_FIELD_NAME: 1
-    })
 
     window_test_start_date = pd.Timestamp('2015-01-05')
     critical_dates = [pd.Timestamp('2015-01-09', tz='utc'),
@@ -673,7 +689,39 @@ class WithEstimateWindows(WithEstimates):
     # window length, starting date, num quarters out, timeline. Parameterizes
     # over number of quarters out.
     window_test_cases = list(itertools.product(critical_dates, (1, 2)))
-    events = pd.concat([sid_0_timeline, sid_1_timeline])
+
+    @classmethod
+    def make_events(cls):
+        sid_0_timeline = pd.DataFrame({
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-05'),
+                            pd.Timestamp('2015-01-07'),
+                            pd.Timestamp('2015-01-05'),
+                            pd.Timestamp('2015-01-17')],
+            EVENT_DATE_FIELD_NAME:
+                [pd.Timestamp('2015-01-10'),
+                 pd.Timestamp('2015-01-10'),
+                 pd.Timestamp('2015-01-20'),
+                 pd.Timestamp('2015-01-20')],
+            'estimate': [10., 11.] + [20., 21.],
+            FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [2] * 2,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 0,
+        })
+
+        sid_1_timeline = pd.DataFrame({
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-09'),
+                            pd.Timestamp('2015-01-12'),
+                            pd.Timestamp('2015-01-09'),
+                            pd.Timestamp('2015-01-15')],
+            EVENT_DATE_FIELD_NAME:
+                [pd.Timestamp('2015-01-12'), pd.Timestamp('2015-01-12'),
+                 pd.Timestamp('2015-01-15'), pd.Timestamp('2015-01-15')],
+            'estimate': [10., 11.] + [30., 31.],
+            FISCAL_QUARTER_FIELD_NAME: [1] * 2 + [3] * 2,
+            FISCAL_YEAR_FIELD_NAME: 2015,
+            SID_FIELD_NAME: 1
+        })
+        return pd.concat([sid_0_timeline, sid_1_timeline])
 
     @classmethod
     def make_expected_timelines(cls):
