@@ -143,6 +143,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             split_normalized_quarters(
                 requested_qtr_data[SHIFTED_NORMALIZED_QTRS]
             )
+        import pdb; pdb.set_trace()
         # Move sids into the columns. Once we're left with just dates
         # as the index, we can reindex by all dates so that we have a
         # value for each calendar date.
@@ -152,9 +153,8 @@ class QuarterEstimatesLoader(PipelineLoader):
         return requested_qtr_data
 
     def get_adjustments(self,
-                        zero_qtr_idx,
-                        requested_qtr_idx,
-                        stacked_last_per_qtr,
+                        zero_qtr_data,
+                        requested_qtr_data,
                         last_per_qtr,
                         dates,
                         column_name,
@@ -167,15 +167,10 @@ class QuarterEstimatesLoader(PipelineLoader):
 
         Parameters
         ----------
-        zero_qtr_idx : pd.MultiIndex
-            The index of the row of the zeroth (immediately next/previous)
-            quarter from each date for each sid.
-        requested_qtr_idx : pd.MultiIndex
-            The index of the row of the requested quarter from each date for
-            each sid.
-        stacked_last_per_qtr : pd.DataFrame
-            The latest estimate known per sid per date per quarter with the
-            dates, normalized quarter, and sid as the index.
+        zero_qtr_data : pd.DataFrame
+            The 'time zero' data for each date/sid.
+        zero_qtr_data : pd.DataFrame
+            The data for the requested quarter.
         last_per_qtr : pd.DataFrame
             The latest estimate known per sid per date per quarter with
             dates as the index and normalized quarter and sid in the columns
@@ -199,10 +194,7 @@ class QuarterEstimatesLoader(PipelineLoader):
             The array of data and overwrites for the given column.
         """
         adjustments = {}
-        requested_qtr_data = self.get_requested_data_for_col(
-            stacked_last_per_qtr, requested_qtr_idx, dates
-        )
-        zero_qtr_data = stacked_last_per_qtr.loc[zero_qtr_idx]
+
         # We no longer need this in the index, but we do need it as a column
         # to calculate adjustments.
         zero_qtr_data = zero_qtr_data.reset_index(NORMALIZED_QUARTERS)
@@ -391,8 +383,12 @@ class QuarterEstimatesLoader(PipelineLoader):
 
             for c in columns:
                 column_name = self.name_map[c.name]
-                adjusted_array = self.get_adjustments(zero_qtr_idx,
-                                                      requested_qtr_idx,
+                requested_qtr_data = self.get_requested_data_for_col(
+                    stacked_last_per_qtr, requested_qtr_idx, dates
+                )
+                zero_qtr_data = stacked_last_per_qtr.loc[zero_qtr_idx]
+                adjusted_array = self.get_adjustments(zero_qtr_data,
+                                                      requested_qtr_data,
                                                       stacked_last_per_qtr,
                                                       last_per_qtr,
                                                       dates,
