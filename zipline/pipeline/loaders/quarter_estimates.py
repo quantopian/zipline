@@ -21,14 +21,15 @@ from zipline.pipeline.loaders.utils import (
     last_in_date_group
 )
 
-NORMALIZED_QUARTERS = 'normalized_quarters'
 
-SHIFTED_NORMALIZED_QTRS = 'shifted_normalized_quarters'
-
+INVALID_NUM_QTRS_MESSAGE = "Passed invalid number of quarters %s; " \
+                           "must pass a number of quarters >= 0"
 NEXT_FISCAL_QUARTER = 'next_fiscal_quarter'
 NEXT_FISCAL_YEAR = 'next_fiscal_year'
+NORMALIZED_QUARTERS = 'normalized_quarters'
 PREVIOUS_FISCAL_QUARTER = 'previous_fiscal_quarter'
 PREVIOUS_FISCAL_YEAR = 'previous_fiscal_year'
+SHIFTED_NORMALIZED_QTRS = 'shifted_normalized_quarters'
 SIMULTATION_DATES = 'dates'
 
 
@@ -331,11 +332,22 @@ class QuarterEstimatesLoader(PipelineLoader):
                 ))]
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        groups = groupby(lambda x: x.dataset.num_quarters, columns)
-        if any(num_qtr < 0 for num_qtr in groups):  # use any
+        # Separate out getting the columns' datasets and the datasets'
+        # num_quarters attributes to ensure that we're catching the right
+        # AttributeError.
+        col_to_datasets = {col: col.dataset for col in columns}
+        try:
+            groups = groupby(lambda col: col_to_datasets[col].num_quarters,
+                             col_to_datasets)
+        except AttributeError:
+            raise AttributeError("Datasets loaded via the "
+                                 "QuarterEstimatesLoader must define a "
+                                 "`num_quarters` attribute that defines how "
+                                 "many quarters out the loader should load "
+                                 "the data relative to `dates`.")
+        if any(num_qtr < 0 for num_qtr in groups):
             raise ValueError(
-                "Passed invalid number of quarters %s; "
-                "must pass a number of quarters >= 0" % ','.join(
+                INVALID_NUM_QTRS_MESSAGE % ','.join(
                     str(qtr) for qtr in groups if qtr < 0
                 )
 
