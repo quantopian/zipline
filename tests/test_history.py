@@ -138,7 +138,7 @@ class WithHistory(WithDataPortal):
                 },
                 cls.SPLIT_ASSET_SID: {
                     'start_date': jan_5_2015,
-                    'end_date': day_after_12312015,
+                    'end_date': pd.Timestamp('2015-01-08', tz='UTC'),
                     'symbol': 'SPLIT_ASSET',
                     'exchange': "TEST",
                 },
@@ -174,6 +174,14 @@ class WithHistory(WithDataPortal):
     def make_splits_data(cls):
         return pd.DataFrame([
             {
+                # A split before the asset's lifetime.
+                # To ensure that data outside of the lifetime of the asset do
+                # not alter results.
+                'effective_date': str_to_seconds('2015-01-03'),
+                'ratio': 0.10,
+                'sid': cls.SPLIT_ASSET_SID,
+            },
+            {
                 'effective_date': str_to_seconds('2015-01-06'),
                 'ratio': 0.25,
                 'sid': cls.SPLIT_ASSET_SID,
@@ -181,6 +189,14 @@ class WithHistory(WithDataPortal):
             {
                 'effective_date': str_to_seconds('2015-01-07'),
                 'ratio': 0.5,
+                'sid': cls.SPLIT_ASSET_SID,
+            },
+            {
+                # A split after the asset's lifetime.
+                # To ensure that data outside of the lifetime of the asset do
+                # not alter results.
+                'effective_date': str_to_seconds('2015-01-09'),
+                'ratio': 0.20,
                 'sid': cls.SPLIT_ASSET_SID,
             },
         ])
