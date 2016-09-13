@@ -11,7 +11,8 @@ def load_raw_data(assets,
                   data_query_time,
                   data_query_tz,
                   expr,
-                  odo_kwargs):
+                  odo_kwargs,
+                  checkpoints=None):
     """
     given an expression representing data to load, perform normalization and
     forward-filling and return the data, materialized.
@@ -48,7 +49,8 @@ def load_raw_data(assets,
         expr,
         lower_dt,
         upper_dt,
-        odo_kwargs,
+        checkpoints=checkpoints,
+        odo_kwargs=odo_kwargs,
     )
     sids = raw[SID_FIELD_NAME]
     raw.drop(

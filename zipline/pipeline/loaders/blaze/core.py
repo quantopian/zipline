@@ -1028,22 +1028,10 @@ class BlazeLoader(dict):
 
             return odo(e[predicate][colnames], pd.DataFrame, **odo_kwargs)
 
-        if checkpoints is not None:
-            ts = checkpoints[TS_FIELD_NAME]
-            checkpoints_ts = odo(ts[ts <= lower_dt].max(), pd.Timestamp)
-            if pd.isnull(checkpoints_ts):
-                materialized_checkpoints = pd.DataFrame(columns=colnames)
-                lower = None
-            else:
-                materialized_checkpoints = odo(
-                    checkpoints[ts == checkpoints_ts][colnames],
-                    pd.DataFrame,
-                    **odo_kwargs
-                )
-                lower = checkpoints_ts
-        else:
-            materialized_checkpoints = pd.DataFrame(columns=colnames)
-            lower = None
+
+        lower, materialized_checkpoints = get_materialized_checkpoints(
+            checkpoints, colnames, lower_dt, odo_kwargs
+        )
 
         materialized_expr = self.pool.apply_async(collect_expr, (expr, lower))
         materialized_deltas = (
@@ -1137,6 +1125,7 @@ class BlazeLoader(dict):
             for column_idx, column in enumerate(columns)
         }
 
+
 global_loader = BlazeLoader.global_instance()
 
 
@@ -1168,12 +1157,32 @@ def bind_expression_to_resources(expr, resources):
     })
 
 
+def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
+    if checkpoints is not None:
+        ts = checkpoints[TS_FIELD_NAME]
+        checkpoints_ts = odo(ts[ts <= lower_dt].max(), pd.Timestamp)
+        if pd.isnull(checkpoints_ts):
+            materialized_checkpoints = pd.DataFrame(columns=colnames)
+            lower = None
+        else:
+            materialized_checkpoints = odo(
+                checkpoints[ts == checkpoints_ts][colnames],
+                pd.DataFrame,
+                **odo_kwargs
+            )
+            lower = checkpoints_ts
+    else:
+        materialized_checkpoints = pd.DataFrame(columns=colnames)
+        lower = None
+    return lower, materialized_checkpoints
+
+
 def ffill_query_in_range(expr,
                          lower,
                          upper,
+                         checkpoints=None,
                          odo_kwargs=None,
-                         ts_field=TS_FIELD_NAME,
-                         sid_field=SID_FIELD_NAME):
+                         ts_field=TS_FIELD_NAME):
     """Query a blaze expression in a given time range properly forward filling
     from values that fall before the lower date.
 
@@ -1199,27 +1208,24 @@ def ffill_query_in_range(expr,
         start before the requested start date if a value is needed to ffill.
     """
     odo_kwargs = odo_kwargs or {}
-    filtered = expr[expr[ts_field] <= lower]
-    computed_lower = odo(
-        bz.by(
-            filtered[sid_field],
-            timestamp=filtered[ts_field].max(),
-        ).timestamp.min(),
-        pd.Timestamp,
-        **odo_kwargs
+    computed_lower, materialized_checkpoints = get_materialized_checkpoints(
+        checkpoints, expr.fields, lower, odo_kwargs
     )
     if pd.isnull(computed_lower):
         # If there is no lower date, just query for data in the date
         # range. It must all be null anyways.
         computed_lower = lower
 
-    raw = odo(
-        expr[
-            (expr[ts_field] >= computed_lower) &
-            (expr[ts_field] <= upper)
-        ],
-        pd.DataFrame,
-        **odo_kwargs
+    raw = pd.concat(
+        [materialized_checkpoints,
+         odo(
+             expr[
+                 (expr[ts_field] >= computed_lower) &
+                 (expr[ts_field] <= upper)
+             ],
+             pd.DataFrame,
+             **odo_kwargs
+         )]
     )
     raw.loc[:, ts_field] = raw.loc[:, ts_field].astype('datetime64[ns]')
     return raw
