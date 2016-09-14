@@ -344,7 +344,7 @@ class SimplePipelineEngine(object):
         loader_group_key = juxt(get_loader, getitem(graph.extra_rows))
         loader_groups = groupby(loader_group_key, graph.loadable_terms)
 
-        refcounts = graph.initial_refcounts()
+        refcounts = graph.initial_refcounts(workspace)
 
         for term in graph.ordered():
             # `term` may have been supplied in `initial_workspace`, and in the
@@ -382,13 +382,9 @@ class SimplePipelineEngine(object):
                 else:
                     assert workspace[term].shape == (mask.shape[0], 1)
 
-                # Decref any term we depended on.
-                for (parent, _) in graph.in_edges(term):
-                    refcounts[parent] -= 1
-                    # No one else depends on this term. Remove it from the
-                    # workspace to conserve memory.
-                    if refcounts[parent] == 0:
-                        del workspace[parent]
+                # Decref dependencies of ``term``, and clear any terms whose refcounts hit 0.
+                for garbage_term in graph.decref_dependencies(term, refcounts):
+                    del workspace[garbage_term]
 
         out = {}
         graph_extra_rows = graph.extra_rows
