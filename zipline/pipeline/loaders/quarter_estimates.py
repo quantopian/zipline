@@ -340,14 +340,16 @@ class QuarterEstimatesLoader(PipelineLoader):
 
             )
         out = {}
+        assets_with_data = set.intersection(
+            set(assets), set(self.estimates[SID_FIELD_NAME])
+        )
         for num_quarters, columns in groups.items():
             # Determine the last piece of information we know for each column
             # on each date in the index for each sid and quarter.
             last_per_qtr = last_in_date_group(
-                self.estimates, dates, assets, reindex=True,
+                self.estimates, dates, assets_with_data, reindex=True,
                 extra_groupers=[NORMALIZED_QUARTERS]
             )
-
             # Forward fill values for each quarter/sid/dataset column.
             ffill_across_cols(last_per_qtr, columns, self.name_map)
             # Stack quarter and sid into the index.
@@ -384,7 +386,7 @@ class QuarterEstimatesLoader(PipelineLoader):
                                                       requested_qtr_data,
                                                       last_per_qtr,
                                                       dates,
-                                                      assets,
+                                                      assets_with_data,
                                                       columns)
             for col in columns:
                 column_name = self.name_map[col.name]
