@@ -9,6 +9,7 @@ from zipline.finance.restrictions import (
     Restriction,
     HistoricalRestrictions,
     StaticRestrictions,
+    SecurityListRestrictions,
     NoopRestrictions,
 )
 
@@ -211,6 +212,48 @@ class RestrictionsTestCase(WithDataPortal, ZiplineTestCase):
             assert_not_restricted(unrestricted_a3, dt)
 
             assert_vectorized_results([True, True, False], dt)
+
+    def test_security_list_restrictions(self):
+        """
+        Test single- and multi-asset queries on restrictions defined by
+        zipline.utils.security_list.SecurityList
+        """
+
+        # A mock SecurityList object filled with fake data
+        class SecurityList(object):
+            def __init__(self, assets_by_dt):
+                self.assets_by_dt = assets_by_dt
+
+            def current_securities(self, dt):
+                return self.assets_by_dt[dt]
+
+        assets_by_dt = {
+            str_to_ts('2011-01-03'): [self.ASSET1],
+            str_to_ts('2011-01-04'): [self.ASSET2, self.ASSET3],
+            str_to_ts('2011-01-05'): [self.ASSET1, self.ASSET2, self.ASSET3],
+        }
+
+        rl = SecurityListRestrictions(SecurityList(assets_by_dt))
+
+        assert_not_restricted = partial(self.assert_not_restricted, rl)
+        assert_is_restricted = partial(self.assert_is_restricted, rl)
+        assert_vectorized_results = partial(self.assert_vectorized_results, rl)
+
+        assert_is_restricted(self.ASSET1, str_to_ts('2011-01-03'))
+        assert_not_restricted(self.ASSET2, str_to_ts('2011-01-03'))
+        assert_not_restricted(self.ASSET3, str_to_ts('2011-01-03'))
+        assert_vectorized_results(
+            [True, False, False], str_to_ts('2011-01-03'))
+
+        assert_not_restricted(self.ASSET1, str_to_ts('2011-01-04'))
+        assert_is_restricted(self.ASSET2, str_to_ts('2011-01-04'))
+        assert_is_restricted(self.ASSET3, str_to_ts('2011-01-04'))
+        assert_vectorized_results([False, True, True], str_to_ts('2011-01-04'))
+
+        assert_is_restricted(self.ASSET1, str_to_ts('2011-01-05'))
+        assert_is_restricted(self.ASSET2, str_to_ts('2011-01-05'))
+        assert_is_restricted(self.ASSET3, str_to_ts('2011-01-05'))
+        assert_vectorized_results([True, True, True], str_to_ts('2011-01-05'))
 
     def test_noop_restrictions(self):
         """

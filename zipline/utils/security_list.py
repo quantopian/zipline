@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime
 from os import listdir
 import os.path
@@ -7,6 +8,7 @@ import pytz
 import zipline
 
 from zipline.errors import SymbolNotFound
+from zipline.zipline_warnings import ZiplineDeprecationWarning
 
 
 DATE_FORMAT = "%Y%m%d"
@@ -38,17 +40,26 @@ class SecurityList(object):
         return knowledge_dates
 
     def __iter__(self):
-        return iter(self.restricted_list)
+        warnings.warn(
+            'Iterating over security_lists is deprecated. Use '
+            '`for sid in <security_list>.current_securities(dt)` instead.',
+            category=ZiplineDeprecationWarning,
+            stacklevel=2
+        )
+        return iter(self.current_securities(self.current_date()))
 
     def __contains__(self, item):
-        return item in self.restricted_list
+        warnings.warn(
+            'Evaluating inclusion in security_lists is deprecated. Use '
+            '`sid in <security_list>.current_securities(dt)` instead.',
+            category=ZiplineDeprecationWarning,
+            stacklevel=2
+        )
+        return item in self.current_securities(self.current_date())
 
-    @property
-    def restricted_list(self):
-
-        cd = self.current_date()
+    def current_securities(self, dt):
         for kd in self._knowledge_dates:
-            if cd < kd:
+            if dt < kd:
                 break
             if kd in self._cache:
                 self._current_set = self._cache[kd]

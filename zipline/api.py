@@ -21,6 +21,7 @@ from .finance.restrictions import (
     StaticRestrictions,
     HistoricalRestrictions,
     RESTRICTION_STATES,
+    SecurityListRestrictions,
 )
 from .finance import commission, execution, slippage, cancel_policy
 from .finance.cancel_policy import (
@@ -46,6 +47,7 @@ __all__ = [
     'StaticRestrictions',
     'HistoricalRestrictions',
     'RESTRICTION_STATES',
+    'SecurityListRestrictions',
     'cancel_policy',
     'commission',
     'date_rules',

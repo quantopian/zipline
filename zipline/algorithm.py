@@ -84,7 +84,8 @@ from zipline.finance.slippage import (
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.finance.restrictions import (
     NoopRestrictions,
-    StaticRestrictions
+    StaticRestrictions,
+    SecurityListRestrictions,
 )
 from zipline.assets import Asset, Future
 from zipline.gens.tradesimulation import AlgorithmSimulator
@@ -2175,6 +2176,8 @@ class TradingAlgorithm(object):
 
         if isinstance(restricted_list, (list, tuple, set)):
             restricted_list = StaticRestrictions(restricted_list)
+        elif isinstance(restricted_list, SecurityList):
+            restricted_list = SecurityListRestrictions(restricted_list)
 
         control = RestrictedListOrder(on_error, restricted_list)
         self.register_trading_control(control)
