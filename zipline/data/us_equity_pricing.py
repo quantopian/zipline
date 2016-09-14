@@ -684,13 +684,13 @@ class BcolzDailyBarReader(SessionBarReader):
                     day, sid))
         return ix
 
-    def get_value(self, sid, day, colname):
+    def get_value(self, sid, dt, colname):
         """
         Parameters
         ----------
         sid : int
             The asset identifier.
-        day : datetime64-like
+        dt : datetime64-like
             Midnight of the day for which data is requested.
         colname : string
             The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
@@ -704,7 +704,7 @@ class BcolzDailyBarReader(SessionBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        ix = self.sid_day_index(sid, day)
+        ix = self.sid_day_index(sid, dt)
         price = self._spot_col(colname)[ix]
         if price == 0:
             return -1

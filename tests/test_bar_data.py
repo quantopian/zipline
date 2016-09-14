@@ -22,6 +22,8 @@ from numpy.testing import assert_almost_equal
 import pandas as pd
 
 from zipline._protocol import handle_non_market_minutes
+
+from zipline.data.data_portal import DataPortal
 from zipline.protocol import BarData
 from zipline.testing import (
     MockDailyBarReader,
@@ -476,6 +478,34 @@ class TestMinuteBarData(WithBarDataChecks,
                     0,
                     bd.current(self.HILARIOUSLY_ILLIQUID_ASSET, "volume")
                 )
+
+    def test_get_value_during_non_market_hours(self):
+        # make sure that if we try to get the OHLCV values of ASSET1 during
+        # non-market hours, we don't get the previous market minute's values
+        futures_cal = get_calendar("us_futures")
+
+        data_portal = DataPortal(
+            self.env.asset_finder,
+            futures_cal,
+            first_trading_day=self.DATA_PORTAL_FIRST_TRADING_DAY,
+            equity_minute_reader=self.bcolz_equity_minute_bar_reader,
+        )
+
+        bar_data = BarData(
+            data_portal,
+            lambda: pd.Timestamp("2016-01-06 3:15", tz="US/Eastern"),
+            "minute",
+            futures_cal
+        )
+
+        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "open")))
+        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "high")))
+        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "low")))
+        self.assertTrue(np.isnan(bar_data.current(self.ASSET1, "close")))
+        self.assertEqual(0, bar_data.current(self.ASSET1, "volume"))
+
+        # price should still forward fill
+        self.assertEqual(390, bar_data.current(self.ASSET1, "price"))
 
     def test_can_trade_equity_same_cal_outside_lifetime(self):
         cal = get_calendar(self.ASSET1.exchange)

@@ -293,7 +293,7 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         Returns
         -------
         pd.Timestamp
-            The UTC imestamp of the previous open.
+            The UTC timestamp of the previous open.
         """
         idx = previous_divider_idx(self.market_opens_nanos, dt.value)
         return pd.Timestamp(self.market_opens_nanos[idx], tz='UTC')

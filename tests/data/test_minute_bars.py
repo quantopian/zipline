@@ -43,6 +43,7 @@ from zipline.data.minute_bars import (
     US_EQUITIES_MINUTES_PER_DAY,
     BcolzMinuteWriterColumnMismatch
 )
+from zipline.data.session_bars import NoDataOnDate
 
 from zipline.testing.fixtures import (
     WithInstanceTmpDir,
@@ -854,18 +855,19 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                 'open'),
             780)
 
-        self.assertEqual(
+        with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
                 Timestamp('2015-06-02', tz='UTC'),
-                'open'),
-            390)
-        self.assertEqual(
+                'open',
+            )
+
+        with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
                 Timestamp('2015-06-02 20:01:00', tz='UTC'),
-                'open'),
-            780)
+                'open'
+            )
 
     def test_adjust_non_trading_minutes_half_days(self):
         # half day
@@ -908,18 +910,18 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
                 Timestamp('2015-11-27 18:01:00', tz='UTC'),
                 'open'),
             210)
-        self.assertEqual(
+        with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
                 Timestamp('2015-11-30', tz='UTC'),
-                'open'),
-            210)
-        self.assertEqual(
+                'open'
+            )
+        with self.assertRaises(NoDataOnDate):
             self.reader.get_value(
                 sid,
                 Timestamp('2015-11-30 21:01:00', tz='UTC'),
-                'open'),
-            600)
+                'open'
+            )
 
     def test_set_sid_attrs(self):
         """Confirm that we can set the attributes of a sid's file correctly.
