@@ -1,4 +1,4 @@
-# Copyright 2015 Quantopian, Inc.
+# Copyright 2016 Quantopian, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ from six import (
     string_types,
 )
 
+from zipline.data.adjustments import AdjustmentReader
 from zipline.data.session_bars import SessionBarReader
 from zipline.data.bar_reader import (
     NoDataAfterDate,
@@ -1214,7 +1215,7 @@ StockDividend = namedtuple(
     ['asset', 'payment_asset', 'ratio', 'pay_date'])
 
 
-class SQLiteAdjustmentReader(object):
+class SQLiteAdjustmentReader(AdjustmentReader):
     """
     Loads adjustments based on corporate actions from a SQLite database.
 
