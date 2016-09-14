@@ -31,8 +31,9 @@ from zipline.finance.slippage import (
     DEFAULT_VOLUME_SLIPPAGE_BAR_LIMIT,
     FixedSlippage,
 )
-from zipline.protocol import BarData
+from zipline.utils.classproperty import classproperty
 from zipline.testing.fixtures import (
+    WithCreateBarData,
     WithDataPortal,
     WithLogger,
     WithSimParams,
@@ -40,7 +41,8 @@ from zipline.testing.fixtures import (
 )
 
 
-class BlotterTestCase(WithLogger,
+class BlotterTestCase(WithCreateBarData,
+                      WithLogger,
                       WithDataPortal,
                       WithSimParams,
                       ZiplineTestCase):
@@ -70,6 +72,10 @@ class BlotterTestCase(WithLogger,
             },
             index=cls.sim_params.sessions,
         )
+
+    @classproperty
+    def CREATE_BARDATA_DATA_FREQUENCY(cls):
+        return cls.sim_params.data_frequency
 
     @parameterized.expand([(MarketOrder(), None, None),
                            (LimitOrder(10), 10, None),
@@ -219,11 +225,8 @@ class BlotterTestCase(WithLogger,
         filled_id = blotter.order(asset_24, 100, MarketOrder())
         filled_order = None
         blotter.current_dt = self.sim_params.sessions[-1]
-        bar_data = BarData(
-            self.data_portal,
-            lambda: self.sim_params.sessions[-1],
-            self.sim_params.data_frequency,
-            self.trading_calendar
+        bar_data = self.create_bardata(
+            simulation_dt_func=lambda: self.sim_params.sessions[-1],
         )
         txns, _, closed_orders = blotter.get_transactions(bar_data)
         for txn in txns:
@@ -295,11 +298,8 @@ class BlotterTestCase(WithLogger,
 
             filled_order = None
             blotter.current_dt = dt
-            bar_data = BarData(
-                self.data_portal,
-                lambda: dt,
-                self.sim_params.data_frequency,
-                self.trading_calendar
+            bar_data = self.create_bardata(
+                simulation_dt_func=lambda: dt,
             )
             txns, _, _ = blotter.get_transactions(bar_data)
             for txn in txns:
