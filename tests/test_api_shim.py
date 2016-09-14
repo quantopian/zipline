@@ -7,7 +7,6 @@ from pandas.core.common import PerformanceWarning
 
 from zipline import TradingAlgorithm
 from zipline.finance.trading import SimulationParameters
-from zipline.protocol import BarData
 from zipline.testing import (
     MockDailyBarReader,
     create_daily_df_for_asset,
@@ -15,6 +14,7 @@ from zipline.testing import (
     str_to_seconds,
 )
 from zipline.testing.fixtures import (
+    WithCreateBarData,
     WithDataPortal,
     WithSimParams,
     ZiplineTestCase,
@@ -114,7 +114,11 @@ def handle_data(context, data):
 """
 
 
-class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
+class TestAPIShim(WithCreateBarData,
+                  WithDataPortal,
+                  WithSimParams,
+                  ZiplineTestCase,
+                  ):
     START_DATE = pd.Timestamp("2016-01-05", tz='UTC')
     END_DATE = pd.Timestamp("2016-01-28", tz='UTC')
     SIM_PARAMS_DATA_FREQUENCY = 'minute'
@@ -186,11 +190,8 @@ class TestAPIShim(WithDataPortal, WithSimParams, ZiplineTestCase):
         test_end_minute = self.trading_calendar.minutes_for_session(
             self.sim_params.sessions[0]
         )[-1]
-        bar_data = BarData(
-            self.data_portal,
+        bar_data = self.create_bardata(
             lambda: test_end_minute,
-            "minute",
-            self.trading_calendar
         )
         ohlcvp_fields = [
             "open",
