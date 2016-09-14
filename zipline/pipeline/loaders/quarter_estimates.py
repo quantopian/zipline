@@ -464,6 +464,9 @@ class QuarterEstimatesLoader(PipelineLoader):
         stacked_last_per_qtr = stacked_last_per_qtr.sort(
             EVENT_DATE_FIELD_NAME
         )
+        stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] = pd.to_datetime(
+            stacked_last_per_qtr[EVENT_DATE_FIELD_NAME]
+        )
         return last_per_qtr, stacked_last_per_qtr
 
 
