@@ -32,7 +32,8 @@ def load_raw_data(assets,
         the expression representing the data to load.
     odo_kwargs : dict
         extra keyword arguments to pass to odo when executing the expression.
-
+    checkpoints : expr, optional
+        the expression representing the checkpointed data for `expr`.
     returns
     -------
     raw : pd.dataframe
