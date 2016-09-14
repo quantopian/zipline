@@ -147,7 +147,9 @@ cdef _adjustments(object adjustments_db,
 cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
                                    list columns,
                                    DatetimeIndex_t dates,
-                                   Int64Index_t assets):
+                                   Int64Index_t assets,
+                                   int end_offset,
+                                   int date_offset):
     """
     Load a dictionary of Adjustment objects from adjustments_db
 
@@ -162,6 +164,11 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
         Dates for which adjustments are needed
     assets : pd.Int64Index
         Assets for which adjustments are needed.
+    end_offset : int
+        Offset to apply when calculating the last row of the adjustment.
+    date_offset : int
+        Offset to apply when calculating the date on which to first apply the
+        adjustment.
 
     Returns
     -------
@@ -210,7 +217,7 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
         int sid
         double ratio
         int eff_date
-        int date_loc
+        int date_loc, end_loc, out_loc
         Py_ssize_t asset_ix
         dict col_adjustments
 
@@ -228,26 +235,30 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
 
         date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
 
+        end_loc = date_loc + end_offset
+
+        out_loc = date_loc + date_offset
+
         if not PyDict_Contains(asset_ixs, sid):
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        price_adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+        price_adj = Float64Multiply(0, end_loc, asset_ix, asset_ix, ratio)
         for i, column in enumerate(columns):
             col_adjustments = results[i]
             if column != 'volume':
                 try:
-                    col_adjustments[date_loc].append(price_adj)
+                    col_adjustments[out_loc].append(price_adj)
                 except KeyError:
-                    col_adjustments[date_loc] = [price_adj]
+                    col_adjustments[out_loc] = [price_adj]
             else:
                 volume_adj = Float64Multiply(
-                    0, date_loc, asset_ix, asset_ix, 1.0 / ratio
+                    0, end_loc, asset_ix, asset_ix, 1.0 / ratio
                 )
                 try:
-                    col_adjustments[date_loc].append(volume_adj)
+                    col_adjustments[out_loc].append(volume_adj)
                 except KeyError:
-                    col_adjustments[date_loc] = [volume_adj]
+                    col_adjustments[out_loc] = [volume_adj]
 
     # mergers affect prices only
     for sid, ratio, eff_date in mergers:
@@ -256,18 +267,22 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
 
         date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
 
+        end_loc = date_loc + end_offset
+
+        out_loc = date_loc + date_offset
+
         if not PyDict_Contains(asset_ixs, sid):
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+        adj = Float64Multiply(0, end_loc, asset_ix, asset_ix, ratio)
         for i, column in enumerate(columns):
             col_adjustments = results[i]
             if column != 'volume':
                 try:
-                    col_adjustments[date_loc].append(adj)
+                    col_adjustments[out_loc].append(adj)
                 except KeyError:
-                    col_adjustments[date_loc] = [adj]
+                    col_adjustments[out_loc] = [adj]
 
     # dividends affect prices only
     for sid, ratio, eff_date in dividends:
@@ -276,18 +291,22 @@ cpdef load_adjustments_from_sqlite(object adjustments_db,  # sqlite3.Connection
 
         date_loc = _lookup_dt(date_ixs, eff_date, _dates_seconds)
 
+        end_loc = date_loc + end_offset
+
+        out_loc = date_loc + date_offset
+
         if not PyDict_Contains(asset_ixs, sid):
             asset_ixs[sid] = assets.get_loc(sid)
         asset_ix = asset_ixs[sid]
 
-        adj = Float64Multiply(0, date_loc, asset_ix, asset_ix, ratio)
+        adj = Float64Multiply(0, end_loc, asset_ix, asset_ix, ratio)
         for i, column in enumerate(columns):
             col_adjustments = results[i]
             if column != 'volume':
                 try:
-                    col_adjustments[date_loc].append(adj)
+                    col_adjustments[out_loc].append(adj)
                 except KeyError:
-                    col_adjustments[date_loc] = [adj]
+                    col_adjustments[out_loc] = [adj]
 
     return results
 
