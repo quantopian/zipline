@@ -36,7 +36,8 @@ class RestrictedAlgoWithCheck(TradingAlgorithm):
     def handle_data(self, data):
         if not self.order_count:
             if self.sid not in \
-                    self.rl.leveraged_etf_list:
+                    self.rl.leveraged_etf_list.\
+                    current_securities(self.get_datetime()):
                 self.order(self.sid, 100)
                 self.order_count += 1
 
@@ -62,7 +63,8 @@ class IterateRLAlgo(TradingAlgorithm):
         self.found = False
 
     def handle_data(self, data):
-        for stock in self.rl.leveraged_etf_list:
+        for stock in self.rl.leveraged_etf_list.\
+                current_securities(self.get_datetime()):
             if stock == self.sid:
                 self.found = True
 
@@ -151,7 +153,8 @@ class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
              for symbol in ["BZQ", "URTY", "JFT"]]
         ]
         for sid in should_exist:
-            self.assertIn(sid, rl.leveraged_etf_list)
+            self.assertIn(
+                sid, rl.leveraged_etf_list.current_securities(get_datetime()))
 
         # assert that a sample of allowed stocks are not in restricted
         shouldnt_exist = [
@@ -162,7 +165,8 @@ class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
              for symbol in ["AAPL", "GOOG"]]
         ]
         for sid in shouldnt_exist:
-            self.assertNotIn(sid, rl.leveraged_etf_list)
+            self.assertNotIn(
+                sid, rl.leveraged_etf_list.current_securities(get_datetime()))
 
     def test_security_add(self):
         def get_datetime():
@@ -178,15 +182,24 @@ class SecurityListTestCase(WithLogger, WithTradingCalendars, ZiplineTestCase):
                 ) for symbol in ["AAPL", "GOOG", "BZQ", "URTY"]]
             ]
             for sid in should_exist:
-                self.assertIn(sid, rl.leveraged_etf_list)
+                self.assertIn(
+                    sid,
+                    rl.leveraged_etf_list.current_securities(get_datetime())
+                )
 
     def test_security_add_delete(self):
         with security_list_copy():
             def get_datetime():
                 return pd.Timestamp("2015-01-27", tz='UTC')
             rl = SecurityListSet(get_datetime, self.env.asset_finder)
-            self.assertNotIn("BZQ", rl.leveraged_etf_list)
-            self.assertNotIn("URTY", rl.leveraged_etf_list)
+            self.assertNotIn(
+                "BZQ",
+                rl.leveraged_etf_list.current_securities(get_datetime())
+            )
+            self.assertNotIn(
+                "URTY",
+                rl.leveraged_etf_list.current_securities(get_datetime())
+            )
 
     def test_algo_without_rl_violation_via_check(self):
         algo = RestrictedAlgoWithCheck(symbol='BZQ',

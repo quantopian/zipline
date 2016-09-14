@@ -127,3 +127,26 @@ class HistoricalRestrictions(Restrictions):
                 break
             state = r.state
         return state == RESTRICTION_STATES.FROZEN
+
+
+class SecurityListRestrictions(Restrictions):
+    """
+    Restrictions based on a security list
+
+    Parameters
+    ----------
+    restrictions : zipline.utils.security_list.SecurityList
+        The restrictions defined by a SecurityList
+    """
+
+    def __init__(self, security_list_by_dt):
+        self.current_securities = security_list_by_dt.current_securities
+
+    def is_restricted(self, assets, dt):
+        securities_in_list = self.current_securities(dt)
+        if isinstance(assets, Asset):
+            return assets in securities_in_list
+        return pd.Series(
+            index=pd.Index(assets),
+            data=vectorized_is_element(assets, securities_in_list)
+        )
