@@ -525,6 +525,9 @@ class MinuteResampleSessionBarReader(SessionBarReader):
     def first_trading_day(self):
         return self._minute_bar_reader.first_trading_day
 
+    def get_last_traded_dt(self, asset, dt):
+        return self._minute_bar_reader.get_last_traded_dt(asset, dt)
+
 
 class ReindexBarReader(with_metaclass(ABCMeta)):
     """

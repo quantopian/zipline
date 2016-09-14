@@ -519,6 +519,19 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
     NUM_SESSIONS = 2
 
     @classmethod
+    def make_futures_info(cls):
+        future_dict = {}
+
+        for future_sid in cls.ASSET_FINDER_FUTURE_SIDS:
+            future_dict[future_sid] = {
+                'multiplier': 1000,
+                'exchange': 'CME',
+                'root_symbol': "ABC"
+            }
+
+        return pd.DataFrame.from_dict(future_dict, orient='index')
+
+    @classmethod
     def make_future_minute_bar_data(cls):
         for sid in cls.ASSET_FINDER_FUTURE_SIDS:
             frame = FUTURE_CASES[sid]
@@ -581,6 +594,18 @@ class TestResampleSessionBars(WithBcolzFutureMinuteBarReader,
     def test_first_trading_day(self):
         self.assertEqual(self.START_DATE,
                          self.session_bar_reader.first_trading_day)
+
+    def test_get_last_traded_dt(self):
+        future = self.asset_finder.retrieve_asset(
+            self.ASSET_FINDER_FUTURE_SIDS[0]
+        )
+
+        self.assertEqual(
+            self.trading_calendar.open_and_close_for_session(
+                self.trading_calendar.previous_session_label(self.END_DATE)
+            )[1],
+            self.session_bar_reader.get_last_traded_dt(future, self.END_DATE)
+        )
 
 
 class TestReindexMinuteBars(WithBcolzEquityMinuteBarReader,

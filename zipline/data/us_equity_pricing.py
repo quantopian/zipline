@@ -49,8 +49,8 @@ from six import (
     string_types,
 )
 
-from zipline.data.session_bars import (
-    SessionBarReader,
+from zipline.data.session_bars import SessionBarReader
+from zipline.data.bar_reader import (
     NoDataAfterDate,
     NoDataBeforeDate,
     NoDataOnDate,
@@ -684,7 +684,7 @@ class BcolzDailyBarReader(SessionBarReader):
                     day, sid))
         return ix
 
-    def get_value(self, sid, day, colname):
+    def get_value(self, sid, dt, field):
         """
         Parameters
         ----------
@@ -704,11 +704,11 @@ class BcolzDailyBarReader(SessionBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        ix = self.sid_day_index(sid, day)
-        price = self._spot_col(colname)[ix]
+        ix = self.sid_day_index(sid, dt)
+        price = self._spot_col(field)[ix]
         if price == 0:
             return -1
-        if colname != 'volume':
+        if field != 'volume':
             return price * 0.001
         else:
             return price
@@ -747,7 +747,7 @@ class PanelBarReader(SessionBarReader):
             panel.loc[:, :, 'volume'] = int(1e9)
 
         self.trading_calendar = trading_calendar
-        self.first_trading_day = trading_calendar.minute_to_session_label(
+        self._first_trading_day = trading_calendar.minute_to_session_label(
             panel.major_axis[0]
         )
         last_trading_day = trading_calendar.minute_to_session_label(
@@ -785,7 +785,7 @@ class PanelBarReader(SessionBarReader):
             list(columns)
         ].reindex(major_axis=cal[cal.slice_indexer(start_dt, end_dt)]).values.T
 
-    def get_value(self, sid, dt, colname):
+    def get_value(self, sid, dt, field):
         """
         Parameters
         ----------
@@ -793,7 +793,7 @@ class PanelBarReader(SessionBarReader):
             The asset identifier.
         day : datetime64-like
             Midnight of the day for which data is requested.
-        colname : string
+        field : string
             The price field. e.g. ('open', 'high', 'low', 'close', 'volume')
 
         Returns
@@ -805,13 +805,13 @@ class PanelBarReader(SessionBarReader):
             Returns -1 if the day is within the date range, but the price is
             0.
         """
-        return self.panel.loc[sid, dt, colname]
+        return self.panel.loc[sid, dt, field]
 
-    def get_last_traded_dt(self, sid, dt):
+    def get_last_traded_dt(self, asset, dt):
         """
         Parameters
         ----------
-        sid : int
+        asset : zipline.asset.Asset
             The asset identifier.
         dt : datetime64-like
             Midnight of the day for which data is requested.
@@ -822,9 +822,13 @@ class PanelBarReader(SessionBarReader):
                        NaT if no trade is found before the given dt.
         """
         try:
-            return self.panel.loc[sid, :dt, 'close'].last_valid_index()
+            return self.panel.loc[int(asset), :dt, 'close'].last_valid_index()
         except IndexError:
             return NaT
+
+    @property
+    def first_trading_day(self):
+        return self._first_trading_day
 
 
 class SQLiteAdjustmentWriter(object):
