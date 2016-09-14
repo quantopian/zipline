@@ -34,6 +34,7 @@ from zipline.data._minute_bar_internal import (
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
 
+from zipline.data.bar_reader import BarReader
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
@@ -54,23 +55,9 @@ class BcolzMinuteWriterColumnMismatch(Exception):
     pass
 
 
-class MinuteBarReader(with_metaclass(ABCMeta)):
+class MinuteBarReader(BarReader):
 
     _data_frequency = 'minute'
-
-    @property
-    def data_frequency(self):
-        return self._data_frequency
-
-    @abstractproperty
-    def last_available_dt(self):
-        """
-        Returns
-        -------
-        dt : pd.Timestamp
-            The last minute for which the reader can provide data.
-        """
-        pass
 
     @abstractproperty
     def first_trading_day(self):
@@ -80,28 +67,6 @@ class MinuteBarReader(with_metaclass(ABCMeta)):
         dt : pd.Timestamp
             The first trading day (session) for which the reader can provide
             data.
-        """
-        pass
-
-    @abstractmethod
-    def get_value(self, sid, dt, field):
-        """
-        Retrieve the value at the given coordinates.
-
-        Parameters
-        ----------
-        sid : int
-            The asset identifier.
-        dt : pd.Timestamp
-            The minute label for the desired data point.
-        field : string
-            The OHLVC name for the desired data point.
-
-        Returns
-        -------
-        value : float|int
-            The value at the given coordinates, ``float`` for OHLC, ``int``
-            for 'volume'.
         """
         pass
 
@@ -124,34 +89,6 @@ class MinuteBarReader(with_metaclass(ABCMeta)):
         last_traded : pd.Timestamp
             The minute of the last trade for the given asset, using the input
             dt as a vantage point.
-        """
-        pass
-
-    @abstractmethod
-    def load_raw_arrays(self, fields, start_dt, end_dt, sids):
-        """
-        Retrieve the arrays of pricing data for the given coordinates of
-        ``fields`` (OHLCV), minute range [``start_dt``, ``end_dt``] and sids.
-
-        Parameters
-        ----------
-        fields : iterable of str
-            The OHLCV fields ('open', 'high', 'low', 'close', 'volume') for
-            which to read data.
-        start_dt : pd.Timestamp
-            The first minute of the date range for which to read data.
-        end_dt : pd.Timestamp
-            The last minute of the date range for which to read data.
-        sids : iterable of int
-            The sid identifiers for which to retrieve data.
-
-        Returns
-        -------
-        raw_arrays : list of ndarray
-            A list where each item corresponds with the fields in the order
-            the fields are given.
-            Each item is a 2D array with a shape of (minutes_in_range, sids)
-            The OHLC arrays are floats; the 'volume' array is ints.
         """
         pass
 
@@ -1034,8 +971,8 @@ class BcolzMinuteBarReader(MinuteBarReader):
         """
         Retrieve the pricing info for the given sid, dt, and field.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         sid : int
             Asset identifier.
         dt : datetime-like
@@ -1044,8 +981,8 @@ class BcolzMinuteBarReader(MinuteBarReader):
             The type of pricing data to retrieve.
             ('open', 'high', 'low', 'close', 'volume')
 
-        Returns:
-        --------
+        Returns
+        -------
         out : float|int
 
         The market data for the given sid, dt, and field coordinates.
@@ -1057,6 +994,10 @@ class BcolzMinuteBarReader(MinuteBarReader):
         For volume:
             Returns the integer value of the volume.
             (A volume of 0 signifies no trades for the given dt.)
+
+        Raises
+        ------
+        NoDataOnDate
         """
         if self._last_get_value_dt_value == dt.value:
             minute_pos = self._last_get_value_dt_position
@@ -1069,6 +1010,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
             value = self._open_minute_file(field, sid)[minute_pos]
         except IndexError:
             value = 0
+
         if value == 0:
             if field == 'volume':
                 return 0
@@ -1131,7 +1073,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
 
         return pd.Timestamp(minute_epoch, tz='UTC', unit="m")
 
-    def _find_position_of_minute(self, minute_dt):
+    def _find_position_of_minute(self, minute_dt, forward_fill):
         """
         Internal method that returns the position of the given minute in the
         list of every trading minute since market open of the first trading
@@ -1145,6 +1087,10 @@ class BcolzMinuteBarReader(MinuteBarReader):
         minute_dt: pd.Timestamp
             The minute whose position should be calculated.
 
+        forward_fill: boolean
+            Whether to use the previous market minute if the given minute is
+            not a market minute.
+
         Returns
         -------
         int: The position of the given minute in the list of all trading
@@ -1155,7 +1101,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
             self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
             self._minutes_per_day,
-            True
+            forward_fill
         )
 
     def load_raw_arrays(self, fields, start_dt, end_dt, sids):

@@ -41,7 +41,7 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
                             ndarray[long_t, ndim=1] market_closes,
                             int minute_val,
                             int minutes_per_day,
-                            bool raise_if_no_data_on_date):
+                            bool forward_fill):
     """
     Finds the position of a given minute in the given array of market opens.
     If not a market minute, adjusts to the last market minute.
@@ -60,9 +60,10 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
     minutes_per_day: int
         The number of minutes per day (e.g. 390 for NYSE).
 
-    raise_if_no_data_on_date: bool
-        Whether to raise NoDataOnDate if `minute_val` is not between a market
-        open and a market close.
+    forward_fill: bool
+        If `minute_val` is not between a market open and market close,
+        the previous market minute is used if this value is True.  Otherwise,
+        NoDataOnDate is raised.
 
     Returns
     -------
@@ -80,7 +81,8 @@ def find_position_of_minute(ndarray[long_t, ndim=1] market_opens,
     market_open = market_opens[market_open_loc]
     market_close = market_closes[market_open_loc]
 
-    if raise_if_no_data_on_date and minute_val > market_close:
+    if not forward_fill and \
+            ((minute_val - market_open) >= minutes_per_day):
         raise NoDataOnDate()
 
     delta = int_min(minute_val - market_open, market_close - market_open)
