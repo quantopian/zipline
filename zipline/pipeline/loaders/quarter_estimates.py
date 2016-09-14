@@ -1,5 +1,7 @@
+from collections import defaultdict
 from abc import abstractmethod
 import numpy as np
+import pandas as pd
 from six import viewvalues
 from toolz import groupby
 
@@ -143,7 +145,6 @@ class QuarterEstimatesLoader(PipelineLoader):
             split_normalized_quarters(
                 requested_qtr_data[SHIFTED_NORMALIZED_QTRS]
             )
-        import pdb; pdb.set_trace()
         # Move sids into the columns. Once we're left with just dates
         # as the index, we can reindex by all dates so that we have a
         # value for each calendar date.
@@ -157,10 +158,8 @@ class QuarterEstimatesLoader(PipelineLoader):
                         requested_qtr_data,
                         last_per_qtr,
                         dates,
-                        column_name,
-                        column,
-                        mask,
-                        assets):
+                        assets,
+                        columns):
         """
         Creates an AdjustedArray from the given estimates data for the given
         dates.
@@ -193,15 +192,11 @@ class QuarterEstimatesLoader(PipelineLoader):
         adjusted_array : AdjustedArray
             The array of data and overwrites for the given column.
         """
-        adjustments = {}
-
+        col_to_adjustments = defaultdict(dict)
         # We no longer need this in the index, but we do need it as a column
         # to calculate adjustments.
         zero_qtr_data = zero_qtr_data.reset_index(NORMALIZED_QUARTERS)
-        if column.dtype == datetime64ns_dtype:
-            overwrite = Datetime641DArrayOverwrite
-        else:
-            overwrite = Float641DArrayOverwrite
+
         for sid_idx, sid in enumerate(assets):
             zero_qtr_sid_data = zero_qtr_data[
                 zero_qtr_data.index.get_level_values(SID_FIELD_NAME) == sid
@@ -235,38 +230,35 @@ class QuarterEstimatesLoader(PipelineLoader):
                     if isinstance(self, PreviousQuartersEstimatesLoader)
                     else 'right'
                 )
-                adjustments[next_qtr_start_idx] = \
-                    self.create_overwrite_for_quarter(
-                        next_qtr_start_idx,
-                        column,
-                        column_name,
-                        dates,
-                        last_per_qtr,
-                        overwrite,
-                        qtrs_with_estimates_for_sid,
-                        requested_qtr_data,
-                        sid,
-                        sid_idx,
-                    )
-
-        return AdjustedArray(
-            requested_qtr_data[column_name].values.astype(column.dtype),
-            mask,
-            dict(adjustments),
-            column.missing_value,
-        )
+                self.create_overwrite_for_quarter(
+                    col_to_adjustments,
+                    next_qtr_start_idx,
+                    dates,
+                    last_per_qtr,
+                    qtrs_with_estimates_for_sid,
+                    requested_qtr_data,
+                    sid,
+                    sid_idx,
+                    columns,
+                )
+        return col_to_adjustments
 
     def create_overwrite_for_quarter(self,
+                                     col_to_adjustments,
                                      next_qtr_start_idx,
-                                     column,
-                                     column_name,
                                      dates,
                                      last_per_qtr,
-                                     overwrite,
                                      quarters_with_estimates_for_sid,
                                      requested_qtr_data,
                                      sid,
-                                     sid_idx):
+                                     sid_idx,
+                                     columns):
+        overwrites_dict = {}
+        for col in columns:
+            if col.dtype == datetime64ns_dtype:
+                overwrites_dict[col] = Datetime641DArrayOverwrite
+            else:
+                overwrites_dict[col] = Float641DArrayOverwrite
         # Only add adjustments if the next quarter starts somewhere in
         # our date index for this sid. Our 'next' quarter can never
         # start at index 0; a starting index of 0 means that the next
@@ -277,32 +269,35 @@ class QuarterEstimatesLoader(PipelineLoader):
             requested_quarter = requested_qtr_data[
                 SHIFTED_NORMALIZED_QTRS
             ][sid].iloc[next_qtr_start_idx]
-
-            # If there are estimates for the requested quarter,
-            # overwrite all values going up to the starting index of
-            # that quarter with estimates for that quarter.
-            if requested_quarter in quarters_with_estimates_for_sid:
-                return self.create_overwrite_for_estimate(
-                    column,
-                    column_name,
-                    last_per_qtr,
-                    next_qtr_start_idx,
-                    overwrite,
-                    requested_quarter,
-                    sid,
-                    sid_idx
-                )
-            # There are no estimates for the quarter. Overwrite all
-            # values going up to the starting index of that quarter
-            # with the missing value for this column.
-            else:
-                return self.overwrite_with_null(
-                    column,
-                    last_per_qtr,
-                    next_qtr_start_idx,
-                    overwrite,
-                    sid_idx
-                )
+            for col in columns:
+                column_name = self.name_map[col.name]
+                # If there are estimates for the requested quarter,
+                # overwrite all values going up to the starting index of
+                # that quarter with estimates for that quarter.
+                if requested_quarter in quarters_with_estimates_for_sid:
+                    col_to_adjustments[column_name][next_qtr_start_idx] = \
+                        self.create_overwrite_for_estimate(
+                            col,
+                            column_name,
+                            last_per_qtr,
+                            next_qtr_start_idx,
+                            overwrites_dict[col],
+                            requested_quarter,
+                            sid,
+                            sid_idx
+                        )
+                # There are no estimates for the quarter. Overwrite all
+                # values going up to the starting index of that quarter
+                # with the missing value for this column.
+                else:
+                    col_to_adjustments[column_name][next_qtr_start_idx] =\
+                        self.overwrite_with_null(
+                            col,
+                            last_per_qtr,
+                            next_qtr_start_idx,
+                            overwrites_dict[col],
+                            sid_idx
+                        )
 
     def overwrite_with_null(self,
                             column,
@@ -345,7 +340,6 @@ class QuarterEstimatesLoader(PipelineLoader):
 
             )
         out = {}
-
         for num_quarters, columns in groups.items():
             # Determine the last piece of information we know for each column
             # on each date in the index for each sid and quarter.
@@ -380,23 +374,33 @@ class QuarterEstimatesLoader(PipelineLoader):
                 ),
                 shifted_qtr_data[SHIFTED_NORMALIZED_QTRS]
             ]).index
+            requested_qtr_data = self.get_requested_data_for_col(
+                stacked_last_per_qtr, requested_qtr_idx, dates
+            )
 
-            for c in columns:
-                column_name = self.name_map[c.name]
-                requested_qtr_data = self.get_requested_data_for_col(
-                    stacked_last_per_qtr, requested_qtr_idx, dates
-                )
-                zero_qtr_data = stacked_last_per_qtr.loc[zero_qtr_idx]
-                adjusted_array = self.get_adjustments(zero_qtr_data,
+            zero_qtr_data = stacked_last_per_qtr.loc[zero_qtr_idx]
+
+            col_to_adjustments = self.get_adjustments(zero_qtr_data,
                                                       requested_qtr_data,
-                                                      stacked_last_per_qtr,
                                                       last_per_qtr,
                                                       dates,
-                                                      column_name,
-                                                      c,
-                                                      mask,
-                                                      assets)
-                out[c] = adjusted_array
+                                                      assets,
+                                                      columns)
+            for col in columns:
+                column_name = self.name_map[col.name]
+                # We may have dropped assets if they never have any data for the
+                # requested quarter.
+                df = pd.DataFrame(data=requested_qtr_data[column_name],
+                                  index=dates,
+                                  columns=assets,
+                                  dtype=col.dtype)
+
+                out[col] = AdjustedArray(
+                    df.values.astype(col.dtype),
+                    mask,
+                    dict(col_to_adjustments[column_name]),
+                    col.missing_value,
+                )
         return out
 
 
