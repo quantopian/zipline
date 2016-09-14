@@ -1029,7 +1029,6 @@ class BlazeLoader(dict):
 
             return odo(e[predicate][colnames], pd.DataFrame, **odo_kwargs)
 
-
         lower, materialized_checkpoints = get_materialized_checkpoints(
             checkpoints, colnames, lower_dt, odo_kwargs
         )

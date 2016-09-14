@@ -388,8 +388,8 @@ class QuarterEstimatesLoader(PipelineLoader):
                                                       columns)
             for col in columns:
                 column_name = self.name_map[col.name]
-                # We may have dropped assets if they never have any data for the
-                # requested quarter.
+                # We may have dropped assets if they never have any data for
+                # the requested quarter.
                 df = pd.DataFrame(data=requested_qtr_data[column_name],
                                   index=dates,
                                   columns=assets,
