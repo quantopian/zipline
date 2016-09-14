@@ -38,7 +38,7 @@ class AlgorithmSimulator(object):
     }
 
     def __init__(self, algo, sim_params, data_portal, clock, benchmark_source,
-                 universe_func):
+                 restrictions, universe_func):
 
         # ==============
         # Simulation
@@ -47,6 +47,7 @@ class AlgorithmSimulator(object):
         self.sim_params = sim_params
         self.env = algo.trading_environment
         self.data_portal = data_portal
+        self.restrictions = restrictions
 
         # ==============
         # Algo Setup
@@ -89,6 +90,7 @@ class AlgorithmSimulator(object):
             simulation_dt_func=self.get_simulation_dt,
             data_frequency=self.sim_params.data_frequency,
             trading_calendar=self.algo.trading_calendar,
+            restrictions=self.restrictions,
             universe_func=universe_func
         )
 

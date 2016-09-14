@@ -76,11 +76,16 @@ from zipline.finance.execution import (
     StopOrder,
 )
 from zipline.finance.performance import PerformanceTracker
+from zipline.finance.restrictions import Restrictions
 from zipline.finance.slippage import (
     VolumeShareSlippage,
     SlippageModel
 )
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
+from zipline.finance.restrictions import (
+    NoopRestrictions,
+    StaticRestrictions
+)
 from zipline.assets import Asset, Future
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline import Pipeline
@@ -120,6 +125,7 @@ from zipline.utils.math_utils import (
     round_if_near_integer
 )
 from zipline.utils.preprocess import preprocess
+from zipline.utils.security_list import SecurityList
 
 import zipline.protocol
 from zipline.sources.requests_csv import PandasRequestsCSV
@@ -418,6 +424,8 @@ class TradingAlgorithm(object):
         # A dictionary of the actual capital change deltas, keyed by timestamp
         self.capital_change_deltas = {}
 
+        self.restrictions = NoopRestrictions()
+
     def init_engine(self, get_loader):
         """
         Construct and store a PipelineEngine from loader.
@@ -564,6 +572,7 @@ class TradingAlgorithm(object):
             self.data_portal,
             self._create_clock(),
             self._create_benchmark_source(),
+            self.restrictions,
             universe_func=self._calculate_universe
         )
 
@@ -2083,7 +2092,8 @@ class TradingAlgorithm(object):
     def set_max_position_size(self,
                               asset=None,
                               max_shares=None,
-                              max_notional=None):
+                              max_notional=None,
+                              on_error='fail'):
         """Set a limit on the number of shares and/or dollar value held for the
         given sid. Limits are treated as absolute values and are enforced at
         the time that the algo attempts to place an order for sid. This means
@@ -2107,14 +2117,16 @@ class TradingAlgorithm(object):
         """
         control = MaxPositionSize(asset=asset,
                                   max_shares=max_shares,
-                                  max_notional=max_notional)
+                                  max_notional=max_notional,
+                                  on_error=on_error)
         self.register_trading_control(control)
 
     @api_method
     def set_max_order_size(self,
                            asset=None,
                            max_shares=None,
-                           max_notional=None):
+                           max_notional=None,
+                           on_error='fail'):
         """Set a limit on the number of shares and/or dollar value of any single
         order placed for sid.  Limits are treated as absolute values and are
         enforced at the time that the algo attempts to place an order for sid.
@@ -2134,11 +2146,12 @@ class TradingAlgorithm(object):
         """
         control = MaxOrderSize(asset=asset,
                                max_shares=max_shares,
-                               max_notional=max_notional)
+                               max_notional=max_notional,
+                               on_error=on_error)
         self.register_trading_control(control)
 
     @api_method
-    def set_max_order_count(self, max_count):
+    def set_max_order_count(self, max_count, on_error='fail'):
         """Set a limit on the number of orders that can be placed in a single
         day.
 
@@ -2147,27 +2160,32 @@ class TradingAlgorithm(object):
         max_count : int
             The maximum number of orders that can be placed on any single day.
         """
-        control = MaxOrderCount(max_count)
+        control = MaxOrderCount(on_error, max_count)
         self.register_trading_control(control)
 
     @api_method
-    def set_do_not_order_list(self, restricted_list):
+    def set_do_not_order_list(self, restricted_list, on_error='fail'):
         """Set a restriction on which assets can be ordered.
 
         Parameters
         ----------
-        restricted_list : container[Asset]
+        restricted_list : container[Asset], SecurityList
             The assets that cannot be ordered.
         """
-        control = RestrictedListOrder(restricted_list)
+
+        if isinstance(restricted_list, (list, tuple, set)):
+            restricted_list = StaticRestrictions(restricted_list)
+
+        control = RestrictedListOrder(on_error, restricted_list)
         self.register_trading_control(control)
+        self.restrictions = restricted_list
 
     @api_method
-    def set_long_only(self):
+    def set_long_only(self, on_error='fail'):
         """Set a rule specifying that this algorithm cannot take short
         positions.
         """
-        self.register_trading_control(LongOnly())
+        self.register_trading_control(LongOnly(on_error))
 
     ##############
     # Pipeline API
