@@ -119,9 +119,14 @@ class TermGraph(DiGraph):
     def _repr_png_(self):
         return self.png.data
 
-    def initial_refcounts(self, initial_workspace):
+    def initial_refcounts(self, initial_terms):
         """
         Calculate initial refcounts for execution of this graph.
+
+        Parameters
+        ----------
+        initial_terms : iterable[Term]
+            An iterable of terms that were pre-computed before graph execution.
 
         Each node starts with a refcount equal to its outdegree, and output
         nodes get one extra reference to ensure that they're still in the graph
@@ -131,7 +136,7 @@ class TermGraph(DiGraph):
         for t in self.outputs.values():
             refcounts[t] += 1
 
-        for t in initial_workspace:
+        for t in initial_terms:
             self.decref_dependencies(t, refcounts)
 
         return refcounts

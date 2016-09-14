@@ -382,7 +382,8 @@ class SimplePipelineEngine(object):
                 else:
                     assert workspace[term].shape == (mask.shape[0], 1)
 
-                # Decref dependencies of ``term``, and clear any terms whose refcounts hit 0.
+                # Decref dependencies of ``term``, and clear any terms whose
+                # refcounts hit 0.
                 for garbage_term in graph.decref_dependencies(term, refcounts):
                     del workspace[garbage_term]
 
