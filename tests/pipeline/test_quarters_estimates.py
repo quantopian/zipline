@@ -78,7 +78,7 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
 
     # Short window defined in order for test to run faster.
     START_DATE = pd.Timestamp('2014-12-28')
-    END_DATE = pd.Timestamp('2015-02-03')
+    END_DATE = pd.Timestamp('2015-02-04')
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -89,9 +89,13 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         raise NotImplementedError('make_events')
 
     @classmethod
+    def get_sids(cls):
+        return cls.events[SID_FIELD_NAME].unique()
+
+    @classmethod
     def init_class_fixtures(cls):
         cls.events = cls.make_events()
-        cls.sids = cls.events[SID_FIELD_NAME].unique()
+        cls.ASSET_FINDER_EQUITY_SIDS = cls.get_sids()
         cls.columns = {
             Estimates.event_date: 'event_date',
             Estimates.fiscal_quarter: 'fiscal_quarter',
@@ -101,9 +105,6 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         cls.loader = cls.make_loader(cls.events, {column.name: val for
                                                   column, val in
                                                   cls.columns.items()})
-        cls.ASSET_FINDER_EQUITY_SIDS = list(
-            cls.events[SID_FIELD_NAME].unique()
-        )
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
@@ -300,8 +301,15 @@ class WithEstimatesTimeZero(WithEstimates):
                                                              q2e2,
                                                              sid))
                 sid_releases.append(cls.create_releases_df(sid))
+        return pd.concat(sid_estimates +
+                         sid_releases).reset_index(drop=True)
 
-        return pd.concat(sid_estimates + sid_releases).reset_index(drop=True)
+    @classmethod
+    def get_sids(cls):
+        sids = cls.events[SID_FIELD_NAME].unique()
+        # Tack on an extra sid to make sure that sids with no data are
+        # included but have all-null columns.
+        return list(sids) + [max(sids) + 1]
 
     @classmethod
     def create_releases_df(cls, sid):
@@ -337,8 +345,6 @@ class WithEstimatesTimeZero(WithEstimates):
 
     @classmethod
     def init_class_fixtures(cls):
-        # Must be generated before call to super since super uses `events`.
-        cls.events = cls.make_events()
         super(WithEstimatesTimeZero, cls).init_class_fixtures()
 
     def get_expected_estimate(self,
@@ -356,10 +362,12 @@ class WithEstimatesTimeZero(WithEstimates):
         )
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in dataset.columns}),
-            start_date=self.trading_days[0],
-            end_date=self.trading_days[-1],
+            start_date=self.trading_days[1],
+            end_date=self.trading_days[-2],
         )
-        for sid in self.sids:
+        out_of_range_sid = max(self.ASSET_FINDER_EQUITY_SIDS)
+        assert_true(results.xs(out_of_range_sid, level=1).isnull().all().all())
+        for sid in set(self.ASSET_FINDER_EQUITY_SIDS) - {out_of_range_sid}:
             sid_estimates = results.xs(sid, level=1)
             ts_sorted_estimates = self.events[
                 self.events[SID_FIELD_NAME] == sid
