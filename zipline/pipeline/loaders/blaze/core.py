@@ -1028,7 +1028,6 @@ class BlazeLoader(dict):
 
             return odo(e[predicate][colnames], pd.DataFrame, **odo_kwargs)
 
-
         lower, materialized_checkpoints = get_materialized_checkpoints(
             checkpoints, colnames, lower_dt, odo_kwargs
         )
@@ -1158,6 +1157,22 @@ def bind_expression_to_resources(expr, resources):
 
 
 def get_materialized_checkpoints(checkpoints, colnames, lower_dt, odo_kwargs):
+    """
+    Computes a lower bound and a DataFrame checkpoints.
+
+    Parameters
+    ----------
+    checkpoints : Expr
+        Bound blaze expression for a checkpoints table from which to get a
+        computed lower bound.
+    colnames : iterable of str
+        The names of the columns for which checkpoints should be computed.
+    lower_dt : pd.Timestamp
+        The lower date being queried for that serves as an upper bound for
+        checkpoints.
+    odo_kwargs : dict, optional
+        The extra keyword arguments to pass to ``odo``.
+    """
     if checkpoints is not None:
         ts = checkpoints[TS_FIELD_NAME]
         checkpoints_ts = odo(ts[ts <= lower_dt].max(), pd.Timestamp)
@@ -1194,12 +1209,13 @@ def ffill_query_in_range(expr,
         The lower date to query for.
     upper : datetime
         The upper date to query for.
+    checkpoints : Expr, optional
+        Bound blaze expression for a checkpoints table from which to get a
+        computed lower bound.
     odo_kwargs : dict, optional
         The extra keyword arguments to pass to ``odo``.
     ts_field : str, optional
         The name of the timestamp field in the given blaze expression.
-    sid_field : str, optional
-        The name of the sid field in the given blaze expression.
 
     Returns
     -------

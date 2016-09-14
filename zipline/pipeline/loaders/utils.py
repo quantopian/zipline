@@ -320,8 +320,11 @@ def last_in_date_group(df, dates, assets, reindex=True, have_sids=True,
     ).last()
 
     # For the number of things that we're grouping by (except TS), unstack
-    # the df
-    last_in_group = last_in_group.unstack(list(range(-1, -len(idx), -1)))
+    # the df. Done this way because of an unresolved pandas bug whereby
+    # passing a list of levels with mixed dtypes to unstack causes the
+    # resulting DataFrame to have all object-type columns.
+    for _ in range(len(idx) - 1):
+        last_in_group = last_in_group.unstack(-1)
 
     if reindex:
         if have_sids:

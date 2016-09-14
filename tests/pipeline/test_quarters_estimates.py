@@ -4,7 +4,6 @@ from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 from toolz import merge
 
 from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
@@ -21,11 +20,11 @@ from zipline.pipeline.loaders.blaze.estimates import (
     BlazeNextEstimatesLoader,
     BlazePreviousEstimatesLoader
 )
-from zipline.pipeline.loaders.quarter_estimates import (
+from zipline.pipeline.loaders.earnings_estimates import (
     INVALID_NUM_QTRS_MESSAGE,
-    NextQuartersEstimatesLoader,
+    NextEarningsEstimatesLoader,
     normalize_quarters,
-    PreviousQuartersEstimatesLoader,
+    PreviousEarningsEstimatesLoader,
     split_normalized_quarters,
 )
 from zipline.testing.fixtures import (
@@ -78,7 +77,7 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
 
     # Short window defined in order for test to run faster.
     START_DATE = pd.Timestamp('2014-12-28')
-    END_DATE = pd.Timestamp('2015-02-03')
+    END_DATE = pd.Timestamp('2015-02-04')
 
     @classmethod
     def make_loader(cls, events, columns):
@@ -89,9 +88,13 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         raise NotImplementedError('make_events')
 
     @classmethod
+    def get_sids(cls):
+        return cls.events[SID_FIELD_NAME].unique()
+
+    @classmethod
     def init_class_fixtures(cls):
         cls.events = cls.make_events()
-        cls.sids = cls.events[SID_FIELD_NAME].unique()
+        cls.ASSET_FINDER_EQUITY_SIDS = cls.get_sids()
         cls.columns = {
             Estimates.event_date: 'event_date',
             Estimates.fiscal_quarter: 'fiscal_quarter',
@@ -101,9 +104,6 @@ class WithEstimates(WithTradingSessions, WithAssetFinder):
         cls.loader = cls.make_loader(cls.events, {column.name: val for
                                                   column, val in
                                                   cls.columns.items()})
-        cls.ASSET_FINDER_EQUITY_SIDS = list(
-            cls.events[SID_FIELD_NAME].unique()
-        )
         cls.ASSET_FINDER_EQUITY_SYMBOLS = [
             's' + str(n) for n in cls.ASSET_FINDER_EQUITY_SIDS
         ]
@@ -190,7 +190,7 @@ class PreviousWithWrongNumQuarters(WithWrongLoaderDefinition,
     """
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
 
 class NextWithWrongNumQuarters(WithWrongLoaderDefinition,
@@ -201,7 +201,7 @@ class NextWithWrongNumQuarters(WithWrongLoaderDefinition,
     """
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
 
 class WithEstimatesTimeZero(WithEstimates):
@@ -234,24 +234,27 @@ class WithEstimatesTimeZero(WithEstimates):
         Tests that we get the right 'time zero' value on each day for each
         sid and for each column.
     """
+    # Shorter date range for performance
+    END_DATE = pd.Timestamp('2015-01-28')
+
     q1_knowledge_dates = [pd.Timestamp('2015-01-01'),
                           pd.Timestamp('2015-01-04'),
-                          pd.Timestamp('2015-01-08'),
-                          pd.Timestamp('2015-01-12')]
-    q2_knowledge_dates = [pd.Timestamp('2015-01-16'),
+                          pd.Timestamp('2015-01-07'),
+                          pd.Timestamp('2015-01-11')]
+    q2_knowledge_dates = [pd.Timestamp('2015-01-14'),
+                          pd.Timestamp('2015-01-17'),
                           pd.Timestamp('2015-01-20'),
-                          pd.Timestamp('2015-01-24'),
-                          pd.Timestamp('2015-01-28')]
+                          pd.Timestamp('2015-01-23')]
     # We want to model the possibility of an estimate predicting a release date
     # that doesn't match the actual release. This could be done by dynamically
     # generating more combinations with different release dates, but that
     # significantly increases the amount of time it takes to run the tests.
     # These hard-coded cases are sufficient to know that we can update our
     # beliefs when we get new information.
-    q1_release_dates = [pd.Timestamp('2015-01-15'),
-                        pd.Timestamp('2015-01-16')]  # One day late
-    q2_release_dates = [pd.Timestamp('2015-01-30'),  # One day early
-                        pd.Timestamp('2015-01-31')]
+    q1_release_dates = [pd.Timestamp('2015-01-13'),
+                        pd.Timestamp('2015-01-14')]  # One day late
+    q2_release_dates = [pd.Timestamp('2015-01-25'),  # One day early
+                        pd.Timestamp('2015-01-26')]
 
     @classmethod
     def make_events(cls):
@@ -300,8 +303,15 @@ class WithEstimatesTimeZero(WithEstimates):
                                                              q2e2,
                                                              sid))
                 sid_releases.append(cls.create_releases_df(sid))
+        return pd.concat(sid_estimates +
+                         sid_releases).reset_index(drop=True)
 
-        return pd.concat(sid_estimates + sid_releases).reset_index(drop=True)
+    @classmethod
+    def get_sids(cls):
+        sids = cls.events[SID_FIELD_NAME].unique()
+        # Tack on an extra sid to make sure that sids with no data are
+        # included but have all-null columns.
+        return list(sids) + [max(sids) + 1]
 
     @classmethod
     def create_releases_df(cls, sid):
@@ -309,10 +319,10 @@ class WithEstimatesTimeZero(WithEstimates):
         # ranges in order to reduce the number of dates we need to iterate
         # through when testing.
         return pd.DataFrame({
-            TS_FIELD_NAME: [pd.Timestamp('2015-01-15'),
-                            pd.Timestamp('2015-01-31')],
-            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-15'),
-                                    pd.Timestamp('2015-01-31')],
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-13'),
+                            pd.Timestamp('2015-01-26')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-13'),
+                                    pd.Timestamp('2015-01-26')],
             'estimate': [0.5, 0.8],
             FISCAL_QUARTER_FIELD_NAME: [1.0, 2.0],
             FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0],
@@ -337,8 +347,6 @@ class WithEstimatesTimeZero(WithEstimates):
 
     @classmethod
     def init_class_fixtures(cls):
-        # Must be generated before call to super since super uses `events`.
-        cls.events = cls.make_events()
         super(WithEstimatesTimeZero, cls).init_class_fixtures()
 
     def get_expected_estimate(self,
@@ -356,58 +364,42 @@ class WithEstimatesTimeZero(WithEstimates):
         )
         results = engine.run_pipeline(
             Pipeline({c.name: c.latest for c in dataset.columns}),
-            start_date=self.trading_days[0],
-            end_date=self.trading_days[-1],
+            start_date=self.trading_days[1],
+            end_date=self.trading_days[-2],
         )
-        for sid in self.sids:
+        for sid in self.ASSET_FINDER_EQUITY_SIDS:
             sid_estimates = results.xs(sid, level=1)
-            ts_sorted_estimates = self.events[
-                self.events[SID_FIELD_NAME] == sid
-            ].sort(TS_FIELD_NAME)
-            for i, date in enumerate(sid_estimates.index):
-                comparable_date = date.tz_localize(None)
-                # Filter out estimates we don't know about yet.
-                ts_eligible_estimates = ts_sorted_estimates[
-                    ts_sorted_estimates[TS_FIELD_NAME] <= comparable_date
+            # Separate assertion for all-null DataFrame to avoid setting
+            # column dtypes on `all_expected`.
+            if sid == max(self.ASSET_FINDER_EQUITY_SIDS):
+                assert_true(sid_estimates.isnull().all().all())
+            else:
+                ts_sorted_estimates = self.events[
+                    self.events[SID_FIELD_NAME] == sid
+                ].sort(TS_FIELD_NAME)
+                q1_knowledge = ts_sorted_estimates[
+                    ts_sorted_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
                 ]
-                # If there are estimates we know about:
-                if not ts_eligible_estimates.empty:
-                    # Determine the last piece of information we know about
-                    # for q1 and q2. This takes advantage of the fact that we
-                    # only have 2 quarters in the test data.
-                    q1_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
-                    ]
-                    q2_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 2
-                    ]
-                    expected_estimate = self.get_expected_estimate(
-                        q1_knowledge,
-                        q2_knowledge,
-                        comparable_date,
-                    )
-                    # Have to explicitly check for None because
-                    # `expected_estimate` might be a DataFrame.
-                    if expected_estimate is not None:
-                        assert_series_equal(
-                            sid_estimates.iloc[i],
-                            expected_estimate[sid_estimates.columns],
-                            check_names=False
-                        )
-                    else:
-                        # There are no eligible 'next'/'previous' estimates on
-                        # this day; everything should be null.
-                        assert_true(sid_estimates.iloc[i].isnull().all())
-                else:
-                    # We don't know about any estimates on this day;
-                    # everything should be null.
-                    assert_true(sid_estimates.iloc[i].isnull().all())
+                q2_knowledge = ts_sorted_estimates[
+                    ts_sorted_estimates[FISCAL_QUARTER_FIELD_NAME] == 2
+                ]
+                all_expected = pd.concat(
+                    [self.get_expected_estimate(
+                        q1_knowledge[q1_knowledge[TS_FIELD_NAME] <=
+                                     date.tz_localize(None)],
+                        q2_knowledge[q2_knowledge[TS_FIELD_NAME] <=
+                                     date.tz_localize(None)],
+                        date.tz_localize(None),
+                    ).set_index([[date]]) for date in sid_estimates.index],
+                    axis=0)
+                assert_equal(all_expected[sid_estimates.columns],
+                             sid_estimates)
 
 
 class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
     def get_expected_estimate(self,
                               q1_knowledge,
@@ -419,15 +411,16 @@ class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
         if (not q1_knowledge.empty and
             q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
-            return q1_knowledge.iloc[-1]
+            return q1_knowledge.iloc[-1:]
         # If q1 has already happened or we don't know about it
         # yet and our latest knowledge indicates that q2 hasn't
         # happened yet, then that's the estimate we want to use.
         elif (not q2_knowledge.empty and
               q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
-            return q2_knowledge.iloc[-1]
-        return None
+            return q2_knowledge.iloc[-1:]
+        return pd.DataFrame(columns=q1_knowledge.columns,
+                            index=[comparable_date])
 
 
 class BlazeNextEstimateLoaderTestCase(NextEstimate):
@@ -446,7 +439,7 @@ class BlazeNextEstimateLoaderTestCase(NextEstimate):
 class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
     def get_expected_estimate(self,
                               q1_knowledge,
@@ -460,12 +453,13 @@ class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
         if (not q2_knowledge.empty and
             q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
-            return q2_knowledge.iloc[-1]
+            return q2_knowledge.iloc[-1:]
         elif (not q1_knowledge.empty and
               q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
-            return q1_knowledge.iloc[-1]
-        return None
+            return q1_knowledge.iloc[-1:]
+        return pd.DataFrame(columns=q1_knowledge.columns,
+                            index=[comparable_date])
 
 
 class BlazePreviousEstimateLoaderTestCase(PreviousEstimate):
@@ -572,8 +566,8 @@ class WithEstimateMultipleQuarters(WithEstimates):
         # quarters out for each of the dataset columns.
         assert_equal(sorted(np.array(q1_columns + q2_columns)),
                      sorted(results.columns.values))
-        assert_frame_equal(self.expected_out.sort(axis=1),
-                           results.xs(0, level=1).sort(axis=1))
+        assert_equal(self.expected_out.sort(axis=1),
+                     results.xs(0, level=1).sort(axis=1))
 
 
 class NextEstimateMultipleQuarters(
@@ -581,17 +575,19 @@ class NextEstimateMultipleQuarters(
 ):
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def fill_expected_out(cls, expected):
         # Fill columns for 1 Q out
         for raw_name in cls.columns.values():
-            expected[raw_name + '1'].loc[
-                pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-11')
+            expected.loc[
+                pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-11'),
+                raw_name + '1'
             ] = cls.events[raw_name].iloc[0]
-            expected[raw_name + '1'].loc[
-                pd.Timestamp('2015-01-11'):pd.Timestamp('2015-01-20')
+            expected.loc[
+                pd.Timestamp('2015-01-11'):pd.Timestamp('2015-01-20'),
+                raw_name + '1'
             ] = cls.events[raw_name].iloc[1]
 
         # Fill columns for 2 Q out
@@ -599,19 +595,23 @@ class NextEstimateMultipleQuarters(
         # Q1's event happens; after Q1's event, we know 1 Q out but not 2 Qs
         # out.
         for col_name in ['estimate', 'event_date']:
-            expected[col_name + '2'].loc[
-                pd.Timestamp('2015-01-06'):pd.Timestamp('2015-01-10')
+            expected.loc[
+                pd.Timestamp('2015-01-06'):pd.Timestamp('2015-01-10'),
+                col_name + '2'
             ] = cls.events[col_name].iloc[1]
         # But we know what FQ and FY we'd need in both Q1 and Q2
         # because we know which FQ is next and can calculate from there
-        expected[FISCAL_QUARTER_FIELD_NAME + '2'].loc[
-            pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-09')
+        expected.loc[
+            pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-09'),
+            FISCAL_QUARTER_FIELD_NAME + '2'
         ] = 2
-        expected[FISCAL_QUARTER_FIELD_NAME + '2'].loc[
-            pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20')
+        expected.loc[
+            pd.Timestamp('2015-01-12'):pd.Timestamp('2015-01-20'),
+            FISCAL_QUARTER_FIELD_NAME + '2'
         ] = 3
-        expected[FISCAL_YEAR_FIELD_NAME + '2'].loc[
-            pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-20')
+        expected.loc[
+            pd.Timestamp('2015-01-01'):pd.Timestamp('2015-01-20'),
+            FISCAL_YEAR_FIELD_NAME + '2'
         ] = 2015
 
         return expected
@@ -624,7 +624,7 @@ class PreviousEstimateMultipleQuarters(
 
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def fill_expected_out(cls, expected):
@@ -804,7 +804,7 @@ class WithEstimateWindows(WithEstimates):
 class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def make_expected_timelines(cls):
@@ -867,7 +867,7 @@ class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
 class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def make_expected_timelines(cls):
