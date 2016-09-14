@@ -365,9 +365,7 @@ class WithEstimatesTimeZero(WithEstimates):
             start_date=self.trading_days[1],
             end_date=self.trading_days[-2],
         )
-        out_of_range_sid = max(self.ASSET_FINDER_EQUITY_SIDS)
-        assert_true(results.xs(out_of_range_sid, level=1).isnull().all().all())
-        for sid in set(self.ASSET_FINDER_EQUITY_SIDS) - {out_of_range_sid}:
+        for sid in self.ASSET_FINDER_EQUITY_SIDS:
             sid_estimates = results.xs(sid, level=1)
             ts_sorted_estimates = self.events[
                 self.events[SID_FIELD_NAME] == sid
