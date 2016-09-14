@@ -35,6 +35,9 @@ class BlazeEstimatesLoader(PipelineLoader):
         The time to use for the data query cutoff.
     data_query_tz : tzinfo or str
         The timezeone to use for the data query cutoff.
+    checkpoints : Expr, optional
+        The expression representing checkpointed data to be used for faster
+        forward-filling of data from `expr`.
 
     Notes
     -----
