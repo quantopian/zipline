@@ -119,6 +119,54 @@ class TermGraph(DiGraph):
     def _repr_png_(self):
         return self.png.data
 
+    def initial_refcounts(self, initial_terms):
+        """
+        Calculate initial refcounts for execution of this graph.
+
+        Parameters
+        ----------
+        initial_terms : iterable[Term]
+            An iterable of terms that were pre-computed before graph execution.
+
+        Each node starts with a refcount equal to its outdegree, and output
+        nodes get one extra reference to ensure that they're still in the graph
+        at the end of execution.
+        """
+        refcounts = self.out_degree()
+        for t in self.outputs.values():
+            refcounts[t] += 1
+
+        for t in initial_terms:
+            self.decref_dependencies(t, refcounts)
+
+        return refcounts
+
+    def decref_dependencies(self, term, refcounts):
+        """
+        Decrement in-edges for ``term`` after computation.
+
+        Parameters
+        ----------
+        term : zipline.pipeline.Term
+            The term whose parents should be decref'ed.
+        refcounts : dict[Term -> int]
+            Dictionary of refcounts.
+
+        Return
+        ------
+        garbage : set[Term]
+            Terms whose refcounts hit zero after decrefing.
+        """
+        garbage = set()
+        # Edges are tuple of (from, to).
+        for parent, _ in self.in_edges([term]):
+            refcounts[parent] -= 1
+            # No one else depends on this term. Remove it from the
+            # workspace to conserve memory.
+            if refcounts[parent] == 0:
+                garbage.add(parent)
+        return garbage
+
 
 class ExecutionPlan(TermGraph):
     """
