@@ -674,7 +674,6 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
         return DatetimeIndex(all_minutes).tz_localize("UTC")
 
-    @preprocess(dt=coerce(pd.Timestamp, attrgetter('value')))
     def minute_to_session_label(self, dt, direction="next"):
         """
         Given a minute, get the label of its containing session.
@@ -716,17 +715,17 @@ class TradingCalendar(with_metaclass(ABCMeta)):
                 self._minute_to_session_label_cache[dt.value] = answer
                 return answer
 
-        idx = searchsorted(self.market_closes_nanos, dt)
+        idx = searchsorted(self.market_closes_nanos, dt.value)
         current_or_next_session = self.schedule.index[idx]
 
         if direction == "previous":
             if not is_open(self.market_opens_nanos, self.market_closes_nanos,
-                           dt):
+                           dt.value):
                 # if the exchange is closed, use the previous session
                 return self.schedule.index[idx - 1]
         elif direction == "none":
             if not is_open(self.market_opens_nanos, self.market_closes_nanos,
-                           dt):
+                           dt.value):
                 # if the exchange is closed, blow up
                 raise ValueError("The given dt is not an exchange minute!")
         elif direction != "next":
