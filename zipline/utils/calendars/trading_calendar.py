@@ -25,12 +25,14 @@ from pandas import (
     DatetimeIndex,
     DateOffset
 )
+from lru import LRU
 from pandas.tseries.offsets import CustomBusinessDay
 from zipline.utils.calendars._calendar_helpers import (
     next_divider_idx,
     previous_divider_idx,
     is_open,
     minutes_to_session_labels,
+    get_session_nano,
 )
 from zipline.utils.input_validation import (
     attrgetter,
@@ -104,8 +106,15 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         self._trading_minutes_nanos = self.all_minutes.values.\
             astype(np.int64)
 
+        self._sessions_nanos = self.schedule.index.values.astype(np.int64)
+
         self.first_trading_session = _all_days[0]
         self.last_trading_session = _all_days[-1]
+
+        # as the simulation clock marches inexorably forward, we sometimes
+        # pass the same minute to `minute_to_session_label` consecutively.
+        # This cache is used to catch that case.
+        self._minute_to_session_label_cache = LRU(1)
 
         self._early_closes = pd.DatetimeIndex(
             _special_closes.map(self.minute_to_session_label)
@@ -665,7 +674,6 @@ class TradingCalendar(with_metaclass(ABCMeta)):
 
         return DatetimeIndex(all_minutes).tz_localize("UTC")
 
-    @preprocess(dt=coerce(pd.Timestamp, attrgetter('value')))
     def minute_to_session_label(self, dt, direction="next"):
         """
         Given a minute, get the label of its containing session.
@@ -690,18 +698,34 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.Timestamp (midnight UTC)
             The label of the containing session.
         """
+        if direction == "next":
+            # optimize the codepath for 'next' by looking in the cache,
+            # and then getting the value from cython code if needed.
+            try:
+                return self._minute_to_session_label_cache[dt.value]
+            except KeyError:
+                answer = pd.Timestamp(
+                    get_session_nano(
+                        self.market_closes_nanos,
+                        self._sessions_nanos,
+                        dt.value
+                    ), tz='UTC'
+                )
 
-        idx = searchsorted(self.market_closes_nanos, dt)
+                self._minute_to_session_label_cache[dt.value] = answer
+                return answer
+
+        idx = searchsorted(self.market_closes_nanos, dt.value)
         current_or_next_session = self.schedule.index[idx]
 
         if direction == "previous":
             if not is_open(self.market_opens_nanos, self.market_closes_nanos,
-                           dt):
+                           dt.value):
                 # if the exchange is closed, use the previous session
                 return self.schedule.index[idx - 1]
         elif direction == "none":
             if not is_open(self.market_opens_nanos, self.market_closes_nanos,
-                           dt):
+                           dt.value):
                 # if the exchange is closed, blow up
                 raise ValueError("The given dt is not an exchange minute!")
         elif direction != "next":
