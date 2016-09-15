@@ -533,9 +533,16 @@ class DataPortal(object):
 
     def _get_minute_spot_value(self, asset, column, dt, ffill=False):
         reader = self._get_pricing_reader('minute')
-        result = reader.get_value(
-            asset.sid, dt, column
-        )
+        try:
+            result = reader.get_value(
+                asset.sid, dt, column
+            )
+        except NoDataOnDate:
+            if not ffill:
+                if column == 'volume':
+                    return 0
+                else:
+                    return np.nan
 
         if not ffill:
             return result

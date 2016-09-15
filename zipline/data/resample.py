@@ -15,13 +15,11 @@ from collections import OrderedDict
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-from numpy import nan
 import pandas as pd
 from pandas import DataFrame
 from six import with_metaclass
 
 from zipline.data.minute_bars import MinuteBarReader
-from zipline.data.us_equity_pricing import NoDataOnDate
 from zipline.data.session_bars import SessionBarReader
 from zipline.utils.memoize import lazyval
 
@@ -585,13 +583,7 @@ class ReindexBarReader(with_metaclass(ABCMeta)):
         return self._reader.first_trading_day
 
     def get_value(self, sid, dt, field):
-        try:
-            return self._reader.get_value(sid, dt, field)
-        except NoDataOnDate:
-            if field == 'volume':
-                return 0
-            else:
-                return nan
+        return self._reader.get_value(sid, dt, field)
 
     @abstractmethod
     def _outer_dts(self, start_dt, end_dt):

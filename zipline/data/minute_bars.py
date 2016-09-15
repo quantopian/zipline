@@ -32,7 +32,7 @@ from zipline.data._minute_bar_internal import (
 
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
 
-from zipline.data.bar_reader import BarReader
+from zipline.data.bar_reader import BarReader, NoDataOnDate
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
@@ -964,7 +964,11 @@ class BcolzMinuteBarReader(MinuteBarReader):
         if self._last_get_value_dt_value == dt.value:
             minute_pos = self._last_get_value_dt_position
         else:
-            minute_pos = self._find_position_of_minute(dt)
+            try:
+                minute_pos = self._find_position_of_minute(dt)
+            except ValueError:
+                raise NoDataOnDate()
+
             self._last_get_value_dt_value = dt.value
             self._last_get_value_dt_position = minute_pos
 
@@ -1058,6 +1062,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
             self._market_close_values,
             minute_dt.value / NANOS_IN_MINUTE,
             self._minutes_per_day,
+            False,
         )
 
     def load_raw_arrays(self, fields, start_dt, end_dt, sids):
