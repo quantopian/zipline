@@ -17,7 +17,7 @@ from six import with_metaclass
 
 class NoDataOnDate(Exception):
     """
-    Raised when a spot price can be found for the sid and date.
+    Raised when a spot price cannot be found for the sid and date.
     """
     pass
 
@@ -106,6 +106,12 @@ class BarReader(with_metaclass(ABCMeta, object)):
         value : float|int
             The value at the given coordinates, ``float`` for OHLC, ``int``
             for 'volume'.
+
+        Raises
+        ------
+        NoDataOnDate
+            If the given dt is not a valid market minute (in minute mode) or
+            session (in daily mode) according to this reader's tradingcalendar.
         """
         pass
 
