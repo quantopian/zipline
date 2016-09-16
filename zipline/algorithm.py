@@ -1631,13 +1631,6 @@ class TradingAlgorithm(object):
             dt = dt.astimezone(tz)
         return dt
 
-    def update_dividends(self, dividend_frame):
-        """
-        Set DataFrame used to process dividends.  DataFrame columns should
-        contain at least the entries in zp.DIVIDEND_FIELDS.
-        """
-        self.perf_tracker.update_dividends(dividend_frame)
-
     @api_method
     def set_slippage(self, slippage):
         """Set the slippage model for the simulation.
