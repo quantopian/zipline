@@ -16,7 +16,7 @@ import os
 from os.path import join
 from textwrap import dedent
 
-from cachetools import LRUCache
+from lru import LRU
 import bcolz
 from bcolz import ctable
 from intervaltree import IntervalTree
@@ -788,7 +788,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
         self._minutes_per_day = metadata.minutes_per_day
 
         self._carrays = {
-            field: LRUCache(maxsize=sid_cache_size)
+            field: LRU(sid_cache_size)
             for field in self.FIELDS
         }
 

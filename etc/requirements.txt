@@ -63,7 +63,8 @@ alembic==0.7.7
 sortedcontainers==1.4.4
 intervaltree==2.1.0
 
-cachetools==1.1.5
+# for caching
+lru-dict==1.1.4
 
 # For financial risk calculations
 empyrical==0.1.11

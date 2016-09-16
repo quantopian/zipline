@@ -17,8 +17,8 @@ from abc import (
     abstractmethod,
     abstractproperty,
 )
+from lru import LRU
 
-from cachetools import LRUCache
 from numpy import around, hstack
 from pandas import Int64Index
 
@@ -89,7 +89,7 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         self._reader = reader
         self._adjustments_reader = adjustment_reader
         self._window_blocks = {
-            field: ExpiringCache(LRUCache(maxsize=sid_cache_size))
+            field: ExpiringCache(LRU(sid_cache_size))
             for field in self.FIELDS
         }
 
