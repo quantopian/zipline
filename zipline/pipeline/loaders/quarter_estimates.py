@@ -86,6 +86,36 @@ def validate_column_specs(events, columns):
 
 
 class QuarterEstimatesLoader(PipelineLoader):
+    """
+    An abstract pipeline loader for estimates data that can load data a
+    variable number of quarters forwards/backwards from calendar dates
+    depending on the `num_quarters` attribute of the columns' dataset.
+
+    Parameters
+    ----------
+    estimates : pd.DataFrame
+        The raw estimates data.
+        ``estimates`` must contain at least 5 columns:
+            sid : int64
+                The asset id associated with each estimate.
+
+            event_date : datetime64[ns]
+                The date on which the event that the estimate is for will/has
+                occurred..
+
+            timestamp : datetime64[ns]
+                The date on which we learned about the estimate.
+
+            fiscal_quarter : int64
+                The quarter during which the event has/will occur.
+
+            fiscal_year : int64
+                The year during which the event has/will occur.
+
+    name_map : dict[str -> str]
+        A map of names of BoundColumns that this loader will load to the
+        names of the corresponding columns in `events`.
+    """
     def __init__(self,
                  estimates,
                  name_map):

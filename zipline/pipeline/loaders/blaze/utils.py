@@ -14,10 +14,11 @@ def load_raw_data(assets,
                   odo_kwargs,
                   checkpoints=None):
     """
-    given an expression representing data to load, perform normalization and
-    forward-filling and return the data, materialized.
+    Given an expression representing data to load, perform normalization and
+    forward-filling and return the data, materialized. Only accepts data with a
+    `sid` field.
 
-    parameters
+    Parameters
     ----------
     assets : pd.int64index
         the assets to load data for.
@@ -34,7 +35,8 @@ def load_raw_data(assets,
         extra keyword arguments to pass to odo when executing the expression.
     checkpoints : expr, optional
         the expression representing the checkpointed data for `expr`.
-    returns
+
+    Returns
     -------
     raw : pd.dataframe
         The result of computing expr and materializing the result as a

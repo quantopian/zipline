@@ -578,8 +578,8 @@ class WithEstimateMultipleQuarters(WithEstimates):
         # quarters out for each of the dataset columns.
         assert_equal(sorted(np.array(q1_columns + q2_columns)),
                      sorted(results.columns.values))
-        assert_frame_equal(self.expected_out.sort(axis=1),
-                           results.xs(0, level=1).sort(axis=1))
+        assert_equal(self.expected_out.sort(axis=1),
+                     results.xs(0, level=1).sort(axis=1))
 
 
 class NextEstimateMultipleQuarters(
