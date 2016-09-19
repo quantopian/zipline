@@ -945,7 +945,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         for k, v in attrs.items():
             self.assertEqual(self.reader.get_sid_attr(sid, k), v)
 
-    def test_rollback_between_data_points(self):
+    def test_truncate_between_data_points(self):
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
@@ -968,8 +968,8 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             index=minutes)
         self.writer.write_sid(sid, data)
 
-        # Unproduce to first day with data.
-        self.writer.rollback(days[0])
+        # Truncate to first day with data.
+        self.writer.truncate(days[0])
 
         self.assertEqual(self.writer.last_date_in_output_for_sid(sid), days[0])
 
@@ -1017,7 +1017,7 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
 
         self.assertEqual(0.0, volume_price)
 
-    def test_rollback_all_data_points(self):
+    def test_truncate_all_data_points(self):
 
         tds = self.market_opens.index
         days = tds[tds.slice_indexer(
@@ -1040,9 +1040,9 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
             index=minutes)
         self.writer.write_sid(sid, data)
 
-        # Rollback to first day in the calendar, a day before the first
+        # Truncate to first day in the calendar, a day before the first
         # day with minute data.
-        self.writer.rollback(self.test_calendar_start)
+        self.writer.truncate(self.test_calendar_start)
 
         self.assertEqual(
             self.writer.last_date_in_output_for_sid(sid),
