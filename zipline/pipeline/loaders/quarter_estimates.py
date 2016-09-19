@@ -1,12 +1,14 @@
 from collections import defaultdict
-from abc import abstractmethod
+from abc import abstractmethod, abstractproperty
 import numpy as np
 import pandas as pd
 from six import viewvalues
 from toolz import groupby
 
 from zipline.lib.adjusted_array import AdjustedArray
-from zipline.lib.adjustment import (Datetime641DArrayOverwrite,
+from zipline.lib.adjustment import (Datetime64Overwrite,
+                                    Datetime641DArrayOverwrite,
+                                    Float64Overwrite,
                                     Float641DArrayOverwrite)
 
 from zipline.pipeline.common import (
@@ -17,7 +19,7 @@ from zipline.pipeline.common import (
     TS_FIELD_NAME,
 )
 from zipline.pipeline.loaders.base import PipelineLoader
-from zipline.utils.numpy_utils import datetime64ns_dtype
+from zipline.utils.numpy_utils import datetime64ns_dtype, float64_dtype
 from zipline.pipeline.loaders.utils import (
     ffill_across_cols,
     last_in_date_group
@@ -133,6 +135,11 @@ class QuarterEstimatesLoader(PipelineLoader):
             self.estimates[FISCAL_YEAR_FIELD_NAME],
             self.estimates[FISCAL_QUARTER_FIELD_NAME],
         )
+        self.array_overwrites_dict = {datetime64ns_dtype:
+                                      Datetime641DArrayOverwrite,
+                                      float64_dtype: Float641DArrayOverwrite}
+        self.scalar_overwrites_dict = {datetime64ns_dtype: Datetime64Overwrite,
+                                       float64_dtype: Float64Overwrite}
 
         self.name_map = name_map
 
@@ -143,6 +150,21 @@ class QuarterEstimatesLoader(PipelineLoader):
     @abstractmethod
     def get_shifted_qtrs(self, zero_qtrs, num_quarters):
         raise NotImplementedError('get_shifted_qtrs')
+
+    @abstractmethod
+    def create_overwrite_for_estimate(self,
+                                      column,
+                                      column_name,
+                                      last_per_qtr,
+                                      next_qtr_start_idx,
+                                      requested_quarter,
+                                      sid,
+                                      sid_idx):
+        raise NotImplementedError('create_overwrite_for_estimate')
+
+    @abstractproperty
+    def searchsorted_side(self):
+        return NotImplementedError('searchsorted_side')
 
     def get_requested_quarter_data(self, stacked_last_per_qtr, idx, dates):
         """
@@ -252,9 +274,7 @@ class QuarterEstimatesLoader(PipelineLoader):
                     zero_qtr_data.loc[
                         row_indexer
                     ][EVENT_DATE_FIELD_NAME],
-                    side='left'
-                    if isinstance(self, PreviousQuartersEstimatesLoader)
-                    else 'right'
+                    side=self.searchsorted_side
                 )
                 # Only add adjustments if the next quarter starts somewhere in
                 # our date index for this sid. Our 'next' quarter can never
@@ -274,7 +294,7 @@ class QuarterEstimatesLoader(PipelineLoader):
         return col_to_overwrites
 
     def create_overwrite_for_quarter(self,
-                                     overwrites,
+                                     col_to_overwrites,
                                      next_qtr_start_idx,
                                      last_per_qtr,
                                      quarters_with_estimates_for_sid,
@@ -310,12 +330,6 @@ class QuarterEstimatesLoader(PipelineLoader):
         columns : list of BoundColumn
             The columns for which to create overwrites.
         """
-        overwrites_dict = {}
-        for col in columns:
-            if col.dtype == datetime64ns_dtype:
-                overwrites_dict[col] = Datetime641DArrayOverwrite
-            else:
-                overwrites_dict[col] = Float641DArrayOverwrite
 
         # Find the quarter being requested in the quarter we're
         # crossing into.
@@ -328,13 +342,12 @@ class QuarterEstimatesLoader(PipelineLoader):
             # overwrite all values going up to the starting index of
             # that quarter with estimates for that quarter.
             if requested_quarter in quarters_with_estimates_for_sid:
-                overwrites[column_name][next_qtr_start_idx] = \
+                col_to_overwrites[column_name][next_qtr_start_idx] = \
                     [self.create_overwrite_for_estimate(
                         col,
                         column_name,
                         last_per_qtr,
                         next_qtr_start_idx,
-                        overwrites_dict[col],
                         requested_quarter,
                         sid,
                         sid_idx
@@ -343,12 +356,11 @@ class QuarterEstimatesLoader(PipelineLoader):
             # values going up to the starting index of that quarter
             # with the missing value for this column.
             else:
-                overwrites[column_name][next_qtr_start_idx] =\
+                col_to_overwrites[column_name][next_qtr_start_idx] =\
                     [self.overwrite_with_null(
                         col,
                         last_per_qtr.index,
                         next_qtr_start_idx,
-                        overwrites_dict[col],
                         sid_idx
                     )]
 
@@ -356,20 +368,14 @@ class QuarterEstimatesLoader(PipelineLoader):
                             column,
                             dates,
                             next_qtr_start_idx,
-                            overwrite,
                             sid_idx):
-        return overwrite(
+        return self.scalar_overwrites_dict[column.dtype](
             0,
             next_qtr_start_idx - 1,
             sid_idx,
             sid_idx,
-            np.full(
-                len(
-                    dates[:next_qtr_start_idx]
-                ),
-                column.missing_value,
-                dtype=column.dtype
-            ))
+            column.missing_value
+        )
 
     def load_adjusted_array(self, columns, dates, assets, mask):
         # Separate out getting the columns' datasets and the datasets'
@@ -395,9 +401,7 @@ class QuarterEstimatesLoader(PipelineLoader):
         out = {}
         # To optimize performance, only work below on assets that are
         # actually in the raw data.
-        assets_with_data = set.intersection(
-            set(assets), set(self.estimates[SID_FIELD_NAME])
-        )
+        assets_with_data = set(assets) & set(self.estimates[SID_FIELD_NAME])
         for num_quarters, columns in groups.items():
             last_per_qtr, stacked_last_per_qtr = self.get_last_data_per_qtr(
                 assets_with_data, columns, dates
@@ -415,12 +419,15 @@ class QuarterEstimatesLoader(PipelineLoader):
             requested_qtr_idx = zero_qtr_data.reset_index(
                 NORMALIZED_QUARTERS
             ).set_index(
-                pd.Series(self.get_shifted_qtrs(
+                self.get_shifted_qtrs(
                     zeroth_quarter_idx.get_level_values(NORMALIZED_QUARTERS),
                     num_quarters
-                ), name=SHIFTED_NORMALIZED_QTRS),
+                ),
                 append=True
             ).index
+            requested_qtr_idx = requested_qtr_idx.rename(
+                SHIFTED_NORMALIZED_QTRS, -1
+            )
             requested_qtr_data = self.get_requested_quarter_data(
                 stacked_last_per_qtr, requested_qtr_idx, dates
             )
@@ -501,16 +508,19 @@ class QuarterEstimatesLoader(PipelineLoader):
 
 
 class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
+    @property
+    def searchsorted_side(self):
+        return 'right'
+
     def create_overwrite_for_estimate(self,
                                       column,
                                       column_name,
                                       last_per_qtr,
                                       next_qtr_start_idx,
-                                      overwrite,
                                       requested_quarter,
                                       sid,
                                       sid_idx):
-        return overwrite(
+        return self.array_overwrites_dict[column.dtype](
             0,
             # overwrite thru last qtr
             next_qtr_start_idx - 1,
@@ -520,7 +530,7 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
                 column_name,
                 requested_quarter,
                 sid
-            ][0:next_qtr_start_idx].values)
+            ][:next_qtr_start_idx].values)
 
     def get_shifted_qtrs(self, zero_qtrs, num_quarters):
         return zero_qtrs + (num_quarters - 1)
@@ -547,32 +557,31 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
             the rows that have a next event.
         """
 
-        # We reset the index here because in pandas3, a groupby on the index
-        # will set the index to just the items in the groupby, so we will lose
-        # the normalized quarters.
         next_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] >=
             stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
-        ].reset_index(NORMALIZED_QUARTERS).groupby(
-            level=[SIMULTATION_DATES, SID_FIELD_NAME]
-        ).nth(0).set_index(NORMALIZED_QUARTERS, append=True)
+        ].groupby(
+            level=[SIMULTATION_DATES, SID_FIELD_NAME], as_index=False
+        ).nth(0)
         return next_releases_per_date.index
 
 
 class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
+    @property
+    def searchsorted_side(self):
+        return 'left'
+
     def create_overwrite_for_estimate(self,
                                       column,
                                       column_name,
                                       dates,
                                       next_qtr_start_idx,
-                                      overwrite,
                                       requested_quarter,
                                       sid,
                                       sid_idx):
         return self.overwrite_with_null(column,
                                         dates,
                                         next_qtr_start_idx,
-                                        overwrite,
                                         sid_idx)
 
     def get_shifted_qtrs(self, zero_qtrs, num_quarters):
@@ -600,13 +609,10 @@ class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
             the rows that have a previous event.
         """
 
-        # We reset the index here because in pandas3, a groupby on the index
-        # will set the index to just the items in the groupby, so we will lose
-        # the normalized quarters.
         previous_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
             stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
-        ].reset_index(NORMALIZED_QUARTERS).groupby(
-            level=[SIMULTATION_DATES, SID_FIELD_NAME]
-        ).nth(-1).set_index(NORMALIZED_QUARTERS, append=True)
+        ].groupby(
+            level=[SIMULTATION_DATES, SID_FIELD_NAME], as_index=False
+        ).nth(-1)
         return previous_releases_per_date.index

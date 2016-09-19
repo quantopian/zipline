@@ -4,7 +4,6 @@ from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_frame_equal, assert_series_equal
 from toolz import merge
 
 from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
@@ -235,24 +234,27 @@ class WithEstimatesTimeZero(WithEstimates):
         Tests that we get the right 'time zero' value on each day for each
         sid and for each column.
     """
+    # Shorter date range for performance
+    END_DATE = pd.Timestamp('2015-01-28')
+
     q1_knowledge_dates = [pd.Timestamp('2015-01-01'),
                           pd.Timestamp('2015-01-04'),
-                          pd.Timestamp('2015-01-08'),
-                          pd.Timestamp('2015-01-12')]
-    q2_knowledge_dates = [pd.Timestamp('2015-01-16'),
+                          pd.Timestamp('2015-01-07'),
+                          pd.Timestamp('2015-01-11')]
+    q2_knowledge_dates = [pd.Timestamp('2015-01-14'),
+                          pd.Timestamp('2015-01-17'),
                           pd.Timestamp('2015-01-20'),
-                          pd.Timestamp('2015-01-24'),
-                          pd.Timestamp('2015-01-28')]
+                          pd.Timestamp('2015-01-23')]
     # We want to model the possibility of an estimate predicting a release date
     # that doesn't match the actual release. This could be done by dynamically
     # generating more combinations with different release dates, but that
     # significantly increases the amount of time it takes to run the tests.
     # These hard-coded cases are sufficient to know that we can update our
     # beliefs when we get new information.
-    q1_release_dates = [pd.Timestamp('2015-01-15'),
-                        pd.Timestamp('2015-01-16')]  # One day late
-    q2_release_dates = [pd.Timestamp('2015-01-30'),  # One day early
-                        pd.Timestamp('2015-01-31')]
+    q1_release_dates = [pd.Timestamp('2015-01-13'),
+                        pd.Timestamp('2015-01-14')]  # One day late
+    q2_release_dates = [pd.Timestamp('2015-01-25'),  # One day early
+                        pd.Timestamp('2015-01-26')]
 
     @classmethod
     def make_events(cls):
@@ -317,10 +319,10 @@ class WithEstimatesTimeZero(WithEstimates):
         # ranges in order to reduce the number of dates we need to iterate
         # through when testing.
         return pd.DataFrame({
-            TS_FIELD_NAME: [pd.Timestamp('2015-01-15'),
-                            pd.Timestamp('2015-01-31')],
-            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-15'),
-                                    pd.Timestamp('2015-01-31')],
+            TS_FIELD_NAME: [pd.Timestamp('2015-01-13'),
+                            pd.Timestamp('2015-01-26')],
+            EVENT_DATE_FIELD_NAME: [pd.Timestamp('2015-01-13'),
+                                    pd.Timestamp('2015-01-26')],
             'estimate': [0.5, 0.8],
             FISCAL_QUARTER_FIELD_NAME: [1.0, 2.0],
             FISCAL_YEAR_FIELD_NAME: [2015.0, 2015.0],

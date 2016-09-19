@@ -34,14 +34,13 @@ from ..finance.trading import TradingEnvironment
 from ..utils import factory
 from ..utils.classproperty import classproperty
 from ..utils.final import FinalMeta, final
-from .core import (tmp_asset_finder, make_simple_equity_info)
+from .core import tmp_asset_finder, make_simple_equity_info
 from zipline.assets import Equity, Future
 from zipline.pipeline import SimplePipelineEngine
 from zipline.pipeline.loaders.testing import make_seeded_random_loader
 from zipline.utils.calendars import (
     get_calendar,
-    register_calendar
-)
+    register_calendar)
 
 
 class ZiplineTestCase(with_metaclass(FinalMeta, TestCase)):
