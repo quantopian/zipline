@@ -4,7 +4,6 @@ from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
-from pandas.util.testing import assert_series_equal
 from toolz import merge
 
 from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
@@ -370,47 +369,31 @@ class WithEstimatesTimeZero(WithEstimates):
         )
         for sid in self.ASSET_FINDER_EQUITY_SIDS:
             sid_estimates = results.xs(sid, level=1)
-            ts_sorted_estimates = self.events[
-                self.events[SID_FIELD_NAME] == sid
-            ].sort(TS_FIELD_NAME)
-            for i, date in enumerate(sid_estimates.index):
-                comparable_date = date.tz_localize(None)
-                # Filter out estimates we don't know about yet.
-                ts_eligible_estimates = ts_sorted_estimates[
-                    ts_sorted_estimates[TS_FIELD_NAME] <= comparable_date
+            # Separate assertion for all-null DataFrame to avoid setting
+            # column dtypes on `all_expected`.
+            if sid == max(self.ASSET_FINDER_EQUITY_SIDS):
+                assert_true(sid_estimates.isnull().all().all())
+            else:
+                ts_sorted_estimates = self.events[
+                    self.events[SID_FIELD_NAME] == sid
+                ].sort(TS_FIELD_NAME)
+                q1_knowledge = ts_sorted_estimates[
+                    ts_sorted_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
                 ]
-                # If there are estimates we know about:
-                if not ts_eligible_estimates.empty:
-                    # Determine the last piece of information we know about
-                    # for q1 and q2. This takes advantage of the fact that we
-                    # only have 2 quarters in the test data.
-                    q1_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 1
-                    ]
-                    q2_knowledge = ts_eligible_estimates[
-                        ts_eligible_estimates[FISCAL_QUARTER_FIELD_NAME] == 2
-                    ]
-                    expected_estimate = self.get_expected_estimate(
-                        q1_knowledge,
-                        q2_knowledge,
-                        comparable_date,
-                    )
-                    # Have to explicitly check for None because
-                    # `expected_estimate` might be a DataFrame.
-                    if expected_estimate is not None:
-                        assert_series_equal(
-                            sid_estimates.iloc[i],
-                            expected_estimate[sid_estimates.columns],
-                            check_names=False
-                        )
-                    else:
-                        # There are no eligible 'next'/'previous' estimates on
-                        # this day; everything should be null.
-                        assert_true(sid_estimates.iloc[i].isnull().all())
-                else:
-                    # We don't know about any estimates on this day;
-                    # everything should be null.
-                    assert_true(sid_estimates.iloc[i].isnull().all())
+                q2_knowledge = ts_sorted_estimates[
+                    ts_sorted_estimates[FISCAL_QUARTER_FIELD_NAME] == 2
+                ]
+                all_expected = pd.concat(
+                    [self.get_expected_estimate(
+                        q1_knowledge[q1_knowledge[TS_FIELD_NAME] <=
+                                     date.tz_localize(None)],
+                        q2_knowledge[q2_knowledge[TS_FIELD_NAME] <=
+                                     date.tz_localize(None)],
+                        date.tz_localize(None),
+                    ).set_index([[date]]) for date in sid_estimates.index],
+                    axis=0)
+                assert_equal(all_expected[sid_estimates.columns],
+                             sid_estimates)
 
 
 class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
@@ -428,15 +411,16 @@ class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
         if (not q1_knowledge.empty and
             q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
-            return q1_knowledge.iloc[-1]
+            return q1_knowledge.iloc[-1:]
         # If q1 has already happened or we don't know about it
         # yet and our latest knowledge indicates that q2 hasn't
         # happened yet, then that's the estimate we want to use.
         elif (not q2_knowledge.empty and
               q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] >=
                 comparable_date):
-            return q2_knowledge.iloc[-1]
-        return None
+            return q2_knowledge.iloc[-1:]
+        return pd.DataFrame(columns=q1_knowledge.columns,
+                            index=[comparable_date])
 
 
 class BlazeNextEstimateLoaderTestCase(NextEstimate):
@@ -469,12 +453,13 @@ class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
         if (not q2_knowledge.empty and
             q2_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
-            return q2_knowledge.iloc[-1]
+            return q2_knowledge.iloc[-1:]
         elif (not q1_knowledge.empty and
               q1_knowledge[EVENT_DATE_FIELD_NAME].iloc[-1] <=
                 comparable_date):
-            return q1_knowledge.iloc[-1]
-        return None
+            return q1_knowledge.iloc[-1:]
+        return pd.DataFrame(columns=q1_knowledge.columns,
+                            index=[comparable_date])
 
 
 class BlazePreviousEstimateLoaderTestCase(PreviousEstimate):
