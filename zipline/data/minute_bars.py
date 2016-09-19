@@ -755,9 +755,9 @@ class BcolzMinuteBarWriter(object):
         num_days = day_ix + 1
         return num_days * self._minutes_per_day
 
-    def rollback(self, date):
+    def truncate(self, date):
         """Truncate data beyond this date in all ctables."""
-        rollback_slice_end = self.data_len_for_day(date)
+        truncate_slice_end = self.data_len_for_day(date)
 
         glob_path = os.path.join(self._rootdir, "*", "*", "*.bcolz")
         sid_paths = glob(glob_path)
@@ -769,15 +769,15 @@ class BcolzMinuteBarWriter(object):
                 table = bcolz.open(rootdir=sid_path)
             except IOError:
                 continue
-            if table.len <= rollback_slice_end:
-                logger.info("{0} not past rollback date={1}.", file_name, date)
+            if table.len <= truncate_slice_end:
+                logger.info("{0} not past truncate date={1}.", file_name, date)
                 continue
 
             logger.info(
-                "Rolling {0} back to end_date={1}", file_name, date.date()
+                "Truncting {0} back at end_date={1}", file_name, date.date()
             )
 
-            new_table = table[:rollback_slice_end]
+            new_table = table[:truncate_slice_end]
             tmp_path = sid_path + '.bak'
             shutil.move(sid_path, tmp_path)
             try:
