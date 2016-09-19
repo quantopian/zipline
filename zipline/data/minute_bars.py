@@ -317,6 +317,10 @@ class BcolzMinuteBarWriter(object):
 
         Defaults to supporting 15 years of NYSE equity market data.
         see: http://bcolz.blosc.org/opt-tips.html#informing-about-the-length-of-your-carrays # noqa
+    write_metadata : bool, optional
+        If True, writes the minute bar metadata (on init of the writer).
+        If False, no metadata is written (existing metadata is
+        retained). Default is True.
 
     Notes
     -----
@@ -373,7 +377,8 @@ class BcolzMinuteBarWriter(object):
                  minutes_per_day,
                  default_ohlc_ratio=OHLC_RATIO,
                  ohlc_ratios_per_sid=None,
-                 expectedlen=DEFAULT_EXPECTEDLEN):
+                 expectedlen=DEFAULT_EXPECTEDLEN,
+                 write_metadata=True):
 
         self._rootdir = rootdir
         self._start_session = start_session
@@ -391,15 +396,16 @@ class BcolzMinuteBarWriter(object):
         self._minute_index = _calc_minute_index(
             self._schedule.market_open, self._minutes_per_day)
 
-        metadata = BcolzMinuteBarMetadata(
-            self._default_ohlc_ratio,
-            self._ohlc_ratios_per_sid,
-            self._calendar,
-            self._start_session,
-            self._end_session,
-            self._minutes_per_day,
-        )
-        metadata.write(self._rootdir)
+        if write_metadata:
+            metadata = BcolzMinuteBarMetadata(
+                self._default_ohlc_ratio,
+                self._ohlc_ratios_per_sid,
+                self._calendar,
+                self._start_session,
+                self._end_session,
+                self._minutes_per_day,
+            )
+            metadata.write(self._rootdir)
 
     @property
     def first_trading_day(self):
@@ -794,6 +800,11 @@ class BcolzMinuteBarWriter(object):
                     "Could not write {0}, err={1}", file_name, err
                 )
                 shutil.move(tmp_path, sid_path)
+
+        # Update end session in metadata.
+        metadata = BcolzMinuteBarMetadata.read(self._rootdir)
+        metadata.end_session = date
+        metadata.write(self._rootdir)
 
 
 class BcolzMinuteBarReader(MinuteBarReader):
