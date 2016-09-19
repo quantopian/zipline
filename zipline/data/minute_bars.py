@@ -13,6 +13,8 @@
 # limitations under the License.
 import json
 import os
+import shutil
+from glob import glob
 from os.path import join
 from textwrap import dedent
 
@@ -20,6 +22,7 @@ from lru import LRU
 import bcolz
 from bcolz import ctable
 from intervaltree import IntervalTree
+import logbook
 import numpy as np
 import pandas as pd
 from toolz import keymap, valmap
@@ -36,6 +39,9 @@ from zipline.data.bar_reader import BarReader, NoDataOnDate
 from zipline.utils.calendars import get_calendar
 from zipline.utils.cli import maybe_show_progress
 from zipline.utils.memoize import lazyval
+
+
+logger = logbook.Logger('MinuteBars')
 
 US_EQUITIES_MINUTES_PER_DAY = 390
 FUTURES_MINUTES_PER_DAY = 1440
@@ -738,6 +744,56 @@ class BcolzMinuteBarWriter(object):
             vol_col
         ])
         table.flush()
+
+    def data_len_for_day(self, day):
+        """
+        Return the number of data points up to and including the
+        provided day.
+        """
+        day_ix = self._session_labels.get_loc(day)
+        # Add one to the 0-indexed day_ix to get the number of days.
+        num_days = day_ix + 1
+        return num_days * self._minutes_per_day
+
+    def truncate(self, date):
+        """Truncate data beyond this date in all ctables."""
+        truncate_slice_end = self.data_len_for_day(date)
+
+        glob_path = os.path.join(self._rootdir, "*", "*", "*.bcolz")
+        sid_paths = glob(glob_path)
+
+        for sid_path in sid_paths:
+            file_name = os.path.basename(sid_path)
+
+            try:
+                table = bcolz.open(rootdir=sid_path)
+            except IOError:
+                continue
+            if table.len <= truncate_slice_end:
+                logger.info("{0} not past truncate date={1}.", file_name, date)
+                continue
+
+            logger.info(
+                "Truncting {0} back at end_date={1}", file_name, date.date()
+            )
+
+            new_table = table[:truncate_slice_end]
+            tmp_path = sid_path + '.bak'
+            shutil.move(sid_path, tmp_path)
+            try:
+                bcolz.ctable(new_table, rootdir=sid_path)
+                try:
+                    shutil.rmtree(tmp_path)
+                except Exception as err:
+                    logger.info(
+                        "Could not delete tmp_path={0}, err={1}", tmp_path, err
+                    )
+            except Exception as err:
+                # On any ctable write error, restore the original table.
+                logger.warn(
+                    "Could not write {0}, err={1}", file_name, err
+                )
+                shutil.move(tmp_path, sid_path)
 
 
 class BcolzMinuteBarReader(MinuteBarReader):

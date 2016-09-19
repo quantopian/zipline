@@ -33,6 +33,7 @@ from pandas import (
     Timedelta,
     NaT,
     date_range,
+    isnull,
 )
 
 from zipline.data.bar_reader import NoDataOnDate
@@ -943,3 +944,151 @@ class BcolzMinuteBarTestCase(WithTradingCalendars,
         # Read the attributes
         for k, v in attrs.items():
             self.assertEqual(self.reader.get_sid_attr(sid, k), v)
+
+    def test_truncate_between_data_points(self):
+
+        tds = self.market_opens.index
+        days = tds[tds.slice_indexer(
+            start=self.test_calendar_start + 1,
+            end=self.test_calendar_start + 3
+        )]
+        minutes = DatetimeIndex([
+            self.market_opens[days[0]] + timedelta(minutes=60),
+            self.market_opens[days[1]] + timedelta(minutes=120),
+        ])
+        sid = 1
+        data = DataFrame(
+            data={
+                'open': [10.0, 11.0],
+                'high': [20.0, 21.0],
+                'low': [30.0, 31.0],
+                'close': [40.0, 41.0],
+                'volume': [50.0, 51.0]
+            },
+            index=minutes)
+        self.writer.write_sid(sid, data)
+
+        # Truncate to first day with data.
+        self.writer.truncate(days[0])
+
+        self.assertEqual(self.writer.last_date_in_output_for_sid(sid), days[0])
+
+        minute = minutes[0]
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        self.assertEquals(10.0, open_price)
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        self.assertEquals(20.0, high_price)
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        self.assertEquals(30.0, low_price)
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        self.assertEquals(40.0, close_price)
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEquals(50.0, volume_price)
+
+        minute = minutes[1]
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        self.assertTrue(isnull(open_price))
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        self.assertTrue(isnull(high_price))
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        self.assertTrue(isnull(low_price))
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        self.assertTrue(isnull(close_price))
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEqual(0.0, volume_price)
+
+    def test_truncate_all_data_points(self):
+
+        tds = self.market_opens.index
+        days = tds[tds.slice_indexer(
+            start=self.test_calendar_start + 1,
+            end=self.test_calendar_start + 3
+        )]
+        minutes = DatetimeIndex([
+            self.market_opens[days[0]] + timedelta(minutes=60),
+            self.market_opens[days[1]] + timedelta(minutes=120),
+        ])
+        sid = 1
+        data = DataFrame(
+            data={
+                'open': [10.0, 11.0],
+                'high': [20.0, 21.0],
+                'low': [30.0, 31.0],
+                'close': [40.0, 41.0],
+                'volume': [50.0, 51.0]
+            },
+            index=minutes)
+        self.writer.write_sid(sid, data)
+
+        # Truncate to first day in the calendar, a day before the first
+        # day with minute data.
+        self.writer.truncate(self.test_calendar_start)
+
+        self.assertEqual(
+            self.writer.last_date_in_output_for_sid(sid),
+            self.test_calendar_start,
+        )
+
+        minute = minutes[0]
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        self.assertTrue(isnull(open_price))
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        self.assertTrue(isnull(high_price))
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        self.assertTrue(isnull(low_price))
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        self.assertTrue(isnull(close_price))
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEquals(0.0, volume_price)
+
+        minute = minutes[1]
+
+        open_price = self.reader.get_value(sid, minute, 'open')
+
+        self.assertTrue(isnull(open_price))
+
+        high_price = self.reader.get_value(sid, minute, 'high')
+
+        self.assertTrue(isnull(high_price))
+
+        low_price = self.reader.get_value(sid, minute, 'low')
+
+        self.assertTrue(isnull(low_price))
+
+        close_price = self.reader.get_value(sid, minute, 'close')
+
+        self.assertTrue(isnull(close_price))
+
+        volume_price = self.reader.get_value(sid, minute, 'volume')
+
+        self.assertEqual(0.0, volume_price)
