@@ -1,6 +1,5 @@
 from collections import defaultdict
 from abc import abstractmethod, abstractproperty
-import numpy as np
 import pandas as pd
 from six import viewvalues
 from toolz import groupby
