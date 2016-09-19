@@ -174,6 +174,15 @@ class WithHistory(WithDataPortal):
     def make_splits_data(cls):
         return pd.DataFrame([
             {
+                # Set to align with the beginning of 2 day history window
+                # called on 2015-01-06 to prevent regression where an
+                # adjustment at beginning of window was causing negative
+                # offsets instead of being filtered out.
+                'effective_date': str_to_seconds('2015-01-02'),
+                'ratio': 0.1,
+                'sid': cls.SPLIT_ASSET_SID,
+            },
+            {
                 'effective_date': str_to_seconds('2015-01-06'),
                 'ratio': 0.25,
                 'sid': cls.SPLIT_ASSET_SID,
@@ -189,6 +198,15 @@ class WithHistory(WithDataPortal):
     def make_mergers_data(cls):
         return pd.DataFrame([
             {
+                # Set to align with the beginning of 2 day history window
+                # called on 2015-01-06 to prevent regression where an
+                # adjustment at beginning of window was causing negative
+                # offsets instead of being filtered out.
+                'effective_date': str_to_seconds('2015-01-02'),
+                'ratio': 0.1,
+                'sid': cls.SPLIT_ASSET_SID,
+            },
+            {
                 'effective_date': str_to_seconds('2015-01-06'),
                 'ratio': 0.25,
                 'sid': cls.MERGER_ASSET_SID,
@@ -203,6 +221,24 @@ class WithHistory(WithDataPortal):
     @classmethod
     def make_dividends_data(cls):
         return pd.DataFrame([
+            {
+                # Set to align with the beginning of 2 day history window
+                # called on 2015-01-06 to prevent regression where an
+                # adjustment at beginning of window was causing negative
+                # offsets instead of being filtered out.
+                #
+                # only care about ex date, the other dates don't matter here
+                'ex_date':
+                    pd.Timestamp('2015-01-02', tz='UTC').to_datetime64(),
+                'record_date':
+                    pd.Timestamp('2015-01-02', tz='UTC').to_datetime64(),
+                'declared_date':
+                    pd.Timestamp('2015-01-02', tz='UTC').to_datetime64(),
+                'pay_date':
+                    pd.Timestamp('2015-01-02', tz='UTC').to_datetime64(),
+                'amount': 3.0,
+                'sid': cls.DIVIDEND_ASSET_SID,
+            },
             {
                 # only care about ex date, the other dates don't matter here
                 'ex_date':
@@ -579,6 +615,12 @@ class MinuteEquityHistoryTestCase(WithHistory, ZiplineTestCase):
 
         for asset in [self.SPLIT_ASSET, self.MERGER_ASSET]:
             # before any of the adjustments, 1/4 and 1/5
+            #
+            # Also, this call aligns so that the 1/2 adjustment is at the
+            # beginning of the window to prevent a regression where adjustments
+            # at the beginning of the window caused errors due to adjustments
+            # with invalid parameters, instead of filtering out the adjustment
+            # which does not need to be applied.
             window1 = self.data_portal.get_history_window(
                 [asset],
                 self.trading_calendar.open_and_close_for_session(jan5)[1],
