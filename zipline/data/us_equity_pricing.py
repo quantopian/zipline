@@ -1234,15 +1234,12 @@ class SQLiteAdjustmentReader(object):
     def __init__(self, conn):
         self.conn = conn
 
-    def load_adjustments(self, columns, dates, assets,
-                         end_offset=0, date_offset=0):
+    def load_adjustments(self, columns, dates, assets):
         return load_adjustments_from_sqlite(
             self.conn,
             list(columns),
             dates,
             assets,
-            end_offset,
-            date_offset
         )
 
     def get_adjustments_for_sid(self, table_name, sid):

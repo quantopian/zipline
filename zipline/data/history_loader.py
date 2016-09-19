@@ -20,11 +20,12 @@ from abc import (
 from lru import LRU
 
 from numpy import around, hstack
-from pandas import Int64Index
+from pandas.tslib import normalize_date
 
 from six import with_metaclass
 
 from zipline.lib._float64window import AdjustedArrayWindow as Float64Window
+from zipline.lib.adjustment import Float64Multiply
 from zipline.utils.cache import ExpiringCache
 from zipline.utils.memoize import lazyval
 from zipline.utils.numpy_utils import float64_dtype
@@ -140,10 +141,79 @@ class HistoryLoader(with_metaclass(ABCMeta)):
         -------
         out : The adjustments as a dict of loc -> Float64Multiply
         """
-        end_offset = -1
-        date_offset = -1 if is_perspective_after else 0
-        return self._adjustments_reader.load_adjustments(
-            [field], dts, Int64Index([asset]), end_offset, date_offset)[0]
+        sid = int(asset)
+        start = normalize_date(dts[0])
+        end = normalize_date(dts[-1])
+        adjs = {}
+        if field != 'volume':
+            mergers = self._adjustments_reader.get_adjustments_for_sid(
+                'mergers', sid)
+            for m in mergers:
+                dt = m[0]
+                if start < dt <= end:
+                    end_loc = dts.searchsorted(dt)
+                    adj_loc = end_loc
+                    if is_perspective_after:
+                        # Set adjustment pop location so that it applies
+                        # to last value if adjustment occurs immediately after
+                        # the last slot.
+                        adj_loc -= 1
+                    mult = Float64Multiply(0,
+                                           end_loc - 1,
+                                           0,
+                                           0,
+                                           m[1])
+                    try:
+                        adjs[adj_loc].append(mult)
+                    except KeyError:
+                        adjs[adj_loc] = [mult]
+            divs = self._adjustments_reader.get_adjustments_for_sid(
+                'dividends', sid)
+            for d in divs:
+                dt = d[0]
+                if start < dt <= end:
+                    end_loc = dts.searchsorted(dt)
+                    adj_loc = end_loc
+                    if is_perspective_after:
+                        # Set adjustment pop location so that it applies
+                        # to last value if adjustment occurs immediately after
+                        # the last slot.
+                        adj_loc -= 1
+                    mult = Float64Multiply(0,
+                                           end_loc - 1,
+                                           0,
+                                           0,
+                                           d[1])
+                    try:
+                        adjs[adj_loc].append(mult)
+                    except KeyError:
+                        adjs[adj_loc] = [mult]
+        splits = self._adjustments_reader.get_adjustments_for_sid(
+            'splits', sid)
+        for s in splits:
+            dt = s[0]
+            if start < dt <= end:
+                if field == 'volume':
+                    ratio = 1.0 / s[1]
+                else:
+                    ratio = s[1]
+                end_loc = dts.searchsorted(dt)
+                adj_loc = end_loc
+                if is_perspective_after:
+                    # Set adjustment pop location so that it applies
+                    # to last value if adjustment occurs immediately after
+                    # the last slot.
+                    adj_loc -= 1
+                mult = Float64Multiply(0,
+                                       end_loc - 1,
+                                       0,
+                                       0,
+                                       ratio)
+                try:
+                    adjs[adj_loc].append(mult)
+                except KeyError:
+                    adjs[adj_loc] = [mult]
+        return adjs
 
     def _ensure_sliding_windows(self, assets, dts, field,
                                 is_perspective_after):
