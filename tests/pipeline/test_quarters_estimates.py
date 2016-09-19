@@ -4,6 +4,7 @@ from nose.tools import assert_true
 from nose_parameterized import parameterized
 import numpy as np
 import pandas as pd
+from pandas.util.testing import assert_series_equal
 from toolz import merge
 
 from zipline.pipeline import SimplePipelineEngine, Pipeline, CustomFactor
