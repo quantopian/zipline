@@ -1129,10 +1129,11 @@ class DataPortal(object):
             previous_session,
         )
 
-        minutes_count = sum(
-            len(self.trading_calendar.minutes_for_session(session))
-            for session in sessions
-        )
+        minutes_count = \
+            self.trading_calendar.minutes_count_for_sessions_in_range(
+                sessions[0],
+                sessions[-1]
+            )
 
         # add the minutes for today
         today_open = self.trading_calendar.open_and_close_for_session(

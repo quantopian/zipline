@@ -149,6 +149,29 @@ class TradingCalendar(with_metaclass(ABCMeta)):
     def close_offset(self):
         return 0
 
+    @lazyval
+    def _minutes_per_session(self):
+        diff = self.schedule.market_close - self.schedule.market_open
+        diff = diff.astype('timedelta64[m]')
+        return diff + 1
+
+    def minutes_count_for_sessions_in_range(self, start_session, end_session):
+        """
+        Parameters
+        ----------
+        start_session: pd.Timestamp
+            The first session.
+
+        end_session: pd.Timestamp
+            The last session.
+
+        Returns
+        -------
+        int: The total number of minutes for the contiguous chunk of sessions.
+             between start_session and end_session, inclusive.
+        """
+        return int(self._minutes_per_session[start_session:end_session].sum())
+
     @property
     def regular_holidays(self):
         """
