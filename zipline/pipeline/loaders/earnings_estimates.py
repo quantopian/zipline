@@ -5,10 +5,12 @@ from six import viewvalues
 from toolz import groupby
 
 from zipline.lib.adjusted_array import AdjustedArray
-from zipline.lib.adjustment import (Datetime64Overwrite,
-                                    Datetime641DArrayOverwrite,
-                                    Float64Overwrite,
-                                    Float641DArrayOverwrite)
+from zipline.lib.adjustment import (
+    Datetime641DArrayOverwrite,
+    Datetime64Overwrite,
+    Float641DArrayOverwrite,
+    Float64Overwrite,
+)
 
 from zipline.pipeline.common import (
     EVENT_DATE_FIELD_NAME,
@@ -68,7 +70,7 @@ def required_estimates_fields(columns):
 def validate_column_specs(events, columns):
     """
     Verify that the columns of ``events`` can be used by a
-    QuarterEstimatesLoader to serve the BoundColumns described by
+    EarningsEstimatesLoader to serve the BoundColumns described by
     `columns`.
     """
     required = required_estimates_fields(columns)
@@ -76,7 +78,7 @@ def validate_column_specs(events, columns):
     missing = required - received
     if missing:
         raise ValueError(
-            "QuarterEstimatesLoader missing required columns {missing}.\n"
+            "EarningsEstimatesLoader missing required columns {missing}.\n"
             "Got Columns: {received}\n"
             "Expected Columns: {required}".format(
                 missing=sorted(missing),
@@ -86,7 +88,7 @@ def validate_column_specs(events, columns):
         )
 
 
-class QuarterEstimatesLoader(PipelineLoader):
+class EarningsEstimatesLoader(PipelineLoader):
     """
     An abstract pipeline loader for estimates data that can load data a
     variable number of quarters forwards/backwards from calendar dates
@@ -386,7 +388,7 @@ class QuarterEstimatesLoader(PipelineLoader):
                              col_to_datasets)
         except AttributeError:
             raise AttributeError("Datasets loaded via the "
-                                 "QuarterEstimatesLoader must define a "
+                                 "EarningsEstimatesLoader must define a "
                                  "`num_quarters` attribute that defines how "
                                  "many quarters out the loader should load "
                                  "the data relative to `dates`.")
@@ -506,7 +508,7 @@ class QuarterEstimatesLoader(PipelineLoader):
         return last_per_qtr, stacked_last_per_qtr
 
 
-class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
+class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
     @property
     def searchsorted_side(self):
         return 'right'
@@ -565,7 +567,7 @@ class NextQuartersEstimatesLoader(QuarterEstimatesLoader):
         return next_releases_per_date.index
 
 
-class PreviousQuartersEstimatesLoader(QuarterEstimatesLoader):
+class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
     @property
     def searchsorted_side(self):
         return 'left'

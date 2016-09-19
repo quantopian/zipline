@@ -21,11 +21,11 @@ from zipline.pipeline.loaders.blaze.estimates import (
     BlazeNextEstimatesLoader,
     BlazePreviousEstimatesLoader
 )
-from zipline.pipeline.loaders.quarter_estimates import (
+from zipline.pipeline.loaders.earnings_estimates import (
     INVALID_NUM_QTRS_MESSAGE,
-    NextQuartersEstimatesLoader,
+    NextEarningsEstimatesLoader,
     normalize_quarters,
-    PreviousQuartersEstimatesLoader,
+    PreviousEarningsEstimatesLoader,
     split_normalized_quarters,
 )
 from zipline.testing.fixtures import (
@@ -191,7 +191,7 @@ class PreviousWithWrongNumQuarters(WithWrongLoaderDefinition,
     """
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
 
 class NextWithWrongNumQuarters(WithWrongLoaderDefinition,
@@ -202,7 +202,7 @@ class NextWithWrongNumQuarters(WithWrongLoaderDefinition,
     """
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
 
 class WithEstimatesTimeZero(WithEstimates):
@@ -416,7 +416,7 @@ class WithEstimatesTimeZero(WithEstimates):
 class NextEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
     def get_expected_estimate(self,
                               q1_knowledge,
@@ -455,7 +455,7 @@ class BlazeNextEstimateLoaderTestCase(NextEstimate):
 class PreviousEstimate(WithEstimatesTimeZero, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
     def get_expected_estimate(self,
                               q1_knowledge,
@@ -590,7 +590,7 @@ class NextEstimateMultipleQuarters(
 ):
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def fill_expected_out(cls, expected):
@@ -633,7 +633,7 @@ class PreviousEstimateMultipleQuarters(
 
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def fill_expected_out(cls, expected):
@@ -813,7 +813,7 @@ class WithEstimateWindows(WithEstimates):
 class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return PreviousQuartersEstimatesLoader(events, columns)
+        return PreviousEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def make_expected_timelines(cls):
@@ -876,7 +876,7 @@ class PreviousEstimateWindows(WithEstimateWindows, ZiplineTestCase):
 class NextEstimateWindows(WithEstimateWindows, ZiplineTestCase):
     @classmethod
     def make_loader(cls, events, columns):
-        return NextQuartersEstimatesLoader(events, columns)
+        return NextEarningsEstimatesLoader(events, columns)
 
     @classmethod
     def make_expected_timelines(cls):

@@ -3,6 +3,8 @@ from datashape import istabular
 from .core import (
     bind_expression_to_resources,
 )
+from zipline.pipeline.common import SID_FIELD_NAME, TS_FIELD_NAME, \
+    EVENT_DATE_FIELD_NAME
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.blaze.utils import load_raw_data
 from zipline.pipeline.loaders.events import (
@@ -54,6 +56,10 @@ class BlazeEventsLoader(PipelineLoader):
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
     start the backtest with knowledge of all announcements.
     """
+
+    __doc__ == __doc__.format(SID_FIELD_NAME=SID_FIELD_NAME,
+                              TS_FIELD_NAME=TS_FIELD_NAME,
+                              EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME)
 
     @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,

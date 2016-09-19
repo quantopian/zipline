@@ -3,11 +3,18 @@ from datashape import istabular
 from .core import (
     bind_expression_to_resources,
 )
+from zipline.pipeline.common import (
+    EVENT_DATE_FIELD_NAME,
+    FISCAL_QUARTER_FIELD_NAME,
+    FISCAL_YEAR_FIELD_NAME,
+    SID_FIELD_NAME,
+    TS_FIELD_NAME,
+)
 from zipline.pipeline.loaders.base import PipelineLoader
 from zipline.pipeline.loaders.blaze.utils import load_raw_data
-from zipline.pipeline.loaders.quarter_estimates import (
-    NextQuartersEstimatesLoader,
-    PreviousQuartersEstimatesLoader,
+from zipline.pipeline.loaders.earnings_estimates import (
+    NextEarningsEstimatesLoader,
+    PreviousEarningsEstimatesLoader,
     required_estimates_fields,
 )
 from zipline.pipeline.loaders.utils import (
@@ -58,6 +65,13 @@ class BlazeEstimatesLoader(PipelineLoader):
     If the '{TS_FIELD_NAME}' field is not included it is assumed that we
     start the backtest with knowledge of all announcements.
     """
+    __doc__ = __doc__.format(
+        SID_FIELD_NAME=SID_FIELD_NAME,
+        TS_FIELD_NAME=TS_FIELD_NAME,
+        FISCAL_YEAR_FIELD_NAME=FISCAL_YEAR_FIELD_NAME,
+        FISCAL_QUARTER_FIELD_NAME=FISCAL_QUARTER_FIELD_NAME,
+        EVENT_DATE_FIELD_NAME=EVENT_DATE_FIELD_NAME,
+    )
 
     @preprocess(data_query_tz=optionally(ensure_timezone))
     def __init__(self,
@@ -110,8 +124,8 @@ class BlazeEstimatesLoader(PipelineLoader):
 
 
 class BlazeNextEstimatesLoader(BlazeEstimatesLoader):
-    loader = NextQuartersEstimatesLoader
+    loader = NextEarningsEstimatesLoader
 
 
 class BlazePreviousEstimatesLoader(BlazeEstimatesLoader):
-    loader = PreviousQuartersEstimatesLoader
+    loader = PreviousEarningsEstimatesLoader
