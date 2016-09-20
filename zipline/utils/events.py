@@ -434,7 +434,6 @@ class TradingDayOfWeekRule(six.with_metaclass(ABCMeta, StatelessRule)):
     @preprocess(n=lossless_float_to_int('TradingDayOfWeekRule'))
     def __init__(self, n, invert):
         if not 0 <= n < MAX_WEEK_RANGE:
-            import nose.tools; nose.tools.set_trace()
             raise _out_of_range_error(MAX_WEEK_RANGE)
 
         self.td_delta = (-n - 1) if invert else n

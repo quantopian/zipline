@@ -23,7 +23,6 @@ import pandas as pd
 from six import iteritems
 from six.moves import range, map
 
-from zipline.testing import parameter_space
 import zipline.utils.events
 from zipline.utils.calendars import get_calendar
 from zipline.utils.events import (
@@ -454,12 +453,24 @@ class StatelessRulesTests(RuleTestCase):
             rule_type(n=3.0)  # Should trigger a warning about float coercion.
 
         self.assertEqual(len(raised_warnings), 1)
-        warning_str = raised_warnings[0].message.message
 
         # We only implicitly convert from float to int when there's no loss of
         # precision.
         with self.assertRaises(TypeError):
             rule_type(3.1)
+
+    def test_invalid_offsets(self):
+        with self.assertRaises(ValueError):
+            NthTradingDayOfWeek(5)
+
+        with self.assertRaises(ValueError):
+            NthTradingDayOfWeek(-1)
+
+        with self.assertRaises(ValueError):
+            NthTradingDayOfMonth(-1)
+
+        with self.assertRaises(ValueError):
+            NthTradingDayOfMonth(24)
 
 
 class StatefulRulesTests(RuleTestCase):
