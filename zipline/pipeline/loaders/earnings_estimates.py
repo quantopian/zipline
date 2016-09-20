@@ -50,23 +50,24 @@ def split_normalized_quarters(normalized_quarters):
     return years, quarters + 1
 
 
+# These metadata columns are used to align event indexers.
+metadata_columns = frozenset({
+    TS_FIELD_NAME,
+    SID_FIELD_NAME,
+    EVENT_DATE_FIELD_NAME,
+    FISCAL_QUARTER_FIELD_NAME,
+    FISCAL_YEAR_FIELD_NAME,
+})
+
+
 def required_estimates_fields(columns):
     """
     Compute the set of resource columns required to serve
     `columns`.
     """
-    # These metadata columns are used to align event indexers.
-    return {
-        TS_FIELD_NAME,
-        SID_FIELD_NAME,
-        EVENT_DATE_FIELD_NAME,
-        FISCAL_QUARTER_FIELD_NAME,
-        FISCAL_YEAR_FIELD_NAME
-    }.union(
-        # We also expect any of the field names that our loadable columns
-        # are mapped to.
-        viewvalues(columns),
-    )
+    # We also expect any of the field names that our loadable columns
+    # are mapped to.
+    return metadata_columns.union(viewvalues(columns))
 
 
 def validate_column_specs(events, columns):
@@ -269,18 +270,13 @@ class EarningsEstimatesLoader(PipelineLoader):
             The array of data and overwrites for the given column.
         """
         col_to_overwrites = defaultdict(dict)
-        # We no longer need NORMALIZED_QUARTERS in the index, but we do need it
-        # as a column to calculate adjustments.
-        zero_qtr_data = zero_qtr_data.reset_index(level=NORMALIZED_QUARTERS)
         zero_qtr_data.sort_index(inplace=True)
-
-        quarter_shifts = zero_qtr_data.loc[
-            zero_qtr_data.index[
-                zero_qtr_data.groupby(level=SID_FIELD_NAME)[
-                    NORMALIZED_QUARTERS
-                ].diff().nonzero()
-            ]
-        ]
+        # Here we want to get the LAST record from each group of records
+        # corresponding to a single quarter. This is to ensure that we select
+        # the most up-to-date event date in case the event date changes.
+        quarter_shifts = zero_qtr_data.groupby(
+            level=[SID_FIELD_NAME, NORMALIZED_QUARTERS]
+        ).nth(-1)
 
         sid_to_idx = dict(zip(assets, range(len(assets))))
 
@@ -290,7 +286,9 @@ class EarningsEstimatesLoader(PipelineLoader):
                 side=self.searchsorted_side,
             )
             sid = int(group.name)
-            qtrs_with_estimates = group[NORMALIZED_QUARTERS].values
+            qtrs_with_estimates = group.index.get_level_values(
+                NORMALIZED_QUARTERS
+            ).values
             for idx in next_qtr_start_indices:
                 if 0 < idx < len(dates):
                     # Only add adjustments if the next quarter starts somewhere
@@ -584,13 +582,14 @@ class NextEarningsEstimatesLoader(EarningsEstimatesLoader):
             An index of calendar dates, sid, and normalized quarters, for only
             the rows that have a next event.
         """
-
         next_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] >=
             stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
         ].groupby(
             level=[SIMULTATION_DATES, SID_FIELD_NAME],
             as_index=False,
+            # Here we take advantage of the fact that `stacked_last_per_qtr` is
+            # sorted by event date.
         ).nth(0)
         return next_releases_per_date.index
 
@@ -635,12 +634,13 @@ class PreviousEarningsEstimatesLoader(EarningsEstimatesLoader):
             An index of calendar dates, sid, and normalized quarters, for only
             the rows that have a previous event.
         """
-
         previous_releases_per_date = stacked_last_per_qtr.loc[
             stacked_last_per_qtr[EVENT_DATE_FIELD_NAME] <=
             stacked_last_per_qtr.index.get_level_values(SIMULTATION_DATES)
         ].groupby(
             level=[SIMULTATION_DATES, SID_FIELD_NAME],
             as_index=False,
+            # Here we take advantage of the fact that `stacked_last_per_qtr` is
+            # sorted by event date.
         ).nth(-1)
         return previous_releases_per_date.index

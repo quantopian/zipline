@@ -746,7 +746,7 @@ class WithEstimateWindows(WithEstimates):
                           columns=[SID_FIELD_NAME,
                                    'estimate',
                                    'knowledge_date'])
-        df = df.pivot_table(columns='sid',
+        df = df.pivot_table(columns=SID_FIELD_NAME,
                             values='estimate',
                             index='knowledge_date')
         df = df.reindex(
@@ -796,8 +796,8 @@ class WithEstimateWindows(WithEstimates):
         engine.run_pipeline(
             Pipeline({'est': SomeFactor()}),
             start_date=start_idx,
-            end_date=pd.Timestamp('2015-01-20', tz='utc'),  # last event date
-            # we have
+            # last event date we have
+            end_date=pd.Timestamp('2015-01-20', tz='utc'),
         )
 
 
@@ -938,7 +938,7 @@ class QuarterShiftTestCase(ZiplineTestCase):
     backwards/forwards from a starting point.
     """
     def test_quarter_normalization(self):
-        input_yrs = pd.Series([0] * 4, dtype=np.int64)
+        input_yrs = pd.Series(range(2011, 2015), dtype=np.int64)
         input_qtrs = pd.Series(range(1, 5), dtype=np.int64)
         result_years, result_quarters = split_normalized_quarters(
             normalize_quarters(input_yrs, input_qtrs)
