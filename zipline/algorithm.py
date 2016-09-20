@@ -82,7 +82,6 @@ from zipline.finance.slippage import (
 )
 from zipline.finance.cancel_policy import NeverCancel, CancelPolicy
 from zipline.assets import Asset, Future
-from zipline.assets.futures import FutureChain
 from zipline.gens.tradesimulation import AlgorithmSimulator
 from zipline.pipeline import Pipeline
 from zipline.pipeline.engine import (
@@ -1244,68 +1243,6 @@ class TradingAlgorithm(object):
             Raised when no contract named 'symbol' is found.
         """
         return self.asset_finder.lookup_future_symbol(symbol)
-
-    @api_method
-    @preprocess(root_symbol=ensure_upper_case)
-    def future_chain(self, root_symbol, as_of_date=None, offset=0):
-        """
-        Look up a future chain.
-
-        Parameters
-        ----------
-        root_symbol : str
-            The root symbol of a future chain.
-        as_of_date : datetime.datetime or pandas.Timestamp or str, optional
-            Date at which the chain determination is rooted. If this date is
-            not passed in, the current simulation session (not minute) is used.
-        offset: int
-            Number of sessions to shift `as_of_date`.  Positive values shift
-             forward in time.  Negative values shift backward in time.
-
-        Returns
-        -------
-        chain : FutureChain
-            The future chain matching the specified parameters.
-
-        Raises
-        ------
-        RootSymbolNotFound
-            If a future chain could not be found for the given root symbol.
-        """
-        if as_of_date:
-            try:
-                as_of_date = pd.Timestamp(as_of_date, tz='UTC')
-            except ValueError:
-                raise UnsupportedDatetimeFormat(
-                    input=as_of_date,
-                    method='future_chain'
-                )
-        else:
-            as_of_date = self.trading_calendar.minute_to_session_label(
-                self.get_datetime()
-            )
-
-        if offset != 0:
-            # move as_of_date by offset sessions
-            session_window = self.trading_calendar.sessions_window(
-                as_of_date, offset
-            )
-
-            if offset > 0:
-                as_of_date = session_window[-1]
-            else:
-                as_of_date = session_window[0]
-
-        chain_of_contracts = self.asset_finder.lookup_future_chain(
-            root_symbol,
-            as_of_date
-        )
-
-        return FutureChain(
-            root_symbol=root_symbol,
-            as_of_date=as_of_date,
-            contracts=chain_of_contracts
-        )
 
     def _calculate_order_value_amount(self, asset, value):
         """
