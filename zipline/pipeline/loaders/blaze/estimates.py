@@ -16,6 +16,7 @@ from zipline.pipeline.loaders.earnings_estimates import (
     NextEarningsEstimatesLoader,
     PreviousEarningsEstimatesLoader,
     required_estimates_fields,
+    metadata_columns,
 )
 from zipline.pipeline.loaders.utils import (
     check_data_query_args,
@@ -104,17 +105,20 @@ class BlazeEstimatesLoader(PipelineLoader):
         self._checkpoints = checkpoints
 
     def load_adjusted_array(self, columns, dates, assets, mask):
-        raw = load_raw_data(assets,
-                            dates,
-                            self._data_query_time,
-                            self._data_query_tz,
-                            self._expr,
-                            self._odo_kwargs,
-                            checkpoints=self._checkpoints)
+        column_names = [column.name for column in columns]
+        raw = load_raw_data(
+            assets,
+            dates,
+            self._data_query_time,
+            self._data_query_tz,
+            self._expr[sorted(metadata_columns.union(column_names))],
+            self._odo_kwargs,
+            checkpoints=self._checkpoints,
+        )
 
         return self.loader(
             raw,
-            self._columns,
+            {k: self._columns[k] for k in column_names}
         ).load_adjusted_array(
             columns,
             dates,

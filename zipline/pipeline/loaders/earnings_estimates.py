@@ -50,23 +50,24 @@ def split_normalized_quarters(normalized_quarters):
     return years, quarters + 1
 
 
+# These metadata columns are used to align event indexers.
+metadata_columns = frozenset({
+    TS_FIELD_NAME,
+    SID_FIELD_NAME,
+    EVENT_DATE_FIELD_NAME,
+    FISCAL_QUARTER_FIELD_NAME,
+    FISCAL_YEAR_FIELD_NAME,
+})
+
+
 def required_estimates_fields(columns):
     """
     Compute the set of resource columns required to serve
     `columns`.
     """
-    # These metadata columns are used to align event indexers.
-    return {
-        TS_FIELD_NAME,
-        SID_FIELD_NAME,
-        EVENT_DATE_FIELD_NAME,
-        FISCAL_QUARTER_FIELD_NAME,
-        FISCAL_YEAR_FIELD_NAME
-    }.union(
-        # We also expect any of the field names that our loadable columns
-        # are mapped to.
-        viewvalues(columns),
-    )
+    # We also expect any of the field names that our loadable columns
+    # are mapped to.
+    return metadata_columns.union(viewvalues(columns))
 
 
 def validate_column_specs(events, columns):
