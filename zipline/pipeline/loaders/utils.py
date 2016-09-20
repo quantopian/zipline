@@ -276,7 +276,11 @@ def check_data_query_args(data_query_time, data_query_tz):
         )
 
 
-def last_in_date_group(df, dates, assets, reindex=True, have_sids=True,
+def last_in_date_group(df,
+                       dates,
+                       assets,
+                       reindex=True,
+                       have_sids=True,
                        extra_groupers=[]):
     """
     Determine the last piece of information known on each date in the date
