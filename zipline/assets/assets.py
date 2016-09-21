@@ -40,7 +40,6 @@ from zipline.errors import (
     FutureContractsNotFound,
     MapAssetIdentifierIndexError,
     MultipleSymbolsFound,
-    RootSymbolNotFound,
     SidsNotFound,
     SymbolNotFound,
 )
@@ -740,62 +739,6 @@ class AssetFinder(object):
         if not data:
             raise SymbolNotFound(symbol=symbol)
         return self.retrieve_asset(data['sid'])
-
-    def lookup_future_chain(self, root_symbol, as_of_date):
-        """ Return the futures chain for a given root symbol.
-
-        Parameters
-        ----------
-        root_symbol : str
-            Root symbol of the desired future.
-
-        as_of_date : pd.Timestamp or pd.NaT
-            Date at which the chain determination is rooted. I.e. the
-            existing contract whose notice date/expiration date is first
-            after this date is the primary contract, etc. If NaT is
-            given, the chain is unbounded, and all contracts for this
-            root symbol are returned.
-
-        Returns
-        -------
-        list
-            A list of Future objects, the chain for the given
-            parameters.
-
-        Raises
-        ------
-        RootSymbolNotFound
-            Raised when a future chain could not be found for the given
-            root symbol.
-        """
-        fc_cols = self.futures_contracts.c
-
-        if as_of_date is pd.NaT:
-            # If the as_of_date is NaT, get all contracts for this
-            # root symbol.
-            sids = list(map(
-                itemgetter('sid'),
-                sa.select((fc_cols.sid,)).where(
-                    (fc_cols.root_symbol == root_symbol),
-                ).order_by(
-                    fc_cols.notice_date.asc(),
-                ).execute().fetchall()))
-        else:
-            sids = self._get_future_sids_for_root_symbol(
-                root_symbol,
-                as_of_date.value
-            )
-
-        if not sids:
-            # Check if root symbol exists.
-            count = sa.select((sa.func.count(fc_cols.sid),)).where(
-                fc_cols.root_symbol == root_symbol,
-            ).scalar()
-            if count == 0:
-                raise RootSymbolNotFound(root_symbol=root_symbol)
-
-        contracts = self.retrieve_futures_contracts(sids)
-        return [contracts[sid] for sid in sids]
 
     @weak_lru_cache(100)
     def _get_future_sids_for_root_symbol(self, root_symbol, as_of_date_ns):

@@ -58,7 +58,6 @@ from zipline.errors import (
     TradingControlViolation,
     AccountControlViolation,
     SymbolNotFound,
-    RootSymbolNotFound,
     UnsupportedDatetimeFormat,
     CannotOrderDelistedAsset,
     SetCancelPolicyPostInit,
@@ -725,108 +724,6 @@ def log_nyse_close(context, data):
 
         with self.assertRaises(TypeError):
             algo.future_symbol({'foo': 'bar'})
-
-    def test_future_chain_offset(self):
-        # November 2006         December 2006
-        # Su Mo Tu We Th Fr Sa  Su Mo Tu We Th Fr Sa
-        #           1  2  3  4                  1  2
-        #  5  6  7  8  9 10 11   3  4  5  6  7  8  9
-        # 12 13 14 15 16 17 18  10 11 12 13 14 15 16
-        # 19 20 21 22 23 24 25  17 18 19 20 21 22 23
-        # 26 27 28 29 30        24 25 26 27 28 29 30
-        #                       31
-
-        algo = TradingAlgorithm(env=self.env)
-        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
-
-        self.assertEqual(
-            algo.future_chain('CL', offset=1).as_of_date,
-            pd.Timestamp("2006-12-04", tz='UTC')
-        )
-
-        self.assertEqual(
-            algo.future_chain("CL", offset=5).as_of_date,
-            pd.Timestamp("2006-12-08", tz='UTC')
-        )
-
-        self.assertEqual(
-            algo.future_chain("CL", offset=-10).as_of_date,
-            pd.Timestamp("2006-11-16", tz='UTC')
-        )
-
-        # September 2016
-        # Su Mo Tu We Th Fr Sa
-        #              1  2  3
-        #  4  5  6  7  8  9 10
-        # 11 12 13 14 15 16 17
-        # 18 19 20 21 22 23 24
-        # 25 26 27 28 29 30
-        self.assertEqual(
-            algo.future_chain(
-                "CL",
-                as_of_date=pd.Timestamp("2016-08-31", tz='UTC'),
-                offset=10
-            ).as_of_date,
-            pd.Timestamp("2016-09-15", tz='UTC')
-        )
-
-    def test_future_chain(self):
-        algo = TradingAlgorithm(env=self.env)
-        algo.datetime = pd.Timestamp('2006-12-01', tz='UTC')
-
-        # Check that the fields of the FutureChain object are set correctly
-        cl = algo.future_chain('CL')
-        self.assertEqual(cl.root_symbol, 'CL')
-        self.assertEqual(cl.as_of_date, algo.datetime)
-
-        # Check the fields are set correctly if an as_of_date is supplied
-        as_of_date = pd.Timestamp('1952-08-11', tz='UTC')
-
-        cl = algo.future_chain('CL', as_of_date=as_of_date)
-        self.assertEqual(cl.root_symbol, 'CL')
-        self.assertEqual(cl.as_of_date, as_of_date)
-
-        cl = algo.future_chain('CL', as_of_date='1952-08-11')
-        self.assertEqual(cl.root_symbol, 'CL')
-        self.assertEqual(cl.as_of_date, as_of_date)
-
-        # Check that weird capitalization is corrected
-        cl = algo.future_chain('cL')
-        self.assertEqual(cl.root_symbol, 'CL')
-
-        cl = algo.future_chain('cl')
-        self.assertEqual(cl.root_symbol, 'CL')
-
-        # Check that invalid root symbols raise RootSymbolNotFound
-        with self.assertRaises(RootSymbolNotFound):
-            algo.future_chain('CLZ')
-
-        with self.assertRaises(RootSymbolNotFound):
-            algo.future_chain('')
-
-        # Check that invalid dates raise UnsupportedDatetimeFormat
-        with self.assertRaises(UnsupportedDatetimeFormat):
-            algo.future_chain('CL', 'my_finger_slipped')
-
-        with self.assertRaises(UnsupportedDatetimeFormat):
-            algo.future_chain('CL', '2015-09-')
-
-        # Supplying a non-string argument to future_chain()
-        # should result in a TypeError.
-        with self.assertRaises(TypeError):
-            algo.future_chain(1)
-
-        with self.assertRaises(TypeError):
-            algo.future_chain((1,))
-
-        with self.assertRaises(TypeError):
-            algo.future_chain({1})
-
-        with self.assertRaises(TypeError):
-            algo.future_chain([1])
-
-        with self.assertRaises(TypeError):
-            algo.future_chain({'foo': 'bar'})
 
     def test_set_symbol_lookup_date(self):
         """
