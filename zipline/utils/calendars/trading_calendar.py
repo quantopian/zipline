@@ -460,29 +460,20 @@ class TradingCalendar(with_metaclass(ABCMeta)):
         pd.DateTimeIndex
             All the minutes for the given session.
         """
-        data = self.schedule.loc[session_label]
-        return self.all_minutes[
-            self.all_minutes.slice_indexer(
-                data.market_open,
-                data.market_close
-            )
-        ]
+        return self.minutes_in_range(*self.schedule.loc[session_label])
 
     def minutes_window(self, start_dt, count):
-        try:
-            start_idx = self.all_minutes.get_loc(start_dt)
-        except KeyError:
-            # if this is not a market minute, go to the previous session's
-            # close
-            previous_session = self.minute_to_session_label(
-                start_dt, direction="previous"
-            )
+        start_dt_nanos = start_dt.value
+        all_minutes_nanos = self._trading_minutes_nanos
+        start_idx = all_minutes_nanos.searchsorted(start_dt_nanos)
 
-            previous_close = self.open_and_close_for_session(
-                previous_session
-            )[1]
+        # searchsorted finds the index of the minute **on or after** start_dt.
+        # If the latter, push back to the prior minute.
+        if all_minutes_nanos[start_idx] != start_dt_nanos:
+            start_idx -= 1
 
-            start_idx = self.all_minutes.get_loc(previous_close)
+        if start_idx < 0 or start_idx >= len(all_minutes_nanos):
+            raise KeyError("Can't start minute window at {}".format(start_dt))
 
         end_idx = start_idx + count
 
